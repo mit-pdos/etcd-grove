@@ -631,9 +631,10 @@ for a key compaction may have deleted (`Del k`: no key and no value).
 **Compaction** (2026-10-13, unit 5a; `notes/decisions.md`, "mvcc: compaction"):
 `LockOutsideApply()` with the deposit witness `Dep` (`batchTxInitSpec`'s first `Unlock` returns
 it) gives `W` (the compaction job's lock, after `NewStore`). Where the backend supports mvcc's
-compaction (`Cmp`): `UnsafeDelete(schema.Key, k)` of a key compaction may delete (`Del k`, the
-store's choice: `delKey`) leaves the token as it is (the logical bucket the view holds is not
-changed: the deletion shows only in what later reads may miss, `snapThin`);
+compaction (`Cmp`): `UnsafeDeleteForCompaction(schema.Key, k)` (etcd#21982: a delete the readers
+may see only at a later commit) of a key compaction may delete (`Del k`, the store's choice:
+`delKey`) leaves the token as it is (the logical bucket the view holds is not changed: the
+deletion shows only in what later reads may miss, `snapThin`, whenever it becomes visible);
 `UnsafeRange(schema.Key, lo, hi, limit)` with a positive limit reads the first `limit` entries in
 `[klo, khi)`, in key order, of the bucket with the puts so far, some keys compaction may delete
 missing (read-only slices); `UnsafePut(schema.Meta, k, v)` at a compaction key
@@ -679,7 +680,7 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
     □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ Del k ∗
           key ↦*{dq} k }}
-        (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
+        (App (App (Val #(methods bt.ty go!"UnsafeDeleteForCompaction" bt.v)) (Val #b)) (Val #key))
       {{ RET #(); Locked l ∗ key ↦*{dq} k }}) ∗
     □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
         (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),

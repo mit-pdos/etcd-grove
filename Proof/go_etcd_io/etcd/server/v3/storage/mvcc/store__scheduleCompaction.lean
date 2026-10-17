@@ -322,7 +322,9 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iframe
     ipureintro
     constructor <;> word
-  -- the batch read: short (the last), or full
+  -- the batch read: short (the last), or full (etcd#21982: `finished`, then the batch
+  -- unlocked and committed either way, then the hash or the next batch)
+  (try wp_auto)
   wp_if_destruct
   · -- the last batch: `finishedCompactRev = rev`, the compaction finished
     (try wp_auto)
@@ -364,6 +366,9 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       exact Nat.le_max_right _ _
     inext
     iintro -
+    (try wp_auto)
+    wp_apply HForce $$ []
+    · isplitl [] <;> itrivial
     (try wp_auto)
     wp_apply h1 as %d2 -
     (try wp_auto)
@@ -424,99 +429,99 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ileft
     iframe Hdone
     ipureintro; rfl
-  -- a full batch: committed, then the next one after the sleep, unless the store stops
-  wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW]
-  · iframe Hlocked HP
-    iunfold mvcc.writerRes
-    iexists ilog, ntok
-    simp only [named]
-    iframe
-    iframe #
-    ipureintro; exact ⟨HbudgetW, HneW⟩
-  inext
-  iintro -
-  (try wp_auto)
-  wp_apply (h15 _ lst bs (Or.inl Hbs)) $$ [$HlastS $HlastC] as %lst2 ⟨HlastS, HlastC⟩
-  (try wp_auto)
-  wp_apply HForce $$ []
-  · isplitl [] <;> itrivial
-  (try wp_auto)
-  wp_apply h1 as %d5 -
-  (try wp_auto)
-  wp_apply HPause
-  (try wp_auto)
-  wp_apply +noauto time.wp_After as %tch %γt #Hbag
-  wp_auto_lc 2
-  ihave #Hstop0 := Hstop
-  iunfold mvcc.storeStop at Hstop0
-  icases Hstop0 with ⟨%stc, #Hstc, #Hstcc⟩
-  iunfold mvcc.isStopChan at Hstcc
-  icases Hstcc with ⟨%γs, #Hstcc⟩
-  icombine Hstopc Hstc gives %Hsteq
-  subst Hsteq
-  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
-  · iPkgInit
-  wp_apply_core chan.wp_select_blocking
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · simp only [chan.blockingClausePre]
-    iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tch, γt
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply is_bag_is_chan $$ Hbag
-    iapply bag_recv_au $$ [$Hlc1 $Hlc2] Hbag
+  · -- a full batch: committed, then the next one after the sleep, unless the store stops
+    (try wp_auto)
+    wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
+    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW]
+    · iframe Hlocked HP
+      iunfold mvcc.writerRes
+      iexists ilog, ntok
+      simp only [named]
+      iframe
+      iframe #
+      ipureintro; exact ⟨HbudgetW, HneW⟩
     inext
-    iintro %tm' -
-    wp_auto
-    wp_for_post
-    iframe
-    iexists lst2, _, kc, hv
-    simp only [named]
-    iframe
-    ipureintro
-    rw [List.length_append, mvcc.revBytes_length]
-    simp [Hbs]
-  iapply BigAndL.bigAndL_cons.2
-  isplit
-  · simp only [chan.blockingClausePre]
-    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, sstop, γs
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iapply ownBroadcastChan_is_chan $$ Hstcc
-    iapply broadcast_chan_receive _ _ _ _ _ $$ Hstcc
-    iintro ⟨-, #Hdone⟩
-    wp_auto
-    wp_apply mvcc.wp_Errorf_errorfIs $$ [] as %err #Herr
-    · iframe #; iapply ownSlice_nil
+    iintro -
     (try wp_auto)
-    wp_for_post
-    wp_apply time.wp_Now as %tn -
+    wp_apply HForce $$ []
+    · isplitl [] <;> itrivial
     (try wp_auto)
-    wp_apply h16 as %un -
+    wp_apply h1 as %d5 -
     (try wp_auto)
-    wp_apply HLast
+    wp_apply HPause
     (try wp_auto)
-    wp_apply HKeysAdd
+    wp_apply (h15 _ lst bs (Or.inl Hbs)) $$ [$HlastS $HlastC] as %lst2 ⟨HlastS, HlastC⟩
     (try wp_auto)
-    wp_apply h1 as %d4 -
-    (try wp_auto)
-    wp_apply HTot
-    (try wp_auto)
-    wp_apply HUSR
-    (try wp_auto)
-    iapply HΦ
-    iframe Htok
-    iright
-    iframe Herr
-    iunfold mvcc.storeStopped
-    iexists sstop, γs
-    iframe Hstc Hdone
-  iapply BigAndL.bigAndL_nil.2
-  itrivial
-
+    wp_apply +noauto time.wp_After as %tch %γt #Hbag
+    wp_auto_lc 2
+    ihave #Hstop0 := Hstop
+    iunfold mvcc.storeStop at Hstop0
+    icases Hstop0 with ⟨%stc, #Hstc, #Hstcc⟩
+    iunfold mvcc.isStopChan at Hstcc
+    icases Hstcc with ⟨%γs, #Hstcc⟩
+    icombine Hstopc Hstc gives %Hsteq
+    subst Hsteq
+    ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+    · iPkgInit
+    wp_apply_core chan.wp_select_blocking
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · simp only [chan.blockingClausePre]
+      iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tch, γt
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply is_bag_is_chan $$ Hbag
+      iapply bag_recv_au $$ [$Hlc1 $Hlc2] Hbag
+      inext
+      iintro %tm' -
+      wp_auto
+      wp_for_post
+      iframe
+      iexists lst2, _, kc, hv
+      simp only [named]
+      iframe
+      ipureintro
+      rw [List.length_append, mvcc.revBytes_length]
+      simp [Hbs]
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, sstop, γs
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply ownBroadcastChan_is_chan $$ Hstcc
+      iapply broadcast_chan_receive _ _ _ _ _ $$ Hstcc
+      iintro ⟨-, #Hdone⟩
+      wp_auto
+      wp_apply mvcc.wp_Errorf_errorfIs $$ [] as %err #Herr
+      · iframe #; iapply ownSlice_nil
+      (try wp_auto)
+      wp_for_post
+      wp_apply time.wp_Now as %tn -
+      (try wp_auto)
+      wp_apply h16 as %un -
+      (try wp_auto)
+      wp_apply HLast
+      (try wp_auto)
+      wp_apply HKeysAdd
+      (try wp_auto)
+      wp_apply h1 as %d4 -
+      (try wp_auto)
+      wp_apply HTot
+      (try wp_auto)
+      wp_apply HUSR
+      (try wp_auto)
+      iapply HΦ
+      iframe Htok
+      iright
+      iframe Herr
+      iunfold mvcc.storeStopped
+      iexists sstop, γs
+      iframe Hstc Hdone
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
 end proof
 
 end EtcdGrove

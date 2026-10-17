@@ -1,0 +1,7 @@
+compactBeforeCommitScheduledCompact: declared
+compactAfterCommitScheduledCompact: declared
+compactBeforeSetFinishedCompact: declared
+compactBeforeSetFinishedCompact: declared
+compactAfterSetFinishedCompact: declared
+compactBeforeCommitBatch: MISSING
+compactAfterCommitBatch: declared

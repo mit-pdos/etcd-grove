@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21982 verified (2026-10-17, branch `pr-verify/etcd-21982`, not merged)
+
+The PR adds `BatchTx.UnsafeDeleteForCompaction`, a delete that does not count as a pending delete, so the
+`Unlock` does not commit and readers see the key until a later commit. `store.scheduleCompaction` now commits
+every batch after the unlock. It is verified over the fork's `pr-etcd-21982-goose-lean`:
+- `scheduleCompaction`'s spec is re-proved, unchanged. mvcc's contract clause for the compaction delete is
+  renamed to the new method.
+- `batchTx.UnsafeDeleteForCompaction` is proved.
+- `batchTxBuffered.UnsafeDeleteForCompaction` is proved only for a hook's bucket (`LateDel.lean`): the backend's
+  view model cannot state a late-visible delete in `Key`. This is the "view up to deletable keys" redesign of
+  decisions.md, "The compaction over the real backend".
+
+No axiom or `sorry` is added. Report: `notes/pr-verify/etcd-21982.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

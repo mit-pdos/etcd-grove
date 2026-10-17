@@ -1,0 +1,7 @@
+=== RUN   TestCompactionDeleteVisibleUntilCommit
+    compaction_delete_visibility_test.go:64: compaction=false: after Unlock, write tx sees 0, ReadTx 0, ConcurrentReadTx 0
+    compaction_delete_visibility_test.go:64: compaction=true: after Unlock, write tx sees 0, ReadTx 1, ConcurrentReadTx 1
+--- PASS: TestCompactionDeleteVisibleUntilCommit (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/backend	(cached)
+exit 0

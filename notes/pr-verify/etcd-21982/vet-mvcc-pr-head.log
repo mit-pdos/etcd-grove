@@ -1,0 +1,4 @@
+# go.etcd.io/etcd/server/v3/storage/mvcc
+# [go.etcd.io/etcd/server/v3/storage/mvcc]
+vet: storage/mvcc/kvstore_test.go:996:92: cannot use b.tx (variable of type *fakeBatchTx) as backend.BatchTx value in return statement: *fakeBatchTx does not implement backend.BatchTx (missing method UnsafeDeleteForCompaction)
+exit 1

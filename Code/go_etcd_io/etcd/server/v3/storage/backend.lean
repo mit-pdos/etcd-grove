@@ -964,7 +964,7 @@ noncomputable def snapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Lock is supposed to be called only by the unit test.
 
-    go: batch_tx.go:102:19 -/
+    go: batch_tx.go:103:19 -/
 noncomputable def batchTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -980,7 +980,7 @@ noncomputable def batchTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))))))
   (App (App (Val (GoInstruction (FuncResolve ValidateCalledInsideUnittest []))) (Val #())) (Var "$a0"))))))))))
 
-/-- go: batch_tx.go:107:19 -/
+/-- go: batch_tx.go:108:19 -/
 noncomputable def batchTx.lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -992,7 +992,7 @@ noncomputable def batchTx.lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"Mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t")))) (Val #()))))))))
 
-/-- go: batch_tx.go:111:19 -/
+/-- go: batch_tx.go:112:19 -/
 noncomputable def batchTx.LockInsideApply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1014,7 +1014,7 @@ noncomputable def batchTx.LockInsideApply.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Val #())))))))))
 
-/-- go: batch_tx.go:124:19 -/
+/-- go: batch_tx.go:125:19 -/
 noncomputable def batchTx.LockOutsideApply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1030,7 +1030,7 @@ noncomputable def batchTx.LockOutsideApply.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))))))
   (App (App (Val (GoInstruction (FuncResolve ValidateCalledOutSideApply []))) (Val #())) (Var "$a0"))))))))))
 
-/-- go: batch_tx.go:129:19 -/
+/-- go: batch_tx.go:130:19 -/
 noncomputable def batchTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1049,7 +1049,7 @@ noncomputable def batchTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: batch_tx.go:136:19 -/
+/-- go: batch_tx.go:137:19 -/
 noncomputable def batchTx.UnsafeCreateBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1088,7 +1088,7 @@ noncomputable def batchTx.UnsafeCreateBucket.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Var "$r0"))))))))))))))))
 
-/-- go: batch_tx.go:147:19 -/
+/-- go: batch_tx.go:148:19 -/
 noncomputable def batchTx.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1124,7 +1124,7 @@ noncomputable def batchTx.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] 
 
 /-- UnsafePut must be called holding the lock on the tx.
 
-    go: batch_tx.go:160:19 -/
+    go: batch_tx.go:161:19 -/
 noncomputable def batchTx.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1147,7 +1147,7 @@ noncomputable def batchTx.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- UnsafeSeqPut must be called holding the lock on the tx.
 
-    go: batch_tx.go:165:19 -/
+    go: batch_tx.go:166:19 -/
 noncomputable def batchTx.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1168,7 +1168,7 @@ noncomputable def batchTx.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$a3" (Val #true)
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"unsafePut"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))))))))
 
-/-- go: batch_tx.go:169:19 -/
+/-- go: batch_tx.go:170:19 -/
 noncomputable def batchTx.unsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
@@ -1235,7 +1235,7 @@ noncomputable def batchTx.unsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- UnsafeRange must be called holding the lock on the tx.
 
-    go: batch_tx.go:194:19 -/
+    go: batch_tx.go:195:19 -/
 noncomputable def batchTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
@@ -1277,7 +1277,7 @@ noncomputable def batchTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0"))))))))))))))))))
 
-/-- go: batch_tx.go:206:6 -/
+/-- go: batch_tx.go:207:6 -/
 noncomputable def unsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1376,7 +1376,7 @@ noncomputable def unsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- UnsafeDelete must be called holding the lock on the tx.
 
-    go: batch_tx.go:229:19 -/
+    go: batch_tx.go:230:19 -/
 noncomputable def batchTx.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
@@ -1429,9 +1429,26 @@ noncomputable def batchTx.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0")))))))))))))))
 
+/-- go: batch_tx.go:250:19 -/
+noncomputable def batchTx.UnsafeDeleteForCompaction.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "bucketType"
+  (Lam "key"
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType batchTx.ty)))) (Var "t"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "key"))
+  (Let "bucketType" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucketType"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Var "$a0")) (Var "$a1")))))))))))))
+
 /-- UnsafeForEach must be called holding the lock on the tx.
 
-    go: batch_tx.go:250:19 -/
+    go: batch_tx.go:255:19 -/
 noncomputable def batchTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1446,7 +1463,7 @@ noncomputable def batchTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
   (App (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
 
-/-- go: batch_tx.go:254:6 -/
+/-- go: batch_tx.go:259:6 -/
 noncomputable def unsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "bucket"
@@ -1473,7 +1490,7 @@ noncomputable def unsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Commit commits a previous tx and begins a new writable one.
 
-    go: batch_tx.go:262:19 -/
+    go: batch_tx.go:267:19 -/
 noncomputable def batchTx.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1494,7 +1511,7 @@ noncomputable def batchTx.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- CommitAndStop commits the previous tx and does not create a new one.
 
-    go: batch_tx.go:269:19 -/
+    go: batch_tx.go:274:19 -/
 noncomputable def batchTx.CommitAndStop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1513,7 +1530,7 @@ noncomputable def batchTx.CommitAndStop.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Val #())))))))))
 
-/-- go: batch_tx.go:275:19 -/
+/-- go: batch_tx.go:280:19 -/
 noncomputable def batchTx.safePending.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1533,7 +1550,7 @@ noncomputable def batchTx.safePending.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"Mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t")))) (Val #())))))))))
 
-/-- go: batch_tx.go:281:19 -/
+/-- go: batch_tx.go:286:19 -/
 noncomputable def batchTx.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "stop"
@@ -1606,7 +1623,7 @@ noncomputable def batchTx.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: batch_tx.go:316:6 -/
+/-- go: batch_tx.go:321:6 -/
 noncomputable def newBatchTxBuffered.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "backend"
   (App (Val exceptionDo)
@@ -1628,7 +1645,7 @@ noncomputable def newBatchTxBuffered.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType batchTxBuffered.ty)))) (Pair (Var "tx") (Var "$r0"))))))))))
 
-/-- go: batch_tx.go:328:27 -/
+/-- go: batch_tx.go:333:27 -/
 noncomputable def batchTxBuffered.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1660,7 +1677,7 @@ noncomputable def batchTxBuffered.Unlock.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: batch_tx.go:362:27 -/
+/-- go: batch_tx.go:367:27 -/
 noncomputable def batchTxBuffered.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1679,7 +1696,7 @@ noncomputable def batchTxBuffered.Commit.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))) (Val #())))))))))
 
-/-- go: batch_tx.go:368:27 -/
+/-- go: batch_tx.go:373:27 -/
 noncomputable def batchTxBuffered.CommitAndStop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -1698,7 +1715,7 @@ noncomputable def batchTxBuffered.CommitAndStop.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))) (Val #())))))))))
 
-/-- go: batch_tx.go:374:27 -/
+/-- go: batch_tx.go:379:27 -/
 noncomputable def batchTxBuffered.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "stop"
@@ -1718,7 +1735,7 @@ noncomputable def batchTxBuffered.commit.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readTx.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))) (Val #()))))))))))
 
-/-- go: batch_tx.go:381:27 -/
+/-- go: batch_tx.go:386:27 -/
 noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "stop"
@@ -1788,7 +1805,7 @@ noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: batch_tx.go:408:27 -/
+/-- go: batch_tx.go:413:27 -/
 noncomputable def batchTxBuffered.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1814,7 +1831,7 @@ noncomputable def batchTxBuffered.UnsafePut.impl [FfiSyntax] [GoGlobalContext] :
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafePut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))))
 
-/-- go: batch_tx.go:413:27 -/
+/-- go: batch_tx.go:418:27 -/
 noncomputable def batchTxBuffered.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1840,7 +1857,7 @@ noncomputable def batchTxBuffered.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeSeqPut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))))
 
-/-- go: batch_tx.go:418:27 -/
+/-- go: batch_tx.go:423:27 -/
 noncomputable def batchTxBuffered.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
@@ -1860,7 +1877,24 @@ noncomputable def batchTxBuffered.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeDelete"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1"))))))))))))))
 
-/-- go: batch_tx.go:423:27 -/
+/-- go: batch_tx.go:428:27 -/
+noncomputable def batchTxBuffered.UnsafeDeleteForCompaction.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "bucketType"
+  (Lam "key"
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "key"))
+  (Let "bucketType" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucketType"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeDeleteForCompaction"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")))))))))))))
+
+/-- go: batch_tx.go:432:27 -/
 noncomputable def batchTxBuffered.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -3618,7 +3652,7 @@ attribute [instance] Bucket.TypeAssumptions.underlying
 abbrev BatchTx [FfiSyntax] : Type := GoInterface
 
 @[reducible] def BatchTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Commit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"CommitAndStop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockInsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockOutsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeReadWriter.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Commit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"CommitAndStop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockInsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockOutsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteForCompaction" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeReadWriter.ty)])])
 
 class BatchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BatchTx.ty BatchTx.underlying
@@ -3693,6 +3727,7 @@ class batchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   ptr_UnsafeCreateBucket_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafeCreateBucket" batchTx.UnsafeCreateBucket.impl
   ptr_UnsafeDelete_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafeDelete" batchTx.UnsafeDelete.impl
   ptr_UnsafeDeleteBucket_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafeDeleteBucket" batchTx.UnsafeDeleteBucket.impl
+  ptr_UnsafeDeleteForCompaction_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafeDeleteForCompaction" batchTx.UnsafeDeleteForCompaction.impl
   ptr_UnsafeForEach_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafeForEach" batchTx.UnsafeForEach.impl
   ptr_UnsafePut_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafePut" batchTx.UnsafePut.impl
   ptr_UnsafeRange_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"UnsafeRange" batchTx.UnsafeRange.impl
@@ -3722,6 +3757,7 @@ attribute [instance] batchTx.TypeAssumptions.type_repr
   batchTx.TypeAssumptions.ptr_UnsafeCreateBucket_unfold
   batchTx.TypeAssumptions.ptr_UnsafeDelete_unfold
   batchTx.TypeAssumptions.ptr_UnsafeDeleteBucket_unfold
+  batchTx.TypeAssumptions.ptr_UnsafeDeleteForCompaction_unfold
   batchTx.TypeAssumptions.ptr_UnsafeForEach_unfold
   batchTx.TypeAssumptions.ptr_UnsafePut_unfold
   batchTx.TypeAssumptions.ptr_UnsafeRange_unfold
@@ -3859,6 +3895,7 @@ class batchTxBuffered.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (Var "$r"))))
   ptr_UnsafeDelete_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"UnsafeDelete" batchTxBuffered.UnsafeDelete.impl
   ptr_UnsafeDeleteBucket_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"UnsafeDeleteBucket" batchTxBuffered.UnsafeDeleteBucket.impl
+  ptr_UnsafeDeleteForCompaction_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"UnsafeDeleteForCompaction" batchTxBuffered.UnsafeDeleteForCompaction.impl
   ptr_UnsafeForEach_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"UnsafeForEach" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeForEach"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (Var "$r"))))
   ptr_UnsafePut_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"UnsafePut" batchTxBuffered.UnsafePut.impl
@@ -3890,6 +3927,7 @@ attribute [instance] batchTxBuffered.TypeAssumptions.type_repr
   batchTxBuffered.TypeAssumptions.ptr_UnsafeCreateBucket_unfold
   batchTxBuffered.TypeAssumptions.ptr_UnsafeDelete_unfold
   batchTxBuffered.TypeAssumptions.ptr_UnsafeDeleteBucket_unfold
+  batchTxBuffered.TypeAssumptions.ptr_UnsafeDeleteForCompaction_unfold
   batchTxBuffered.TypeAssumptions.ptr_UnsafeForEach_unfold
   batchTxBuffered.TypeAssumptions.ptr_UnsafePut_unfold
   batchTxBuffered.TypeAssumptions.ptr_UnsafeRange_unfold

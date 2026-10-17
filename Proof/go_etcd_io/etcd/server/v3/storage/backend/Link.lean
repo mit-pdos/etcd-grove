@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__U
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDeleteBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDeleteForCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
@@ -49,6 +50,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeCreateBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteForCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeSeqPut
@@ -466,6 +468,14 @@ theorem batchTx.wp_UnsafeDeleteBucket :
 theorem batchTxBuffered.wp_UnsafeDeleteBucket :
     EtcdGrove.backend.batchTxBuffered.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof batchTx.wp_UnsafeDeleteBucket
+
+theorem batchTx.wp_UnsafeDeleteForCompaction :
+    EtcdGrove.backend.batchTx.UnsafeDeleteForCompaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTx.UnsafeDeleteForCompaction.wp_proof batchTx.wp_UnsafeDelete
+
+theorem batchTxBuffered.wp_UnsafeDeleteForCompaction :
+    EtcdGrove.backend.batchTxBuffered.UnsafeDeleteForCompaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTxBuffered.UnsafeDeleteForCompaction.wp_proof batchTx.wp_UnsafeDeleteForCompaction
 
 theorem bbolt.Bucket.wp_Put_kv :
     EtcdGrove.bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG) :=

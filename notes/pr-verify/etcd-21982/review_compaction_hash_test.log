@@ -1,0 +1,7 @@
+    review_compaction_hash_test.go:66: liveKey=true: mid-compaction {Hash:2983040933 CompactRevision:9 Revision:9}, after {Hash:2983040933 CompactRevision:9 Revision:9}
+    review_compaction_hash_test.go:66: liveKey=false: mid-compaction {Hash:1555807101 CompactRevision:8 Revision:8}, after {Hash:1084519789 CompactRevision:8 Revision:8}
+    review_compaction_hash_test.go:68: liveKey=false: HashByRev differs between an in-progress and a finished compaction at the same revisions
+--- FAIL: TestReviewHashByRevDuringCompaction (0.62s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.630s
+FAIL

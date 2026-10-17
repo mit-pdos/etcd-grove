@@ -26,8 +26,9 @@ below `rev` (`compactTok`: the job's, handed on by the previous job; 2026-10-13,
 index compacted at `rev` (`treeIndex.Compact`: the map of the kept revisions; the token at `rev`
 after it, whatever follows), then the bucket's revisions up to `rev` not kept deleted in batches
 of `CompactionBatchLimit` (positive: `isStore`) under the batch lock (`UnsafeRange` limited,
-`UnsafeDelete` of keys compaction may delete, `delKey`), each committed, `finishedCompactRev = rev`
-written in the last batch: `nil` and the compaction finished (`compactedAt γ rev`); or the store
+`UnsafeDeleteForCompaction` of keys compaction may delete, `delKey`), each unlocked then committed
+(`ForceCommit`, the last batch too: etcd#21982), `finishedCompactRev = rev` written in the last
+batch: `nil` and the compaction finished (`compactedAt γ rev`); or the store
 stopped between two batches (its stop channel closed): `fmt.Errorf`'s error. The hash
 (`kvHasher`, crc32: an axiom) is any. -/
 abbrev mvcc.store.scheduleCompaction.spec : Prop :=
