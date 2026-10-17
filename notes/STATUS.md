@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd-io/etcd#22550 verified (2026-10-17, branch `pr-verify/etcd-22550`, not merged)
+
+The PR (the key index records leases, keys-only ranges return them) verified over the fork's
+`pr-etcd-22550-goose-lean`: the index's representation takes a lease function (`ownGen ... lf`,
+`idxLockInv` at `evLease (evsOf (ilog ++ [pend]))`), mvcc's fast keys-only read returns the state's
+lease (`kvPtrIs false`), txn's `leaseZ` is gone and the client's `getExact` admits keys-only gets.
+No axiom or `sorry` added. Report: `notes/pr-verify/etcd-22550.md`. When a pin includes the fix,
+this branch is the starting point and `issues/etcd-range-keys-only-lease.md` closes.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
