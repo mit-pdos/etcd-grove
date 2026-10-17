@@ -58,7 +58,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
     isplitl []
     · ipureintro; rfl
     iexact Hkey
-  wp_apply (hKI ti t L sync.rfrac keyi k) $$ [$HtreeL] as %p ⟨HtreeL, %Hp⟩
+  wp_apply (hKI ti t L _ sync.rfrac keyi k) $$ [$HtreeL] as %p ⟨HtreeL, %Hp⟩
   · iframe #
   -- what the reader knows, under the lock
   icases mvcc.idxKnows_facts γ kn kn.log rfl ilog pend sync.rfrac $$ Hkn HhistL HnevL
@@ -77,7 +77,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
       ⌜mvcc.kiOfKey (mvcc.evsOf kn.log) k ≠ mvcc.kiEmpty → p ≠ null⌝ ∗
       ⌜∀ ilog' pend', kn = .writer ilog' pend' → p ≠ null →
         mvcc.kiOfKey (mvcc.evsOf (ilog' ++ [pend'])) k ≠ mvcc.kiEmpty⌝ ∗
-      mvcc.ownTree t L sync.rfrac $$ [HtreeL]
+      mvcc.ownTree t L (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) sync.rfrac $$ [HtreeL]
   · cases hf : L.find? (fun z => decide (z.2.1 = k)) with
     | none =>
       rw [hf] at Hp Hidx

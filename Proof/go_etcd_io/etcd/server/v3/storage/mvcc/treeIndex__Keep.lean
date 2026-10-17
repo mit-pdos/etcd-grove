@@ -70,7 +70,7 @@ theorem mvcc.treeIndex.Keep.wp_proof
     (DFrac.own sync.rfrac) _
     (fun i => iprop(available_ptr ↦ m ∗ rev_ptr ↦ rev ∗
       ownMap m (DFrac.own 1) (mvcc.keepFold ∅ rev (L.take i)) ∗
-      [∗list] z ∈ L, mvcc.ownEntry z sync.rfrac)) iprop(False))
+      [∗list] z ∈ L, mvcc.ownEntry z (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) sync.rfrac)) iprop(False))
     $$ [Ht available rev Hm Hkis] as ⟨Ht, Hpost⟩
   · isplitr
     · ipureintro; exact mvcc.kiItemLess_swo
@@ -92,7 +92,7 @@ theorem mvcc.treeIndex.Keep.wp_proof
     icases Hitv with ⟨%Hpz, -⟩
     simp only at Hpz
     subst Hpz
-    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z sync.rfrac) hz |>.1 $$ Hkis
+    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) sync.rfrac) hz |>.1 $$ Hkis
       with ⟨Hz, Hback⟩
     iunfold mvcc.ownEntry at Hz
     icases Hz with ⟨%Hzn, %gs, Hzki⟩
@@ -101,7 +101,7 @@ theorem mvcc.treeIndex.Keep.wp_proof
         (by unfold mvcc.idxOfEntries; exact List.mem_map.2 ⟨z, List.mem_of_getElem? hz, rfl⟩)
     have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRep.gensOk HbL HLL.1 Hcm Hget
     wp_auto
-    wp_apply (h1 z.1 gs z.2.2 (DFrac.own sync.rfrac) rev m _ Hok) $$ [Hzki Hm] as ⟨Hzki, Hm⟩
+    wp_apply (h1 z.1 gs z.2.2 _ (DFrac.own sync.rfrac) rev m _ Hok) $$ [Hzki Hm] as ⟨Hzki, Hm⟩
     · iframe Hzki Hm
     iapply HΦ
     simp only [↓reduceIte]
@@ -110,7 +110,7 @@ theorem mvcc.treeIndex.Keep.wp_proof
       rw [List.take_add_one, hz]; rfl
     rw [Htake, mvcc.keepFold_append]
     iframe Hm
-    ihave Hz : iprop(mvcc.ownEntry z sync.rfrac) $$ [Hzki]
+    ihave Hz : iprop(mvcc.ownEntry z (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) sync.rfrac) $$ [Hzki]
     · iunfold mvcc.ownEntry
       isplitl []
       · ipureintro; exact Hzn

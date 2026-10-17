@@ -249,13 +249,13 @@ theorem mvcc.treeIndex.Compact.wp_proof
     have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRep.gensOk HbL HLL.1 HcmB Hget
     obtain ⟨cz, -, -, -, Hzne⟩ := mvcc.IdxCRep.get_some HLL.1 Hget
     -- borrow the entry
-    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hj |>.1 $$ HkisL
+    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) 1) hj |>.1 $$ HkisL
       with ⟨Hz, Hback⟩
     iunfold mvcc.ownEntry at Hz
     icases Hz with ⟨-, %gs, Hzki⟩
-    wp_apply (h4 z.1 gs z.2.2 lg rev m A Hlgnn Hok Hzne) $$ [Hzki Hm] as ⟨%gs', Hzki, Hm⟩
+    wp_apply (h4 z.1 gs z.2.2 _ lg rev m A Hlgnn Hok Hzne) $$ [Hzki Hm] as ⟨%gs', Hzki, Hm⟩
     · iframe Hzki Hm
-    wp_apply (h5 z.1 gs' (mvcc.kiCompact rev z.2.2) (DFrac.own 1)) $$ [Hzki] as Hzki
+    wp_apply (h5 z.1 gs' (mvcc.kiCompact rev z.2.2) _ (DFrac.own 1)) $$ [Hzki] as Hzki
     · iframe Hzki
     ispecialize Hback $$ %(z.1, z.2.1, mvcc.kiCompact rev z.2.2) [Hzki]
     · iunfold mvcc.ownEntry
