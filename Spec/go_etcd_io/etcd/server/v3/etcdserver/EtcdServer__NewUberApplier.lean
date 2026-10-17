@@ -35,17 +35,17 @@ any `TxnModeWriteWithSharedBuffer` and with `RaftStatus`/`SnapshotServer` uncons
 caller could discharge). The alarm store is the real one (`isAlarmStore a`: its `Get`). -/
 abbrev EtcdServer.NewUberApplier.spec : Prop :=
   ∀ (s lg a cl : Loc) (kv au le ci be fg : GoInterface) (quota : w64)
-    (wad : time.Duration) (RD : IProp GF),
+    (wad : time.Duration) (RD : IProp GF) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ srvKVAddr s ↦□ kv ∗ srvAlarmStoreAddr s ↦□ a ∗
       srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗ srvClusterAddr s ↦□ cl ∗
-      srvCIAddr s ↦□ ci ∗ srvBeAddr s ↦□ be ∗
+      srvCIAddr s ↦□ ci ∗ srvBeAddr s ↦{dq} be ∗
       srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
       srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
       srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
       isAlarmStore a ∗ RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"NewUberApplier")) (Val #()))
-  {{ (ua : GoInterface), RET #ua; ∃ (p : Loc)
+  {{ (ua : GoInterface), RET #ua; srvBeAddr s ↦{dq} be ∗ ∃ (p : Loc)
         (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions),
       ⌜ua = interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p⌝ ∗

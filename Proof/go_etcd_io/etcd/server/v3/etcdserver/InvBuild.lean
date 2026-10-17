@@ -152,10 +152,11 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
 
 /-- **The built part** (`NewServer.spec`'s postcondition, on success): `isServerBuilt` but the
 rows of `srvBuildGap` (named as `isServerBuilt`'s; `#Hfb`, `#Hrdb`, `Happ` without their KV
-parts). -/
+parts, which `#Hkv` and `HWB` give in part: `srv.kv` with its read view and the write budget,
+moved from the residual by unit N4's `NewServer` proof, 2026-10-17). -/
 def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
+    (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci ∗
     "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
@@ -190,24 +191,25 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Happ" ∷ applyBuiltNA s γ ci b E γr ai₀ c₀ x₀ ∗
     "Hlr" ∷ srvLgReader s ∗
     "Hlrl" ∷ srvLgReader s ∗
-    "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n))
-
-/-- **The residual** (see the file header): the rows of `isServerBuilt` no `NewServer` proof
-gives -- the KV rows (the uber-applier's `applierFor` and its KV state `applyKV` at `x₀`,
-`srv.kv` as `txn.isKV` with its read view: true of the watchable store since unit N4), `storeSmall`, the write budget,
-the raft storage's snapshot contract, the id budget, `ClusterVersion()`'s contract, the logic's
-thread bound. A premise of whoever composes `NewServer` with `start`. -/
-def srvBuildGap (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ai₀ at₀ : w64)
-    (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
-  iprop("Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀) ∗
+    "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
     "#Hkv" ∷ (∃ (kv : GoInterface) (rv : Loc), srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ ∗
       E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
           #rv : GoInterface) ∗
       mvcc.isReadView rv E.s E.γ) ∗
+    "HWB" ∷ txn.storeWTs E.γ N)
+
+/-- **The residual** (see the file header): the rows of `isServerBuilt` no `NewServer` proof
+gives -- the uber-applier's rows (its `applierFor` and its KV state `applyKV` at `x₀`),
+`storeSmall`, the raft storage's snapshot contract, the id budget, `ClusterVersion()`'s contract,
+the logic's thread bound. A premise of whoever composes `NewServer` with `start`. (`srv.kv` as
+`txn.isKV` with its read view and the write budget `txn.storeWTs` were rows here until unit N4's
+`NewServer` proof, 2026-10-17, which gives them: `srvBuilt`.) -/
+def srvBuildGap (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ai₀ at₀ : w64)
+    (x₀ : apply.ApplyKV) : IProp GF :=
+  iprop("Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
+      apply.applyKV E ua x₀) ∗
     "#Hsmall" ∷ storeSmall E.γ ∗
-    "HWB" ∷ txn.storeWTs E.γ N ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗

@@ -30,16 +30,19 @@ alarm store `NewAlarmStore` made (its lock, `isAlarmStore`, and the apply contra
 batch lock `Pk` and any frozen hook, as `v3alarm.NewAlarmStore.spec` gives; unit N4, 2026-10-17:
 at any batch-lock invariant and hook until then, false) in `s.alarmStore`. -/
 abbrev EtcdServer.restoreAlarms.spec : Prop :=
-  ∀ (s lg : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (a0 : Loc),
+  ∀ (s lg : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (a0 : Loc) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
-      srvBeAddr s ↦□ (interface.mkOk
+      srvBeAddr s ↦{dq} (interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be :
           GoInterface) ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
       srvAlarmStoreAddr s ↦ a0 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"restoreAlarms")) (Val #()))
   {{ (err : GoInterface), RET #err; backend.bOpen d.γB qo ∗
+      srvBeAddr s ↦{dq} (interface.mkOk
+        (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be :
+          GoInterface) ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ srvAlarmStoreAddr s ↦ a0) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ a : Loc, ⌜a ≠ null⌝ ∗ srvAlarmStoreAddr s ↦ a ∗
         isAlarmStore a ∗ □ (∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗

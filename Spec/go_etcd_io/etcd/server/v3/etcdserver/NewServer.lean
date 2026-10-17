@@ -109,7 +109,7 @@ abbrev NewServer.spec : Prop :=
           (γn : RNNames) (b : GoInterface),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
-            (W64 0) bootKV ∗
+            (W64 0) bootKV N ∗
           etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) }}
 
 end spec

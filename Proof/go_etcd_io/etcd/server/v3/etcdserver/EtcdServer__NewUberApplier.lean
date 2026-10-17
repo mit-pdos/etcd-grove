@@ -32,8 +32,8 @@ theorem EtcdServer.NewUberApplier.wp_proof
     (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG))
     (hGet : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro s lg a cl kv au le ci be fg quota wad RD
-  wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, #Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
+  intro s lg a cl kv au le ci be fg quota wad RD dq
+  wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
     #Hal, HRD⟩
   ihave #Hgate' := Hgate
   iunfold isFeatureGate at Hgate'
@@ -59,6 +59,7 @@ theorem EtcdServer.NewUberApplier.wp_proof
   · iframe HRD
     iframe #
   iapply HΦ
+  iframe Hbe
   iexists p, _
   iframe Hown
   ipureintro

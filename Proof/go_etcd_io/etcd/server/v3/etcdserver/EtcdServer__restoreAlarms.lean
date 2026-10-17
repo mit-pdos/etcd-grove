@@ -30,8 +30,8 @@ theorem EtcdServer.restoreAlarms.wp_proof
     (hAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAS : v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) := by
-  intro s lg d W Pk qo a0
-  wp_start as ⟨#Hlg, %Hlgnn, #Hbe, #Hb, Ho, Hwb, Ha0⟩
+  intro s lg d W Pk qo a0 dq
+  wp_start as ⟨#Hlg, %Hlgnn, Hbe, #Hb, Ho, Hwb, Ha0⟩
   wp_auto
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
@@ -47,14 +47,14 @@ theorem EtcdServer.restoreAlarms.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
-      iframe Ho
+      iframe Ho Hbe
       ileft
       iframe Ha0
       ipureintro; exact Herr
   · subst Herr
     wp_auto
     iapply HΦ
-    iframe Ho
+    iframe Ho Hbe
     iright
     isplitr
     · ipureintro; rfl

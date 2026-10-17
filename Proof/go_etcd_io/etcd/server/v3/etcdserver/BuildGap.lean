@@ -93,14 +93,14 @@ completed with the residual's (the uber-applier's field and contracts into `#Hfb
 theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
-    srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ ∗ srvBuildGap s E ρ ai₀ at₀ x₀ N ⊢
+    srvBuilt s γ ci TM E ρ γr Er γn b ai₀ c₀ x₀ N ∗ srvBuildGap s E ρ ai₀ at₀ x₀ ⊢
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
       #Hrn, %HEr, %Hρrd, Hloop, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
-      Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr⟩,
-    ⟨⟨%ua, #Hua, #Hfor, Hakv⟩, ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, #Hsmall, HWB, Hsnap,
-      #HNR, #Hcv, %Hbound⟩⟩
+      Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
+      ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB⟩,
+    ⟨⟨%ua, #Hua, #Hfor, Hakv⟩, #Hsmall, Hsnap, #HNR, #Hcv, %Hbound⟩⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
   iframe Hloop Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
   iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap

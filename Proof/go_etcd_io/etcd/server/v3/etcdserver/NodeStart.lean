@@ -81,7 +81,9 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       rnParts E γ rv ∗
       a ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done iprop(True) .Pending ⊢
-      |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a := by
+      |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
+        rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
+        rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Htri, #Hparts,
     Ha, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
@@ -124,7 +126,8 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
     · ipureintro; exact Hmsγ
     rw [Hmsγ]
     iexact Hmsi
-  · iunfold rnDoneTok
+  · iframe NodeC transportC
+    iunfold rnDoneTok
     iexists rv.done'
     iframe doneR Hdtok
 
@@ -258,7 +261,11 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             a ↦ { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
-            isRaftNode E γw a ∗ rnDoneTok γw a) ∗
+            isRaftNode E γw a ∗ rnDoneTok γw a ∗
+            -- the node's field, and its `Propose` (the request path's `raftPropose`); the
+            -- transport's field (unit N4, 2026-10-17: `NewServer`'s `srvReqBuilt`)
+            rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
+            rnTransportAddr a ↦□ tr) ∗
           b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv }}
 
 set_option maxHeartbeats 0 in
@@ -272,7 +279,8 @@ theorem raftNode_of_StartNode (reg : GName)
     (wp_Ready : letI : MemStorReg GF := ⟨reg⟩; node.Ready.spec (GF := GF) (hG := hG))
     (wp_Advance : letI : MemStorReg GF := ⟨reg⟩; node.Advance.spec (GF := GF) (hG := hG))
     (wp_Tick : letI : MemStorReg GF := ⟨reg⟩; node.Tick.spec (GF := GF) (hG := hG))
-    (wp_ReadIndex : letI : MemStorReg GF := ⟨reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG)) :
+    (wp_ReadIndex : letI : MemStorReg GF := ⟨reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG))
+    (wp_Propose : letI : MemStorReg GF := ⟨reg⟩; node.Propose.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) reg := by
   letI : MemStorReg GF := ⟨reg⟩
   intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
@@ -331,24 +339,35 @@ theorem raftNode_of_StartNode (reg : GName)
   · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex
     iframe Hpkg Henv' Hisnode Hlinv Hcommi
     iapply Hstop
-  iapply isRaftNode_of_rnParts E γw a
-    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } }
-  iframe Hpkg Henv' Hfits' Hrsb Hreg' Ha Hmu' Hdtok
-  simp only [Hrvcfg]
-  iframe Hidri Hsti Htri Hmsi
-  isplitr
-  · -- the node's contract, at the config's `Node` field
-    rw [← Hwnl]
-    iexact Hni
-  isplitr
-  · ipureintro; exact Hwms.symm
-  -- the components are the same (`transport` is no component)
-  iunfold rnParts at Hparts
-  iunfold rnParts
-  iNamed Hparts
-  simp only [named]
-  iframe #
-  ipureintro; exact Hlgnn
+  ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
+  · iapply raftPropose_of_isNode E γw wp_Propose
+    iframe Hpkg Henv' Hisnode Hlinv
+  imod (isRaftNode_of_rnParts E γw a
+    { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
+    $$ [Ha Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Ha Hmu' Hdtok
+    simp only [Hrvcfg]
+    iframe Hidri Hsti Htri Hmsi
+    isplitr
+    · -- the node's contract, at the config's `Node` field
+      rw [← Hwnl]
+      iexact Hni
+    isplitr
+    · ipureintro; exact Hwms.symm
+    -- the components are the same (`transport` is no component)
+    iunfold rnParts at Hparts
+    iunfold rnParts
+    iNamed Hparts
+    simp only [named]
+    iframe #
+    ipureintro; exact Hlgnn
+  imodintro
+  iframe Hrn Hdone Htrf Hprop
+  have hn : rnNodeIface γw =
+      ({ rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } : raftNode).raftNodeConfig'.Node' := by
+    simp only [Hrvcfg, rnNodeIface, Hwnl]
+  rw [hn]
+  iexact Hnodef
 
 end compose
 
