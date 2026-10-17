@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashFilter
 
 @[expose] public section
 
@@ -30,6 +31,7 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_get
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_put
 #print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_tombstone
+#print axioms Perennial.EtcdGrove.mvcc.wp_kvHashIncludes
 #print axioms Perennial.EtcdGrove.mvcc.wp_newTreeIndex
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_keyIndex
 #print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_unsafeGet
@@ -530,3 +532,10 @@ end Perennial
 #print axioms Perennial.EtcdGrove.mvcc_readView_FirstRev_frozen
 #print axioms Perennial.EtcdGrove.mvcc_store_Rev_frozen
 #print axioms Perennial.EtcdGrove.mvcc.rangeAnswers_not_del
+-- the hasher's filter after etcd-io/etcd#22562 (pr-verify/etcd-22562, `HashFilter.lean`)
+#print axioms Perennial.EtcdGrove.mvcc.hashIncl_keep_compact
+#print axioms Perennial.EtcdGrove.mvcc.hashIncl_not_del
+#print axioms Perennial.EtcdGrove.mvcc.hashIncl_not_del_compact
+#print axioms Perennial.EtcdGrove.mvcc.hash_filter_del
+#print axioms Perennial.EtcdGrove.mvcc.hashInclOld_keep_compact_differ
+#print axioms Perennial.EtcdGrove.mvcc.hashInclOld_empty_ne

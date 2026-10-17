@@ -502,6 +502,9 @@ noncomputable def unsafeHashByRev [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newKVHasher [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newKVHasher"
 
+noncomputable def kvHashIncludes [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/mvcc.kvHashIncludes"
+
 noncomputable def NewHashStorage [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.NewHashStorage"
 
@@ -595,7 +598,84 @@ noncomputable def newWatcherBatch [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newWatcherGroup [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newWatcherGroup"
 
-/-- go: hash.go:128:6 -/
+/-- kvHashIncludes reports whether a hasher of compactRevision, revision and keep
+    hashes the key-value pair whose bucket key is k (WriteKeyValue's filter,
+    split out for Goose: the hasher's crc32 has no model, the filter does).
+
+    go: hash.go:71:6 -/
+noncomputable def kvHashIncludes.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "compactRevision"
+  (Lam "revision"
+  (Lam "keep"
+  (Lam "k"
+  (App (Val exceptionDo)
+  (Let "k" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "k"))
+  (Let "keep" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType Revision.ty (go.GoType.StructType []))))) (Var "keep"))
+  (Let "revision" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "revision"))
+  (Let "compactRevision" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "compactRevision"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "k"))
+  (App (App (Val (GoInstruction (FuncResolve BytesToRev []))) (Val #())) (Var "$a0")))
+  (Let "kr" (App (Val (GoInstruction (GoAlloc Revision.ty))) (App (Val (GoInstruction (GoZeroVal Revision.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "revision")) (Val #(W64 1))))
+  (App (Val (GoInstruction (CompositeLiteral Revision.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Main")) (ElementExpression go.int64 (Var "$v0")))])))
+  (Let "upper" (App (Val (GoInstruction (GoAlloc Revision.ty))) (App (Val (GoInstruction (GoZeroVal Revision.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (StructFieldGet BucketKey.ty go!"tombstone"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "k"))
+  (App (App (Val (GoInstruction (FuncResolve BytesToBucketKey []))) (Val #())) (Var "$a0"))))
+  (Let "isTombstone" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactRevision")) (Val #(W64 1))))
+  (App (Val (GoInstruction (CompositeLiteral Revision.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Main")) (ElementExpression go.int64 (Var "$v0")))])))
+  (Let "lower" (App (Val (GoInstruction (GoAlloc Revision.ty))) (App (Val (GoInstruction (GoZeroVal Revision.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #true))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"Main"))) (Var "kr"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactRevision")))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isTombstone")) (Val #false))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "kr"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Revision.ty) go!"GreaterThan"))) (Var "lower")) (Var "$a0")))
+  (Let "__p" (App (App (Val (map.lookup2 Revision.ty (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType Revision.ty (go.GoType.StructType []))))) (Var "keep"))) (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "kr")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "lower") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isTombstone") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Revision.ty))) (Var "kr"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Revision.ty) go!"GreaterThan"))) (Var "upper")) (Var "$a0"))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "upper") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "kr") (Var "$r0"))))))))))))))))
+
+/-- go: hash.go:135:6 -/
 noncomputable def NewHashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "s"
@@ -9317,6 +9397,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   watcherSet_instance : watcherSet.TypeAssumptions
   watcherSetByKey_instance : watcherSetByKey.TypeAssumptions
   watcherGroup_instance : watcherGroup.TypeAssumptions
+  kvHashIncludes_unfold : FuncUnfold kvHashIncludes [] kvHashIncludes.impl
   NewHashStorage_unfold : FuncUnfold NewHashStorage [] NewHashStorage.impl
   newTreeIndex_unfold : FuncUnfold newTreeIndex [] newTreeIndex.impl
   NewReadOnlyTxnWrite_unfold : FuncUnfold NewReadOnlyTxnWrite [] NewReadOnlyTxnWrite.impl
@@ -9415,6 +9496,7 @@ attribute [instance] Assumptions.kvHasher_instance
   Assumptions.watcherSet_instance
   Assumptions.watcherSetByKey_instance
   Assumptions.watcherGroup_instance
+  Assumptions.kvHashIncludes_unfold
   Assumptions.NewHashStorage_unfold
   Assumptions.newTreeIndex_unfold
   Assumptions.NewReadOnlyTxnWrite_unfold

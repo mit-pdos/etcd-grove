@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHashIncludes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents
@@ -363,6 +364,10 @@ theorem mvcc.keyIndex.wp_put :
 theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_put
+
+theorem mvcc.wp_kvHashIncludes :
+    mvcc.kvHashIncludes.spec (GF := GF) (hG := hG) :=
+  mvcc.kvHashIncludes.wp_proof mvcc.wp_BytesToRev mvcc.wp_BytesToBucketKey mvcc.Revision.wp_GreaterThan
 
 theorem mvcc.kvHasher.wp_Hash :
     mvcc.kvHasher.Hash.spec (GF := GF) (hG := hG) :=

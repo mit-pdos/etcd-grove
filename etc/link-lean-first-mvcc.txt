@@ -233,6 +233,9 @@ schedule_job__Name:
 schedule_NewJob: schedule_job__Do
 newKVHasher:
 kvHasher__WriteKeyValue:
+# pr-verify/etcd-22562: WriteKeyValue's filter, split out in the fork (its crc32 writes stay at the
+# trust boundary above), proved: HashFilter.lean for what it means for the two hashes of a revision
+kvHashIncludes: BytesToRev BytesToBucketKey Revision__GreaterThan
 kvHasher__Hash:
 hashStorage__Store:
 keyIndex__doCompact: generation__walk
