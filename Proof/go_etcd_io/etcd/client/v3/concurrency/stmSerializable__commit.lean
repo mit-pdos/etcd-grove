@@ -19,9 +19,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -85,7 +82,7 @@ theorem stmSerializable.commit.wp_proof
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) (by simp [TxnBuild.empty, TxnModel.empty]) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) (by simp [TxnBuild.empty, TxnModel.empty]) $$ HB
   ihave #Hfacts := readsAt_readFacts pfx rsMap st.reads $$ Hreads
   ihave %Hru := readFacts_under pfx st.reads $$ Hfacts
   ihave %Hwu := writesAt_under pfx wsMap st.writes $$ Hwrites
@@ -125,7 +122,7 @@ theorem stmSerializable.commit.wp_proof
     rw [hrun, txnWrote_gets]
     simp only [TxnModel.branch, Bool.false_eq_true, ite_false] at Hlens ⊢
     have hlen : ps.length = ks.length := by simp at Hlens; omega
-    ihave #Hs := txnStates_noWrite pfx r s0 s0 $$ Hts
+    ihave #Hs := txnStates_read pfx r s0 s0 $$ Hts
     ihave ⟨%es, %Hes, #Hrd⟩ := elseResps_reads pfx r s0 ks ps Hwf0 hks hlen $$ [Hs Hops]
     · isplitr
       · imodintro; iexact Hs

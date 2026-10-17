@@ -48,7 +48,7 @@ local macro "insert_tail" : tactic => `(tactic| (
   wp_apply (IH h' (by omega) c' _ item k maxItems d tCs hcs tCl hmax hd2 hd62)
     $$ [Hc'] as %old %fnd ⟨%t'', Hc', % ⟨ht1, ht2, ht3, ht4, ht5, ht6⟩⟩
   · iframe Hc' Hcow Hitem
-    iapply allItems_mono o _ _ (fun x hx => tE ▸ hmem x hx) $$ Hall
+    iapply allItems_mono o (fun x hx => tE ▸ hmem x hx) $$ Hall
   ihave Hc' := ownNode_of_owned o c f less _ c' t'' $$ Hc'
   ihave Hns := ownNodes_fill o c f less _ psX _ (sint.nat jw) c' t''
     (by rcases List.getElem?_eq_some_iff.1 hp with ⟨h, _⟩; exact h) HpsXl $$ [Hc' Hns]
@@ -105,13 +105,13 @@ theorem node.insert.wp_proof
   wp_pures
   wp_alloc_anon
   wp_auto
-  have hsis : Sorted o.lt is := sorted_sublist (items_sublist is cs) hsorted
+  have hsis : Sorted o.lt is := Sorted.sublist (items_sublist is cs) hsorted
   wp_method_call
   wp_call
   wp_auto
   wp_apply wp_find o isl is (DFrac.own 1) item k less hsis $$ [$Hisl $Hless $Hitem]
     as %idx %found ⟨Hisl, %Hidx, %Hidx0, %Hfound⟩
-  · iapply allItems_mono o is _ (fun x hx => (items_sublist is cs).subset hx) $$ Hall
+  · iapply allItems_mono o (l1 := is) (fun x hx => (items_sublist is cs).subset hx) $$ Hall
   ihave %Hislen := ownSlice_len _ _ _ $$ Hisl
   simp only [List.length_map] at Hislen
   have hcnt := countLt_le (lt := o.lt) is k
@@ -211,7 +211,7 @@ theorem node.insert.wp_proof
       rw [getElem?_insertAt _ _ _ _ hidxle]; simp
     have hemem : e ∈ Tree.elemsAux is cs := by
       rw [← tE]; exact (items_sublist _ _).subset (List.mem_of_getElem? he2)
-    ihave #He := allItems_mem o _ e hemem $$ Hall
+    ihave #He := allItems_elem o (e := e) hemem $$ Hall
     unfold ownedNode nodeShallow nodeFields
     icases Hn with ⟨%ps2, ⟨%isl2, %csl2, ⟨%Hnn2, Hi, Hch, Hw⟩, Hisl, Hicap, Hcsl, Hccap⟩, Hns⟩
     simp only [Tree.items_node, Tree.children_node]

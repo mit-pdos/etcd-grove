@@ -119,7 +119,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   · inext
     iunfold mvcc.watchChanInv
     iexists ChanState.Buffered [], [], [], [], []
-    simp only [named, mvcc.chanIsClosed, Bool.false_eq_true, ↓reduceIte]
+    simp only [named, EtcdGrove.chanIsClosed, Bool.false_eq_true, ↓reduceIte]
     iframe Hown Hrecv1 Hregl1
     isplitr
     · ipureintro; exact List.prefix_refl _

@@ -30,9 +30,6 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     (hCmp : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
     (hWL : EtcdGrove.WithLease.spec (GF := GF) (hG := hG))
@@ -128,7 +125,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨Hres, #Hce⟩
   · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
         (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩

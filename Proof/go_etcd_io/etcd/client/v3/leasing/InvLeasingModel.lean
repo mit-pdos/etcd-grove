@@ -193,10 +193,6 @@ theorem leased_incarnation (pfx k : GoString) (h : LeasingHist) (hok : LeasingHi
   rw [hz]
   exact key (z - a).toNat (by omega)
 
-theorem leasing_pure_forall_intro {PROP : Type _} [BI PROP] {P : PROP} {α : Sort _}
-    {φ : α → Prop} (h : ∀ x, P ⊢ ⌜φ x⌝) : P ⊢ ⌜∀ x, φ x⌝ :=
-  (forall_intro h).trans pure_forall.2
-
 section lemmas
 variable {GF : BundledGFunctors}
 variable [EM : EtcdModel GF]
@@ -221,7 +217,7 @@ theorem leasingProtocol_revs (pfx : GoString) (h : LeasingHist) :
     LeasingProtocol (GF := GF) pfx h ⊢ ⌜∀ z : Int, 0 ≤ z → z < 2 ^ 63 → ∀ v ∈ h.st z,
       0 < sint.Z v.createRev ∧ sint.Z v.createRev ≤ sint.Z v.modRev ∧
         sint.Z v.modRev ≤ z⌝ := by
-  refine leasing_pure_forall_intro fun z => ?_
+  refine pure_forall_intro fun z => ?_
   by_cases hz : 0 ≤ z ∧ z < 2 ^ 63
   · have hzr : sint.Z (W64 z) = z := by word
     iintro #Hp
@@ -242,7 +238,7 @@ theorem leasingProtocol_persist (pfx : GoString) (h : LeasingHist) :
     LeasingProtocol (GF := GF) pfx h ⊢ ⌜∀ z1 z2 : Int, 0 ≤ z1 → z1 ≤ z2 → z2 < 2 ^ 63 →
       ∀ v ∈ h.st z2, sint.Z v.createRev ≤ z1 →
         ∃ v' ∈ h.st z1, v'.key = v.key ∧ v'.createRev = v.createRev⌝ := by
-  refine leasing_pure_forall_intro fun z1 => leasing_pure_forall_intro fun z2 => ?_
+  refine pure_forall_intro fun z1 => pure_forall_intro fun z2 => ?_
   by_cases hz : 0 ≤ z1 ∧ z1 ≤ z2 ∧ z2 < 2 ^ 63
   · have hz1 : sint.Z (W64 z1) = z1 := by word
     have hz2 : sint.Z (W64 z2) = z2 := by word

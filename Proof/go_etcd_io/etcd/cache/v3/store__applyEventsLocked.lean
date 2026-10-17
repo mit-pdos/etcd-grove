@@ -51,17 +51,6 @@ theorem applyEventsLocked_btDelete_of_find_none {k : KvEntry} {m : KvMap}
       · rename_i hk; simp only [hk, ↓reduceIte]
       · simp at h
 
-theorem applyEventsLocked_ringAppend_mem {V : Type} {cap : Nat} {items : List V} {v x : V}
-    (h : x ∈ ringAppend cap items v) : x = v ∨ x ∈ items := by
-  unfold ringAppend at h
-  split at h
-  · rcases List.mem_append.1 h with h | h
-    · exact Or.inr h
-    · exact Or.inl (List.mem_singleton.1 h)
-  · rcases List.mem_append.1 h with h | h
-    · exact Or.inr (List.mem_of_mem_tail h)
-    · exact Or.inl (List.mem_singleton.1 h)
-
 theorem applyEventsLocked_ringAppend_length {V : Type} {cap : Nat} {items : List V} {v : V}
     (hc : 0 < cap) (h : items.length ≤ cap) : (ringAppend cap items v).length ≤ cap := by
   unfold ringAppend
@@ -143,11 +132,11 @@ theorem applyEventsLocked_inv_batch {cap : Nat} {stc : StoreState} (hinv : Store
   hist_len := applyEventsLocked_ringAppend_length hinv.cap_pos hinv.hist_len
   hist_sorted := hinv.hist_sorted.ringAppend_of (applyEventsLocked_revAbove hinv hlt m) cap
   hist_le h hh := by
-    rcases applyEventsLocked_ringAppend_mem hh with rfl | hh
+    rcases ringAppend_mem hh with rfl | hh
     · simp
     · have := hinv.hist_le h hh; simp only; omega
   hist_maps_sorted h hh := by
-    rcases applyEventsLocked_ringAppend_mem hh with rfl | hh
+    rcases ringAppend_mem hh with rfl | hh
     · exact hm
     · exact hinv.hist_maps_sorted h hh
 
@@ -213,18 +202,6 @@ theorem applyEventsLocked_inner_inv {stc : StoreState} {evs : List EvModel} {j k
   · have : n = k := by omega
     subst this; rw [he1] at h3; cases h3; exact hr1
 
-theorem applyEventsLocked_sorted_le {evs : List EvModel} (h : EvRevSorted evs) {a b : Nat}
-    {x y : EvModel} (hab : a ≤ b) (hx : evs[a]? = some x) (hy : evs[b]? = some y) :
-    sint.Z x.rev ≤ sint.Z y.rev := by
-  rcases Nat.lt_or_ge a b with hlt | hge
-  · unfold EvRevSorted at h
-    rw [List.pairwise_iff_getElem] at h
-    obtain ⟨ha, rfl⟩ := List.getElem?_eq_some_iff.1 hx
-    obtain ⟨hb, rfl⟩ := List.getElem?_eq_some_iff.1 hy
-    exact h a b ha hb hlt
-  · have : a = b := by omega
-    subst this; rw [hx] at hy; cases hy; exact Int.le_refl _
-
 theorem applyEventsLocked_batch_done {cap : Nat} {st stc : StoreState} {evs : List EvModel}
     {j k : Nat} {m : KvMap} {e0 : EvModel}
     (hsorted : EvRevSorted evs) (he0 : evs[j]? = some e0) (hjk : j < k) (hkl : k ≤ evs.length)
@@ -263,8 +240,8 @@ theorem applyEventsLocked_batch_done {cap : Nat} {st stc : StoreState} {evs : Li
     have hkn : k < evs.length := by
       have := (List.getElem?_eq_some_iff.1 hn).1; omega
     obtain ⟨y, hy⟩ : ∃ y, evs[k]? = some y := ⟨_, List.getElem?_eq_getElem hkn⟩
-    have h1 := applyEventsLocked_sorted_le hsorted (Nat.le_of_lt hjk) he0 hy
-    have h2 := applyEventsLocked_sorted_le hsorted (Nat.le_add_right k n) hy hn
+    have h1 := EvRevSorted.rev_le hsorted he0 hy (Nat.le_of_lt hjk)
+    have h2 := EvRevSorted.rev_le hsorted hy hn (Nat.le_add_right k n)
     have h3 := hexit y hy
     have h4 : sint.Z y.rev ≠ sint.Z e0.rev := fun h => h3 (by
       apply BitVec.eq_of_toInt_eq; exact h)

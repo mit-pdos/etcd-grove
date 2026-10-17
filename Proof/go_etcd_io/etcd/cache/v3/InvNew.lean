@@ -221,12 +221,6 @@ theorem bigSepL_replicate_sep (P Q : IProp GF) (n : Nat) :
       [∗list] _x ∈ List.replicate n (), iprop(P ∗ Q) :=
   BigSepL.bigSepL_sep_eqv.2
 
-theorem bigSepL_replicate_pop' (P : IProp GF) (n m : Nat) (h : n = m + 1) :
-    ([∗list] _x ∈ List.replicate n (), P) ⊢ P ∗ [∗list] _x ∈ List.replicate m (), P := by
-  subst h
-  rw [List.replicate_succ]
-  exact BigSepL.bigSepL_cons.1
-
 end defs
 
 end EtcdGrove

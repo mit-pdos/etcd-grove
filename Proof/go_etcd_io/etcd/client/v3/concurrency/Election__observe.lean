@@ -63,16 +63,6 @@ theorem ownerOp_kvs' (pfx : GoString) (s kvs : List EtcdKv) (hp : pfx ≠ [])
     · exact Int.le_refl _
     · have := (List.pairwise_cons.1 hsorted).1 v hv'; simpa [kvLeBy] using this
 
-theorem evs_sorted_le {xs : List EvModel} (hs : EvRevSorted xs) {i j : Nat} {a b : EvModel}
-    (ha : xs[i]? = some a) (hb : xs[j]? = some b) (hij : i ≤ j) : sint.Z a.rev ≤ sint.Z b.rev := by
-  rcases Nat.lt_or_eq_of_le hij with h | rfl
-  · unfold EvRevSorted at hs
-    rw [List.pairwise_iff_getElem] at hs
-    obtain ⟨hi, rfl⟩ := List.getElem?_eq_some_iff.1 ha
-    obtain ⟨hj, rfl⟩ := List.getElem?_eq_some_iff.1 hb
-    exact hs i j hi hj h
-  · rw [ha] at hb; cases hb; exact Int.le_refl _
-
 /-- The position after a response bounds its events and the position before it. -/
 theorem evs_pos (xs : List EvModel) (c : w64) (hs : EvRevSorted xs)
     (hall : ∀ e ∈ xs, sint.Z c < sint.Z e.rev) :
@@ -91,7 +81,7 @@ theorem evs_pos (xs : List EvModel) (c : w64) (hs : EvRevSorted xs)
     refine ⟨Int.le_of_lt (hall l (List.mem_of_getLast? hx)), ?_⟩
     intro k e hk
     have := (List.getElem?_eq_some_iff.1 hk).1
-    exact evs_sorted_le hs hk hl.symm (by omega)
+    exact EvRevSorted.rev_le hs hk hl.symm (by omega)
 
 section anchor
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -238,15 +228,6 @@ theorem observedAt_pos (pfx : GoString) (v : EtcdKv) (R : w64) :
   ipureintro
   have := Hr v Hv
   omega
-
-/-- `Watch(key, WithRev(rev))` is a range watch of the key `key` from `rev` that does not panic. -/
-theorem keyWatch_opts (key : GoString) (rev : w64) :
-    (opWatchModel key [withRevM rev]).isRangeWatch rev = true ∧
-      ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
-      (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
-  refine ⟨?_, ?_, ?_, ?_⟩ <;>
-  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, withRevM, OpFull.isRangeWatch]
 
 /-- `Watch(pfx, WithRev(rev), WithPrefix())` is a range watch of the prefix from `rev` that does
 not panic. -/
@@ -872,7 +853,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
             by have := Hord.2 (sint.nat n) ev0 (Nat.le_refl _) He; omega,
             ⟨by word, by word⟩, Hle' (sint.nat n) ev0 He, ?_⟩
           intro k e' hk he'
-          exact evs_sorted_le Hsort.1 He he' (by word)
+          exact EvRevSorted.rev_le Hsort.1 He he' (by word)
         iapply BigAndL.bigAndL_cons.2
         isplit
         · -- `<-cctx.Done()`: `cancel()`, return

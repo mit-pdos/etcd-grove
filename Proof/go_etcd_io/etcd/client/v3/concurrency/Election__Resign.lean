@@ -24,20 +24,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
-/-- A failed guard `CreateRevision(key) = rev` on a sorted state: `key` is not there with create
-revision `rev`. -/
-theorem createGuard_false_resign (pfx key : GoString) (rev : w64) (s : List EtcdKv)
-    (hwf : EtcdStateWf pfx s) (h : cmpHolds s (createGuard key rev) = false) :
-    ¬ HasKeyAt key rev s := by
-  rintro ⟨w, hw, hk, hc⟩
-  have hf := filter_key_single s hwf.1 key (fun v => inRange key [] v.key)
-    (fun v => by simp [inRange]) w hw hk
-  simp [cmpHolds, createGuard, compareM, cmpKeyM, hf, cmpKv, int64Cmp, cmpSign, CmpOp.holds,
-    hc] at h
-
 theorem deleteOp_txnOpOf (key : GoString) :
     txnOpOf (opDeleteModel key []) = some (.delete (opDeleteModel key [])) := by
   simp [opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero, txnOpOf]
@@ -79,7 +65,7 @@ theorem resignTxn_notLeader (pfx key : GoString) (rev r : w64) (s : List EtcdKv)
     iintro #H
     iexists s
     iframe H
-    ipureintro; exact createGuard_false_resign pfx key rev s hwf hok
+    ipureintro; exact createGuard_false pfx key rev s hwf hok
   · have e : (runTxn r s (resignTxn key rev)).2 =
         (runTxn r s (deleteTxn (opDeleteModel key []))).2 := by
       simp [runTxn, resignTxn, deleteTxn, TxnModel.branch, hok]
@@ -194,7 +180,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   by_cases Hk : pfx <+: st.key
   · wp_apply HCommit $$ %({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
     · ipureintro; exact resignTxn_under pfx st.key st.rev Hk

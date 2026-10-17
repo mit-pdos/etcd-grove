@@ -221,23 +221,9 @@ structure WsNames where
   /-- the watcher budget (`watchBudget`): a registration costs one token (`watchTok`) -/
   wt : GName
 
-/-! ## Channel states (as the cache's `InvWatcher`) -/
+/-! ## Channel states
 
-/-- The values a channel in state `s` holds in flight (none for a blocking send's states, which
-the store never does). -/
-def chanInflight {V : Type} : ChanState V → Option (List V)
-  | .Buffered b => some b
-  | .Closed b => some b
-  | .Idle => some []
-  | .RcvPending => some []
-  | .SndCommit v => some [v]
-  | .SndPending _ => none
-  | .RcvCommit => none
-
-/-- The channel state `s` is closed. -/
-def chanIsClosed {V : Type} : ChanState V → Bool
-  | .Closed _ => true
-  | _ => false
+`chanInflight` and `chanIsClosed` are the cache's (`InvWatcher`). -/
 
 /-- **A watcher's first revision and its start revision** (pure): the first revision `lo` a
 watcher of the range `r` watches from is its start revision, unless that is `0` ("now": then

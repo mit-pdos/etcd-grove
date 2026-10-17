@@ -24,59 +24,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- A progress notification at `maxRev` to a watcher owed nothing keeps the delivery facts
-(next revision unchanged). -/
-theorem demuxBP_progress {pred : Option (GoString → Bool)} {s : w64} {v : View}
-    {sent sent' : List RespModel} {ok : Bool} (hD : Delivered pred s v sent)
-    (hup : ∀ b ∈ v.stream, sint.Z (batchRev b) < sint.Z v.n)
-    (henq : enqueueResult pred (progressResp v.maxRev) sent ok sent') :
-    Delivered pred s v sent' := by
-  have key : Delivered pred s v (sent ++ [progressResp v.maxRev]) := by
-    have hev : ∀ a ∈ sent, ∀ e ∈ a.events, sint.Z e.rev ≤ sint.Z v.maxRev := by
-      intro a ha e he
-      have h1 : e ∈ eventsOf sent := by
-        unfold eventsOf; rw [List.mem_flatten]; exact ⟨a.events, List.mem_map_of_mem ha, he⟩
-      rw [hD.events] at h1
-      have h2 := (List.mem_filter.1 h1).1
-      obtain ⟨b, hb, heb⟩ := List.mem_flatten.1 h2
-      have hbs : b ∈ v.stream := (List.mem_filter.1 hb).1
-      rw [batchRev_of_mem (hD.stream_ok.batches b hbs) heb]
-      exact hD.stream_le b hbs
-    refine ⟨hD.stream_ok, hD.stream_le, ?_, ?_, ?_, hD.start_le, hD.near, hD.cancel⟩
-    · rw [← hD.events]; simp [eventsOf, progressResp]
-    · refine ⟨List.pairwise_append.2 ⟨hD.ordered.1, List.pairwise_singleton _ _, ?_⟩, ?_⟩
-      · intro a ha b hb
-        rw [List.mem_singleton] at hb; subst hb
-        refine ⟨fun _ _ e' he' => by simp [progressResp] at he', fun _ e' he' => by
-          simp [progressResp] at he', fun _ e he => hev a ha e he⟩
-      · intro r hr
-        rcases List.mem_append.1 hr with hr | hr
-        · exact hD.ordered.2 r hr
-        · rw [List.mem_singleton] at hr; subst hr; simp [progressResp, EvRevSorted]
-    · intro r hr hre
-      rcases List.mem_append.1 hr with hr | hr
-      · exact hD.progress r hr hre
-      · rw [List.mem_singleton] at hr; subst hr
-        refine ⟨by simp [progressResp], fun b hb hnb => ?_⟩
-        have := hup b hb; omega
-  unfold enqueueResult at henq
-  have hf : filterResp pred (progressResp v.maxRev) = none ∨
-      filterResp pred (progressResp v.maxRev) = some (progressResp v.maxRev) := by
-    unfold filterResp
-    cases pred with
-    | none => simp
-    | some p =>
-      simp only
-      split
-      · simp
-      · left; simp [progressResp]
-  rcases hf with hf | hf <;> rw [hf] at henq
-  · obtain ⟨-, rfl⟩ := henq; exact hD
-  · dsimp only at henq
-    split at henq <;> subst henq
-    · exact key
-    · exact hD
-
 theorem demux.BroadcastProgress.wp_proof
     (wp_enqueueResponse : watcher.enqueueResponse.spec (GF := GF) (hG := hG)) :
     demux.BroadcastProgress.spec (GF := GF) (hG := hG) := by
@@ -188,7 +135,7 @@ theorem demux.BroadcastProgress.wp_proof
       wp_apply wp_enqueueResponse key ri.γ pred _ sent _ (progressResp c.maxRev) $$ [Hwat']
         as %ok ⟨%sent', Hwat, %Henq⟩
       · iframe Hw Hwat' Hpub'; iexact Hrespat
-      have Hdel' := demuxBP_progress Hdel Hup (by rw [← Hmx] at Henq; exact Henq)
+      have Hdel' := Delivered.enqueue_progress_same Hdel Hup (by rw [← Hmx] at Henq; exact Henq)
       unfold forMapPostcondition
       iright; ileft
       isplitr

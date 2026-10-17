@@ -36,9 +36,6 @@ def drpcTxn (pfx key e : GoString) (m : w64) : TxnModel :=
     thenOps := [.get (opGetModel key [withRangeM e, withKeysOnlyM]), .delete (rangeDeleteOp key e)],
     elseOps := [] }
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -188,7 +185,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ (TxnBuild.mk (drpcTxn pfx key e maxLeaseRev) true true false) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ (TxnBuild.mk (drpcTxn pfx key e maxLeaseRev) true true false) (by rfl) $$ HB
   wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
   · ipureintro; exact TxnModel.under_nil _
   inext

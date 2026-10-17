@@ -17,21 +17,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
-theorem demuxBPL_delete_none {V : Type} (m : GMap Loc V) (k : Loc) (h : m !! k = none) :
-    GMap.delete k m = m := by
-  apply GMap.ext; intro k'
-  by_cases hk : k = k'
-  · subst hk; rw [GMap.lookup_delete, h]
-  · rw [GMap.lookup_delete_ne _ hk]
-
-/-- An active watcher's start condition does not depend on its view. -/
-theorem demuxBPL_startOk_active {c : DemuxCore} {ri : RegInfo} {v : View} (h : StartOk c ri v)
-    (hph : v.phase = .active) (v' : View) : StartOk c ri v' := by
-  rcases h with h1 | h2 | ⟨h4, -⟩
-  · exact Or.inl h1
-  · exact Or.inr (Or.inl h2)
-  · rw [hph] at h4; cases h4
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -217,7 +202,7 @@ theorem demux.broadcastProgressLocked.wp_proof
         isplitl
         · rw [lagOf_insert]
           simp only [Hvact, reduceCtorEq, ↓reduceIte]
-          rw [demuxBPL_delete_none]
+          rw [GMap.delete_notin]
           · iexact Hlag
           rw [lagOf_lookup, Hvw]; simp [Hvact]
         ipureintro
@@ -229,7 +214,7 @@ theorem demux.broadcastProgressLocked.wp_proof
             rw [List.take_length] at hb
             have := Hinv.stream_le b hb
             rw [Hp1]; rw [Hp] at Hp1 ⊢; omega
-        · exact Hst.insert Hri _ (fun _ => demuxBPL_startOk_active HSO Hvact _)
+        · exact Hst.insert Hri _ (fun _ => StartOk.of_active HSO Hvact _)
       ipureintro; intro k hk
       exact GMap.lookup_insert_ne _ _ (Ne.symm hk)
   iintro %m' HP Hm

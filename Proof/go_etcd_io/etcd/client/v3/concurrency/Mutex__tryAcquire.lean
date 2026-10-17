@@ -26,51 +26,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) :
-    (n : Int) = sint.Z x := by
-  obtain ⟨h1, h2⟩ := h
-  subst h1
-  simp only [sint.nat, sint.Z] at *
-  omega
-
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
-section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [EM : EtcdModel GF]
-variable [sem : go.Semantics]
-
-/-- The state before a transaction has positive create revisions. -/
-private theorem txnStates_pos (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) :
-    txnStates (GF := GF) pfx r s s' wrote ⊢ ⌜∀ v ∈ s, 0 < sint.Z v.createRev⌝ := by
-  unfold txnStates
-  split
-  · iintro ⟨#H1, -⟩
-    ihave %H := etcdState_revs _ _ _ $$ H1
-    ipureintro; intro v hv; exact (H v hv).1
-  · iintro #H1
-    ihave %H := etcdState_revs _ _ _ $$ H1
-    ipureintro; intro v hv; exact (H v hv).1
-
-private theorem txnStates_true (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
-    txnStates (GF := GF) pfx r s s' true ⊢ □ etcdState r pfx s' := by
-  unfold txnStates
-  simp only [↓reduceIte]
-  iintro ⟨-, #H⟩
-  iexact H
-
-private theorem txnStates_false (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
-    txnStates (GF := GF) pfx r s s' false ⊢ □ etcdState r pfx s := by
-  unfold txnStates
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro #H
-  iexact H
-
-end lemmas
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -251,7 +206,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact acquireTxn_under pfx key id Hpfx Hpk
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
@@ -272,7 +227,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   have hm : ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } :
       TxnBuild).model = acquireTxn pfx key id := rfl
   rw [hm]
-  ihave %hpos := txnStates_pos pfx r s0 _ _ $$ Hts
+  ihave %hpos := txnStates_createRev_pos pfx r s0 _ _ $$ Hts
   obtain ⟨Hlo_r0, Hr0, Hrmax, Hwf0⟩ := Hrr
   have Hlo_r := Hlo_r0 rfl
   iunfold txnRespAt at Hresp
@@ -289,7 +244,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     simp only [acquireTxn] at hok'
     rw [hok']
     (try wp_auto)
-    ihave #Hs := txnStates_false pfx r s0 s0 $$ Hts
+    ihave #Hs := txnStates_read pfx r s0 s0 $$ Hts
     ihave %Hrevs := etcdState_revs r pfx s0 $$ Hs
     obtain ⟨p1, hp1⟩ : ∃ p, ps[1]? = some p :=
       ⟨ps[1]'(by simp at Hlens; omega), List.getElem?_eq_getElem _⟩
@@ -352,7 +307,7 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     simp only [acquireTxn] at hok'
     rw [hok']
     (try wp_auto)
-    ihave #Hs := txnStates_true pfx r s0 _ $$ Hts
+    ihave #Hs := txnStates_after pfx r s0 _ $$ Hts
     obtain ⟨p1, hp1⟩ : ∃ p, ps[1]? = some p :=
       ⟨ps[1]'(by simp at Hlens; omega), List.getElem?_eq_getElem _⟩
     ihave #Hop1 := Hops $$ %1 %p1 %(TxnOp.get (ownerOp pfx)) %(TxnOpResult.range (rangeSel (putKv r key [] id s0) (ownerOp pfx)) (rangeIn (putKv r key [] id s0) (ownerOp pfx)).length) %hp1 %rfl %rfl
