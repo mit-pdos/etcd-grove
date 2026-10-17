@@ -169,7 +169,7 @@ instance EvM.countable : Pos.Countable EvM :=
 /-- A response the store sent on a stream's channel: the watcher it was sent for (ghost), its
 `WatchID`, events and `Revision`; and (ghost, unit W-K) the watchers a progress response covers
 (`cov`: `respCov`; empty for any other response) and, for one of id `-1`, the watchers registered
-on the channel when it was sent (`regs`). -/
+on the channel when it was sent (`regs`); and its position in the sent list (`idx`). -/
 structure RespM where
   w : Loc
   id : w64
@@ -177,10 +177,13 @@ structure RespM where
   rev : w64
   cov : List Loc
   regs : List Loc
+  /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
+  idx : Nat
 
 instance RespM.countable : Pos.Countable RespM :=
-  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs))
-    (by rintro ⟨a, b, c, d, e, f⟩ ⟨a', b', c', d', e', f'⟩ h; have h := Pos.encode_inj h; simp_all)
+  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx))
+    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
+        simp_all)
 
 instance watchResponseCountable [FfiSyntax] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
@@ -605,10 +608,13 @@ in its `regs`), and what each response sent covers (`respCov`, K1b). -/
 def regsOk (RI : GMap Loc Nat) (sent : List RespM) : Prop :=
   ∀ w n k x, RI !! w = some n → n ≤ k → sent[k]? = some x → x.id = W64 (-1) → w ∈ x.regs
 
+/-- Each response sent is at its own position (K1b). -/
+def idxOk (sent : List RespM) : Prop := ∀ (k : Nat) (x : RespM), sent[k]? = some x → x.idx = k
+
 def sentAuth (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) : IProp GF :=
   iprop(monoListAuthOwn γc.sentl 1 sent ∗ ∃ RI : GMap Loc Nat, ghostMapAuth γc.regi 1 RI ∗
     ⌜(∀ w, (RI !! w).isSome → w ∈ L) ∧ (∀ w n, RI !! w = some n → n ≤ sent.length) ∧
-      regsOk RI sent⌝ ∗
+      regsOk RI sent ∧ idxOk sent⌝ ∗
     □ ([∗list] k ↦ x ∈ sent, respCov γ γc (sent.take k) x))
 
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
@@ -676,7 +682,7 @@ theorem sentAuth_lb_valid (γ : WsNames) (γc : WatchChanNames) (sent : List Res
 
 open Iris.ProofMode in
 theorem sentAuth_snoc (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
-    (x : RespM) (hx : x.id = W64 (-1) → ∀ w ∈ L, w ∈ x.regs) :
+    (x : RespM) (hx : x.id = W64 (-1) → ∀ w ∈ L, w ∈ x.regs) (hxi : x.idx = sent.length) :
     ⊢ sentAuth (GF := GF) γ γc sent L -∗ respCov γ γc sent x ==∗ sentAuth γ γc (sent ++ [x]) L := by
   unfold sentAuth
   iintro ⟨Ha, %RI, Hr, %HRI, #Hc⟩ #Hx
@@ -687,12 +693,12 @@ theorem sentAuth_snoc (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) 
   iframe Hr
   isplitr
   · ipureintro
-    refine ⟨HRI.1, fun w n h => ?_, fun w n k y h hk hy hid => ?_⟩
+    refine ⟨HRI.1, fun w n h => ?_, fun w n k y h hk hy hid => ?_, fun k y => ?_⟩
     · have := HRI.2.1 w n h
       simp only [List.length_append, List.length_singleton]; omega
     · by_cases hks : k < sent.length
       · rw [List.getElem?_append_left hks] at hy
-        exact HRI.2.2 w n k y h hk hy hid
+        exact HRI.2.2.1 w n k y h hk hy hid
       · have hk' : k = sent.length := by
           have := (List.getElem?_eq_some_iff.1 hy).1
           simp only [List.length_append, List.length_singleton] at this; omega
@@ -700,6 +706,18 @@ theorem sentAuth_snoc (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) 
         rw [List.getElem?_append_right (Nat.le_refl _)] at hy
         simp at hy; subst hy
         exact hx hid w (HRI.1 w (by rw [h]; rfl))
+    · show (sent ++ [x])[k]? = some y → y.idx = k
+      intro hy
+      by_cases hks : k < sent.length
+      · rw [List.getElem?_append_left hks] at hy
+        exact HRI.2.2.2 k y hy
+      · have hk' : k = sent.length := by
+          have := (List.getElem?_eq_some_iff.1 hy).1
+          simp only [List.length_append, List.length_singleton] at this; omega
+        subst hk'
+        rw [List.getElem?_append_right (Nat.le_refl _)] at hy
+        simp at hy; subst hy
+        exact hxi
   imodintro
   iapply BigSepL.bigSepL_snoc.2
   isplitl
@@ -724,7 +742,7 @@ theorem sentAuth_register (γ : WsNames) (γc : WatchChanNames) (sent : List Res
   iexists RI.insert w sent.length
   iframe Hr Hc
   ipureintro
-  refine ⟨fun x hx => ?_, fun x n h => ?_, fun x n k y h hk hy hid => ?_⟩
+  refine ⟨fun x hx => ?_, fun x n h => ?_, fun x n k y h hk hy hid => ?_, HRI.2.2.2⟩
   · by_cases e : w = x
     · subst e; exact List.mem_cons_self
     · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
@@ -746,7 +764,7 @@ theorem sentAuth_register (γ : WsNames) (γc : WatchChanNames) (sent : List Res
       have := (List.getElem?_eq_some_iff.1 hy).1; omega
     · rw [show (RI.insert w sent.length) !! x = (<[w := sent.length]> RI) !! x from rfl,
         GMap.lookup_insert_ne _ _ e] at h
-      exact HRI.2.2 x n k y h hk hy hid
+      exact HRI.2.2.1 x n k y h hk hy hid
 
 open Iris.ProofMode in
 theorem sentAuth_reg_le (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
@@ -764,7 +782,15 @@ theorem sentAuth_reg_regs (γ : WsNames) (γc : WatchChanNames) (sent : List Res
   unfold sentAuth chanRegAt
   iintro ⟨⟨-, %RI, Hr, %HRI, -⟩, He⟩
   ihave %Hl := ghost_map_lookup $$ Hr He
-  ipureintro; exact fun k x hk hx hid => HRI.2.2 w n k x Hl hk hx hid
+  ipureintro; exact fun k x hk hx hid => HRI.2.2.1 w n k x Hl hk hx hid
+
+open Iris.ProofMode in
+/-- **Each response sent is at its own position** (K1b). -/
+theorem sentAuth_idx (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
+    sentAuth (GF := GF) γ γc sent L ⊢ ⌜idxOk sent⌝ := by
+  unfold sentAuth
+  iintro ⟨-, %RI, -, %HRI, -⟩
+  ipureintro; exact HRI.2.2.2
 
 /-- Delivered up to `d'` at most `d`: a prefix of the events up to `d` (comparable logs). -/
 theorem watchEvents_mono_cmp {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRange) {lo d d' : Nat}

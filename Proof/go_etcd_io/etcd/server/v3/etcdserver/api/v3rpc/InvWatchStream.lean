@@ -524,20 +524,36 @@ instance mvccExtra_persistent (γs : StreamNames) (r : mvcc.RespM) :
     Persistent (mvccExtra (GF := GF) γs r) := by
   unfold mvccExtra; infer_instance
 
+/-- **Where an mvcc response is on the stream's channel** (persistent; unit W-K, K1b): the
+channel `γc` (its registration indices, cancellation reason and sent list named by the stream's
+`γo`, the run's auxiliary name), the responses `pre` sent before it (`r.idx` its position, the
+snapshot `pre ++ [r]`), what it covers (`respCov`) and, for id `-1`, the watchers registered
+before it (`regsAt`). -/
+def mvccCov (γs : StreamNames) (γ : mvcc.WsNames) (r : mvcc.RespM) : IProp GF :=
+  iprop(∃ (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName),
+    streamAuxIs γs (auxOf γo γa) ∗
+    ⌜γo.regi = γc.regi ∧ γo.rsn = γc.rsn ∧ γo.sentl = γc.sentl ∧ r.idx = pre.length⌝ ∗
+    mvcc.chanSentLb γc (pre ++ [r]) ∗ mvcc.respCov γ γc pre r ∗ mvcc.regsAt γc pre.length r)
+
+instance mvccCov_persistent (γs : StreamNames) (γ : mvcc.WsNames) (r : mvcc.RespM) :
+    Persistent (mvccCov (GF := GF) γs γ r) := by
+  unfold mvccCov; infer_instance
+
 /-- **A response of the mvcc watch stream** sent at position `j` (persistent): the response of
 the mvcc response `r` (`mvccResp`), whose header's revision is `r`'s, `r` the last of the
 responses `rs` received for its watcher (`mvcc.watchRecvOk`: their events are the watcher's
 deliveries), its id, unless `-1`, live after the responses before it (`idLive`; the watch
 slice's unit W-C); if `r` has events, the watcher's responses with events sent before `j` (the down
 queue's first `j` responses, `downLbW`), then `r`, are its responses with events received; and
-what it says of the stream (`mvccExtra`, unit W-M2). -/
+what it says of the stream (`mvccExtra`, unit W-M2); where it is on the channel (`mvccCov`, K1b),
+and no response before it came from it (each is sent once). -/
 def mvccOk (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) : IProp GF :=
   iprop(∃ (r : mvcc.RespM) (rs : List mvcc.RespM) (L : List WatchRespM),
     ⌜m = mvccResp r m.hdr ∧ m.hdr.revision = r.rev ∧ L.length = j ∧ rs.getLast? = some r ∧
       (r.id ≠ W64 (-1) → idLive L r.id)⌝ ∗
     downLbW γs L ∗ mvcc.watchRecvOk γ r.w rs ∗
     ⌜r.evs ≠ [] → sentEvsOf L r.w ++ [r] = rs.filter (fun x => decide (x.evs ≠ []))⌝ ∗
-    mvccExtra γs r)
+    mvccExtra γs r ∗ mvccCov γs γ r ∗ ⌜∀ m' ∈ L, m'.src ≠ some r⌝)
 
 instance mvccOk_persistent (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : WatchRespM) :
     Persistent (mvccOk (GF := GF) γs γ j m) := by

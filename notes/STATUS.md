@@ -4976,16 +4976,23 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     `createdAfter` carry `streamRegAt γo w n` and `n ≤ l0.length`; `swsIs` keeps `regi`, `rsn`
     equal to the channel's. Statements that changed form: `watchRecvResult`, `watchStream.Watch`,
     `NewWatchStream`, `isWatchStream`, `ctrlWatcher`, `createdAfter`, `swsIs`, `auxOf`.
-  - **Next (K1b-3b)**: `rcvOk` and `mvccOk` carry the received response's channel snapshot
-    (`chanSentLb γc (pre ++ [r])`), `respCov` and `regsAt`, with the stream's names tied to the
-    channel's (`regi`, `rsn`, `sentl`). Then, for K2's "the broadcast at `j` is after the
-    registration" (O3's `createdAfter` is by value: a `-1` response in the drained snapshot is
-    among the downs before `jc`), the responses must be distinct: a ghost index `RespM.idx` (the
-    sent position, kept by `sentAuth`), and `mvccOk` saying no earlier down has the same source
-    (`SendInv`: the indices sent and buffered are disjoint). K2 then derives a broadcast's
-    coverage of a live substream: registered at `n ≤ l0.length ≤ k`, so in `regs` (`regsAt`),
-    so covered or cancelled for its reason, and not cancelled since the client never asked to
-    cancel its id (a client-side ghost of the cancel requests sent).
+  - **K1b-3b**: `RespM.idx` (ghost: the response's position in the sent list, kept by `sentAuth`,
+    `idxOk`), so the responses sent are distinct; a receipt also carries the snapshot up to the
+    response and its position. `rcvOk` (now over the channel `γc`) keeps, per received response,
+    `respCov`, `regsAt`, the snapshot and the position; `mvccOk` gains `mvccCov` (the channel, its
+    `regi`/`rsn`/`sentl` named by the run's stream `γo`, the responses `pre` before it, the
+    snapshot `pre ++ [r]`, `respCov`, `regsAt`) and that no earlier down came from the same
+    response (`src_fresh`, `pend_not_sent`: the indices sent and buffered are disjoint). K1b's
+    server side is complete. Statements that changed form: `RespM`, `sentAuth`,
+    `watchRecvResult`, `mvccOk`, `rcvOk`.
+  - **Next (K2)**: the client's argument for a broadcast `r` at down position `j` and a live
+    substream `X` (watcher `w`, `Created` at `jc < j` with `createdAfter`: `l0 <+: l`,
+    `streamRegAt γo w n`, `n ≤ l0.length`, every `-1` response of `l` among the downs before
+    `jc`): `r` is not in `l` (no earlier down came from it, `mvccOk`), so `pre.length ≥ l.length ≥
+    n` (both snapshots are prefixes of the sent list), so `w ∈ r.regs` (`regsAt`, a later credit),
+    so `w ∈ r.cov` (then `covFact`: `w`'s events before `r` cover `[lo, r.rev + 1)`) or `w` was
+    cancelled for its reason (`rsnW`: the client sent a cancel request for `X`, which a live
+    substream's client never did: a client-side ghost of the cancel requests sent).
 - **K2 (the client: progress requests, completeness).** `RequestProgress` specified; `run` sends
   progress requests and broadcasts id `-1` responses (W-C's invariant: every substream in
   `substreams` has an open `recvc`, by K0); `rangeWatchRespOk` gains completeness (the events

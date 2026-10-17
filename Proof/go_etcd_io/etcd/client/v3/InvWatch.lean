@@ -202,7 +202,7 @@ theorem srvProgressAllAnswers_holds (R : v3rpc.WSrv GF) : ⊢ srvProgressAllAnsw
   iunfold srvProgressAllAnswers
   iintro !> %γs %j %m #Hok %Hid
   iunfold v3rpc.mvccOk at Hok
-  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx⟩
+  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx, -, -⟩
   iunfold v3rpc.mvccExtra at Hx
   icases Hx with ⟨-, #Hp⟩
   have hr : r.id = W64 (-1) := by
@@ -219,7 +219,7 @@ theorem srvEventIdsAssigned_holds (R : v3rpc.WSrv GF) : ⊢ srvEventIdsAssigned 
   iunfold srvEventIdsAssigned
   iintro !> %γs %j %m %r0 #Hok %Hs
   iunfold v3rpc.mvccOk at Hok
-  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx⟩
+  icases Hok with ⟨%r, %rs, %L, %Hm, -, -, -, #Hx, -, -⟩
   iunfold v3rpc.mvccExtra at Hx
   icases Hx with ⟨#He, -⟩
   have hr : r = r0 := by

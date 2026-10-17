@@ -151,7 +151,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
       isplitr
       · ipureintro
         exact ⟨fun w h => by simp [GMap.lookup_empty] at h, fun w n h => by simp [GMap.lookup_empty] at h,
-          fun w n k x h => by simp [GMap.lookup_empty] at h⟩
+          fun w n k x h => by simp [GMap.lookup_empty] at h, fun k x h => by simp at h⟩
       iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
