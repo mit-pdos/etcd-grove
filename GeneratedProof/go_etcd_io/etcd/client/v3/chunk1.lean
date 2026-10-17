@@ -22,6 +22,7 @@ public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
@@ -313,25 +314,6 @@ instance blockLogger_access_store_timeWaiting (l : Loc) (v : go_etcd_io.etcd.cli
 
 end def_
 end blockLogger
-
-namespace Maintenance
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
-
-instance Maintenance_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.Maintenance :=
-  sorry -- axiomatized type
-
-instance Maintenance_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.Maintenance go_etcd_io.etcd.client.v3.Maintenance.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Maintenance
 
 namespace Config
 section def_

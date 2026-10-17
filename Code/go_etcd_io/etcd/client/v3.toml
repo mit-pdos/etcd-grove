@@ -224,7 +224,8 @@ translate = [
   # to the dial (`client.go`: `newClient`, `SetEndpoints`, `credentialsForEndpoint`, `dial`,
   # `dialSetupOpts`, `authority`, `autoSync`); `Config` is translated as a struct (its `TLS` field needs the import of `crypto/tls`), and the dial
   # options' packages are imported (grpc's `keepalive`, `credentials/insecure`, the client's
-  # `internal/endpoint`, `client/pkg/v3/logutil`), names only
+  # `internal/endpoint`, `client/pkg/v3/logutil`), names only; and `io`, so that the `Maintenance`
+  # interface (a field of `Client`, which `newClient` allocates) is translated, not axiomatized
   "New",
   "newClient",
   "Client.SetEndpoints",
@@ -240,7 +241,7 @@ translate = [
   "authority",
   "Client.autoSync",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

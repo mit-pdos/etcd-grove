@@ -23,6 +23,7 @@ public import Code.go_etcd_io.etcd.client.v3.internal.endpoint
 public import Code.go_etcd_io.etcd.client.v3.internal.resolver
 public import Code.google_golang_org.protobuf.proto
 public import Code.crypto.tls
+public import Perennial.Code.io
 public import Code.google_golang_org.grpc.peer
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Golang.Defn
@@ -582,12 +583,6 @@ axiom Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 axiom UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom lessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Maintenance.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom SnapshotResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom snapshotReadCloser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty
@@ -7355,7 +7350,7 @@ noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.io, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -7363,6 +7358,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7492,6 +7488,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.crypto.tls.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7876,18 +7874,15 @@ class Watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] Watcher.TypeAssumptions.underlying
 
-axiom Maintenance : Type
-axiom Maintenance.zero_val : ZeroVal Maintenance
-attribute [instance] Maintenance.zero_val
+abbrev Maintenance [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Maintenance.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AlarmDisarm" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmMember.ty)] false [(go.GoType.PointerType AlarmResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AlarmList" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AlarmResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Defragment" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType DefragmentResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Downgrade" (go.signature.Signature [_root_.Perennial.context.Context.ty, DowngradeAction.ty, go.string] false [(go.GoType.PointerType DowngradeResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"HashKV" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType HashKVResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"MoveLeader" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MoveLeaderResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Snapshot" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.io.ReadCloser.ty, go.error])), (go.InterfaceElem.MethodElem go!"SnapshotWithVersion" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType SnapshotResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType StatusResponse.ty), go.error]))])
 
 class Maintenance.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Maintenance.underlying Maintenance
   underlying : go.UnderlyingDirectedEq Maintenance.ty Maintenance.underlying
-  isUnderlying : go.IsUnderlying Maintenance.underlying Maintenance.underlying
 
-attribute [instance] Maintenance.TypeAssumptions.type_repr
-  Maintenance.TypeAssumptions.underlying
-  Maintenance.TypeAssumptions.isUnderlying
+attribute [instance] Maintenance.TypeAssumptions.underlying
 
 structure Config [FfiSyntax] where
   mk ::
@@ -9251,18 +9246,48 @@ class DowngradeAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
 
 attribute [instance] DowngradeAction.TypeAssumptions.underlying
 
-axiom SnapshotResponse : Type
-axiom SnapshotResponse.zero_val : ZeroVal SnapshotResponse
-attribute [instance] SnapshotResponse.zero_val
+structure SnapshotResponse [FfiSyntax] where
+  mk ::
+  Header' : Loc
+  Snapshot' : _root_.Perennial.io.ReadCloser
+  Version' : GoString
+
+instance SnapshotResponse.zero_val [FfiSyntax] : ZeroVal SnapshotResponse :=
+  ⟨SnapshotResponse.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def SnapshotResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"Snapshot" _root_.Perennial.io.ReadCloser.ty),
+(go.field_decl.FieldDecl go!"Version" go.string)]
+
+@[irreducible] def SnapshotResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  SnapshotResponse.fieldsUnsealed
+
+instance equals_unfold_SnapshotResponse [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold SnapshotResponse.fields SnapshotResponse.fieldsUnsealed :=
+  ⟨by unfold SnapshotResponse.fields; rfl⟩
+
+@[reducible] def SnapshotResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType SnapshotResponse.fields)
 
 class SnapshotResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SnapshotResponse.underlying SnapshotResponse
   underlying : go.UnderlyingDirectedEq SnapshotResponse.ty SnapshotResponse.underlying
-  isUnderlying : go.IsUnderlying SnapshotResponse.underlying SnapshotResponse.underlying
+  get_Header : ∀ (x : SnapshotResponse), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : SnapshotResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : SnapshotResponse)))
+  get_Snapshot : ∀ (x : SnapshotResponse), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotResponse.underlying go!"Snapshot") #x (Val #(x.Snapshot'))
+  set_Snapshot : ∀ (x : SnapshotResponse) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotResponse.underlying go!"Snapshot") (PairV #x #y) (Val #(({ x with Snapshot' := y } : SnapshotResponse)))
+  get_Version : ∀ (x : SnapshotResponse), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotResponse.underlying go!"Version") #x (Val #(x.Version'))
+  set_Version : ∀ (x : SnapshotResponse) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotResponse.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : SnapshotResponse)))
 
 attribute [instance] SnapshotResponse.TypeAssumptions.type_repr
   SnapshotResponse.TypeAssumptions.underlying
-  SnapshotResponse.TypeAssumptions.isUnderlying
+  SnapshotResponse.TypeAssumptions.get_Header
+  SnapshotResponse.TypeAssumptions.set_Header
+  SnapshotResponse.TypeAssumptions.get_Snapshot
+  SnapshotResponse.TypeAssumptions.set_Snapshot
+  SnapshotResponse.TypeAssumptions.get_Version
+  SnapshotResponse.TypeAssumptions.set_Version
 
 structure maintenance [FfiSyntax] where
   mk ::
@@ -9313,18 +9338,42 @@ attribute [instance] maintenance.TypeAssumptions.type_repr
   maintenance.TypeAssumptions.get_callOpts
   maintenance.TypeAssumptions.set_callOpts
 
-axiom snapshotReadCloser : Type
-axiom snapshotReadCloser.zero_val : ZeroVal snapshotReadCloser
-attribute [instance] snapshotReadCloser.zero_val
+structure snapshotReadCloser [FfiSyntax] where
+  mk ::
+  ctx' : _root_.Perennial.context.Context
+  ReadCloser' : _root_.Perennial.io.ReadCloser
+
+instance snapshotReadCloser.zero_val [FfiSyntax] : ZeroVal snapshotReadCloser :=
+  ⟨snapshotReadCloser.mk zeroValDef zeroValDef⟩
+
+@[reducible] def snapshotReadCloser.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
+(go.field_decl.EmbeddedField go!"ReadCloser" _root_.Perennial.io.ReadCloser.ty)]
+
+@[irreducible] def snapshotReadCloser.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  snapshotReadCloser.fieldsUnsealed
+
+instance equals_unfold_snapshotReadCloser [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold snapshotReadCloser.fields snapshotReadCloser.fieldsUnsealed :=
+  ⟨by unfold snapshotReadCloser.fields; rfl⟩
+
+@[reducible] def snapshotReadCloser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType snapshotReadCloser.fields)
 
 class snapshotReadCloser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotReadCloser.underlying snapshotReadCloser
   underlying : go.UnderlyingDirectedEq snapshotReadCloser.ty snapshotReadCloser.underlying
-  isUnderlying : go.IsUnderlying snapshotReadCloser.underlying snapshotReadCloser.underlying
+  get_ctx : ∀ (x : snapshotReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet snapshotReadCloser.underlying go!"ctx") #x (Val #(x.ctx'))
+  set_ctx : ∀ (x : snapshotReadCloser) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet snapshotReadCloser.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : snapshotReadCloser)))
+  get_ReadCloser : ∀ (x : snapshotReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet snapshotReadCloser.underlying go!"ReadCloser") #x (Val #(x.ReadCloser'))
+  set_ReadCloser : ∀ (x : snapshotReadCloser) (y : _root_.Perennial.io.ReadCloser), go.IsGoStepPureDetTagged under (StructFieldSet snapshotReadCloser.underlying go!"ReadCloser") (PairV #x #y) (Val #(({ x with ReadCloser' := y } : snapshotReadCloser)))
 
 attribute [instance] snapshotReadCloser.TypeAssumptions.type_repr
   snapshotReadCloser.TypeAssumptions.underlying
-  snapshotReadCloser.TypeAssumptions.isUnderlying
+  snapshotReadCloser.TypeAssumptions.get_ctx
+  snapshotReadCloser.TypeAssumptions.set_ctx
+  snapshotReadCloser.TypeAssumptions.get_ReadCloser
+  snapshotReadCloser.TypeAssumptions.set_ReadCloser
 
 abbrev opType [FfiSyntax] : Type := w64
 
@@ -11010,6 +11059,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_resolver_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
   import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
+  import_io_Assumption : _root_.Perennial.io.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
@@ -11204,6 +11254,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.import_resolver_Assumption
   Assumptions.import_proto_Assumption
   Assumptions.import_tls_Assumption
+  Assumptions.import_io_Assumption
   Assumptions.import_peer_Assumption
   Assumptions.import_mvccpb_Assumption
 

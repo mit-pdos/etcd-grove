@@ -22,6 +22,7 @@ public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
@@ -297,12 +298,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
 
 instance SnapshotResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.SnapshotResponse :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.SnapshotResponse where
+  typedPointstoDef l v dq := iprop(
+    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Header" l) v.Header' dq ∗
+    "Snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Snapshot" l) v.Snapshot' dq ∗
+    "Version" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Version" l) v.Version' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance SnapshotResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.SnapshotResponse go_etcd_io.etcd.client.v3.SnapshotResponse.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.SnapshotResponse go_etcd_io.etcd.client.v3.SnapshotResponse.underlying := by
+  solve_into_val_typed_struct
+
+instance SnapshotResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.client.v3.SnapshotResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Header" l) v.Header' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance SnapshotResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.client.v3.SnapshotResponse) (Header' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Header" l) Header' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.client.v3.SnapshotResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance SnapshotResponse_access_load_Snapshot (l : Loc) (v : go_etcd_io.etcd.client.v3.SnapshotResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Snapshot" l) v.Snapshot' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Snapshot" l) v.Snapshot' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance SnapshotResponse_access_store_Snapshot (l : Loc) (v : go_etcd_io.etcd.client.v3.SnapshotResponse) (Snapshot' : io.ReadCloser) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Snapshot" l) v.Snapshot' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Snapshot" l) Snapshot' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snapshot' := Snapshot' } : go_etcd_io.etcd.client.v3.SnapshotResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance SnapshotResponse_access_load_Version (l : Loc) (v : go_etcd_io.etcd.client.v3.SnapshotResponse) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Version" l) v.Version' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Version" l) v.Version' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance SnapshotResponse_access_store_Version (l : Loc) (v : go_etcd_io.etcd.client.v3.SnapshotResponse) (Version' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Version" l) v.Version' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SnapshotResponse go!"Version" l) Version' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := Version' } : go_etcd_io.etcd.client.v3.SnapshotResponse) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end SnapshotResponse
@@ -407,12 +463,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.client.v3.Assumptions]
 
 instance snapshotReadCloser_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.snapshotReadCloser :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.snapshotReadCloser where
+  typedPointstoDef l v dq := iprop(
+    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ctx" l) v.ctx' dq ∗
+    "ReadCloser" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ReadCloser" l) v.ReadCloser' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance snapshotReadCloser_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.snapshotReadCloser go_etcd_io.etcd.client.v3.snapshotReadCloser.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.snapshotReadCloser go_etcd_io.etcd.client.v3.snapshotReadCloser.underlying := by
+  solve_into_val_typed_struct
+
+instance snapshotReadCloser_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.snapshotReadCloser) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ctx" l) v.ctx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotReadCloser_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.snapshotReadCloser) (ctx' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ctx" l) ctx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := ctx' } : go_etcd_io.etcd.client.v3.snapshotReadCloser) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotReadCloser_access_load_ReadCloser (l : Loc) (v : go_etcd_io.etcd.client.v3.snapshotReadCloser) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ReadCloser" l) v.ReadCloser' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ReadCloser" l) v.ReadCloser' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance snapshotReadCloser_access_store_ReadCloser (l : Loc) (v : go_etcd_io.etcd.client.v3.snapshotReadCloser) (ReadCloser' : io.ReadCloser) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ReadCloser" l) v.ReadCloser' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.snapshotReadCloser go!"ReadCloser" l) ReadCloser' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadCloser' := ReadCloser' } : go_etcd_io.etcd.client.v3.snapshotReadCloser) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end snapshotReadCloser
