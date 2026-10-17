@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetTarget
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetTargetUnion
 public import Proof.go_etcd_io.etcd.client.v3.CreateRevision
 public import Proof.go_etcd_io.etcd.client.v3.DeleteResponse__OpResponse
+public import Proof.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Proof.go_etcd_io.etcd.client.v3.GetResponse__OpResponse
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
@@ -111,6 +112,7 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__Put
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__Txn
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__acquire
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__delete
+public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__deleteIntersectsLeasingPrefix
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__deleteRange
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__deleteRangeRPC
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__get
@@ -124,6 +126,8 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__revoke
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__revokeLeaseKvs
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__revokeRange
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__tryModifyOp
+public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__validateDelete
+public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__validateDeleteOps
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitRescind
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitSession
 public import Proof.go_etcd_io.etcd.client.v3.leasing.NewKV
@@ -132,6 +136,7 @@ public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__Commit
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__Else
@@ -226,6 +231,14 @@ theorem v3.wp_CreateRevision :
 theorem v3.DeleteResponse.wp_OpResponse :
     EtcdGrove.DeleteResponse.OpResponse.spec (GF := GF) (hG := hG) :=
   EtcdGrove.DeleteResponse.OpResponse.wp_proof
+
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_GetPrefixRangeEnd :
+    EtcdGrove.GetPrefixRangeEnd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.GetPrefixRangeEnd.wp_proof v3.wp_getPrefix
 
 theorem v3.GetResponse.wp_OpResponse :
     EtcdGrove.GetResponse.OpResponse.spec (GF := GF) (hG := hG) :=
@@ -391,10 +404,6 @@ theorem v3.wp_WithKeysOnly :
     EtcdGrove.WithKeysOnly.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithKeysOnly.wp_proof
 
-theorem v3.wp_getPrefix :
-    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.getPrefix.wp_proof
-
 theorem v3.wp_WithPrefix :
     EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
@@ -422,6 +431,10 @@ theorem v3.wp_WithRange :
 theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
+
+theorem status.wp_Errorf :
+    EtcdGrove.status.Errorf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Errorf.wp_proof
 
 theorem v3.wp_mustInt64 :
     EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
@@ -595,6 +608,14 @@ theorem leasingKV.wp_Compact :
     EtcdGrove.leasing.leasingKV.Compact.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Compact.wp_proof
 
+theorem leasingKV.wp_deleteIntersectsLeasingPrefix :
+    EtcdGrove.leasing.leasingKV.deleteIntersectsLeasingPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leasingKV.deleteIntersectsLeasingPrefix.wp_proof v3.Op.wp_KeyBytes v3.Op.wp_RangeBytes v3.wp_GetPrefixRangeEnd wp_inRange
+
+theorem leasingKV.wp_validateDelete :
+    EtcdGrove.leasing.leasingKV.validateDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leasingKV.validateDelete.wp_proof v3.Op.wp_IsDelete leasingKV.wp_deleteIntersectsLeasingPrefix status.wp_Errorf
+
 theorem leasingKV.wp_waitSession :
     EtcdGrove.leasing.leasingKV.waitSession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.waitSession.wp_proof
@@ -633,7 +654,7 @@ theorem leasingKV.wp_tryModifyOp :
 
 theorem leasingKV.wp_delete :
     EtcdGrove.leasing.leasingKV.delete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.leasingKV.delete.wp_proof leasingKV.wp_waitSession v3.Op.wp_RangeBytes leasingKV.wp_deleteRange v3.Op.wp_KeyBytes leasingKV.wp_tryModifyOp leasingKV.wp_revoke leaseCache.wp_Evict ResponseOp.wp_GetResponseDeleteRange leaseCache.wp_Delete
+  EtcdGrove.leasing.leasingKV.delete.wp_proof leasingKV.wp_validateDelete leasingKV.wp_waitSession v3.Op.wp_RangeBytes leasingKV.wp_deleteRange v3.Op.wp_KeyBytes leasingKV.wp_tryModifyOp leasingKV.wp_revoke leaseCache.wp_Evict ResponseOp.wp_GetResponseDeleteRange leaseCache.wp_Delete
 
 theorem leasingKV.wp_Delete :
     EtcdGrove.leasing.leasingKV.Delete.spec (GF := GF) (hG := hG) :=
@@ -679,6 +700,10 @@ theorem txnLeasing.wp_Else :
     EtcdGrove.leasing.txnLeasing.Else.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.Else.wp_proof
 
+theorem leasingKV.wp_validateDeleteOps :
+    EtcdGrove.leasing.leasingKV.validateDeleteOps.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.leasingKV.validateDeleteOps.wp_proof wp_gatherOps leasingKV.wp_validateDelete
+
 theorem txnLeasing.wp_eval :
     EtcdGrove.leasing.txnLeasing.eval.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.eval.wp_proof wp_gatherOps leaseCache.wp_NotifyOps leaseCache.wp_evalCmp leaseCache.wp_evalOps wp_copyHeader
@@ -713,7 +738,7 @@ theorem txnLeasing.wp_serverTxn :
 
 theorem txnLeasing.wp_Commit :
     EtcdGrove.leasing.txnLeasing.Commit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.txnLeasing.Commit.wp_proof txnLeasing.wp_eval txnLeasing.wp_serverTxn
+  EtcdGrove.leasing.txnLeasing.Commit.wp_proof leasingKV.wp_validateDeleteOps txnLeasing.wp_eval txnLeasing.wp_serverTxn
 
 theorem leasingKV.wp_Do :
     EtcdGrove.leasing.leasingKV.Do.spec (GF := GF) (hG := hG) :=

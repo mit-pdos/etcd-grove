@@ -1,0 +1,18 @@
+== pin 09669450f
+=== RUN   TestLeasingPutIntoPrefixBlocksWriters
+        	Error:      	Received unexpected error:
+        	Messages:   	a write of "b" through another leasing KV blocks
+--- FAIL: TestLeasingPutIntoPrefixBlocksWriters (5.17s)
+=== RUN   TestLeasingDeleteFromKeyStaleRead
+    leasing_prefix_put_test.go:87: Delete(b, WithFromKey) error: <nil>
+        	Error:      	Not equal: 
+        	            	expected: "new"
+        	            	actual  : "old"
+        	Messages:   	the holder serves a stale cached value
+--- FAIL: TestLeasingDeleteFromKeyStaleRead (0.20s)
+=== RUN   TestLeasingDeleteReservedPrefixRejected
+        	Error:      	An error is expected but got nil.
+--- FAIL: TestLeasingDeleteReservedPrefixRejected (0.11s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	5.546s
+FAIL

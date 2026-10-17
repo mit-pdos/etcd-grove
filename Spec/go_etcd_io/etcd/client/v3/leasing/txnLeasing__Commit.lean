@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingPrefix
 
 @[expose] public section
 
@@ -24,8 +24,26 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- **`txn.Commit()`**: the cache's evaluation (`eval`) if it answers, else `serverTxn`:
-`commitOutcome`. The context must be cancelable. -/
+`commitOutcome`. The context must be cancelable.
+
+etcd#22118: if an operation of either branch is a delete intersecting the lease prefix `pfx`, the
+commit fails before anything else; one that succeeds had no delete with a lease key in its range
+(`LeaseDeleteGuard`). The spec before the PR is `txnLeasing.Commit.spec_old`, which this one
+implies (`txnLeasing.Commit.spec_implies_old`). -/
 abbrev txnLeasing.Commit.spec : Prop :=
+  ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (b : LTxnBuild) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ownTxnLeasing txn lkv γ pfx ctx cs b ∗ lkvReader lkv γ pfx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗
+      ⌜(b.thenOs.length : Int) + b.elseOs.length < 2 ^ 63⌝ }}
+    (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"Commit")) (Val #()))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); lkvReader lkv γ pfx ∗
+      ⌜LeaseDeleteGuard pfx (b.thenOs ++ b.elseOs) err⌝ ∗
+      commitOutcome γ lo b resp err }}
+
+
+/-- **`txn.Commit()`, the spec before etcd#22118**: the cache's evaluation (`eval`) if it answers, else `serverTxn`:
+`commitOutcome`. The context must be cancelable. -/
+abbrev txnLeasing.Commit.spec_old : Prop :=
   ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (b : LTxnBuild) (lo : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ ownTxnLeasing txn lkv γ pfx ctx cs b ∗ lkvReader lkv γ pfx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗

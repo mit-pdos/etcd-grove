@@ -116,7 +116,7 @@ theorem leasingKV.Do.wp_proof
   · simp only [decide_eq_true h3]
     wp_auto
     wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
-      as %dr %err ⟨Hrd, Hout⟩
+      as %dr %err ⟨Hrd, %Hg, Hout⟩
     · ipureintro; exact h3
     try wp_auto
     wp_apply hDOR $$ [$Hcv]
@@ -124,6 +124,7 @@ theorem leasingKV.Do.wp_proof
     iapply HΦ
     rw [ite_eq_right h1, ite_eq_right h2, ite_eq_left h3]
     iframe
+    ipureintro; exact Hg
   simp only [decide_eq_false h3, Bool.true_eq_false, decide_False_any]
   wp_auto
   wp_apply hIsTxn $$ [$Hcv $op $Hop] as op
@@ -151,7 +152,7 @@ theorem leasingKV.Do.wp_proof
       (LTxnBuild.mk ([] ++ ms) ([] ++ tos) ([] ++ eos) true true true)
       (LTxnBuild.mk ms tos eos true true true) rfl $$ Ht
     wp_apply hCommit txn lkv γ pfx ctx cs (LTxnBuild.mk ms tos eos true true true) lo
-      $$ [$Hpkg $Ht $Hrd $Hcc $Hlo] as %resp %err ⟨Hrd, Hout⟩
+      $$ [$Hpkg $Ht $Hrd $Hcc $Hlo] as %resp %err ⟨Hrd, %Hg, Hout⟩
     · ipureintro; exact Hops.2.2
     try wp_auto
     wp_apply hTOR $$ [$Hcv]
@@ -160,12 +161,60 @@ theorem leasingKV.Do.wp_proof
     rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h3, ite_eq_left h4]
     iframe
     iframe #
+    ipureintro; exact Hg
   simp only [decide_eq_false h4, Bool.true_eq_false, decide_False_any]
   wp_auto
   iapply HΦ
   rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h3, ite_eq_right h4]
   iframe
   ipureintro; exact ⟨rfl, rfl⟩
+
+/-- **etcd#22118's spec is compatible**: in the delete and transaction cases a stronger
+postcondition (`LeaseDeleteGuard`), the others unchanged. -/
+theorem leasingKV.Do.spec_implies_old (h : leasingKV.Do.spec (GF := GF) (hG := hG)) :
+    leasingKV.Do.spec_old (GF := GF) (hG := hG) := by
+  intro lkv γ pfx ctx cs opv o lo q
+  have h' := h lkv γ pfx ctx cs opv o lo q
+  by_cases h1 : o.t = W64 1
+  · simp only [h1, ↓reduceIte] at h' ⊢
+    iintro %Φ Hpre HΦ
+    iapply h' $$ [Hpre]
+    · iexact Hpre
+    iexact HΦ
+  by_cases h2 : o.t = W64 2
+  · simp only [h2, ↓reduceIte, show W64 2 ≠ W64 1 by decide] at h' ⊢
+    iintro %Φ Hpre HΦ
+    iapply h' $$ [Hpre]
+    · iexact Hpre
+    iexact HΦ
+  by_cases h3 : o.t = W64 3
+  · simp only [h3, ↓reduceIte, show W64 3 ≠ W64 1 by decide, show W64 3 ≠ W64 2 by decide]
+      at h' ⊢
+    iintro %Φ Hpre HΦ
+    iapply h' $$ [Hpre]
+    · iexact Hpre
+    iintro %r %err
+    inext
+    iintro ⟨Hrd, Hopen, Htok, Hrd2, -, Hd⟩
+    iapply HΦ
+    iframe
+  by_cases h4 : o.t = W64 4
+  · simp only [h4, ↓reduceIte, show W64 4 ≠ W64 1 by decide, show W64 4 ≠ W64 2 by decide,
+      show W64 4 ≠ W64 3 by decide] at h' ⊢
+    iintro %Φ Hpre HΦ
+    iapply h' $$ [Hpre]
+    · iexact Hpre
+    iintro %r %err
+    inext
+    iintro ⟨Hrd, Hopen, Htok, Hrd2, %ms, %tos, %eos, #Hc, #Ht, #He, -, Hd⟩
+    iapply HΦ
+    iframe
+    iframe #
+  · simp only [h1, h2, h3, h4, ↓reduceIte] at h' ⊢
+    iintro %Φ Hpre HΦ
+    iapply h' $$ [Hpre]
+    · iexact Hpre
+    iexact HΦ
 
 end proof
 

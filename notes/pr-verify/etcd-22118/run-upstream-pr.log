@@ -1,0 +1,19 @@
+== upstream-pr dc9f853fd
+=== RUN   TestLeasingPutIntoPrefixBlocksWriters
+        	Error:      	Received unexpected error:
+        	Messages:   	a write of "b" through another leasing KV blocks
+--- FAIL: TestLeasingPutIntoPrefixBlocksWriters (5.11s)
+=== RUN   TestLeasingDeleteFromKeyStaleRead
+    leasing_prefix_put_test.go:87: Delete(b, WithFromKey) error: rpc error: code = InvalidArgument desc = leasing: delete range intersects leasing prefix "pfx/"
+--- PASS: TestLeasingDeleteFromKeyStaleRead (0.17s)
+=== RUN   TestLeasingDeleteReservedPrefixRejected
+--- PASS: TestLeasingDeleteReservedPrefixRejected (0.18s)
+=== RUN   TestLeasingDeleteProtectsProtocolKeys
+=== RUN   TestLeasingDeleteProtectsProtocolKeys/Txn
+=== RUN   TestLeasingDeleteProtectsProtocolKeys/nested_Txn
+=== RUN   TestLeasingDeleteProtectsProtocolKeys/Delete
+=== RUN   TestLeasingDeleteProtectsProtocolKeys/Do
+--- PASS: TestLeasingDeleteProtectsProtocolKeys (0.19s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	5.683s
+FAIL

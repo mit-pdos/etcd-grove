@@ -35,7 +35,8 @@ attribute [irreducible] Code.ty
 @[reducible] noncomputable def Unknown [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom InvalidArgument [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def InvalidArgument [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 3)
 
 @[reducible] noncomputable def DeadlineExceeded [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 4)

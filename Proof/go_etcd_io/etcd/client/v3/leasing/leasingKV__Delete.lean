@@ -42,6 +42,19 @@ theorem leasingKV.Delete.wp_proof
   · ipureintro; exact Hnp.2
   iapply HΦ $$ H
 
+/-- **etcd#22118's spec is compatible**: a stronger postcondition (`LeaseDeleteGuard`). -/
+theorem leasingKV.Delete.spec_implies_old (h : leasingKV.Delete.spec (GF := GF) (hG := hG)) :
+    leasingKV.Delete.spec_old (GF := GF) (hG := hG) := by
+  intro lkv γ pfx ctx cs key sl gs lo
+  iintro %Φ Hpre HΦ
+  iapply h lkv γ pfx ctx cs key sl gs lo $$ [Hpre]
+  · iexact Hpre
+  iintro %dr %err
+  inext
+  iintro ⟨Hrd, -, Hd⟩
+  iapply HΦ
+  iframe
+
 end proof
 
 end leasing

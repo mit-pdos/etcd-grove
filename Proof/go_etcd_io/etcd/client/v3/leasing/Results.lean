@@ -138,17 +138,21 @@ theorem leasing_put : leasingKV.Put.spec (GF := GF) (hG := hG) :=
   leasingKV.wp_Put
 
 /-- **Theorem 2 for deletes**: `lkv.Delete(ctx, key, opts...)` returns an error or the delete of
-the range committed at a revision `r ≥ lo` (`deleteCommitted`). -/
+the range committed at a revision `r ≥ lo` (`deleteCommitted`); with etcd#22118, a delete whose
+range intersects the lease prefix fails, and one that succeeds deleted no lease key
+(`LeaseDeleteGuard`). -/
 theorem leasing_delete : leasingKV.Delete.spec (GF := GF) (hG := hG) :=
   leasingKV.wp_Delete
 
 /-- **Theorems 2 and 4 for transactions**: `txn.Commit()` returns the cache's evaluation
 (`evalResult`: `leaseEvalCmps` of the cached entries, the cached gets' answers, at the cache's
-header) or the client's answer for the user's transaction (`txnCommitResult`). -/
+header) or the client's answer for the user's transaction (`txnCommitResult`); with etcd#22118,
+`LeaseDeleteGuard` of both branches' operations. -/
 theorem leasing_Txn_Commit : txnLeasing.Commit.spec (GF := GF) (hG := hG) :=
   txnLeasing.wp_Commit
 
-/-- `lkv.Do(ctx, op)`, by the operation's kind. -/
+/-- `lkv.Do(ctx, op)`, by the operation's kind (with etcd#22118's `LeaseDeleteGuard` for deletes
+and transactions). -/
 theorem leasing_Do : leasingKV.Do.spec (GF := GF) (hG := hG) :=
   leasingKV.wp_Do
 
@@ -251,6 +255,13 @@ theorem leasing_evalCmpM_lease (v : EtcdKv) (hv : v.lease = W64 7) :
       cmpKv (compareM (cmpKeyM .lease v.key) .eq (.num (W64 8))) v = false :=
   evalCmpM_lease v hv
 
+/-- **etcd#22118, the check**: a delete `deleteIntersectsLeasingPrefix` lets through has no key with
+the (non-empty) lease prefix in its range, in etcd's sense of a range (`inRange`: a key alone, a
+range, or from a key on). -/
+theorem leasing_delete_spares_lease_keys (pfx : GoString) (o : OpFull) (hp : pfx ≠ [])
+    (h : leaseDelIntersects pfx o = false) : LeaseKeysOutside pfx o :=
+  leaseDelIntersects_false pfx o hp h
+
 end results
 
 end leasing
@@ -274,6 +285,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.leasing.leasing_delete
 #print axioms Perennial.EtcdGrove.leasing.leasing_Txn_Commit
 #print axioms Perennial.EtcdGrove.leasing.leasing_Do
+#print axioms Perennial.EtcdGrove.leasing.leasing_delete_spares_lease_keys
 #print axioms Perennial.EtcdGrove.leasing.leasing_Txn
 #print axioms Perennial.EtcdGrove.leasing.leasing_NewKV
 #print axioms Perennial.EtcdGrove.leasing.leasing_Close

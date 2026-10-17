@@ -3,9 +3,10 @@
 # `client/v3/leasing` passes `Unimplemented` and compares with `Unavailable`; the server's
 # `v3rpc.togRPCError` passes `Unknown`; unit C1: `clientv3.ContextError` compares with
 # `DeadlineExceeded` and `Canceled`; the watch slice's unit W-C: `clientv3.isHaltErr` compares with
-# `Unavailable` and `Internal`).
+# `Unavailable` and `Internal`; `client/v3/leasing`'s `validateDelete`, etcd#22118, passes
+# `InvalidArgument`).
 translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimplemented",
-  "DeadlineExceeded", "Canceled", "Internal"]
+  "DeadlineExceeded", "Canceled", "Internal", "InvalidArgument"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

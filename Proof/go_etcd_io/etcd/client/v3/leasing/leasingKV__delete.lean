@@ -5,6 +5,7 @@ counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__delete
+public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__validateDelete
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitSession
 public import Spec.go_etcd_io.etcd.client.v3.Op__RangeBytes
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leasingKV__deleteRange
@@ -16,6 +17,7 @@ public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseDe
 public import Spec.go_etcd_io.etcd.client.v3.leasing.leaseCache__Delete
 public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKVLemmas
 public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingDeleteLemmas
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingCommitLemmas
 
 @[expose] public section
 
@@ -36,6 +38,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 theorem leasingKV.delete.wp_proof
+    (hVal : leasingKV.validateDelete.spec (GF := GF) (hG := hG))
     (hWS : leasingKV.waitSession.spec (GF := GF) (hG := hG))
     (hRange : EtcdGrove.Op.RangeBytes.spec (GF := GF) (hG := hG))
     (hDR : leasingKV.deleteRange.spec (GF := GF) (hG := hG))
@@ -61,6 +64,28 @@ theorem leasingKV.delete.wp_proof
   iunfold opFullAt at Hop'
   icases Hop' with ⟨#HopAt, -⟩
   ihave #Hpeek := leasingX_peek (GF := GF) lkv γ
+  -- etcd#22118: `validateDelete` first.
+  ihave ⟨%kv0, -, -, #Hpfx, %Hpne⟩ := isLeasingKV_kv lkv γ pfx $$ Hlkv
+  (try wp_auto)
+  wp_apply hVal $$ [$Hpfx $Hop] as %verr %Hverr
+  cases verr with
+  | ok e =>
+    (try wp_auto)
+    iapply HΦ
+    iframe
+    isplitr
+    · ipureintro; exact LeaseDeleteGuard.of_ne_nil (by simp)
+    ileft; ipureintro; exact ⟨by simp, rfl⟩
+  | nil =>
+  have Hguard : ∀ err, LeaseDeleteGuard pfx [o] err := fun _ =>
+    LeaseDeleteGuard.of_none Hpne (by simpa using Hverr.1 rfl)
+  ihave HΦ : iprop(∀ (dr : Loc) (err : GoInterface), lkvReader lkv γ pfx ∗
+      (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o dr)) -∗
+      Φ (PairV #dr #err)) $$ [HΦ]
+  · iintro %dr %err ⟨Hrd, Hd⟩
+    iapply HΦ
+    iframe
+    ipureintro; exact Hguard err
   (try wp_auto)
   wp_apply (hWS lkv γ pfx ctx cs) $$ [$Hlkv $Hrd $Hctx] as %err0 ⟨Hrd, Hws⟩
   unfold sessionReadyQ
@@ -254,6 +279,20 @@ theorem leasingKV.delete.wp_proof
     iexists _
     simp only [named]
     iframe
+
+/-- **etcd#22118's spec is compatible**: same precondition, a stronger postcondition (the guard
+`LeaseDeleteGuard` added), so it implies the spec before the PR. -/
+theorem leasingKV.delete.spec_implies_old (h : leasingKV.delete.spec (GF := GF) (hG := hG)) :
+    leasingKV.delete.spec_old (GF := GF) (hG := hG) := by
+  intro lkv γ pfx ctx cs opv o lo
+  iintro %Φ Hpre HΦ
+  iapply h lkv γ pfx ctx cs opv o lo $$ [Hpre]
+  · iexact Hpre
+  iintro %dr %err
+  inext
+  iintro ⟨Hrd, -, Hd⟩
+  iapply HΦ
+  iframe
 
 end proof
 

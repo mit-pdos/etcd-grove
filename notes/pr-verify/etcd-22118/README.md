@@ -1,0 +1,13 @@
+# Files for the verification of etcd-io/etcd#22118
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `leasing_prefix_put_test.go` | Three integration tests. `TestLeasingDeleteFromKeyStaleRead`: the consequence of etcd#22083 (a `WithFromKey` delete removes another key's lease key; the holder then serves a stale value) — fails at the pin, passes at the PR's head (the delete is rejected). `TestLeasingPutIntoPrefixBlocksWriters`: a put through the leasing KV into its prefix replaces a lease key with a lease-0 record, and a later put of the user key through another leasing KV blocks until its context ends — fails (`context deadline exceeded`) at both. `TestLeasingDeleteReservedPrefixRejected`: the PR rejects an empty range whose start is in the prefix and accepts a range ending at the prefix — passes at the PR's head (fails at the pin, which rejects nothing). | etcd-io/etcd PR head `dc9f853fd`; the pinned fork revision `09669450f` (`upamanyus/etcd` `goose-lean`) | `cp leasing_prefix_put_test.go <checkout>/tests/integration/clientv3/lease/ && cd <checkout>/tests && GOTOOLCHAIN=go1.27.1 go test ./integration/clientv3/lease -run 'TestLeasingPutIntoPrefixBlocksWriters\|TestLeasingDeleteFromKeyStaleRead\|TestLeasingDeleteReservedPrefixRejected' -count=1 -v` |
+| `run-pin.log` | The output of the command above at the pin `09669450f`. | `09669450f` | as above |
+| `run-upstream-pr.log` | The output at the PR's head, with the PR's own `TestLeasingDeleteProtectsProtocolKeys` (passes). | `dc9f853fd` | as above, adding `\|TestLeasingDeleteProtectsProtocolKeys` |
+| `leasing_review22118_test.go` | The reviewer's tests. `TestReview22118TxnPutIntoPrefix`: the put-into-prefix breakage through a leasing `Txn` put (another client's `Put` of the key blocks, the holder's `Get` is stale) — fails. `TestReview22118Precedence`: the PR's rejection takes precedence over a cancelled context, rejects a delete in an else branch that cannot run, and rejects nested-transaction deletes through `Txn` and `Do`, all with `InvalidArgument` — passes. | PR head `dc9f853fd` | `cp leasing_review22118_test.go <checkout>/tests/integration/clientv3/lease/ && cd <checkout>/tests && GOTOOLCHAIN=go1.27.1 go test ./integration/clientv3/lease/ -run TestReview22118 -count=1 -v` |
+| `run-review-upstream-pr.log` | Its output at the PR's head. | `dc9f853fd` | as above |
+
+The fork branch with the PR applied (what the Lean translation is of) is `mit-pdos/etcd-grove`
+branch `pr-etcd-22118-goose-lean` (commit `668762e95`, onto the pin `09669450f`); the PR's unit
+test (`go test ./client/v3/leasing`) and `TestLeasingDelete*` integration tests pass there.

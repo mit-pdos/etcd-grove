@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22118, leasing deletes that intersect the lease prefix (2026-10-17, branch `pr-verify/etcd-22118`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22118-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. The three new methods (`deleteIntersectsLeasingPrefix`,
+`validateDelete`, `validateDeleteOps`) are specified and proved; `delete`, `txnLeasing.Commit`,
+`Delete` and `Do` have stronger specs (`LeaseDeleteGuard`: an intersecting delete fails, a
+successful one deleted no lease key), each with `spec_implies_old`. The pure model and its
+theorem (`leaseDelIntersects_false`) are in `Proof/go_etcd_io/etcd/client/v3/leasing/InvLeasingPrefix.lean`.
+`codes.InvalidArgument` is now translated (`Code/google_golang_org/grpc/codes.toml`); the
+existing trust-boundary axiom `status.Errorf.wp_proof` now also gates leasing's `delete`,
+`Commit` and `Do`. No new axiom or `sorry`. Two issues in the pinned code: the PR's bug
+(`issues/leasing-delete-removes-lease-keys.md`) and a put into the prefix that blocks writers,
+which the PR leaves (`issues/leasing-put-into-prefix.md`). Report: `notes/pr-verify/etcd-22118.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

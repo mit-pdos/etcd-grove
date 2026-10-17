@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingPrefix
 
 @[expose] public section
 
@@ -27,8 +27,28 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 `deleteRange`; a key's delete is committed by `tryModifyOp` or `revoke` (both, if the key is not
 cached: a finding) until one succeeds or the context is done, and deleted from the cache.
 Returns an error, or the delete of `o`'s range (`deleteCommitted`). The context must be
-cancelable. -/
+cancelable.
+
+etcd#22118: a delete intersecting the lease prefix `pfx` fails before anything else, and a delete
+that succeeds had no lease key in its range (`LeaseDeleteGuard`). The spec before the PR is
+`leasingKV.delete.spec_old`, which this one implies (`leasingKV.delete.spec_implies_old`). -/
 abbrev leasingKV.delete.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
+    (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 3⌝ }}
+    (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"delete")) (Val #(GoInterface.ok ctx))) (Val #opv))
+  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); lkvReader lkv γ pfx ∗ ⌜LeaseDeleteGuard pfx [o] err⌝ ∗
+      (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o dr)) }}
+
+
+/-- **`lkv.delete(ctx, op)`, the spec before etcd#22118**: for a delete `op` (`o`): after `waitSession`, a range delete goes to
+`deleteRange`; a key's delete is committed by `tryModifyOp` or `revoke` (both, if the key is not
+cached: a finding) until one succeeds or the context is done, and deleted from the cache.
+Returns an error, or the delete of `o`'s range (`deleteCommitted`). The context must be
+cancelable. -/
+abbrev leasingKV.delete.spec_old : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64),

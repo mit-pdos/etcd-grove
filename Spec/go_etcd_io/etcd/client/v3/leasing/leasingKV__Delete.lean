@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingPrefix
 
 @[expose] public section
 
@@ -24,8 +24,28 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- **`lkv.Delete(ctx, key, opts...)`**: `delete` of `OpDelete(key, opts...)`
-(`o := opDeleteModel key gs`). The context must be cancelable. -/
+(`o := opDeleteModel key gs`). The context must be cancelable.
+
+etcd#22118: a delete whose range intersects the lease prefix `pfx` fails (as `WithFromKey` from a
+key before `pfx` would), and one that succeeds deleted no lease key (`LeaseDeleteGuard`). The spec
+before the PR is `leasingKV.Delete.spec_old`, which this one implies. -/
 abbrev leasingKV.Delete.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+    (gs : List (OpFull → OpFull)) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      optsAt sl gs ∗ etcdReached lo ∗
+      ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3⌝ }}
+    (App (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Delete")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
+  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); lkvReader lkv γ pfx ∗
+      ⌜LeaseDeleteGuard pfx [opDeleteModel key gs] err⌝ ∗
+      (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨
+       (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo (opDeleteModel key gs) dr)) }}
+
+
+/-- **`lkv.Delete(ctx, key, opts...)`, the spec before etcd#22118**:: `delete` of `OpDelete(key, opts...)`
+(`o := opDeleteModel key gs`). The context must be cancelable. -/
+abbrev leasingKV.Delete.spec_old : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (lo : w64),

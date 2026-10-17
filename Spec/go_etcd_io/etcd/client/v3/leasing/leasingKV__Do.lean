@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingKV
+public import Proof.go_etcd_io.etcd.client.v3.leasing.InvLeasingPrefix
 
 @[expose] public section
 
@@ -35,8 +35,41 @@ def doTxnPre (opv : go_etcd_io.etcd.client.v3.Op) : IProp GF :=
 /-- **`lkv.Do(ctx, op)`**, by the kind of `op` (`o.t`): a get answers as `get` (in the
 `OpResponse`'s `get`), a put as `put`, a delete as `delete`, a transaction as `Txn(ctx).If(...)
 .Then(...).Else(...).Commit()` (`commitOutcome`); anything else, an empty `OpResponse` and `nil`.
-The monitor slot is kept unless a get started a lease monitor; the context must be cancelable. -/
+The monitor slot is kept unless a get started a lease monitor; the context must be cancelable.
+
+etcd#22118: a delete, or a transaction with a delete in either branch, that intersects the lease
+prefix `pfx` fails; one that succeeds deleted no lease key (`LeaseDeleteGuard`). The spec before
+the PR is `leasingKV.Do.spec_old`, which this one implies. -/
 abbrev leasingKV.Do.spec : Prop :=
+  ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
+    (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
+    (lo : w64) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      opFullAt opv o ∗ etcdReached lo ∗ leasingOpen γ q ∗ threadTok ∗
+      ⌜o.t = W64 2 → txnOpOf o ≠ none⌝ ∗ (⌜o.t = W64 4⌝ -∗ doTxnPre opv) }}
+    (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"Do")) (Val #(GoInterface.ok ctx))) (Val #opv))
+  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
+      lkvReader lkv γ pfx ∗ leasingOpen γ q ∗ threadTok ∗
+      (if o.t = W64 1 then getOutcome γ pfx lo o r.get' err (lkvReader lkv γ pfx)
+       else lkvReader lkv γ pfx ∗
+        (if o.t = W64 2 then
+          (⌜err ≠ GoInterface.nil ∧ r.put' = null⌝ ∨
+           (⌜err = GoInterface.nil⌝ ∗ ∃ top, ⌜txnOpOf o = some top⌝ ∗ putCommitted γ lo o top r.put'))
+        else if o.t = W64 3 then
+          ⌜LeaseDeleteGuard pfx [o] err⌝ ∗ (⌜err ≠ GoInterface.nil ∧ r.del' = null⌝ ∨
+           (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o r.del'))
+        else if o.t = W64 4 then
+          ∃ (ms : List CmpModel) (tos eos : List OpFull),
+            cmpsSetAt opv.cmps' ms ∗ opsAt opv.thenOps' tos ∗ opsAt opv.elseOps' eos ∗
+            ⌜LeaseDeleteGuard pfx (tos ++ eos) err⌝ ∗ commitOutcome γ lo (LTxnBuild.mk ms tos eos true true true) r.txn' err
+        else ⌜r = zero_val go_etcd_io.etcd.client.v3.OpResponse ∧ err = GoInterface.nil⌝)) }}
+
+
+/-- **`lkv.Do(ctx, op)`, the spec before etcd#22118**:, by the kind of `op` (`o.t`): a get answers as `get` (in the
+`OpResponse`'s `get`), a put as `put`, a delete as `delete`, a transaction as `Txn(ctx).If(...)
+.Then(...).Else(...).Commit()` (`commitOutcome`); anything else, an empty `OpResponse` and `nil`.
+The monitor slot is kept unless a get started a lease monitor; the context must be cancelable. -/
+abbrev leasingKV.Do.spec_old : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64) (q : Qp),
