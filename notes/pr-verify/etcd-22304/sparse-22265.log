@@ -1,0 +1,4 @@
+    watchable_store_sparse_catchup_test.go:64: watcher on a key with 1 event 20001 revisions behind: synced after 1 syncWatchers passes
+    watchable_store_sparse_catchup_test.go:66: got [], want [20002]
+--- FAIL: TestSyncWatchersSparseWatcherCatchUpPasses (1.24s)
+FAIL

@@ -1,0 +1,13 @@
+# etcd-io/etcd#22304 (syncWatchers scans per cohort of watchers, a window of at most
+# watchBatchMaxRevs + 1 revisions each), branch pr-verify/etcd-22304: the changed function
+# `watchableStore.syncWatchers` (mvcc), its new callees `syncWatcherCohort` and
+# `cohortsByRevision`, and its caller `syncWatchersLoop`. Report: notes/pr-verify/etcd-22304.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22304.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bmvcc\.watchableStore\.wp_syncWatchers$
+roots \bmvcc\.watchableStore\.wp_syncWatcherCohort$
+roots \bmvcc\.wp_cohortsByRevision$
+roots \bmvcc\.watchableStore\.wp_syncWatchersLoop$

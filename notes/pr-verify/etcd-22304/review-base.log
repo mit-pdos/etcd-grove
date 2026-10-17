@@ -1,0 +1,8 @@
+    watchable_store_review_test.go:51: synced after 1 passes
+--- PASS: TestReviewSparseWatcherPasses (0.33s)
+    watchable_store_review_test.go:73: synced after 1 passes
+--- PASS: TestReviewSparseWatcherStarves (0.10s)
+--- PASS: TestReviewCompactedWatcher (0.31s)
+    watchable_store_review_test.go:172: victim resend: 1000 events, last 1001, Revision 1001, minRev now 1002
+--- PASS: TestReviewFutureAndVictim (0.16s)
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.938s

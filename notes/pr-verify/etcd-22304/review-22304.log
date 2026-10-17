@@ -1,0 +1,11 @@
+    watchable_store_review_test.go:51: synced after 5 passes
+    watchable_store_review_test.go:53: sparse watcher needed 5 syncWatchers passes (base: 1)
+--- FAIL: TestReviewSparseWatcherPasses (0.27s)
+    watchable_store_review_test.go:80: watcher on a quiet key still unsynced after 50 passes; rev=76502 minRev=50051
+--- FAIL: TestReviewSparseWatcherStarves (4.58s)
+--- PASS: TestReviewCompactedWatcher (0.31s)
+    watchable_store_review_test.go:172: victim resend: 1000 events, last 1001, Revision 1001, minRev now 1002
+--- PASS: TestReviewFutureAndVictim (0.14s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	5.326s
+FAIL

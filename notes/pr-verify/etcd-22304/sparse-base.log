@@ -1,0 +1,3 @@
+    watchable_store_sparse_catchup_test.go:64: watcher on a key with 1 event 20001 revisions behind: synced after 1 syncWatchers passes
+--- PASS: TestSyncWatchersSparseWatcherCatchUpPasses (1.30s)
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	1.321s

@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22304, `syncWatchers` per cohort (2026-10-17, branch `pr-verify/etcd-22304`)
+
+The PR (unmerged) translated on this branch only: report `notes/pr-verify/etcd-22304.md`.
+`syncWatchers` keeps its spec, re-proved over two new functions, `syncWatcherCohort` (the old
+loop, scan `[minRev, maxScanRev)`, bounded by `watchBatchMaxRevs + 1`) and `cohortsByRevision`
+(`Cohorts.lean`: `CohortsOk`), all sorry-free. New trust-boundary postulate: `sort.Slice`
+(`Spec/sort/Slice.lean`; Perennial names it but does not translate it). Finding: a liveness
+regression (watchers on quiet keys catch up at most 1001 revisions per pass; Go tests in
+`notes/pr-verify/etcd-22304/`). Not for merging into `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

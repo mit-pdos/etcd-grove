@@ -22,12 +22,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.syncWatchers()` with the caller's reader slots: under `s.mu` (and `s.store.revMu` read), a
-batch of the unsynced watchers (`choose`) gets the events of the committed log from its least
-`minRev` up to the current revision (`rangeEvents`), each its own (`newWatcherBatch`): a watcher
-with none becomes synced; one with events gets them in one response (all of them, or under the
-cap of `watchBatchMaxRevs` revisions those below the first revision left out, staying unsynced
-from there), and becomes synced, or a victim with its batch if its channel is full. The lock
-invariant is kept (every delivery recorded); the number returned is the unsynced watchers left. -/
+batch of the unsynced watchers (`choose`) is grouped into cohorts by `minRev`
+(`cohortsByRevision`, etcd-io/etcd#22304), and each cohort gets the events of the committed log
+in a window of at most `watchBatchMaxRevs + 1` revisions from its least `minRev`, or up to the
+current revision if that is nearer (`syncWatcherCohort`), each member its own
+(`newWatcherBatch`): a member with none becomes synced if the window reached the current revision,
+else stays unsynced at the window's end; one with events gets them in one response (all of them,
+or under the cap of `watchBatchMaxRevs` revisions those below the first revision left out), and
+becomes synced if the window reached the current revision and none was left out, stays unsynced
+otherwise, or becomes a victim with its batch if its channel is full. The lock invariant is kept
+(every delivery recorded); the number returned is the unsynced watchers left. (Before #22304: one
+scan from the batch's least `minRev` up to the current revision.) -/
 abbrev mvcc.watchableStore.syncWatchers.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

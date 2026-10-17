@@ -1,0 +1,1 @@
+TestSyncWatchersScanLimitDeliversAll (#22594's, timeout raised from 3 s to 180 s) on the #22304 head: PASS, 55.4 s per subtest (watchBatchMaxRevs = 1: a 2-revision window per 100 ms pass)
