@@ -7,20 +7,24 @@ Perennial's Lean port has no crash semantics and no file-system model (`notes/ST
 "Out of scope for now"), so durability cannot be stated in terms of what survives a crash.
 This file states it as **resources that only the trust-boundary specs produce and consume**:
 
-- `fs.renamePending dst`: a rename onto the path `dst` has happened (it is visible to the
-  running process) but its directory entry may not be on stable storage: `os.Rename`'s spec
-  (`Spec/os/Rename.lean`) gives it on success;
-- `fs.entryDurable dst`: the directory entry `dst` is on stable storage (after a crash, `dst`
-  names what the last rename put there); `fileutil.Fsync` of a handle of `dst`'s directory
-  (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/Fsync.lean`) turns `fs.renamePending dst` into
-  it, and nothing else produces it;
+- `fs.renamePending src dst`: the rename of `src` onto the path `dst` has happened (it is
+  visible to the running process) but its directory entry may not be on stable storage:
+  `os.Rename`'s spec (`Spec/os/Rename.lean`) gives it on success;
+- `fs.entryDurable src dst`: the directory entry `dst` is on stable storage and names the file
+  renamed from `src`; `fileutil.Fsync` of a handle of `dst`'s directory
+  (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/Fsync.lean`) turns `fs.renamePending src dst`
+  into it, and nothing else produces it (a failed `Fsync` consumes the pending rename: after an
+  `fsync` error Linux gives no guarantee that a retry makes it durable);
 - `fs.dirHandle f dir`: `f` is an open handle (an `*os.File`) of the directory `dir`, as
   `fileutil.OpenDir` returns (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/OpenDir.lean`);
-- `fs.dirOf p`: the directory containing the path `p` (`filepath.Dir`).
+- `fs.dirOf p`: the directory containing the path `p` (`filepath.Dir`);
+- `snapDBPath ss id`: the path `ss.DBFilePath(id)` returns (`<dir>/<id>.snap.db`).
 
 They are Lean `opaque` constants (as `ownIvt`, `kvEncode` elsewhere): no lemma unfolds them, so
-a proof gets `fs.entryDurable dst` only from a successful `Fsync` of `dst`'s directory, taken
-after the rename. That is the property the PR adds. What the model does not say: anything about
+a proof gets `fs.entryDurable src dst` only from a successful `Fsync` of `dst`'s directory, taken
+after the rename. That is the property the PR adds. What the model does not say: that `dst` still names that
+file later (a second rename onto `dst` leaves the first `fs.entryDurable` in place: no exclusive
+token per directory entry; nothing in the code verified here renames onto `db` twice); anything about
 the file's contents (`SaveDBFrom` synced them before; not modeled here), or about the source
 entry (`<index>.snap.db`'s removal), which the PR does not sync separately (it is in the same
 directory, so the same `Fsync` covers it on Linux).
@@ -55,6 +59,10 @@ open Iris Iris.BI
 /-- The directory containing the path `p` (`filepath.Dir(p)`). -/
 opaque fs.dirOf : GoString → GoString
 
+/-- The path of the snapshot database `id` of the snapshotter at `ss`
+(`ss.DBFilePath(id)`, `<dir>/<id as %016x>.snap.db`). -/
+opaque snapDBPath : Loc → w64 → GoString
+
 /-- `config.ServerConfig.SnapDir()` of a configuration whose `DataDir` is `dd`. -/
 opaque cfgSnapDir : GoString → GoString
 
@@ -64,11 +72,12 @@ opaque cfgBackendPath : GoString → GoString
 section defs
 variable {GF : BundledGFunctors}
 
-/-- A rename onto `dst` has happened; its directory entry may not be durable yet. -/
-opaque fs.renamePending (dst : GoString) : IProp GF := iprop(True)
+/-- The rename of `src` onto `dst` has happened; its directory entry may not be durable yet. -/
+opaque fs.renamePending (src dst : GoString) : IProp GF := iprop(True)
 
-/-- The directory entry `dst` is durable (on stable storage). -/
-opaque fs.entryDurable (dst : GoString) : IProp GF := iprop(True)
+/-- The directory entry `dst`, naming the file renamed from `src`, is durable (on stable
+storage). -/
+opaque fs.entryDurable (src dst : GoString) : IProp GF := iprop(True)
 
 /-- `f` is an open handle of the directory `dir`. -/
 opaque fs.dirHandle (f : Loc) (dir : GoString) : IProp GF := iprop(True)

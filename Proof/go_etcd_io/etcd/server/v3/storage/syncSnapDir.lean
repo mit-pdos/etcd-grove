@@ -32,7 +32,7 @@ theorem storage.syncSnapDir.wp_proof
     (wp_Fsync : fileutil.Fsync.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) :
     storage.syncSnapDir.spec (GF := GF) (hG := hG) := by
-  intro dir dst
+  intro dir src dst
   wp_start as ⟨Hpend, %Hdir⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_OpenDir as %f %err Hres
@@ -55,7 +55,7 @@ theorem storage.syncSnapDir.wp_proof
     · ipureintro; rfl
     isplitr
     · iexact He
-    iexact Hpend
+    itrivial
 
 end proof
 

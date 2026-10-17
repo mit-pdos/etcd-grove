@@ -84,6 +84,8 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom config.ServerConfig.BackendPath.wp_proof
+axiom config.ServerConfig.SnapDir.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
@@ -94,6 +96,8 @@ axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
+axiom fileutil.Fsync.wp_proof
+axiom fileutil.OpenDir.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
@@ -139,6 +143,8 @@ axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.restore.wp_proof
+axiom os.File.Close.wp_proof
+axiom os.Rename.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom peer.Peer.String.wp_proof
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
@@ -170,6 +176,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
@@ -177,6 +184,7 @@ axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom streamKeyFromCtx.wp_proof
@@ -230,6 +238,12 @@ axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 sorry Perennial.crypto.rand.initialize'.wp_proof
 sorry Perennial.errors.wp_errorType_init
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_into_val_typed
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_typed_pointsto
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_into_val_typed
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto
 sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'

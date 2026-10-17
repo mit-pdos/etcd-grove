@@ -1,0 +1,18 @@
+=== RUN   Test_t1_open_snapshot_backend_renames_snapdb_and_fsyncs_dir_once
+--- PASS: Test_t1_open_snapshot_backend_renames_snapdb_and_fsyncs_dir_once (0.00s)
+=== RUN   Test_t2_open_snapshot_backend_fsyncs_dir_with_consistent_index_db
+--- PASS: Test_t2_open_snapshot_backend_fsyncs_dir_with_consistent_index_db (0.02s)
+=== RUN   Test_t3_open_snapshot_backend_rename_failure_returns_error
+--- PASS: Test_t3_open_snapshot_backend_rename_failure_returns_error (0.00s)
+=== RUN   Test_t5_open_snapshot_backend_fsync_failure_returns_nil_backend_and_error
+--- PASS: Test_t5_open_snapshot_backend_fsync_failure_returns_nil_backend_and_error (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage	0.032s
+=== RUN   TestSaveDBFromSyncsDirectory
+=== RUN   TestSaveDBFromSyncsDirectory/new
+=== RUN   TestSaveDBFromSyncsDirectory/existing
+--- PASS: TestSaveDBFromSyncsDirectory (0.00s)
+=== RUN   Test_t4_save_db_from_fsyncs_dir_exactly_once
+--- PASS: Test_t4_save_db_from_fsyncs_dir_exactly_once (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/snap	0.007s

@@ -21,14 +21,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `ss.DBFilePath(id)`: some path, or an error (no such snapshot file). It reads only the
-snapshotter's directory, which nothing writes after `snap.New`. -/
+/-- `ss.DBFilePath(id)`: the path of the snapshot database `id` (`snapDBPath ss id`), or an
+error (no such file, or the directory cannot be read). It reads the snapshotter's `dir` field
+(set by `snap.New`, never written after) and lists the directory, which other goroutines may
+change meanwhile (`SaveDBFrom`, `SaveSnap`, `ReleaseSnapDBs`); the spec says nothing about the
+file's existence when the caller uses the path. -/
 abbrev snap.Snapshotter.DBFilePath.spec : Prop :=
   ∀ (ss : Loc) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap }}
     (App (Val (ss @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty
       @!! go!"DBFilePath")) (Val #id))
-  {{ (p : GoString) (err : GoInterface), RET (PairV #p #err); fsResult err iprop(True) iprop(True) }}
+  {{ (p : GoString) (err : GoInterface), RET (PairV #p #err); fsResult err iprop(⌜p = snapDBPath ss id⌝) iprop(True) }}
 
 end spec
 

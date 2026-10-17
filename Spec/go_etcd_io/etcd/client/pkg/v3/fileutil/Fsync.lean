@@ -22,17 +22,18 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `fileutil.Fsync(f)` of a handle of the directory `dir`, holding a pending rename onto a
-path `dst` in `dir`: on success the rename's entry is durable (`fs.entryDurable dst`), on failure
-it is still pending. (The one use: `storage.syncSnapDir`. Syncing a directory makes every entry
+/-- `fileutil.Fsync(f)` of a handle of the directory `dir`, holding a pending rename of `src`
+onto a path `dst` in `dir`: on success the rename's entry is durable (`fs.entryDurable src dst`);
+on failure nothing is known of it (the pending rename is consumed: after an `fsync` error Linux
+does not promise that a later `fsync` makes earlier changes durable). (The one use: `storage.syncSnapDir`. Syncing a directory makes every entry
 renamed into it before the sync durable; this spec carries one.) -/
 abbrev fileutil.Fsync.spec : Prop :=
-  ∀ (f : Loc) (dir dst : GoString),
+  ∀ (f : Loc) (dir src dst : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
-      fs.dirHandle f dir ∗ fs.renamePending dst ∗ ⌜fs.dirOf dst = dir⌝ }}
+      fs.dirHandle f dir ∗ fs.renamePending src dst ∗ ⌜fs.dirOf dst = dir⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync)) (Val #f))
   {{ (err : GoInterface), RET #err;
-      fs.dirHandle f dir ∗ fsResult err (fs.entryDurable dst) (fs.renamePending dst) }}
+      fs.dirHandle f dir ∗ fsResult err (fs.entryDurable src dst) iprop(True) }}
 
 end spec
 

@@ -64,7 +64,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     · ipureintro; exact Hnn
     iexact Hpb
   iunfold fsResult at Hres
-  icases Hres with (⟨%Herr, -⟩ | ⟨%e, %Herr, #He, -⟩)
+  icases Hres with (⟨%Herr, %Hpath⟩ | ⟨%e, %Herr, #He, -⟩)
   rotate_left
   · subst Herr
     wp_auto
@@ -83,7 +83,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     isplitr
     · ipureintro; rfl
     iexact He2
-  subst Herr
+  subst Herr Hpath
   ipersist cfg
   ihave #cfgF : typedPointsto cfg_ptr cfg DFrac.discard $$ []
   · iexact cfg

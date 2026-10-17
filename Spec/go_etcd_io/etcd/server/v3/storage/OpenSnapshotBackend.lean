@@ -32,9 +32,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `OpenSnapshotBackend(cfg, ss, snapshot, hooks)`, for a snapshot message `snapshot` (not
-`nil`): it returns `(be, nil)` only once the backend file's directory entry is durable
-(`fs.entryDurable (cfgBackendPath cfg.DataDir)`: the rename onto it was followed by a
-successful sync of its directory); otherwise `(nil, err)` with an error whose `Error()` returns
+`nil`): it returns `(be, nil)` only once the backend file's directory entry is durable and names
+the snapshot's database file (`fs.entryDurable (snapDBPath ss idx) (cfgBackendPath
+cfg.DataDir)`, `idx` the snapshot's index: the rename of `<idx>.snap.db` onto it was followed
+by a successful sync of its directory); otherwise `(nil, err)` with an error whose `Error()` returns
 a string. The snapshot is left as it was. -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss snapshot hooks : Loc)
@@ -45,7 +46,7 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
       (Val #cfg)) (Val #ss)) (Val #snapshot)) (Val #hooks))
   {{ (be err : GoInterface), RET (PairV #be #err);
       ownSnapM snapshot dq s ∗
-      ((⌜err = interface.nil⌝ ∗ fs.entryDurable (cfgBackendPath cfg.DataDir')) ∨
+      ((⌜err = interface.nil⌝ ∗ fs.entryDurable (snapDBPath ss s.Metadata'.Index') (cfgBackendPath cfg.DataDir')) ∨
        (⌜be = interface.nil⌝ ∗ ∃ e : GoInterfaceOk, ⌜err = interface.ok e⌝ ∗
           fmt.stringMethodSpec e go!"Error")) }}
 
