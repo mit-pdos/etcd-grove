@@ -1,0 +1,12 @@
+--- PASS: TestPR243SnapStatusRaisesMatchUnacked (0.01s)
+--- PASS: TestPR243SnapStatusZeroLowersMatch (0.00s)
+--- PASS: TestPR243AppRespInSnapshotResendsSnapshot (0.00s)
+    pr243_repro_test.go:111: pr=StateReplicate match=101 next=102 paused inactive commit=2 last=2
+--- PASS: TestPR243SnapStatusPastLastIndex (0.00s)
+    pr243_review_test.go:49: heartbeat to 2: commit=11
+--- PASS: TestReviewReportUnappliedPanicsFollower (0.00s)
+--- PASS: TestReviewZeroReportResendsSnapshot (0.00s)
+--- PASS: TestReviewStaleReportLowersMatch (0.00s)
+--- PASS: TestReviewSentCommitAboveNext (0.00s)
+--- PASS: TestReviewWrap (0.00s)
+ok  	go.etcd.io/raft/v3	0.072s

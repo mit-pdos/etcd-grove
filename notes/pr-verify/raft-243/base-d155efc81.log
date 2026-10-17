@@ -1,0 +1,12 @@
+=== RUN   TestPR243AppRespInSnapshotResendsSnapshot
+    pr243_base_test.go:39: 
+        	Error Trace:	<checkout>/pr243_base_test.go:39
+        	Error:      	Not equal: 
+        	            	expected: 1
+        	            	actual  : 0
+        	Test:       	TestPR243AppRespInSnapshotResendsSnapshot
+        	Messages:   	a second snapshot sent
+--- FAIL: TestPR243AppRespInSnapshotResendsSnapshot (0.01s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.038s
+FAIL

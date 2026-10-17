@@ -17,7 +17,7 @@
   - `m.Index`, `m.From`, `m.Reject` and `m.AppliedSnapshotIndex` became the getters (`raft.go`).
   - `raft.proto`'s new field lost its gogoproto option: `optional uint64 applied_snapshot_index = 15`.
 - `raftpb/raft.pb.go` was regenerated rather than merged, with `scripts/genproto.sh`'s pipeline
-  (protoc 3.20.3, protoc-gen-go v1.36.11). The same pipeline reproduces the base's `raft.pb.go`
+  (protoc 3.20.3, protoc-gen-go v1.36.11; `raft-243/regen-raftpb.sh`). The same pipeline reproduces the base's `raft.pb.go`
   byte for byte.
 - The PR's tests and testdata were applied as well, with their conflicts resolved the same way.
   `raftpb/raft_test.go`'s `Message` size is 208/104 here, not the PR's gogoproto 168/112.
@@ -150,7 +150,7 @@ The register example (`Proof/github_com/mit_pdos/etcd_grove/examples/register/`)
 ## Trust base
 
 `#print axioms` of `Proof/go_etcd_io/raft/v3/Results.lean`, on this branch against `lean` (from
-the two builds' `Results.trace`), over 330 results plus the new `tracker.Progress.wp_OnSnapshotApplied`:
+the two builds' `Results.trace`, `raft-243/compare_axioms.py`), over 330 results plus the new `tracker.Progress.wp_OnSnapshotApplied`:
 
 - No new axiom anywhere.
 - No result lost an axiom.
@@ -165,10 +165,11 @@ roots, without a baseline.
 
 ## Findings (step 8)
 
-The reproductions are Go tests against the PR's head (gogoproto API), in the scratch worktree
-`~/etcd-pr/raft-243-upstream`: `pr243_repro_test.go` and `pr243_review_test.go` (the latter from
-the reviewer). Run them with `GOTOOLCHAIN=go1.27.1 go test -run 'TestPR243|TestReview' -v .`. Each
-test passes by asserting the bad behavior.
+The reproductions are Go tests against the PR's head (gogoproto API), in `raft-243/` next to this
+report: `pr243_repro_test.go` and `pr243_review_test.go` (the latter from the reviewer), with their
+output (`head-800cd610d.log`), and `pr243_base_test.go`, finding 5's test on the PR's base, with its
+expected failure (`base-d155efc81.log`). `raft-243/README.md` says how to run each. Each test at the
+head passes by asserting the bad behavior.
 
 1. **A follower panics on a heartbeat after an unapplied snapshot report**
    (`TestReviewReportUnappliedPanicsFollower`). This is realistic, and the most serious finding.
