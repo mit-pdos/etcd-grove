@@ -6932,7 +6932,7 @@ proved).
   (`kvLeasedCommitTodo`) is now stated in the clients' model (`txnCommitResultTok` from
   `etcdReached lo`), as `kvLeasedPutTodo` was.
 
-## What a progress response covers (unit W-K, K1b, 2026-10-17 · in progress)
+## What a progress response covers (unit W-K, K1b, 2026-10-17 · in progress: K1b-1, K1b-2 built)
 
 **The claim the client needs.** A progress response at revision `p` on a watch means: the watch
 has received every event of its range up to `p` (the cache's `EtcdStep c p pfx []`). A per-watcher
@@ -6968,6 +6968,18 @@ cancel request, `recvLoop`), and only the client knows its substream is live.
   sent before `jc`, each response is sent once), so after the registration; the substream is live
   and never sent a cancel request for its id, so not cancelled (the reason predicate); so its
   watcher is in `C` and the response covers it.
+
+*As built (K1b-2, 2026-10-17).* The registered watchers at the send are the channel's own
+(`RespM.regs`, read in its invariant), so no caller names them. The cancellation reason is per
+watcher through its range id (`rsnW`: `rsnFor γc.rsn r.id`), the stream's invariant keeping each
+map entry's id, so `Cancel id` needs only `rsnFor γ.rsn id`. *Why the callers lend a resource
+`CS` with a persistent extraction (`complW`, `complWS`) instead of a disjunction:* the stream must
+get its close right back, and a disjunction returned as is loses which branch held it (a closed
+stream has no close right, only "every watcher of the map cancelled"); with `CS` lent and
+returned unchanged, and the branch of `progCompl` a Boolean parameter, nothing is lost.
+*Rejected:* a cancellation record with a sent index (`cancelAt γo X n`): the reason is enough, a
+watcher cancelled for its reason being one the client asked to cancel, so the client's live
+substream is never one.
 
 *Rejected:* the claim attached by `recvLoop` (its live set) after `progressAll` returns: `sendLoop`
 may forward the response first. *Rejected:* a client-side fix (`issues/etcd-watch-progress-before-created.md`).
