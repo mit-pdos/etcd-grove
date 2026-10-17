@@ -167,12 +167,11 @@ of the protocol `start` sets up, and the server's wait, which `start` makes: the
 state at `x₀`). -/
 def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
-  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
+  iprop(∃ (st₀ : ApplyState) (a t : w64),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x₀) ∗ revAuth E x₀.log ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗
-    srvForceSnapAddr s ↦ f)
+    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀)
 
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/

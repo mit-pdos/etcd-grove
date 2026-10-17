@@ -125,7 +125,6 @@ instance EtcdServer_typed_pointsto :
     "firstCommitInTerm" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"firstCommitInTerm" l) v.firstCommitInTerm' dq ∗
     "clusterVersionChanged" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"clusterVersionChanged" l) v.clusterVersionChanged' dq ∗
     "AccessController" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"AccessController" l) v.AccessController' dq ∗
-    "forceDiskSnapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"forceDiskSnapshot" l) v.forceDiskSnapshot' dq ∗
     "corruptionChecker" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"corruptionChecker" l) v.corruptionChecker' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -853,22 +852,6 @@ instance EtcdServer_access_store_AccessController (l : Loc) (v : go_etcd_io.etcd
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"AccessController" l) v.AccessController' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"AccessController" l) AccessController' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AccessController' := AccessController' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance EtcdServer_access_load_forceDiskSnapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"forceDiskSnapshot" l) v.forceDiskSnapshot' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"forceDiskSnapshot" l) v.forceDiskSnapshot' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance EtcdServer_access_store_forceDiskSnapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (forceDiskSnapshot' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"forceDiskSnapshot" l) v.forceDiskSnapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"forceDiskSnapshot" l) forceDiskSnapshot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with forceDiskSnapshot' := forceDiskSnapshot' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

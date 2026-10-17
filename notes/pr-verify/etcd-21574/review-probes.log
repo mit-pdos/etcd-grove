@@ -1,0 +1,35 @@
+== /shared/etcd-grove-pr/etcd-21574-scratch/base (09669450f, go1.27.1)
+    downgrade_wal_test.go:139: version 3.8 -> 3.7.0; WAL snapshot records 2, latest at index 6; last entry naming 3.7.0 at 6; entries naming 3.8.0 before it: [4], after it (replayed on restart): []
+--- PASS: TestReviewDowngradeWALReplay (4.93s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	4.982s
+--- FAIL: TestReviewForceCommitAfterClose (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.046s
+== ~/etcd-pr/etcd-21574 (5d8168137, go1.27.1)
+    downgrade_wal_test.go:139: version 3.8 -> 3.7.0; WAL snapshot records 9, latest at index 9; last entry naming 3.7.0 at 6; entries naming 3.8.0 before it: [4], after it (replayed on restart): []
+--- PASS: TestReviewDowngradeWALReplay (4.59s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	4.611s
+--- FAIL: TestReviewForceCommitAfterClose (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.032s
+== /shared/etcd-grove-pr/etcd-21574-scratch/prhead (2d00f549c, go1.26.1)
+    downgrade_wal_test.go:139: version 3.7 -> 3.6.0; WAL snapshot records 9, latest at index 9; last entry naming 3.6.0 at 6; entries naming 3.7.0 before it: [4], after it (replayed on restart): []
+--- PASS: TestReviewDowngradeWALReplay (4.98s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	5.034s
+--- FAIL: TestReviewForceCommitAfterClose (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.039s
+== /shared/etcd-grove-pr/etcd-21574-scratch/fixed (2d00f549c + shouldSnapshotToDisk-fix.patch, go1.26.1)
+    downgrade_wal_test.go:139: version 3.7 -> 3.6.0; WAL snapshot records 1, latest at index 0; last entry naming 3.6.0 at 6; entries naming 3.7.0 before it: [], after it (replayed on restart): [4]
+    downgrade_wal_test.go:141: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-21574-scratch/fixed/server/embed/downgrade_wal_test.go:141
+--- FAIL: TestReviewDowngradeWALReplay (4.37s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/embed	4.404s
+FAIL
+--- FAIL: TestReviewForceCommitAfterClose (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.038s

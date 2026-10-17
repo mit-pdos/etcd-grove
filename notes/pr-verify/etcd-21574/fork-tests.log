@@ -1,0 +1,22 @@
+== 09669450f go test ./etcdserver/ ./etcdserver/apply/ ./storage/...
+ok  	go.etcd.io/etcd/server/v3/etcdserver	8.432s
+ok  	go.etcd.io/etcd/server/v3/etcdserver/apply	0.726s
+ok  	go.etcd.io/etcd/server/v3/storage	0.034s
+ok  	go.etcd.io/etcd/server/v3/storage/backend	2.817s
+ok  	go.etcd.io/etcd/server/v3/storage/datadir	0.013s
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	16.673s
+ok  	go.etcd.io/etcd/server/v3/storage/schema	2.312s
+ok  	go.etcd.io/etcd/server/v3/storage/wal	2.981s
+ok  	go.etcd.io/etcd/server/v3/storage/wal/walpb	0.011s
+== 5d8168137 go test ./etcdserver/ ./etcdserver/apply/ ./storage/...
+panic: runtime error: invalid memory address or nil pointer dereference [recovered]
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	1.261s
+ok  	go.etcd.io/etcd/server/v3/etcdserver/apply	0.911s
+ok  	go.etcd.io/etcd/server/v3/storage	0.047s
+ok  	go.etcd.io/etcd/server/v3/storage/backend	4.642s
+ok  	go.etcd.io/etcd/server/v3/storage/datadir	0.016s
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	17.585s
+ok  	go.etcd.io/etcd/server/v3/storage/schema	2.150s
+ok  	go.etcd.io/etcd/server/v3/storage/wal	3.734s
+ok  	go.etcd.io/etcd/server/v3/storage/wal/walpb	0.019s
+FAIL

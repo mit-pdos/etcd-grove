@@ -13,9 +13,20 @@ thread's `isServer`): the applied index's waiters (`applyWait`, a `WaitTime` for
 `SnapshotCount`.
 
 **The apply thread's own snapshot state** (`srvSnapState s ep`): `ep.diskSnapshotIndex`,
-`ep.memorySnapshotIndex`, `s.forceDiskSnapshot` (the apply thread's: `ForceSnapshot` is called by
-the apply package, `snapshot` resets it), and a reader slot of `s.bemu` (`Backend` read-locks it;
+`ep.memorySnapshotIndex` (etcd#21574 removed `s.forceDiskSnapshot`, which this held: `ForceSnapshot`
+now commits the backend), and a reader slot of `s.bemu` (`Backend` read-locks it;
 `applySnapshot`, the writer, does not run: raft's contract hands over no snapshot).
+
+**The backend's commit** (`srvBackendCommits b`, persistent, held by `s.bemu`'s invariant of the
+backend `s.be` holds, beside the backend's own read contract `isMetaBackend`): its `ForceCommit`
+returns (the contract of the backend as the server sees it: `*backend`'s `ForceCommit` commits the
+batch transaction, `backend.ForceCommit.spec`, which needs the backend open and one write-back of its
+budget, neither of which the server's view tracks; a premise, as `isMetaBackend`'s `ReadTx`).
+It is false of a closed backend (its `ForceCommit` panics there, a nil transaction in the server's
+pre-commit hook); it holds in the server because the apply loop's scheduler stops before `Cleanup`
+closes `s.be`, and because `applySnapshot`, which closes the old backend asynchronously after
+swapping in the new one, is not modelled (raft's contract hands over no snapshot). Modelling it
+needs a backend-open condition here.
 -/
 module
 
@@ -38,7 +49,6 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev srvBemuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"bemu" s
 abbrev srvBeAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"be" s
-abbrev srvForceSnapAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"forceDiskSnapshot" s
 abbrev epDiskSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"diskSnapshotIndex" ep
 abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memorySnapshotIndex" ep
 abbrev taSnapshotAddr (ta : Loc) : Loc := structFieldRef toApply go!"snapshot" ta
@@ -52,9 +62,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `s.bemu`'s lock invariant at fraction `q`: `s.be`. -/
+/-- **The backend's commit** (see the file header): `b`'s `ForceCommit` returns. -/
+def srvBackendCommits (b : GoInterface) : IProp GF :=
+  iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
+    □ ({{ True }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #())) {{ RET #(); True }}))
+
+instance srvBackendCommits_persistent (b : GoInterface) :
+    Persistent (srvBackendCommits (GF := GF) b) := by
+  unfold srvBackendCommits; infer_instance
+
+/-- `s.bemu`'s lock invariant at fraction `q`: `s.be`, a backend that commits. -/
 def bemuP (s : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q} b)
+  iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q} b ∗ srvBackendCommits b)
 
 /-- **A reader slot of `s.bemu`** (the apply thread's, for `Backend`). -/
 def srvBemuReader (s : Loc) : IProp GF :=
@@ -73,9 +92,8 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
   unfold isServerApplyAll; infer_instance
 
 /-- **The apply thread's snapshot state** (see the file header). -/
-def srvSnapState (s ep : Loc) : IProp GF :=
-  iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
-    srvForceSnapAddr s ↦ f)
+def srvSnapState (_s ep : Loc) : IProp GF :=
+  iprop(∃ (d m : w64), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m)
 
 /-- **The apply thread's resources besides the KV and the snapshot state** at the applied index
 `ai` with the protocol's state `st` (what `applyEntries` takes and gives back): `ep`'s applied

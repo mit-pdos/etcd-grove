@@ -1,0 +1,4 @@
+== upstream PR head 2d00f549c + shouldSnapshotToDisk-fix.patch (go1.26.1)
+ok  	go.etcd.io/etcd/server/v3/etcdserver	10.655s
+ok  	go.etcd.io/etcd/server/v3/etcdserver/apply	0.905s
+ok  	go.etcd.io/etcd/server/v3/embed	2.428s

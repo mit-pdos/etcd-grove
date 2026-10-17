@@ -510,17 +510,17 @@ theorem EtcdServer.run.wp_proof
   irename appliedtE => appliedt
   irename appliediE => appliedi
   iunfold applyStart at Hstart
-  icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
-    #Hlog0, Hkr, Hfs⟩
+  icases Hstart with ⟨%st₀, %a₀, %t₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
+    #Hlog0, Hkr⟩
   obtain ⟨Hloop0, Hc0⟩ := Hst0
   ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ []) $$
-      [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
+      [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hst Hbe Happ Hlr' Hbr Hwr
         HKV Hao Hkr]
   · iunfold applyRes
     iexists st₀, ai₀, at₀, a₀, t₀, cs, x₀
     iframe
     isplitl
-    · iunfold srvSnapState; iexists ai₀, ai₀, f₀; iframe
+    · iunfold srvSnapState; iexists ai₀, ai₀; iframe
     iframe Hlog0
     ipureintro
     refine ⟨Hloop0, by simp, Or.inl Hc0.symm, rfl⟩

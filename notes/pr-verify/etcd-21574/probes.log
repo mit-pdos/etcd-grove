@@ -1,0 +1,48 @@
+== /shared/etcd-grove-pr/etcd-21574-scratch/base (09669450f, go1.27.1)
+--- PASS: TestShouldSnapshotToDiskSnapshotCount (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.011s
+    snapshot_count_test.go:67: WAL snapshot records after 20 puts with snapshot-count 10000: 1
+--- PASS: TestSnapshotCountRespected (0.74s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	0.762s
+-- TestApplyRepeat (existing test)
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.069s
+== ~/etcd-pr/etcd-21574 (5d8168137, go1.27.1)
+    shouldsnapshot_test.go:29: appliedi=1 diskSnapshotIndex=0: shouldSnapshotToDisk=true, want false
+    shouldsnapshot_test.go:29: appliedi=10000 diskSnapshotIndex=0: shouldSnapshotToDisk=true, want false
+    shouldsnapshot_test.go:29: appliedi=20001 diskSnapshotIndex=10001: shouldSnapshotToDisk=true, want false
+--- FAIL: TestShouldSnapshotToDiskSnapshotCount (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.018s
+FAIL
+    snapshot_count_test.go:67: WAL snapshot records after 20 puts with snapshot-count 10000: 24
+        	Error:      	"24" is not less than or equal to "1"
+        	Messages:   	disk snapshots were taken although snapshot-count was not reached
+--- FAIL: TestSnapshotCountRespected (0.38s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/embed	0.410s
+-- TestApplyRepeat (existing test)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered]
+panic({0x17191b0?, 0x186e2a0?})
+	~/etcd-pr/etcd-21574/server/etcdserver/server.go:2093 +0x394
+	~/etcd-pr/etcd-21574/server/etcdserver/server.go:1213 +0x56
+== /shared/etcd-grove-pr/etcd-21574-scratch/prhead (2d00f549c, go1.26.1)
+    shouldsnapshot_test.go:29: appliedi=1 diskSnapshotIndex=0: shouldSnapshotToDisk=true, want false
+    shouldsnapshot_test.go:29: appliedi=10000 diskSnapshotIndex=0: shouldSnapshotToDisk=true, want false
+    shouldsnapshot_test.go:29: appliedi=20001 diskSnapshotIndex=10001: shouldSnapshotToDisk=true, want false
+--- FAIL: TestShouldSnapshotToDiskSnapshotCount (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.027s
+FAIL
+    snapshot_count_test.go:67: WAL snapshot records after 20 puts with snapshot-count 10000: 24
+        	Error:      	"24" is not less than or equal to "1"
+        	Messages:   	disk snapshots were taken although snapshot-count was not reached
+--- FAIL: TestSnapshotCountRespected (0.43s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/embed	0.460s
+-- TestApplyRepeat (existing test)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered]
+panic({0xeb5ca0?, 0x193f400?})
+	/shared/etcd-grove-pr/etcd-21574-scratch/prhead/server/etcdserver/server.go:2100 +0x3b4
+	/shared/etcd-grove-pr/etcd-21574-scratch/prhead/server/etcdserver/server.go:1218 +0x5b

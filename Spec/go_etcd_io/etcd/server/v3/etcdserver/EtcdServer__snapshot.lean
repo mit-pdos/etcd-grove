@@ -28,7 +28,7 @@ consistent index), creates a raft snapshot at the applied index in the `MemorySt
 `toDisk` saves it to the WAL): it leaves the applied index, term and conf state, the KV's state
 (`srvApplyKV`), the backend, the applying index unchanged, may load the consistent index (the
 protocol's state keeps `loopOk` and `ciEff`), and may move the snapshot state (`ep`'s snapshot
-indices, `forceDiskSnapshot`). -/
+indices; etcd#21574 removed `forceDiskSnapshot`, which `snapshot` reset). -/
 abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool),

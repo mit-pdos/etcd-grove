@@ -1,0 +1,13 @@
+diff --git a/server/etcdserver/server.go b/server/etcdserver/server.go
+index 7aad20a6c..884ecbb4b 100644
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ -1220,7 +1220,7 @@ func (s *EtcdServer) snapshotIfNeededAndCompactRaftLog(ep *etcdProgress) {
+ }
+ 
+ func (s *EtcdServer) shouldSnapshotToDisk(ep *etcdProgress) bool {
+-	return (ep.appliedi != ep.diskSnapshotIndex) || (ep.appliedi-ep.diskSnapshotIndex > s.Cfg.SnapshotCount)
++	return ep.appliedi-ep.diskSnapshotIndex > s.Cfg.SnapshotCount
+ }
+ 
+ func (s *EtcdServer) shouldSnapshotToMemory(ep *etcdProgress) bool {

@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Done
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnabled
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommitInTermNotify
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
@@ -887,6 +888,10 @@ theorem notify.Notifier.wp_Receive :
 theorem EtcdServer.wp_FirstCommitInTermNotify :
     EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.FirstCommitInTermNotify.wp_proof notify.Notifier.wp_Receive
+
+theorem EtcdServer.wp_ForceSnapshot :
+    EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG) :=
+  EtcdServer.ForceSnapshot.wp_proof EtcdServer.wp_Backend
 
 theorem EtcdServer.wp_Logger :
     EtcdServer.Logger.spec (GF := GF) (hG := hG) :=

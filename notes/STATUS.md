@@ -45,6 +45,22 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21574: `forceDiskSnapshot` removed (2026-10-17, branch `pr-verify/etcd-21574`)
+
+Verifying the PR ("Cleanup snapshot force", `notes/pr-verify/etcd-21574.md`): the field
+`EtcdServer.forceDiskSnapshot` is gone from the translation, so `srvSnapState` (`InvApplyAll.lean`),
+`applyBuilt` (`InvStart.lean`) and `applyStart` (`InvRun.lean`) no longer own it, and the proofs of
+`run`, `start` and `snapshotIfNeededAndCompactRaftLog` drop it. `shouldSnapshotToDisk`'s spec now
+states its result exactly (the old "some boolean" spec, `spec_old`, follows: `spec_implies_old`), and
+`pr_ne_intended` records that the PR's test is true after every applied batch. `ForceSnapshot` is
+translated (`etcdserver.toml`) and proved over `Backend`, whose spec now also returns
+`srvBackendCommits b` (a new premise inside `bemuP`: the server's backend's `ForceCommit` returns;
+false of a closed backend, see the header of `InvApplyAll.lean`). The apply package's
+`isSnapshotServer` contract (`{{True}} ForceSnapshot {{True}}`) is still discharged by nothing, as
+before the PR (the old body needed the apply thread's flag, the new one a `bemu` reader slot).
+Trust base unchanged (no new axiom or `sorry`). Found along the way:
+`issues/etcd-forcesnapshot-todo-v36-replay.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

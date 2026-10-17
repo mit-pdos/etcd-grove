@@ -36,11 +36,12 @@ theorem EtcdServer.Backend.wp_proof : EtcdServer.Backend.spec (GF := GF) (hG := 
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold bemuP at HP
-  icases HP with ⟨%b, Hb⟩
+  icases HP with ⟨%b, Hb, #Hc⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb] as Hrd
-  · inext; iunfold bemuP; iexists b; iexact Hb
+  · inext; iunfold bemuP; iexists b; iframe Hb Hc
   iapply HΦ
+  iframe Hc
   iunfold srvBemuReader
   iexact Hrd
 

@@ -1,0 +1,15 @@
+== upbase: 10528e6f2; bin/etcd-last-release = release-3.6 f31a5aa5c (3.6.15)
+--- PASS: TestDowngradeUpgradeClusterOf1 (16.23s)
+ok  	go.etcd.io/etcd/tests/v3/e2e	16.253s
+== prhead: 2d00f549c; bin/etcd-last-release = release-3.6 f31a5aa5c (3.6.15)
+--- PASS: TestDowngradeUpgradeClusterOf1 (16.31s)
+ok  	go.etcd.io/etcd/tests/v3/e2e	16.338s
+== fixed: 2d00f549c + shouldSnapshotToDisk-fix.patch; bin/etcd-last-release = release-3.6 f31a5aa5c (3.6.15)
+--- FAIL: TestDowngradeUpgradeClusterOf1 (5.40s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/e2e	5.425s
+FAIL
+56:        	            	go.etcd.io/etcd/server/v3/etcdserver/version.MustDetectDowngrade(0xdafd4940200, 0x6?, 0xdafd4abe640)
+57:        	            		/shared/etcd-grove-pr/etcd-21574-scratch/r36/server/etcdserver/version/downgrade.go:49 +0x396
+59:        	            		/shared/etcd-grove-pr/etcd-21574-scratch/r36/server/etcdserver/api/membership/cluster.go:699 +0x82f
+63:        	            		/shared/etcd-grove-pr/etcd-21574-scratch/r36/server/etcdserver/server.go:2057 +0x405

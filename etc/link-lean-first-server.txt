@@ -295,6 +295,8 @@ EtcdServer__createMergedSnapshotMessage:
 EtcdServer__sendMergedSnap:
 EtcdServer__applySnapshot: IsEmptySnap
 EtcdServer__Backend:
+# etcd#21574: `ForceSnapshot` commits the backend (pr-verify/etcd-21574)
+EtcdServer__ForceSnapshot: EtcdServer__Backend
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
 EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog

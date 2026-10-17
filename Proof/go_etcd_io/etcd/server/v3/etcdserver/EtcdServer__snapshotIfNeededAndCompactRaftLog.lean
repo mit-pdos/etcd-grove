@@ -41,9 +41,9 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc⟩
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf⟩
+  icases Hss with ⟨%d, %m, Hd, Hm⟩
   (try wp_auto)
-  wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd⟩
+  wp_apply hD s ep ai d sc $$ [Hai Hd] as %r1 ⟨%-, Hai, Hd⟩
   · iframe #; iframe
   (try wp_auto)
   wp_apply hM s ep ai m $$ [Hai Hm] as %r2 ⟨Hai, Hm⟩
@@ -55,16 +55,16 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     iapply HΦ
     iexists st
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf]
-    · iunfold srvSnapState; iexists d, m, f; iframe
+    isplitl [Hd Hm]
+    · iunfold srvSnapState; iexists d, m; iframe
     ipureintro; exact ⟨hok, rfl⟩
   all_goals (
     (try wp_auto)
-    wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ hok $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV]
+    wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ hok $$ [Hd Hm Hai Hat Hcs Hst Hbe Happ Hlr HKV]
       as ⟨%st', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
     · iframe #
       iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-      iunfold srvSnapState; iexists d, m, f; iframe
+      iunfold srvSnapState; iexists d, m; iframe
     (try wp_auto)
     wp_apply hC s ai $$ [Hlr] as Hlr
     · iframe #; iframe Hlr

@@ -22,12 +22,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.Backend()`, with a reader slot of `s.bemu` (given back): some backend. -/
+/-- `s.Backend()`, with a reader slot of `s.bemu` (given back): some backend, one that commits
+(`srvBackendCommits`, `s.bemu`'s invariant; etcd#21574's `ForceSnapshot` commits it). -/
 abbrev EtcdServer.Backend.spec : Prop :=
   ∀ (s : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvBemuReader s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Backend")) (Val #()))
-  {{ (b : GoInterface), RET #b; srvBemuReader s }}
+  {{ (b : GoInterface), RET #b; srvBemuReader s ∗ srvBackendCommits b }}
 
 end spec
 

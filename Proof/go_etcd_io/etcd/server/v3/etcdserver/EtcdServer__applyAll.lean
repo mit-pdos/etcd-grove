@@ -76,7 +76,7 @@ theorem EtcdServer.applyAll.wp_proof
   obtain ⟨hok', hai', hci'⟩ := Hpost
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-  wp_apply hBk s $$ [Hbr] as %be Hbr
+  wp_apply hBk s $$ [Hbr] as %be ⟨Hbr, #-⟩
   · iframe #; iframe Hbr
   wp_apply hLg s sv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
