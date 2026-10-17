@@ -5006,7 +5006,24 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
   - **No resume**: `run`'s `errc` case is refuted by the transport premise
     `noRetryableStreamErr` (`watchConnFacts`), so a watch never moves to another gRPC stream;
     completeness is per stream (`serveSubstream`'s resume revision is never used).
-  - **K2e design (open; the user's decision pending, 2026-10-17)**. What the cache's
+  - **K2e-1 (done)**: under `s.mu` a progress response's revision is the notified log's last:
+    `store.Read` takes an optional lent fraction of the committed log's authority (`logLent`)
+    and says its log is that one; `watchableStore.rev` passes it; `progressIfSync` lends its lock
+    body's (`Clog = σ.Lmu`).
+  - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
+    completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
+    its consumers stay. Remaining server facts, in order: (a) a synced watcher is delivered at most
+    up to the notified log (a `WsOk` field `synced_le`); it needs a victim's `minRev` bounded by
+    the notified log, which the lock state does not record while the victim is out with the mover
+    (`moverRes`): a monotone ghost of the notified log (a new `WsNames` mono list, its authority
+    in the lock body and the sole writer's `End`), its lower bound carried by victim batches; with
+    it a progress response at `p` follows only events at or below `p` (`covFact`: `d = p + 1`);
+    (b) per watcher, progress revisions on the channel never decrease (the notified log's lower
+    bound recorded in `respCov`). Then the client: `regFacts` keeps `createdAfter`; `mvccOk` says
+    an announced watcher's responses before a response were all sent down (`SendInv.noPend`);
+    the completeness part of `recvElem` and `cursorOk`; `serveSubstream` carries it; then
+    `isEtcdWatcher_of_watcher`, `RequestProgress`, K3.
+  - **K2e design analysis (2026-10-17)**. What the cache's
     `watchRespOk` needs beyond the client's `rangeWatchRespOk`, and what is missing:
     1. *Cursor semantics*: the client's cursor (`γ.cur`, `rangeWatchRespOk`'s `c'`) is the last
        event's revision, kept on an event-less response; the cache's moves to a progress
