@@ -469,8 +469,8 @@ func TestRawNodeProposeAddDuplicateNode(t *testing.T) {
 		rawNode.Advance(rd)
 	}
 
-	proposeConfChangeAndApply := func(cc *pb.ConfChange) {
-		rawNode.ProposeConfChange(cc)
+	proposeConfChangeAndApply := func(cc *pb.ConfChange) error {
+		err := rawNode.ProposeConfChange(cc)
 		rd = rawNode.Ready()
 		s.Append(rd.Entries)
 		for _, entry := range rd.CommittedEntries {
@@ -481,31 +481,34 @@ func TestRawNodeProposeAddDuplicateNode(t *testing.T) {
 			}
 		}
 		rawNode.Advance(rd)
+		return err
 	}
 
 	cc1 := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(uint64(1))}
 	ccdata1, err := proto.Marshal(cc1)
 	require.NoError(t, err)
-	proposeConfChangeAndApply(cc1)
+	require.NoError(t, proposeConfChangeAndApply(cc1))
 
-	// try to add the same node again
-	proposeConfChangeAndApply(cc1)
+	// try to add the same node again: cc1 is not applied yet, so the
+	// proposal is refused and dropped.
+	require.ErrorIs(t, proposeConfChangeAndApply(cc1), ErrProposalDropped)
 
 	// the new node join should be ok
 	cc2 := &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(uint64(2))}
 	ccdata2, err := proto.Marshal(cc2)
 	require.NoError(t, err)
-	proposeConfChangeAndApply(cc2)
+	require.NoError(t, proposeConfChangeAndApply(cc2))
 
 	lastIndex, err := s.LastIndex()
 	require.NoError(t, err)
 
-	// the last three entries should be: ConfChange cc1, cc1, cc2
-	entries, err := s.Entries(lastIndex-2, lastIndex+1, noLimit)
+	// the last two entries should be: ConfChange cc1, cc2 (the refused
+	// duplicate takes no index)
+	entries, err := s.Entries(lastIndex-1, lastIndex+1, noLimit)
 	require.NoError(t, err)
-	require.Len(t, entries, 3)
+	require.Len(t, entries, 2)
 	assert.Equal(t, ccdata1, entries[0].GetData())
-	assert.Equal(t, ccdata2, entries[2].GetData())
+	assert.Equal(t, ccdata2, entries[1].GetData())
 }
 
 // TestRawNodeReadIndex ensures that Rawnode.ReadIndex sends the MsgReadIndex message

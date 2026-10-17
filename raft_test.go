@@ -2800,21 +2800,16 @@ func TestStepConfig(t *testing.T) {
 }
 
 // TestStepIgnoreConfig tests that if raft step the second msgProp in
-// EntryConfChange type when the first one is uncommitted, the node will set
-// the proposal to noop and keep its original state.
+// EntryConfChange type when the first one is uncommitted, the node will drop second msgProp and return ErrProposalDropped.
 func TestStepIgnoreConfig(t *testing.T) {
 	// a raft that cannot make progress
 	r := newTestRaft(1, 10, 1, newTestMemoryStorage(withPeers(1, 2)))
 	r.becomeCandidate()
 	r.becomeLeader()
 	r.Step(&pb.Message{From: new(uint64(1)), To: new(uint64(1)), Type: pb.MsgProp.Enum(), Entries: []*pb.Entry{{Type: pb.EntryConfChange.Enum()}}})
-	index := r.raftLog.lastIndex()
 	pendingConfIndex := r.pendingConfIndex
-	r.Step(&pb.Message{From: new(uint64(1)), To: new(uint64(1)), Type: pb.MsgProp.Enum(), Entries: []*pb.Entry{{Type: pb.EntryConfChange.Enum()}}})
-	wents := []*pb.Entry{{Type: pb.EntryNormal.Enum(), Term: new(uint64(1)), Index: new(uint64(3)), Data: nil}}
-	ents, err := r.raftLog.entries(index+1, noLimit)
-	require.NoError(t, err)
-	requireEqualEntries(t, wents, ents)
+	err := r.Step(&pb.Message{From: new(uint64(1)), To: new(uint64(1)), Type: pb.MsgProp.Enum(), Entries: []*pb.Entry{{Type: pb.EntryConfChange.Enum()}}})
+	require.ErrorIs(t, err, ErrProposalDropped)
 	assert.Equal(t, pendingConfIndex, r.pendingConfIndex)
 }
 
