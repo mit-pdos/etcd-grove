@@ -1,0 +1,13 @@
+diff --git a/client/v3/experimental/recipes/priority_queue.go b/client/v3/experimental/recipes/priority_queue.go
+index 20b5625d0..bf258478f 100644
+--- a/client/v3/experimental/recipes/priority_queue.go
++++ b/client/v3/experimental/recipes/priority_queue.go
+@@ -43,7 +43,7 @@ func (q *PriorityQueue) Enqueue(val string, pr uint16) error {
+ 
+ // EnqueueUint64 puts a value into a queue with a given uint64 priority.
+ func (q *PriorityQueue) EnqueueUint64(val string, pr uint64) error {
+-	prefix := fmt.Sprintf("%s%05d", q.key, pr)
++	prefix := fmt.Sprintf("%s%020d", q.key, pr)
+ 	_, err := newSequentialKV(q.client, prefix, val)
+ 	return err
+ }

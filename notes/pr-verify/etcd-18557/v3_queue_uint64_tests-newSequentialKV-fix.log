@@ -1,0 +1,47 @@
+=== RUN   TestProbeRepeatedOverwrite
+    probe_test.go:19: prq/10000/0000000000000000 = a
+    probe_test.go:19: prq/10000/0000000000000001 = b
+    probe_test.go:19: prq/10000/0000000000000002 = c
+    probe_test.go:19: prq/100000/0000000000000000 = x0
+    probe_test.go:19: prq/100000/0000000000000001 = x1
+    probe_test.go:19: prq/100000/0000000000000002 = x2
+--- PASS: TestProbeRepeatedOverwrite (0.12s)
+=== RUN   TestProbeMixEnqueue
+    probe_test.go:19: prq/10000/0000000000000000 = a
+    probe_test.go:19: prq/10000/0000000000000001 = b
+    probe_test.go:19: prq/100001/0000000000000000 = big
+--- PASS: TestProbeMixEnqueue (0.07s)
+=== RUN   TestProbeTimestamps
+    probe_test.go:19: prq/00005/0000000000000000 = urgent
+    probe_test.go:19: prq/1792260683494282006/0000000000000000 = now
+    probe_test.go:19: prq/1792260683494283006/0000000000000000 = later
+--- PASS: TestProbeTimestamps (0.14s)
+=== RUN   TestQueueOneReaderOneWriter
+--- PASS: TestQueueOneReaderOneWriter (0.14s)
+=== RUN   TestQueueManyReaderOneWriter
+--- PASS: TestQueueManyReaderOneWriter (0.17s)
+=== RUN   TestQueueOneReaderManyWriter
+--- PASS: TestQueueOneReaderManyWriter (0.19s)
+=== RUN   TestQueueManyReaderManyWriter
+--- PASS: TestQueueManyReaderManyWriter (0.20s)
+=== RUN   TestPrQueueOneReaderOneWriter
+--- PASS: TestPrQueueOneReaderOneWriter (0.13s)
+=== RUN   TestPrQueueManyReaderManyWriter
+--- PASS: TestPrQueueManyReaderManyWriter (0.18s)
+=== RUN   TestUint64PrQueueOneReaderOneWriter
+--- PASS: TestUint64PrQueueOneReaderOneWriter (0.09s)
+=== RUN   TestUint64PrQueueManyReaderManyWriter
+--- PASS: TestUint64PrQueueManyReaderManyWriter (0.28s)
+=== RUN   TestUint64PrQueueOrderAtSixDigits
+    v3_queue_uint64_test.go:46: first Dequeue = "pr-100000", want "pr-99999" (the smaller priority)
+--- FAIL: TestUint64PrQueueOrderAtSixDigits (0.07s)
+=== RUN   TestUint64PrQueueEnqueueOverwrites
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000000 = a
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000001 = b
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000002 = c
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000003 = d
+    v3_queue_uint64_test.go:76: prq/100000/0000000000000000 = x
+--- PASS: TestUint64PrQueueEnqueueOverwrites (0.05s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/experimental/recipes	1.867s
+FAIL

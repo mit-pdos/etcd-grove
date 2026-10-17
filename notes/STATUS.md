@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#18557, the priority queue's `EnqueueUint64` (2026-10-17, branch `pr-verify/etcd-18557`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-18557-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. The new `PriorityQueue.EnqueueUint64` is proved
+against `Enqueue`'s spec with a `uint64` priority (no new axiom or `sorry`; the `uint64` case of
+`Sprintf("%s%05d")` is a local lemma, as Perennial has only the `uint16` one). Its order result
+(`pqueue_enqueueUint64_order`) needs `pr < 10^5`; from `10^5` on `Results.lean` proves the keys
+misordered (`pqKey_100000_lt_99999`) and the sequential-key premise false
+(`seqKeysBelow_10000_false`), and Go tests show a wrong dequeue order and a lost item. Report:
+`notes/pr-verify/etcd-18557.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

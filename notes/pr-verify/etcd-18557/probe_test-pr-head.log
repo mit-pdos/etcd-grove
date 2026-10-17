@@ -1,0 +1,20 @@
+=== RUN   TestProbeRepeatedOverwrite
+    probe_test.go:19: prq/10000/0000000000000003 = c
+    probe_test.go:19: prq/100000/0000000000000000 = x0
+    probe_test.go:19: prq/100000/0000000000000001 = x1
+    probe_test.go:19: prq/100000/0000000000000002 = x2
+    probe_test.go:42: 4 items after 6 enqueues
+--- FAIL: TestProbeRepeatedOverwrite (0.13s)
+=== RUN   TestProbeMixEnqueue
+    probe_test.go:19: prq/10000/0000000000000001 = b
+    probe_test.go:19: prq/100001/0000000000000000 = big
+    probe_test.go:57: 2 items after 3 enqueues
+--- FAIL: TestProbeMixEnqueue (0.10s)
+=== RUN   TestProbeTimestamps
+    probe_test.go:19: prq/00005/0000000000000000 = urgent
+    probe_test.go:19: prq/1792260693391167409/0000000000000000 = now
+    probe_test.go:19: prq/1792260693391168409/0000000000000000 = later
+--- PASS: TestProbeTimestamps (0.13s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/experimental/recipes	0.376s
+FAIL

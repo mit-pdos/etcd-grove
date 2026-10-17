@@ -1,0 +1,17 @@
+=== RUN   TestUint64PrQueueOneReaderOneWriter
+--- PASS: TestUint64PrQueueOneReaderOneWriter (0.11s)
+=== RUN   TestUint64PrQueueManyReaderManyWriter
+--- PASS: TestUint64PrQueueManyReaderManyWriter (0.21s)
+=== RUN   TestUint64PrQueueOrderAtSixDigits
+    v3_queue_uint64_test.go:46: first Dequeue = "pr-100000", want "pr-99999" (the smaller priority)
+--- FAIL: TestUint64PrQueueOrderAtSixDigits (0.07s)
+=== RUN   TestUint64PrQueueEnqueueOverwrites
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000000 = a
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000001 = d
+    v3_queue_uint64_test.go:76: prq/10000/0000000000000002 = c
+    v3_queue_uint64_test.go:76: prq/100000/0000000000000000 = x
+    v3_queue_uint64_test.go:79: 4 items in the queue after 5 enqueues, want 5
+--- FAIL: TestUint64PrQueueEnqueueOverwrites (0.12s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/experimental/recipes	0.534s
+FAIL

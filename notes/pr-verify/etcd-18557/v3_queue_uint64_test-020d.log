@@ -1,0 +1,10 @@
+=== RUN   TestUint64PrQueueOneReaderOneWriter
+--- PASS: TestUint64PrQueueOneReaderOneWriter (0.09s)
+=== RUN   TestUint64PrQueueManyReaderManyWriter
+--- PASS: TestUint64PrQueueManyReaderManyWriter (0.19s)
+=== RUN   TestUint64PrQueueOrderAtSixDigits
+--- PASS: TestUint64PrQueueOrderAtSixDigits (0.13s)
+=== RUN   TestUint64PrQueueEnqueueOverwrites
+--- PASS: TestUint64PrQueueEnqueueOverwrites (0.06s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/experimental/recipes	0.500s

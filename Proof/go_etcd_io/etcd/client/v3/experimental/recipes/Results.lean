@@ -569,6 +569,138 @@ theorem pqueue_order (key : GoString) (it : EtcdKv) (r : w64) :
 
 end pqorder
 
+/-! ## `EnqueueUint64` (etcd-io/etcd#18557, `notes/pr-verify/etcd-18557.md`)
+
+`EnqueueUint64(val, pr)` is `Enqueue` with a `uint64` priority and the same format, `%05d`. Below
+`10^5` its key is `Enqueue`'s (`pqPrefix_uint64`, and for `pr < 2^16` the very key `Enqueue(val,
+uint16(pr))` writes, `pqPrefix_uint64_uint16`), and every order result above holds of it
+(`pqueue_enqueueUint64_order`). From `10^5` on, `%05d` no longer pads to one width, and the two
+facts the priority queue rests on are false:
+
+* the keys no longer sort by priority: `key/100000/...` sorts before `key/99999/...`
+  (`pqKey_100000_lt_99999`), so a dequeue takes priority `100000` before `99999`;
+* one priority's prefix is a prefix of another's: `key/10000` of `key/100000/...`
+  (`pqPrefix_10000_prefix_100000`), so `newSequentialKV`'s `Get(prefix, WithLastKey())` for
+  priority `10000` sees priority `100000`'s keys and the premise of the enqueue's order fails
+  (`seqKeysBelow_10000_false`): the sequence number is computed from the other priority's last
+  key, and can name a key of priority `10000` that is already there, which the put overwrites
+  (`notes/pr-verify/etcd-18557/`, the Go test). -/
+
+section pqUint64
+
+theorem pqPrefix_uint64 (key : GoString) (pr : w64) :
+    key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimal (uint.Z pr)) =
+      pqPrefix key (uint.Z pr).toNat := by
+  unfold pqPrefix
+  rw [_root_.Perennial.fmt.decimal_of_nonneg (by word)]
+
+/-- `EnqueueUint64(val, pr)` and `Enqueue(val, pr16)` with the same value use the same prefix. -/
+theorem pqPrefix_uint64_uint16 (key : GoString) (pr : w64) (pr16 : w16)
+    (h : uint.Z pr = uint.Z pr16) :
+    key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimal (uint.Z pr)) =
+      key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5
+        (_root_.Perennial.fmt.decimal (uint.Z pr16)) := by
+  rw [h]
+
+theorem pad5_100000 :
+    _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimalNat 100000) = go!"100000" := by
+  simp [_root_.Perennial.fmt.padZeros, _root_.Perennial.fmt.decimalNat_eq,
+    _root_.Perennial.fmt.digitByte]
+
+theorem pad5_99999 :
+    _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimalNat 99999) = go!"99999" := by
+  simp [_root_.Perennial.fmt.padZeros, _root_.Perennial.fmt.decimalNat_eq,
+    _root_.Perennial.fmt.digitByte]
+
+theorem pad5_10000 :
+    _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimalNat 10000) = go!"10000" := by
+  simp [_root_.Perennial.fmt.padZeros, _root_.Perennial.fmt.decimalNat_eq,
+    _root_.Perennial.fmt.digitByte]
+
+/-- **Priority `100000`'s keys sort before priority `99999`'s**: the least key, which `Dequeue`
+takes, is not the highest priority once a priority reaches `10^5`. -/
+theorem pqKey_100000_lt_99999 (key : GoString) (n m : Nat) :
+    go.GoStringLt (pqKey key 100000 n) (pqKey key 99999 m) := by
+  unfold pqKey seqKey pqPrefix
+  rw [pad5_100000, pad5_99999]
+  simp only [List.append_assoc]
+  apply goStringLt_append_left
+  apply goStringLt_append_left
+  exact List.Lex.rel (by decide)
+
+/-- **Priority `10000`'s prefix is a prefix of priority `100000`'s keys.** -/
+theorem pqPrefix_10000_prefix_100000 (key : GoString) (n : Nat) :
+    pqPrefix key 10000 <+: pqKey key 100000 n := by
+  unfold pqKey seqKey pqPrefix
+  rw [pad5_100000, pad5_10000]
+  exact ⟨go!"0" ++ go!"/" ++ _root_.Perennial.fmt.padZeros 16 (_root_.Perennial.fmt.decimalNat n),
+    by simp⟩
+
+/-- **...and not a sequential key of priority `10000`.** -/
+theorem pqKey_100000_ne_seqKey_10000 (key : GoString) (n m : Nat) :
+    pqKey key 100000 n ≠ seqKey (pqPrefix key 10000) m := by
+  unfold pqKey seqKey pqPrefix
+  rw [pad5_100000, pad5_10000]
+  intro h
+  have h' : go!"100000" ++ go!"/" ++
+        _root_.Perennial.fmt.padZeros 16 (_root_.Perennial.fmt.decimalNat n) =
+      go!"10000" ++ go!"/" ++
+        _root_.Perennial.fmt.padZeros 16 (_root_.Perennial.fmt.decimalNat m) := by
+    simp only [List.append_assoc] at h ⊢
+    exact List.append_cancel_left (List.append_cancel_left h)
+  simp at h'
+
+/-- **The enqueue's premise fails for priority `10000` once priority `100000` has an item**: no
+state with a key of priority `100000` has only sequential keys under priority `10000`'s prefix,
+so `seqKeyPutAt_order` (and `pqueue_enqueueUint64_order`) says nothing of where the key goes. -/
+theorem seqKeysBelow_10000_false (key : GoString) (N n : Nat) (s : List EtcdKv) (v : EtcdKv)
+    (hv : v ∈ s) (hk : v.key = pqKey key 100000 n) : ¬ SeqKeysBelow (pqPrefix key 10000) N s := by
+  intro h
+  obtain ⟨m, -, hm⟩ := h v hv (hk ▸ pqPrefix_10000_prefix_100000 key n)
+  exact pqKey_100000_ne_seqKey_10000 key n m (hk ▸ hm)
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
+
+/-- `q.EnqueueUint64(val, pr)`
+(`Spec/go_etcd_io/etcd/client/v3/experimental/recipes/PriorityQueue__EnqueueUint64.lean`). -/
+theorem pqueue_EnqueueUint64 : PriorityQueue.EnqueueUint64.spec (GF := GF) (hG := hG) :=
+  PriorityQueue.wp_EnqueueUint64
+
+/-- **`EnqueueUint64(val, pr)`'s key, in order, for `pr < 10^5`** (on `pqueue_EnqueueUint64`'s
+result): `pqueue_enqueue_order`'s statement. Its key is then a `pqKey` with `p < 10^5`, as
+`PQKeysWf` (and so `pqueue_order`) needs. Without the bound, see `pqKey_100000_lt_99999` and
+`seqKeysBelow_10000_false`. -/
+theorem pqueue_enqueueUint64_order (key val k : GoString) (pr : w64) (g r : w64)
+    (hpr : uint.Z pr < 10 ^ 5) :
+    seqKeyPutAt (GF := GF) [] (key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5
+        (_root_.Perennial.fmt.decimal (uint.Z pr))) k val g r ⊢
+      ∃ sg : List EtcdKv, □ etcdState g [] sg ∗
+        ⌜(uint.Z pr).toNat < 10 ^ 5 ∧
+          (SeqKeysBelow (pqPrefix key (uint.Z pr).toNat) (10 ^ 16 - 1) sg →
+          ∃ n, n < 10 ^ 16 ∧ k = pqKey key (uint.Z pr).toNat n ∧
+            (∀ v ∈ sg, pqPrefix key (uint.Z pr).toNat <+: v.key →
+              ∃ n' < n, v.key = pqKey key (uint.Z pr).toNat n' ∧ go.GoStringLt v.key k) ∧
+            (n = 0 ∨ ∃ v ∈ sg, v.key = pqKey key (uint.Z pr).toNat (n - 1)))⌝ := by
+  rw [pqPrefix_uint64]
+  iintro H
+  ihave ⟨%sg, #Hsg, %Ho⟩ := seqKeyPutAt_order [] _ k val g r (pqPrefix_ne_nil _ _) $$ H
+  iexists sg
+  iframe Hsg
+  ipureintro
+  refine ⟨by omega, fun hwf => ?_⟩
+  obtain ⟨n, hn, hk, hlt, hgt, hlast⟩ := Ho hwf
+  refine ⟨n, hn, hk, ?_, hlast⟩
+  intro v hv hpre
+  obtain ⟨n', hn', hv'⟩ := hlt v hv hpre
+  exact ⟨n', hn', hv', hgt v hv hpre⟩
+
+end pqUint64
+
 /-! ## The vertical slice (unit V2b): the recipes' client at etcd's server, the queue end to end
 
 * **The client contracts at the server's model** (`recipes_kv_of_server`,
@@ -783,3 +915,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.recipes.double_barrier_leave
 #print axioms Perennial.EtcdGrove.recipes.pqueue_enqueue_order
 #print axioms Perennial.EtcdGrove.recipes.pqueue_order
+#print axioms Perennial.EtcdGrove.recipes.pqueue_EnqueueUint64
+#print axioms Perennial.EtcdGrove.recipes.pqueue_enqueueUint64_order
+#print axioms Perennial.EtcdGrove.recipes.pqKey_100000_lt_99999
+#print axioms Perennial.EtcdGrove.recipes.seqKeysBelow_10000_false

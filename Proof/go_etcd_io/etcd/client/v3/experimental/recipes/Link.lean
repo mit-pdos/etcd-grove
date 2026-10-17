@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue__Dequeue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue__Enqueue
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue__EnqueueUint64
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Queue__Dequeue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Queue__Enqueue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex__Lock
@@ -378,6 +379,10 @@ theorem wp_newSequentialKV :
 theorem PriorityQueue.wp_Enqueue :
     EtcdGrove.recipes.PriorityQueue.Enqueue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.PriorityQueue.Enqueue.wp_proof wp_newSequentialKV
+
+theorem PriorityQueue.wp_EnqueueUint64 :
+    EtcdGrove.recipes.PriorityQueue.EnqueueUint64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.PriorityQueue.EnqueueUint64.wp_proof wp_newSequentialKV
 
 theorem Queue.wp_Dequeue :
     EtcdGrove.recipes.Queue.Dequeue.spec (GF := GF) (hG := hG) :=

@@ -1,0 +1,13 @@
+diff --git a/client/v3/experimental/recipes/key.go b/client/v3/experimental/recipes/key.go
+index ce9001053..dffca6fa8 100644
+--- a/client/v3/experimental/recipes/key.go
++++ b/client/v3/experimental/recipes/key.go
+@@ -76,7 +76,7 @@ func putNewKV(kv v3.KV, key, val string, leaseID v3.LeaseID) (int64, error) {
+ // newSequentialKV allocates a new sequential key <prefix>/nnnnn with a given
+ // prefix and value. Note: a bookkeeping node __<prefix> is also allocated.
+ func newSequentialKV(kv v3.KV, prefix, val string) (*RemoteKV, error) {
+-	resp, err := kv.Get(context.TODO(), prefix, v3.WithLastKey()...)
++	resp, err := kv.Get(context.TODO(), prefix+"/", v3.WithLastKey()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}

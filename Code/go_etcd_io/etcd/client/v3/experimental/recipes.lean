@@ -1329,10 +1329,48 @@ noncomputable def PriorityQueue.Enqueue.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "prefix") (Var "$r0"))))))))))))))
 
+/-- EnqueueUint64 puts a value into a queue with a given uint64 priority.
+
+    go: priority_queue.go:45:25 -/
+noncomputable def PriorityQueue.EnqueueUint64.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "q"
+  (Lam "val"
+  (Lam "pr"
+  (App (Val exceptionDo)
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PriorityQueue.ty)))) (Var "q"))
+  (Let "pr" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "pr"))
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
+  (Let "$r0" (Let "$a0" (Val #(go!"%s%05d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef PriorityQueue.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PriorityQueue.ty)))) (Var "q")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "pr")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "prefix" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.KV.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (StructFieldRef PriorityQueue.ty go!"client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PriorityQueue.ty)))) (Var "q"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "prefix"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "val"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve newSequentialKV []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "prefix") (Var "$r0"))))))))))))))
+
 /-- Dequeue returns Enqueue()'d items in FIFO order. If the
     queue is empty, Dequeue blocks until items are available.
 
-    go: priority_queue.go:46:25 -/
+    go: priority_queue.go:53:25 -/
 noncomputable def PriorityQueue.Dequeue.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "q"
   (Lam BAnon
@@ -2317,6 +2355,7 @@ class PriorityQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_key : ∀ (x : PriorityQueue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : PriorityQueue)))
   ptr_Dequeue_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Dequeue" PriorityQueue.Dequeue.impl
   ptr_Enqueue_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Enqueue" PriorityQueue.Enqueue.impl
+  ptr_EnqueueUint64_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"EnqueueUint64" PriorityQueue.EnqueueUint64.impl
 
 attribute [instance] PriorityQueue.TypeAssumptions.type_repr
   PriorityQueue.TypeAssumptions.underlying
@@ -2328,6 +2367,7 @@ attribute [instance] PriorityQueue.TypeAssumptions.type_repr
   PriorityQueue.TypeAssumptions.set_key
   PriorityQueue.TypeAssumptions.ptr_Dequeue_unfold
   PriorityQueue.TypeAssumptions.ptr_Enqueue_unfold
+  PriorityQueue.TypeAssumptions.ptr_EnqueueUint64_unfold
 
 structure Queue [FfiSyntax] where
   mk ::

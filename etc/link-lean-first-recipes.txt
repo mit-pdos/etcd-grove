@@ -98,6 +98,7 @@ Queue__Dequeue: WithFirstRev claimFirstKey WaitPrefixEvents deleteRevKey
 # priority_queue.go (unit 2: in hypothesis order).
 NewPriorityQueue: context_TODO
 PriorityQueue__Enqueue: newSequentialKV
+PriorityQueue__EnqueueUint64: newSequentialKV
 PriorityQueue__Dequeue: WithFirstKey claimFirstKey WaitPrefixEvents deleteRevKey
 # rwmutex.go (unit 3: hypothesis order).
 NewRWMutex: context_TODO

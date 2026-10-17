@@ -1,0 +1,10 @@
+# etcd-io/etcd#18557 (`PriorityQueue.EnqueueUint64`, notes/pr-verify/etcd-18557.md): the new
+# function's linked result and the priority-queue results of Results.lean that mention it.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-18557.txt [--check [--update]]
+#
+# No baseline yet: the branch was not fully built (only the recipes modules), so the
+# baseline is the `#print axioms` comparison in the report (the same axioms as `pqueue_Enqueue`).
+roots PriorityQueue__EnqueueUint64
+roots pqueue_EnqueueUint64
+roots pqueue_enqueueUint64_order
