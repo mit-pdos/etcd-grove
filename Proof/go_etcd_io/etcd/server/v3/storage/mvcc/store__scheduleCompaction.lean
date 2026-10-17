@@ -134,7 +134,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
     ⟨%hIdx, #HIdxG, #HIdx⟩, ⟨%hPause, #HPauseG, #HPause⟩, ⟨%hTot, #HTotG, #HTot⟩,
-    ⟨%cKeys, #HKeysG, #HKeys⟩, ⟨%gLast, #HLastG, #HLast⟩, -⟩
+    ⟨%cKeys, #HKeysG, #HKeys⟩, ⟨%gLast, #HLastG, #HLast⟩⟩
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iunfold mvcc.compactTok at Htok
@@ -345,7 +345,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW Hmeta Hfin HP HlrdW]
+    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW Hmeta Hfin HP HlrdW HlbwW]
     · iframe Hlocked HP
       iunfold mvcc.writerRes
       iexists ilog, ntok
@@ -426,7 +426,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ipureintro; rfl
   -- a full batch: committed, then the next one after the sleep, unless the store stops
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW]
+  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW HlbwW]
   · iframe Hlocked HP
     iunfold mvcc.writerRes
     iexists ilog, ntok

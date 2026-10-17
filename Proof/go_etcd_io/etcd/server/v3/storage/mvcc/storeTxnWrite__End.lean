@@ -26,12 +26,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend chs ps sealed P f crev Z
   wp_start as ⟨Htw, #HhookC, HP, #HokN, Hq⟩
-  ihave Hmi : (mvccInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, ⟨%lg, #HlgG, #HlgS⟩⟩
-  iunfold gaugeSpec at HlgS
-  icases HlgS with ⟨-, -, #HlgA⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
   obtain ⟨Hps, Hlen⟩ := Hps
@@ -65,22 +59,19 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     subst hnil
     ihave Hw := mvcc.idxWriterB_nil γ.idx ilog sealed $$ Hw
     (try wp_auto)
-    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv Hcres Hlrd]
+    -- the live payload counter: an empty revision leaves the payload (etcd-io/etcd#22096)
+    ihave Hlbw : (ghostVar γ.lb (1 : Qp).half (mvcc.payloadW ilog) : IProp GF) $$ [Hlbw]
+    · rw [← mvcc.payloadW_nil ilog]; iexact Hlbw
+    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv Hcres Hlrd Hlbw]
     · iunfold mvcc.writerRes
       iexists ilog, ntok
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hbv Hcres Hlrd
+      iframe Htoks Hw Hclog Hcur Hbv Hcres Hlrd Hlbw
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     ihave HW := mvcc.storeW_put s γ $$ [$Hreg $HW]
     rw [mvcc.pendPuts_nil]
     wp_apply HUnlock0 $$ [$Hlocked $HW $HP]
-    (try wp_auto)
-    -- `if tw.liveSizeDelta != 0`: an empty revision adds nothing to the live payload
-    wp_if_destruct
-    rotate_left
-    · exfalso
-      exact Hif (mvcc.pendDelta_nil ilog)
     (try wp_auto)
     wp_if_destruct
     rotate_left
@@ -157,7 +148,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- (half the new view), the other half kept for `s.revMu`
     ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur Hcres Hlrd] as Hbucket
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur Hcres Hlrd Hlbw] as Hbucket
     · rw [← mvcc.bucketMap_append ilog pend Hne]
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -167,54 +158,49 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iunfold mvcc.writerRes
       iexists (ilog ++ [pend]), n
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hv1 Hcres Hlrd
+      iframe Htoks Hw Hclog Hcur Hv1 Hcres Hlrd Hlbw
       iframe #
       ipureintro
       exact ⟨by simp; omega, by simp⟩
     (try wp_auto)
-    -- `if tw.liveSizeDelta != 0 { liveKVPayloadGauge.Add(float64(tw.liveSizeDelta)) }`
+    -- `tw.s.revMu.Unlock()`
     wp_if_destruct
-    all_goals
-      (try wp_apply HlgA)
+    · exfalso
+      exact hne' (hpend.2 Hif)
+    · (try wp_auto)
+      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL]
+        as HrevMu
+      · inext
+        iunfold mvcc.revMuInv
+        iexists (ilog ++ [pend]), n, cL
+        simp only [named]
+        iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL
+        iframe #
+        isplitl []
+        · iunfold mvcc.certOkNext at HokN
+          icases HokN with (%Hp0 | #Hok')
+          · exact absurd Hp0 hne'
+          · iexact Hok'
+        ipureintro; simp; omega
       (try wp_auto)
-      -- `tw.s.revMu.Unlock()`
-      wp_if_destruct
-      · exfalso
-        exact hne' (hpend.2 Hif)
-      · (try wp_auto)
-        wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL]
-          as HrevMu
-        · inext
-          iunfold mvcc.revMuInv
-          iexists (ilog ++ [pend]), n, cL
-          simp only [named]
-          iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL
-          iframe #
-          isplitl []
-          · iunfold mvcc.certOkNext at HokN
-            icases HokN with (%Hp0 | #Hok')
-            · exact absurd Hp0 hne'
-            · iexact Hok'
-          ipureintro; simp; omega
-        (try wp_auto)
-        -- `tw.s.mu.RUnlock()`
-        iunfold mvcc.muHeld at Hmu
-        icases Hmu with ⟨Hmu, Hmua⟩
-        wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
-        · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
-        (try wp_auto)
-        iapply HΦ
-        iframe HZ
-        isplitl [Hmu HrevMu Hti Hrt]
-        · iunfold mvcc.storeReaderC
-          iexists ti
-          simp only [named]
-          iframe Hmu HrevMu Hti Hrt
-          iframe #
-        unfold mvcc.commitLog
-        rw [ite_eq_right hne']
-        try rw [ite_eq_right hne']
-        iframe Hcert' Hq
+      -- `tw.s.mu.RUnlock()`
+      iunfold mvcc.muHeld at Hmu
+      icases Hmu with ⟨Hmu, Hmua⟩
+      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
+      · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
+      (try wp_auto)
+      iapply HΦ
+      iframe HZ
+      isplitl [Hmu HrevMu Hti Hrt]
+      · iunfold mvcc.storeReaderC
+        iexists ti
+        simp only [named]
+        iframe Hmu HrevMu Hti Hrt
+        iframe #
+      unfold mvcc.commitLog
+      rw [ite_eq_right hne']
+      try rw [ite_eq_right hne']
+      iframe Hcert' Hq
 end proof
 
 end EtcdGrove

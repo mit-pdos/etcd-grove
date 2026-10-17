@@ -46,20 +46,23 @@ system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean
 module system").
 
 
-## etcd-io/etcd#22475 verified (2026-10-17, branch `pr-verify/etcd-22475`, not merged)
+## etcd-io/etcd#22096 verified (2026-10-17, branch `pr-verify/etcd-22096`, not merged)
 
-The PR (the live KV payload metric `etcd_mvcc_live_kv_payload_bytes`) is verified over the fork's
-`pr-etcd-22475-goose-lean`. What changed:
-- `keyIndex.liveSize` is in the index lock invariant (`ownLive`, `idxLockInv` at
-  `liveW (ilog ++ [pend])`; the pure model is `LivePayload.lean`);
-- `treeIndex.Put`/`Tombstone` return the key's size delta (new specs);
-- `storeTxnWriteIs` records `liveSizeDelta = pendDelta ilog pend`;
-- `End` adds it to the gauge;
-- `treeIndex.Insert`'s spec carries the `liveSize` field;
-- `mvccInit` gains the gauge.
+The PR (the logical size metric `etcd_mvcc_db_logical_size_in_bytes`, `KV.LogicalBytes()`) is
+verified over the fork's `pr-etcd-22096-goose-lean`, starting from the verification of the similar
+etcd-io/etcd#22475 (branch `pr-verify/etcd-22475`, cherry-picked: `keyIndex.liveSize` in the index
+lock invariant, `ownLive`, and the model `LivePayload.lean`). What changed beyond it:
+- `treeIndex.PutSize`/`TombstoneSize` (new) return the key's live size before the change;
+- the old `Put`/`Tombstone` (kept by the PR, no production caller) are proved with a premise that
+  the key's live size does not change (they do not maintain `liveSize`);
+- the store's atomic counter `logicalBytes` is in an invariant of `isStore` with half a ghost
+  variable `StoreNames.lb`; the writer's half is in `writerRes` (committed log's payload) and in
+  `storeTxnWriteIs`/`Core` (the pending changes' payload); `put`/`delete` update both;
+- `store.LogicalBytes` (new): any caller gets some value, the writer gets exactly its payload;
+- the `store.restore` axiom takes and returns `logicalBytes ↦ 0` (empty backend).
 
-No axiom or `sorry` was added. The gauge's value and restore are covered by Go tests only. Report:
-`notes/pr-verify/etcd-22475.md`. When a pin includes the PR, this branch is the starting point.
+No `sorry` was added; the one axiom changed is `store.restore`'s (a frame). Report:
+`notes/pr-verify/etcd-22096.md`. The PR panics on 32-bit platforms (misaligned atomic field).
 
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 

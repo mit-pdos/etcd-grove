@@ -8,7 +8,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes
 public import Spec.google_golang_org.protobuf.proto.Marshal
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__TombstoneSize
+public import Perennial.Proof.sync.atomic
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 
@@ -36,7 +37,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     (hNewBK : mvcc.newBucketKey.spec (GF := GF) (hG := hG))
     (hBKTo : mvcc.BucketKeyToBytes.spec (GF := GF) (hG := hG))
     (hMarshal : proto.Marshal.spec (GF := GF) (hG := hG))
-    (hTomb : mvcc.treeIndex.Tombstone.spec (GF := GF) (hG := hG))
+    (hTomb : mvcc.treeIndex.TombstoneSize.spec (GF := GF) (hG := hG))
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
@@ -135,13 +136,42 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   inext
   iintro ⟨Hlocked, Hbv⟩
   (try wp_auto)
-  -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
+  -- `prevSize, err := tw.s.kvindex.TombstoneSize(key, idxRev.Revision)` (etcd-io/etcd#22096)
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw
   · ipureintro
     refine ⟨rfl, hpos, Hb, mvcc.LogWf'.append_change Hwf' Hne _ (fun k' h => ?_)⟩
     rw [← mvcc.Change.del.inj h]; exact Hpresent
   (try wp_auto)
   -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
+  -- `atomic.AddInt64(&tw.s.logicalBytes, -prevSize)`: the counter moves from the pending
+  -- changes' payload to the payload with the delete
+  wp_apply_core sync.atomic.wp_AddInt64 $$ [] [-]
+  · iPkgInit
+  iinv HlbinvS with ⟨%w, >Hf, >Hg⟩ Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iexists w
+  iframe Hf
+  iintro Hf
+  imod Hmask with -
+  ihave %Hw0 := ghostVar_agree γ.lb _ _ _ _ $$ Hg Hlbw
+  subst Hw0
+  imod ghostVar_update_halves (mvcc.payloadW (ilog ++ [pend ++ [.del k]])) γ.lb _ _
+    $$ Hg Hlbw with ⟨Hg, Hlbw⟩
+  imod Hclose $$ [Hf Hg] with -
+  · inext
+    iexists _
+    iframe Hg
+    rw [mvcc.payloadW_snoc ilog pend (.del k)]
+    simp only [mvcc.Change.key]
+    rw [mvcc.liveW_snoc_del]
+    rw [show mvcc.payloadW (ilog ++ [pend]) + (W64 0 - mvcc.liveW (ilog ++ [pend]) k) =
+      mvcc.payloadW (ilog ++ [pend]) + -mvcc.liveW (ilog ++ [pend]) k by
+        rw [show (W64 0 : w64) = 0 from rfl]; congr 1]
+    iexact Hf
+  imodintro
+  (try wp_auto)
   -- `tw.changes = append(tw.changes, kv)`
   wp_apply wp_slice_literal (l := [«$r0_ptr»])
   isplitr
@@ -156,19 +186,16 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs',
-        liveSizeDelta' := mvcc.pendDelta ilog pend +
-          (mvcc.liveW (ilog ++ [pend ++ [.del k]]) k - mvcc.liveW (ilog ++ [pend]) k) } :
-        storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
+        changes' := chs' } : storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
       mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z : IProp GF)
-      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
+      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv Hlbw]
   · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
-    rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm', mvcc.pendDelta_snoc]
-    simp only [mvcc.revOf, mvcc.Change.isDel, mvcc.Change.key]
-    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+    rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
+    simp only [mvcc.revOf, mvcc.Change.isDel]
+    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
     iframe #
     isplitl []
     · ipureintro; exact Hbudget

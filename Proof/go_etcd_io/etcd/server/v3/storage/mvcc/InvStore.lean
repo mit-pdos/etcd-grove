@@ -131,6 +131,13 @@ structure StoreNames where
   `s.mu` the outer quarter (`logQ`), which a commit takes from its caller; otherwise `s.revMu`
   holds a half and a commit needs nothing more (`revQ`, `logQPre`) -/
   watchQ : Bool
+  /-- the live payload counter `s.logicalBytes` (etcd-io/etcd#22096): a `ghostVar w64`, half in
+  the counter's invariant (`isStore`, with the field), half the writer's (`writerRes` at the
+  committed log's payload, the write transaction's at its pending changes') -/
+  lb : GName
+
+/-- The namespace of the store's live payload counter's invariant (`isStore`). -/
+def lbN : Namespace := nroot .@ "mvcc.logicalBytes"
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -163,10 +170,10 @@ instance kbReal_countable : Pos.Countable KBReal :=
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
     (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb,
-      x.cmeta, x.fin, x.sch, x.cok, x.watchQ))
+      x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.lb))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 section addrs
@@ -1491,7 +1498,8 @@ other half under `s.revMu`), half of `currentRev` (`store.Write` reads it under 
 alone), half the bucket's view (the other half under `s.revMu`: the write transaction's reads
 of the bucket, through the batch transaction), the certificate of `ilog`, and half the
 revision budget's authority (the other half under `s.revMu`); and the compaction's part
-(`compactRes`: the meta keys' record, the finished compactions' counter). -/
+(`compactRes`: the meta keys' record, the finished compactions' counter); and the writer's half
+of the live payload counter, at the committed log's payload (etcd-io/etcd#22096). -/
 def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (ilog : Log) (ntok : Nat),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
@@ -1504,7 +1512,8 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hcres" ∷ compactRes γ ∗
-    "Hlrd" ∷ lease.lessorRdOf γ.leases)
+    "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
+    "Hlbw" ∷ ghostVar γ.lb (1 : Qp).half (payloadW ilog))
 
 /-! ### The batch lock's resource, late-bound (the real backend)
 
@@ -1951,7 +1960,9 @@ positive `CompactionBatchLimit`: the job's loop needs it to end,
 `issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel's field (its
 channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The fields `restore`
 and `Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
-(`muInv`, `revMuInv`). -/
+(`muInv`, `revMuInv`). The live payload counter `logicalBytes` (etcd-io/etcd#22096, updated with
+atomics) is in an invariant, with half a ghost variable whose other half is the writer's
+(`writerRes`, `storeTxnWriteIs`). -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (fh : val) (Dep : IProp GF)
       (scfg : StoreConfig) (ssched : GoInterface) (sstop shs : Loc),
@@ -1976,7 +1987,9 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#HisSched" ∷ schedule.isScheduler ssched γ.sch ∗
     "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
-      (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface))
+      (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
+    "#Hlbinv" ∷ inv lbN iprop(∃ w : w64, s.[store, go!"logicalBytes"] ↦ w ∗
+      ghostVar γ.lb (1 : Qp).half w))
 
 /-- **The store's backend contract** (what `NewStore` takes, for every store of the instance):
 `isKeyBackendG` at the store's view, tokens and put condition of its instance, its deletable keys
@@ -2357,8 +2370,9 @@ theorem changesAre_snoc (ps : List Loc) (ilog : Log) (pend : List Change) (c : C
 
 /-- The `storeTxnWrite` at `tw` of a write transaction of the store `s` at the committed log
 `ilog`, with the pending changes `pend` (the next revision's, not yet visible to readers): its
-fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written,
-`liveSizeDelta` what the pending changes add to the live payload: `pendDelta`, etcd-io/etcd#22475), the batch
+fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written), the writer's half
+of the live payload counter at the pending changes' payload (`payloadW (ilog ++ [pend])`,
+etcd-io/etcd#22096: `put`/`delete` add to `s.logicalBytes` as they go), the batch
 transaction locked with the pending puts, the batch lock's resource (`writerRes`, with the
 pending changes in the index writer's handle), the revision token the transaction was opened
 with, and the transaction's tokens: `s.mu` held shared at the compaction revision `crev` the
@@ -2376,7 +2390,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs, liveSizeDelta' := pendDelta ilog pend } : storeTxnWrite) ∗
+        changes' := chs } : storeTxnWrite) ∗
     "Hchs" ∷ chs ↦* ps ∗
     "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
     "%Hps" ∷ ⌜ps.length = pend.length⌝ ∗
@@ -2404,7 +2418,8 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
-    "#HZ" ∷ □ Z)
+    "#HZ" ∷ □ Z ∗
+    "Hlbw" ∷ ghostVar γ.lb (1 : Qp).half (payloadW (ilog ++ [pend])))
 
 /-- The write transaction of `storeTxnWriteIs` without its `changes` slice's contents and their
 key-values (`chs ↦* ps`, `changesAre ps ilog pend`: the caller's, `storeTxnWrite.Changes`):
@@ -2423,7 +2438,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs, liveSizeDelta' := pendDelta ilog pend } : storeTxnWrite) ∗
+        changes' := chs } : storeTxnWrite) ∗
     "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
     "%Hps" ∷ ⌜ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
     "#Hs" ∷ isStore s γ ∗
@@ -2449,7 +2464,8 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
-    "#HZ" ∷ □ Z)
+    "#HZ" ∷ □ Z ∗
+    "Hlbw" ∷ ghostVar γ.lb (1 : Qp).half (payloadW (ilog ++ [pend])))
 
 /-- A write transaction's revision (`writeRev`) is not negative (kept). -/
 theorem storeTxnWriteIs_writeRev (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
@@ -2484,7 +2500,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn, Hcrev⟩
 
@@ -2499,7 +2515,7 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iunfold storeTxnWriteIs
   iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn, Hcrev⟩
 
@@ -2522,7 +2538,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_true]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
@@ -2542,7 +2558,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   · iunfold storeTxnWriteCore
     iexists ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩

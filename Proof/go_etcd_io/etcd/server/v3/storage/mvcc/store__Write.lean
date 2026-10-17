@@ -115,8 +115,8 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ti2, bt, Locked, chs, [], ntok, P0, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  rw [mvcc.pendDelta_nil']
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmuh HrevMuR HtiR HrtR Hcres Hlrd
+  rw [mvcc.payloadW_nil]
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmuh HrevMuR HtiR HrtR Hcres Hlrd Hlbw
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

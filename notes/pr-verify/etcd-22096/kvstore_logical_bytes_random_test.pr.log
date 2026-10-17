@@ -1,0 +1,3 @@
+--- PASS: TestLogicalBytesRandomized (13.52s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	(cached)

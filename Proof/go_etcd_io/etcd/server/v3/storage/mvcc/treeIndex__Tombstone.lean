@@ -32,7 +32,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   have wp_Get : btree.BTree.Get.modelSpec (GF := GF) (hG := hG) := btree.BTree.Get.modelSpec_of wp_Get
   intro ti γ ilog pend key k rev
   wp_start as ⟨#Hti, Hw, #Hkey, %Hpre⟩
-  obtain ⟨Hrev, Hilog, Hpend, Hwf'⟩ := Hpre
+  obtain ⟨Hrev, Hilog, Hpend, Hwf', Hzero⟩ := Hpre
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨⟨%e, #Herr⟩, -, -, -, -, -, -, -, -⟩
@@ -134,10 +134,13 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     apply hk'
     rw [hk]
     exact h.symm
-  have hupd := mvcc.ownLiveI_update (GF := GF) (hG := hG) (ilog ++ [pend]) (ilog ++ [pend ++ [.del k]]) 1
-    (mvcc.itemsOfEntries L) Hsorted i (z.1, z.2.1) hii
-  have hupd := hupd hoth
-  icases hupd $$ HliveL with ⟨Hlz, HliveBack⟩
+  -- the live sizes are unchanged: the other keys' parts, and the key's (`0`, the premise)
+  have hcongr3 := mvcc.ownLiveI_congr (GF := GF) (hG := hG) (ilog ++ [pend])
+    (ilog ++ [pend ++ [.del k]]) 1 (mvcc.itemsOfEntries L) (fun it _ => by
+      by_cases hit : it.2 = (z.1, z.2.1).2
+      · rw [hit]; simp only; rw [hk, mvcc.liveW_snoc_del, Hzero]
+      · exact hoth it.2 hit)
+  ihave HliveL := hcongr3 $$ HliveL
   have hlast : mvcc.kiLastEmpty z.2.2 = false := by
     rw [hz, mvcc.kiCompact_lastEmpty _ hb0 k cz hcz0 (by omega)]; exact hlast
   have hne : mvcc.kiIsEmpty z.2.2 = false ∧ z.2.2.gens ≠ [] :=
@@ -177,8 +180,6 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   ihave HcmpL := mvcc.idxCmpOwn_mono γ _ L
     (L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) cmax
     (fun p hp => by rwa [mvcc.ptrs_set L i z (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩) hi rfl]) $$ HcmpL
-  ihave HliveL := HliveBack $$ [Hlz]
-  · rw [hk, mvcc.liveW_snoc_del]; iexact Hlz
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL HliveL]
   · inext
     iunfold mvcc.idxLockInv
@@ -214,9 +215,6 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     simp only [mvcc.idxTombstone, Hidx, hlast, Bool.false_eq_true, ↓reduceIte] at hidxnew
     exact hidxnew
   (try wp_auto)
-  rw [show -mvcc.liveW (ilog ++ [pend]) z.2.1 =
-      mvcc.liveW (ilog ++ [pend ++ [.del k]]) k - mvcc.liveW (ilog ++ [pend]) k by
-    rw [hk, mvcc.liveW_snoc_del]; simp]
   iapply HΦ
   iunfold mvcc.idxWriter
   rw [← mvcc.histShape_ev, hcount]

@@ -148,7 +148,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -156,11 +156,11 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw]
       · iunfold mvcc.storeTxnWriteIs
         iexists ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       (try wp_auto)
@@ -311,7 +311,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -319,11 +319,11 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw]
       · iunfold mvcc.storeTxnWriteIs
         iexists ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       (try wp_auto)

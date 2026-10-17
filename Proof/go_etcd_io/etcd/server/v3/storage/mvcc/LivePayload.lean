@@ -248,6 +248,33 @@ theorem pendDelta_nil (ilog : Log) : pendDelta ilog [] = W64 0 := by
 theorem pendDelta_nil' (ilog : Log) : pendDelta ilog [] = (0 : w64) := by
   rw [pendDelta_nil]; rfl
 
+/-- An empty pending revision leaves the payload (etcd-io/etcd#22096: the write transaction's
+counter starts at the committed log's payload). -/
+theorem payloadW_nil (ilog : Log) : payloadW (ilog ++ [[]]) = payloadW ilog := by
+  have h := pendDelta_nil' ilog
+  unfold pendDelta at h
+  generalize payloadW (ilog ++ [[]]) = a at h ⊢
+  generalize payloadW ilog = b at h ⊢
+  bv_omega
+
+/-- **The payload through a change** (etcd-io/etcd#22096: the counter's update by `put` and
+`delete`): the payload before it plus the key's part after it less its part before it. -/
+theorem payloadW_snoc (ilog : Log) (pend : List Change) (c : Change) :
+    payloadW (ilog ++ [pend ++ [c]]) =
+      payloadW (ilog ++ [pend]) + (liveW (ilog ++ [pend ++ [c]]) c.key - liveW (ilog ++ [pend]) c.key) := by
+  have h := pendDelta_snoc ilog pend c
+  unfold pendDelta at h
+  generalize payloadW (ilog ++ [pend ++ [c]]) = a at h ⊢
+  generalize payloadW (ilog ++ [pend]) = b at h ⊢
+  generalize payloadW ilog = p at h ⊢
+  generalize liveW (ilog ++ [pend ++ [c]]) c.key - liveW (ilog ++ [pend]) c.key = d at h ⊢
+  bv_omega
+
+/-- The initial log's payload (`NewStore`'s, revision 0 and 1, empty). -/
+theorem payloadW_init : payloadW ([[], []] : Log) = (0 : w64) := by
+  unfold payloadW
+  rfl
+
 /-- **A key without an index has no live part**: the index holds the events of a well-formed
 log `log`, compacted at levels at most `cmax` below its last revision; a key it has no index of
 is absent from the state after `log`. -/

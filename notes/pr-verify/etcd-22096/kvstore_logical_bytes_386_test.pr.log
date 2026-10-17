@@ -1,0 +1,25 @@
+=== RUN   TestLogicalBytesAlignment
+    kvstore_logical_bytes_386_test.go:33: GOARCH pointer size 4, offsetof(store.logicalBytes) = 116 (mod 8 = 4)
+--- FAIL: TestLogicalBytesAlignment (0.02s)
+panic: unaligned 64-bit atomic operation [recovered, repanicked]
+
+goroutine 82 [running]:
+testing.tRunner.func1.2({0x8ecfd30, 0x88224c0})
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2123 +0x29b
+testing.tRunner.func1()
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2126 +0x3dd
+panic({0x8ecfd30, 0x88224c0})
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/runtime/panic.go:859 +0x103
+internal/runtime/atomic.panicUnaligned()
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/internal/runtime/atomic/unaligned.go:8 +0x2d
+internal/runtime/atomic.Store64(0xb57e07c, 0x0)
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/internal/runtime/atomic/atomic_386.s:247 +0x10
+go.etcd.io/etcd/server/v3/storage/mvcc.(*store).restore(0xb57e008)
+	/shared/etcd-grove-pr/etcd-22096-scratch/up/server/storage/mvcc/kvstore.go:380 +0x95f
+go.etcd.io/etcd/server/v3/storage/mvcc.NewStore(0xb5184c0, {0x8f67d70, 0xb56c1b8}, {0x8f681bc, 0xb502418}, {0x0, 0x0})
+	/shared/etcd-grove-pr/etcd-22096-scratch/up/server/storage/mvcc/kvstore.go:140 +0x65a
+go.etcd.io/etcd/server/v3/storage/mvcc.TestLogicalBytesAlignment(0xb5043c8)
+	/shared/etcd-grove-pr/etcd-22096-scratch/up/server/storage/mvcc/kvstore_logical_bytes_386_test.go:36 +0x170
+testing: warning: no tests to run
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	(cached) [no tests to run]

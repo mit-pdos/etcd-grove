@@ -1,0 +1,12 @@
+--- PASS: TestLogicalBytesRandomized (17.47s)
+    logical_bytes_review_test.go:56: committed payload 1001, LogicalBytes 1001
+    logical_bytes_review_test.go:72: mid-txn after delete: LogicalBytes 0 while committed state (concurrent Range) has 1001
+    logical_bytes_review_test.go:73: mid-txn after re-put: LogicalBytes 1005 before End; after End 1005 (payload 1005)
+--- PASS: TestReviewLogicalBytesMidTxn (0.02s)
+    logical_bytes_review_test.go:92: s1.LogicalBytes=6 s2.LogicalBytes=0; gauge after s1=6, after NewStore(s2)=0
+--- PASS: TestReviewLogicalBytesGlobalGauge (0.03s)
+--- PASS: TestReviewLogicalBytesConcurrent (1.33s)
+--- PASS: TestStoreLogicalBytes (0.02s)
+--- PASS: TestStoreLogicalBytesCompactionStable (0.04s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	19.981s

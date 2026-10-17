@@ -169,9 +169,7 @@ and compaction's (2026-10-13, unit 5a): the two `Meta` key names it reads and wr
 `"scheduledCompactRev"` and `"finishedCompactRev"`, read-only; `schema` is names-only for them,
 and its own facts are the consistent index's), and the compaction metrics (`metrics.go`: the
 histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs`, whose
-`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`); and
-the gauge `liveKVPayloadGauge` (etcd-io/etcd#22475: `storeTxnWrite.End` adds the transaction's
-live-payload delta to it; its value is not modelled). -/
+`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`). -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -204,8 +202,7 @@ abbrev mvccInit : IProp GF :=
     (∃ h : GoInterfaceOk, globalAddr dbCompactionPauseMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ h : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ c : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
-    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
-    (∃ g : GoInterfaceOk, globalAddr liveKVPayloadGauge ↦□ GoInterface.ok g ∗ gaugeSpec g))
+    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

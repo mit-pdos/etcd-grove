@@ -1,0 +1,8 @@
+--- FAIL: TestKVRestore (0.02s)
+panic: unaligned 64-bit atomic operation [recovered, repanicked]
+
+goroutine 73 [running]:
+testing.tRunner.func1.2({0x8ecfd30, 0x88224c0})
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2123 +0x29b
+testing.tRunner.func1()
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1.linux-amd64/src/testing/testing.go:2126 +0x3dd

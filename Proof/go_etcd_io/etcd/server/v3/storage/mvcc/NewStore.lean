@@ -197,13 +197,16 @@ theorem mvcc.NewStore.wp_proof
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm, Hmeta⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok⟩
-  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw⟩ :
+  -- the live payload counter's (etcd-io/etcd#22096): `0`, half the writer's, half the counter's
+  imod ghostVar_alloc (GF := GF) (0 : w64) with ⟨%γlb, Hlb⟩
+  icases (mvcc.ghostVar_halves γlb _).1 $$ Hlb with ⟨Hlb1, Hlb2⟩
+  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγlb⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
-      γ.watchQ = wq :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl⟩
+      γ.watchQ = wq ∧ γ.lb = γlb :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γlb⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   ihave #Hhook : mvcc.hookIs γ P f $$ []
   · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
@@ -304,12 +307,15 @@ theorem mvcc.NewStore.wp_proof
   have hone : (W64 1 : w64) = W64 (((([[], []] : mvcc.Log).length : Int)) - 1) := rfl
   ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hlrd]
   · rw [hγl]; iexact Hlrd
-  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd]
+  ihave Hlbw : (ghostVar γ.lb (1 : Qp).half (mvcc.payloadW ([[], []] : mvcc.Log)) : IProp GF)
+      $$ [Hlb1]
+  · rw [hγlb, mvcc.payloadW_init]; iexact Hlb1
+  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd Hlbw]
   · iunfold mvcc.writerRes
     iexists [[], []], 2 ^ 63 - 5
     simp only [named]
     rw [mvcc.bucketMap_init, ← hone]
-    iframe Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd
+    iframe Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd Hlbw
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
@@ -358,9 +364,13 @@ theorem mvcc.NewStore.wp_proof
     iframe HcmpM HcmpB
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %f %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
-      as ⟨Hbv2, HcurB, HcmpF, revMu⟩
+      %(1 : Qp).half %P %f %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu $logicalBytes]
+      as ⟨Hbv2, HcurB, HcmpF, revMu, logicalBytes⟩
   · iframe #; ipureintro; exact Hlgnn
+  -- the live payload counter's invariant (etcd-io/etcd#22096): `logicalBytes` at `0`
+  imod inv_alloc mvcc.lbN ⊤ iprop(∃ w : w64, «$r0_ptr».[store, go!"logicalBytes"] ↦ w ∗
+      ghostVar γ.lb (1 : Qp).half w) $$ [logicalBytes Hlb2] with #Hlbinv
+  · inext; iexists (0 : w64); rw [hγlb]; iframe
   (try wp_auto)
   ihave HcmpF2 : («$r0_ptr».[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half •
       DFrac.own (1 : Qp).half} (W64 (-1) : w64) : IProp GF) $$ [HcmpF]

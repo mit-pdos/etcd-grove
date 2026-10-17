@@ -118,8 +118,8 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
       simp only [TypedPointsto.typedPointstoDef]
       iframe
     rw [hwr]
-    ihave Htw : (tw ↦ ({ storeTxnCommon' := { s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace }, tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1), changes' := chs, liveSizeDelta' := mvcc.pendDelta ilog pend } : storeTxnWrite) : IProp GF)
-      $$ [Hc Wtx WbeginRev Wchanges WliveSizeDelta]
+    ihave Htw : (tw ↦ ({ storeTxnCommon' := { s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace }, tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1), changes' := chs } : storeTxnWrite) : IProp GF)
+      $$ [Hc Wtx WbeginRev Wchanges]
     · iapply typedPointsto_combine _ _ _ Hnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -130,7 +130,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 

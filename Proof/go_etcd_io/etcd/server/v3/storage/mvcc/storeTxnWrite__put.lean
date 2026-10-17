@@ -9,7 +9,8 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Spec.google_golang_org.protobuf.proto.Marshal
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__PutSize
+public import Perennial.Proof.sync.atomic
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 
@@ -39,15 +40,17 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (hNewRev : mvcc.NewRevBytes.spec (GF := GF) (hG := hG))
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hMarshal : proto.Marshal.spec (GF := GF) (hG := hG))
-    (hPutI : mvcc.treeIndex.Put.spec (GF := GF) (hG := hG))
+    (hPutI : mvcc.treeIndex.PutSize.spec (GF := GF) (hG := hG))
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key value k v leaseID L te crev Z
   wp_start as ⟨Htw, #Hkey, #Hval, Hown, %Hlease, %Hb, Htrc⟩
-  ihave %Hvlen := ownSlice_len _ _ _ $$ Hval
-  have hvl : value.len = W64 (v.length : Int) := by obtain ⟨h1, h2⟩ := Hvlen; rw [h1]; word
   have Hb63 : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hb (mvcc.kbPutMax_le _)
+  ihave %Hklen := ownSlice_len _ _ _ $$ Hkey
+  ihave %Hvlen := ownSlice_len _ _ _ $$ Hval
+  have hkl : key.len = W64 (k.length : Int) := by obtain ⟨h1, h2⟩ := Hklen; rw [h1]; word
+  have hvl : value.len = W64 (v.length : Int) := by obtain ⟨h1, h2⟩ := Hvlen; rw [h1]; word
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -171,10 +174,37 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       %d %_ %_ [$HKeyG $Hlocked $Hbv $Hib $Hd] as ⟨Hlocked, Hbv⟩
     · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
     (try wp_auto)
-    -- `tw.s.kvindex.Put(key, idxRev)`
+    -- `prevSize := tw.s.kvindex.PutSize(key, idxRev, liveSize)` (etcd-io/etcd#22096)
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID _) $$ [$HtiS $Hw $Hkey] as Hw
     · ipureintro
-      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h), hvl⟩
+      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h), ?_⟩
+      rw [hkl, hvl, mvcc.W64_natCast_add]
+    (try wp_auto)
+    -- `atomic.AddInt64(&tw.s.logicalBytes, liveSize-prevSize)`: the counter moves from the
+    -- pending changes' payload to the payload with the put
+    wp_apply_core sync.atomic.wp_AddInt64 $$ [] [-]
+    · iPkgInit
+    iinv HlbinvS with ⟨%w, >Hf, >Hg⟩ Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    iexists w
+    iframe Hf
+    iintro Hf
+    imod Hmask with -
+    ihave %Hw0 := ghostVar_agree γ.lb _ _ _ _ $$ Hg Hlbw
+    subst Hw0
+    imod ghostVar_update_halves (mvcc.payloadW (ilog ++ [pend ++ [.put k v leaseID]])) γ.lb _ _
+      $$ Hg Hlbw with ⟨Hg, Hlbw⟩
+    imod Hclose $$ [Hf Hg] with -
+    · inext
+      iexists _
+      iframe Hg
+      rw [mvcc.payloadW_snoc ilog pend (.put k v leaseID)]
+      simp only [mvcc.Change.key]
+      rw [mvcc.liveW_snoc_put, mvcc.W64_natCast_add, ← hkl, ← hvl]
+      iexact Hf
+    imodintro
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -193,19 +223,16 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           storeTxnCommon' := {
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-          changes' := chs',
-          liveSizeDelta' := mvcc.pendDelta ilog pend +
-            (mvcc.liveW (ilog ++ [pend ++ [.put k v leaseID]]) k - mvcc.liveW (ilog ++ [pend]) k) } :
-          storeTxnWrite) -∗
+          changes' := chs' } : storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv Hlbw]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
-      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm', mvcc.pendDelta_snoc]
-      simp only [mvcc.revOf, mvcc.Change.isDel, mvcc.Change.key]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
+      simp only [mvcc.revOf, mvcc.Change.isDel]
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
       iframe #
       isplitl []
       · ipureintro; exact Hbudget
@@ -378,10 +405,37 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       %d %_ %_ [$HKeyG $Hlocked $Hbv $Hib $Hd] as ⟨Hlocked, Hbv⟩
     · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
     (try wp_auto)
-    -- `tw.s.kvindex.Put(key, idxRev)`
+    -- `prevSize := tw.s.kvindex.PutSize(key, idxRev, liveSize)` (etcd-io/etcd#22096)
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID _) $$ [$HtiS $Hw $Hkey] as Hw
     · ipureintro
-      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h), hvl⟩
+      refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h), ?_⟩
+      rw [hkl, hvl, mvcc.W64_natCast_add]
+    (try wp_auto)
+    -- `atomic.AddInt64(&tw.s.logicalBytes, liveSize-prevSize)`: the counter moves from the
+    -- pending changes' payload to the payload with the put
+    wp_apply_core sync.atomic.wp_AddInt64 $$ [] [-]
+    · iPkgInit
+    iinv HlbinvS with ⟨%w, >Hf, >Hg⟩ Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    iexists w
+    iframe Hf
+    iintro Hf
+    imod Hmask with -
+    ihave %Hw0 := ghostVar_agree γ.lb _ _ _ _ $$ Hg Hlbw
+    subst Hw0
+    imod ghostVar_update_halves (mvcc.payloadW (ilog ++ [pend ++ [.put k v leaseID]])) γ.lb _ _
+      $$ Hg Hlbw with ⟨Hg, Hlbw⟩
+    imod Hclose $$ [Hf Hg] with -
+    · inext
+      iexists _
+      iframe Hg
+      rw [mvcc.payloadW_snoc ilog pend (.put k v leaseID)]
+      simp only [mvcc.Change.key]
+      rw [mvcc.liveW_snoc_put, mvcc.W64_natCast_add, ← hkl, ← hvl]
+      iexact Hf
+    imodintro
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -400,19 +454,16 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           storeTxnCommon' := {
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-          changes' := chs',
-          liveSizeDelta' := mvcc.pendDelta ilog pend +
-            (mvcc.liveW (ilog ++ [pend ++ [.put k v leaseID]]) k - mvcc.liveW (ilog ++ [pend]) k) } :
-          storeTxnWrite) -∗
+          changes' := chs' } : storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv Hlbw]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
-      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm', mvcc.pendDelta_snoc]
-      simp only [mvcc.revOf, mvcc.Change.isDel, mvcc.Change.key]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
+      simp only [mvcc.revOf, mvcc.Change.isDel]
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hlbw
       iframe #
       isplitl []
       · ipureintro; exact Hbudget

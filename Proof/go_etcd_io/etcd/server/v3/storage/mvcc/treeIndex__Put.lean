@@ -44,14 +44,9 @@ theorem mvcc.treeIndex.Put.wp_proof
   have wp_Get : btree.BTree.Get.modelSpec (GF := GF) (hG := hG) := btree.BTree.Get.modelSpec_of wp_Get
   have wp_ROI : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) :=
     btree.BTree.ReplaceOrInsert.modelSpec_of wp_ROI
-  intro ti γ ilog pend key k rev v l valueSize
+  intro ti γ ilog pend key k rev v l
   wp_start as ⟨#Hti, Hw, #Hkey, %Hpre⟩
-  obtain ⟨Hrev, Hilog, Hpend, Hwf', Hvs⟩ := Hpre
-  ihave %Hklen := ownSlice_len _ _ _ $$ Hkey
-  -- `newSize` is the key's live part after the put
-  have hnew : W64 (k.length : Int) + valueSize = mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k := by
-    rw [mvcc.liveW_snoc_put, mvcc.W64_natCast_add, Hvs]
-  have hkl : key.len = W64 (k.length : Int) := by obtain ⟨h1, h2⟩ := Hklen; rw [h1]; word
+  obtain ⟨Hrev, Hilog, Hpend, Hwf', Hsame⟩ := Hpre
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxWriter at Hw
@@ -180,6 +175,9 @@ theorem mvcc.treeIndex.Put.wp_proof
         rw [← hwi]
         exact fun h => this h.symm)
     ihave HliveL := hcongr2 $$ HliveL
+    have hold : mvcc.liveW (ilog ++ [pend]) k = W64 0 :=
+      mvcc.liveW_absent (ilog ++ [pend]) (mvcc.IdxWf.logB ⟨Hwf, Hlen, Hplen, Hcs⟩) Hwf (by simp)
+        HLL.1 (by simp; omega) k Hidx
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hkis Hki HcmpL HliveL KliveSize]
     · inext
       iunfold mvcc.idxLockInv
@@ -210,7 +208,7 @@ theorem mvcc.treeIndex.Put.wp_proof
         iapply mvcc.ownLiveI_insert
         iframe HliveL
         simp only
-        rw [hkl, hnew]
+        rw [show mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k = (0 : w64) by rw [Hsame, hold]; rfl]
         iexact KliveSize
       isplitl []
       · iexact HcrevL
@@ -222,12 +220,6 @@ theorem mvcc.treeIndex.Put.wp_proof
       simp only [mvcc.idxPut, Hidx] at hidxnew
       exact hidxnew
     (try wp_auto)
-    have hold : mvcc.liveW (ilog ++ [pend]) k = W64 0 :=
-      mvcc.liveW_absent (ilog ++ [pend]) (mvcc.IdxWf.logB ⟨Hwf, Hlen, Hplen, Hcs⟩) Hwf (by simp)
-        HLL.1 (by simp; omega) k Hidx
-    rw [show key.len + valueSize =
-        mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k - mvcc.liveW (ilog ++ [pend]) k by
-      rw [hold, hkl, hnew]; simp]
     iapply HΦ
     iunfold mvcc.idxWriter
     rw [← mvcc.histShape_ev, hcount]
@@ -272,10 +264,13 @@ theorem mvcc.treeIndex.Put.wp_proof
       apply hk'
       rw [hk]
       exact h.symm
-    have hupd := mvcc.ownLiveI_update (GF := GF) (hG := hG) (ilog ++ [pend])
-      (ilog ++ [pend ++ [.put k v l]]) 1 (mvcc.itemsOfEntries L) Hsorted i (z.1, z.2.1) hii
-    have hupd := hupd hoth
-    icases hupd $$ HliveL with ⟨Hlz, HliveBack⟩
+    -- the live sizes are unchanged: the other keys' parts, and the key's (the premise)
+    have hcongr3 := mvcc.ownLiveI_congr (GF := GF) (hG := hG) (ilog ++ [pend])
+      (ilog ++ [pend ++ [.put k v l]]) 1 (mvcc.itemsOfEntries L) (fun it _ => by
+        by_cases hit : it.2 = (z.1, z.2.1).2
+        · rw [hit]; simp only; rw [hk]; exact Hsame
+        · exact hoth it.2 hit)
+    ihave HliveL := hcongr3 $$ HliveL
     (try wp_auto)
     wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
     · ipureintro; exact Hlgnn
@@ -292,8 +287,6 @@ theorem mvcc.treeIndex.Put.wp_proof
     ihave HcmpL := mvcc.idxCmpOwn_mono γ _ L
       (L.set i (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) cmax
       (fun p hp => by rwa [mvcc.ptrs_set L i z (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩) hi rfl]) $$ HcmpL
-    ihave HliveL := HliveBack $$ [Hlz]
-    · rw [hk, ← hnew, ← hkl]; iexact Hlz
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL HliveL]
     · inext
       iunfold mvcc.idxLockInv
@@ -329,9 +322,6 @@ theorem mvcc.treeIndex.Put.wp_proof
       simp only [mvcc.idxPut, Hidx] at hidxnew
       exact hidxnew
     (try wp_auto)
-    rw [show key.len + valueSize - mvcc.liveW (ilog ++ [pend]) z.2.1 =
-        mvcc.liveW (ilog ++ [pend ++ [.put k v l]]) k - mvcc.liveW (ilog ++ [pend]) k by
-      rw [hk, hkl, hnew]]
     iapply HΦ
     iunfold mvcc.idxWriter
     rw [← mvcc.histShape_ev, hcount]

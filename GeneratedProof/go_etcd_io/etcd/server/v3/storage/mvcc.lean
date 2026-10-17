@@ -24,6 +24,7 @@ public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
@@ -900,6 +901,7 @@ instance store_typed_pointsto :
     "revMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"revMu" l) v.revMu' dq ∗
     "currentRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"currentRev" l) v.currentRev' dq ∗
     "compactMainRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"compactMainRev" l) v.compactMainRev' dq ∗
+    "logicalBytes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"logicalBytes" l) v.logicalBytes' dq ∗
     "fifoSched" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"fifoSched" l) v.fifoSched' dq ∗
     "stopc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"stopc" l) v.stopc' dq ∗
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"lg" l) v.lg' dq ∗
@@ -1073,6 +1075,22 @@ instance store_access_store_compactMainRev (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
+instance store_access_load_logicalBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"logicalBytes" l) v.logicalBytes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"logicalBytes" l) v.logicalBytes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance store_access_store_logicalBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (logicalBytes' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"logicalBytes" l) v.logicalBytes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"logicalBytes" l) logicalBytes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logicalBytes' := logicalBytes' } : go_etcd_io.etcd.server.v3.storage.mvcc.store) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 instance store_access_load_fifoSched (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"fifoSched" l) v.fifoSched' dq)
@@ -1225,8 +1243,8 @@ variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 instance restoreResult_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult where
   typedPointstoDef l v dq := iprop(
-    "revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"revision" l) v.revision' dq ∗
-    "liveSize" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"liveSize" l) v.liveSize' dq ∗
+    "currentRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"currentRev" l) v.currentRev' dq ∗
+    "logicalBytes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"logicalBytes" l) v.logicalBytes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1236,35 +1254,35 @@ instance restoreResult_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult.underlying := by
   solve_into_val_typed_struct
 
-instance restoreResult_access_load_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (dq : DFrac) :
+instance restoreResult_access_load_currentRev (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"revision" l) v.revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"revision" l) v.revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"currentRev" l) v.currentRev' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"currentRev" l) v.currentRev' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance restoreResult_access_store_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (revision' : w64) :
+instance restoreResult_access_store_currentRev (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (currentRev' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"revision" l) v.revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"revision" l) revision' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revision' := revision' } : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"currentRev" l) v.currentRev' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"currentRev" l) currentRev' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with currentRev' := currentRev' } : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-instance restoreResult_access_load_liveSize (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (dq : DFrac) :
+instance restoreResult_access_load_logicalBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"liveSize" l) v.liveSize' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"liveSize" l) v.liveSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"logicalBytes" l) v.logicalBytes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"logicalBytes" l) v.logicalBytes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance restoreResult_access_store_liveSize (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (liveSize' : w64) :
+instance restoreResult_access_store_logicalBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (logicalBytes' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"liveSize" l) v.liveSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"liveSize" l) liveSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with liveSize' := liveSize' } : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"logicalBytes" l) v.logicalBytes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult go!"logicalBytes" l) logicalBytes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logicalBytes' := logicalBytes' } : go_etcd_io.etcd.server.v3.storage.mvcc.restoreResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1451,7 +1469,6 @@ instance storeTxnWrite_typed_pointsto :
     "tx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"tx" l) v.tx' dq ∗
     "beginRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"beginRev" l) v.beginRev' dq ∗
     "changes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"changes" l) v.changes' dq ∗
-    "liveSizeDelta" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"liveSizeDelta" l) v.liveSizeDelta' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1522,22 +1539,6 @@ instance storeTxnWrite_access_store_changes (l : Loc) (v : go_etcd_io.etcd.serve
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"changes" l) v.changes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"changes" l) changes' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with changes' := changes' } : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance storeTxnWrite_access_load_liveSizeDelta (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"liveSizeDelta" l) v.liveSizeDelta' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"liveSizeDelta" l) v.liveSizeDelta' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance storeTxnWrite_access_store_liveSizeDelta (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite) (liveSizeDelta' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"liveSizeDelta" l) v.liveSizeDelta' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"liveSizeDelta" l) liveSizeDelta' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with liveSizeDelta' := liveSizeDelta' } : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

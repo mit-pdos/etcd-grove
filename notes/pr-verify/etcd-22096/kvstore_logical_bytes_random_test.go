@@ -26,7 +26,7 @@ import (
 	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
 )
 
-// livePayloadOf is what etcd_mvcc_live_kv_payload_bytes is documented to be: the sum of
+// livePayloadOf is what etcd_mvcc_db_logical_size_in_bytes is documented to be: the sum of
 // len(key)+len(value) over the latest non-deleted version of each key.
 func livePayloadOf(t *testing.T, kv KV) int {
 	t.Helper()
@@ -41,12 +41,12 @@ func livePayloadOf(t *testing.T, kv KV) int {
 	return n
 }
 
-// TestLiveKVPayloadRandomized drives random histories (puts, overwrites, empty values,
+// TestLogicalBytesRandomized drives random histories (puts, overwrites, empty values,
 // single and range deletes, multi-operation transactions, compactions at random revisions,
 // restarts and Restore onto the same backend) with a small restore chunk, so that restoring
-// evicts key indexes from restoreIntoIndex's cache, and checks after every step that the gauge
-// equals the payload of the current state.
-func TestLiveKVPayloadRandomized(t *testing.T) {
+// evicts key indexes from restoreIntoIndex's cache, and checks after every step that
+// LogicalBytes() equals the payload of the current state.
+func TestLogicalBytesRandomized(t *testing.T) {
 	oldChunk := restoreChunkKeys
 	restoreChunkKeys = 7
 	defer func() { restoreChunkKeys = oldChunk }()
@@ -66,8 +66,8 @@ func TestLiveKVPayloadRandomized(t *testing.T) {
 			}
 			check := func(step int, what string) {
 				t.Helper()
-				if got, want := readGaugeInt(liveKVPayloadGauge), livePayloadOf(t, s); got != want {
-					t.Fatalf("step %d (%s): live KV payload gauge = %d, want %d", step, what, got, want)
+				if got, want := s.LogicalBytes(), int64(livePayloadOf(t, s)); got != want {
+					t.Fatalf("step %d (%s): LogicalBytes() = %d, want %d", step, what, got, want)
 				}
 			}
 			check(-1, "start")

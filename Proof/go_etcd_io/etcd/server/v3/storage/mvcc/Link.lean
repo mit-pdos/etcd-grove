@@ -95,6 +95,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__LogicalBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
@@ -120,9 +121,11 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Insert
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Keep
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__KeyIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__PutSize
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__TombstoneSize
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit
@@ -579,13 +582,13 @@ theorem mvcc.treeIndex.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Range.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Range.wp_proof mvcc.treeIndex.wp_unsafeGet mvcc.treeIndex.wp_unsafeVisit mvcc.keyIndex.wp_get
 
-theorem mvcc.treeIndex.wp_Tombstone [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.treeIndex.Tombstone.spec (GF := GF) (hG := hG) :=
-  mvcc.treeIndex.Tombstone.wp_proof btree.BTree.wp_Get mvcc.keyIndex.wp_tombstone
+theorem mvcc.treeIndex.wp_TombstoneSize [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.TombstoneSize.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.TombstoneSize.wp_proof btree.BTree.wp_Get mvcc.keyIndex.wp_tombstone
 
 theorem mvcc.storeTxnWrite.wp_delete [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.delete.wp_proof mvcc.wp_NewRevBytes mvcc.wp_newBucketKey mvcc.wp_BucketKeyToBytes proto.wp_Marshal mvcc.treeIndex.wp_Tombstone zap.wp_Error zap.Logger.wp_Error
+  mvcc.storeTxnWrite.delete.wp_proof mvcc.wp_NewRevBytes mvcc.wp_newBucketKey mvcc.wp_BucketKeyToBytes proto.wp_Marshal mvcc.treeIndex.wp_TombstoneSize zap.wp_Error zap.Logger.wp_Error
 
 theorem mvcc.storeTxnWrite.wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) :=
@@ -619,13 +622,13 @@ theorem mvcc.treeIndex.wp_Get [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Get.wp_proof mvcc.treeIndex.wp_unsafeGet
 
-theorem mvcc.treeIndex.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.treeIndex.Put.spec (GF := GF) (hG := hG) :=
-  mvcc.treeIndex.Put.wp_proof btree.BTree.wp_Get btree.BTree.wp_ReplaceOrInsert mvcc.keyIndex.wp_put
+theorem mvcc.treeIndex.wp_PutSize [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.PutSize.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.PutSize.wp_proof btree.BTree.wp_Get btree.BTree.wp_ReplaceOrInsert mvcc.keyIndex.wp_put
 
 theorem mvcc.storeTxnWrite.wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.put.wp_proof mvcc.treeIndex.wp_Get traceutil.Trace.wp_Step mvcc.wp_NewRevBytes mvcc.wp_RevToBytes proto.wp_Marshal mvcc.treeIndex.wp_Put zap.wp_Error zap.Logger.wp_Error
+  mvcc.storeTxnWrite.put.wp_proof mvcc.treeIndex.wp_Get traceutil.Trace.wp_Step mvcc.wp_NewRevBytes mvcc.wp_RevToBytes proto.wp_Marshal mvcc.treeIndex.wp_PutSize zap.wp_Error zap.Logger.wp_Error
 
 theorem mvcc.storeTxnWrite.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG) :=
@@ -787,6 +790,10 @@ theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.store.Compact.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step mvcc.store.wp_compact
 
+theorem mvcc.store.wp_LogicalBytes :
+    mvcc.store.LogicalBytes.spec (GF := GF) (hG := hG) :=
+  mvcc.store.LogicalBytes.wp_proof
+
 theorem mvcc.store.wp_Rev :
     mvcc.store.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.store.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
@@ -810,6 +817,14 @@ theorem mvcc.treeIndex.wp_Insert [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.treeIndex.wp_KeyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.KeyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.KeyIndex.wp_proof mvcc.treeIndex.wp_keyIndex
+
+theorem mvcc.treeIndex.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Put.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Put.wp_proof btree.BTree.wp_Get btree.BTree.wp_ReplaceOrInsert mvcc.keyIndex.wp_put
+
+theorem mvcc.treeIndex.wp_Tombstone [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.treeIndex.Tombstone.spec (GF := GF) (hG := hG) :=
+  mvcc.treeIndex.Tombstone.wp_proof btree.BTree.wp_Get mvcc.keyIndex.wp_tombstone
 
 theorem mvcc.txnReadWrite.wp_Changes :
     mvcc.txnReadWrite.Changes.spec (GF := GF) (hG := hG) :=

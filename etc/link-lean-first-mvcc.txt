@@ -40,6 +40,8 @@ treeIndex__unsafeGet: treeIndex__keyIndex keyIndex__get
 treeIndex__Get: treeIndex__unsafeGet
 treeIndex__Put: BTree__Get BTree__ReplaceOrInsert keyIndex__put
 treeIndex__Tombstone: BTree__Get keyIndex__tombstone
+treeIndex__PutSize: BTree__Get BTree__ReplaceOrInsert keyIndex__put
+treeIndex__TombstoneSize: BTree__Get keyIndex__tombstone
 treeIndex__KeyIndex: treeIndex__keyIndex
 treeIndex__Insert: BTree__ReplaceOrInsert
 # The range reads (unsafeVisit's visitors are the callers' closures), see Hist.lean, ReadLemmas.lean.
@@ -70,9 +72,9 @@ proto_Marshal:
 zap_Error:
 zap_Logger__Error:
 store__Write: newMetricsTxnWrite
-storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__Put zap_Error zap_Logger__Error
+storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__PutSize zap_Error zap_Logger__Error
 storeTxnWrite__Put: storeTxnWrite__put
-storeTxnWrite__delete: NewRevBytes newBucketKey BucketKeyToBytes proto_Marshal treeIndex__Tombstone zap_Error zap_Logger__Error
+storeTxnWrite__delete: NewRevBytes newBucketKey BucketKeyToBytes proto_Marshal treeIndex__TombstoneSize zap_Error zap_Logger__Error
 storeTxnWrite__deleteRange: treeIndex__Range storeTxnWrite__delete
 storeTxnWrite__DeleteRange: storeTxnWrite__deleteRange
 storeTxnWrite__Range: storeTxnCommon__rangeKeys
@@ -109,6 +111,7 @@ schedule_NewFIFOScheduler:
 NewHashStorage:
 schema_UnsafeCreateMetaBucket:
 store__restore:
+store__LogicalBytes:
 # schema's `bucket` methods (bucket.go): the backend calls them through its `Bucket` interface
 # (`isBucket`), on schema's `Key` and `Meta` (the backend bridge, `BackendBridge.lean`).
 schema_bucket__ID:

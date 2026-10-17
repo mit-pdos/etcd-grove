@@ -32,7 +32,12 @@ is locked and unlocked fresh (it is back at its zero value). The store of `1` in
 `currentRev` is modelled as no write: `NewStore` holds only half of `currentRev` here (the
 batch lock holds the other half since `NewStore`'s first `tx.Unlock()`, as the writers'
 resource); in the code the write is protected by `s.mu` held exclusively, which the model's
-`s.mu` (holding nothing) does not express. A backend with data is out of scope (the real
+`s.mu` (holding nothing) does not express. The live payload counter (`logicalBytes`,
+etcd-io/etcd#22096) is rebuilt from the backend's keys: of an empty `Key` bucket, `0`, the value
+`NewStore` initialized it to (the `atomic.StoreInt64` of `0` is modelled as no write). Not
+modelled either: `restore`'s `setupMetricsReporter` publishes `s` to the metrics callback
+(`reportDbLogicalSize`, a global), which may read the counter (atomically) before `NewStore`
+puts it in its invariant; it reads `0` then. A backend with data is out of scope (the real
 `restore` would rebuild the index from it). -/
 abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
@@ -48,12 +53,14 @@ abbrev mvcc.store.restore.spec : Prop :=
       ⌜lg ≠ null⌝ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
-      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) }}
+      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+      s.[store, go!"logicalBytes"] ↦ (0 : w64) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #GoInterface.nil; mvcc.bucketView γ q ∅ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
-      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) }}
+      s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
+      s.[store, go!"logicalBytes"] ↦ (0 : w64) }}
 
 end spec
 
