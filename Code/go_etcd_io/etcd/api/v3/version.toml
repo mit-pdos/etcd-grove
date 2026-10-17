@@ -1,7 +1,10 @@
 # Types and names only: function and method bodies are axiomatized (the server's `start` logs
-# `version.Version` and `version.Cluster(...)`; the request path's unit 4c).
-translate = ["!*"]
-imports = ["!*"]
+# `version.Version` and `version.Cluster(...)`; the request path's unit 4c), except for
+# `VersionForPeer` (etcd#22261's verification: the version string rafthttp sends a peer), whose
+# body calls `strings.TrimPrefix` and semver's `Version.LessThan` (hence the imports of `strings`
+# and `github.com/Masterminds/semver/v3`, names only).
+translate = ["!*", "VersionForPeer"]
+imports = ["!*", "strings", "github.com/Masterminds/semver/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

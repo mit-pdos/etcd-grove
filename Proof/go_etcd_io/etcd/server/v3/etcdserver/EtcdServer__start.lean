@@ -226,9 +226,12 @@ theorem EtcdServer.start.wp_proof
   · iPkgInit
   ihave #Hvi : iprop((∃ v : GoString, globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ v) ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
-        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v)) $$ []
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
+      (∃ v : github_com.Masterminds.semver.v3.Version,
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v ∗
+        ⌜v.major' = 3 ∧ v.minor' = 8 ∧ v.patch' = 0⌝)) $$ []
   · iapply isPkgInit_access $$ Hpver
-  icases Hvi with ⟨⟨%verv, #Hverv⟩, -⟩
+  icases Hvi with ⟨⟨%verv, #Hverv⟩, -, -⟩
   ihave #Hpmem : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit

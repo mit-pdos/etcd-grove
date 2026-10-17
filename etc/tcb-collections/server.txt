@@ -135,6 +135,7 @@ axiom schedule.Scheduler.Schedule.wp_proof
 axiom schedule.Scheduler.Stop.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom sort.Stable.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof

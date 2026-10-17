@@ -1,0 +1,3 @@
+NewVersion("3.8.0"): err = <nil>
+NewVersion("v3.8.0"): err = strconv.ParseInt: parsing "v3": invalid syntax
+Must(NewVersion("v3.8.0")) panics: strconv.ParseInt: parsing "v3": invalid syntax

@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22261, `VersionForPeer` and rafthttp's per-peer version cache (2026-10-17, branch `pr-verify/etcd-22261`)
+
+The PR translated (fork `pr-etcd-22261-goose-lean` `22be0af01`, not pushed; the pin is unchanged, so
+`etc/goose.py --check` fails on this branch). `api/v3/version`'s `VersionForPeer` is translated with
+its body (`version.toml`) and proved, no `sorry`, no new axiom; the existing postulate of semver's
+`Version.LessThan` is strengthened (for fixed contents its result follows the (major, minor,
+patch) order) and the version package's init assumption gains `V3_8` = (3, 8, 0). The rafthttp
+functions stay names-only (`sync.Map` has no model). Finding (a bug in the PR, not in `issues/`):
+the per-peer cache goes stale when a peer is downgraded to 3.7. Report `notes/pr-verify/etcd-22261.md`.
+Not for `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

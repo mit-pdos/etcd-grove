@@ -104,6 +104,7 @@ public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeo
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetCompare
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetFailure
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetSuccess
+public import Proof.github_com.Masterminds.semver.v3.Version__LessThan
 public import Proof.github_com.Masterminds.semver.v3.Version__String
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
@@ -233,6 +234,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
 public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
+public import Proof.go_etcd_io.etcd.api.v3.version.VersionForPeer
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewTimeList
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewWithResponse
@@ -573,6 +575,10 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem semver.Version.wp_LessThan :
+    semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
+  semver.Version.LessThan.wp_proof
+
 theorem auth.authStore.wp_IsAuthEnabled :
     auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsAuthEnabled.wp_proof
@@ -776,6 +782,10 @@ theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
   storage.NewBackendHooks.wp_proof
+
+theorem version.wp_VersionForPeer :
+    version.VersionForPeer.spec (GF := GF) (hG := hG) :=
+  version.VersionForPeer.wp_proof semver.Version.wp_LessThan
 
 end links
 

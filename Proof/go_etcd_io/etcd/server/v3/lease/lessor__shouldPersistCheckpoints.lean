@@ -40,9 +40,12 @@ theorem lease.lessor.shouldPersistCheckpoints.wp_proof
   · iPkgInit
   ihave #Hvi : iprop((∃ v : GoString, globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ v) ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
-        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v)) $$ []
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
+      (∃ v : github_com.Masterminds.semver.v3.Version,
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v ∗
+        ⌜v.major' = 3 ∧ v.minor' = 8 ∧ v.patch' = 0⌝)) $$ []
   · iapply isPkgInit_access $$ Hver
-  icases Hvi with ⟨-, ⟨%v36, #Hv36⟩⟩
+  icases Hvi with ⟨-, ⟨%v36, #Hv36⟩, -⟩
   wp_apply (IntoValTyped.wp_load (t := cluster.ty) _ _ _) $$ Hcl as Hcl
   wp_apply HVer as %cv Hcv
   wp_pures
