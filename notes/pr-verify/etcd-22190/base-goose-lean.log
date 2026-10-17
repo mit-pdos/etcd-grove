@@ -27,3 +27,10 @@ FAIL
 FATAL	failed to begin tx	{"error": "database not open"}
 FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.028s
 FAIL
+## fork goose-lean 09669450f (base): go test ./etcdserver/ -run '^TestProbeSnapshotReadStorageVersionAfterCleanup$' -count=1 -v
+=== RUN   TestProbeSnapshotReadStorageVersionAfterCleanup
+    snapshot_after_cleanup_probe_test.go:28: ReadStorageVersion(Backend().ReadTx()) after Cleanup panicked: runtime error: invalid memory address or nil pointer dereference
+--- FAIL: TestProbeSnapshotReadStorageVersionAfterCleanup (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.027s
+FAIL

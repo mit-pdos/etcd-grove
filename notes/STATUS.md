@@ -45,6 +45,28 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22190, `StorageVersion` vs a closed backend (2026-10-17, branch `pr-verify/etcd-22190`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22190-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `EtcdServer.StorageVersion` and `EtcdServer.Cleanup`
+are translated with bodies (`etcdserver.toml`; `storage/schema` added to its imports) and proved;
+`Cleanup` was an axiom with no precondition. `bemu`'s lock invariant moved to
+`InvBackendLife.lean` and changed: `bemuP s L q` holds half of `s.be` (scaled; the other half is in
+`Cleanup`'s resources, for its unlocked `s.be != nil`), the backend's contract (`beLifeOk`: a
+fractional open token `L.O`, `ReadTx`, `Close` taking all of it) and `L.O q` or the backend shut
+(`beShut`: closed for good, `stopping` closed). `srvBemuReader s` is `∃ L, ownRWMutex ...`; the
+construction premise `isServerBuilt` and `isServerRun` gain `srvCleanupRes s` (Cleanup's
+resources), which `start` hands to `run` and `run`'s shutdown to `Cleanup` with `stopping`'s done
+view from its close. New trust-boundary axiom: `schema.DetectSchemaVersion` (needs a fraction of
+the open token). `Backend` re-proved; `run`, `start`, `Start` rebuilt with the new premise rows.
+Open: `beLifeOk`/`schemaReadTx` are not derived from the verified backend (its `readTx.RLock`
+wants a linear reader slot, its `UnsafeRange` a bucket and key slices), so `srvCleanupRes` is a
+premise, not discharged; `Cleanup`'s trust (the other fields' `Stop`/`Close`) moved into it from
+the old axiom. `applySnapshot` (proved under raft's no-snapshot contract) would need a redesign of
+`bemuP` to swap backends: one open token per backend, the writer's half of `s.be` with it.
+Report: `notes/pr-verify/etcd-22190.md`; issues: `etcd-storageversion-closed-backend.md`,
+`etcd-backend-use-after-cleanup.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

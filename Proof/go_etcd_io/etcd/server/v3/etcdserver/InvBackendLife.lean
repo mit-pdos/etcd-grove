@@ -54,9 +54,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A read transaction of a backend whose open token is `O`** (persistent): `RLock` with a
-fraction `O q` gives a held state `H q`, its `UnsafeRange` reads keep it, `RUnlock` gives `O q`
-back. (What `schema.DetectSchemaVersion` does with its transaction; `UnsafeRange`'s results are
-not described: the trust-boundary contract of `DetectSchemaVersion` reads them.) -/
+fraction `O q` gives a held state `H q`, its `UnsafeRange` reads keep it and return read-only
+slices (the keys, the values, each value's bytes; their contents are not described), `RUnlock`
+gives `O q` back. (What `schema.DetectSchemaVersion` does with its transaction. The verified
+backend's `readTx` gives more and asks more: its `UnsafeRange` needs a bucket and its key slices,
+its `RLock` a linear reader slot besides `bOpen`; relating the two is not done here.) -/
 def schemaReadTx (rt : GoInterfaceOk) (O : Qp → IProp GF) : IProp GF :=
   iprop(∃ H : Qp → IProp GF,
     □ (∀ q : Qp, {{ O q }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
@@ -64,7 +66,9 @@ def schemaReadTx (rt : GoInterfaceOk) (O : Qp → IProp GF) : IProp GF :=
     □ (∀ (q : Qp) (bk : GoInterface) (key endKey : GoSlice) (limit : w64),
         {{ H q }} (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #bk))
           (Val #key)) (Val #endKey)) (Val #limit))
-        {{ (keys vals : GoSlice), RET (PairV #keys #vals); H q }}) ∗
+        {{ (keys vals : GoSlice), RET (PairV #keys #vals); H q ∗
+            ∃ (ks vs : List GoSlice), keys ↦*□ ks ∗ vals ↦*□ vs ∗
+              [∗list] v ∈ vs, ∃ bs : GoString, v ↦*□ bs }}) ∗
     □ (∀ q : Qp, {{ H q }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #()))
         {{ RET #(); O q }}))
 
@@ -107,6 +111,56 @@ its contract, and a fraction of its open token unless shut. -/
 def bemuP (s : Loc) (L : BeLife GF) (q : Qp) : IProp GF :=
   iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q.half} b ∗ beLifeOk b L.O ∗
     (L.O q ∨ beShut s L))
+
+theorem bemu_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
+  apply Subtype.ext
+  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
+  grind
+
+/-- `bemu`'s resource is fractional (what `sync.init_RWMutex` asks of it, and what `ownRWMutex`
+records): the backend's contract makes its open token fractional, the shut case is persistent. -/
+instance bemuP_fractional (s : Loc) (L : BeLife GF) : Fractional (bemuP s L) where
+  fractional p q := by
+    have hpt := fun (b : GoInterface) =>
+      (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) (srvBeAddr s) b dq)).fractional
+        p.half q.half
+    unfold bemuP
+    rw [bemu_qp_half_add]
+    constructor
+    · iintro ⟨%b, Hb, #Hok, Ho⟩
+      icases (hpt b).1 $$ Hb with ⟨Hb1, Hb2⟩
+      icases Ho with (HO | #Hsh)
+      · ihave #Hok' := Hok
+        iunfold beLifeOk at Hok'
+        icases Hok' with ⟨#Hfr, -⟩
+        ihave Hw := Hfr $$ %p %q
+        icases Hw with ⟨Hw, -⟩
+        ihave ⟨HO1, HO2⟩ := Hw $$ HO
+        isplitl [Hb1 HO1]
+        · iexists b; iframe Hb1 Hok; ileft; iexact HO1
+        · iexists b; iframe Hb2 Hok; ileft; iexact HO2
+      · isplitl [Hb1]
+        · iexists b; iframe Hb1 Hok; iright; iexact Hsh
+        · iexists b; iframe Hb2 Hok; iright; iexact Hsh
+    · iintro ⟨⟨%b1, Hb1, #Hok1, Ho1⟩, ⟨%b2, Hb2, #Hok2, Ho2⟩⟩
+      icombine Hb1 Hb2 gives %Heq
+      subst Heq
+      iexists b1
+      isplitl [Hb1 Hb2]
+      · iapply (hpt b1).2; iframe Hb1 Hb2
+      iframe Hok1
+      icases Ho1 with (HO1 | #Hsh)
+      · icases Ho2 with (HO2 | #Hsh)
+        · ileft
+          ihave #Hok' := Hok1
+          iunfold beLifeOk at Hok'
+          icases Hok' with ⟨#Hfr, -⟩
+          ihave Hw := Hfr $$ %p %q
+          icases Hw with ⟨-, Hw⟩
+          iapply Hw
+          iframe HO1 HO2
+        · iright; iexact Hsh
+      · iright; iexact Hsh
 
 /-- **A reader slot of `s.bemu`**. -/
 def srvBemuReader (s : Loc) : IProp GF :=

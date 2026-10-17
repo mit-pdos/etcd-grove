@@ -3,7 +3,7 @@ upstream: known
 checked: 2026-10-17
 links:
   - etcd-io/etcd#22189 issue open: the same crash (Maintenance Status racing a member's shutdown), reported with a reproducer
-  - etcd-io/etcd#22190 pr open: the fix (`StorageVersion` checks `s.stopping` under `bemu`); its `Cleanup` half is already in main (d6af8028d)
+  - etcd-io/etcd#22190 pr open: the fix (`StorageVersion` checks `s.stopping` under `bemu`); its `Cleanup` half is already in main (d6af8028d, etcd-io/etcd#22425)
   - etcd-io/etcd#17223 issue closed: "UnsafeRange panicking during shutdown", the same class (stale, closed unfixed)
 ---
 
