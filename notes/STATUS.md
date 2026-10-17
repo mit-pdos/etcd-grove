@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR etcd-io/etcd#22297 verified: `resyncDelay`, the clock axiom `time.Since` gone (2026-10-17, branch `pr-verify/etcd-22297`)
+
+Not for `lean` (the translation is of the unmerged PR; `etc/goose.py --check` fails here). The
+PR's `resyncDelay` (`watchable_store.go`) is proved (`Spec/.../mvcc/resyncDelay.lean`: the
+documented delay, always positive), and `syncWatchersLoop`'s unchanged spec is re-proved over it
+with Perennial's `time.wp_Since` (any duration). The local clock assumption `Spec/time/Since.lean`
+(axiom `time.Since.wp_proof`, a positive `time.Since`) is deleted; `store.scheduleCompaction` never
+used the positivity. `etc/tcb-baseline.txt` and the `mvcc`/`mvcc-compaction` collections lose that
+axiom; collection `pr-etcd-22297.txt` added. Report: `notes/pr-verify/etcd-22297.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -69,3 +69,8 @@ links:
 - **Possible fixes**: `if syncDuration > 0 { delayTicker.Reset(syncDuration) }` (keeping the
   period just set), or `delayTicker.Reset(max(syncDuration, time.Millisecond))`.
 - **Found**: 2026-10-12, by the proof of `syncWatchersLoop` (the watchable store, unit 3b).
+- **Fix verified** (2026-10-17, branch `pr-verify/etcd-22297`, report
+  `notes/pr-verify/etcd-22297.md`): etcd-io/etcd#22297 (head `8a7b19d0c`) moves the delay into
+  `resyncDelay`, which falls back to `watchResyncPeriod` unless `syncDuration > 0`. Over the PR,
+  `syncWatchersLoop`'s unchanged spec is proved with Perennial's `time.wp_Since` (any duration):
+  the clock assumption `Spec/time/Since.lean` (axiom `time.Since.wp_proof`) is deleted there.

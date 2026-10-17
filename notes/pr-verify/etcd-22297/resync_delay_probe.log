@@ -1,0 +1,4 @@
+=== RUN   TestResyncDelayProbe
+--- PASS: TestResyncDelayProbe (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.009s

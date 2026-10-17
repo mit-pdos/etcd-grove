@@ -6,7 +6,6 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact
-public import Spec.time.Since
 public import Spec.encoding.binary.bigEndian__PutUint64
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
@@ -98,7 +97,6 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem mvcc.store.scheduleCompaction.wp_proof
     (h0 : mvcc.treeIndex.Compact.spec (GF := GF) (hG := hG))
-    (h1 : time.Since.spec (GF := GF) (hG := hG))
     (h2 : binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG))
     (h3 : mvcc.newKVHasher.spec (GF := GF) (hG := hG))
     (h4 : mvcc.BytesToRev.spec (GF := GF) (hG := hG))
@@ -152,7 +150,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold counterSpec at HKeys
   icases HKeys with ⟨-, #HKeysAdd⟩
   iunfold gaugeSetSpec at HLast
-  wp_apply h1 as %d1 -
+  wp_apply time.wp_Since as %d1 -
   (try wp_auto)
   wp_apply HIdx
   (try wp_auto)
@@ -365,7 +363,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     inext
     iintro -
     (try wp_auto)
-    wp_apply h1 as %d2 -
+    wp_apply time.wp_Since as %d2 -
     (try wp_auto)
     wp_apply HPause
     (try wp_auto)
@@ -376,7 +374,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply h8 as %f0 -
     (try wp_auto)
-    wp_apply h1 as %d3 -
+    wp_apply time.wp_Since as %d3 -
     (try wp_auto)
     wp_apply h9 as %f1 -
     (try wp_auto)
@@ -413,7 +411,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HKeysAdd
     (try wp_auto)
-    wp_apply h1 as %d4 -
+    wp_apply time.wp_Since as %d4 -
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)
@@ -442,7 +440,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   wp_apply HForce $$ []
   · isplitl [] <;> itrivial
   (try wp_auto)
-  wp_apply h1 as %d5 -
+  wp_apply time.wp_Since as %d5 -
   (try wp_auto)
   wp_apply HPause
   (try wp_auto)
@@ -501,7 +499,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HKeysAdd
     (try wp_auto)
-    wp_apply h1 as %d4 -
+    wp_apply time.wp_Since as %d4 -
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)

@@ -24,7 +24,6 @@ axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schedule.Scheduler.Stop.wp_proof
 axiom time.NewTicker.wp_proof
-axiom time.Since.wp_proof
 axiom time.Ticker.Reset.wp_proof
 axiom time.Ticker.Stop.wp_proof
 axiom time.Time.Unix.wp_proof
