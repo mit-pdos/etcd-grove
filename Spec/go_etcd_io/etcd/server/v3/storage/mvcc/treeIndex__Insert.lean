@@ -34,12 +34,12 @@ abbrev mvcc.treeIndex.Insert.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ ilog pend ∗ mvcc.crevUB γ q (-1) ∗ ⌜ki ≠ null⌝ ∗
       mvcc.kiKey ki k ∗
-      mvcc.ownKi ki gs m (DFrac.own 1) ∗
+      mvcc.ownKi ki gs m (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (DFrac.own 1) ∗
       ⌜m = mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k ∧ m ≠ mvcc.kiEmpty⌝ }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Insert")) (Val #ki))
   {{ RET #(); mvcc.idxWriter γ ilog pend ∗ mvcc.crevUB γ q (-1) ∗
       ∃ (old : Loc) (gs' : GoSlice), ⌜old ≠ null⌝ ∗ mvcc.kiKey old k ∗
-        mvcc.ownKi old gs' m (DFrac.own 1) }}
+        mvcc.ownKi old gs' m (mvcc.evLease (mvcc.evsOf (ilog ++ [pend]))) (DFrac.own 1) }}
 
 end spec
 

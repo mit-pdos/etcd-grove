@@ -35,7 +35,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof
     (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hPut : mvcc.keyIndex.put.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) := by
-  intro p gs ki k lg main sub e
+  intro p gs ki lf k lg main sub e Hlf
   wp_start as ⟨%Hlg, %Hne, #Hkey, Hki, #Herr⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -43,7 +43,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   iunfold gaugeSpec at Hgspec
   icases Hgspec with ⟨-, #HDec, -⟩
   wp_auto
-  wp_apply (hIE p gs ki (DFrac.own 1)) $$ [Hki] as Hki
+  wp_apply (hIE p gs ki lf (DFrac.own 1)) $$ [Hki] as Hki
   · iframe Hki
   cases Hemp : mvcc.kiIsEmpty ki
   rotate_left
@@ -73,7 +73,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   -- `ki.generations[len-1].isEmpty()`
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   have Hb : 0 ≤ sint.Z (gs.len - W64 1) ∧ sint.Z (gs.len - W64 1) < sint.Z gs.len := by
     have := List.length_pos_iff.2 Hne; word
   wp_auto
@@ -81,10 +81,10 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   have Hidx : ki.gens[(sint.Z (gs.len - W64 1)).toNat]? = some (ki.gens.getLastD mvcc.Gen.empty) := by
     rw [show (sint.Z (gs.len - W64 1)).toNat = ki.gens.length - 1 by rw [Hlen.1]; word]
     exact mvcc.getElem?_last _ Hne
-  icases mvcc.ownGens_acc_z gs ki.gens (DFrac.own 1) (sint.Z (gs.len - W64 1)) _ Hb.1 Hidx $$ Hgens
+  icases mvcc.ownGens_acc_z gs ki.gens _ (DFrac.own 1) (sint.Z (gs.len - W64 1)) _ Hb.1 Hidx $$ Hgens
     with ⟨%gv, Hel, Hg, Hback⟩
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hel
-  wp_apply (hGE.2 _ gv _ (DFrac.own 1)) $$ [Hel Hg] as ⟨Hel, Hg⟩
+  wp_apply (hGE.2 _ gv _ lf (DFrac.own 1)) $$ [Hel Hg] as ⟨Hel, Hg⟩
   · iframe; ipureintro; exact Hnn
   ispecialize Hback $$ %gv %_ Hel Hg
   rw [mvcc.set_same Hidx]
@@ -100,9 +100,9 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   · -- the tombstone's revision, then a new empty generation
     have HlastF : mvcc.kiLastEmpty ki = false := by
       unfold mvcc.kiLastEmpty; exact decide_eq_false Hif
-    ihave Hki : iprop(mvcc.ownKi p gs ki (DFrac.own 1)) $$ [Hmod Hgs Hback]
+    ihave Hki : iprop(mvcc.ownKi p gs ki lf (DFrac.own 1)) $$ [Hmod Hgs Hback]
     · iunfold mvcc.ownKi; iframe Hmod Hgs Hback
-    wp_apply (hPut p gs ki lg main sub) $$ [Hki] as %r Hr
+    wp_apply (hPut p gs ki lf lg main sub (W64 0) Hlf) $$ [Hki] as %r Hr
     · iframe Hki; ipureintro; exact Hlg
     by_cases Hlt : mvcc.Rev.lt ki.modified ⟨main, sub⟩
     rotate_left

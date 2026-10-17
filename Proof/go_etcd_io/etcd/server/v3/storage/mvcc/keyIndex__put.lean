@@ -31,7 +31,7 @@ theorem mvcc.keyIndex.put.wp_proof
     (hZI : zap.Int64.spec (GF := GF) (hG := hG))
     (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.put.spec (GF := GF) (hG := hG) := by
-  intro p gs ki lg main sub
+  intro p gs ki lf lg main sub leaseID Hlf
   wp_start as ⟨%Hlg, Hki⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -40,7 +40,7 @@ theorem mvcc.keyIndex.put.wp_proof
   icases Hgspec with ⟨#HInc, -, -⟩
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   wp_auto
   -- `rev.GreaterThan(ki.modified)`: the pointer wrapper, then the value method
   rw [method_unfold (t := go.GoType.PointerType Revision.ty) (m := go!"GreaterThan")]
@@ -84,14 +84,14 @@ theorem mvcc.keyIndex.put.wp_proof
   -- a first generation if there is none
   wp_join iprop(∃ gs' : GoSlice,
       ki_ptr ↦ p ∗ p.[keyIndex, go!"generations"] ↦ gs' ∗
-      mvcc.ownGens gs' (mvcc.gensOrEmpty ki.gens) (DFrac.own 1)) with [ki Hgs Hgens]
+      mvcc.ownGens gs' (mvcc.gensOrEmpty ki.gens) lf (DFrac.own 1)) with [ki Hgs Hgens]
     as ⟨%gs', ki, Hgs, Hgens⟩
   · -- no generation yet
     have hnil : ki.gens = [] := by
       apply List.eq_nil_of_length_eq_zero; rw [Hlen.1, Hif]; rfl
     iunfold mvcc.ownGens at Hgens
     icases Hgens with ⟨%gvs, Hgvs, Hcap, Hall⟩
-    ihave %Hgl := mvcc.ownGensL_len _ _ _ $$ Hall
+    ihave %Hgl := mvcc.ownGensL_len _ _ _ _ $$ Hall
     rw [hnil] at Hgl
     have hgvs : gvs = [] := List.eq_nil_of_length_eq_zero Hgl
     subst hgvs
@@ -125,7 +125,7 @@ theorem mvcc.keyIndex.put.wp_proof
     iexists gs
     iframe ki Hgs Hgens
   -- `g := &ki.generations[len-1]`
-  ihave %Hlen' := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen' := mvcc.ownGens_len _ _ _ _ $$ Hgens
   have Hne := mvcc.gensOrEmpty_ne_nil ki.gens
   have Hb : 0 ≤ sint.Z (gs'.len - W64 1) ∧ sint.Z (gs'.len - W64 1) < sint.Z gs'.len := by
     have := List.length_pos_iff.2 Hne; word
@@ -136,7 +136,7 @@ theorem mvcc.keyIndex.put.wp_proof
     rw [show (sint.Z (gs'.len - W64 1)).toNat = (mvcc.gensOrEmpty ki.gens).length - 1 by
       rw [Hlen'.1]; word]
     exact mvcc.getElem?_last _ Hne
-  icases mvcc.ownGens_acc_z gs' _ (DFrac.own 1) (sint.Z (gs'.len - W64 1)) _ Hb.1 Hidx $$ Hgens
+  icases mvcc.ownGens_acc_z gs' _ _ (DFrac.own 1) (sint.Z (gs'.len - W64 1)) _ Hb.1 Hidx $$ Hgens
     with ⟨%gv, Hel, Hg, Hback⟩
   iunfold mvcc.ownGen at Hg
   icases Hg with ⟨%Hfields, Hrevs, Hcap⟩
@@ -178,7 +178,9 @@ theorem mvcc.keyIndex.put.wp_proof
     · ipureintro
       simp only [mvcc.genPut]
       exact ⟨by rw [Hfields.1], by rw [ite_eq_left hrevs]; rfl⟩
-    simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil, mvcc.revVal_mk]
+    simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil]
+    rw [show mvcc.rlVal lf ⟨main, sub⟩ = ⟨⟨main, sub⟩, leaseID⟩ by
+      simp only [mvcc.rlVal, mvcc.revVal_mk, Hlf]]
     iexact Hrevs
   · -- another revision of a live key
     have hrevs : ((mvcc.gensOrEmpty ki.gens).getLastD mvcc.Gen.empty).revs ≠ [] := by
@@ -210,7 +212,9 @@ theorem mvcc.keyIndex.put.wp_proof
     · ipureintro
       simp only [mvcc.genPut]
       exact ⟨by rw [Hfields.1], by rw [ite_eq_right hrevs]; exact Hfields.2⟩
-    simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil, mvcc.revVal_mk]
+    simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil]
+    rw [show mvcc.rlVal lf ⟨main, sub⟩ = ⟨⟨main, sub⟩, leaseID⟩ by
+      simp only [mvcc.rlVal, mvcc.revVal_mk, Hlf]]
     iexact Hrevs
 
 end proof

@@ -32,25 +32,26 @@ index unchanged. Else `nil`, with the revision appended and a new empty generati
 panic (an index out of range, which Perennial models as stuck), unreachable in the verified
 code (a key index in the tree always has a generation). -/
 abbrev mvcc.keyIndex.tombstone.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (k : GoString) (lg : Loc) (main sub : w64)
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (k : GoString) (lg : Loc) (main sub : w64)
     (e : GoInterfaceOk),
+  lf ⟨main, sub⟩ = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ⌜lg ≠ null⌝ ∗ ⌜ki.gens ≠ []⌝ ∗ mvcc.kiKey p k ∗ mvcc.ownKi p gs ki (DFrac.own 1) ∗
+      ⌜lg ≠ null⌝ ∗ ⌜ki.gens ≠ []⌝ ∗ mvcc.kiKey p k ∗ mvcc.ownKi p gs ki lf (DFrac.own 1) ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}
     (App (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"tombstone")) (Val #lg))
       (Val #main)) (Val #sub))
   {{ (r : val), RET r;
       if mvcc.kiIsEmpty ki then
         ⌜r = PanicV #(go!"'tombstone' got an unexpected empty keyIndex")⌝ ∗
-          mvcc.ownKi p gs ki (DFrac.own 1)
+          mvcc.ownKi p gs ki lf (DFrac.own 1)
       else if mvcc.kiLastEmpty ki then
-        ⌜r = #(GoInterface.ok e)⌝ ∗ mvcc.ownKi p gs ki (DFrac.own 1)
+        ⌜r = #(GoInterface.ok e)⌝ ∗ mvcc.ownKi p gs ki lf (DFrac.own 1)
       else if mvcc.Rev.lt ki.modified ⟨main, sub⟩ then
         ⌜r = #GoInterface.nil⌝ ∗
-          ∃ gs' : GoSlice, mvcc.ownKi p gs' (mvcc.kiTombstone ki ⟨main, sub⟩) (DFrac.own 1)
+          ∃ gs' : GoSlice, mvcc.ownKi p gs' (mvcc.kiTombstone ki ⟨main, sub⟩) lf (DFrac.own 1)
       else
         ⌜r = PanicV #(go!"'put' with an unexpected smaller revision")⌝ ∗
-          mvcc.ownKi p gs ki (DFrac.own 1) }}
+          mvcc.ownKi p gs ki lf (DFrac.own 1) }}
 
 end spec
 

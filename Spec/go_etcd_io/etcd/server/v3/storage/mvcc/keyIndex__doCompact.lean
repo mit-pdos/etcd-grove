@@ -27,15 +27,15 @@ revision index in it (`compactRevIdx`, `-1` if none), the revision it keeps adde
 (`kiAvail`). A read of the key index, at any fraction (`keep` holds it shared, under `RLock`).
 (Its walk's closure writes the map: `generation.walk`'s closure is effectful, `walkFnSpecR`.) -/
 abbrev mvcc.keyIndex.doCompact.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac) (atRev : w64) (m : GoMap)
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (dq : DFrac) (atRev : w64) (m : GoMap)
     (A : GMap Revision Unit),
   mvcc.gensOk ki →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) A }}
+      mvcc.ownKi p gs ki lf dq ∗ ownMap m (DFrac.own 1) A }}
     (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"doCompact")) (Val #atRev))
       (Val #m))
   {{ RET (PairV #(W64 (mvcc.compactGenIdx atRev ki.gens : Int)) #(W64 (mvcc.compactRevIdx atRev ki)));
-      mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) (mvcc.availAdd A (mvcc.kiAvail atRev ki)) }}
+      mvcc.ownKi p gs ki lf dq ∗ ownMap m (DFrac.own 1) (mvcc.availAdd A (mvcc.kiAvail atRev ki)) }}
 
 end spec
 

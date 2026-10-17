@@ -135,7 +135,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
     fun r hk => mvcc.keepAt_keys log ilog0 pend0 Hcmp0 Hcnt0 Hb0 HbLog HL0.1 (sint.Z rev) (by omega)
       HcmR (by omega) r hk
   -- the clone
-  icases mvcc.ownTree_keys t L0 1 $$ Htree0 with ⟨Htree0, #Hkeys0⟩
+  icases mvcc.ownTree_keys t L0 _ 1 $$ Htree0 with ⟨Htree0, #Hkeys0⟩
   iunfold mvcc.ownTree at Htree0
   icases Htree0 with ⟨%Hsorted0, Ht0, Hkis0⟩
   ihave %Hnd0 := mvcc.kiKeys_nodup L0 ((mvcc.itemsOfEntries_sorted_iff L0).1 Hsorted0) $$ Hkeys0
@@ -231,7 +231,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
       Hcc.2.1 _ (by rw [List.drop_eq_getElem_cons Hil, HziE]; exact List.mem_cons_self)
     obtain ⟨z, hzL, hzp⟩ := List.mem_map.1 Hmem
     obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hzL
-    icases mvcc.ownTree_entry t L 1 z hzL $$ HtreeL with ⟨HtreeL, %Hzn, #Hkz⟩
+    icases mvcc.ownTree_entry t L _ 1 z hzL $$ HtreeL with ⟨HtreeL, %Hzn, #Hkz⟩
     rw [← hzp]
     simp only
     ihave %Hk := mvcc.kiKey_agree z.1 z.2.1 zi.2.1 $$ Hkz Hkzi
@@ -374,7 +374,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
         simp only [↓reduceIte] at this
         rw [mvcc.idxOfEntries_eraseIdx]; exact this
       have hjl : j < L.length := (List.getElem?_eq_some_iff.1 hj).1
-      icases mvcc.bigSepL_ownEntry_eraseIdx 1 (L.set j (z.1, z.2.1, mvcc.kiCompact rev z.2.2)) j _
+      icases mvcc.bigSepL_ownEntry_eraseIdx _ 1 (L.set j (z.1, z.2.1, mvcc.kiCompact rev z.2.2)) j _
         (List.getElem?_set_self hjl) $$ Hback with ⟨-, Hback⟩
       rw [List.eraseIdx_set_eq]
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL HtL Hback HgL]

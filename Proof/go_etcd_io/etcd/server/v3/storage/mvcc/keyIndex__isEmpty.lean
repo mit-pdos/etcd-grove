@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.keyIndex.isEmpty.wp_proof
     (hE : mvcc.generation.isEmpty.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.isEmpty.spec (GF := GF) (hG := hG) := by
-  intro p gs ki dq
+  intro p gs ki lf dq
   wp_start as Hki
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   wp_auto
   wp_if_destruct
   · -- one generation: is it empty?
@@ -39,10 +39,10 @@ theorem mvcc.keyIndex.isEmpty.wp_proof
     have Hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z gs.len := by word
     simp only [Hb, and_self, ↓reduceIte]
     rw [show sint.Z (W64 0) = ((0 : Nat) : Int) from rfl]
-    icases mvcc.ownGens_acc gs ki.gens dq 0 gm0 (by simp [hgm0]) $$ Hgens
+    icases mvcc.ownGens_acc gs ki.gens _ dq 0 gm0 (by simp [hgm0]) $$ Hgens
       with ⟨%gv0, Hel, Hg0, Hback⟩
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hel
-    wp_apply (hE.2 _ gv0 gm0 dq) $$ [Hel Hg0] as ⟨Hel, Hg0⟩
+    wp_apply (hE.2 _ gv0 gm0 _ dq) $$ [Hel Hg0] as ⟨Hel, Hg0⟩
     · iframe; ipureintro; exact Hnn
     ispecialize Hback $$ %gv0 %gm0 Hel Hg0
     rw [show mvcc.kiIsEmpty ki = decide (gm0.revs = []) by simp [mvcc.kiIsEmpty, hgm0],

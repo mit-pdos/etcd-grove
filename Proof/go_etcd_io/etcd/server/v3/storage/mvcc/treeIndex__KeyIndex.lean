@@ -68,7 +68,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   obtain ⟨Hcmp, Hcnt', -, -, -⟩ := Hfacts
   have HlenL := HwfL.2.1
   obtain ⟨rest, hrest⟩ := mvcc.reader_prefix kn.log ilog pend Hcmp Hcnt' (by omega)
-  icases mvcc.ownTree_sorted t L sync.rfrac $$ HtreeL with ⟨HtreeL, %Hsorted⟩
+  icases mvcc.ownTree_sorted t L _ sync.rfrac $$ HtreeL with ⟨HtreeL, %Hsorted⟩
   have Hidx := mvcc.idxGet_entries L Hsorted k
   rw [mvcc.IdxCRep.get_neg (ilog ++ [pend]) HwfL.logB HLLn k] at Hidx
   have Hnone := mvcc.idxGet_indexOf_eq_none_iff (mvcc.evsOf (ilog ++ [pend])) k
@@ -100,7 +100,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
       simp only [Option.map_some, Option.getD_some] at Hp Hidx
       subst Hp
       obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
-      icases mvcc.ownTree_entry t L sync.rfrac z (List.mem_of_getElem? hi) $$ HtreeL
+      icases mvcc.ownTree_entry t L _ sync.rfrac z (List.mem_of_getElem? hi) $$ HtreeL
         with ⟨HtreeL, %Hzn, #Hzk⟩
       iframe HtreeL
       isplitl []
