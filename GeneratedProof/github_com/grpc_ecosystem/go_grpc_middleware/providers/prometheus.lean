@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.google_golang_org.grpc
+public import GeneratedProof.google_golang_org.grpc.reflection
 public import Perennial.Golang.Theory
 public import Code.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 

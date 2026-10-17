@@ -57,7 +57,7 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc/health", "google.golang.org/grpc/health/grpc_health_v1",
   "go.etcd.io/etcd/client/v3/credentials", "go.etcd.io/etcd/server/v3/features",
   "go.etcd.io/etcd/server/v3/etcdserver/version", "go.etcd.io/etcd/server/v3/storage/backend",
-  "go.etcd.io/etcd/server/v3/config", "google.golang.org/grpc/reflection"]
+  "go.etcd.io/etcd/server/v3/config"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -1,9 +1,10 @@
 # Types and names only (item 4, the server start): grpc-prometheus's server metrics, whose
 # interceptors `v3rpc.Server` installs (`ServerMetrics.UnaryServerInterceptor`,
-# `StreamServerInterceptor`), made by `NewServerMetrics` with options (`ServerMetricsOption`, a
-# function type: `getServerMetrics` appends one).
+# `StreamServerInterceptor`; `InitializeMetrics` takes a `reflection.ServiceInfoProvider`: hence
+# the import), made by `NewServerMetrics` with options (`ServerMetricsOption`, a function type:
+# `getServerMetrics` appends one).
 translate = ["!*"]
-imports = ["!*", "google.golang.org/grpc"]
+imports = ["!*", "google.golang.org/grpc", "google.golang.org/grpc/reflection"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

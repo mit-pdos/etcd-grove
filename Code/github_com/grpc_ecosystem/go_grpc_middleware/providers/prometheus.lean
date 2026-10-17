@@ -2,6 +2,7 @@
 module
 
 public import Code.google_golang_org.grpc
+public import Code.google_golang_org.grpc.reflection
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -204,7 +205,7 @@ noncomputable def WithContextLabels [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.WithContextLabels"
 
 instance info' : PkgInfo pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus where
-  pkgImportedPkgs := [pkg_id.google_golang_org.grpc]
+  pkgImportedPkgs := [pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.reflection]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -212,8 +213,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #())))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.reflection.initialize') (Val #()))))))))
 
 axiom ClientMetrics : Type
 axiom ClientMetrics.zero_val : ZeroVal ClientMetrics
@@ -538,6 +542,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   serverMetricsConfig_instance : serverMetricsConfig.TypeAssumptions
   ServerMetricsOption_instance : ServerMetricsOption.TypeAssumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import_reflection_Assumption : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions
 
 attribute [instance] Assumptions.ClientMetrics_instance
   Assumptions.clientMetricsConfig_instance
@@ -558,6 +563,7 @@ attribute [instance] Assumptions.ClientMetrics_instance
   Assumptions.serverMetricsConfig_instance
   Assumptions.ServerMetricsOption_instance
   Assumptions.import_grpc_Assumption
+  Assumptions.import_reflection_Assumption
 
 end github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 
