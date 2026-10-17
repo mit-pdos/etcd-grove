@@ -1,0 +1,10 @@
+    dlocker_review_test.go:38: both hold: l1.Rev()=2 l2.Rev()=2
+    dlocker_review_test.go:42: after l1.Unlock: l2.Rev()=2
+--- PASS: TestReviewSameSessionEqualTokens (0.08s)
+    dlocker_review_test.go:67: goroutine 1 rev 2, goroutine 2 acquired too, rev 2
+    dlocker_review_test.go:69: after goroutine 1 Unlock, goroutine 2 sees Rev()=-1
+--- PASS: TestReviewSharedLockerGoroutines (0.09s)
+    dlocker_review_test.go:104: Lock err=mutex: session is expired, Rev()=3
+--- PASS: TestReviewSessionExpiredStaleRev (0.14s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.335s

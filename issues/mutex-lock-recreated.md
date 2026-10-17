@@ -2,6 +2,7 @@
 upstream: none
 checked: 2026-10-16
 links:
+  - etcd-io/etcd#18779 pr open: related, not a fix: its DLocker.Rev() fencing token is not monotonic under this bug (section "Effect on fencing tokens")
   - etcd-io/etcd#22082 issue open: related, not this bug (same-session key recreated with a newer create revision; Unlock deletes it unfenced, here Lock returns without checking myRev)
 ---
 
@@ -62,6 +63,10 @@ Schedule, with mutexes A and B on session S, C on session T, D on session U, all
 7. C unlocks.
 
 D's key is now the first-created key, and D's `Lock` returns nil. B's `waitDeletes(r1-1)` has nothing left to wait for, its `Get` finds `pfx/<lease S>` (now at r3), and B's `Lock` also returns nil. B's `IsOwner()` (`CreateRevision(myKey) == myRev`, line 153) compares against r1 and is false.
+
+## Effect on fencing tokens (etcd-io/etcd#18779)
+
+etcd-io/etcd#18779 (open) adds `Mutex.Rev()` (`myRev`) and a `DLocker` whose `Rev()` is documented as "monotonically incremental", for use as a fencing token. In the schedule above, B's `Lock` returns nil after D's, yet `B.Rev()` is r1 < r2 = `D.Rev()`: the token of the later caller is smaller. A storage that rejects tokens below the largest it has seen stays safe (it rejects B once D has written), but the documented monotonicity does not hold. `TestDLockerRevKeyRecreated` in `notes/pr-verify/etcd-18779/dlocker_fence_test.go` (branch `pr-verify/etcd-18779`) shows it (B.Rev()=3, D.Rev()=5). The proposed fix restores it: B's `Lock` would wait for D and return with `myRev` = r3.
 
 ## How to reproduce
 

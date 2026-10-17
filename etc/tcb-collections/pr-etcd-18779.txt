@@ -1,0 +1,13 @@
+# etcd#18779 (DLocker): Mutex.Rev, its promotion to *lockerMutex, NewDLocker, and the
+# fencing-token results (mutex_fence, mutex_fence_strict in concurrency's Results.lean).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-18779.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots Mutex__Rev
+roots lockerMutex__Rev
+roots NewDLocker
+roots mutex_Rev
+roots dlocker_
+roots mutex_fence

@@ -22,7 +22,8 @@ create revision below `c2`, against `lockedAt k2 c2 R2`'s minimality.
 **Fencing tokens** (`lockFloor`, etcd#18779's `Mutex.Rev`): a lock acquired with create
 revision `c` and observed at `R` (`lockedAt`, or `Lock`'s `keyRecreated`) leaves no key under `pfx`
 created below `c` at `R`, and so at any later revision (`lockFloor_later`): a later holder's create
-revision is at least `c` (`lockFloor_fence`), from the same two history laws.
+revision is at least `c` (`lockFloor_fence`), from the same two history laws — for a later holder
+with `lockedAt`; one whose `Lock` returned with `keyRecreated` can have a smaller `Rev()`.
 
 **The client** (`isEtcdMutexClient client pfx`, persistent): its `KV` answers gets (`isEtcdKV`,
 with the range clause `getRespRange`), transactions (`isEtcdTxnKV`) and deletes
@@ -190,7 +191,10 @@ theorem keyRecreated_floor (pfx key : GoString) (c R : w64) :
 
 /-- **Fencing**: after a lock acquired with create revision `c1` was observed at `R1`
 (`lockFloor`), every key under `pfx` present at a later revision `a ≥ R1` has a create revision at
-least `c1`: in particular every later holder's `Rev()`. A key created at or before `R1` and still
+least `c1`: in particular the create revision, and so the `Rev()`, of a later holder whose
+ownership fact is `lockedAt` (its key is present with that create revision). Not of a later holder
+whose `Lock` returned in the `keyRecreated` case: its `Rev()` is the create revision of a key that is
+gone, and can be below `c1` (`issues/mutex-lock-recreated.md`). A key created at or before `R1` and still
 present at `a` was present at `R1` (`etcdState_create_persist`), so at least `c1`; one created
 after `R1` is above `R1 ≥ c1`. -/
 theorem lockFloor_later (pfx : GoString) (c1 R1 a : w64) (s : List EtcdKv)

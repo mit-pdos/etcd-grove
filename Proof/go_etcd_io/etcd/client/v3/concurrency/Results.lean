@@ -16,8 +16,9 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
   `NewLocker`'s locker as a `DLocker`, whose `Rev` is its mutex's.
 * **Fencing tokens increase** (`mutex_fence`, `mutex_fence_strict`, etcd#18779): a holder's
   `Rev()` `c1`, observed at `R1` (either of `Lock`'s `nil` outcomes), is at most the create
-  revision `c2` of any holder at a revision `R2 ≥ R1`, and below it when they differ. From the
-  same two history laws.
+  revision `c2` of any holder with an ownership fact `lockedAt` at a revision `R2 ≥ R1`, and below
+  it when they differ. From the same two history laws. A later holder whose `Lock` returned with
+  `keyRecreated` is not covered, and its `Rev()` can be smaller (`issues/mutex-lock-recreated.md`).
 * **Mutual exclusion** (`mutex_exclusion`): two holders of the lock on one prefix, with
   different create revisions, are never both present in etcd's state at a revision at or after
   both of their `lockedAt` revisions; and at one revision the holder's create revision is unique
@@ -115,7 +116,7 @@ theorem dlocker_Rev : lockerMutex.Rev.spec (GF := GF) (hG := hG) := lockerMutex.
 
 /-- **Fencing tokens increase** (etcd#18779). A holder of the lock on `pfx` with create revision
 (`Rev()`) `c1`, observed at `R1` — either of `Lock`'s `nil` outcomes, or `TryLock`'s — and a
-holder `(k2, c2)` at `R2 ≥ R1`: `c1 ≤ c2`. -/
+holder `(k2, c2)` at `R2 ≥ R1` with `lockedAt` (`TryLock`'s, or `Lock`'s first case): `c1 ≤ c2`. -/
 theorem mutex_fence (pfx k1 k2 : GoString) (c1 c2 R1 R2 : w64)
     (h12 : sint.Z R1 ≤ sint.Z R2) :
     (lockedAt (GF := GF) pfx k1 c1 R1 ∨ keyRecreated pfx k1 c1 R1) ∗ lockedAt pfx k2 c2 R2 ⊢

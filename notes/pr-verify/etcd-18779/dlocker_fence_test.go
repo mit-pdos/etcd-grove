@@ -76,8 +76,10 @@ func TestDLockerRevFencing(t *testing.T) {
 
 // TestDLockerRevKeyRecreated runs the schedule of issues/mutex-lock-recreated.md
 // (Mutexes A and B on one session, C and D on others): B's Lock returns nil
-// while D holds the lock. Their Rev() values still order them: B's (r1) is
-// below D's (r2), so a fenced resource rejects B's writes once D has written.
+// after D's, while D holds the lock. B's Rev() (r1) is below D's (r2): the
+// later caller's token is smaller, so DLocker's "monotonically incremental"
+// does not hold here; a fenced resource still rejects B's writes once D has
+// written.
 func TestDLockerRevKeyRecreated(t *testing.T) {
 	integration.BeforeTest(t)
 	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 1})
