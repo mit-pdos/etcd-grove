@@ -1,0 +1,34 @@
+# PR etcd-io/etcd#22243 (the peer hashKV handler's body bound): the linked result of
+# hashKVHandler.ServeHTTP (Proof/go_etcd_io/etcd/server/v3/etcdserver/hashKVHandler__ServeHTTP.lean).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22243.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Written by hand from `#print axioms
+# hashKVHandler.wp_ServeHTTP` (notes/pr-verify/etcd-22243/axioms-hashKVHandler.wp_ServeHTTP.txt),
+# not by --check --update: this branch was not built whole (2026-10-17).
+roots hashKVHandler__ServeHTTP
+axiom errors.AsExact.wp_proof
+axiom http.Error.wp_proof
+axiom http.Header.Get.wp_proof
+axiom http.Header.Set.wp_proof
+axiom http.MaxBytesReader.wp_proof
+axiom http.bodyClosed
+axiom http.bodyR
+axiom http.maxBytesError_asTarget
+axiom http.maxBytesR
+axiom http.maxBytesR_persistent
+axiom http.reqHdrGet
+axiom http.reqHdrGet_persistent
+axiom http.respHdr
+axiom http.respHdr_persistent
+axiom http.respLog
+axiom io.ReadAllMaxBytes.wp_proof
+axiom json.MarshalHashKVResponse.wp_proof
+axiom json.UnmarshalHashKVRequest.wp_proof
+axiom json.hashKVReqOf
+axiom json.hashKVRespJSON
+axiom types.ID.String.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Warn.wp_proof

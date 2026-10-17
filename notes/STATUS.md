@@ -13434,3 +13434,24 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR etcd-io/etcd#22243: the peer hashKV handler's body bound (branch `pr-verify/etcd-22243`, 2026-10-17)
+
+Not for `lean` (the translation is of the unmerged PR; report `notes/pr-verify/etcd-22243.md`).
+`hashKVHandler.ServeHTTP` (`corrupt.go`) translated and proved, no `sorry`, linked in the server's
+`Link.lean` (`hashKVHandler.wp_ServeHTTP`), over 20 new trust-boundary axioms of `net/http`,
+`io.ReadAll` over a `MaxBytesReader`, `encoding/json` and `errors.As` (`InvHashKV.lean`,
+`Spec/{net/http,io,encoding/json,errors}/`). New names-only packages `encoding/json` and `net/url`;
+`etcdserverpb` translates `HashKVRequest`/`HashKVResponse`; `net/http` its status constants.
+Two Perennial limitations, worked around here:
+
+- **Goose imports only the packages the Go file imports.** `r.URL.Path` names `url.URL`, which
+  `corrupt.go` does not import, so the translation referred to `Perennial.net.url.URL.ty` without
+  importing `Code.net.url`; the fork commit adds a blank `_ "net/url"`. General fix (Goose): emit
+  the import of every package whose types a translated body names.
+- **The `sorry` instance of an axiomatized struct wins instance search.** For `http.Request`
+  (axiomatized), a field address `StructFieldRef Request.ty f` found its `TypeRepr` through the
+  generated `Request_into_val_typed` (`sorry -- axiomatized type`), which made the linked result
+  depend on `sorryAx`; the proof declares local instances from `Request.TypeAssumptions.type_repr`.
+  General fix (Goose's proofgen): derive an axiomatized type's `TypeRepr` from its type assumption
+  only, or not emit an `IntoValTypedUnderlying` instance for it.
