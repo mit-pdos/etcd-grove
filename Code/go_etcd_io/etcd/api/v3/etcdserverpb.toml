@@ -81,7 +81,10 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # first `StreamDesc`)
   "NewWatchClient", "watchClient.Watch", "Watch_Watch_FullMethodName", "WatchClient",
   "watchClient", "Watch_WatchClient", "Watch_WatchServer", "RegisterWatchServer",
-  "Watch_ServiceDesc"]
+  "Watch_ServiceDesc",
+  # etcd-io/etcd#21960 (the lease keep-alive stream handler, `v3rpc/lease.go`): the messages it
+  # reads and builds
+  "LeaseKeepAliveRequest", "LeaseKeepAliveResponse"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

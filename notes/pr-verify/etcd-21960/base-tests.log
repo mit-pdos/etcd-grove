@@ -1,0 +1,11 @@
+# base: go test -count=1 -timeout 120s -v -run 'TestV3LeaseKeepAliveForwardingCatchError/catches_NoLeader_error_with_WithRequireLeader$' ./integration/  (in tests/)
+--- PASS: TestV3LeaseKeepAliveForwardingCatchError (0.67s)
+    --- PASS: TestV3LeaseKeepAliveForwardingCatchError/catches_NoLeader_error_with_WithRequireLeader (0.66s)
+ok  	go.etcd.io/etcd/tests/v3/integration	0.720s
+
+# base: go test -count=1 -timeout 120s -v -run 'TestLeaseWithRequireLeader$' ./integration/clientv3/lease/  (in tests/)
+--- PASS: TestLeaseWithRequireLeader (0.78s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.823s
+
+# base: go test -count=1 -run TestLeaseKeepAliveReturnsOnNoLeader ./etcdserver/api/v3rpc/  (in server/, with lease_keepalive_noleader_test.go copied in)
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.062s

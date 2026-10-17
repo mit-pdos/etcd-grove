@@ -873,10 +873,6 @@ axiom SnapshotRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom SnapshotResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom LeaseKeepAliveRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom LeaseKeepAliveResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom LeaseTimeToLiveRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom LeaseTimeToLiveResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -5808,31 +5804,115 @@ attribute [instance] LeaseCheckpointResponse.TypeAssumptions.type_repr
   LeaseCheckpointResponse.TypeAssumptions.get_sizeCache
   LeaseCheckpointResponse.TypeAssumptions.set_sizeCache
 
-axiom LeaseKeepAliveRequest : Type
-axiom LeaseKeepAliveRequest.zero_val : ZeroVal LeaseKeepAliveRequest
-attribute [instance] LeaseKeepAliveRequest.zero_val
+structure LeaseKeepAliveRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ID' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance LeaseKeepAliveRequest.zero_val [FfiSyntax] : ZeroVal LeaseKeepAliveRequest :=
+  ⟨LeaseKeepAliveRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def LeaseKeepAliveRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ID" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def LeaseKeepAliveRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  LeaseKeepAliveRequest.fieldsUnsealed
+
+instance equals_unfold_LeaseKeepAliveRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold LeaseKeepAliveRequest.fields LeaseKeepAliveRequest.fieldsUnsealed :=
+  ⟨by unfold LeaseKeepAliveRequest.fields; rfl⟩
+
+@[reducible] def LeaseKeepAliveRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseKeepAliveRequest.fields)
 
 class LeaseKeepAliveRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseKeepAliveRequest.underlying LeaseKeepAliveRequest
   underlying : go.UnderlyingDirectedEq LeaseKeepAliveRequest.ty LeaseKeepAliveRequest.underlying
-  isUnderlying : go.IsUnderlying LeaseKeepAliveRequest.underlying LeaseKeepAliveRequest.underlying
+  get_state : ∀ (x : LeaseKeepAliveRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : LeaseKeepAliveRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaseKeepAliveRequest)))
+  get_ID : ∀ (x : LeaseKeepAliveRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveRequest.underlying go!"ID") #x (Val #(x.ID'))
+  set_ID : ∀ (x : LeaseKeepAliveRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveRequest.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : LeaseKeepAliveRequest)))
+  get_unknownFields : ∀ (x : LeaseKeepAliveRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : LeaseKeepAliveRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaseKeepAliveRequest)))
+  get_sizeCache : ∀ (x : LeaseKeepAliveRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : LeaseKeepAliveRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaseKeepAliveRequest)))
 
 attribute [instance] LeaseKeepAliveRequest.TypeAssumptions.type_repr
   LeaseKeepAliveRequest.TypeAssumptions.underlying
-  LeaseKeepAliveRequest.TypeAssumptions.isUnderlying
+  LeaseKeepAliveRequest.TypeAssumptions.get_state
+  LeaseKeepAliveRequest.TypeAssumptions.set_state
+  LeaseKeepAliveRequest.TypeAssumptions.get_ID
+  LeaseKeepAliveRequest.TypeAssumptions.set_ID
+  LeaseKeepAliveRequest.TypeAssumptions.get_unknownFields
+  LeaseKeepAliveRequest.TypeAssumptions.set_unknownFields
+  LeaseKeepAliveRequest.TypeAssumptions.get_sizeCache
+  LeaseKeepAliveRequest.TypeAssumptions.set_sizeCache
 
-axiom LeaseKeepAliveResponse : Type
-axiom LeaseKeepAliveResponse.zero_val : ZeroVal LeaseKeepAliveResponse
-attribute [instance] LeaseKeepAliveResponse.zero_val
+structure LeaseKeepAliveResponse [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Header' : Loc
+  ID' : w64
+  TTL' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance LeaseKeepAliveResponse.zero_val [FfiSyntax] : ZeroVal LeaseKeepAliveResponse :=
+  ⟨LeaseKeepAliveResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def LeaseKeepAliveResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType ResponseHeader.ty)),
+(go.field_decl.FieldDecl go!"ID" go.int64),
+(go.field_decl.FieldDecl go!"TTL" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def LeaseKeepAliveResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  LeaseKeepAliveResponse.fieldsUnsealed
+
+instance equals_unfold_LeaseKeepAliveResponse [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold LeaseKeepAliveResponse.fields LeaseKeepAliveResponse.fieldsUnsealed :=
+  ⟨by unfold LeaseKeepAliveResponse.fields; rfl⟩
+
+@[reducible] def LeaseKeepAliveResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseKeepAliveResponse.fields)
 
 class LeaseKeepAliveResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseKeepAliveResponse.underlying LeaseKeepAliveResponse
   underlying : go.UnderlyingDirectedEq LeaseKeepAliveResponse.ty LeaseKeepAliveResponse.underlying
-  isUnderlying : go.IsUnderlying LeaseKeepAliveResponse.underlying LeaseKeepAliveResponse.underlying
+  get_state : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : LeaseKeepAliveResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : LeaseKeepAliveResponse)))
+  get_Header : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"Header") #x (Val #(x.Header'))
+  set_Header : ∀ (x : LeaseKeepAliveResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : LeaseKeepAliveResponse)))
+  get_ID : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"ID") #x (Val #(x.ID'))
+  set_ID : ∀ (x : LeaseKeepAliveResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : LeaseKeepAliveResponse)))
+  get_TTL : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"TTL") #x (Val #(x.TTL'))
+  set_TTL : ∀ (x : LeaseKeepAliveResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : LeaseKeepAliveResponse)))
+  get_unknownFields : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : LeaseKeepAliveResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaseKeepAliveResponse)))
+  get_sizeCache : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : LeaseKeepAliveResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaseKeepAliveResponse)))
 
 attribute [instance] LeaseKeepAliveResponse.TypeAssumptions.type_repr
   LeaseKeepAliveResponse.TypeAssumptions.underlying
-  LeaseKeepAliveResponse.TypeAssumptions.isUnderlying
+  LeaseKeepAliveResponse.TypeAssumptions.get_state
+  LeaseKeepAliveResponse.TypeAssumptions.set_state
+  LeaseKeepAliveResponse.TypeAssumptions.get_Header
+  LeaseKeepAliveResponse.TypeAssumptions.set_Header
+  LeaseKeepAliveResponse.TypeAssumptions.get_ID
+  LeaseKeepAliveResponse.TypeAssumptions.set_ID
+  LeaseKeepAliveResponse.TypeAssumptions.get_TTL
+  LeaseKeepAliveResponse.TypeAssumptions.set_TTL
+  LeaseKeepAliveResponse.TypeAssumptions.get_unknownFields
+  LeaseKeepAliveResponse.TypeAssumptions.set_unknownFields
+  LeaseKeepAliveResponse.TypeAssumptions.get_sizeCache
+  LeaseKeepAliveResponse.TypeAssumptions.set_sizeCache
 
 axiom LeaseTimeToLiveRequest : Type
 axiom LeaseTimeToLiveRequest.zero_val : ZeroVal LeaseTimeToLiveRequest

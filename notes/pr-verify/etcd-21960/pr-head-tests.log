@@ -1,0 +1,22 @@
+# pr-head: go test -count=1 -timeout 120s -v -run 'TestV3LeaseKeepAliveForwardingCatchError/catches_NoLeader_error_with_WithRequireLeader$' ./integration/  (in tests/)
+panic: test timed out after 2m0s
+	/shared/etcd-grove-pr/etcd-21960-scratch/pr-head/tests/integration/v3_lease_test.go:415 +0xe5
+	/shared/etcd-grove-pr/etcd-21960-scratch/pr-head/tests/integration/v3_lease_test.go:426 +0x1d4
+FAIL	go.etcd.io/etcd/tests/v3/integration	120.050s
+FAIL
+
+# pr-head: go test -count=1 -timeout 120s -v -run 'TestLeaseWithRequireLeader$' ./integration/clientv3/lease/  (in tests/)
+    lease_test.go:780: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-21960-scratch/pr-head/tests/integration/clientv3/lease/lease_test.go:780
+        	Error:      	Not equal: 
+        	Messages:   	Canceled metric should not change, expected 0, got 1
+--- FAIL: TestLeaseWithRequireLeader (20.81s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	20.860s
+FAIL
+
+# pr-head: go test -count=1 -run TestLeaseKeepAliveReturnsOnNoLeader ./etcdserver/api/v3rpc/  (in server/, with lease_keepalive_noleader_test.go copied in)
+    lease_keepalive_noleader_test.go:89: LeaseKeepAlive did not return after the stream's context was canceled with ErrGRPCNoLeader
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	3.065s
+FAIL

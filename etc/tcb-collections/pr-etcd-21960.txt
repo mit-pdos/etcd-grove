@@ -1,0 +1,15 @@
+# etcd-io/etcd#21960 (lease keep-alive handler made synchronous; notes/pr-verify/etcd-21960.md):
+# `LeaseServer.LeaseKeepAlive` and its loop `leaseKeepAlive` (lease.go) against a server-end
+# stream (`srvStreamIs`) and a lessor (`lessorOk`), both premises (v3rpc/InvLease.lean), and the
+# compatibility with the handler's spec before the PR (v3rpc/Results.lean's lease section).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21960.txt [--check [--update]]
+roots \bv3rpc\.(lease_keep_alive|lease_keep_alive_old)$
+roots \bv3rpc\.LeaseServer\.wp_(LeaseKeepAlive|leaseKeepAlive)$
+axiom errors.IsDeadlineExceeded.wp_proof
+axiom prometheus.CounterVec.WithLabelValues.wp_proof
+axiom status.Error.wp_proof
+axiom v3rpc.isClientCtxErr.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Warn.wp_proof

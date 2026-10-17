@@ -1957,6 +1957,159 @@ noncomputable def checkRequestOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound))) (Val #()))))))))))))))))))))))))))
 
+/-- go: lease.go:93:24 -/
+noncomputable def LeaseServer.LeaseKeepAlive.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ls"
+  (Lam "stream"
+  (App (Val exceptionDo)
+  (Let "ls" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))
+  (Let "stream" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaseServer.ty) go!"leaseKeepAlive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))) (Var "$a0")))))))))
+
+/-- go: lease.go:97:24 -/
+noncomputable def LeaseServer.leaseKeepAlive.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ls"
+  (Lam "stream"
+  (App (Val exceptionDo)
+  (Let "ls" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))
+  (Let "stream" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty) go!"Recv"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty)))) (Var "req"))))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Header")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) (Var "$v1")))])))))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty) go!"Context"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty)))) (Var "req"))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor.ty go!"LeaseRenew"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor.ty))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"le"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ttl" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "ttl"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)))) (Var "resp"))
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty) go!"Send"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (If (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty) go!"Context"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))) (Val #()))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve isClientCtxErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to send lease keepalive response to gRPC stream"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Inc"))) (Let "$a0" (Let "$sl0" (Val #(go!"send"))
+  (Let "$sl1" (Val #(go!"lease-keepalive"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr streamFailures))) (Val #())))) (Var "$a0")))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to send lease keepalive response to gRPC stream"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty go!"TTL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)))) (Var "resp"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve togRPCError []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "ttl") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "ttl") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)))) (Var "resp"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType header.ty) go!"fill"))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls")))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
+  (If (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty) go!"Context"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveServer.ty))) (Var "stream"))) (Val #()))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve isClientCtxErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to receive lease keepalive request from gRPC stream"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))))) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Inc"))) (Let "$a0" (Let "$sl0" (Val #(go!"receive"))
+  (Let "$sl1" (Val #(go!"lease-keepalive"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr streamFailures))) (Val #())))) (Var "$a0")))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to receive lease keepalive request from gRPC stream"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef LeaseServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaseServer.ty)))) (Var "ls"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.EOF))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.ty)))) (Pair (Var "req") (Var "$r0"))))))))))))))
+  (Lam BAnon
+  (Val #()))))))))
+
 /-- check whether request satisfies the quota. If there is not enough space,
     ignore request and raise the free space alarm.
 
@@ -4153,6 +4306,8 @@ class LeaseServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_le : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"le") (PairV #x #y) (Val #(({ x with le' := y } : LeaseServer)))
   get_UnsafeLeaseServer : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"UnsafeLeaseServer") #x (Val #(x.UnsafeLeaseServer'))
   set_UnsafeLeaseServer : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeLeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"UnsafeLeaseServer") (PairV #x #y) (Val #(({ x with UnsafeLeaseServer' := y } : LeaseServer)))
+  ptr_LeaseKeepAlive_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"LeaseKeepAlive" LeaseServer.LeaseKeepAlive.impl
+  ptr_leaseKeepAlive_unfold : MethodUnfold (go.GoType.PointerType LeaseServer.ty) go!"leaseKeepAlive" LeaseServer.leaseKeepAlive.impl
 
 attribute [instance] LeaseServer.TypeAssumptions.type_repr
   LeaseServer.TypeAssumptions.underlying
@@ -4164,6 +4319,8 @@ attribute [instance] LeaseServer.TypeAssumptions.type_repr
   LeaseServer.TypeAssumptions.set_le
   LeaseServer.TypeAssumptions.get_UnsafeLeaseServer
   LeaseServer.TypeAssumptions.set_UnsafeLeaseServer
+  LeaseServer.TypeAssumptions.ptr_LeaseKeepAlive_unfold
+  LeaseServer.TypeAssumptions.ptr_leaseKeepAlive_unfold
 
 abbrev KVGetter [FfiSyntax] : Type := GoInterface
 

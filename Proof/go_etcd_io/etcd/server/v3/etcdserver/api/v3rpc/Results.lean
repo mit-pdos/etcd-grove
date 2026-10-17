@@ -752,6 +752,37 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
 
 end watch_wire
 
+/-! ## The lease keep-alive stream (etcd-io/etcd#21960, 2026-10-17)
+
+`LeaseServer.LeaseKeepAlive` (`lease.go`, as the PR changes it: it runs its loop
+`leaseKeepAlive` itself) against a server-end stream (`srvStreamIs`, a premise) and a lessor
+(`lessorOk`, a premise; InvLease.lean): every response it sends at down position `j` answers the
+`j`th request (its lease id, the server's header ids, a TTL of `0` or of a renewal), and it
+returns with the stream's receive and send tokens: if it returns, no receive or send of the stream
+it started runs after. Partial correctness only: that the handler returns when the stream's
+context is canceled (the require-leader cancellation of `monitorLeader`, which the PR breaks,
+notes/pr-verify/etcd-21960.md) is outside the model, whose `Recv`/`Send` are not tied to the
+context. `lease_keep_alive_old`: the handler's shape before the PR (it returns), which the new
+spec implies. -/
+
+section lease
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **The lease keep-alive method** (`LeaseServer.LeaseKeepAlive`, linked). -/
+theorem lease_keep_alive : EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  LeaseServer.wp_LeaseKeepAlive
+
+/-- **The same, at the spec it had before etcd-io/etcd#21960** (compatible). -/
+theorem lease_keep_alive_old :
+    EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec_old (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec_implies_old LeaseServer.wp_LeaseKeepAlive
+
+end lease
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -792,6 +823,8 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_chain
 #print axioms Perennial.EtcdGrove.v3rpc.new_stream_interceptor
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_etcd_chain
+#print axioms Perennial.EtcdGrove.v3rpc.lease_keep_alive
+#print axioms Perennial.EtcdGrove.v3rpc.lease_keep_alive_old
 
 end EtcdGrove
 end Perennial

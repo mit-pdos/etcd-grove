@@ -160,3 +160,10 @@ EtcdServer__GoAttach: @
 EtcdServer__StoppingNotify: @
 monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
 newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
+#
+# etcd-io/etcd#21960 (lease.go's keep-alive stream handler, InvLease.lean): `LeaseKeepAlive` runs
+# its loop `leaseKeepAlive` itself (before the PR, in a goroutine of its own). The lessor is a
+# premise (`lessorOk`), as the stream (`srvStreamIs`). Not linked: the generated
+# `_Lease_LeaseKeepAlive_Handler` and the registration of the Lease service.
+LeaseServer__leaseKeepAlive: isClientCtxErr togRPCError header__fill errors_Is zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues
+LeaseServer__LeaseKeepAlive: LeaseServer__leaseKeepAlive

@@ -14,6 +14,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseKeepAlive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__leaseKeepAlive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewQuotaKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewWatchServer
@@ -117,6 +119,46 @@ theorem rand.wp_Int63n :
     EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rand.Int63n.wp_proof
 
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
+
+theorem errors.wp_IsDeadlineExceeded :
+    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem wp_togRPCError :
+    EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
+
+theorem header.wp_fillWithoutRevision :
+    EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.header.fillWithoutRevision.wp_proof
+
+theorem header.wp_fill :
+    EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
+
+theorem zap.Logger.wp_Debug :
+    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Debug.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof
+
+theorem zap.wp_Error :
+    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Error.wp_proof
+
+theorem prometheus.CounterVec.wp_WithLabelValues :
+    EtcdGrove.prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.prometheus.CounterVec.WithLabelValues.wp_proof
+
 theorem wp_newHeader :
     EtcdGrove.v3rpc.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.newHeader.wp_proof
@@ -132,10 +174,6 @@ theorem storage.wp_NewBackendQuota :
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
-
-theorem zap.Logger.wp_Warn :
-    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Warn.wp_proof
 
 theorem zap.wp_Duration :
     EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
@@ -193,33 +231,9 @@ theorem wp_checkRequestOp :
     EtcdGrove.v3rpc.checkRequestOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.checkRequestOp.wp_proof wp_checkRangeRequest wp_checkPutRequest wp_checkDeleteRequest wp_checkTxnRequest
 
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
-
-theorem errors.wp_IsDeadlineExceeded :
-    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
-
-theorem header.wp_fillWithoutRevision :
-    EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.header.fillWithoutRevision.wp_proof
-
 theorem headerFillingRangeStream.wp_Send :
     EtcdGrove.v3rpc.headerFillingRangeStream.Send.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.headerFillingRangeStream.Send.wp_proof header.wp_fillWithoutRevision
-
-theorem header.wp_fill :
-    EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
-
-theorem status.wp_Error :
-    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
-
-theorem wp_togRPCError :
-    EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
 
 theorem kvServer.wp_DeleteRange :
     EtcdGrove.v3rpc.kvServer.DeleteRange.spec (GF := GF) (hG := hG) :=
@@ -249,10 +263,6 @@ theorem utf8.wp_ValidString :
     EtcdGrove.utf8.ValidString.spec (GF := GF) (hG := hG) :=
   EtcdGrove.utf8.ValidString.wp_proof
 
-theorem prometheus.CounterVec.wp_WithLabelValues :
-    EtcdGrove.prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.prometheus.CounterVec.WithLabelValues.wp_proof
-
 theorem trace.wp_WithAttributes :
     EtcdGrove.trace.WithAttributes.spec (GF := GF) (hG := hG) :=
   EtcdGrove.trace.WithAttributes.wp_proof
@@ -260,10 +270,6 @@ theorem trace.wp_WithAttributes :
 theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Error.wp_proof
-
-theorem zap.wp_Error :
-    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Error.wp_proof
 
 theorem verify.wp_Assert :
     EtcdGrove.verify.Assert.spec (GF := GF) (hG := hG) :=
@@ -276,10 +282,6 @@ theorem time.Duration.wp_Seconds :
 theorem time.Duration.wp_Seconds_ptr :
     EtcdGrove.time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Duration.Seconds_ptr.wp_proof
-
-theorem zap.Logger.wp_Debug :
-    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
 
 end links
 
@@ -315,6 +317,18 @@ theorem wp_GetProgressReportInterval :
 theorem wp_IsCreateEvent :
     EtcdGrove.v3rpc.IsCreateEvent.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.IsCreateEvent.wp_proof
+
+theorem wp_isClientCtxErr :
+    EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.isClientCtxErr.wp_proof
+
+theorem LeaseServer.wp_leaseKeepAlive :
+    EtcdGrove.v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.leaseKeepAlive.wp_proof wp_isClientCtxErr wp_togRPCError header.wp_fill errors.wp_Is zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
+
+theorem LeaseServer.wp_LeaseKeepAlive :
+    EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseKeepAlive.wp_proof LeaseServer.wp_leaseKeepAlive
 
 theorem wp_newBackendQuota :
     EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=
@@ -375,10 +389,6 @@ theorem wp_filterNoDelete :
 theorem wp_filterNoPut :
     EtcdGrove.v3rpc.filterNoPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.filterNoPut.wp_proof
-
-theorem wp_isClientCtxErr :
-    EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.isClientCtxErr.wp_proof
 
 theorem wp_isRPCSupportedForLearner :
     EtcdGrove.v3rpc.isRPCSupportedForLearner.spec (GF := GF) (hG := hG) :=

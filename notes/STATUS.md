@@ -45,6 +45,19 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR etcd#21960 (lease keep-alive handler made synchronous), on branch `pr-verify/etcd-21960` (2026-10-17)
+
+Report: `notes/pr-verify/etcd-21960.md`. The verified code is the PR's diff on the fork,
+`mit-pdos/etcd-grove` branch `pr-etcd-21960-goose-lean`; this branch is not for merging into `lean`.
+New: `v3rpc/InvLease.lean` (the keep-alive stream's message models, the lessor's contract
+`lessorOk`, `isLeaseServer`, the stream specification `lkDn`), `LeaseServer.leaseKeepAlive` and
+`LeaseServer.LeaseKeepAlive` proved (no new axiom or `sorry`), `etcdserverpb`'s
+`LeaseKeepAliveRequest`/`LeaseKeepAliveResponse` translated with their fields. Limitation recorded:
+Perennial's `errors.Is.spec` says nothing of its result, so a handler's `nil` return cannot be tied
+to `io.EOF` (the spec drops "every request answered"); and the stream model's `Recv`/`Send` are not
+tied to the stream's context, so "the handler returns when the context is canceled", which the PR
+breaks, is outside the specs.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
