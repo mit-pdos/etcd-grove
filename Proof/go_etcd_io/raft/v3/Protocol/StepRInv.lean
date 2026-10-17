@@ -461,9 +461,9 @@ theorem preadRespondAll_fields (id : w64) (s : PState) (qs : List ReadReq) :
   obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
   rw [h]; exact ⟨rfl, rfl, rfl, rfl⟩
 
-theorem RInv_campaign {r : RState} (id : w64) (ms : List Msg) (H : RInv dec c0 r)
+theorem RInv_campaign {r : RState} (id : w64) (T : w64) (ms : List Msg) (H : RInv dec c0 r)
     (hs : r.snap = false) (hg : NoConfIn r.full (uint.nat r.applied) (uint.nat r.p.commit)) :
-    RInv dec c0 { r with p := psendMsgs (pbecomeCandidate id r.p) ms, pci := W64 0 } :=
+    RInv dec c0 { r with p := psendMsgs (pbecomeCandidate id r.p T) ms, pci := W64 0 } :=
   ⟨H.full, H.base_commit, H.commit_last, H.applied_cidx, H.cidx_commit, H.snap_base,
     H.base_applied, (fun h => by cases h), H.cfg, H.i1, (fun h => by cases h), (fun _ => ⟨hs, hg⟩)⟩
 
@@ -948,7 +948,7 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
     exact ih2 (fun r1 m hm => hK r1 m (List.mem_append_right _ hm))
       (ih1 (fun r1 m hm => hK r1 m (List.mem_append_left _ hm)) H)
   | higherTerm => exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
-  | campaign r peers cl _ _ hs hg _ _ => exact RInv_campaign id _ H hs hg
+  | campaign r peers cl T _ _ hs hg _ _ => exact RInv_campaign id T _ H hs hg
   | win r mt ms h1 _ h3 _ _ _ => exact RInv_win id mt _ H h1 h3
   | appAccept m r lastnewi es' h1 _ _ _ _ _ h7 h8 =>
     exact RInv_appAccept m lastnewi es' _ H h7 h8 (hK r m List.mem_cons_self h1 H)

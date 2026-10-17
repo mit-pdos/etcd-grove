@@ -4096,19 +4096,19 @@ theorem ownRaftGhost_step_zeroAck (γ : RaftNames) (id : w64) (s : PState) (dst 
 environment `dynEnv`, whose dynamic part gives the campaign's I1; it also returns the campaign
 record of the full log at the commit index, which the dynamic refinement keeps for a candidate). -/
 theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
-    (peers : List w64) (cl : List w8) (Hrole : s.role ≠ .leader) (Hin : id ∈ c.voters)
-    (Hnw : uint.Z s.term + 1 < 2 ^ 64) (Hperm : peers ≡ₚ elements (c.voters \ {[id]})) :
+    (peers : List w64) (cl : List w8) (T : w64) (Hrole : s.role ≠ .leader) (Hin : id ∈ c.voters)
+    (Hnw : uint.Z s.term < uint.Z T) (Hperm : peers ≡ₚ elements (c.voters \ {[id]})) :
     ⊢ dynEnv γ id c s -∗
       ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑raftRegN}=∗
-      ownRaftGhost γ id (psendMsgs (pbecomeCandidate id s)
-          ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
-           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term
+      ownRaftGhost γ id (psendMsgs (pbecomeCandidate id s T)
+          ([Msg.plain .voteResp id id (pbecomeCandidate id s T).term false] ++
+           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s T).term
                                    (plogLast s.base s.log) cl))) md ∗
       (∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ base0 fp ∗
-        isCampK γ id (s.term + W64 1) (fp ++ s.log) s.commit) := by
-  have Hcnt : rdCount ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
-      List.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term (plogLast s.base s.log) cl)
+        isCampK γ id T (fp ++ s.log) s.commit) := by
+  have Hcnt : rdCount ([Msg.plain .voteResp id id (pbecomeCandidate id s T).term false] ++
+      List.map (fun dst => pvoteReq id dst (pbecomeCandidate id s T).term (plogLast s.base s.log) cl)
         peers) = 0 := by
     rw [rdCount_append, rdCount_singleton]
     unfold rdCount
@@ -4118,15 +4118,14 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   ihave #Hinv := ownLogGhost_inv $$ Hlg
-  imod ownLogGhost_campaign γ id s kl Hrole Hnw $$ Hlg with
+  imod ownLogGhost_campaign γ id s kl T Hrole Hnw $$ Hlg with
     ⟨%kv, %F, Hlg, #HcK, #Hvl, #HrF, %HF, #Hvev, %fp0, %HF0, #Hfr0, #Hcm0⟩
-  ihave #Hcamp := isCampK_camp γ id (s.term + W64 1) F s.commit $$ HcK
-  have Ht' : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
-  have Hfree : voted !! (s.term + W64 1) = none :=
+  ihave #Hcamp := isCampK_camp γ id T F s.commit $$ HcK
+  have Hfree : voted !! T = none :=
     vote_hist_fresh voted s _ Hhist (by omega)
   -- (2026-10-14, stage B5) the campaign's dynamic facts: I1 at the commit index (`RInv`), the
   -- commit justification (with the node-local witnesses) at the old term
-  ihave #Hcd : dynOn γ (campDyn γ id (s.term + W64 1) F) $$ []
+  ihave #Hcd : dynOn γ (campDyn γ id T F) $$ []
   · iunfold dynEnv at Henv
     icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
     · iapply dynOn_static γ _ HC.2.2
@@ -4138,7 +4137,7 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
       iframe HcK HrF Hcm0
       ipureintro
       refine ⟨by word, by rw [HF0.2]; exact HR.2.1, HF.1⟩
-  ihave #Hvj : voteJust γ id (s.term + W64 1) id $$ []
+  ihave #Hvj : voteJust γ id T id $$ []
   · unfold voteJust
     iexists kv, false, F, F
     iframe Hvl Hcamp HrF Hvev Hcd
@@ -4147,9 +4146,9 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
       refine ⟨HF.1, ?_⟩
       simp [plogUpToDate]
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-  imod vote_insert γ id γv voted (s.term + W64 1) id Hname Hfree $$ Hinv Hvj Hvoted with
+  imod vote_insert γ id γv voted T id Hname Hfree $$ Hinv Hvj Hvoted with
     ⟨Hvoted, #Hself⟩
-  ihave #Hisvote : isVote γ id (s.term + W64 1) id $$ []
+  ihave #Hisvote : isVote γ id T id $$ []
   · unfold isVote; iexists γv; iframe Hself; ipureintro; exact Hname
   imodintro
   isplitl [Hvoted Hlg Hlcm Hrd]
@@ -4159,16 +4158,16 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
     rw [← HF0.2]
     iframe HcK
     ipureintro; exact HF0.1
-  iapply ownRaftGhost_intro γ id _ γv (<[s.term + W64 1 := id]> voted) none Hname Hidnz Hmode $$
+  iapply ownRaftGhost_intro γ id _ γv (<[T := id]> voted) none Hname Hidnz Hmode $$
     Hvoted [] [] [] [] [] [Hlg] [] [] [] [] [Hlcm] [Hrd]
   · ipureintro
     refine ⟨fun t Ht => ?_, ?_⟩
-    · show uint.Z t ≤ uint.Z (s.term + W64 1)
-      by_cases htt : t = s.term + W64 1
+    · show uint.Z t ≤ uint.Z T
+      by_cases htt : t = T
       · subst htt; omega
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm htt)] at Ht
         have := Hhist.1 t Ht; omega
-    · show (<[s.term + W64 1 := id]> voted) !! (s.term + W64 1) =
+    · show (<[T := id]> voted) !! T =
         (if id = W64 0 then none else some id)
       rw [GMap.lookup_insert_eq]; simp only [Hidnz, ↓reduceIte]
   · iapply (BigSepM.bigSepM_insert (Φ := fun t c => isVote (GF := GF) γ id t c) Hfree).2
@@ -4190,7 +4189,7 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
         iapply isMessage_voteReq γ id dst _ _ F cl HF.2 $$ Hcamp Hcd
   · iapply tally_empty γ id _ (by rfl)
   · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
-  · iapply ownLogGhost_mono γ id (pbecomeCandidate id s) _ none (by rfl) (by rfl) (by rfl)
+  · iapply ownLogGhost_mono γ id (pbecomeCandidate id s T) _ none (by rfl) (by rfl) (by rfl)
       (by intro h; cases h) (by intro h; exact ⟨h, rfl⟩) (by intro h; cases h) (by rfl)
       (by exact fun h => h) $$ Hlg
   · ipureintro; intro _; exact fun h => Hidnz h.symm
@@ -4274,9 +4273,9 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     iapply IH2 $$ Hregs Hr2 Hc2 Hown
   | higherTerm m s Hlt Hto Hfl =>
     exact regs_frame γ (ownRaftGhost_step_higherTerm γ id m s Hlt Hto Hfl)
-  | campaign s peers cl Hrole Hin Hnw Hperm =>
+  | campaign s peers cl T Hrole Hin Hnw Hperm =>
     iintro Hregs Hr Hc Hown
-    imod ownRaftGhost_step_campaign γ c id s peers cl Hrole Hin Hnw Hperm $$ [] Hr Hc Hown
+    imod ownRaftGhost_step_campaign γ c id s peers cl T Hrole Hin Hnw Hperm $$ [] Hr Hc Hown
       with ⟨Hown, -⟩
     · iapply dynEnv_static γ id c s HC
     imodintro; iframe Hregs Hown

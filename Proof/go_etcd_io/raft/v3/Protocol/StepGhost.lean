@@ -869,15 +869,15 @@ theorem ownLogGhost_boot (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
 /-- `Step.campaign`, on the log ghost state: record the campaign log (the full log,
 unchanged since) and, for the self-vote, the vote-time log -- with the histories of
 every earlier acknowledgement; the new term has no known leader. -/
-theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
+theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) (T : w64) :
     s.role ≠ .leader →
-    uint.Z s.term + 1 < 2 ^ 64 →
+    uint.Z s.term < uint.Z T →
     ⊢ ownLogGhost (GF := GF) γ id s kl ==∗
-      ∃ k F, ownLogGhost γ id (pbecomeCandidate id s) none ∗
-        isCampK γ id (s.term + W64 1) F s.commit ∗
-        isVlog γ id k (s.term + W64 1) false F ∗ logRecs γ base0 F ∗
+      ∃ k F, ownLogGhost γ id (pbecomeCandidate id s T) none ∗
+        isCampK γ id T F s.commit ∗
+        isVlog γ id k T false F ∗ logRecs γ base0 F ∗
         ⌜PlogWf base0 F ∧ plogLast base0 F = plogLast s.base s.log⌝ ∗
-        voteEv γ id (s.term + W64 1) false F ∗
+        voteEv γ id T false F ∗
         -- (2026-10-14, stage B5) the campaign log's prefix and commit justification
         (∃ fp, ⌜FullOk s.base fp ∧ F = fp ++ s.log⌝ ∗ logRecs γ base0 fp ∗
           commitIn γ F s.commit s.term) := by
@@ -886,23 +886,22 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   unfold ownLogGhost
   icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
   iNamed H
-  have HT' : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
   have ⟨Hf, Hw, Htle⟩ := Hfull
   have HwF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ Hf Hw
-  have Hnl : (pbecomeCandidate id s).role ≠ .leader := by
+  have Hnl : (pbecomeCandidate id s T).role ≠ .leader := by
     show Role.candidate ≠ Role.leader; decide
   have Hbs := bnd_le s kl
-  have Hcfree : camps !! (s.term + W64 1) = none := by
-    cases h : camps !! (s.term + W64 1) with
+  have Hcfree : camps !! T = none := by
+    cases h : camps !! T with
     | none => rfl
     | some _ => have := Hcamps_ok _ (by rw [h]; rfl); omega
-  imod ghost_map_insert_persist (s.term + W64 1) (fp ++ s.log, s.commit) Hcfree $$ Hcamps with ⟨Hcamps', #Hcf⟩
+  imod ghost_map_insert_persist T (fp ++ s.log, s.commit) Hcfree $$ Hcamps with ⟨Hcamps', #Hcf⟩
   obtain ⟨k, Hk⟩ := Iris.Std.List.fresh vlogs.domList
   have Hkfree : vlogs !! k = none := by
     cases h : vlogs !! k with
     | none => rfl
     | some _ => exact absurd ((GMap.mem_dom_list vlogs k).mpr (by rw [h]; rfl)) Hk
-  imod ghost_map_insert_persist k ((s.term + W64 1, false), fp ++ s.log) Hkfree $$ Hvlogs
+  imod ghost_map_insert_persist k ((T, false), fp ++ s.log) Hkfree $$ Hvlogs
     with ⟨Hvl, #Hvf⟩
   ihave #HrF0 := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
   -- (2026-10-16, stage R8b) the campaign log starts with the bootstrap log (the records, and
@@ -918,9 +917,9 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     omega
   icases boot_term_le γ (fp ++ s.log) s.term HwF Hbpre (fun j x Hx => (Htle j x Hx).1)
     $$ HrF0 with %Hbt
-  have Hbterm : γ.reBoot ≠ [] → 2 ≤ uint.Z (s.term + W64 1) := fun Hne => by
+  have Hbterm : γ.reBoot ≠ [] → 2 ≤ uint.Z T := fun Hne => by
     have := Hbt Hne; omega
-  ihave #HcK : isCampK (GF := GF) γ id (s.term + W64 1) (fp ++ s.log) s.commit $$ []
+  ihave #HcK : isCampK (GF := GF) γ id T (fp ++ s.log) s.commit $$ []
   · unfold isCampK
     iexists γc
     isplitr
@@ -932,124 +931,124 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     iframe Hcf
     rw [show List.take (uint.Z s.commit).toNat (fp ++ s.log) = cprefix fp s from rfl]
     iexact Hcmt
-  ihave #Hcamp := isCampK_camp γ id (s.term + W64 1) (fp ++ s.log) s.commit $$ HcK
+  ihave #Hcamp := isCampK_camp γ id T (fp ++ s.log) s.commit $$ HcK
   ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
-  imod ownEvs_vote γ id s.term (s.term + W64 1) acks false (fp ++ s.log) (by omega) $$ Hevs []
+  imod ownEvs_vote γ id s.term T acks false (fp ++ s.log) (by omega) $$ Hevs []
     with ⟨Hevs', #Hvev⟩
   · unfold histsOk
     iapply BigSepM.bigSepM_impl $$ Hhists
     imodintro
     iintro %kk %u %Hkk #Hh %_
-    iapply hist_mono γ _ _ _ _ (vbnd (s.term + W64 1) false)
+    iapply hist_mono γ _ _ _ _ (vbnd T false)
       (by unfold vbnd; simp only [Bool.false_eq_true, ↓reduceIte]; omega) $$ Hh
-  have Hterms_ok' : TermsOk terms (pbecomeCandidate id s) := by
+  have Hterms_ok' : TermsOk terms (pbecomeCandidate id s T) := by
     intro t Ht
     left
-    show uint.Z t < uint.Z (s.term + W64 1)
+    show uint.Z t < uint.Z T
     rcases Hterms_ok t Ht with h | ⟨ht, -⟩
     · omega
     · rw [ht]; omega
-  have Hwins_ok' : WinsOk wins (pbecomeCandidate id s) := by
+  have Hwins_ok' : WinsOk wins (pbecomeCandidate id s T) := by
     intro t Ht
     left
-    show uint.Z t < uint.Z (s.term + W64 1)
+    show uint.Z t < uint.Z T
     rcases Hwins_ok t Ht with h | ⟨ht, -⟩
     · omega
     · rw [ht]; omega
-  have Hlacks' : LeadAcksOk (pbecomeCandidate id s) acks := by
+  have Hlacks' : LeadAcksOk (pbecomeCandidate id s T) acks := by
     refine ⟨fun _ i => ?_, fun hl => by cases hl⟩
-    show acks !! (s.term + W64 1, i) = none
-    cases h : acks !! (s.term + W64 1, i) with
+    show acks !! (T, i) = none
+    cases h : acks !! (T, i) with
     | none => rfl
     | some _ =>
-      have := Hacks_term (s.term + W64 1, i) (by rw [h]; rfl)
+      have := Hacks_term (T, i) (by rw [h]; rfl)
       simp only at this; omega
-  have Hacks_term' : AcksTerm (pbecomeCandidate id s) acks := fun kk Hkk => by
+  have Hacks_term' : AcksTerm (pbecomeCandidate id s T) acks := fun kk Hkk => by
     have := Hacks_term kk Hkk
-    show uint.Z kk.1 ≤ uint.Z (s.term + W64 1)
+    show uint.Z kk.1 ≤ uint.Z T
     omega
-  have Hlog_ok' : LogOk (pbecomeCandidate id s) := Hlog_ok
+  have Hlog_ok' : LogOk (pbecomeCandidate id s T) := Hlog_ok
   have Hfull' : FullOk s.base fp ∧ PlogWf s.base s.log ∧
-      TermsLe (pbecomeCandidate id s) (fp ++ s.log) := by
+      TermsLe (pbecomeCandidate id s T) (fp ++ s.log) := by
     refine ⟨Hf, Hw, fun j x Hx => ?_⟩
     have := (Htle j x Hx).1
-    show uint.Z x ≤ uint.Z (s.term + W64 1) ∧
-      (Role.candidate = Role.candidate → uint.Z x < uint.Z (s.term + W64 1))
+    show uint.Z x ≤ uint.Z T ∧
+      (Role.candidate = Role.candidate → uint.Z x < uint.Z T)
     exact ⟨by omega, fun _ => by omega⟩
-  have Hcamps_ok' : ∀ T, ((<[s.term + W64 1 := (fp ++ s.log, s.commit)]> camps) !! T).isSome →
-      uint.Z T ≤ uint.Z (s.term + W64 1) := by
-    intro T HT
-    by_cases hT : T = s.term + W64 1
+  have Hcamps_ok' : ∀ T0, ((<[T := (fp ++ s.log, s.commit)]> camps) !! T0).isSome →
+      uint.Z T0 ≤ uint.Z T := by
+    intro T0 HT
+    by_cases hT : T0 = T
     · rw [hT]; exact Int.le_refl _
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hT)] at HT
-      have := Hcamps_ok T HT
+      have := Hcamps_ok T0 HT
       omega
-  ihave Htlog' : leadLogOwn (GF := GF) γ (pbecomeCandidate id s) terms $$ []
+  ihave Htlog' : leadLogOwn (GF := GF) γ (pbecomeCandidate id s T) terms $$ []
   · rw [leadLogOwn_nl γ _ terms Hnl]; ipureintro; trivial
-  ihave #Hacks_ok' : acksOk (GF := GF) γ (pbecomeCandidate id s) acks $$ []
+  ihave #Hacks_ok' : acksOk (GF := GF) γ (pbecomeCandidate id s T) acks $$ []
   · rw [acksOk_nl γ _ acks Hnl]
     iapply (BigSepM.bigSepM_forall (Φ := fun (k : w64 × w64) (_ : Unit) =>
-      ackOk (GF := GF) γ (pbecomeCandidate id s) k)).2
+      ackOk (GF := GF) γ (pbecomeCandidate id s T) k)).2
     iintro %kk %u %Hkk
     unfold ackOk
     iintro %Hk1
     have := Hacks_term kk (by rw [show acks !! kk = some u from Hkk]; rfl)
-    have h1 : kk.1 = s.term + W64 1 := Hk1.1
+    have h1 : kk.1 = T := Hk1.1
     rw [h1] at this
     exact absurd this (by omega)
-  ihave #Hmatched' : matchedOk (GF := GF) γ (pbecomeCandidate id s) $$ []
+  ihave #Hmatched' : matchedOk (GF := GF) γ (pbecomeCandidate id s T) $$ []
   · rw [matchedOk_nl γ _ Hnl]; ipureintro; trivial
-  ihave #Hcommit' : commitIn (GF := GF) γ (fp ++ s.log) s.commit (s.term + W64 1) $$ []
-  · iapply commitIn_agree γ _ _ s.commit s.term (s.term + W64 1) (by omega) rfl rfl $$ Hcommit
-  ihave #Hcown' : campOwn (GF := GF) γ id (pbecomeCandidate id s) (fp ++ s.log) $$ []
+  ihave #Hcommit' : commitIn (GF := GF) γ (fp ++ s.log) s.commit T $$ []
+  · iapply commitIn_agree γ _ _ s.commit s.term T (by omega) rfl rfl $$ Hcommit
+  ihave #Hcown' : campOwn (GF := GF) γ id (pbecomeCandidate id s T) (fp ++ s.log) $$ []
   · unfold campOwn
-    rw [show (pbecomeCandidate id s).role = .candidate from rfl,
-      show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
+    rw [show (pbecomeCandidate id s T).role = .candidate from rfl,
+      show (pbecomeCandidate id s T).term = T from rfl]
     iexact Hcamp
-  ihave #Hkl' : klOk (GF := GF) γ id (pbecomeCandidate id s) none $$ []
+  ihave #Hkl' : klOk (GF := GF) γ id (pbecomeCandidate id s T) none $$ []
   · unfold klOk; ipureintro; exact Hnl
-  ihave #Hvlogs' : vlogsOk (GF := GF) γ (pbecomeCandidate id s) acks
-      (<[k := ((s.term + W64 1, false), fp ++ s.log)]> vlogs) $$ []
+  ihave #Hvlogs' : vlogsOk (GF := GF) γ (pbecomeCandidate id s T) acks
+      (<[k := ((T, false), fp ++ s.log)]> vlogs) $$ []
   · unfold vlogsOk
     iapply (BigSepM.bigSepM_insert_elim
       (Φ := fun (_ : Nat) (x : (w64 × Bool) × List EntryM) =>
-        iprop(⌜uint.Z x.1.1 ≤ uint.Z (pbecomeCandidate id s).term⌝ ∗ [∗map] k ↦ _u ∈ acks,
+        iprop(⌜uint.Z x.1.1 ≤ uint.Z (pbecomeCandidate id s T).term⌝ ∗ [∗map] k ↦ _u ∈ acks,
           ∀ (_ : uint.Z k.1 < uint.Z x.1.1), hist (GF := GF) γ x.2 k.1 k.2 (vbnd x.1.1 x.1.2)))
-      (m := vlogs) (i := k) (x := ((s.term + W64 1, false), fp ++ s.log))) $$ [] []
+      (m := vlogs) (i := k) (x := ((T, false), fp ++ s.log))) $$ [] []
     · isplitr; · ipureintro; exact Int.le_refl _
       unfold histsOk
       iapply BigSepM.bigSepM_impl $$ Hhists
       imodintro
       iintro %kk %u %Hkk #Hh %_
-      iapply hist_mono γ _ _ _ _ (vbnd (s.term + W64 1) false)
+      iapply hist_mono γ _ _ _ _ (vbnd T false)
         (by unfold vbnd; simp only [Bool.false_eq_true, ↓reduceIte]; omega) $$ Hh
     · iapply BigSepM.bigSepM_impl $$ Hvlogs_ok
       imodintro
       iintro %kk %x %Hx ⟨%Hxt, #Hx⟩
       isplitr
-      · ipureintro; show uint.Z x.1.1 ≤ uint.Z (s.term + W64 1); omega
+      · ipureintro; show uint.Z x.1.1 ≤ uint.Z T; omega
       iexact Hx
-  ihave #Hhists' : histsOk (GF := GF) γ (pbecomeCandidate id s) none (fp ++ s.log) acks $$ []
+  ihave #Hhists' : histsOk (GF := GF) γ (pbecomeCandidate id s T) none (fp ++ s.log) acks $$ []
   · unfold histsOk
     iapply BigSepM.bigSepM_impl $$ Hhists
     imodintro
     iintro %kk %u %Hkk #Hh
-    iapply hist_mono γ _ _ _ _ (bnd (pbecomeCandidate id s) none)
-      (by show bnd s kl ≤ uint.Z (s.term + W64 1); omega) $$ Hh
-  ihave #Hcmt' : isCommitted (GF := GF) γ (cprefix fp (pbecomeCandidate id s)) $$ []
+    iapply hist_mono γ _ _ _ _ (bnd (pbecomeCandidate id s T) none)
+      (by show bnd s kl ≤ uint.Z T; omega) $$ Hh
+  ihave #Hcmt' : isCommitted (GF := GF) γ (cprefix fp (pbecomeCandidate id s T)) $$ []
   · unfold cprefix
-    rw [show (pbecomeCandidate id s).log = s.log from rfl,
-      show (pbecomeCandidate id s).commit = s.commit from rfl]
+    rw [show (pbecomeCandidate id s T).log = s.log from rfl,
+      show (pbecomeCandidate id s T).commit = s.commit from rfl]
     iexact Hcmt
   imodintro
   iexists k, fp ++ s.log
   isplitl
-  · iexists γm, terms, γa, acks, fp, γc, (<[s.term + W64 1 := (fp ++ s.log, s.commit)]> camps), γl,
-      (<[k := ((s.term + W64 1, false), fp ++ s.log)]> vlogs), γw, wins
-    rw [show (pbecomeCandidate id s).log = s.log from rfl,
-      show (pbecomeCandidate id s).base = s.base from rfl,
-      show (pbecomeCandidate id s).commit = s.commit from rfl,
-      show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
+  · iexists γm, terms, γa, acks, fp, γc, (<[T := (fp ++ s.log, s.commit)]> camps), γl,
+      (<[k := ((T, false), fp ++ s.log)]> vlogs), γw, wins
+    rw [show (pbecomeCandidate id s T).log = s.log from rfl,
+      show (pbecomeCandidate id s T).base = s.base from rfl,
+      show (pbecomeCandidate id s T).commit = s.commit from rfl,
+      show (pbecomeCandidate id s T).term = T from rfl]
     iframe % # ∗
   · isplitr; · iexact HcK
     isplitr

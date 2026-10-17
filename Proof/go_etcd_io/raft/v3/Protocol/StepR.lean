@@ -132,17 +132,17 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [m] { r with
         p := pbecomeFollower r.p m.term (if fromLeader m.ty then m.src else W64 0)
         pci := W64 0 }
-  | campaign (r : RState) (peers : List w64) (cl : List w8) :
+  | campaign (r : RState) (peers : List w64) (cl : List w8) (T : w64) :
       r.p.role ≠ .leader →
       id ∈ r.cfg.cfg.voters →
       r.snap = false →
       NoConfIn r.full (uint.nat r.applied) (uint.nat r.p.commit) →
-      uint.Z r.p.term + 1 < 2 ^ 64 →
+      uint.Z r.p.term < uint.Z T →
       peers ≡ₚ elements (r.cfg.cfg.voters \ {[id]}) →
       StepR r [] { r with
-        p := psendMsgs (pbecomeCandidate id r.p)
-          ([Msg.plain .voteResp id id (pbecomeCandidate id r.p).term false] ++
-           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id r.p).term
+        p := psendMsgs (pbecomeCandidate id r.p T)
+          ([Msg.plain .voteResp id id (pbecomeCandidate id r.p T).term false] ++
+           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id r.p T).term
                                    (plogLast r.p.base r.p.log) cl))
         pci := W64 0 }
   | grantVote (m : Msg) (r : RState) :
@@ -528,9 +528,9 @@ theorem stepR_static {V : GSet w64} {dec : CCDec} {id : w64} {r : RState} {ms : 
     exact ⟨.trans _ _ _ _ _ h1 h2, hs2, hv2⟩
   | higherTerm m r h1 h2 h3 =>
     exact ⟨.higherTerm m r.p h1 h2 h3, hs, fun h => absurd rfl h⟩
-  | campaign r peers cl h1 h2 _ _ h5 h6 =>
+  | campaign r peers cl T h1 h2 _ _ h5 h6 =>
     rw [hs.voters] at h2 h6
-    refine ⟨.campaign r.p peers cl h1 (by rw [CfgM.voters_simple]; exact h2) h5
+    refine ⟨.campaign r.p peers cl T h1 (by rw [CfgM.voters_simple]; exact h2) h5
       (by rw [CfgM.voters_simple]; exact h6), hs, fun _ => h2⟩
   | win r mt ms h1 h2 h3 h4 h5 _ =>
     exact ⟨.win r.p mt ms h1 ((hs.jquorum _).1 h2) h3 h4 h5, hs,

@@ -412,15 +412,15 @@ inductive StepC : PState → List Msg → PState → Prop where
       m.dst = id →
       (fromLeader m.ty = true → m.src ≠ id) →
       StepC s [m] (pbecomeFollower s m.term (if fromLeader m.ty then m.src else W64 0))
-  | campaign (s : PState) (peers : List w64) (cl : List w8) :
+  | campaign (s : PState) (peers : List w64) (cl : List w8) (T : w64) :
       s.role ≠ .leader →
       id ∈ c.voters →
-      uint.Z s.term + 1 < 2 ^ 64 →
+      uint.Z s.term < uint.Z T →
       peers ≡ₚ elements (c.voters \ {[id]}) →
       StepC s []
-        (psendMsgs (pbecomeCandidate id s)
-          ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
-           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term
+        (psendMsgs (pbecomeCandidate id s T)
+          ([Msg.plain .voteResp id id (pbecomeCandidate id s T).term false] ++
+           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s T).term
                                    (plogLast s.base s.log) cl)))
   | grantVote (m : Msg) (s : PState) :
       m.ty = .vote →
@@ -650,8 +650,8 @@ theorem stepC_of_step (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
   induction h with
   | refl s => exact .refl s
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
-  | campaign s peers cl h1 h2 h3 h4 =>
-    exact .campaign s peers cl h1 (Hv ▸ h2) h3 (Hv ▸ h4)
+  | campaign s peers cl T h1 h2 h3 h4 =>
+    exact .campaign s peers cl T h1 (Hv ▸ h2) h3 (Hv ▸ h4)
   | win s mt ms h1 h2 h3 h4 h5 => exact .win s mt ms h1 ((JQuorum_of_out hi ho _).2 h2) h3 h4 h5
   | lose s h1 h2 => exact .lose s h1 ((JLost_of_out hi ho _).2 h2)
   | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).2 h5)
@@ -697,8 +697,8 @@ theorem step_of_stepC (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
   induction h with
   | refl s => exact .refl s
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
-  | campaign s peers cl h1 h2 h3 h4 =>
-    exact .campaign s peers cl h1 (Hv ▸ h2) h3 (Hv ▸ h4)
+  | campaign s peers cl T h1 h2 h3 h4 =>
+    exact .campaign s peers cl T h1 (Hv ▸ h2) h3 (Hv ▸ h4)
   | win s mt ms h1 h2 h3 h4 h5 => exact .win s mt ms h1 ((JQuorum_of_out hi ho _).1 h2) h3 h4 h5
   | lose s h1 h2 => exact .lose s h1 ((JLost_of_out hi ho _).1 h2)
   | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).1 h5)

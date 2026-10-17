@@ -829,14 +829,14 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     exfalso
     revert h
     intro h; rw [preadRespondAll_role] at h; simp only at h; rw [h1] at h; cases h
-  | campaign r peers cl h1 h2 h3 h4 h5 h6 =>
+  | campaign r peers cl T h1 h2 h3 h4 h5 h6 =>
     iintro Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
-    imod ownRaftGhost_step_campaign γ r.cfg.cfg id r.p peers cl h1 h2 h5 h6 $$ Henv Hrecv Hcr Hg
+    imod ownRaftGhost_step_campaign γ r.cfg.cfg id r.p peers cl T h1 h2 h5 h6 $$ Henv Hrecv Hcr Hg
       with ⟨Hg, %fpc, %Hfpc, #Hfrc, #HcK⟩
     icases FullOk_unique γ r.p.base fpc r.fp Hfpc HI.full $$ Hfrc Hfr with %Heq
     subst Heq
@@ -845,7 +845,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iframe Hg Hfr
     isplitr
     · ipureintro
-      exact RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.campaign r peers cl h1 h2 h3 h4 h5 h6) noApp0 HI
+      exact RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.campaign r peers cl T h1 h2 h3 h4 h5 h6) noApp0 HI
     iintro %_
     dsimp only [psendMsgs, pbecomeCandidate, RState.full]
     iexact HcK

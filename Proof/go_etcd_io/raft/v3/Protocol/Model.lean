@@ -1379,8 +1379,8 @@ def pbecomeFollower (s : PState) (term lead : w64) : PState where
   matched := ∅
   rd := rdNL s.rd
 
-def pbecomeCandidate (s : PState) : PState where
-  term := s.term + W64 1
+def pbecomeCandidate (s : PState) (T : w64) : PState where
+  term := T
   vote := id
   lead := W64 0
   role := .candidate
@@ -1620,15 +1620,15 @@ inductive Step : PState → List Msg → PState → Prop where
   (`campaignTransfer`, after a `MsgTimeoutNow`) marks them so that a voter in a lease
   grants them anyway (`force`); with `checkQuorum` off there is no lease, and the
   campaign is an ordinary one. -/
-  | campaign (s : PState) (peers : List w64) (cl : List w8) :
+  | campaign (s : PState) (peers : List w64) (cl : List w8) (T : w64) :
       s.role ≠ .leader →
       id ∈ cfg →
-      uint.Z s.term + 1 < 2 ^ 64 →
+      uint.Z s.term < uint.Z T →
       peers ≡ₚ elements (cfg \ {[id]}) →
       Step s []
-        (psendMsgs (pbecomeCandidate id s)
-          ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
-           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term
+        (psendMsgs (pbecomeCandidate id s T)
+          ([Msg.plain .voteResp id id (pbecomeCandidate id s T).term false] ++
+           peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s T).term
                                    (plogLast s.base s.log) cl)))
   /-- Granting a vote: the candidate's last entry, as the request reports it, is at
   least as recent as ours (`raftLog.isUpToDate`). Leader completeness rests on this

@@ -1044,9 +1044,40 @@ def becomeFollower (s : NState) (term lead : w64) : NState :=
   { resetTo s term with lead := lead, role := .follower, stepfn := stepFuncOf .follower,
                         ticking := true }
 
-def becomeCandidate (id : w64) (s : NState) : NState :=
-  { resetTo s (s.term + W64 1) with vote := id, role := .candidate,
-                                    stepfn := stepFuncOf .candidate, ticking := true }
+/-- (PR raft#86) `r.nextTerm()` of a node at term `t`, with `x` the draw
+`globalRand.Intn(65536)`: the term's upper 48 bits (the *epoch*) plus one, and the draw in
+the lower 16 bits: `((t & 0xffff_ffff_ffff_0000) >> 16 + 1) << 16 | (x & 0xffff)`. -/
+def nextTermOf (t x : w64) : w64 :=
+  (((t &&& 0xffffffffffff0000#64) >>> 16) + 1) <<< 16 ||| (x &&& 0xffff#64)
+
+theorem nextTermOf_bv (t x : w64) (H : t < 0xffffffffffff0000#64) :
+    t < nextTermOf t x ∧ nextTermOf t x - t < 0x20000#64 := by
+  unfold nextTermOf; bv_decide
+
+/-- Below the last epoch, `nextTerm` moves the term forward, by less than `2^17`. -/
+theorem nextTermOf_bounds (t x : w64) (H : uint.Z t + 2 ^ 16 < 2 ^ 64) :
+    uint.Z t < uint.Z (nextTermOf t x) ∧ uint.Z (nextTermOf t x) < uint.Z t + 2 ^ 17 := by
+  have h : t < 0xffffffffffff0000#64 := by
+    rw [BitVec.lt_def]; simp only [uint.Z] at H; simp; omega
+  obtain ⟨h1, h2⟩ := nextTermOf_bv t x h
+  rw [BitVec.lt_def] at h1 h2
+  rw [BitVec.toNat_sub_of_le (BitVec.le_of_lt h1)] at h2
+  simp only [uint.Z]
+  simp at h2
+  omega
+
+/-- In the last epoch (`t ≥ 2^64 - 2^16`), `nextTerm` wraps: the epoch becomes `0` and the
+term is the draw alone, **below** `t` (PR raft#86's term overflow; the old `r.Term + 1`
+wrapped only at `t = 2^64 - 1`). -/
+theorem nextTermOf_wraps (t x : w64) (H : 0xffffffffffff0000#64 ≤ t) :
+    nextTermOf t x = (x &&& 0xffff#64) ∧ nextTermOf t x < t := by
+  unfold nextTermOf; bv_decide
+
+/-- (PR raft#86) `becomeCandidate` at the term `T` it moves to: `r.nextTerm()`'s, which
+`raft.becomeCandidate.spec` gives as `nextTermOf s.term x` for some draw `x`. -/
+def becomeCandidate (id : w64) (s : NState) (T : w64) : NState :=
+  { resetTo s T with vote := id, role := .candidate,
+                     stepfn := stepFuncOf .candidate, ticking := true }
 
 /-- `becomePreCandidate` (raft.go:912): `r.step`, the tally (`ResetVotes`), `lead :=
 None` and the state. **Term and vote unchanged**, and no `reset`: the `Progress` values
@@ -1066,17 +1097,17 @@ each carrying the log's last entry id. An election is `becomeCandidate` and `Msg
 at the new term; a pre-election is `becomePrecandidate` and `MsgPreVote`s at `Term + 1`
 (the term itself does not move). The requests of an election carry the `Context` `cl`
 (2026-10-13): `transferCtx t`, the marker for a leader transfer's campaign. -/
-def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
+def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) (T : w64)
     (cl : List w8 := []) : NState :=
   if pre then
     sendMsgs (becomePrecandidate s)
-      ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
-       peers.map fun dst => prevoteReq id dst (s.term + W64 1)
+      ([Msg.plain .preVoteResp id id T false] ++
+       peers.map fun dst => prevoteReq id dst T
                  (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))
   else
-    sendMsgs (becomeCandidate id s)
-      ([Msg.plain .voteResp id id (becomeCandidate id s).term false] ++
-       peers.map fun dst => pvoteReq id dst (becomeCandidate id s).term
+    sendMsgs (becomeCandidate id s T)
+      ([Msg.plain .voteResp id id (becomeCandidate id s T).term false] ++
+       peers.map fun dst => pvoteReq id dst (becomeCandidate id s T).term
                  (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl)
 
 /-- `becomeLeader` up to its `appendEntry`: what `reset`, the `lead` and `state` writes
@@ -1210,8 +1241,8 @@ theorem toPState_becomeFollower (s : NState) (term lead : w64) :
   rw [h]; rfl
 
 /-- `reset`'s conditional clear of the vote is overwritten by `vote := id`. -/
-theorem toPState_becomeCandidate (id : w64) (s : NState) :
-    toPState (becomeCandidate id s) = pbecomeCandidate id (toPState s) := by
+theorem toPState_becomeCandidate (id : w64) (s : NState) (T : w64) :
+    toPState (becomeCandidate id s T) = pbecomeCandidate id (toPState s) T := by
   have h := rdNL_toPState s
   unfold toPState becomeCandidate resetTo resetTo0 pbecomeCandidate at *
   simp only at *
@@ -1285,8 +1316,8 @@ theorem toPState_vote (s : NState) (v : w64) :
 theorem nstateWf_becomeFollower (s : NState) (term lead : w64) :
     NStateWf (becomeFollower s term lead) := ⟨rfl, rfl⟩
 
-theorem nstateWf_becomeCandidate (id : w64) (s : NState) :
-    NStateWf (becomeCandidate id s) := ⟨rfl, rfl⟩
+theorem nstateWf_becomeCandidate (id : w64) (s : NState) (T : w64) :
+    NStateWf (becomeCandidate id s T) := ⟨rfl, rfl⟩
 
 theorem nstateWf_becomeLeader (id : w64) (s : NState) : NStateWf (becomeLeader id s) :=
   ⟨rfl, rfl⟩
