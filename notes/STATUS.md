@@ -45,6 +45,24 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22115, `Mutex.Unlock` fenced by its create revision (2026-10-17, branch `pr-verify/etcd-22115`)
+
+`Mutex.Unlock` re-proved over the PR's code, with no `sorry`. Its `nil` case is now `unlockedAt`:
+the incarnation `(myKey, myRev)` is gone at some `R ≥ lo`. The fenced code cannot promise the old
+`etcdAbsent`, since a later incarnation may remain. The old spec is kept as `spec_old` and implies
+the new one (`etcdAbsent_unlockedAt`). `lockerMutex.Unlock`'s spec changes the same way.
+`Mutex.Lock` drops `Unlock`'s result and is unaffected. No new axioms.
+
+A limitation of the client model, recorded here and not worked around: it records knowledge only,
+so no triple can say "the call did not delete the later incarnation". The unfenced delete meets
+every state-based postcondition the fenced one does (`notes/decisions.md`, "Unlock's fence and the
+knowledge-only client model"). The fence is proved about the transaction committed instead
+(`mutex_unlock_txn_fenced` against `mutex_unlock_old_txn_unfenced`).
+
+The bug the PR fixes is recorded in `issues/etcd-mutex-unlock-unfenced.md`, with `TryLock`'s cleanup
+delete, which is still unfenced. The report is `notes/pr-verify/etcd-22115.md`. The branch
+translates unmerged code: not for `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -80,6 +80,41 @@ theorem unlock_guard_iff (pfx key : GoString) (rev : w64) (s : List EtcdKv)
       (fun v => by simp [inRange]) w hw hk
     simp [cmpHolds, compareM, cmpKeyM, hf, cmpKv, int64Cmp, cmpSign, CmpOp.holds, hc]
 
+/-- **The fence** (etcd-io/etcd#22115), about the transaction `Unlock` commits: on a state (sorted)
+where `key` is a later incarnation `(key, c')`, `c' ≠ c`, the fenced delete's guard fails and the
+state is left unchanged. -/
+theorem unlockTxn_keeps_later (pfx key : GoString) (c c' r : w64) (s : List EtcdKv)
+    (hwf : EtcdStateWf pfx s) (hc0 : c ≠ W64 0) (hne : c' ≠ c) (hk : HasKeyAt key c' s) :
+    runTxn r s (unlockTxn key c) = (false, s, []) := by
+  have hn : ¬ HasKeyAt key c s := fun h => hne (hasKeyAt_unique key c' c s hwf.1 hk h)
+  have hok : cmpHolds s (compareM (cmpKeyM .create key) .eq (.num c)) = false := by
+    cases h : cmpHolds s (compareM (cmpKeyM .create key) .eq (.num c))
+    · rfl
+    · exact absurd ((unlock_guard_iff pfx key c s hwf hc0).1 h) hn
+  simp [runTxn, unlockTxn, TxnModel.branch, hok, runOps]
+
+/-- **The old, unfenced delete** (`Delete(myKey)`, a one-operation transaction) removes every
+incarnation of `key`, a later one included. -/
+theorem deleteTxn_drops_key (key : GoString) (r : w64) (s : List EtcdKv) :
+    ∀ v ∈ (runTxn r s (deleteTxn (opDeleteModel key []))).2.1, v.key ≠ key := by
+  obtain ⟨hk, he⟩ := deleteOp_fields key
+  intro v hv
+  simp only [runTxn, deleteTxn, TxnModel.branch, List.all_nil, ite_true, runOps, applyTxnOp,
+    hk, he] at hv
+  simp [inRange] at hv
+  exact hv.2
+
+/-- When the guard holds, the transaction deletes exactly `key` (whose incarnation is then
+`(key, rev)`). -/
+theorem unlockTxn_deletes (pfx key : GoString) (rev r : w64) (s : List EtcdKv)
+    (hwf : EtcdStateWf pfx s) (hrev : rev ≠ W64 0) (hhas : HasKeyAt key rev s) :
+    runTxn r s (unlockTxn key rev) =
+      (true, s.filter (fun v => !decide (v.key = key)),
+        [.delete (rangeIn s (opDeleteModel key [])).length]) := by
+  obtain ⟨hk, he⟩ := deleteOp_fields key
+  have hok := (unlock_guard_iff pfx key rev s hwf hrev).2 hhas
+  simp [runTxn, unlockTxn, TxnModel.branch, hok, runOps, applyTxnOp, hk, he, inRange]
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -87,48 +122,48 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 
-/-- What `Unlock`'s committed transaction did: `unlockedAt`. -/
+/-- After `Unlock`'s committed transaction, the incarnation `(key, rev)` is gone at `r`. -/
 theorem unlockTxn_unlocked (pfx key : GoString) (rev r : w64) (s : List EtcdKv)
     (hwf : EtcdStateWf pfx s) (hrev : rev ≠ W64 0) :
     txnStates (GF := GF) pfx r s (runTxn r s (unlockTxn key rev)).2.1
-        (txnWrote (runTxn r s (unlockTxn key rev)).2.2) ∗
-      (if txnWrote (runTxn r s (unlockTxn key rev)).2.2 then etcdRevToken r else True) ⊢
+        (txnWrote (runTxn r s (unlockTxn key rev)).2.2) ⊢
       unlockedAt pfx key rev r := by
-  obtain ⟨hk, he⟩ := deleteOp_fields key
-  unfold unlockedAt unlockDeleted
-  cases hok : cmpHolds s (compareM (cmpKeyM .create key) .eq (.num rev))
-  · have e : runTxn r s (unlockTxn key rev) = (false, s, []) := by
+  unfold unlockedAt
+  by_cases hhas : HasKeyAt key rev s
+  · rw [unlockTxn_deletes pfx key rev r s hwf hrev hhas]
+    unfold txnStates
+    split
+    · iintro ⟨-, #H1⟩
+      iexists _
+      iframe H1
+      ipureintro
+      rintro ⟨v, hv, hk, -⟩
+      simp only [List.mem_filter] at hv
+      simp [hk] at hv
+    · iintro #H
+      iexists s
+      iframe H
+      ipureintro
+      rename_i hw
+      exfalso
+      obtain ⟨w, hw', hwk, -⟩ := hhas
+      have hm : w ∈ rangeIn s (opDeleteModel key []) :=
+        (rangeIn_key key (opDeleteModel key []) s (deleteOp_fields key).1 (deleteOp_fields key).2 w).2 ⟨hw', hwk⟩
+      have hlen := Nat.pos_iff_ne_zero.1 (List.length_pos_of_mem hm)
+      apply hw
+      simpa [txnWrote, TxnOpResult.wrote] using hlen
+  · have hok : cmpHolds s (compareM (cmpKeyM .create key) .eq (.num rev)) = false := by
+      cases h : cmpHolds s (compareM (cmpKeyM .create key) .eq (.num rev))
+      · rfl
+      · exact absurd ((unlock_guard_iff pfx key rev s hwf hrev).1 h) hhas
+    have e : runTxn r s (unlockTxn key rev) = (false, s, []) := by
       simp [runTxn, unlockTxn, TxnModel.branch, hok, runOps]
     rw [e]
     unfold txnStates
     simp only [txnWrote, List.any_nil, Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨#H, -⟩
-    iright
+    iintro #H
     iexists s
     iframe H
-    ipureintro
-    intro hh
-    have := (unlock_guard_iff pfx key rev s hwf hrev).2 hh
-    rw [hok] at this; exact Bool.false_ne_true this
-  · have hhas := (unlock_guard_iff pfx key rev s hwf hrev).1 hok
-    have e : runTxn r s (unlockTxn key rev) =
-        (true, s.filter (fun v => !decide (v.key = key)),
-          [.delete (rangeIn s (opDeleteModel key [])).length]) := by
-      simp [runTxn, unlockTxn, TxnModel.branch, hok, runOps, applyTxnOp, hk, he, inRange]
-    have hw : txnWrote [.delete (rangeIn s (opDeleteModel key [])).length] = true := by
-      obtain ⟨w, hw, hwk, -⟩ := hhas
-      have hlen : (rangeIn s (opDeleteModel key [])).length ≠ 0 := by
-        have hm : w ∈ rangeIn s (opDeleteModel key []) :=
-          (rangeIn_key key (opDeleteModel key []) s hk he w).2 ⟨hw, hwk⟩
-        exact Nat.pos_iff_ne_zero.1 (List.length_pos_of_mem hm)
-      simpa [txnWrote, TxnOpResult.wrote] using hlen
-    rw [e]
-    unfold txnStates
-    simp only [hw, ↓reduceIte]
-    iintro ⟨⟨#H0, #H1⟩, Htok⟩
-    ileft
-    iexists s
-    iframe H0 H1 Htok
     ipureintro; exact hhas
 
 end lemmas
@@ -267,7 +302,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG))
     wp_apply HCommit $$ %({ model := unlockTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
     · ipureintro; exact unlockTxn_under pfx st.key st.rev Hif
     iunfold txnCommitResultTok at Hres
-    icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
+    icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, -⟩)
     · obtain ⟨g, rfl⟩ : ∃ g, err = GoInterface.ok g := by
         cases err with
         | nil => exact absurd rfl Hne
@@ -280,7 +315,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG))
       iunfold mutexState at Hst
       iexact Hst
     subst Heq
-    ihave Hun := unlockTxn_unlocked pfx st.key st.rev r s0 Hrr.2.2.2 Hrev0 $$ [$Hts $Htok]
+    ihave #Hun := unlockTxn_unlocked pfx st.key st.rev r s0 Hrr.2.2.2 Hrev0 $$ Hts
     unfold mutexState
     icases Hst with ⟨Hk, Hrv, Hh⟩
     wp_auto
@@ -291,7 +326,7 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG))
     iexists r
     unfold MutexSt.released
     iframe
-    iframe Hr
+    iframe Hr Hun
     ipureintro
     exact ⟨Hnk, Hif, Hrr.1 rfl⟩
   wp_apply wp_slice_literal

@@ -6,6 +6,34 @@ had to make.
 
 ---
 
+## Unlock's fence and the knowledge-only client model (2026-10-17, branch `pr-verify/etcd-22115`)
+
+etcd-io/etcd#22115 fences `Mutex.Unlock`'s delete with `IsOwner()`: it deletes the key only if
+its create revision is still the mutex's. A first spec tried to say what this buys on `nil`:
+"either it deleted the incarnation `(myKey, myRev)`, or it wrote nothing". The reviewer showed
+that the old, unfenced delete meets that spec too, including a delete of a later incarnation. The
+"wrote nothing" disjunct could only be stated as "the state at `R` lacks `(myKey, myRev)`", and
+that is true after any delete.
+
+The cause is the client's model (`EtcdModel`, `txnCommitResultTok`), which records knowledge only:
+etcd's state at each revision, and a token for a revision a commit wrote. A commit that writes
+nothing yields no fact, and a spec cannot say "the call did not delete X". In a history, a delete
+by the call and another client's delete at the same revision look the same. The token only marks
+the revisions a caller did write, and dropping it is free.
+
+Stating the fence as a triple would need ownership of key incarnations, a ghost resource the
+newer holder keeps and a delete consumes, in the client's contract or in a protocol premise like
+the leasing package's. That is a change to the client model, which this PR does not justify. So:
+
+- `Mutex.Unlock`'s `nil` case is `unlockedAt`: the incarnation `(myKey, myRev)` is gone at `R`.
+  This is weaker than the old `etcdAbsent` (`etcdAbsent_unlockedAt`), and it is what the fenced code
+  can promise.
+- The fence is stated about the transaction the code commits (the proof runs `unlockTxn` through
+  the contract):
+  - `unlockTxn_keeps_later` (`mutex_unlock_txn_fenced`): on a state with a later incarnation, the
+    guard fails and the state is unchanged;
+  - `deleteTxn_drops_key` (`mutex_unlock_old_txn_unfenced`): the old delete removes the key.
+
 ## The Rocq module discipline, in Lean
 
 **2026-10-06 · accepted**

@@ -584,49 +584,6 @@ theorem hasKeyAt_unique (key : GoString) (c c' : w64) (s : List EtcdKv)
   cases e2
   rw [← hc, ← hwc]
 
-section unlockFence
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [EM : EtcdModel GF]
-variable [sem : go.Semantics]
-
-/-- **A stale `Unlock` deletes nothing** (etcd-io/etcd#22082's scenario): if a later incarnation
-`(key, c')` of the key, `c < c'`, is in etcd's state at some `r2 ≤ R`, the fenced delete at `R`
-cannot have been a delete (of the old incarnation, the only one it can delete): at `R - 1` the
-old incarnation would still be present, hence at `r2` too, beside the later one. -/
-theorem unlockDeleted_not_later (pfx key : GoString) (c c' r2 R : w64) (s2 : List EtcdKv)
-    (hlt : sint.Z c < sint.Z c') (hr : sint.Z r2 ≤ sint.Z R)
-    (hwf : (s2.map EtcdKv.key).Pairwise go.GoStringLt) (hk : HasKeyAt key c' s2) :
-    unlockDeleted (GF := GF) pfx key c R ∗ etcdState r2 pfx s2 ⊢ False := by
-  unfold unlockDeleted
-  iintro ⟨⟨%s0, #H0, #H1, -, %Hc⟩, Hs2⟩
-  ihave %Hrv2 := etcdState_revs r2 pfx s2 $$ Hs2
-  by_cases he : r2 = R
-  · subst he
-    ihave %Heq := etcdState_agree r2 pfx s2 _ $$ [$Hs2 $H1]
-    ipureintro
-    obtain ⟨v, hv, hvk, -⟩ := hk
-    rw [Heq] at hv
-    simp only [List.mem_filter] at hv
-    simp [hvk] at hv
-  · have hr' : sint.Z r2 < sint.Z R := by
-      have : sint.Z r2 ≠ sint.Z R := fun h => he (by word)
-      omega
-    have hR1 : sint.Z (R - W64 1) = sint.Z R - 1 := by word
-    ihave %Hp := etcdState_create_persist (R - W64 1) r2 pfx s0 s2 $$ [$H0 $Hs2]
-    ipureintro
-    obtain ⟨v, hv, hvk, hvc⟩ := Hc
-    obtain ⟨w, hw, hwk, hwc⟩ := hk
-    have hc'r : sint.Z c' ≤ sint.Z r2 := by
-      have := (Hrv2 w hw).2.1; have := (Hrv2 w hw).2.2.1; rw [hwc] at *; omega
-    obtain ⟨v', hv', hv'k, hv'c⟩ := Hp v hv (by rw [hvc]; omega) (by omega)
-    have := hasKeyAt_unique key c c' s2 hwf ⟨v', hv', by rw [hv'k, hvk], by rw [hv'c, hvc]⟩
-      ⟨w, hw, hwk, hwc⟩
-    subst this
-    omega
-
-end unlockFence
 
 end concurrency
 end EtcdGrove

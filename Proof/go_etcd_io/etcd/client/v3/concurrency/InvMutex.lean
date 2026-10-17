@@ -226,41 +226,35 @@ instance acquireResp_persistent (resp : Loc) (pfx key : GoString) (rev r : w64) 
     Persistent (acquireResp (GF := GF) resp pfx key rev r hdr) := by
   unfold acquireResp; infer_instance
 
-/-- **`Unlock`'s fenced delete deleted the incarnation `(key, c)`** at revision `R`: etcd's state
-`s0` at `R - 1` had `key` with create revision `c`, its state at `R` is `s0` without `key`, and
-`R` is this commit's own revision (`etcdRevToken R`). -/
-def unlockDeleted (pfx key : GoString) (c R : w64) : IProp GF :=
-  iprop(∃ s0 : List EtcdKv, □ etcdState (R - W64 1) pfx s0 ∗
-      □ etcdState R pfx (s0.filter (fun v => !decide (v.key = key))) ∗ etcdRevToken R ∗
-      ⌜HasKeyAt key c s0⌝)
+/-- **The incarnation `(key, c)` is gone at `R`** (persistent): etcd's state at `R` does not have
+`key` with create revision `c`. What a successful `Unlock` fenced by its create revision
+(etcd-io/etcd#22115) gives: the key is absent, or a later incarnation of it is there.
 
-/-- **What a successful `Unlock`'s fenced delete did** (etcd-io/etcd#22115:
-`Txn(ctx).If(IsOwner()).Then(OpDelete(myKey))`), at revision `R`, for the key `key` the mutex
-acquired with create revision `c`: either its guard held and it deleted that incarnation
-(`unlockDeleted`), or its guard failed and it wrote nothing: etcd's state at `R` does not have
-`key` with create revision `c` (the key is absent, or a later incarnation of it, which the call
-left alone).
-
-Either way at `R` the incarnation `(key, c)` is gone (`unlockedAt_gone`), and the only write the
-call can have made is the delete of that incarnation: once a later incarnation of `key` has been
-seen, the delete case is impossible (`unlockDeleted_not_later`, the scenario of
-etcd-io/etcd#22082). -/
+This says nothing about which writes the call made. The client's model records knowledge only
+(states at revisions, `etcdState`), so a delete made by the call cannot be told apart from another
+client's delete at the same revision, and a spec cannot say "the call did not delete the later
+incarnation". The unfenced delete also meets this (`etcdAbsent_unlockedAt`). The fence itself is
+stated about the transaction the call commits (`unlockTxn_keeps_later`, against
+`deleteTxn_drops_key` for the old delete; `Mutex__Unlock.lean`). See `notes/decisions.md`,
+"Unlock's fence and the knowledge-only client model". -/
 def unlockedAt (pfx key : GoString) (c R : w64) : IProp GF :=
-  iprop(unlockDeleted pfx key c R ∨
-    (∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜¬ HasKeyAt key c s⌝))
+  iprop(∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜¬ HasKeyAt key c s⌝)
 
-/-- After `unlockedAt`, the incarnation `(key, c)` is not in etcd's state at `R`. -/
-theorem unlockedAt_gone (pfx key : GoString) (c R : w64) :
-    unlockedAt (GF := GF) pfx key c R ⊢ ∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜¬ HasKeyAt key c s⌝ := by
-  unfold unlockedAt unlockDeleted
-  iintro (⟨%s0, -, #H, -, -⟩ | H)
-  · iexists _
-    iframe H
-    ipureintro
-    rintro ⟨v, hv, hk, -⟩
-    simp only [List.mem_filter] at hv
-    simp [hk] at hv
-  · iexact H
+instance unlockedAt_persistent (pfx key : GoString) (c R : w64) :
+    Persistent (unlockedAt (GF := GF) pfx key c R) := by
+  unfold unlockedAt; infer_instance
+
+/-- The old `Unlock`'s postcondition (the key absent) implies the new one: the new spec's `nil` case
+is weaker, since the fenced delete may leave a later incarnation of the key in place. -/
+theorem etcdAbsent_unlockedAt (pfx key : GoString) (c R : w64) :
+    etcdAbsent (GF := GF) pfx key R ⊢ unlockedAt pfx key c R := by
+  unfold etcdAbsent unlockedAt
+  iintro ⟨%s, #H, %Ha⟩
+  iexists s
+  iframe H
+  ipureintro
+  rintro ⟨v, hv, hk, -⟩
+  exact Ha v hv hk
 
 end defs
 

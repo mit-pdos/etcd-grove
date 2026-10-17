@@ -57,12 +57,14 @@ comparison `IsOwner()` already builds (and that `Election.Resign` already uses f
 
 On `lean`, `Mutex.Unlock`'s spec (`Spec/go_etcd_io/etcd/client/v3/concurrency/Mutex__Unlock.lean`)
 says only that on `nil` the key is absent at some revision (`etcdAbsent`), whatever incarnation was
-there. That is true of the unfenced delete, and it is too weak to exclude this bug. On branch
-`pr-verify/etcd-22115` the spec of the fenced `Unlock` says the call deletes exactly the
-incarnation `(myKey, myRev)` or nothing (`unlockedAt`). `mutex_stale_unlock`
-(`Proof/go_etcd_io/etcd/client/v3/concurrency/Results.lean`) proves that once a later incarnation
-has been seen, a stale `Unlock` deletes nothing. `TryLock`'s spec says nothing about its cleanup
-delete beyond `ErrLocked`.
+there. That is true of the unfenced delete, which deletes the newer incarnation. No triple over
+the client's model can exclude the bug: the model records knowledge of etcd's states only, so a
+delete made by the call cannot be told apart from another client's delete at the same revision
+(`notes/decisions.md` on branch `pr-verify/etcd-22115`, "Unlock's fence and the knowledge-only
+client model"). On that branch the fence is proved about the transaction `Unlock` commits:
+`mutex_unlock_txn_fenced` against `mutex_unlock_old_txn_unfenced`
+(`Proof/go_etcd_io/etcd/client/v3/concurrency/Results.lean`). `TryLock`'s spec says nothing about
+its cleanup delete beyond `ErrLocked`.
 
 ## Possible fixes
 

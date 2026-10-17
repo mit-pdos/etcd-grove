@@ -6,7 +6,7 @@ roots concurrency\.Mutex\.wp_Unlock$
 roots concurrency\.Mutex\.wp_Lock$
 roots lockerMutex\.wp_Unlock$
 roots lockerMutex\.wp_Lock$
-roots concurrency\.mutex_(Unlock|Lock|stale_unlock)$
+roots concurrency\.mutex_(Unlock|Lock|unlock_txn_fenced|unlock_old_txn_unfenced)$
 roots concurrency\.locker_(Unlock|Lock)$
 axiom fmt.SprintfNamed.wp_proof
 axiom proto.Clone.wp_proof

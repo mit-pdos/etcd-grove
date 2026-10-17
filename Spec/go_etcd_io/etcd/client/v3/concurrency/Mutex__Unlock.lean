@@ -26,14 +26,16 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`m.Unlock(ctx)`**, from any state, knowing etcd has reached `lo`:
 * `nil`: the mutex had a key (under the prefix) and is released (`myKey = "\x00"`,
-  `myRev = -1`); its delete was fenced by the create revision (etcd-io/etcd#22115): at some
-  `R ≥ lo` it either deleted exactly the incarnation `(myKey, myRev)` or, that incarnation being
-  gone already, deleted nothing (`unlockedAt`) — never a later incarnation of `myKey`;
+  `myRev = -1`), and at some `R ≥ lo` the incarnation it acquired, `(myKey, myRev)`, is gone
+  (`unlockedAt`): the key is absent, or a later incarnation of it is there, which the fenced
+  delete (etcd-io/etcd#22115) leaves in place;
 * `ErrLockReleased`: it had no key (`MutexSt.noKey`), unchanged;
 * any other error (the transaction failed, or the key is not under the prefix), unchanged.
 
-Before etcd-io/etcd#22115 (`Mutex.Unlock.spec_old`) the `nil` case was `etcdAbsent pfx myKey R`:
-the key, whatever its create revision, absent at `R`, since the delete was by name only. -/
+What the fence prevents, deleting a later incarnation, is not a property of this triple: the
+client's model records knowledge only, and the unfenced delete meets it too
+(`etcdAbsent_unlockedAt`). It is a property of the transaction committed, `unlockTxn`
+(`unlockTxn_keeps_later`; `Proof/.../Mutex__Unlock.lean`). -/
 abbrev Mutex.Unlock.spec : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
@@ -48,9 +50,10 @@ abbrev Mutex.Unlock.spec : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∗ mutexState m st) }}
 
 /-- **The spec before etcd-io/etcd#22115** (an unfenced `Delete(myKey)`), kept for comparison: a
-`nil` return means `myKey` is absent at `R`, whatever incarnation was there. The new spec does not
-imply it (a failed guard leaves a later incarnation of `myKey` present), nor it the new one (it
-allows deleting a later incarnation): the change is incompatible, on purpose. -/
+`nil` return meant `myKey` absent at `R`, whatever incarnation was there. It implies the new spec
+(`etcdAbsent_unlockedAt`; the other cases are the same), but the fenced code does not meet it: a
+failed guard leaves a later incarnation of `myKey` present. The `nil` case is weaker now, so the
+callers were re-checked (`notes/pr-verify/etcd-22115.md`). -/
 abbrev Mutex.Unlock.spec_old : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),

@@ -1,0 +1,9 @@
+    review_probe_test.go:36: c1=2 c2=4; stale m2.Unlock err=<nil>; key present after: 1 kv(s) (createRev 4)
+    review_probe_test.go:43: second m2.Unlock: mutex: lock has already been released
+--- PASS: TestReviewProbeSameSessionStaleHandle (0.14s)
+    review_probe_test.go:88: write-only user: fenced Unlock err=etcdserver: permission denied
+    review_probe_test.go:90: write-only user: plain Delete (the old Unlock) err=<nil>
+    review_probe_test.go:94: write-only user: Lock err=etcdserver: permission denied
+--- PASS: TestReviewProbeUnlockNeedsRead (0.19s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.362s
