@@ -232,7 +232,7 @@ theorem NewServer.wp_proof
     (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hdcq Hpv0 Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
@@ -292,6 +292,9 @@ theorem NewServer.wp_proof
   have hNS := raftNode_of_StartNode (GF := GF) (MemStorReg.memStorRegName GF) h8 h9 h10 h11 h12 h78
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrcq, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrpv, Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
+  -- `CheckQuorum` and `PreVote` off: the configuration's (D15)
+  rw [Hdcq, Bool.not_true] at Hrcq
+  rw [Hpv0] at Hrpv
   wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrcq Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrpv Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot

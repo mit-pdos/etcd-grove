@@ -5,14 +5,15 @@ contracts** (the server-construction unit's stage N0, 2026-10-16; D13b, D13d,
 used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines them.
 
 * **`bootstrap`'s contract** (`bootstrapContract`, D13b) is a premise of `NewServer.spec`, a triple
-  in its precondition, not an axiom: `raftConfig` sets `CheckQuorum: true` on both of
-  `bootstrap`'s paths (`bootstrap.go:572`) and `NodeStartSpec` needs it off (with `PreVote`), so
-  an axiom giving `bootOk` would be false; as a premise it records that the raft start result does
-  not cover etcd's actual configuration. On success the bootstrapped record carries `bootOk`:
+  in its precondition, not an axiom. Its raft configuration is `raftConfig`'s (`bootstrap.go:572`)
+  of the patched fork (D15, temporary): `CheckQuorum` is `!cfg.DisableCheckQuorum` (etcd's own code
+  sets it `true`; the field, added by the patch, is off by default) and `PreVote` is `cfg.PreVote`;
+  `NewServer.spec` requires the configuration that turns both off, the only one the raft start
+  result (`NodeStartSpec`) covers. On success the bootstrapped record carries `bootOk`:
   - the records `NewServer` reads (`b`, `b.storage`, `b.storage.backend`, `b.storage.wal`,
     `b.cluster`, `b.raft`);
   - `b.raft` with `NodeStartSpec`'s premises on it (the raft config valid, `CheckQuorum`/
-    `PreVote` off, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
+    `PreVote` as `cfg` sets them, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
     `InitialState` closure, `Marshal` at the peers' conf changes) and the cluster's
     `IsIDRemoved` contract;
   - the cluster (`isRaftCluster`, its id, this node's id, the remote members, read-only);
@@ -111,13 +112,15 @@ keep the auth store's contents, so the bound is named, a premise of `auth.NewAut
 and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
-/-- **The bootstrapped record `b`** (see the file header) for this node `id` of the cluster with
+/-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` (its
+`DisableCheckQuorum` and `PreVote`, D15) for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
 2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
-def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
+def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (id : w64)
+    (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
@@ -130,11 +133,11 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
       cv.Storage' = memStorIface bv.storage' ∧
-      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧ cv.CheckQuorum' = false ∧
+      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧ cv.CheckQuorum' = !cfg.DisableCheckQuorum' ∧
       cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
       cv.DisableConfChangeValidation' = false ∧
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.PreVote' = false ∧ cv.Applied' = W64 0 ∧
+      cv.AsyncStorageWrites' = false ∧ cv.PreVote' = cfg.PreVote' ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
@@ -201,7 +204,7 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ 
     (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
   iprop(□ ({{ True }} (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk γ id bootLog N b }}))
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) :

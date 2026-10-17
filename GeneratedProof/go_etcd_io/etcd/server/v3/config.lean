@@ -80,6 +80,7 @@ instance ServerConfig_typed_pointsto :
     "CorruptCheckTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CorruptCheckTime" l) v.CorruptCheckTime' dq ∗
     "CompactHashCheckTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactHashCheckTime" l) v.CompactHashCheckTime' dq ∗
     "PreVote" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PreVote" l) v.PreVote' dq ∗
+    "DisableCheckQuorum" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DisableCheckQuorum" l) v.DisableCheckQuorum' dq ∗
     "SocketOpts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SocketOpts" l) v.SocketOpts' dq ∗
     "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"Logger" l) v.Logger' dq ∗
     "ForceNewCluster" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ForceNewCluster" l) v.ForceNewCluster' dq ∗
@@ -758,6 +759,22 @@ instance ServerConfig_access_store_PreVote (l : Loc) (v : go_etcd_io.etcd.server
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PreVote" l) v.PreVote' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PreVote" l) PreVote' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreVote' := PreVote' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_load_DisableCheckQuorum (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DisableCheckQuorum" l) v.DisableCheckQuorum' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DisableCheckQuorum" l) v.DisableCheckQuorum' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_store_DisableCheckQuorum (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DisableCheckQuorum' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DisableCheckQuorum" l) v.DisableCheckQuorum' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DisableCheckQuorum" l) DisableCheckQuorum' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableCheckQuorum' := DisableCheckQuorum' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

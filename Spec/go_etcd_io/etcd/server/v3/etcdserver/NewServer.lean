@@ -4,8 +4,11 @@
 `notes/decisions.md`, "The server's construction: `NewServer` over `bootstrap`'s result").
 
 **The premises.**
-* `bootstrap`'s contract (`bootstrapContract`, `InvBoot.lean`; D13b): a premise, not an axiom
-  (etcd's `raftConfig` sets `CheckQuorum`, which the raft start result needs off).
+* `bootstrap`'s contract (`bootstrapContract`, `InvBoot.lean`; D13b): a premise, not an axiom.
+* **`CheckQuorum` and `PreVote` off** (D15, temporary): the raft start result covers only them
+  off; etcd's own `raftConfig` sets `CheckQuorum: true`, the patched fork takes it from the field
+  `cfg.DisableCheckQuorum` it adds (off by default), so the configuration must set it, and leave
+  `cfg.PreVote` unset (etcd's embed sets it by default). Not etcd's default configuration.
 * The cluster's ghost state, as `NodeStartSpec`'s: raft's names `γ` with this node's ghost state
   at the bootstrap log's state, the committed bootstrap log, raft's commit invariant, the budget;
   and the outputs of `allocClientBoot`'s continuation for this server (the client's half of the
@@ -66,6 +69,8 @@ abbrev NewServer.spec : Prop :=
   cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →
   -- the compactor off (D14e: `v3compactor.New` and its goroutine not reached)
   cfg.AutoCompactionRetention' = 0 →
+  -- raft's `CheckQuorum` and `PreVote` off (D15, temporary: not etcd's default configuration)
+  cfg.DisableCheckQuorum' = true → cfg.PreVote' = false →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
