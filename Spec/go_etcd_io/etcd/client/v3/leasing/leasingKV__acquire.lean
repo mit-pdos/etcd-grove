@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 /-- **What `acquire` returns** for the key `key` and the get `o` (of `key` alone, at the latest
 revision): the transaction at a revision `r ≥ lo` (reached; etcd's state at `r` is `s`), its
 header, its `Succeeded` `ok` (owned: `acquire` rewrote it), its first response the get's (owned,
-`rangeRespOwn`, on `s`); if `ok`, the lease key `pfx ++ key` is present at `r` with a lease `id`
+`rangeRespOwn`, on `s`, its count the number of keys in the range); if `ok`, the lease key `pfx ++ key` is present at `r` with a lease `id`
 of this client's sessions (`Then` put it, or it already had it), created at or before `r`, and
 the entries map was made and a session set. -/
 def acquireResult (γ : LeasingNames) (pfx key : GoString) (lo : w64) (o : OpFull) (resp : Loc) :
@@ -42,7 +42,7 @@ def acquireResult (γ : LeasingNames) (pfx key : GoString) (lo : w64) (o : OpFul
     structFieldRef etcdserverpb.ResponseOp go!"Response" p0 ↦□
       interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseRange.ty) #w ∗
     structFieldRef etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" w ↦□ rr ∗
-    ⌜rr ≠ null⌝ ∗ rangeRespOwn rr o (rangeSel s o) n ∗
+    ⌜rr ≠ null ∧ n = (rangeIn s o).length⌝ ∗ rangeRespOwn rr o (rangeSel s o) n ∗
     (if ok then iprop(∃ (id : w64) (lv : EtcdKv),
         ⌜kvOf s (pfx ++ key) = some lv ∧ lv.lease = id ∧ sint.Z lv.createRev ≤ sint.Z r⌝ ∗
         leaseCacheReady γ.lc ∗ sessionReady γ)

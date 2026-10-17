@@ -47,7 +47,7 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
     simp only [Option.map_some, Option.getD_some]
     icases (BigSepM.bigSepM_insert_acc hk) $$ Hents with ⟨He, Hback⟩
     rw [entryOwn_def, respOwn_def]
-    icases He with ⟨%-, Hr, Hrev, Hwc, ⟨%Hrnn, Hhd, #Hehd, Hkvs, Hsl, Hcap, Hkv, Hmore, Hcount⟩, #Hw⟩
+    icases He with ⟨%-, Hr, Hrev, Hwc, ⟨%Hrnn, Hhd, #Hehd, Hkvs, Hsl, Hcap, Hkv, Hmore, Hcount⟩, #Hw, %Hcnt⟩
     rw [decide_eq_false hli]
     rw [hdrFull_def h]
     icases Hh with ⟨%Hhnn, #Hh1, #Hh2, #Hh3, #Hh4, #Hh5⟩
@@ -103,7 +103,11 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
         x.li = e.li ∧ x.resp = e.resp ∧ x.rev = e.rev ∧ x.waitc = e.waitc ∧ x.hdr = e.hdr ∧
         x.hm = e.hm ∧ x.more = e.more ∧ x.lease = e.lease ∧ x.acq = e.acq := by
       intro x hx; subst hx; unfold LeaseEntry.upd1; split <;> simp
-    generalize he1 : e.upd1 (freshKv p keySl key hm.revision) sl' = e1 at hne1 ⊢
+    have hcnt1 : (e.upd1 (freshKv p keySl key hm.revision) sl').countOk := by
+      unfold LeaseEntry.upd1; split
+      · unfold LeaseEntry.countOk; simp
+      · exact Hcnt
+    generalize he1 : e.upd1 (freshKv p keySl key hm.revision) sl' = e1 at hne1 hcnt1 ⊢
     obtain ⟨c0, cs, hc⟩ : ∃ c0 cs, e1.kvs = c0 :: cs := by
       cases h1 : e1.kvs with
       | nil => exact absurd h1 hne1
@@ -158,8 +162,10 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
       simp only
       iframe
       iframe #
+      have hcnt2 : ∀ c' : CachedKv, e1.count = W64 ((c' :: cs).length : Int) := by
+        intro c'; unfold LeaseEntry.countOk at hcnt1; rw [hc] at hcnt1; simpa using hcnt1
       ipureintro
-      first | exact ⟨hli, Hrnn, Hhnn, Hc0nn⟩ | exact ⟨hli, Hrnn, Hc0nn⟩
+      first | exact ⟨hli, ⟨Hrnn, Hhnn, Hc0nn⟩, hcnt2 _⟩ | exact ⟨hli, ⟨Hrnn, Hc0nn⟩, hcnt2 _⟩
     · iapply HΦ
       iexists p, sl'
       iapply lcOwn_modify_intro lc st key _ e _ hk hli'
@@ -179,8 +185,10 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
       simp only
       iframe
       iframe #
+      have hcnt2 : ∀ c' : CachedKv, e1.count = W64 ((c' :: cs).length : Int) := by
+        intro c'; unfold LeaseEntry.countOk at hcnt1; rw [hc] at hcnt1; simpa using hcnt1
       ipureintro
-      first | exact ⟨hli, Hrnn, Hhnn, Hc0nn⟩ | exact ⟨hli, Hrnn, Hc0nn⟩
+      first | exact ⟨hli, ⟨Hrnn, Hhnn, Hc0nn⟩, hcnt2 _⟩ | exact ⟨hli, ⟨Hrnn, Hc0nn⟩, hcnt2 _⟩
 
 end proof
 

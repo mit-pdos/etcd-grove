@@ -97,7 +97,7 @@ theorem leaseCache.Add.wp_proof (hget : leaseKey.get.spec (GF := GF) (hG := hG))
     simp only
     iframe
     iframe #
-    ipureintro; exact Hlinn
+    ipureintro; exact ⟨Hlinn, He0.2.2⟩
   imod entries_insert_freeze st.entries key _ $$ [$Hents $Hentry] with ⟨Hents, Hold⟩
   imod Hstep $$ %st %li %ch HX with ⟨HX, HQ⟩
   imod monoListAuthOwn_update_app [(key, li)] $$ Hinst with ⟨Hinst, -⟩

@@ -549,10 +549,14 @@ noncomputable def leaseCache.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType leaseKey.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseKey.ty)))) (Var "li")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType leaseKey.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "hdr")))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (StructFieldRef leaseKey.ty go!"response"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseKey.ty)))) (Var "li")))))))))) (Val #false)))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "hdr"))
   (App (App (Val (GoInstruction (FuncResolve copyHeader []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (StructFieldRef leaseKey.ty go!"response"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseKey.ty)))) (Var "li"))))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (StructFieldRef leaseKey.ty go!"response"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseKey.ty)))) (Var "li"))))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (App (Val (GoInstruction (StructFieldRef leaseKey.ty go!"response"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseKey.ty)))) (Var "li"))))) (Var "$r0"))))))
   (App (Val doExecute)
@@ -560,7 +564,7 @@ noncomputable def leaseCache.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType leaseKey.ty)))) (Pair (Var "li") (Var "$r0")))))))))))))))
 
-/-- go: cache.go:167:23 -/
+/-- go: cache.go:168:23 -/
 noncomputable def leaseCache.Evict.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "key"
@@ -603,7 +607,7 @@ noncomputable def leaseCache.Evict.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef leaseCache.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseCache.ty)))) (Var "lc")))) (Val #())))))))))))
 
-/-- go: cache.go:178:23 -/
+/-- go: cache.go:179:23 -/
 noncomputable def leaseCache.EvictRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "key"
@@ -649,7 +653,7 @@ noncomputable def leaseCache.EvictRange.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef leaseCache.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseCache.ty)))) (Var "lc")))) (Val #())))))))))))))
 
-/-- go: cache.go:189:6 -/
+/-- go: cache.go:190:6 -/
 noncomputable def isBadOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "op"
   (App (Val exceptionDo)
@@ -658,7 +662,7 @@ noncomputable def isBadOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty) go!"Rev"))) (Var "op")) (Val #())) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty) go!"RangeBytes"))) (Var "op")) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))))))
 
-/-- go: cache.go:191:23 -/
+/-- go: cache.go:192:23 -/
 noncomputable def leaseCache.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "ctx"
@@ -728,7 +732,7 @@ noncomputable def leaseCache.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: cache.go:212:21 -/
+/-- go: cache.go:213:21 -/
 noncomputable def leaseKey.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lk"
   (Lam "op"
@@ -782,7 +786,7 @@ noncomputable def leaseKey.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
-/-- go: cache.go:231:23 -/
+/-- go: cache.go:232:23 -/
 noncomputable def leaseCache.notify.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "key"
@@ -814,7 +818,7 @@ noncomputable def leaseCache.notify.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef leaseCache.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType leaseCache.ty)))) (Var "lc")))) (Val #()))))))))))
 
-/-- go: cache.go:240:23 -/
+/-- go: cache.go:241:23 -/
 noncomputable def leaseCache.clearOldRevokes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "ctx"
@@ -863,7 +867,7 @@ noncomputable def leaseCache.clearOldRevokes.impl [FfiSyntax] [GoGlobalContext] 
   (Lam BAnon
   (Val #())))))))))
 
-/-- go: cache.go:257:23 -/
+/-- go: cache.go:258:23 -/
 noncomputable def leaseCache.evalCmp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "cmps"
@@ -909,7 +913,7 @@ noncomputable def leaseCache.evalCmp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$key"))))))))))))))))
 
-/-- go: cache.go:273:23 -/
+/-- go: cache.go:274:23 -/
 noncomputable def leaseCache.evalOps.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lc"
   (Lam "ops"

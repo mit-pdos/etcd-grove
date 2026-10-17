@@ -65,7 +65,7 @@ theorem leaseCache.Lock.wp_proof : leaseCache.Lock.spec (GF := GF) (hG := hG) :=
     icases pending_unknown $$ Hpend with ⟨Hpend, #Hunk⟩
     icases lcOwn_entry_acc lc st _ key e hk $$ Hown with ⟨He, Hown⟩
     unfold entryOwn
-    icases He with ⟨%-, Hr, Hrev, Hwc, Hresp, #Hw⟩
+    icases He with ⟨%-, Hr, Hrev, Hwc, Hresp, #Hw, %Hcnt⟩
     wp_auto
     have hresp : respOwn (GF := GF) { e with waitc := ch } (DFrac.own 1) = respOwn e (DFrac.own 1) :=
       rfl
@@ -74,7 +74,9 @@ theorem leaseCache.Lock.wp_proof : leaseCache.Lock.spec (GF := GF) (hG := hG) :=
       iframe
       isplitl
       · ipureintro; exact hli
-      unfold waitcOk; iexists γch; iexact Hunk
+      isplitl
+      · unfold waitcOk; iexists γch; iexact Hunk
+      ipureintro; exact Hcnt
     have hst : st.setWaitc key ch =
         { st with entries := GMap.insert key { e with waitc := ch } st.entries } := by
       simp [LeaseCacheSt.setWaitc, hk]

@@ -24,7 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 /-- **`lc.Add(key, resp, op)`** (write lock): the response `resp` (owned: an acquisition's get of
-`key`, `e0`'s response, with the entry facts of its revision) becomes `key`'s entry, with a fresh
+`key`, `e0`'s response, with the entry facts of its revision, its count the number of its
+key-values) becomes `key`'s entry, with a fresh
 `*leaseKey` and the closed channel as waiter (`LeaseCacheSt.add`: the old entry is frozen, the
 cache's header is updated if newer); returns the cached get's answer to `op` (`getResult`), a
 fresh response. The entries map must have been made (`leaseCacheReady`). -/
@@ -34,7 +35,7 @@ abbrev leaseCache.Add.spec : Prop :=
     (Q : LeaseCacheSt → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeaseCache lc γ pfx X ∗ lcPeek X Qr ∗ leaseCacheReady γ ∗
       respOwn e0 (DFrac.own 1) ∗ entryFacts pfx key e0 ∗
-      ⌜e0.rev = e0.hm.revision ∧ e0.acq = e0.kv⌝ ∗ opFullAt opv o ∗
+      ⌜e0.rev = e0.hm.revision ∧ e0.acq = e0.kv ∧ e0.countOk⌝ ∗ opFullAt opv o ∗
       (∀ (st : LeaseCacheSt) (li : Loc) (ch : GoChan),
         X st 1 ={⊤}=∗ X (st.add key { e0 with li := li, waitc := ch }) 1 ∗ Q st) }}
     (App (App (App (Val (lc @!! go.GoType.PointerType leaseCache.ty @!! go!"Add")) (Val #key)) (Val #e0.resp)) (Val #opv))

@@ -129,7 +129,7 @@ theorem leaseCache.LockRange.wp_proof (hinRange : inRange.spec (GF := GF) (hG :=
         rw [he0] at he0'; cases he0'
         icases (BigSepM.bigSepM_insert_acc he1) $$ Hents with ⟨He, Hents⟩
         unfold entryOwn
-        icases He with ⟨%hnn, Hr, Hrev, Hwc, Hresp, #Hw0⟩
+        icases He with ⟨%hnn, Hr, Hrev, Hwc, Hresp, #Hw0, %Hcnt⟩
         rw [hli1, hli0]
         wp_auto
         wp_apply wp_slice_literal (V := GoChan) [ch]
@@ -152,7 +152,9 @@ theorem leaseCache.LockRange.wp_proof (hinRange : inRange.spec (GF := GF) (hG :=
           iframe
           isplitl
           · ipureintro; rw [← hli0, ← hli1]; exact hnn
-          unfold waitcOk; iexists γch; iexact Hunk
+          isplitl
+          · unfold waitcOk; iexists γch; iexact Hunk
+          ipureintro; exact Hcnt
         iexists _, sl', cs ++ [ch], key, v
         simp only [named]
         iframe

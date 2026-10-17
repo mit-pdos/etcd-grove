@@ -161,6 +161,22 @@ theorem keyGet_kvs (key : GoString) (s kvs : List EtcdKv) (hwf : EtcdStateWf [] 
     simp only [Option.toList_some]
     exact h2 v hv hvk
 
+/-- **The single-key get `OpGet(key)` lists as many key-values as its range has keys** (its
+`Count`, etcd's `(rangeIn s o).length`): it has no revision filter, limit or count-only option. -/
+theorem keyGet_count (key : GoString) (s kvs : List EtcdKv)
+    (h : rangeKvsOk (opGetModel key []) (rangeSel s (opGetModel key [])) kvs) :
+    kvs.length = (rangeIn s (opGetModel key [])).length := by
+  change rangeKvsOk (concurrency.keyOp key) (rangeSel s (concurrency.keyOp key)) kvs at h
+  change kvs.length = (rangeIn s (concurrency.keyOp key)).length
+  obtain ⟨-, -, hso, hl, hc, hko, h1, h2, h3, h4⟩ := concurrency.keyOp_fields key
+  obtain ⟨l, -, hl0, -, -, rfl⟩ := h
+  rw [hl0 hso]
+  simp only [hc, hl, hko]
+  simp only [Bool.false_eq_true, ↓reduceIte, List.length_map]
+  unfold rangeSel
+  rw [List.filter_eq_self.2 (fun v _ => concurrency.kvFilterOk_zero _ v h1 h2 h3 h4)]
+  simp
+
 /-- The first cached key-value of a single-key get's response is the key's record. -/
 theorem keyGet_head (key : GoString) (s : List EtcdKv) (cs : List CachedKv)
     (hwf : EtcdStateWf [] s)

@@ -49,7 +49,7 @@ theorem leaseCache.delete.wp_proof (hcopy : copyHeader.spec (GF := GF) (hG := hG
     icases (BigSepM.bigSepM_insert_acc hk) $$ Hents with ⟨He, Hback⟩
     ihave #Hok := headerOk_of_hdrFull h hm $$ Hh
     rw [entryOwn_def, respOwn_def, hdrFull_def e.hdr, hdrFull_def h]
-    icases He with ⟨%-, Hr, Hrev, Hwc, ⟨%Hrnn, Hhd, #Hehd, Hkvs, Hsl, Hcap, Hkv, Hmore, Hcount⟩, #Hw⟩
+    icases He with ⟨%-, Hr, Hrev, Hwc, ⟨%Hrnn, Hhd, #Hehd, Hkvs, Hsl, Hcap, Hkv, Hmore, Hcount⟩, #Hw, %Hcnt⟩
     rw [decide_eq_false hli]
     icases Hh with ⟨%Hhnn, #Hh1, #Hh2, #Hh3, #Hh4, #Hh5⟩
     icases Hehd with ⟨%Hehnn, #He1, #He2, #He3, #He4, #He5⟩
@@ -72,14 +72,16 @@ theorem leaseCache.delete.wp_proof (hcopy : copyHeader.spec (GF := GF) (hG := hG
       iframe #
       isplitr
       · ipureintro; exact hli
-      isplitr
-      · ipureintro; exact Hrnn
       isplitl
-      · iapply ownSlice_nil
-      isplitl
-      · iapply ownSliceCap_nil
-      iapply BigSepL.bigSepL_nil.2
-      iempintro
+      · isplitr
+        · ipureintro; exact Hrnn
+        isplitl
+        · iapply ownSlice_nil
+        isplitl
+        · iapply ownSliceCap_nil
+        iapply BigSepL.bigSepL_nil.2
+        iempintro
+      ipureintro; rfl
     · iapply HΦ
       iexists null
       have hdel : ∀ h', e.del h' hm = e := fun h' => by unfold LeaseEntry.del; rw [ite_eq_right Hif]
@@ -92,7 +94,7 @@ theorem leaseCache.delete.wp_proof (hcopy : copyHeader.spec (GF := GF) (hG := hG
       rw [entryOwn_def, respOwn_def, hdrFull_def e.hdr]
       iframe
       iframe #
-      ipureintro; exact ⟨hli, Hrnn, Hehnn⟩
+      ipureintro; exact ⟨hli, ⟨Hrnn, Hehnn⟩, Hcnt⟩
 
 end proof
 
