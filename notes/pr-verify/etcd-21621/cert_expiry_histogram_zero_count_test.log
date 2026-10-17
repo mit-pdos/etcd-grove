@@ -1,0 +1,6 @@
+=== RUN   TestProbeHistogramCountExportedWithoutObservation
+    cert_expiry_histogram_zero_count_test.go:22: etcd_server_client_cert_expiration_seconds_bucket{le="0"} 0
+    cert_expiry_histogram_zero_count_test.go:22: etcd_server_client_cert_expiration_seconds_count 0
+--- PASS: TestProbeHistogramCountExportedWithoutObservation (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.038s

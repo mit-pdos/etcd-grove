@@ -1,0 +1,5 @@
+=== RUN   TestClientCertExpirationSamplesPerConnectionOrPerRPC
+    cert_expiry_metric_count_test.go:154: 10 Puts over one client connection: 1 sample(s) on a gRPC-only client URL, 11 on the default (gRPC+HTTP) client URL
+--- PASS: TestClientCertExpirationSamplesPerConnectionOrPerRPC (1.39s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/embed	1.433s

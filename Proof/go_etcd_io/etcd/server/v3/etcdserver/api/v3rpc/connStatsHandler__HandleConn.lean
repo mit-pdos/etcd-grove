@@ -34,6 +34,13 @@ theorem v3rpc.connStatsHandler.HandleConn.wp_proof
     (wp_Record : v3rpc.RecordClientCertExpiration.spec (GF := GF) (hG := hG)) :
     v3rpc.connStatsHandler.HandleConn.spec (GF := GF) (hG := hG) := by
   intro h hs ctx s o oti P Q
+  -- `x509.Certificate` is axiomatized: take its representation from the package assumptions,
+  -- not from its generated (`sorry`) points-to instances, for the `NotAfter` field address
+  haveI : go.TypeReprUnderlying crypto.x509.Certificate.underlying crypto.x509.Certificate :=
+    crypto.x509.Certificate.TypeAssumptions.type_repr
+  haveI : go.IsUnderlying crypto.x509.Certificate.underlying crypto.x509.Certificate.underlying :=
+    crypto.x509.Certificate.TypeAssumptions.isUnderlying
+  haveI : TypeRepr crypto.x509.Certificate.underlying crypto.x509.Certificate := go.type_repr_underlying
   wp_start as ⟨%Hev, #Hh, #Hctx, #Hown, #Htls, #Hhist, HP⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit

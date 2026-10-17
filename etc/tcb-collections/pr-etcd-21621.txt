@@ -1,0 +1,16 @@
+# pr-verify etcd#21621: the client certificate expiry histogram's stats handler (v3rpc's
+# connstats.go, metrics.go's RecordClientCertExpiration), linked in
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Link.lean. Report:
+# notes/pr-verify/etcd-21621.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21621.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Written by hand from `#print axioms
+# v3rpc.conn_stats_handle_conn` (Results.lean; the repository-level axioms, not the generated
+# translation's), not by --check --update: this branch was not built in full.
+roots ^connStatsHandler\.wp_(HandleConn|HandleRPC|TagConn|TagRPC)$
+roots ^wp_RecordClientCertExpiration$
+axiom peer.FromContext.wp_proof
+axiom peer.inCtx
+axiom time.Duration.Seconds.wp_proof
