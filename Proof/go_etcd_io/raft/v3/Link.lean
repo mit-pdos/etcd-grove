@@ -127,9 +127,12 @@ public import Proof.google_golang_org.protobuf.proto.UnmarshalConfChangeV2
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
+public import Proof.go_etcd_io.raft.v3.quorum.JointConfig__VoteResultWithDifference
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
+public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
+public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
 public import Proof.go_etcd_io.raft.v3.quorum.mapAckIndexer__AckedIndex
 public import Proof.go_etcd_io.raft.v3.raftLog__acceptApplying
 public import Proof.go_etcd_io.raft.v3.raftLog__acceptUnstable
@@ -228,6 +231,8 @@ public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__GetLearners
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__GetLearnersNext
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__GetVoters
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__GetVotersOutgoing
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__GetWitness
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__GetWitnessOutgoing
 public import Proof.go_etcd_io.raft.v3.raftpb.EnsureConfState
 public import Proof.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
 public import Proof.go_etcd_io.raft.v3.raftpb.EnsureSnapshotMetadata
@@ -303,6 +308,7 @@ public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes
+public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__BecomeProbe
@@ -556,9 +562,17 @@ theorem raftpb.ConfChangeType.wp_Enum :
     raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeType.Enum.wp_proof
 
+theorem raftpb.ConfState.wp_GetWitness :
+    raftpb.ConfState.GetWitness.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfState.GetWitness.wp_proof
+
+theorem raftpb.ConfState.wp_GetWitnessOutgoing :
+    raftpb.ConfState.GetWitnessOutgoing.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfState.GetWitnessOutgoing.wp_proof
+
 theorem confchange.wp_toConfChangeSingle :
     confchange.toConfChangeSingle.spec (GF := GF) (hG := hG) :=
-  confchange.toConfChangeSingle.wp_proof raftpb.ConfChangeType.wp_Enum
+  confchange.toConfChangeSingle.wp_proof raftpb.ConfChangeType.wp_Enum raftpb.ConfState.wp_GetWitness raftpb.ConfState.wp_GetWitnessOutgoing
 
 theorem tracker.Config.wp_Clone :
     tracker.Config.Clone.spec (GF := GF) (hG := hG) :=
@@ -1400,6 +1414,18 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
 
+theorem quorum.MajorityConfig.wp_VoteResultWithDifference :
+    quorum.MajorityConfig.VoteResultWithDifference.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.VoteResultWithDifference.wp_proof
+
+theorem quorum.JointConfig.wp_VoteResultWithDifference :
+    quorum.JointConfig.VoteResultWithDifference.spec (GF := GF) (hG := hG) :=
+  quorum.JointConfig.VoteResultWithDifference.wp_proof quorum.MajorityConfig.wp_VoteResultWithDifference
+
+theorem quorum.MajorityConfig.wp_OneLessThanQuorum :
+    quorum.MajorityConfig.OneLessThanQuorum.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.OneLessThanQuorum.wp_proof slices.wp_Sort
+
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
@@ -1459,6 +1485,10 @@ theorem tracker.Inflights.wp_Count :
 theorem tracker.ProgressTracker.wp_LearnerNodes :
     tracker.ProgressTracker.LearnerNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.LearnerNodes.wp_proof slices.wp_Sort
+
+theorem tracker.ProgressTracker.wp_TallyVotesWithDifference :
+    tracker.ProgressTracker.TallyVotesWithDifference.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.TallyVotesWithDifference.wp_proof quorum.JointConfig.wp_VoteResultWithDifference
 
 end links
 

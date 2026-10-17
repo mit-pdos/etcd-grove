@@ -33,14 +33,16 @@ theorem csPts_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bo
   iintro ⟨H1, H2⟩
   iNamed H1
   iunfold csPts at H2
-  icases H2 with ⟨%sv2, %sl2, %so2, %sn2, %pa2, -, HV2, Hv2, HL2, Hl2, HO2, Ho2, HN2, Hn2, HA2, -, -,
-    -⟩
+  icases H2 with ⟨%sv2, %sl2, %so2, %sn2, %pa2, %pw2, %pwo2, -, HV2, Hv2, HL2, Hl2, HO2, Ho2, HN2, Hn2,
+    HA2, -, -, HW2, -, HWO2, -, -⟩
   icombine HV HV2 gives %E1
   icombine HL HL2 gives %E2
   icombine HO HO2 gives %E3
   icombine HN HN2 gives %E4
   icombine HA HA2 gives %E5
-  subst E1 E2 E3 E4 E5
+  icombine HW HW2 gives %E6
+  icombine HWO HWO2 gives %E7
+  subst E1 E2 E3 E4 E5 E6 E7
   iunfold csPts
   iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
@@ -63,8 +65,15 @@ theorem csPts_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bo
   · iapply ((ownSlice_dfractional (GF := GF) sn _).dfractional dq1 dq2).2; iframe
   isplitl [HA HA2]
   · iapply ((typedPointsto_dfractional (GF := GF) _ pa).dfractional dq1 dq2).2; iframe
-  iframe cA cW cWO Hpb
-  ipureintro; exact Hal
+  iframe cA
+  isplitr
+  · ipureintro; exact Hal
+  isplitl [HW HW2]
+  · iapply ((typedPointsto_dfractional (GF := GF) _ pw).dfractional dq1 dq2).2; iframe
+  iframe cW
+  isplitl [HWO HWO2]
+  · iapply ((typedPointsto_dfractional (GF := GF) _ pwo).dfractional dq1 dq2).2; iframe
+  iframe cWO Hpb
 
 /-! ### A snapshot whose metadata is set, its conf state apart -/
 

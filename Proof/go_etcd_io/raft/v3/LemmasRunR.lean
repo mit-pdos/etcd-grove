@@ -35,7 +35,7 @@ theorem csPts_voters (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
        csPts p dq c al) := by
   iintro H
   iunfold csPts at H
-  icases H with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, H⟩
+  icases H with ⟨%sv, %sl, %so, %sn, %pa, %pw, %pwo, %Hnn, H⟩
   iNamed H
   iexists sv, so
   iframe HV Hv HO Ho
