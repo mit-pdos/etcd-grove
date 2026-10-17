@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.InvWatchSend
 
 @[expose] public section
 
@@ -36,10 +36,12 @@ time: a create sent only for the head of `resuming`), dispatches the stream's re
 stream fails (a halting error: `noRetryableStreamErr`) or no substream is left, shutting the
 substreams down and closing `donec` with its close error (`closeStream`). Its thread token
 (`threadTok`) is deposited at each `Add(1)` and replaced by the fresh one of each `go`
-(`wgAdder`). -/
+(`wgAdder`). With etcd-io/etcd#21065 `run` sends nothing itself: it starts the stream's sender,
+`sendLoop`, on the wait group `sendWg` (its adder, and the send queues' fields, are `run`'s), and
+puts its requests on the send queues (`enqueueCreateReq`, `enqueueBestEffortReq`). -/
 abbrev watchGRPCStream.run.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (m0 : Loc) (s0 : GoSlice) (rc : Loc)
-    (γrc γresp : ChanNames),
+    (γrc γresp : ChanNames) (cc0 bc0 : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isClientWatcher V G.w ∗ isWGS V G callSl ∗ watcherF G.w go!"callOpts" ↦□ callSl ∗
@@ -49,6 +51,8 @@ abbrev watchGRPCStream.run.spec : Prop :=
       wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
       isChan G.respc γresp Loc ∗ ownChan γresp Loc .Idle ∗
       ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗ wgAdder G.wgs ∗ threadTok ∗
+      wgsF G.wgs go!"sendCreatec" ↦ cc0 ∗ wgsF G.wgs go!"sendBestEffortc" ↦ bc0 ∗
+      wgsWgAdder (wgsF G.wgs go!"sendWg") ∗
       ghostMapAuth G.γws 1 (∅ : GMap Loc Unit) }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"run")) (Val #()))
   {{ RET #(); threadTok }}

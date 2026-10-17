@@ -73,6 +73,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ipersist closingc
   ipersist lg
   imod wgsWg_init _ Hb $$ wg with Hadder
+  imod wgsWg_init _ Hb $$ sendWg with HsAdder
   imod start_bag (reqP V) _ reqc γreq (by trivial) $$ Hreqc Hreqo with #Hbreq
   imod start_bag errP _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
@@ -85,10 +86,12 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   · unfold isWGS
     iframe #
     ipureintro; exact ⟨Hgnn, Hlgnn⟩
-  wp_apply wp_fork_tok_body $$ [Hm0 Hrespo substreams resuming resumec closeErr Hadder Hdb Hrcb Hws]
+  wp_apply wp_fork_tok_body $$ [Hm0 Hrespo substreams resuming resumec closeErr Hadder Hdb Hrcb Hws
+      sendCreatec sendBestEffortc HsAdder]
   · iintro Htok
-    wp_apply wp_run V G callSl m0 slice.nil resumec γrc γresp
-      $$ [Hm0 Hrespo substreams resuming resumec closeErr Hadder Hdb Hrcb Hws Htok] as Htok
+    wp_apply wp_run V G callSl m0 slice.nil resumec γrc γresp _ _
+      $$ [Hm0 Hrespo substreams resuming resumec closeErr Hadder Hdb Hrcb Hws Htok sendCreatec
+        sendBestEffortc HsAdder] as Htok
     · iframe #
       iframe
       isplitr
