@@ -33,7 +33,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   wp_start as ⟨#Hws, Hprod, Hresp, Hhdr, %Hv, #Hse⟩
   ihave #Hws' := Hws
   iunfold wsIs at Hws'
-  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, -, -⟩
+  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, -, %Hwsp, -⟩
   iunfold wrRO at Hro
   icases Hro with ⟨#Hctxf, -⟩
   ihave #Hctx1 := Hctx
@@ -78,13 +78,15 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
       iexact HRevision
     isplitr
     · ipureintro; exact ⟨Hcr, Hca, Hcrt⟩
-    unfold rangeWatchRespOk
     isplitr
-    · ipureintro
-      refine ⟨List.Pairwise.nil, fun e he => by simp at he, rfl⟩
-    imodintro
-    iintro %i %e %h
-    simp at h
+    · unfold rangeWatchRespOk
+      isplitr
+      · ipureintro
+        refine ⟨List.Pairwise.nil, fun e he => by simp at he, rfl⟩
+      imodintro
+      iintro %i %e %h
+      simp at h
+    ileft; ipureintro; exact Hwsp.2.2
   (try wp_auto)
   wp_apply +noauto HDone as %dch %dγ #Hdone
   (try wp_auto)

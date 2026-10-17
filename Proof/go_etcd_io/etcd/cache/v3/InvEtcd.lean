@@ -803,6 +803,10 @@ stream is at before each response, a monotone list). -/
 structure EtcdWatchNames where
   spsc : SpscNames
   cur : GName
+  /-- (K2e) a range watch's second position (a progress notification moves it: the cache's
+  `cur`), when the watch promises completeness (`cpl`, `rangeWatchElem`) -/
+  cur2 : GName
+  cpl : Bool
 
 section watch
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

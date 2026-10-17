@@ -51,7 +51,8 @@ element. -/
 theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64)
     (hC : C.length = i + 1) (hl : C.getLast? = some hiB)
-    (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created) :
+    (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created)
+    (hcpl : P.γ.cpl = false) :
     monoListAuthOwn (GF := GF) P.γ.cur 1 C ∗ eventsAt v.Events' r.events ∗
       watchHdrOwn v.Header' r ∗ rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗
       statusErrOk v.closeErr' ⊢
@@ -71,7 +72,9 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
   iexists r, hiB, hiA
   simp only [Int.toNat_natCast]
   iframe Hev Hhdr Hi1 Hi2 Hok Hse
-  ipureintro; exact hf
+  isplitr
+  · ipureintro; exact hf
+  ileft; ipureintro; exact hcpl
 
 /-- **A received response, live** (`recvElem`'s first disjunct): its value, read-only, with its
 content and the contract's positions around it. -/
@@ -384,7 +387,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     subst HhB
     iapply bupd_sendAu
     imod publish_elem V P C sent.length v0 r hiB hiA HC.1 HC.2.2
-      ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ $$ [Hauth Hhdr] with ⟨Hauth, Helem⟩
+      ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ HPws.2.2 $$ [Hauth Hhdr] with ⟨Hauth, Helem⟩
     · iframe Hauth Hev Hok Hhdr
       rw [Hv.2.1]; iapply statusErrOk_nil
     imodintro
@@ -547,7 +550,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
             wp_if_destruct <;> (try wp_auto) <;> c2_fin
           · (try wp_auto)
             imod publish_elem V P C sent.length v r hiA hiA HC.1 HC.2.2
-              ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ $$ [Hauth] with ⟨Hauth, Helem⟩
+              ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ HPws.2.2 $$ [Hauth] with ⟨Hauth, Helem⟩
             · iframe Hauth Hev Hok
               isplitl []
               · iapply (watchHdrOwn_nil _ _ Hcr.2).2; iexact Hhdr

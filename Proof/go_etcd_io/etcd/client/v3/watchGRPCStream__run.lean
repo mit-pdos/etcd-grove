@@ -868,7 +868,7 @@ theorem regs_join (γs : StreamNames) (b : Bool) (regs : List w64) (X : w64) :
 def dummyWsPrm (G : WgsPrm GF) (γr : SpscNames) : WsPrm GF :=
   WsPrm.mk (OpFull.mk OpModel.zero (W64 0) [] false false false (W64 0) [] false (W64 0) (W64 0)
     false false) (W64 0) G.ctx G.cd [] [] false false false slice.nil null G.γreq null
-    (EtcdWatchNames.mk γr G.γws) null null γr G.γws null G.γreq G.γws false
+    (EtcdWatchNames.mk γr G.γws G.γws false) null null γr G.γws null G.γreq G.γws false
 
 /-- A substream's id field, any value (`closeSubstream`'s). -/
 def idE (ws : Loc) : IProp GF := iprop(∃ id : w64, wsF ws go!"id" ↦ id)
@@ -1224,7 +1224,7 @@ theorem watchGRPCStream.run.wp_proof
       ihave #Hhi0 := monoListIdxOwn_get (GF := GF) 0 (P0.rev - W64 1) rfl $$ Hhilb
       ihave #Hcur0 := monoListIdxOwn_get (GF := GF) 0 (P0.rev - W64 1) rfl $$ Hcurlb
       let Ppre : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
-        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γr γcur) outc recvc γr γhi dnc γdn γx
+        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γr γcur γcur false) outc recvc γr γhi dnc γdn γx
         P0.sr
       imod start_spsc (V := go_etcd_io.etcd.client.v3.WatchResponse) outc
         (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev) (fun _ => iprop(True)) γo
@@ -1234,7 +1234,7 @@ theorem watchGRPCStream.run.wp_proof
         $$ Hrecvc [Hrecvo] with ⟨%γrr, #Hrsp, Hrprod, Hrcons2⟩
       · ileft; iexact Hrecvo
       let P : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
-        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur) outc recvc γrr γhi dnc γdn γx
+        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur false) outc recvc γrr γhi dnc γdn γx
         P0.sr
       have eq1 : (isSpsc γsp outc (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev)
           (fun _ => iprop(True)) : IProp GF) =
@@ -1269,7 +1269,7 @@ theorem watchGRPCStream.run.wp_proof
         isplitr
         · iexact Hretb
         isplitr
-        · ipureintro; exact ⟨Hwsn, Hok⟩
+        · ipureintro; exact ⟨Hwsn, Hok, rfl⟩
         iexact Hsrd0
       ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
       · iPkgInit
@@ -2764,7 +2764,7 @@ theorem watchGRPCStream.run.wp_proof
         ihave #Hevs' : iprop([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs x.1 x.2) $$ []
         · rw [← hev0]; iexact Hevs
         ihave Hpre := client.reg_pre V γs P S.Dm rcv.length m ρ rs w rg fcs lo sent C h sl ps kvs
-            hsrc hev0 ⟨hcomp0, hca0, hcr0⟩ Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2 Hpre.2
+            hsrc hev0 ⟨hcomp0, hca0, hcr0⟩ Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2.1 Hpre.2
             Hpre.1 Hhn $$ [Hauth Hst Hhrev]
         · iframe; iframe #
         imod Hpre with ⟨%es, %C', #Hes, %Hesl, Hhw, Hauth, Hcap, Hst⟩

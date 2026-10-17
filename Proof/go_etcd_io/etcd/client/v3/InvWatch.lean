@@ -436,7 +436,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Unknown ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P⌝ ∗ mvcc.startRead V.R.γ P.sr P.rev)
+    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = false⌝ ∗ mvcc.startRead V.R.γ P.sr P.rev)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
