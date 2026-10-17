@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd#22215 (`baseReadTx` refactor into `sharedBoltTx`), verified on `pr-verify/etcd-22215` (2026-10-17)
+
+Not for `lean` (the translation is of the unmerged PR, `mit-pdos/etcd-grove` branch
+`pr-etcd-22215-goose-lean`). The read side's predicates (`InvBackend.lean`: `RdSt.st`, `rtCore`,
+`rtmuAt`, `stRd`, `baseRd`, `crtSnap`; `ReadSide.lean`'s commit lemmas) are restated over the
+`sharedBoltTx` behind the `sharedTx` interface; every backend spec statement but `readTx.reset`'s
+is unchanged and re-proved, the ten new methods are proved, no axiom or `sorry` added. When the PR
+merges and the pin moves past it, this branch is the starting point. Report:
+`notes/pr-verify/etcd-22215.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -9,7 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__un
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__begin
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
-public import Spec.go_etcd_io.bbolt.Tx__Rollback_kv
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__setTx
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvCommit
 
@@ -33,10 +33,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Perennial.time.Assumptions]
 
 theorem backend.batchTxBuffered.unsafeCommit.wp_proof
-    (hRollback : bbolt.Tx.Rollback_kv.spec (GF := GF) (hG := hG))
     (hReset : backend.readTx.reset.spec (GF := GF) (hG := hG))
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
-    (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
+    (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG))
+    (hSetTx : backend.sharedBoltTx.setTx.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t rt st win stop m u
   wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpay⟩
@@ -54,8 +54,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   icombine Ht Ht1 gives %Heq1
   subst Heq1
   imod (rtRes_cm_open γ P rt st.C st.R win) $$ [$Hrr $Hrvs] with
-    ⟨%rtx, %cm, %wg, Hrtx, Hcm, Hwg, HRB, Hrb, HrtCm, Hrvs⟩
-  icases rtCm_rvs γ P st.C st.R win $$ HrtCm with ⟨Hrvs2, HrtCmBack⟩
+    ⟨%st0, %rtx, %cm, %wg, #Hst0, Hrtx, Hcm, Hwg, HRB, Hrb, HrtCm, Hrvs⟩
+  icases rtCm_rvs γ P st0 st.C st.R win $$ HrtCm with ⟨Hrvs2, HrtCmBack⟩
   imod ghostVar_update_halves (((st.C, st.R) : RView), false) γ.rvs _ _ $$ Hrvs Hrvs2 with
     ⟨Hrvs, Hrvs2⟩
   -- the commit opens the hook's window (`BSess.setHw`): the hook may re-put its keys
@@ -110,7 +110,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   obtain ⟨hC, hR, hSs, hWs, hp1, hp2, hn, htx, hcnt⟩ := Hs0
   imod ghostVar_update_halves (((st'.C, st'.R) : RView), win) γ.rvs _ _ $$ Hrvs Hrvs2 with
     ⟨Hrvs, Hrvs2⟩
-  ihave HrtCm : rtCm γ P st'.C st'.R win $$ [HrtCmBack Hrvs2]
+  ihave HrtCm : rtCm γ P st0 st'.C st'.R win $$ [HrtCmBack Hrvs2]
   · rw [hC, hR, setHw_C, setHw_R]
     iapply HrtCmBack $$ Hrvs2
   ihave HRB : ownRB (rbufOf (baseOf rt)) st'.R $$ [HRB]
@@ -123,19 +123,9 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   · unfold bStopped
     icombine Hopn Hbs gives %Hcb
     exact absurd Hcb.2 (by decide)
-  ihave %Hrnn : ⌜rtx ≠ Loc.null⌝ $$ [Hrb]
-  · unfold rollbackRes
-    icases Hrb with ⟨%γwg, %γw, %γo, %γd, %D, -, -, -, -, Hl1, -⟩
-    iapply txLive_nonnull $$ Hl1
-  try wp_auto
-  rw [decide_eq_false Hrnn]
-  wp_auto
-  wp_apply wp_fork $$ [Hrb]
-  · wp_auto
-    wp_apply (wp_rollback_Wait γ rtx wg) $$ [$Hrb] as ⟨%D, Hl1, #Hsn⟩
-    wp_apply (hRollback rtx D) $$ [$Hl1 $Hsn] as -
-    itrivial
-  wp_apply (hReset rt st'.R cm rtx wg) $$ [$HRB $Hcm $Hrtx $Hwg] as %cm' %wg' ⟨HRB, Hcm, Hcmm, Hrtx, Hwg, Hwgz⟩
+  wp_apply (hReset γ rt st0 st'.R cm rtx wg lg) $$ [$HRB $Hst0 $Hcm $Hrtx $Hwg Hrb]
+    as %cm' %wg' ⟨HRB, Hcm, Hcmm, Hrtx, Hwg, Hwgz⟩
+  · ileft; iexact Hrb
   wp_apply (hBC γ P W Pk b t db st' stop) $$ [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu] as ⟨Hmu, Hres⟩
   · iframe #
     unfold btW
@@ -151,12 +141,13 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
+      wp_apply hSetTx st0 Loc.null txr $$ [$Hrtx] as Hrtx
       have hview : win = false → vData P (st'.C, st'.R.reset) = vData P (st'.C, st'.R) := by
         intro hw
         rw [(commit_final (tx' := st'.tx) (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)).2.2, hC, hR]
         exact (Hview hw).symm
-      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' hview) $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      imod (rtRes_cm_close γ P rt st0 st'.C st'.C st'.R win false txr cm' wg' hview) $$
+        [$Hci $HrtCm $Hrvs $Hv $Hst0 $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
         iexact Hrd
       imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 HWe Hp0 Hs Hwf Hbg) $$
@@ -185,12 +176,13 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
+      wp_apply hSetTx st0 Loc.null txr $$ [$Hrtx] as Hrtx
       have hview : win = false → vData P (st'.S, st'.R.reset) = vData P (st'.C, st'.R) := by
         intro hw
         rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR]
         exact (Hview hw).symm
-      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' hview) $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      imod (rtRes_cm_close γ P rt st0 st'.C st'.S st'.R win false txr cm' wg' hview) $$
+        [$Hci $HrtCm $Hrvs $Hv $Hst0 $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
         iexact Hrd
       imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 HWe Hp0 Hs Hwf Hbg) $$
@@ -223,8 +215,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       intro hw
       rw [(commit_final (tx' := tx') (cnt' := ⟨0, 0, 0, 0, false⟩) HP Hwf rfl HWe Hs Hwf' (Or.inl rfl)).2.2, hC, hR]
       exact (Hview hw).symm
-    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' hview) $$
-      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB] with ⟨Hrr, -, -, -⟩
+    imod (rtRes_cm_close γ P rt st0 st'.C st'.S st'.R win true Loc.null cm' wg' hview) $$
+      [$Hci $HrtCm $Hrvs $Hv $Hst0 $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB] with ⟨Hrr, -, -, -⟩
     · simp only [↓reduceIte]
       iframe Hbs
     imodintro

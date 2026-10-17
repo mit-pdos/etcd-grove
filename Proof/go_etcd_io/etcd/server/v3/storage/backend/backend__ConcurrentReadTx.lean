@@ -7,6 +7,8 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer__unsafeCopy
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__addWait
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__clone
 
 @[expose] public section
 
@@ -83,7 +85,9 @@ theorem backend.crtBuf_ready (γ : BNames) (P : BParams) (rv : RView) (idx : Nat
     exact ⟨Hfc.2.2, fun id es h => Hfc.1 id es h, Hfc.2.1, Hval⟩
 
 theorem backend.backend.ConcurrentReadTx.wp_proof
-    (hcopy : backend.txReadBuffer.unsafeCopy.spec (GF := GF) (hG := hG)) :
+    (hAdd : backend.sharedBoltTx.addWait.spec (GF := GF) (hG := hG))
+    (hcopy : backend.txReadBuffer.unsafeCopy.spec (GF := GF) (hG := hG))
+    (hClone : backend.sharedBoltTx.clone.spec (GF := GF) (hG := hG)) :
     backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b q qo vd
   wp_start as ⟨#Hb, Htok, Hbv, Hopen⟩
@@ -105,7 +109,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   wp_pure
   unfold rtRes rtResAt rtRest rtCore rtIntv
   icases HP with ⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcmf, Hview, Hrd, Hrvs, Hcur, Hhist,
-    Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+    ⟨#Hst, Hrtxf⟩, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩
@@ -119,10 +123,17 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   icases Hcr with ⟨%rt3, %tm3, #Hrt3, #Htm3, Hown, Hrdt⟩
   icombine Hrt Hrt3 gives %Heq
   subst Heq
-  icombine Htm Htm3 gives %Heq
+  ihave %Heq := rtmuAt_agree rt tm tm3 $$ []
+  · iframe #
   subst Heq
-  wp_apply wp_rdAdd γ rd.rtx rd.wg rd.γw rd.γo rd.γt sync.rfrac $$ [$Hwgi $Hwo $Hrdt]
-    as ⟨%k, %qr, Hwo, Hsh⟩
+  ihave #Htm0 := Htm
+  iunfold rtmuAt at Htm0
+  icases Htm0 with ⟨%st0, #Hst0, #Htmo⟩
+  ihave %Hsteq := stIf_agree (baseOf rt) st0 rd.st $$ []
+  · iframe #
+  subst Hsteq
+  wp_apply hAdd γ rd.st (DFrac.own sync.rfrac) rd.rtx rd.wg rd.γw rd.γo rd.γt sync.rfrac
+      $$ [$Hwgf $Hwgi $Hwo $Hrdt] as ⟨%k, %qr, Hwgf, Hwo, Hsh⟩
   -- the cache
   wp_apply sync.Mutex.wp_Lock $$ [$Hcm] as ⟨Hml, HC⟩
   unfold cacheRes
@@ -205,6 +216,13 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   iunfold crtBuf at Hcrt
   icases Hcrt with ⟨%c, %Pc, %bks, #Hbp, #Hbks, %Hcf⟩
   wp_auto
+  -- its own `sharedBoltTx`, a clone of the shared one's, read-only for good
+  wp_apply hClone rd.st (DFrac.own sync.rfrac) tm rd.rtx cm rd.wg $$ [$Htmo $Hrtxf $Hcmf $Hwgf]
+    as %cst ⟨Hrtxf, Hcmf, Hwgf, Hctm, Hctx, Hccm, Hcwg⟩
+  ipersist Hctm
+  ipersist Hctx
+  ipersist Hccm
+  ipersist Hcwg
   wp_alloc crt as Hcrt
   -- the transaction's fields, read-only for good
   iStructNamed Hcrt
@@ -212,10 +230,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   iStructNamed buf
   ipersist txBuffer
   ipersist bufVersion
-  ipersist txMu
   ipersist tx
-  ipersist buckets
-  ipersist txWg
   wp_auto
   -- the deferred `b.readTx.RUnlock()`
   wp_method_call
@@ -238,7 +253,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   iframe Hopen
   isplitl [Hown Hsh]
   · unfold crtSnap
-    iexists c.txBuffer'.buckets', Pc, cm, tm, rd.wg, rd.γw, rd.γo, rd.γt, k, qr, rt
+    iexists c.txBuffer'.buckets', Pc, cm, tm, rd.wg, rd.γw, rd.γo, rd.γt, k, qr, rt, cst
     unfold rbAt
     rw [show ((rv.1, (⟨bks, W64 0⟩ : RBuf)) : RView).2.ver = c.bufVersion' by rw [Hc0]]
     iframe; iframe #

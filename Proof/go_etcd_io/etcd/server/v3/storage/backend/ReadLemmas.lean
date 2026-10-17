@@ -737,6 +737,64 @@ theorem wp_rdAdd (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (q : Qp) :
 
 /-! ## The cache's marks -/
 
+
+/-- A reader's `txWg.Done()`: its share given back to the interval's protocol, for its budget
+token. -/
+theorem wp_rdDone (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (k : Nat) (q : Qp) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ □ wgInv γ rtx wg γw γo γt ∗ rdShare rtx γo k q }}
+      (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); ownToks γ.rdt 1 }} := by
+  iintro %Φ ⟨#Hsync, #Hwgi, Hsh⟩ HΦ
+  unfold wgInv
+  icases Hwgi with ⟨%γwg, #Hisw, #Hi, #Hauth⟩
+  unfold rdShare
+  icases Hsh with ⟨Hlive, Hrc⟩
+  iapply sync.WaitGroup.wp_Done wg γwg (bN.@"wg") $$ [] [Hlive Hrc HΦ]
+  · iframe #
+  iinv Hi with Hb Hclose
+  iapply fupd_mask_intro wg_wgi_mask
+  iintro Hmask
+  inext
+  unfold wgBody
+  icases Hb with (⟨%n, %outs, %pool, Hwgo, Hoa, Hpool, Htoks, %Hn, Hw⟩ | ⟨Hoa, -⟩)
+  rotate_left
+  · icombine Hoa Hrc gives %Hl
+    simp at Hl
+  icombine Hoa Hrc gives %Hl
+  have hsz := GMap.map_size_nonzero_lookup outs k q Hl
+  have hn1 : 1 ≤ sint.Z n := by omega
+  have hlt : sint.Z n < 2 ^ 31 := by word
+  have hnn : sint.nat (n - W32 1) = sint.nat n - 1 := by word
+  obtain ⟨j, hj⟩ : ∃ j, sint.nat n = j + 1 := ⟨sint.nat n - 1, by word⟩
+  rw [hj]
+  icases (ownToks_add 1 j γ.rdt).1 $$ Htoks with ⟨Htoks, Htok⟩
+  iexists n
+  iframe Hwgo
+  isplitr
+  · ipureintro; omega
+  iintro Hwgo
+  imod Hmask with -
+  imod ghost_map_delete $$ Hoa Hrc with Hoa
+  ihave Hpool := (txLive_fractional rtx).fractional pool q |>.2 $$ [Hpool Hlive]
+  · iframe
+  imod Hclose $$ [Hwgo Hoa Hpool Htoks Hw] with -
+  · inext
+    ileft
+    iexists n - W32 1, outs.delete k, pool + q
+    rw [hnn, hj, show j + 1 - 1 = j by omega]
+    iframe
+    ipureintro
+    have hd := qsum_delete outs k q Hl
+    have hs := GMap.map_size_delete_Some outs k q Hl
+    constructor
+    · rw [hs]; have : sint.Z (n - W32 1) = sint.Z n - 1 := by word
+      omega
+    · show (pool.val + q.val) + _ = _
+      grind
+  imodintro
+  iapply HΦ
+  iexact Htok
+
 /-- A client (its share of the view) marks the current state as copied into the cache: no
 window is open. -/
 theorem cache_mark (γ : BNames) (r q : Qp) (ver : w64) (idx : Nat) (win : Bool) (vd : VData) :
@@ -843,6 +901,28 @@ theorem bOpen_stopped (γ : BNames) (q : Qp) : bOpen (GF := GF) γ q ∗ bStoppe
 def bktFact (rtx : Loc) (D : Data) (n : GoString) (bk : Loc) : IProp GF :=
   iprop(⌜D.lookup n = none ∧ bk = Loc.null⌝ ∨
     ∃ m : BktData, ⌜D.lookup n = some m ∧ bk ≠ Loc.null⌝ ∗ rBkt rtx bk (bktEnts m))
+
+/-- The `sharedBoltTx` a read transaction's `tx` field holds is unique. -/
+theorem stIf_agree (base st st' : Loc) :
+    rstOf base ↦□ stIf st ∗ rstOf base ↦□ stIf st' ⊢ (⌜st = st'⌝ : IProp GF) := by
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %Heq
+  ipureintro
+  simp only [stIf, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
+  exact go.intoVal_inj Heq
+
+/-- The shared read transaction's `txMu` is unique. -/
+theorem rtmuAt_agree (rt tm tm' : Loc) :
+    rtmuAt rt tm ∗ rtmuAt rt tm' ⊢ (⌜tm = tm'⌝ : IProp GF) := by
+  iintro ⟨H1, H2⟩
+  unfold rtmuAt
+  icases H1 with ⟨%st, #Hs, #Hm⟩
+  icases H2 with ⟨%st', #Hs', #Hm'⟩
+  ihave %Heq := stIf_agree (GF := GF) (baseOf rt) st st' $$ [Hs Hs']
+  · iframe #
+  subst Heq
+  icombine Hm Hm' gives %Heq
+  ipureintro; exact Heq
 
 instance bktFact_persistent (rtx : Loc) (D : Data) (n : GoString) (bk : Loc) :
     Persistent (bktFact (GF := GF) rtx D n bk) := by
@@ -985,14 +1065,14 @@ theorem crtSnap_read (γ : BNames) (P : BParams) (b crt rtx : Loc) (rv : RView) 
     iintro _
     iframe
   unfold crtSnap rdShare
-  icases Hc with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, Hrb, #Hrtx,
-    #Hcm, #Htm', #Hwg, Hown, #Hg, ⟨Hlive, Hrc⟩, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
+  icases Hc with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, %cst, #Hrt, #Htm, Hrb,
+    #Hcst, #Hrtx, #Hcm, #Htm', #Hwg, Hown, #Hg, ⟨Hlive, Hrc⟩, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
   icases txBytes_acc rtx s v q $$ [$Hs $Hlive] with ⟨%dq, Hsl, Hback⟩
   iexists dq
   iframe Hsl
   iintro Hsl
   ihave Hlive := Hback $$ Hsl
-  iexists m, Pb, cm, tm, wg, γw, γo, γt, k, q, rt
+  iexists m, Pb, cm, tm, wg, γw, γo, γt, k, q, rt, cst
   iframe; iframe #
   ipureintro; exact Hwf
 

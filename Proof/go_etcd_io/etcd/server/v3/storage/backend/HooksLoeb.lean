@@ -40,7 +40,7 @@ def isBackendNH (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (h : GoI
   iprop(□ ∃ (t rt tm db lg : Loc),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
-    rtmuOf (baseOf rt) ↦□ tm ∗
+    rtmuAt rt tm ∗
     sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
     sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗

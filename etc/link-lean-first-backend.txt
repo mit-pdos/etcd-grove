@@ -42,7 +42,7 @@ NewHooks: hooks__OnPreCommitUnsafe
 backend__BatchTx: 
 backend__Close: bbolt_DB__Close_kv
 backend__Commits: 
-backend__ConcurrentReadTx: txReadBuffer__unsafeCopy
+backend__ConcurrentReadTx: sharedBoltTx__addWait txReadBuffer__unsafeCopy sharedBoltTx__clone
 backend__ForceCommit: batchTxBuffered__Commit
 backend__LockForSafeRangeDelete: 
 backend__OpenReadTxN: 
@@ -54,7 +54,7 @@ backend__UnlockForSafeRangeDelete:
 backend__begin: backend__unsafeBegin bbolt_Tx__Size_kv bbolt_Tx__DB_kv bbolt_DB__Stats_kv bbolt_DB__Info_kv
 backend__run: batchTx__safePending batchTx__lock batchTxBuffered__commit batchTx__Unlock batchTxBuffered__CommitAndStop
 backend__unsafeBegin: bbolt_DB__Begin_kv zap_Error zap_Logger__Fatal
-baseReadTx__UnsafeRange: txReadBuffer__Range bbolt_Tx__Bucket_kvr bbolt_Bucket__Cursor_kvr unsafeRange
+baseReadTx__UnsafeRange: txReadBuffer__Range sharedBoltTx__bucket sharedBoltTx__lock bbolt_Bucket__Cursor_kvr sharedBoltTx__unlock unsafeRange
 batchTxBuffered__Commit: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__CommitAndStop: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__Lock: batchTx__Lock
@@ -68,7 +68,7 @@ batchTxBuffered__UnsafePut: batchTx__UnsafePut txWriteBuffer__put
 batchTxBuffered__UnsafeRange: batchTx__UnsafeRange
 batchTxBuffered__UnsafeSeqPut: batchTx__UnsafeSeqPut txWriteBuffer__putSeq
 batchTxBuffered__commit: readTx__Lock batchTxBuffered__unsafeCommit readTx__Unlock
-batchTxBuffered__unsafeCommit: bbolt_Tx__Rollback_kv readTx__reset batchTx__commit backend__begin
+batchTxBuffered__unsafeCommit: readTx__reset batchTx__commit backend__begin sharedBoltTx__setTx
 batchTx__Lock: ValidateCalledInsideUnittest batchTx__lock
 batchTx__LockInsideApply: batchTx__lock ValidateCalledInsideApply
 batchTx__LockOutsideApply: ValidateCalledOutSideApply batchTx__lock
@@ -94,7 +94,7 @@ bucketBuffer__dedupe: sort_Stable bucketBuffer__Len bucketBuffer__Less bucketBuf
 bucketBuffer__merge: bucketBuffer__add bucketBuffer__dedupe
 concurrentReadTx__Lock: 
 concurrentReadTx__RLock: 
-concurrentReadTx__RUnlock: 
+concurrentReadTx__RUnlock: sharedBoltTx__finishWait
 concurrentReadTx__Unlock: 
 concurrentReadTx__UnsafeRange: baseReadTx__UnsafeRange
 hooks__OnPreCommitUnsafe: 
@@ -104,7 +104,19 @@ readTx__RLock:
 readTx__RUnlock: 
 readTx__Unlock: 
 readTx__UnsafeRange: baseReadTx__UnsafeRange
-readTx__reset: txReadBuffer__reset
+readTx__reset: txReadBuffer__reset sharedBoltTx__reset
+# etcd#22215's sharedBoltTx (read_tx.go): the shared read transaction's bbolt transaction, its
+# lock, buckets map and WaitGroup, behind the sharedTx interface
+newSharedTx: 
+sharedBoltTx__addWait: 
+sharedBoltTx__bucket: sharedBoltTx__lock sharedBoltTx__unlock bbolt_Tx__Bucket_kvr
+sharedBoltTx__clone: 
+sharedBoltTx__finishWait: 
+sharedBoltTx__lock: 
+sharedBoltTx__reset: bbolt_Tx__Rollback_kv
+sharedBoltTx__setTx: 
+sharedBoltTx__unlock: 
+sharedBoltTx__wait: 
 txBuffer__reset: 
 txReadBuffer__ForEach: bucketBuffer__ForEach
 txReadBuffer__Range: bucketBuffer__Range

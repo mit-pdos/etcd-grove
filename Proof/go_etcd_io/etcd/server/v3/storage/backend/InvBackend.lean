@@ -96,7 +96,9 @@ variable [FfiSyntax]
 /-- The read side's layout: the interval's bbolt read transaction (null once the backend
 stopped) and `WaitGroup` (with the protocol's ghost names), the current state's index in the
 history, whether an `Unlock`'s window is open (between its write-back and its commit) and
-whether an interval is open (false once the backend stopped). (The read buffer's layout and the
+whether an interval is open (false once the backend stopped), and the shared read
+transaction's `sharedBoltTx` (`readTx.tx`'s concrete value, the same for the backend's life: the
+fields above are its fields). (The read buffer's layout and the
 buckets map are not recorded: a reader's call of `baseReadTx.UnsafeRange` gives them back
 existentially; fractions agree on them, `rbAt_agree`.) -/
 structure RdSt where
@@ -108,6 +110,7 @@ structure RdSt where
   idx : Nat
   win : Bool
   live : Bool
+  st : Loc
 
 instance kv_countable : Pos.Countable kv :=
   countableOfLeftInverse (fun x : kv => (x.key', x.val')) (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
@@ -117,9 +120,9 @@ instance bbPhys_countable : Pos.Countable BBPhys :=
 
 instance rdSt_countable : Pos.Countable RdSt :=
   countableOfLeftInverse
-    (fun x : RdSt => (x.rtx, x.wg, x.γw, x.γo, x.γt, x.idx, x.win, x.live))
+    (fun x : RdSt => (x.rtx, x.wg, x.γw, x.γo, x.γt, x.idx, x.win, x.live, x.st))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2⟩)
+      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 end phys
@@ -152,10 +155,15 @@ abbrev baseOf (rt : Loc) : Loc := structFieldRef readTx go!"baseReadTx" rt
 abbrev cbaseOf (rt : Loc) : Loc := structFieldRef concurrentReadTx go!"baseReadTx" rt
 abbrev rmuOf (base : Loc) : Loc := structFieldRef baseReadTx go!"mu" base
 abbrev rbufOf (base : Loc) : Loc := structFieldRef baseReadTx go!"buf" base
-abbrev rtxOf (base : Loc) : Loc := structFieldRef baseReadTx go!"tx" base
-abbrev rbktOf (base : Loc) : Loc := structFieldRef baseReadTx go!"buckets" base
-abbrev rwgOf (base : Loc) : Loc := structFieldRef baseReadTx go!"txWg" base
-abbrev rtmuOf (base : Loc) : Loc := structFieldRef baseReadTx go!"txMu" base
+/-- A read transaction's `tx` field: a `sharedTx` interface, whose value is a `*sharedBoltTx`
+(`stIf st`), the shared transaction's fields (`rtxOf st` and the others). -/
+abbrev rstOf (base : Loc) : Loc := structFieldRef baseReadTx go!"tx" base
+/-- The `sharedTx` interface value of the `*sharedBoltTx` at `st`. -/
+abbrev stIf (st : Loc) : GoInterface := interface.mkOk (go.GoType.PointerType sharedBoltTx.ty) #st
+abbrev rtxOf (st : Loc) : Loc := structFieldRef sharedBoltTx go!"tx" st
+abbrev rbktOf (st : Loc) : Loc := structFieldRef sharedBoltTx go!"buckets" st
+abbrev rwgOf (st : Loc) : Loc := structFieldRef sharedBoltTx go!"txWg" st
+abbrev rtmuOf (st : Loc) : Loc := structFieldRef sharedBoltTx go!"txMu" st
 abbrev cacheOf (b : Loc) : Loc := bF go!"txReadBufferCache" b
 abbrev cmuOf (b : Loc) : Loc := structFieldRef txReadBufferCache go!"mu" (cacheOf b)
 abbrev cbufOf (b : Loc) : Loc := structFieldRef txReadBufferCache go!"buf" (cacheOf b)
@@ -402,7 +410,8 @@ def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RVi
   iprop(ghostVar γ.rd q rd ∗
     ghostVar γ.rvs q.half (rv, rd.win) ∗ ghostVar γ.cur q.half ((rv.2.ver, rd.idx), rd.win) ∗
     ghostMapAuth γ.hist q H ∗
-    rtxOf (baseOf rt) ↦{DFrac.own q} rd.rtx ∗ rwgOf (baseOf rt) ↦{DFrac.own q} rd.wg ∗
+    (rstOf (baseOf rt) ↦□ stIf rd.st ∗ rtxOf rd.st ↦{DFrac.own q} rd.rtx) ∗
+    rwgOf rd.st ↦{DFrac.own q} rd.wg ∗
     ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ H.lookup (rv.2.ver, rd.idx) = some rv ∧
       (∀ k rv', H.lookup k = some rv' → keyLe k (rv.2.ver, rd.idx)) ∧
       (rd.win = true → rd.idx = 0) ∧ safeRv P rv⌝ ∗
@@ -421,12 +430,20 @@ def rtResAt (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RV
     (H : GMap (w64 × Nat) RView) : IProp GF :=
   iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap),
     rbAt (rbufOf (baseOf rt)) (DFrac.own q) m Pb rv.2 ∗ ⌜bksOk Pb rv.2.bks⌝ ∗
-    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H)
+    rbktOf rd.st ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H)
 
 /-- `readTx.mu`'s resource at `q`. -/
 def rtRes (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) : IProp GF :=
   iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView), rtResAt γ P rt q rd rv H)
 
+
+/-- The shared read transaction `rt`'s `txMu` is `tm` (persistent): its `tx` field holds a
+`*sharedBoltTx` whose `txMu` field is `tm`. -/
+def rtmuAt (rt tm : Loc) : IProp GF :=
+  iprop(∃ st : Loc, rstOf (baseOf rt) ↦□ stIf st ∗ rtmuOf st ↦□ tm)
+
+instance rtmuAt_persistent (rt tm : Loc) : Persistent (rtmuAt (GF := GF) rt tm) := by
+  unfold rtmuAt; infer_instance
 
 /-! ## The cache -/
 
@@ -544,7 +561,7 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
   iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
-    rtmuOf (baseOf rt) ↦□ tm ∗ hooksSpec γ P Pk b t h ∗
+    rtmuAt rt tm ∗ hooksSpec γ P Pk b t h ∗
     sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
     sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
@@ -580,7 +597,7 @@ def kvsOutRd (rtx : Loc) (keys vals : GoSlice) (res : List Ent) : IProp GF :=
 /-- A reader's tokens, beside `readTx.mu`'s slot: a slot of `txMu` and a reader's budget
 token (a `ConcurrentReadTx` keeps them until its `RUnlock`). -/
 def crTok (γ : BNames) (b : Loc) : IProp GF :=
-  iprop(∃ (rt tm : Loc), bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
+  iprop(∃ (rt tm : Loc), bF go!"readTx" b ↦□ rt ∗ rtmuAt rt tm ∗
     sync.ownRWMutex tm (fun q => tmTok γ q) ∗ ownToks γ.rdt 1)
 
 /-- A reader's token: a slot of `readTx.mu`, and `crTok`. -/
@@ -588,29 +605,36 @@ def rdTok (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(∃ rt : Loc, bF go!"readTx" b ↦□ rt ∗ sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
     crTok γ b)
 
+/-- What `sharedBoltTx.bucket` needs of the `sharedBoltTx` at `st` (a shared or a concurrent read
+transaction's): its bbolt transaction `rtx` at `dq` (open: `txLive` at `q`) over the committed data
+`D`, its buckets map at `dq` with the interval's invariant, `txMu` and a slot of it. -/
+def stRd (γ : BNames) (P : BParams) (st : Loc) (dq : DFrac) (rtx : Loc) (D : Data) (q : Qp) :
+    IProp GF :=
+  iprop(∃ (cm : GoMap) (tm : Loc),
+    rtxOf st ↦{dq} rtx ∗ rbktOf st ↦{dq} cm ∗
+    rtmuOf st ↦□ tm ∗ sync.ownRWMutex tm (fun q => tmTok γ q) ∗
+    sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
+    txLive rtx q ∗ rtxSnap rtx D ∗ □ intvInv γ P rtx cm D ∗ ⌜P.Wf⌝)
+
 /-- What `baseReadTx.UnsafeRange` needs of its receiver `base` (a shared or a concurrent read
 transaction): its read buffer at `dq` (writable buffers unless read-only for good, a
-concurrent one's copy), its bbolt transaction `rtx` (open: `txLive` at `q`) over
-the readers' state `rv`, its buckets map with the interval's invariant, `txMu` and a slot of it.
+concurrent one's copy), and its `sharedBoltTx` (`stRd`).
 -/
 def baseRd (γ : BNames) (P : BParams) (base : Loc) (dq : DFrac) (rtx : Loc) (rv : RView) (q : Qp) :
     IProp GF :=
-  iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap) (tm : Loc),
-    rbAt (rbufOf base) dq m Pb rv.2 ∗ rtxOf base ↦{dq} rtx ∗ rbktOf base ↦{dq} cm ∗
-    rtmuOf base ↦□ tm ∗ sync.ownRWMutex tm (fun q => tmTok γ q) ∗
-    sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
-    txLive rtx q ∗ rtxSnap rtx rv.1 ∗ □ intvInv γ P rtx cm rv.1 ∗
-    ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf ∧ (dq = DFrac.discard ∨ bksOk Pb rv.2.bks)⌝)
+  iprop(∃ (m : GoMap) (Pb : BksPhys) (st : Loc),
+    rbAt (rbufOf base) dq m Pb rv.2 ∗ rstOf base ↦□ stIf st ∗ stRd γ P st dq rtx rv.1 q ∗
+    ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ (dq = DFrac.discard ∨ bksOk Pb rv.2.bks)⌝)
 
 /-- A `ConcurrentReadTx` at `crt` (until its `RUnlock`): its fields (its copy of the read
-buffer read-only for good), its share of the interval, its slot of `txMu`, over the readers' state
+buffer read-only for good, its own `sharedBoltTx` `cst`, a clone of the shared one's), its share of the interval, its slot of `txMu`, over the readers' state
 `rv` (the interval's committed data and the copy) and bbolt's transaction `rtx`. -/
 def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
   iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap) (tm wg : Loc) (γw γo γt : GName) (k : Nat)
-      (q : Qp) (rt : Loc),
-    bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
-    rbAt (rbufOf (cbaseOf crt)) DFrac.discard m Pb rv.2 ∗ rtxOf (cbaseOf crt) ↦□ rtx ∗
-    rbktOf (cbaseOf crt) ↦□ cm ∗ rtmuOf (cbaseOf crt) ↦□ tm ∗ rwgOf (cbaseOf crt) ↦□ wg ∗
+      (q : Qp) (rt cst : Loc),
+    bF go!"readTx" b ↦□ rt ∗ rtmuAt rt tm ∗
+    rbAt (rbufOf (cbaseOf crt)) DFrac.discard m Pb rv.2 ∗ rstOf (cbaseOf crt) ↦□ stIf cst ∗
+    rtxOf cst ↦□ rtx ∗ rbktOf cst ↦□ cm ∗ rtmuOf cst ↦□ tm ∗ rwgOf cst ↦□ wg ∗
     sync.ownRWMutex tm (fun q => tmTok γ q) ∗ sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
     rdShare rtx γo k q ∗ rtxSnap rtx rv.1 ∗ □ intvInv γ P rtx cm rv.1 ∗
     □ wgInv γ rtx wg γw γo γt ∗ ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf⌝)

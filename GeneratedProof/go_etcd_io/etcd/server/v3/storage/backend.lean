@@ -1130,6 +1130,97 @@ instance hooks_access_store_onPreCommitUnsafe (l : Loc) (v : go_etcd_io.etcd.ser
 end def_
 end hooks
 
+namespace sharedBoltTx
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+instance sharedBoltTx_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx where
+  typedPointstoDef l v dq := iprop(
+    "txMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txMu" l) v.txMu' dq ∗
+    "tx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"tx" l) v.tx' dq ∗
+    "buckets" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"buckets" l) v.buckets' dq ∗
+    "txWg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txWg" l) v.txWg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance sharedBoltTx_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx.underlying := by
+  solve_into_val_typed_struct
+
+instance sharedBoltTx_access_load_txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txMu" l) v.txMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txMu" l) v.txMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_store_txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (txMu' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txMu" l) v.txMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txMu" l) txMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with txMu' := txMu' } : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"tx" l) v.tx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"tx" l) v.tx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (tx' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"tx" l) v.tx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"tx" l) tx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tx' := tx' } : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_load_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"buckets" l) v.buckets' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"buckets" l) v.buckets' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_store_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (buckets' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"buckets" l) v.buckets' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"buckets" l) buckets' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buckets' := buckets' } : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_load_txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txWg" l) v.txWg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txWg" l) v.txWg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance sharedBoltTx_access_store_txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (txWg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txWg" l) v.txWg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx go!"txWg" l) txWg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with txWg' := txWg' } : go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end sharedBoltTx
+
 namespace txReadBuffer
 section def_
 
@@ -1200,10 +1291,7 @@ instance baseReadTx_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"mu" l) v.mu' dq ∗
     "buf" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buf" l) v.buf' dq ∗
-    "txMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' dq ∗
     "tx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) v.tx' dq ∗
-    "buckets" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' dq ∗
-    "txWg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1245,22 +1333,6 @@ instance baseReadTx_access_store_buf (l : Loc) (v : go_etcd_io.etcd.server.v3.st
  by
   solve_pointsto_access_struct
 
-instance baseReadTx_access_load_txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance baseReadTx_access_store_txMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (txMu' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) v.txMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txMu" l) txMu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with txMu' := txMu' } : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
 instance baseReadTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) v.tx' dq)
@@ -1269,43 +1341,11 @@ instance baseReadTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.stor
  by
   solve_pointsto_access_struct
 
-instance baseReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (tx' : Loc) :
+instance baseReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (tx' : go_etcd_io.etcd.server.v3.storage.backend.sharedTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"tx" l) tx' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tx' := tx' } : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance baseReadTx_access_load_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance baseReadTx_access_store_buckets (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (buckets' : GoMap) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) v.buckets' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"buckets" l) buckets' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buckets' := buckets' } : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance baseReadTx_access_load_txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance baseReadTx_access_store_txWg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (txWg' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) v.txWg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.baseReadTx go!"txWg" l) txWg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with txWg' := txWg' } : go_etcd_io.etcd.server.v3.storage.backend.baseReadTx) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

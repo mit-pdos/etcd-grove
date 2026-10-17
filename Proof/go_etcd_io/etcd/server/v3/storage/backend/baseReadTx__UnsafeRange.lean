@@ -8,7 +8,9 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeR
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txReadBuffer__Range
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
-public import Spec.go_etcd_io.bbolt.Tx__Bucket_kvr
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__bucket
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__lock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__unlock
 public import Spec.go_etcd_io.bbolt.Bucket__Cursor_kvr
 
 @[expose] public section
@@ -52,8 +54,10 @@ theorem backend.rtRange_rest (rv : RView) (bi : BucketInfo) (kb eb : GoString) (
 
 theorem backend.baseReadTx.UnsafeRange.wp_proof
     (hRange : backend.txReadBuffer.Range.spec (GF := GF) (hG := hG))
-    (hBucket : bbolt.Tx.Bucket_kvr.spec (GF := GF) (hG := hG))
+    (hbucket : backend.sharedBoltTx.bucket.spec (GF := GF) (hG := hG))
+    (hLock : backend.sharedBoltTx.lock.spec (GF := GF) (hG := hG))
     (hCursor : bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG))
+    (hUnlock : backend.sharedBoltTx.unlock.spec (GF := GF) (hG := hG))
     (hur : backend.unsafeRange.spec (GF := GF) (hG := hG)) :
     backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b base dq rtx rv q bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
@@ -61,8 +65,7 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold baseRd
-  icases Hrd with ⟨%m, %Pb, %cm, %tm, Hrb, Hrtx, Hcm, #Htm, Hown, #Hg, Hlive, #Hsnap, #Hintv,
-    %Hwf⟩
+  icases Hrd with ⟨%m, %Pb, %st, Hrb, #Hst, Hsr, %Hwf⟩
   ihave %Hel := ownSlice_len _ _ _ $$ He
   unfold isBucket
   icases Hbk with ⟨%bo, %hbo, #Hid, #Hname, #Hsafe'⟩
@@ -102,8 +105,8 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
   · -- the read buffer has `limit` entries
     rw [rtRange_full rv bi kb eb limit (by rw [← Hkal, Hksl.1, Hif]; word)]
     iapply HΦ
-    isplitl [Hrb Hrtx Hcm Hown Hlive]
-    · iexists m, Pb, cm, tm; iframe; iframe #; ipureintro; exact Hwf
+    isplitl [Hrb Hsr]
+    · iexists m, Pb, st; iframe; iframe #; ipureintro; exact Hwf
     iframe
     iapply kvsOutRd_of_kvsOut
     unfold kvsOut
@@ -114,57 +117,10 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
     intro h; apply Hif; apply BitVec.eq_of_toInt_eq
     show sint.Z keys.len = sint.Z (rangeLimit eb limit); rw [← h, ← Hkal, Hksl.1]; word
   rw [rtRange_rest rv bi kb eb limit hne]
-  wp_apply Hid
-  -- the buckets cache, under `txMu.RLock()`
-  wp_apply sync.RWMutex.wp_RLock $$ [$Hown] as ⟨Hrl, HP⟩
-  unfold tmTok
-  icases HP with ⟨Hta, Htb⟩
-  imod intv_borrow γ P rtx cm rv.1 sync.rfrac ⊤ (by solve_ndisj) $$ [$Hintv $Hta]
-    with ⟨%M, HM, #Hf⟩
-  wp_apply wp_map_lookup2 $$ HM as HM
-  imod intv_return γ P rtx cm rv.1 sync.rfrac M ⊤ (by solve_ndisj) $$ [$Hintv $HM $Hf] with Hta
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hta Htb] as Hown
-  · iframe
-  -- not cached: `txMu.Lock()`, the bucket from the transaction, cached
-  wp_join iprop(∃ (bkv : Loc) (lh : Bool), bucket_ptr ↦ bkv ∗ lockHeld_ptr ↦ lh ∗
-      bktFact rtx rv.1 bi.name bkv ∗ rtxOf base ↦{dq} rtx ∗ txLive rtx q ∗
-      baseReadTx_ptr ↦ base ∗ bucketType_ptr ↦ GoInterface.ok bo ∗ bn_ptr ↦ bi.id ∗
-      rbktOf base ↦{dq} cm ∗
-      (if lh then sync.ownRWMutexWLocked tm (fun q => tmTok γ q) ∗ ghostVar γ.txa 1 () ∗
-        rtxStats rtx else iprop(True)))
-    with [bucket lockHeld Hrtx Hlive baseReadTx bucketType bn Hcm]
-    as ⟨%bkv, %lh, bucket, lockHeld, #Hbf, Hrtx, Hlive, baseReadTx, bucketType, bn, Hcm, Hlh⟩
-  · -- in the cache
-    have hsome : ∃ bk0, M.lookup bi.id = some bk0 := by
-      cases h : M.lookup bi.id with
-      | none => rw [show M !! bi.id = M.lookup bi.id from rfl, h] at Hif; simp at Hif
-      | some bk0 => exact ⟨bk0, rfl⟩
-    obtain ⟨bk0, hbk0⟩ := hsome
-    ihave #Hbf := cmFacts_lookup P rtx rv.1 M bi bk0 Hwf.2.2.1 Hhas hbk0 $$ Hf
-    rw [show M !! bi.id = M.lookup bi.id from rfl, hbk0]
-    iexists bk0, false
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe; iframe #
-  · -- not in the cache
-    wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, HP⟩
-    unfold tmTok
-    icases HP with ⟨Hta, Htb⟩
-    imod stats_take γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Htb] with Hst
-    wp_apply Hname as %sn #Hsn
-    wp_apply hBucket $$ [$Hlive $Hsnap $Hst $Hsn] as %bkv ⟨Hlive, Hst, -, #Hbf⟩
-    imod intv_borrow γ P rtx cm rv.1 1 ⊤ (by solve_ndisj) $$ [$Hintv $Hta]
-      with ⟨%M', HM, #Hf'⟩
-    wp_apply +noauto wp_mapInsert $$ HM as HM
-    ihave #Hf'' := cmFacts_insert P rtx rv.1 M' bi bkv Hhas $$ [Hf' Hbf]
-    · iframe #; unfold bktFact; iexact Hbf
-    imod intv_return γ P rtx cm rv.1 1 _ ⊤ (by solve_ndisj) $$ [$Hintv $HM $Hf''] with Hta
-    wp_auto
-    isplitr
-    · ipureintro; rfl
-    iexists bkv, true
-    simp only [↓reduceIte]
-    iframe; iframe #
-    unfold bktFact; iexact Hbf
+  -- the bucket, from the shared transaction
+  wp_apply hbucket γ P st dq rtx rv.1 q (GoInterface.ok bo) bi Hhas $$ [$Hsr]
+    as %bkv ⟨Hsr, #Hbf⟩
+  · unfold isBucket; iexists bo; iframe #; ipureintro; rfl
   wp_if_destruct
   · -- no such bucket in the transaction's snapshot: the read buffer's entries
     unfold bktFact
@@ -173,55 +129,28 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
     · exfalso; exact Hsome.2 rfl
     rw [show bktOf rv.1 bi.name = ∅ by unfold bktOf; rw [Hnone.1]; rfl, bktEnts_empty,
       cursorRange_nil, List.nil_append]
-    cases lh
-    · simp only [Bool.false_eq_true, ↓reduceIte]
-      wp_auto
-      iapply HΦ
-      isplitl [Hrb Hrtx Hcm Hown Hlive]
-      · iexists m, Pb, cm, tm; iframe; iframe #; ipureintro; exact Hwf
-      iframe
-      iapply kvsOutRd_of_kvsOut
-      unfold kvsOut
-      iexists ks, vs
-      iframe; iframe #
-    · simp only [↓reduceIte]
-      icases Hlh with ⟨Hwl, Hta, Hst⟩
-      imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
-      wp_auto
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta Htb]
-      · unfold tmTok; iframe
-      iapply HΦ
-      isplitl [Hrb Hrtx Hcm Hown Hlive]
-      · iexists m, Pb, cm, tm; iframe; iframe #; ipureintro; exact Hwf
-      iframe
-      iapply kvsOutRd_of_kvsOut
-      unfold kvsOut
-      iexists ks, vs
-      iframe; iframe #
-  -- the bucket is there: a cursor, under `txMu.Lock()`
+    iapply HΦ
+    isplitl [Hrb Hsr]
+    · iexists m, Pb, st; iframe; iframe #; ipureintro; exact Hwf
+    iframe
+    iapply kvsOutRd_of_kvsOut
+    unfold kvsOut
+    iexists ks, vs
+    iframe; iframe #
+  -- the bucket is there: a cursor, under `tx.lock()`
   unfold bktFact
   icases Hbf with (%Hnone | ⟨%mb, %Hsome, #Hrb'⟩)
   · exfalso; exact Hif Hnone.2
-  wp_join iprop(baseReadTx_ptr ↦ base ∗
-      sync.ownRWMutexWLocked tm (fun q => tmTok γ q) ∗ ghostVar γ.txa 1 () ∗ ghostVar γ.txb 1 ())
-      at next with [baseReadTx Hlh] as ⟨baseReadTx, Hwl, Hta, Htb⟩
-  · cases lh
-    · simp only [Bool.false_eq_true, ↓reduceIte]
-      wp_auto
-      wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, HP⟩
-      unfold tmTok
-      icases HP with ⟨Hta, Htb⟩
-      wp_join_done
-    · simp only [↓reduceIte]
-      icases Hlh with ⟨Hwl, Hta, Hst⟩
-      imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
-      wp_auto
-      wp_join_done
-  imod stats_take γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Htb] with Hst
-  wp_apply hCursor $$ [$Hrb' $Hst $Hlive] as %c ⟨Hc, Hst, Hlive⟩
-  imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta Htb]
-  · unfold tmTok; iframe
+  unfold stRd
+  icases Hsr with ⟨%cm, %tm, Hrtx, Hcm, #Htm, Hown, #Hg, Hlive, #Hsnap, #Hintv, %HPwf⟩
+  wp_apply hLock st tm _ $$ [$Htm $Hg] as ⟨Hwl, HP⟩
+  unfold tmTok
+  icases HP with ⟨Hta, Htb⟩
+  imod stats_take γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Htb] with Hstt
+  wp_apply hCursor $$ [$Hrb' $Hstt $Hlive] as %c ⟨Hc, Hstt, Hlive⟩
+  imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hstt] with Htb
+  wp_apply hUnlock st tm _ $$ [$Htm $Hwl Hta Htb]
+  · iframe
   have hkl : keys.len = W64 ((bbRange (bkOf rv.2.bks bi.id) kb eb (rangeLimit eb limit)).length : Int) := by
     rw [← Hkal, Hksl.1]; word
   rw [hkl, show bktOf rv.1 bi.name = mb by unfold bktOf; rw [Hsome.1]; rfl]
@@ -234,7 +163,8 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
   · iframe
   iapply HΦ
   isplitl [Hrb Hrtx Hcm Hown Hlive]
-  · iexists m, Pb, cm, tm; iframe; iframe #; ipureintro; exact Hwf
+  · iexists m, Pb, st; iframe; iframe #
+    ipureintro; exact ⟨HPwf, Hwf⟩
   iframe
   simp only [List.map_append]
   isplitl

@@ -1,0 +1,8 @@
+    logger.go:146: 2026-10-17T06:34:13.048-0400	DEBUG	bbolt	Putting key "k0-23" successfully
+    logger.go:146: 2026-10-17T06:34:13.049-0400	DEBUG	bbolt	Putting key "k1-20"
+    logger.go:146: 2026-10-17T06:34:13.049-0400	DEBUG	bbolt	Putting key "k1-20" successfully
+    logger.go:146: 2026-10-17T06:34:13.049-0400	DEBUG	bbolt	Committing transaction 4
+    logger.go:146: 2026-10-17T06:34:13.049-0400	DEBUG	bbolt	Committing transaction 4 successfully
+--- PASS: TestReview22215ConcurrentReadersDefrag (0.30s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/backend	1.338s

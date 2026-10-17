@@ -64,12 +64,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 `C`, but the read buffer. -/
 def rtWb (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBuf) : IProp GF :=
   iprop(∃ (rd : RdSt) (cm : GoMap) (H : GMap (w64 × Nat) RView), ⌜rd.win = false⌝ ∗
-    rbktOf (baseOf rt) ↦ cm ∗ rtRest γ P rt 1 rd (C, R) cm H)
+    rbktOf rd.st ↦ cm ∗ rtRest γ P rt 1 rd (C, R) cm H)
 
 /-- `readTx.mu`'s resource during a commit from the readers' state `(C, R)` (in a window or
-not): its ghost state, without the shared transaction's fields, the read buffer and the
-interval. -/
-def rtCm (γ : BNames) (P : BParams) (C : Data) (R : RBuf) (win : Bool) : IProp GF :=
+not): its ghost state, without the shared transaction's fields (those of its `sharedBoltTx`
+`st`), the read buffer and the interval. -/
+def rtCm (γ : BNames) (P : BParams) (st : Loc) (C : Data) (R : RBuf) (win : Bool) : IProp GF :=
   iprop(∃ (rd : RdSt) (H : GMap (w64 × Nat) RView),
     ghostVar γ.rd 1 rd ∗ ghostVar γ.view (1 : Qp).half.half (vData P (C, R)) ∗
     ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
@@ -78,7 +78,7 @@ def rtCm (γ : BNames) (P : BParams) (C : Data) (R : RBuf) (win : Bool) : IProp 
       (∀ k rv', H.lookup k = some rv' → keyLe k (R.ver, rd.idx)) ∧ (win = true → rd.idx = 0)⌝ ∗
     histAt γ R.ver rd.idx (C, R) ∗ cacheValid γ P (C, R) rd.idx ∗
     (if win then poisonAt γ R.ver rd.idx else iprop(True)) ∗
-    ownTokAuthDfrac γ.rdt DFrac.discard rdMax)
+    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ ⌜rd.st = st⌝)
 
 /-- What the rollback goroutine of an ended interval holds: the interval's `WaitGroup`, closed
 to readers (its waiters' authority), the other half of the bbolt read transaction and its
@@ -112,9 +112,9 @@ theorem rtRes_rvs (γ : BNames) (P : BParams) (rt : Loc) :
   ipureintro; exact Hok
 
 /-- `rtCm`'s half of `γ.rvs`, out and back. -/
-theorem rtCm_rvs (γ : BNames) (P : BParams) (C : Data) (R : RBuf) (win : Bool) :
-    rtCm (GF := GF) γ P C R win ⊢ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
-      (ghostVar γ.rvs (1 : Qp).half ((C, R), win) -∗ rtCm γ P C R win) := by
+theorem rtCm_rvs (γ : BNames) (P : BParams) (st : Loc) (C : Data) (R : RBuf) (win : Bool) :
+    rtCm (GF := GF) γ P st C R win ⊢ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
+      (ghostVar γ.rvs (1 : Qp).half ((C, R), win) -∗ rtCm γ P st C R win) := by
   unfold rtCm
   iintro ⟨%rd, %H, Hrd, Hview, Hrvs, Hr⟩
   iframe Hrvs
@@ -185,7 +185,7 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
     (hsafe : safeRv P (C, writebackR W R)) :
     cacheInv (GF := GF) γ ∗
       (∃ (rd : RdSt) (cm : GoMap) (H : GMap (w64 × Nat) RView), ⌜rd.win = false⌝ ∗
-        rbktOf (baseOf rt) ↦ cm ∗ rtCore γ P rt 1 rd (C, R) cm H) ∗
+        rbktOf rd.st ↦ cm ∗ rtCore γ P rt 1 rd (C, R) cm H) ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C, writebackR W R)) ∗
       ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗
@@ -383,21 +383,22 @@ goroutine's resources (unless no interval was open: then the transaction is null
 backend stopped). -/
 theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBuf) (win : Bool) :
     rtRes (GF := GF) γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ⊢
-    |={⊤}=> ∃ (rtx : Loc) (cm : GoMap) (wg : Loc),
-      rtxOf (baseOf rt) ↦ rtx ∗ rbktOf (baseOf rt) ↦ cm ∗ rwgOf (baseOf rt) ↦ wg ∗
+    |={⊤}=> ∃ (st rtx : Loc) (cm : GoMap) (wg : Loc),
+      rstOf (baseOf rt) ↦□ stIf st ∗
+      rtxOf st ↦ rtx ∗ rbktOf st ↦ cm ∗ rwgOf st ↦ wg ∗
       ownRB (rbufOf (baseOf rt)) R ∗
       (rollbackRes γ rtx wg ∨ (⌜rtx = Loc.null⌝ ∗ bStopped γ)) ∗
-      rtCm γ P C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) := by
+      rtCm γ P st C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) := by
   unfold rtRes rtResAt rtRest rtCore
-  iintro ⟨⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hhist, Hrtx, Hwg,
-    %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, Hb⟩
+  iintro ⟨⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hhist,
+    ⟨#Hst, Hrtx⟩, Hwg, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, Hb⟩
   icombine Hrvs Hb gives %Heq0
   have Heq := Heq0.2
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, Hw⟩ := Heq
   ihave Hown := rbAt_ownRB _ m Pb R Hok $$ Hrb
-  iexists rd.rtx, cm, rd.wg
-  iframe Hrtx Hcm Hwg Hown Hb
+  iexists rd.st, rd.rtx, cm, rd.wg
+  iframe Hrtx Hcm Hwg Hown Hb Hst
   -- the interval ends
   unfold rtCm
   unfold rtIntv
@@ -410,7 +411,9 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
     · iright; iframe #; ipureintro; exact Hnull
     iexists rd, H
     iframe; iframe #
-    ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
+    isplitr
+    · ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
+    ipureintro; rfl
   simp only [↓reduceIte]
   icases Hiv with ⟨Hlive, #Hsnap, -, #Hwgi, Hwo, Htk⟩
   unfold wgInv
@@ -437,7 +440,9 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
         iframe; iframe #
       iexists rd, H
       iframe; iframe #
-      ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
+      isplitr
+      · ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
+      ipureintro; rfl
     · unfold wgOpen
       ihave %Hv := ghostVar_valid_2 rd.γw () 1 () 1 $$ Hwo Hwo'
       exfalso; have := Hv.1; simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at this; grind
@@ -448,12 +453,13 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
 /-- A new interval for the bbolt read transaction `tx` over `D` (with a fresh buckets map and
 `WaitGroup`), or none at a stop: its invariants and `readTx.mu`'s whole share. -/
 theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Loc) (idx : Nat)
-    (stop : Bool) :
+    (stop : Bool) (st : Loc) :
     (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
        else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) ∗
       cm ↦$ (∅ : GMap w64 Loc) ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownTokAuthDfrac (GF := GF) γ.rdt DFrac.discard rdMax ⊢
-    |={⊤}=> ∃ rd' : RdSt, ⌜rd'.rtx = tx ∧ rd'.wg = wg ∧ rd'.idx = idx ∧ rd'.win = false⌝ ∗
+    |={⊤}=> ∃ rd' : RdSt, ⌜rd'.rtx = tx ∧ rd'.wg = wg ∧ rd'.idx = idx ∧ rd'.win = false ∧
+      rd'.st = st⌝ ∗
       rtIntv γ P 1 rd' cm D := by
   iintro ⟨Hn, Hcm, Hwg, #Hauth⟩
   cases stop
@@ -493,9 +499,9 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
     imod inv_alloc (bN.@"stats") ⊤ iprop(rtxStats tx ∨ ghostVar γ.txb 1 ()) $$ [Hst] with #Hiv2
     · inext; ileft; iexact Hst
     imodintro
-    iexists (⟨tx, wg, γw, γo, γt, idx, false, true⟩ : RdSt)
+    iexists (⟨tx, wg, γw, γo, γt, idx, false, true, st⟩ : RdSt)
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     unfold rtIntv
     simp only [↓reduceIte]
     iframe; iframe #
@@ -507,9 +513,9 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
   · simp only [↓reduceIte]
     icases Hn with ⟨%Hnull, #Hst⟩
     imodintro
-    iexists (⟨tx, wg, γ.rd, γ.rd, γ.rd, idx, false, false⟩ : RdSt)
+    iexists (⟨tx, wg, γ.rd, γ.rd, γ.rd, idx, false, false, st⟩ : RdSt)
     isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     unfold rtIntv
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe #
@@ -520,27 +526,27 @@ theorem new_intv (γ : BNames) (P : BParams) (cm : GoMap) (D : Data) (tx wg : Lo
 invariants), or, at a stop, none and `bStopped`; the state `(ver, i + 1)` recorded, the view
 updated (the batch lock's quarter; out of a window, the clients' whole share, back from
 `cacheInv`). Not in a window, the view must be unchanged. -/
-theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R : RBuf)
+theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt st : Loc) (C C' : Data) (R : RBuf)
     (win stop : Bool) (tx : Loc) (cm : GoMap) (wg : Loc)
     (hview : win = false → vData P (C', R.reset) = vData P (C, R)) :
-    cacheInv (GF := GF) γ ∗ rtCm γ P C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
-      ghostVar γ.view (1 : Qp).half.half (vData P (C, R)) ∗
-      rtxOf (baseOf rt) ↦ tx ∗ rbktOf (baseOf rt) ↦ cm ∗ cm ↦$ (∅ : GMap w64 Loc) ∗
-      rwgOf (baseOf rt) ↦ wg ∗ wg ↦ (zero_val sync.WaitGroup) ∗
+    cacheInv (GF := GF) γ ∗ rtCm γ P st C R win ∗ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗
+      ghostVar γ.view (1 : Qp).half.half (vData P (C, R)) ∗ rstOf (baseOf rt) ↦□ stIf st ∗
+      rtxOf st ↦ tx ∗ rbktOf st ↦ cm ∗ cm ↦$ (∅ : GMap w64 Loc) ∗
+      rwgOf st ↦ wg ∗ wg ↦ (zero_val sync.WaitGroup) ∗
       ownRB (rbufOf (baseOf rt)) R.reset ∗
       (if stop then iprop(⌜tx = Loc.null⌝ ∗ bStopped γ)
        else iprop(txLive tx 1 ∗ rtxSnap tx C' ∗ rtxStats tx)) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C', R.reset), false) ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C', R.reset)) ∗
       (if win then bView γ 1 (vData P (C', R.reset)) else iprop(True))) := by
-  iintro ⟨#Hci, Hcm, Hb, Hvq, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn⟩
+  iintro ⟨#Hci, Hcm, Hb, Hvq, #Hstf, Htx, Hcmf, Hcm0, Hwgf, Hwg0, Hrb, Hn⟩
   unfold rtCm
-  icases Hcm with ⟨%rd, %H, Hrd, Hvr, Hrvs, Hcur, Hhist, %Hf, #Hha, #Hcv, Hpo, #Hauth⟩
+  icases Hcm with ⟨%rd, %H, Hrd, Hvr, Hrvs, Hcur, Hhist, %Hf, #Hha, #Hcv, Hpo, #Hauth, %Hrst⟩
   obtain ⟨Hw, hRwf, hids, hHl, hHall, hwin0⟩ := Hf
   -- the new interval
-  imod new_intv γ P cm C' tx wg (rd.idx + 1) stop $$ [Hn Hcm0 Hwg0] with ⟨%rd', %Hrd', Hiv⟩
+  imod new_intv γ P cm C' tx wg (rd.idx + 1) stop st $$ [Hn Hcm0 Hwg0] with ⟨%rd', %Hrd', Hiv⟩
   · iframe; iframe #
-  obtain ⟨hr1, hr2, hr3, hr4⟩ := Hrd'
+  obtain ⟨hr1, hr2, hr3, hr4, hr5⟩ := Hrd'
   -- `γ.rvs`, the layout, the history
   imod ghostVar_update_halves ((C', R.reset), false) γ.rvs _ _ $$ Hrvs Hb with ⟨Hrvs, Hb⟩
   imod ghostVar_update rd' γ.rd rd $$ Hrd with Hrd
@@ -597,7 +603,7 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     iframe Hb Hvq
     unfold rtRes rtResAt rtRest rtCore
     iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), m, Pb, cm
-    rw [hr1, hr2, hr3, hr4, show R.reset.ver = R.ver from rfl, hview rfl]
+    rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl, hview rfl]
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe; iframe #
     isplitr
@@ -643,7 +649,7 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     isplitr [Hvc Hcw]
     · unfold rtRes rtResAt rtRest rtCore
       iexists rd', (C', R.reset), H.insert (R.ver, rd.idx + 1) (C', R.reset), m, Pb, cm
-      rw [hr1, hr2, hr3, hr4, show R.reset.ver = R.ver from rfl]
+      rw [hr1, hr2, hr3, hr4, hr5, show R.reset.ver = R.ver from rfl]
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe; iframe #
       isplitr

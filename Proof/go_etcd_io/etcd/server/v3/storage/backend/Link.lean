@@ -91,12 +91,22 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBucketBuffer
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newSharedTx
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Lock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__addWait
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__bucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__clone
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__finishWait
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__lock
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__reset
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__setTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__unlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.sharedBoltTx__wait
 public import Proof.sort.Sort
 public import Proof.sort.Stable
 public import Proof.time.Duration__Seconds
@@ -167,6 +177,10 @@ theorem backend.wp_Commits :
     EtcdGrove.backend.backend.Commits.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.Commits.wp_proof
 
+theorem sharedBoltTx.wp_addWait :
+    EtcdGrove.backend.sharedBoltTx.addWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.addWait.wp_proof
+
 theorem verify.wp_Assert :
     EtcdGrove.verify.Assert.spec (GF := GF) (hG := hG) :=
   EtcdGrove.verify.Assert.wp_proof
@@ -179,9 +193,13 @@ theorem txReadBuffer.wp_unsafeCopy :
     EtcdGrove.backend.txReadBuffer.unsafeCopy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.txReadBuffer.unsafeCopy.wp_proof bucketBuffer.wp_CopyUsed
 
+theorem sharedBoltTx.wp_clone :
+    EtcdGrove.backend.sharedBoltTx.clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.clone.wp_proof
+
 theorem backend.wp_ConcurrentReadTx :
     EtcdGrove.backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.backend.ConcurrentReadTx.wp_proof txReadBuffer.wp_unsafeCopy
+  EtcdGrove.backend.backend.ConcurrentReadTx.wp_proof sharedBoltTx.wp_addWait txReadBuffer.wp_unsafeCopy sharedBoltTx.wp_clone
 
 theorem batchTx.wp_lock :
     EtcdGrove.backend.batchTx.lock.spec (GF := GF) (hG := hG) :=
@@ -191,10 +209,6 @@ theorem readTx.wp_Lock :
     EtcdGrove.backend.readTx.Lock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.Lock.wp_proof
 
-theorem bbolt.Tx.wp_Rollback_kv :
-    EtcdGrove.bbolt.Tx.Rollback_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
-
 theorem txBuffer.wp_reset :
     EtcdGrove.backend.txBuffer.reset.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.txBuffer.reset.wp_proof
@@ -203,9 +217,17 @@ theorem txReadBuffer.wp_reset :
     EtcdGrove.backend.txReadBuffer.reset.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.txReadBuffer.reset.wp_proof txBuffer.wp_reset
 
+theorem bbolt.Tx.wp_Rollback_kv :
+    EtcdGrove.bbolt.Tx.Rollback_kv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
+
+theorem sharedBoltTx.wp_reset :
+    EtcdGrove.backend.sharedBoltTx.reset.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.reset.wp_proof bbolt.Tx.wp_Rollback_kv
+
 theorem readTx.wp_reset :
     EtcdGrove.backend.readTx.reset.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.readTx.reset.wp_proof txReadBuffer.wp_reset
+  EtcdGrove.backend.readTx.reset.wp_proof txReadBuffer.wp_reset sharedBoltTx.wp_reset
 
 theorem bbolt.Tx.wp_Commit_kv :
     EtcdGrove.bbolt.Tx.Commit_kv.spec (GF := GF) (hG := hG) :=
@@ -259,9 +281,13 @@ theorem batchTx.wp_commit :
     EtcdGrove.backend.batchTx.commit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTx.commit.wp_proof bbolt.Tx.wp_Commit_kv bbolt.Tx.wp_Stats_kv time.Duration.wp_Seconds zap.wp_Error zap.Logger.wp_Fatal backend.wp_begin
 
+theorem sharedBoltTx.wp_setTx :
+    EtcdGrove.backend.sharedBoltTx.setTx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.setTx.wp_proof
+
 theorem batchTxBuffered.wp_unsafeCommit :
     EtcdGrove.backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.batchTxBuffered.unsafeCommit.wp_proof bbolt.Tx.wp_Rollback_kv readTx.wp_reset batchTx.wp_commit backend.wp_begin
+  EtcdGrove.backend.batchTxBuffered.unsafeCommit.wp_proof readTx.wp_reset batchTx.wp_commit backend.wp_begin sharedBoltTx.wp_setTx
 
 theorem readTx.wp_Unlock :
     EtcdGrove.backend.readTx.Unlock.spec (GF := GF) (hG := hG) :=
@@ -371,9 +397,21 @@ theorem txReadBuffer.wp_Range :
     EtcdGrove.backend.txReadBuffer.Range.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.txReadBuffer.Range.wp_proof bucketBuffer.wp_Range
 
+theorem sharedBoltTx.wp_lock :
+    EtcdGrove.backend.sharedBoltTx.lock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.lock.wp_proof
+
+theorem sharedBoltTx.wp_unlock :
+    EtcdGrove.backend.sharedBoltTx.unlock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.unlock.wp_proof
+
 theorem bbolt.Tx.wp_Bucket_kvr :
     EtcdGrove.bbolt.Tx.Bucket_kvr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.Bucket_kvr.wp_proof
+
+theorem sharedBoltTx.wp_bucket :
+    EtcdGrove.backend.sharedBoltTx.bucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.bucket.wp_proof sharedBoltTx.wp_lock sharedBoltTx.wp_unlock bbolt.Tx.wp_Bucket_kvr
 
 theorem bbolt.Bucket.wp_Cursor_kvr :
     EtcdGrove.bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG) :=
@@ -393,7 +431,7 @@ theorem wp_unsafeRange :
 
 theorem baseReadTx.wp_UnsafeRange :
     EtcdGrove.backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.baseReadTx.UnsafeRange.wp_proof txReadBuffer.wp_Range bbolt.Tx.wp_Bucket_kvr bbolt.Bucket.wp_Cursor_kvr wp_unsafeRange
+  EtcdGrove.backend.baseReadTx.UnsafeRange.wp_proof txReadBuffer.wp_Range sharedBoltTx.wp_bucket sharedBoltTx.wp_lock bbolt.Bucket.wp_Cursor_kvr sharedBoltTx.wp_unlock wp_unsafeRange
 
 theorem batchTx.wp_Lock :
     EtcdGrove.backend.batchTx.Lock.spec (GF := GF) (hG := hG) :=
@@ -535,9 +573,13 @@ theorem concurrentReadTx.wp_RLock :
     EtcdGrove.backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.concurrentReadTx.RLock.wp_proof
 
+theorem sharedBoltTx.wp_finishWait :
+    EtcdGrove.backend.sharedBoltTx.finishWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.finishWait.wp_proof
+
 theorem concurrentReadTx.wp_RUnlock :
     EtcdGrove.backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.concurrentReadTx.RUnlock.wp_proof
+  EtcdGrove.backend.concurrentReadTx.RUnlock.wp_proof sharedBoltTx.wp_finishWait
 
 theorem concurrentReadTx.wp_Unlock :
     EtcdGrove.backend.concurrentReadTx.Unlock.spec (GF := GF) (hG := hG) :=
@@ -546,6 +588,10 @@ theorem concurrentReadTx.wp_Unlock :
 theorem concurrentReadTx.wp_UnsafeRange :
     EtcdGrove.backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.concurrentReadTx.UnsafeRange.wp_proof baseReadTx.wp_UnsafeRange
+
+theorem wp_newSharedTx :
+    EtcdGrove.backend.newSharedTx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.newSharedTx.wp_proof
 
 theorem readTx.wp_RLock :
     EtcdGrove.backend.readTx.RLock.spec (GF := GF) (hG := hG) :=
@@ -558,6 +604,10 @@ theorem readTx.wp_RUnlock :
 theorem readTx.wp_UnsafeRange :
     EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.UnsafeRange.wp_proof baseReadTx.wp_UnsafeRange
+
+theorem sharedBoltTx.wp_wait :
+    EtcdGrove.backend.sharedBoltTx.wait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.sharedBoltTx.wait.wp_proof
 
 theorem txReadBuffer.wp_ForEach :
     EtcdGrove.backend.txReadBuffer.ForEach.spec (GF := GF) (hG := hG) :=

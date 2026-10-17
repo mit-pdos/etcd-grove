@@ -45,11 +45,18 @@ theorem backend.readTx.UnsafeRange.wp_proof
   icases Hcr with ⟨%rt3, %tm3, #Hrt3, #Htm3, Hown, Hrdt⟩
   icombine Hrt Hrt3 gives %Heq
   subst Heq
-  icombine Htm Htm3 gives %Heq
+  ihave %Heq := rtmuAt_agree rt tm tm3 $$ []
+  · iframe #
   subst Heq
   unfold rtResAt rtRest rtCore rtIntv
-  icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hhist, Hrtxf, Hwg, %Hfacts,
-    #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+  icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hhist, ⟨#Hst, Hrtxf⟩, Hwg,
+    %Hfacts, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
+  ihave #Htm0 := Htm
+  iunfold rtmuAt at Htm0
+  icases Htm0 with ⟨%st0, #Hst0, #Htmo⟩
+  ihave %Hsteq := stIf_agree (baseOf rt) st0 rd.st $$ []
+  · iframe #
+  subst Hsteq
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩
@@ -62,16 +69,26 @@ theorem backend.readTx.UnsafeRange.wp_proof
     as %keys %vals ⟨Hbr, Hk, He, Hout⟩
   · isplitl [Hrb Hrtxf Hcm Hown Hlive]
     · unfold baseRd
-      iexists m, Pb, cm, tm
+      iexists m, Pb, rd.st
       iframe; iframe #
-      ipureintro; exact ⟨Hfacts.1, Hfacts.2.1, HPwf, Or.inr Hok⟩
+      isplitl
+      · unfold stRd
+        iexists cm, tm
+        iframe; iframe #
+        ipureintro; exact HPwf
+      ipureintro; exact ⟨Hfacts.1, Hfacts.2.1, Or.inr Hok⟩
     unfold isBucket; iexact Hbk
   unfold baseRd
-  icases Hbr with ⟨%m', %Pb', %cm', %tm', Hrb, Hrtxf, Hcm, #Htm', Hown, -, Hlive, -, #Hintv', %Hwf'⟩
-  icombine Htm Htm' gives %Heq
+  icases Hbr with ⟨%m', %Pb', %st', Hrb, #Hst', Hsr, %Hwf'⟩
+  ihave %Hsteq := stIf_agree (baseOf rt) rd.st st' $$ [Hst0 Hst']
+  · iframe #
+  rw [← Hsteq]
+  unfold stRd
+  icases Hsr with ⟨%cm', %tm', Hrtxf, Hcm, #Htm', Hown, -, Hlive, -, #Hintv', -⟩
+  icombine Htmo Htm' gives %Heq
   subst Heq
   have Hok' : bksOk Pb' rv.2.bks := by
-    rcases Hwf'.2.2.2 with h | h
+    rcases Hwf'.2.2 with h | h
     · cases h
     · exact h
   iapply HΦ

@@ -135,6 +135,16 @@ def UnsafeReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] UnsafeReader.ty
 
+def sharedTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.sharedTx" [])
+
+attribute [irreducible] sharedTx.ty
+
+def sharedBoltTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.sharedBoltTx" [])
+
+attribute [irreducible] sharedBoltTx.ty
+
 def baseReadTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.baseReadTx" [])
 
@@ -298,6 +308,9 @@ noncomputable def newBatchTxBuffered [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def NewHooks [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.NewHooks"
+
+noncomputable def newSharedTx [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/backend.newSharedTx"
 
 noncomputable def newBucketBuffer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBucketBuffer"
@@ -464,10 +477,8 @@ noncomputable def newBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral txBuffer.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.MapType BucketID.ty (go.GoType.PointerType bucketBuffer.ty)) (Var "$v0")))])))
   (Let "$v1" (Val #(W64 0))
   (App (Val (GoInstruction (CompositeLiteral txReadBuffer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"txBuffer")) (ElementExpression txBuffer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"bufVersion")) (ElementExpression go.uint64 (Var "$v1")))]))))
-  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))]))) (Val #())) (Val #()))
-  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
-  (Let "$v3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.RWMutex.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.RWMutex.ty))) (Val #())))
-  (App (Val (GoInstruction (CompositeLiteral baseReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"buf")) (ElementExpression txReadBuffer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"buckets")) (ElementExpression (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"txWg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"txMu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) (Var "$v3")))]))))))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve newSharedTx []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral baseReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"buf")) (ElementExpression txReadBuffer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"tx")) (ElementExpression sharedTx.ty (Var "$v1")))]))))
   (App (Val (GoInstruction (CompositeLiteral readTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"baseReadTx")) (ElementExpression baseReadTx.ty (Var "$v0")))]))))
   (Let "$v6" (Let "$v0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.sync.Mutex.ty))) (LiteralValue []))
   (Let "$v1" (Val #(W64 0))
@@ -547,7 +558,7 @@ noncomputable def newBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
     write operations. The write result can be retrieved within the same tx immediately.
     The write result is isolated with other txs until the current one get committed.
 
-    go: backend.go:284:19 -/
+    go: backend.go:282:19 -/
 noncomputable def backend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -556,7 +567,7 @@ noncomputable def backend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType batchTxBuffered.ty) BatchTx.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))))))))
 
-/-- go: backend.go:288:19 -/
+/-- go: backend.go:286:19 -/
 noncomputable def backend.SetTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "hook"
@@ -581,7 +592,7 @@ noncomputable def backend.SetTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGloba
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))))))))
 
-/-- go: backend.go:296:19 -/
+/-- go: backend.go:294:19 -/
 noncomputable def backend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -594,7 +605,7 @@ noncomputable def backend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
     A) creates and keeps a copy of backend.readTx.txReadBuffer,
     B) references the boltdb read Tx (and its bucket cache) of current batch interval.
 
-    go: backend.go:301:19 -/
+    go: backend.go:299:19 -/
 noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -626,11 +637,8 @@ noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType concurrentReadTx.ty) ReadTx.ty))) (App (Val (GoInstruction (GoAlloc concurrentReadTx.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad txReadBuffer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType txReadBuffer.ty)))) (Var "buf")))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buckets"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))
-  (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txWg"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))
-  (App (Val (GoInstruction (CompositeLiteral baseReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"buf")) (ElementExpression txReadBuffer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"txMu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"tx")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"buckets")) (ElementExpression (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)) (Var "$v3"))), (KeyedElement (some (KeyField go!"txWg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) (Var "$v4")))])))))))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"clone"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral baseReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"buf")) (ElementExpression txReadBuffer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"tx")) (ElementExpression sharedTx.ty (Var "$v1")))]))))
   (App (Val (GoInstruction (CompositeLiteral concurrentReadTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"baseReadTx")) (ElementExpression baseReadTx.ty (Var "$v0")))]))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef txReadBufferCache.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"txReadBufferCache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))
@@ -685,8 +693,7 @@ noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef txReadBufferCache.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"txReadBufferCache"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txWg"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"addWait"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))))) (Val #()))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readTx.ty) go!"RUnlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -698,7 +705,7 @@ noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : 
 
 /-- ForceCommit forces the current batching tx to commit.
 
-    go: backend.go:377:19 -/
+    go: backend.go:372:19 -/
 noncomputable def backend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -710,7 +717,7 @@ noncomputable def backend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))))
 
-/-- go: backend.go:455:19 -/
+/-- go: backend.go:450:19 -/
 noncomputable def backend.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -720,7 +727,7 @@ noncomputable def backend.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"size"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:459:19 -/
+/-- go: backend.go:454:19 -/
 noncomputable def backend.SizeInUse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -730,7 +737,7 @@ noncomputable def backend.SizeInUse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"sizeInUse"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:463:19 -/
+/-- go: backend.go:458:19 -/
 noncomputable def backend.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -787,7 +794,7 @@ noncomputable def backend.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Var "$a0"))
   (App (Var "$oldf") (Val #())))))))))))))))))
 
-/-- go: backend.go:481:19 -/
+/-- go: backend.go:476:19 -/
 noncomputable def backend.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -816,7 +823,7 @@ noncomputable def backend.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Commits returns total number of commits since start
 
-    go: backend.go:490:19 -/
+    go: backend.go:485:19 -/
 noncomputable def backend.Commits.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -826,7 +833,7 @@ noncomputable def backend.Commits.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"commits"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:1086:19 -/
+/-- go: backend.go:1082:19 -/
 noncomputable def backend.begin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -878,7 +885,7 @@ noncomputable def backend.begin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))))))
 
-/-- go: backend.go:1101:19 -/
+/-- go: backend.go:1097:19 -/
 noncomputable def backend.unsafeBegin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -912,7 +919,7 @@ noncomputable def backend.unsafeBegin.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))))
 
-/-- go: backend.go:1111:19 -/
+/-- go: backend.go:1107:19 -/
 noncomputable def backend.OpenReadTxN.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -922,7 +929,7 @@ noncomputable def backend.OpenReadTxN.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef backend.ty go!"openReadTxN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: backend.go:1115:19 -/
+/-- go: backend.go:1111:19 -/
 noncomputable def backend.LockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -934,7 +941,7 @@ noncomputable def backend.LockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))))
 
-/-- go: backend.go:1119:19 -/
+/-- go: backend.go:1115:19 -/
 noncomputable def backend.UnlockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -946,7 +953,7 @@ noncomputable def backend.UnlockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalCon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))))
 
-/-- go: backend.go:1129:20 -/
+/-- go: backend.go:1125:20 -/
 noncomputable def snapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1434,42 +1441,34 @@ noncomputable def batchTx.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val 
     go: batch_tx.go:250:19 -/
 noncomputable def batchTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
-  (Lam "bucket"
+  (Lam "bucketType"
   (Lam "visitor"
   (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType batchTx.ty)))) (Var "t"))
   (Let "visitor" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
-  (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucket"))
+  (Let "bucketType" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucketType"))
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
+  (Let "$a0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))))) (Var "$a0")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))
 
 /-- go: batch_tx.go:254:6 -/
 noncomputable def unsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "tx"
-  (Lam "bucket"
+  (LamV "bucket"
   (Lam "visitor"
   (App (Val exceptionDo)
   (Let "visitor" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
-  (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucket"))
-  (Let "tx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))) (Var "$a0")))
-  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val UntypedNil))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty) go!"ForEach"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "b"))) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty) go!"ForEach"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket"))) (Var "$a0"))))
   (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "b") (Var "$r0")))))))))))))))
+  (Val #())))))))))
 
 /-- Commit commits a previous tx and begins a new writable one.
 
@@ -1734,10 +1733,10 @@ noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "stop")))
-  (Let "$r0" (Let "$a0" (Val #false)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType backend.ty) go!"begin"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))))))))) (Var "$r0")))))
+  (Let "$a0" (Let "$a0" (Val #false)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType backend.ty) go!"begin"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"setTx"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))))))))))) (Var "$a0"))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -1745,42 +1744,9 @@ noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "stop"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"commit"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Val UntypedNil))))))
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))))))))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txWg"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))))))))))
-  (Let "$go" (Lam "tx"
-  (Lam "wg"
-  (App (Val exceptionDo)
-  (Let "wg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (Var "wg"))
-  (Let "tx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Rollback"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))) (Val #()))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (Val #(go!"failed to rollback tx"))
-  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (Var "wg"))) (Val #()))))))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readTx.ty) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))) (Val #())))))
-  (App (Val doExecute)
-  (Fork
-  (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))
-  (App (Val doExecute)
-  (Val #()))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readTx.ty) go!"reset"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Hooks.ty))) (Pair (App (Val (GoInstruction (GoLoad Hooks.ty))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"hooks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))))))) (App (Val (GoInstruction (Convert go.untypedNil Hooks.ty))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType batchTxBuffered.ty) UnsafeReadWriter.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))
@@ -1788,7 +1754,7 @@ noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: batch_tx.go:408:27 -/
+/-- go: batch_tx.go:398:27 -/
 noncomputable def batchTxBuffered.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1814,7 +1780,7 @@ noncomputable def batchTxBuffered.UnsafePut.impl [FfiSyntax] [GoGlobalContext] :
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafePut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))))
 
-/-- go: batch_tx.go:413:27 -/
+/-- go: batch_tx.go:403:27 -/
 noncomputable def batchTxBuffered.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1840,7 +1806,7 @@ noncomputable def batchTxBuffered.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "value"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeSeqPut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))))
 
-/-- go: batch_tx.go:418:27 -/
+/-- go: batch_tx.go:408:27 -/
 noncomputable def batchTxBuffered.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
@@ -1860,7 +1826,7 @@ noncomputable def batchTxBuffered.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "key"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeDelete"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1"))))))))))))))
 
-/-- go: batch_tx.go:423:27 -/
+/-- go: batch_tx.go:413:27 -/
 noncomputable def batchTxBuffered.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
@@ -1909,15 +1875,221 @@ noncomputable def NewHooks.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert hooks.ty Hooks.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad HookFunc.ty))) (Var "onPreCommitUnsafe"))
   (App (Val (GoInstruction (CompositeLiteral hooks.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"onPreCommitUnsafe")) (ElementExpression HookFunc.ty (Var "$v0")))]))))))))
 
-/-- go: read_tx.go:54:31 -/
+/-- go: read_tx.go:62:6 -/
+noncomputable def newSharedTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType sharedBoltTx.ty) sharedTx.ty))) (App (Val (GoInstruction (GoAlloc sharedBoltTx.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.RWMutex.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.RWMutex.ty))) (Val #())))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))]))) (Val #())) (Val #()))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral sharedBoltTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"txMu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"buckets")) (ElementExpression (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"txWg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) (Var "$v2")))]))))))))))
+
+/-- go: read_tx.go:70:25 -/
+noncomputable def sharedBoltTx.lock.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Val #()))))))))
+
+/-- go: read_tx.go:71:25 -/
+noncomputable def sharedBoltTx.unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Val #()))))))))
+
+/-- go: read_tx.go:72:25 -/
+noncomputable def sharedBoltTx.addWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Var "$a0")))))))))
+
+/-- go: read_tx.go:73:25 -/
+noncomputable def sharedBoltTx.wait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Val #()))))))))
+
+/-- go: read_tx.go:74:25 -/
+noncomputable def sharedBoltTx.finishWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Val #()))))))))
+
+/-- go: read_tx.go:75:25 -/
+noncomputable def sharedBoltTx.setTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam "tx"
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))) (Var "$r0")))))))))))
+
+/-- go: read_tx.go:77:25 -/
+noncomputable def sharedBoltTx.bucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam "bucketType"
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (Let "bucketType" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucketType"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"ID"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))) (Val #()))
+  (Let "bn" (App (Val (GoInstruction (GoAlloc BucketID.ty))) (App (Val (GoInstruction (GoZeroVal BucketID.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"buckets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (App (Val (GoInstruction (GoLoad BucketID.ty))) (Var "bn")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType sharedBoltTx.ty) go!"unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))) (Val #())))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert BucketID.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"buckets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (App (Val (GoInstruction (GoLoad BucketID.ty))) (Var "bn"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType sharedBoltTx.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))) (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore BucketID.ty))) (Pair (Var "bn") (Var "$r0"))))))))))))
+
+/-- go: read_tx.go:93:25 -/
+noncomputable def sharedBoltTx.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam "lg"
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"buckets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Val UntypedNil))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))
+  (Let "$go" (Lam "tx"
+  (Lam "wg"
+  (App (Val exceptionDo)
+  (Let "wg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (Var "wg"))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Rollback"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "tx"))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"failed to rollback tx"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Fatal"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (Var "wg"))) (Val #()))))))))))
+  (App (Val doExecute)
+  (Fork
+  (App (App (Var "$go") (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- go: read_tx.go:110:25 -/
+noncomputable def sharedBoltTx.clone.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "st"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType sharedBoltTx.ty) sharedTx.ty))) (App (Val (GoInstruction (GoAlloc sharedBoltTx.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"buckets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef sharedBoltTx.ty go!"txWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sharedBoltTx.ty)))) (Var "st"))))
+  (App (Val (GoInstruction (CompositeLiteral sharedBoltTx.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"txMu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"tx")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"buckets")) (ElementExpression (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)) (Var "$v2"))), (KeyedElement (some (KeyField go!"txWg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) (Var "$v3")))])))))))))))))
+
+/-- go: read_tx.go:129:31 -/
 noncomputable def baseReadTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "baseReadTx"
-  (Lam "bucket"
+  (Lam "bucketType"
   (Lam "visitor"
   (App (Val exceptionDo)
   (Let "baseReadTx" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))
   (Let "visitor" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
-  (Let "bucket" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucket"))
+  (Let "bucketType" (App (Val (GoInstruction (GoAlloc Bucket.ty))) (Var "bucketType"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (Let "dups" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1964,17 +2136,20 @@ noncomputable def baseReadTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "visitNoDup" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"bucket"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Var "$a0")))
+  (Let "bucket" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitNoDup"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitNoDup"))
+  (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "visitor"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType txReadBuffer.ty) go!"ForEach"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx")))) (Var "$a0")) (Var "$a1")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -1983,12 +2158,14 @@ noncomputable def baseReadTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"unlock"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"lock"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))))) (Var "getDups"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType txReadBuffer.ty) go!"ForEach"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx")))) (Var "$a0")) (Var "$a1"))))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -2007,7 +2184,7 @@ noncomputable def baseReadTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.StructType []))))) (Pair (Var "dups") (Var "$r0"))))))))))))))
 
-/-- go: read_tx.go:78:31 -/
+/-- go: read_tx.go:154:31 -/
 noncomputable def baseReadTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "baseReadTx"
   (Lam "bucketType"
@@ -2037,23 +2214,9 @@ noncomputable def baseReadTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"ID"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))) (Val #()))
-  (Let "bn" (App (Val (GoInstruction (GoAlloc BucketID.ty))) (App (Val (GoInstruction (GoZeroVal BucketID.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buckets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (App (Val (GoInstruction (GoLoad BucketID.ty))) (Var "bn")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"bucket"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Var "$a0")))
   (Let "bucket" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #false)
-  (Let "lockHeld" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2086,55 +2249,18 @@ noncomputable def baseReadTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Pair (Var "k2") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"unlock"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Cursor.ty)))) (Pair (Var "c") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "lockHeld")))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #())))
-  (App (Val doExecute)
-  (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"lock"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Val UntypedNil)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vals"))))))
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "lockHeld"))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #())))
-  (App (Val doExecute)
-  (Val #()))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucketType"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty) go!"Bucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Var "bucket"))
-  (App (Val doExecute)
-  (App (App (App (Val (map.insert BucketID.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buckets"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (App (Val (GoInstruction (GoLoad BucketID.ty))) (Var "bn"))) (Var "$r0"))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "lockHeld") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "vals"))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "lockHeld") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType baseReadTx.ty)))) (Var "baseReadTx"))))) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore BucketID.ty))) (Pair (Var "bn") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "keys"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.byte))]))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "limit")))))
   (App (Val doReturn)
@@ -2164,7 +2290,7 @@ noncomputable def baseReadTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #())))))))))))))))
 
-/-- go: read_tx.go:128:19 -/
+/-- go: read_tx.go:188:19 -/
 noncomputable def readTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2176,7 +2302,7 @@ noncomputable def readTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
-/-- go: read_tx.go:129:19 -/
+/-- go: read_tx.go:189:19 -/
 noncomputable def readTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2188,7 +2314,7 @@ noncomputable def readTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
-/-- go: read_tx.go:130:19 -/
+/-- go: read_tx.go:190:19 -/
 noncomputable def readTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2200,7 +2326,7 @@ noncomputable def readTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
-/-- go: read_tx.go:131:19 -/
+/-- go: read_tx.go:191:19 -/
 noncomputable def readTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2212,31 +2338,24 @@ noncomputable def readTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
-/-- go: read_tx.go:133:19 -/
+/-- go: read_tx.go:193:19 -/
 noncomputable def readTx.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
-  (Lam BAnon
+  (Lam "lg"
   (App (Val exceptionDo)
   (Let "rt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType readTx.ty)))) (Var "rt"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))]))) (Val #())) (Val #()))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Val UntypedNil))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txWg"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt")))) (Var "$r0")))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"reset"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt")))))) (Var "$a0"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt")))) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buckets"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt")))) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType txReadBuffer.ty) go!"reset"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buf"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType txReadBuffer.ty) go!"reset"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buf"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))))
 
-/-- go: read_tx.go:144:29 -/
+/-- go: read_tx.go:202:29 -/
 noncomputable def concurrentReadTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2245,7 +2364,7 @@ noncomputable def concurrentReadTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doReturn)
   (Val #()))))))
 
-/-- go: read_tx.go:145:29 -/
+/-- go: read_tx.go:203:29 -/
 noncomputable def concurrentReadTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2256,7 +2375,7 @@ noncomputable def concurrentReadTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : v
 
 /-- RLock is no-op. concurrentReadTx does not need to be locked after it is created.
 
-    go: read_tx.go:148:29 -/
+    go: read_tx.go:206:29 -/
 noncomputable def concurrentReadTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2267,7 +2386,7 @@ noncomputable def concurrentReadTx.RLock.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- RUnlock signals the end of concurrentReadTx.
 
-    go: read_tx.go:151:29 -/
+    go: read_tx.go:209:29 -/
 noncomputable def concurrentReadTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
@@ -2277,7 +2396,7 @@ noncomputable def concurrentReadTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txWg"))) (App (Val (GoInstruction (StructFieldRef concurrentReadTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType concurrentReadTx.ty)))) (Var "rt")))))) (Val #()))))))))
+  (App (App (Val (GoInstruction (MethodResolve sharedTx.ty go!"finishWait"))) (App (Val (GoInstruction (GoLoad sharedTx.ty))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"tx"))) (App (Val (GoInstruction (StructFieldRef concurrentReadTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType concurrentReadTx.ty)))) (Var "rt")))))) (Val #()))))))))
 
 /-- go: tx_buffer.go:32:22 -/
 noncomputable def txBuffer.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -3965,6 +4084,83 @@ class UnsafeReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
 
 attribute [instance] UnsafeReader.TypeAssumptions.underlying
 
+abbrev sharedTx [FfiSyntax] : Type := GoInterface
+
+@[reducible] def sharedTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"addWait" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"bucket" (go.signature.Signature [Bucket.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)])), (go.InterfaceElem.MethodElem go!"clone" (go.signature.Signature [] false [sharedTx.ty])), (go.InterfaceElem.MethodElem go!"finishWait" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"reset" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [])), (go.InterfaceElem.MethodElem go!"setTx" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)] false [])), (go.InterfaceElem.MethodElem go!"unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"wait" (go.signature.Signature [] false []))])
+
+class sharedTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq sharedTx.ty sharedTx.underlying
+
+attribute [instance] sharedTx.TypeAssumptions.underlying
+
+structure sharedBoltTx [FfiSyntax] where
+  mk ::
+  txMu' : Loc
+  tx' : Loc
+  buckets' : GoMap
+  txWg' : Loc
+
+instance sharedBoltTx.zero_val [FfiSyntax] : ZeroVal sharedBoltTx :=
+  ⟨sharedBoltTx.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def sharedBoltTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"txMu" (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)),
+(go.field_decl.FieldDecl go!"tx" (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)),
+(go.field_decl.FieldDecl go!"buckets" (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))),
+(go.field_decl.FieldDecl go!"txWg" (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty))]
+
+@[irreducible] def sharedBoltTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  sharedBoltTx.fieldsUnsealed
+
+instance equals_unfold_sharedBoltTx [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold sharedBoltTx.fields sharedBoltTx.fieldsUnsealed :=
+  ⟨by unfold sharedBoltTx.fields; rfl⟩
+
+@[reducible] def sharedBoltTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType sharedBoltTx.fields)
+
+class sharedBoltTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying sharedBoltTx.underlying sharedBoltTx
+  underlying : go.UnderlyingDirectedEq sharedBoltTx.ty sharedBoltTx.underlying
+  get_txMu : ∀ (x : sharedBoltTx), go.IsGoStepPureDetTagged under (StructFieldGet sharedBoltTx.underlying go!"txMu") #x (Val #(x.txMu'))
+  set_txMu : ∀ (x : sharedBoltTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet sharedBoltTx.underlying go!"txMu") (PairV #x #y) (Val #(({ x with txMu' := y } : sharedBoltTx)))
+  get_tx : ∀ (x : sharedBoltTx), go.IsGoStepPureDetTagged under (StructFieldGet sharedBoltTx.underlying go!"tx") #x (Val #(x.tx'))
+  set_tx : ∀ (x : sharedBoltTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet sharedBoltTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : sharedBoltTx)))
+  get_buckets : ∀ (x : sharedBoltTx), go.IsGoStepPureDetTagged under (StructFieldGet sharedBoltTx.underlying go!"buckets") #x (Val #(x.buckets'))
+  set_buckets : ∀ (x : sharedBoltTx) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet sharedBoltTx.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : sharedBoltTx)))
+  get_txWg : ∀ (x : sharedBoltTx), go.IsGoStepPureDetTagged under (StructFieldGet sharedBoltTx.underlying go!"txWg") #x (Val #(x.txWg'))
+  set_txWg : ∀ (x : sharedBoltTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet sharedBoltTx.underlying go!"txWg") (PairV #x #y) (Val #(({ x with txWg' := y } : sharedBoltTx)))
+  ptr_addWait_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"addWait" sharedBoltTx.addWait.impl
+  ptr_bucket_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"bucket" sharedBoltTx.bucket.impl
+  ptr_clone_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"clone" sharedBoltTx.clone.impl
+  ptr_finishWait_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"finishWait" sharedBoltTx.finishWait.impl
+  ptr_lock_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"lock" sharedBoltTx.lock.impl
+  ptr_reset_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"reset" sharedBoltTx.reset.impl
+  ptr_setTx_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"setTx" sharedBoltTx.setTx.impl
+  ptr_unlock_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"unlock" sharedBoltTx.unlock.impl
+  ptr_wait_unfold : MethodUnfold (go.GoType.PointerType sharedBoltTx.ty) go!"wait" sharedBoltTx.wait.impl
+
+attribute [instance] sharedBoltTx.TypeAssumptions.type_repr
+  sharedBoltTx.TypeAssumptions.underlying
+  sharedBoltTx.TypeAssumptions.get_txMu
+  sharedBoltTx.TypeAssumptions.set_txMu
+  sharedBoltTx.TypeAssumptions.get_tx
+  sharedBoltTx.TypeAssumptions.set_tx
+  sharedBoltTx.TypeAssumptions.get_buckets
+  sharedBoltTx.TypeAssumptions.set_buckets
+  sharedBoltTx.TypeAssumptions.get_txWg
+  sharedBoltTx.TypeAssumptions.set_txWg
+  sharedBoltTx.TypeAssumptions.ptr_addWait_unfold
+  sharedBoltTx.TypeAssumptions.ptr_bucket_unfold
+  sharedBoltTx.TypeAssumptions.ptr_clone_unfold
+  sharedBoltTx.TypeAssumptions.ptr_finishWait_unfold
+  sharedBoltTx.TypeAssumptions.ptr_lock_unfold
+  sharedBoltTx.TypeAssumptions.ptr_reset_unfold
+  sharedBoltTx.TypeAssumptions.ptr_setTx_unfold
+  sharedBoltTx.TypeAssumptions.ptr_unlock_unfold
+  sharedBoltTx.TypeAssumptions.ptr_wait_unfold
+
 structure txReadBuffer [FfiSyntax] where
   mk ::
   txBuffer' : txBuffer
@@ -4015,21 +4211,15 @@ structure baseReadTx [FfiSyntax] where
   mk ::
   mu' : _root_.Perennial.sync.RWMutex
   buf' : txReadBuffer
-  txMu' : Loc
-  tx' : Loc
-  buckets' : GoMap
-  txWg' : Loc
+  tx' : sharedTx
 
 instance baseReadTx.zero_val [FfiSyntax] : ZeroVal baseReadTx :=
-  ⟨baseReadTx.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨baseReadTx.mk zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def baseReadTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"buf" txReadBuffer.ty),
-(go.field_decl.FieldDecl go!"txMu" (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)),
-(go.field_decl.FieldDecl go!"tx" (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)),
-(go.field_decl.FieldDecl go!"buckets" (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))),
-(go.field_decl.FieldDecl go!"txWg" (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty))]
+(go.field_decl.FieldDecl go!"tx" sharedTx.ty)]
 
 @[irreducible] def baseReadTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   baseReadTx.fieldsUnsealed
@@ -4048,14 +4238,8 @@ class baseReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_mu : ∀ (x : baseReadTx) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : baseReadTx)))
   get_buf : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"buf") #x (Val #(x.buf'))
   set_buf : ∀ (x : baseReadTx) (y : txReadBuffer), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : baseReadTx)))
-  get_txMu : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"txMu") #x (Val #(x.txMu'))
-  set_txMu : ∀ (x : baseReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"txMu") (PairV #x #y) (Val #(({ x with txMu' := y } : baseReadTx)))
   get_tx : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"tx") #x (Val #(x.tx'))
-  set_tx : ∀ (x : baseReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : baseReadTx)))
-  get_buckets : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"buckets") #x (Val #(x.buckets'))
-  set_buckets : ∀ (x : baseReadTx) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : baseReadTx)))
-  get_txWg : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"txWg") #x (Val #(x.txWg'))
-  set_txWg : ∀ (x : baseReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"txWg") (PairV #x #y) (Val #(({ x with txWg' := y } : baseReadTx)))
+  set_tx : ∀ (x : baseReadTx) (y : sharedTx), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : baseReadTx)))
   ptr_UnsafeForEach_unfold : MethodUnfold (go.GoType.PointerType baseReadTx.ty) go!"UnsafeForEach" baseReadTx.UnsafeForEach.impl
   ptr_UnsafeRange_unfold : MethodUnfold (go.GoType.PointerType baseReadTx.ty) go!"UnsafeRange" baseReadTx.UnsafeRange.impl
 
@@ -4065,14 +4249,8 @@ attribute [instance] baseReadTx.TypeAssumptions.type_repr
   baseReadTx.TypeAssumptions.set_mu
   baseReadTx.TypeAssumptions.get_buf
   baseReadTx.TypeAssumptions.set_buf
-  baseReadTx.TypeAssumptions.get_txMu
-  baseReadTx.TypeAssumptions.set_txMu
   baseReadTx.TypeAssumptions.get_tx
   baseReadTx.TypeAssumptions.set_tx
-  baseReadTx.TypeAssumptions.get_buckets
-  baseReadTx.TypeAssumptions.set_buckets
-  baseReadTx.TypeAssumptions.get_txWg
-  baseReadTx.TypeAssumptions.set_txWg
   baseReadTx.TypeAssumptions.ptr_UnsafeForEach_unfold
   baseReadTx.TypeAssumptions.ptr_UnsafeRange_unfold
 
@@ -4281,6 +4459,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   hooks_instance : hooks.TypeAssumptions
   ReadTx_instance : ReadTx.TypeAssumptions
   UnsafeReader_instance : UnsafeReader.TypeAssumptions
+  sharedTx_instance : sharedTx.TypeAssumptions
+  sharedBoltTx_instance : sharedBoltTx.TypeAssumptions
   baseReadTx_instance : baseReadTx.TypeAssumptions
   readTx_instance : readTx.TypeAssumptions
   concurrentReadTx_instance : concurrentReadTx.TypeAssumptions
@@ -4299,6 +4479,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   unsafeForEach_unfold : FuncUnfold unsafeForEach [] unsafeForEach.impl
   newBatchTxBuffered_unfold : FuncUnfold newBatchTxBuffered [] newBatchTxBuffered.impl
   NewHooks_unfold : FuncUnfold NewHooks [] NewHooks.impl
+  newSharedTx_unfold : FuncUnfold newSharedTx [] newSharedTx.impl
   newBucketBuffer_unfold : FuncUnfold newBucketBuffer [] newBucketBuffer.impl
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -4335,6 +4516,8 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.hooks_instance
   Assumptions.ReadTx_instance
   Assumptions.UnsafeReader_instance
+  Assumptions.sharedTx_instance
+  Assumptions.sharedBoltTx_instance
   Assumptions.baseReadTx_instance
   Assumptions.readTx_instance
   Assumptions.concurrentReadTx_instance
@@ -4353,6 +4536,7 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.unsafeForEach_unfold
   Assumptions.newBatchTxBuffered_unfold
   Assumptions.NewHooks_unfold
+  Assumptions.newSharedTx_unfold
   Assumptions.newBucketBuffer_unfold
   Assumptions.import_bytes_Assumption
   Assumptions.import_fmt_Assumption

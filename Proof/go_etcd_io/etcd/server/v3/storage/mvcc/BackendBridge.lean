@@ -451,11 +451,11 @@ theorem crtSnap_wf (γ : BNames) (P : BParams) (b crt rtx : Loc) (rv : RView) :
     crtSnap (GF := GF) γ P b crt rtx rv ⊢ crtSnap γ P b crt rtx rv ∗ ⌜rv.2.Wf⌝ := by
   iintro Hc
   iunfold crtSnap at Hc
-  icases Hc with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, Hrb, #Hrtx,
-    #Hcm, #Htm', #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
+  icases Hc with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, %cst, #Hrt, #Htm, Hrb,
+    #Hcst, #Hrtx, #Hcm, #Htm', #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
   isplitl
   · iunfold crtSnap
-    iexists m, Pb, cm, tm, wg, γw, γo, γt, k, q, rt
+    iexists m, Pb, cm, tm, wg, γw, γo, γt, k, q, rt, cst
     iframe; iframe #
     ipureintro; exact Hwf
   · ipureintro; exact Hwf.1

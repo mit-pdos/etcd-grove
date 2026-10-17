@@ -32,8 +32,8 @@ theorem backend.concurrentReadTx.UnsafeRange.wp_proof
   intro γ P W Pk b crt rtx rv bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
   wp_start as ⟨Hs, #Hbk, Hk, He⟩
   unfold crtSnap
-  icases Hs with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, Hrb, #Hrtx, #Hcm,
-    #Htm', #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
+  icases Hs with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, %cst, #Hrt, #Htm, Hrb,
+    #Hcst, #Hrtx, #Hcm, #Htm', #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
   unfold rdShare
   icases Hsh with ⟨Hlive, Hrc⟩
   wp_apply hbase γ P W Pk b (cbaseOf crt) DFrac.discard rtx rv q bk bi key endKey kb eb dk de limit
@@ -41,18 +41,27 @@ theorem backend.concurrentReadTx.UnsafeRange.wp_proof
     as %keys %vals ⟨Hbr, Hk, He, Hout⟩
   · isplitl [Hrb Hown Hlive]
     · unfold baseRd
-      iexists m, Pb, cm, tm
+      iexists m, Pb, cst
       iframe; iframe #
-      ipureintro; exact ⟨Hwf.1, Hwf.2.1, Hwf.2.2, Or.inl rfl⟩
+      isplitl
+      · unfold stRd
+        iexists cm, tm
+        iframe; iframe #
+        ipureintro; exact Hwf.2.2
+      ipureintro; exact ⟨Hwf.1, Hwf.2.1, Or.inl rfl⟩
     unfold isBucket; iexact Hbk
   unfold baseRd
-  icases Hbr with ⟨%m', %Pb', %cm', %tm', Hrb, #Hrtx', #Hcm', #Htm'', Hown, -, Hlive, -, #Hintv',
-    %Hwf'⟩
+  icases Hbr with ⟨%m', %Pb', %cst', Hrb, #Hcst', Hsr, %Hwf'⟩
+  ihave %Hsteq := stIf_agree (cbaseOf crt) cst cst' $$ [Hcst Hcst']
+  · iframe #
+  subst Hsteq
+  unfold stRd
+  icases Hsr with ⟨%cm', %tm', #Hrtx', #Hcm', #Htm'', Hown, -, Hlive, -, #Hintv', -⟩
   icombine Htm' Htm'' gives %Heq
   subst Heq
   iapply HΦ
   iframe
-  iexists cm', wg, γw, γt, rt
+  iexists cm', wg, γw, γt, rt, cst
   iframe #
   ipureintro; exact ⟨Hwf.1, Hwf.2.1, Hwf.2.2⟩
 
