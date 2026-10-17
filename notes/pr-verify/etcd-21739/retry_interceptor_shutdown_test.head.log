@@ -1,0 +1,15 @@
+=== RUN   TestStreamInterceptorGetTokenCanceledLogs
+    retry_interceptor_shutdown_test.go:72: getToken: context canceled (*errors.errorString), isContextError=false, status.Code=Unknown
+    retry_interceptor_shutdown_test.go:84: logged error "clientv3/retry_interceptor: getToken failed"
+    retry_interceptor_shutdown_test.go:87: expected no warn/error log on a canceled context, got 1
+--- FAIL: TestStreamInterceptorGetTokenCanceledLogs (0.00s)
+=== RUN   TestStreamInterceptorStreamerCanceledQuiet
+--- PASS: TestStreamInterceptorStreamerCanceledQuiet (0.00s)
+=== RUN   TestUnaryInterceptorCanceledQuiet
+--- PASS: TestUnaryInterceptorCanceledQuiet (0.00s)
+=== RUN   TestUnaryInterceptorLiveCtxCanceledStatusSilent
+    retry_interceptor_shutdown_test.go:154: err rpc error: code = DeadlineExceeded desc = server-side deadline, calls 5, warn+ logs 0
+--- PASS: TestUnaryInterceptorLiveCtxCanceledStatusSilent (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.025s
+FAIL

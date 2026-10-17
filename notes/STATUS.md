@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21739 verified (2026-10-17, branch `pr-verify/etcd-21739`, not merged)
+
+The PR (the retry interceptors' failure logs held back on context errors, issue etcd-io/etcd#21643)
+is verified over the fork's `pr-etcd-21739-goose-lean`; report `notes/pr-verify/etcd-21739.md`.
+`Client.unaryClientInterceptor`'s spec re-proved on the new code; new `spec_quiet` (no `Warn` over
+an invoker failing with context statuses, proved with no spec of `zap.Logger.Warn`,
+`InvRetryQuiet.lean`); `Client.streamClientInterceptor` translated and proved (`spec`, and
+`spec_quiet` conditional on the false hypothesis `Client.getToken.spec_ctx`: the PR's getToken
+guard misses, `getToken`'s error on a done context is the bare `context.Canceled`). New axiom
+`withVersion.wp_proof_done`; no `sorry`. The pin in `etc/goose.py` is unchanged (`--check` fails
+on this branch: the translation is of the PR).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

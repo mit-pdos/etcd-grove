@@ -174,3 +174,9 @@ func TestPutRetriedAfterCanceledStatus(t *testing.T) {
   returns false for a context error: `isSafeRetry`'s first check).
 - **Found**: 2026-10-14, unit C1 (the client meets the server), stating the transport contract
   (reading `retry_interceptor.go` for when a `Put` is retried).
+- **Open PR**: etcd-io/etcd#21739 (head `d9ade6c32`, verified on branch `pr-verify/etcd-21739`,
+  `notes/pr-verify/etcd-21739.md`) keeps this retry and moves the `isContextError` branch before
+  the "retrying of unary invoker failed" warning, so the retried attempts of such a write no longer
+  log anything (`TestUnaryInterceptorLiveCtxCanceledStatusSilent` in
+  `notes/pr-verify/etcd-21739/`: 5 silent attempts, 5 warnings before): the only trace of this
+  path goes away.

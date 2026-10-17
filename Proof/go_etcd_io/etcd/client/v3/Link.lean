@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__getToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__refreshToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
+public import Proof.go_etcd_io.etcd.client.v3.Client__streamClientInterceptor
 public import Proof.go_etcd_io.etcd.client.v3.Client__unaryClientInterceptor
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__GetCompare
@@ -84,6 +85,7 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.google_golang_org.grpc.status.Code
 public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.streamKeyFromCtx
 public import Proof.time.Time__IsZero
@@ -131,6 +133,7 @@ public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
+public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.String
@@ -169,6 +172,22 @@ theorem rpctypes.wp_Error :
     EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
+theorem zap.wp_Error :
+    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Error.wp_proof
+
+theorem zap.Logger.wp_Error :
+    EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Error.wp_proof
+
+theorem status.wp_Errorf :
+    EtcdGrove.status.Errorf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Errorf.wp_proof
+
+theorem status.wp_Code :
+    EtcdGrove.status.Code.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Code.wp_proof
+
 theorem grpc.wp_Peer :
     EtcdGrove.grpc.Peer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Peer.wp_proof
@@ -189,17 +208,9 @@ theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Debug.wp_proof
 
-theorem zap.wp_Error :
-    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Error.wp_proof
-
 theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Warn.wp_proof
-
-theorem status.wp_Code :
-    EtcdGrove.status.Code.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Code.wp_proof
 
 theorem rpctypes.EtcdError.wp_Code :
     EtcdGrove.rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG) :=
@@ -340,6 +351,14 @@ theorem v3.wp_filterCallOptions :
     EtcdGrove.filterCallOptions.spec (GF := GF) (hG := hG) :=
   EtcdGrove.filterCallOptions.wp_proof
 
+theorem v3.wp_isContextError :
+    EtcdGrove.isContextError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isContextError.wp_proof status.wp_Code
+
+theorem v3.Client.wp_streamClientInterceptor :
+    EtcdGrove.Client.streamClientInterceptor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.streamClientInterceptor.wp_proof v3.wp_reuseOrNewWithCallOptions v3.wp_withVersion v3.Client.wp_getToken v3.Client.wp_GetLogger zap.wp_Error zap.Logger.wp_Error v3.wp_filterCallOptions status.wp_Errorf v3.wp_isContextError
+
 theorem v3.wp_waitRetryBackoff :
     EtcdGrove.waitRetryBackoff.spec (GF := GF) (hG := hG) :=
   EtcdGrove.waitRetryBackoff.wp_proof
@@ -347,10 +366,6 @@ theorem v3.wp_waitRetryBackoff :
 theorem peer.Peer.wp_String :
     EtcdGrove.peer.Peer.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.peer.Peer.String.wp_proof
-
-theorem v3.wp_isContextError :
-    EtcdGrove.isContextError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.isContextError.wp_proof status.wp_Code
 
 theorem v3.wp_isSafeRetryImmutableRPC :
     EtcdGrove.isSafeRetryImmutableRPC.spec (GF := GF) (hG := hG) :=

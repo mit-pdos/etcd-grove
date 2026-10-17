@@ -106,6 +106,11 @@ reuseOrNewWithCallOptions:
 withMax:
 withBackoff:
 Client__unaryClientInterceptor: reuseOrNewWithCallOptions withVersion filterCallOptions grpc_Peer waitRetryBackoff Client__GetLogger grpc_ClientConn__Target zap_String zap_Uint zap_Logger__Debug peer_Peer__String zap_Error zap_Logger__Warn isContextError Client__shouldRefreshToken Client__refreshToken isSafeRetry
+# etcd-io/etcd#21739 (pr-verify): the stream interceptor; trust boundary: zap's `Logger.Error`,
+# grpc's `status.Errorf`
+zap_Logger__Error:
+status_Errorf:
+Client__streamClientInterceptor: reuseOrNewWithCallOptions withVersion Client__getToken Client__GetLogger zap_Error zap_Logger__Error filterCallOptions status_Errorf isContextError
 # The watch slice's unit W-C: the client's watch (client/v3/watch.go, block_logger.go, client.go's
 # isHaltErr/isUnavailableErr) over the generated Watch stub; trust boundary: grpc's status
 # (`status_FromError`, `status_Error`), zap's field constructors and `Logger.Info`, `time`'s

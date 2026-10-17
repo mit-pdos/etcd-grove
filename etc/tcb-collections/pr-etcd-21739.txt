@@ -1,0 +1,34 @@
+# etcd-io/etcd#21739 (pr-verify): the client's retry interceptors, their quiet specs
+# (`notes/pr-verify/etcd-21739.md`).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21739.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots unaryClientInterceptor
+roots streamClientInterceptor
+roots interceptor_quiet
+axiom Client.Endpoints.wp_proof
+axiom Client.getToken.wp_proof
+axiom errors.IsStatusErr.wp_proof
+axiom grpc.ClientConn.Target.wp_proof
+axiom grpc.Peer.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcPeerOpt
+axiom grpcServes
+axiom grpcServes_persistent
+axiom grpcWrotePeer
+axiom peer.Peer.String.wp_proof
+axiom status.Code.wp_proof
+axiom status.Errorf.wp_proof
+axiom status.FromError.wp_proof
+axiom waitRetryBackoff.wp_proof
+axiom withVersion.wp_proof
+axiom withVersion.wp_proof_done
+axiom zap.Error.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Uint.wp_proof

@@ -1,0 +1,18 @@
+=== RUN   TestStreamInterceptorGetTokenCanceledLogs
+    retry_interceptor_shutdown_test.go:72: getToken: context canceled (*errors.errorString), isContextError=false, status.Code=Unknown
+    retry_interceptor_shutdown_test.go:84: logged error "clientv3/retry_interceptor: getToken failed"
+    retry_interceptor_shutdown_test.go:87: expected no warn/error log on a canceled context, got 1
+--- FAIL: TestStreamInterceptorGetTokenCanceledLogs (0.00s)
+=== RUN   TestStreamInterceptorStreamerCanceledQuiet
+    retry_interceptor_shutdown_test.go:106: expected no warn/error log, got 1: [{{error 2026-10-17 09:39:40.593045266 -0400 EDT m=+0.006801687  streamer failed to create ClientStream undefined } [{error 26 0  rpc error: code = Canceled desc = context canceled}]}]
+--- FAIL: TestStreamInterceptorStreamerCanceledQuiet (0.00s)
+=== RUN   TestUnaryInterceptorCanceledQuiet
+    retry_interceptor_shutdown_test.go:132: expected no warn/error log, got 1: [{{warn 2026-10-17 09:39:40.593296033 -0400 EDT m=+0.007052450  retrying of unary invoker failed undefined } [{target 15 0 passthrough:///unused <nil>} {peer 15 0 Peer{Addr: <nil>, LocalAddr: <nil>, AuthInfo: <nil>} <nil>} {method 15 0 /etcdserverpb.Auth/Authenticate <nil>} {attempt 18 0  <nil>} {error 26 0  rpc error: code = Canceled desc = context canceled}]}]
+--- FAIL: TestUnaryInterceptorCanceledQuiet (0.00s)
+=== RUN   TestUnaryInterceptorLiveCtxCanceledStatusSilent
+    retry_interceptor_shutdown_test.go:154: err rpc error: code = DeadlineExceeded desc = server-side deadline, calls 5, warn+ logs 5
+    retry_interceptor_shutdown_test.go:156: warn/error logs: 5
+--- FAIL: TestUnaryInterceptorLiveCtxCanceledStatusSilent (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.028s
+FAIL

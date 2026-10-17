@@ -25,6 +25,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **Trust boundary**: `withVersion` returns a value context of its argument. -/
 axiom withVersion.wp_proof : withVersion.spec (GF := GF) (hG := hG)
 
+/-- **Trust boundary** (etcd-io/etcd#21739, pr-verify): `withVersion` of a done context returns a
+done context. `withVersion` (`ctx.go`) returns `metadata.NewOutgoingContext(ctx, md)`, which is
+`context.WithValue(ctx, mdOutgoingKey{}, ...)`: a `valueCtx` embedding `ctx`, whose `Err` is
+`ctx.Err()`. -/
+axiom withVersion.wp_proof_done : withVersion.spec_done (GF := GF) (hG := hG)
+
 end proof
 
 end EtcdGrove

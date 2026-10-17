@@ -1,0 +1,31 @@
+error: Proof/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean:106:4: wp_apply: cannot apply iprop((▷ ∀ b, True -∗ ?m.2268 #b) -∗
+    WP (#(functions go_etcd_io.etcd.client.v3.isContextError []) #(GoInterface.ok te))
+      {{ ?m.2268 }}) to any subexpression in evaluation position of
+  exceptionDo
+--
+error: Proof/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean:194:4: wp_apply: cannot apply iprop((▷ ∀ b, True -∗ ?m.5904 #b) -∗
+    WP (#(functions go_etcd_io.etcd.client.v3.isContextError []) #(GoInterface.ok se))
+      {{ ?m.5904 }}) to any subexpression in evaluation position of
+  exceptionDo
+--
+error: Proof/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean:286:4: wp_apply: cannot apply iprop(▷ (True -∗ ?m.2318 #true) -∗
+    WP (#(functions go_etcd_io.etcd.client.v3.isContextError []) #(GoInterface.ok te))
+      {{ ?m.2318 }}) to any subexpression in evaluation position of
+  exceptionDo
+--
+error: Proof/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean:349:4: wp_apply: cannot apply iprop(▷ (True -∗ ?m.6039 #true) -∗
+    WP (#(functions go_etcd_io.etcd.client.v3.isContextError []) #(GoInterface.ok se))
+      {{ ?m.6039 }}) to any subexpression in evaluation position of
+  exceptionDo
+--
+error: Proof/go_etcd_io/etcd/client/v3/Client__unaryClientInterceptor.lean:211:6: wp_apply: cannot apply iprop((▷ ∀ b, True -∗ ?m.11721 #b) -∗
+    WP (#(functions go_etcd_io.etcd.client.v3.isContextError []) #(GoInterface.ok ei))
+      {{ ?m.11721 }}) to any subexpression in evaluation position of
+  do:
+--
+error: Proof/go_etcd_io/etcd/client/v3/Client__unaryClientInterceptor.lean:513:6: wp_apply: cannot apply iprop(▷ (True -∗ ?m.11717 #true) -∗
+    WP (#(functions go_etcd_io.etcd.client.v3.isContextError []) #(GoInterface.ok ei))
+      {{ ?m.11717 }}) to any subexpression in evaluation position of
+  do:
+--
+error: build failed

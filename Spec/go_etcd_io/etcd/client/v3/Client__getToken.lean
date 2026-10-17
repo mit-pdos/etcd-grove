@@ -6,7 +6,7 @@ retry interceptor included) and the bundle's update.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvRetryQuiet
 
 @[expose] public section
 
@@ -35,6 +35,23 @@ abbrev Client.getToken.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; clientErrOk err }}
+
+/-- (etcd-io/etcd#21739, pr-verify) **A hypothesis, false**: `c.getToken(ctx)` on a done context
+(`ctxErrDone`) returns `nil` or a context status (`ctxCodeErr`). What
+`Client.streamClientInterceptor.wp_proof_quiet` needs for the PR's guard of "getToken failed" to
+hold back the log. It does not hold: `getToken` returns `c.Auth.Authenticate`'s error, which
+`authClient.Authenticate` passes through `ContextError(ctx, err)`; on a done context that turns a
+`Canceled`/`DeadlineExceeded` status into `ctx.Err()`, the bare `context.Canceled` (or
+`DeadlineExceeded`), whose `status.Code` is `Unknown` (`notes/pr-verify/etcd-21739/`,
+`TestStreamInterceptorGetTokenCanceledLogs`). No axiom states it; only the hypothesis of that
+proof. -/
+abbrev Client.getToken.spec_ctx : Prop :=
+  ∀ (c : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗
+      ctxOk ctx cd ∗ ctxErrDone ctx }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; clientErrOk err ∗ (⌜err = GoInterface.nil⌝ ∨ ctxCodeErr err) }}
 
 end spec
 

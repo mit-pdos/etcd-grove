@@ -3766,17 +3766,6 @@ noncomputable def Client.unaryClientInterceptor.impl [FfiSyntax] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "gtErr") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr"))
-  (App (App (Val (GoInstruction (FuncResolve isContextError []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doContinue) (Val #()))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr")))
-  (App (Val doExecute)
-  (Val #()))))
-  (App (Val doExecute)
-  (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"retrying of unary invoker failed"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"target"))
@@ -3795,6 +3784,17 @@ noncomputable def Client.unaryClientInterceptor.impl [FfiSyntax] [GoGlobalContex
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl4")))])))))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr"))
+  (App (App (Val (GoInstruction (FuncResolve isContextError []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr")))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "lastErr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
@@ -3857,10 +3857,178 @@ noncomputable def Client.unaryClientInterceptor.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType options.ty)))) (Pair (Var "intOpts") (Var "$r0"))))))))))))
 
+/-- streamClientInterceptor returns a new retrying stream client interceptor for server side streaming calls.
+
+    The default configuration of the interceptor is to not retry *at all*. This behaviour can be
+    changed through options (e.g. WithMax) on creation of the interceptor or on call (through grpc.CallOptions).
+
+    Retry logic is available *only for ServerStreams*, i.e. 1:n streams, as the internal logic needs
+    to buffer the messages sent by the client. If retry is enabled on any other streams (ClientStreams,
+    BidiStreams), the retry interceptor will fail the call.
+
+    go: retry_interceptor.go:112:18 -/
+noncomputable def Client.streamClientInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "optFuncs"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "optFuncs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType retryOption.ty)))) (Var "optFuncs"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (App (Val (GoInstruction (GlobalVarAddr defaultOptions))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType retryOption.ty)))) (Var "optFuncs"))
+  (App (App (App (Val (GoInstruction (FuncResolve reuseOrNewWithCallOptions []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "intOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType options.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType options.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Lam "ctx"
+  (Lam "desc"
+  (Lam "cc"
+  (Lam "method"
+  (Lam "streamer"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (Let "streamer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.Streamer.ty))) (Var "streamer"))
+  (Let "method" (App (Val (GoInstruction (GoAlloc go.string))) (Var "method"))
+  (Let "cc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "cc"))
+  (Let "desc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (Var "desc"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve withVersion []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"getToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "opts"))
+  (App (App (Val (GoInstruction (FuncResolve filterCallOptions []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "retryOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType retryOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType retryOption.ty)))) (Val #())))
+  (Let "grpcOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (Var "intOpts"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType retryOption.ty)))) (Var "retryOpts"))
+  (App (App (App (Val (GoInstruction (FuncResolve reuseOrNewWithCallOptions []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "callOpts" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType options.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType options.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (Var "desc"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "cc"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "grpcOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.Streamer.ty))) (Var "streamer")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "newStreamer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc serverStreamingRetryingStream.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Var "newStreamer"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (Var "callOpts"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$v4" (Lam "ctx"
+  (App (Val exceptionDo)
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (Var "desc"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "cc"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "grpcOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.Streamer.ty))) (Var "streamer")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))
+  (App (Val (GoInstruction (CompositeLiteral serverStreamingRetryingStream.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"client")) (ElementExpression (go.GoType.PointerType Client.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"ClientStream")) (ElementExpression _root_.Perennial.google_golang_org.grpc.ClientStream.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"callOpts")) (ElementExpression (go.GoType.PointerType options.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"ctx")) (ElementExpression _root_.Perennial.context.Context.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"streamerCall")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.ClientStream.ty, go.error])) (Var "$v4")))]))))))))
+  (Let "retryingStreamer" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serverStreamingRetryingStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType serverStreamingRetryingStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType serverStreamingRetryingStream.ty) _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverStreamingRetryingStream.ty)))) (Var "retryingStreamer"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType serverStreamingRetryingStream.ty)))) (Pair (Var "retryingStreamer") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve isContextError []))) (Val #())) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"streamer failed to create ClientStream"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Pair (Var "newStreamer") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.google_golang_org.grpc.StreamDesc.ty go!"ClientStreams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (Var "desc"))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Val UntypedNil)) (Let "$a0" (Val _root_.Perennial.google_golang_org.grpc.codes.Unimplemented)
+  (Let "$a1" (Val #(go!"clientv3/retry_interceptor: cannot retry on ClientStreams, set Disable()"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef options.ty go!"max"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (Var "callOpts")))) (Val #(W64 0)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (Var "desc"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "cc"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Var "grpcOpts"))
+  (App (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.Streamer.ty))) (Var "streamer")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType options.ty)))) (Pair (Var "callOpts") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType retryOption.ty)))) (Pair (Var "retryOpts") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "grpcOpts") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.ClientStream.ty))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve isContextError []))) (Val #())) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"clientv3/retry_interceptor: getToken failed"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Error"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType options.ty)))) (Pair (Var "intOpts") (Var "$r0"))))))))))))
+
 /-- shouldRefreshToken checks whether there's a need to refresh the token based on the error and callOptions,
     and returns a boolean value.
 
-    go: retry_interceptor.go:152:18 -/
+    go: retry_interceptor.go:156:18 -/
 noncomputable def Client.shouldRefreshToken.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "err"
@@ -3893,7 +4061,7 @@ noncomputable def Client.shouldRefreshToken.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: retry_interceptor.go:168:18 -/
+/-- go: retry_interceptor.go:172:18 -/
 noncomputable def Client.refreshToken.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -3912,7 +4080,7 @@ noncomputable def Client.refreshToken.impl [FfiSyntax] [GoGlobalContext] : val :
 
 /-- isSafeRetry returns "true", if request is safe for retry with the given error.
 
-    go: retry_interceptor.go:330:6 -/
+    go: retry_interceptor.go:334:6 -/
 noncomputable def isSafeRetry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "err"
@@ -3957,7 +4125,7 @@ noncomputable def isSafeRetry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: retry_interceptor.go:356:6 -/
+/-- go: retry_interceptor.go:360:6 -/
 noncomputable def isContextError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
@@ -3969,7 +4137,7 @@ noncomputable def isContextError.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- withRepeatablePolicy sets the repeatable policy of this call.
 
-    go: retry_interceptor.go:387:6 -/
+    go: retry_interceptor.go:391:6 -/
 noncomputable def withRepeatablePolicy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -3987,7 +4155,7 @@ noncomputable def withRepeatablePolicy.impl [FfiSyntax] [GoGlobalContext] : val 
 
 /-- withMax sets the maximum number of retries on this call, or this interceptor.
 
-    go: retry_interceptor.go:394:6 -/
+    go: retry_interceptor.go:398:6 -/
 noncomputable def withMax.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "maxRetries"
   (App (Val exceptionDo)
@@ -4006,7 +4174,7 @@ noncomputable def withMax.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- WithBackoff sets the `BackoffFunc` used to control time between retries.
 
-    go: retry_interceptor.go:401:6 -/
+    go: retry_interceptor.go:405:6 -/
 noncomputable def withBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bf"
   (App (Val exceptionDo)
@@ -4023,7 +4191,7 @@ noncomputable def withBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore backoffFunc.ty))) (Pair (App (Val (GoInstruction (StructFieldRef options.ty go!"backoffFunc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType options.ty)))) (Var "o"))) (Var "$r0")))))))))
   (App (Val (GoInstruction (CompositeLiteral retryOption.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"applyFunc")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType options.ty)] false [])) (Var "$v0")))])))))))
 
-/-- go: retry_interceptor.go:420:6 -/
+/-- go: retry_interceptor.go:424:6 -/
 noncomputable def reuseOrNewWithCallOptions.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "opt"
   (Lam "retryOptions"
@@ -4064,7 +4232,7 @@ noncomputable def reuseOrNewWithCallOptions.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: retry_interceptor.go:432:6 -/
+/-- go: retry_interceptor.go:436:6 -/
 noncomputable def filterCallOptions.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "callOptions"
   (App (Val exceptionDo)
@@ -7290,6 +7458,7 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" Client.GetLogger.impl
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
   ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" Client.shouldRefreshToken.impl
+  ptr_streamClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"streamClientInterceptor" Client.streamClientInterceptor.impl
   ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" Client.unaryClientInterceptor.impl
 
 attribute [instance] Client.TypeAssumptions.type_repr
@@ -7338,6 +7507,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_GetLogger_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
+  Client.TypeAssumptions.ptr_streamClientInterceptor_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
 
 abbrev Option [FfiSyntax] : Type := GoFunc

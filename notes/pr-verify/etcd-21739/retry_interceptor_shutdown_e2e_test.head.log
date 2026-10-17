@@ -1,0 +1,7 @@
+=== RUN   TestReviewerE2EShutdownLogs
+    reviewer_shutdown_e2e_test.go:87: error "clientv3/retry_interceptor: getToken failed" map[error:context canceled]
+    reviewer_shutdown_e2e_test.go:91: 1 warn/error logs on Close()
+--- FAIL: TestReviewerE2EShutdownLogs (0.52s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.538s
+FAIL

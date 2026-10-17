@@ -159,6 +159,9 @@ translate = [
   "filterCallOptions",
   "withMax",
   "withBackoff",
+  # etcd-io/etcd#21739 (pr-verify): the stream interceptor (`retry_interceptor.go`), whose getToken
+  # and streamer failure logs the PR guards
+  "Client.streamClientInterceptor",
   # the vertical slice's unit V2: the KV client's Delete and Txn over gRPC (`kv.go`'s `kv.Delete`,
   # `kv.Txn`; `txn.go`'s builder `txn.If`/`Then`/`Else`/`Commit`; `op.go`'s `Op.toRequestOp`,
   # `Op.toTxnRequest`, `Op.isWrite`; `retry.go`'s `retryKVClient.DeleteRange`/`Txn`)

@@ -37,6 +37,31 @@ theorem isContextError.wp_proof
   · wp_apply wp_Code err $$ [$Hst $Hse] as %c2 -
     iapply HΦ; itrivial
 
+/-- (etcd-io/etcd#21739, pr-verify) No callee spec: `ctxCodeErr` is `status.Code`'s result. -/
+theorem isContextError.wp_proof_ctx :
+    isContextError.spec_ctx (GF := GF) (hG := hG) := by
+  intro err
+  wp_start as #Hce
+  wp_auto
+  iunfold ctxCodeErr at Hce
+  icases Hce with (#H4 | #H1)
+  all_goals (try iunfold statusCodeIs at H4)
+  all_goals (try iunfold statusCodeIs at H1)
+  · wp_bind (App (Val (@! google_golang_org.grpc.status.Code)) (Val #err))
+    iapply H4
+    inext
+    wp_auto
+    iapply HΦ; itrivial
+  · wp_bind (App (Val (@! google_golang_org.grpc.status.Code)) (Val #err))
+    iapply H1
+    inext
+    wp_auto
+    wp_bind (App (Val (@! google_golang_org.grpc.status.Code)) (Val #err))
+    iapply H1
+    inext
+    wp_auto
+    iapply HΦ; itrivial
+
 end proof
 
 end EtcdGrove

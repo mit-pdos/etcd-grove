@@ -2532,6 +2532,38 @@ theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice
 
 end watcher
 
+/-! ## etcd-io/etcd#21739 (pr-verify): the retry interceptors' failure logs on context errors
+
+`unary_interceptor_quiet`: the unary interceptor over an invoker failing only with
+`Canceled`/`DeadlineExceeded` statuses writes no warning (`Client.unaryClientInterceptor.spec_quiet`,
+proved with no spec of `zap.Logger.Warn`; `InvRetryQuiet.lean`). `stream_interceptor_quiet_of`:
+the stream interceptor on a done context, over a streamer failing only with context statuses,
+writes no error log, *if* `getToken` fails only with context statuses on a done context
+(`Client.getToken.spec_ctx`), which it does not (its error is `ContextError`'s bare
+`context.Canceled`): the hypothesis records where the PR's guard of "getToken failed" misses. -/
+section pr21739
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+theorem unary_interceptor_quiet :
+    EtcdGrove.Client.unaryClientInterceptor.spec_quiet (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.unaryClientInterceptor.wp_proof_quiet v3.wp_reuseOrNewWithCallOptions
+    v3.wp_withVersion v3.wp_filterCallOptions grpc.wp_Peer v3.wp_waitRetryBackoff
+    v3.Client.wp_GetLogger grpc.ClientConn.wp_Target zap.wp_String zap.wp_Uint zap.Logger.wp_Debug
+    EtcdGrove.isContextError.wp_proof_ctx
+
+theorem stream_interceptor_quiet_of
+    (wp_getToken_ctx : EtcdGrove.Client.getToken.spec_ctx (GF := GF) (hG := hG)) :
+    EtcdGrove.Client.streamClientInterceptor.spec_quiet (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.streamClientInterceptor.wp_proof_quiet v3.wp_reuseOrNewWithCallOptions
+    EtcdGrove.withVersion.wp_proof_done wp_getToken_ctx v3.wp_filterCallOptions status.wp_Errorf
+    EtcdGrove.isContextError.wp_proof_ctx
+
+end pr21739
+
 end client
 
 #print axioms Perennial.EtcdGrove.client.client_get_value
@@ -2560,6 +2592,10 @@ end client
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do
 #print axioms Perennial.EtcdGrove.client.v3.wp_NewKV
 #print axioms Perennial.EtcdGrove.client.v3.wp_ContextError
+#print axioms Perennial.EtcdGrove.client.v3.Client.wp_unaryClientInterceptor
+#print axioms Perennial.EtcdGrove.client.v3.Client.wp_streamClientInterceptor
+#print axioms Perennial.EtcdGrove.client.unary_interceptor_quiet
+#print axioms Perennial.EtcdGrove.client.stream_interceptor_quiet_of
 
 end EtcdGrove
 end Perennial

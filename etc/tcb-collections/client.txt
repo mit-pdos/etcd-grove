@@ -58,6 +58,7 @@ axiom proto.Unmarshal.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
+axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom streamKeyFromCtx.wp_proof
@@ -71,6 +72,7 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
+axiom withVersion.wp_proof_done
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof

@@ -4,7 +4,7 @@ counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvRetryQuiet
 
 @[expose] public section
 
@@ -30,6 +30,14 @@ abbrev isContextError.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.client.v3.isContextError)) (Val #err))
   {{ (b : Bool), RET #b; True }}
+
+/-- (etcd-io/etcd#21739, pr-verify) `isContextError(err)` of a context status (`ctxCodeErr`:
+`status.Code(err)` is `DeadlineExceeded` or `Canceled`) returns `true`. -/
+abbrev isContextError.spec_ctx : Prop :=
+  ∀ (err : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxCodeErr err }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.isContextError)) (Val #err))
+  {{ RET #true; True }}
 
 end spec
 

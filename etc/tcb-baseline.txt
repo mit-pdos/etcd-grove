@@ -209,6 +209,7 @@ axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
 axiom withVersion.wp_proof
+axiom withVersion.wp_proof_done
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

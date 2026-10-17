@@ -7,7 +7,7 @@ below it".
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvRetryQuiet
 
 @[expose] public section
 
@@ -36,6 +36,19 @@ abbrev Client.unaryClientInterceptor.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"unaryClientInterceptor")) (Val #sl))
   {{ (f : GoFunc), RET #f; etcdInterceptorOk f }}
+
+/-- (etcd-io/etcd#21739, pr-verify) **No warning on context errors**: on the same premises, the
+interceptor returned meets the quiet contract (`etcdInterceptorQuiet`, `InvRetryQuiet.lean`):
+over an invoker failing only with `Canceled`/`DeadlineExceeded` statuses, a call returns as
+`etcdInterceptorOk`'s does. Its proof (`wp_proof_quiet`) is given no spec of `zap.Logger.Warn`:
+such a call logs no "retrying of unary invoker failed" (nor any other warning). Not true of the
+code before the PR, which logged the warning before testing `isContextError`. -/
+abbrev Client.unaryClientInterceptor.spec_quiet : Prop :=
+  ∀ (c : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ sl ↦*□ ros ∗ [∗list] ro ∈ ros, optApplyOk ro.applyFunc' }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+      go!"unaryClientInterceptor")) (Val #sl))
+  {{ (f : GoFunc), RET #f; etcdInterceptorQuiet f }}
 
 end spec
 

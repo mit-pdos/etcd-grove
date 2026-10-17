@@ -5,7 +5,7 @@ version in its outgoing gRPC metadata (`metadata.FromOutgoingContext`, `Pairs`, 
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvRetry
+public import Proof.go_etcd_io.etcd.client.v3.InvRetryQuiet
 
 @[expose] public section
 
@@ -34,6 +34,15 @@ abbrev withVersion.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.v3.withVersion)) (Val #(GoInterface.ok ctx)))
   {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
       ⌜c' = GoInterface.ok ci⌝ ∗ ctxOk ci { cd with Values := vs } }}
+
+/-- (etcd-io/etcd#21739, pr-verify) `withVersion.spec`, of a done context (`ctxErrDone`): the
+context returned is done too (a `valueCtx`, `context.WithValue`'s, whose `Err` is its parent's). -/
+abbrev withVersion.spec_done : Prop :=
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd ∗ ctxErrDone ctx }}
+    (App (Val (@! go_etcd_io.etcd.client.v3.withVersion)) (Val #(GoInterface.ok ctx)))
+  {{ (c' : GoInterface), RET #c'; ∃ (ci : GoInterfaceOk) (vs : GMap GoInterface GoInterface),
+      ⌜c' = GoInterface.ok ci⌝ ∗ ctxOk ci { cd with Values := vs } ∗ ctxErrDone ci }}
 
 end spec
 
