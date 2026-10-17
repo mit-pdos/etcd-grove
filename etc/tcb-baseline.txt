@@ -90,6 +90,7 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom convertToClusterVersion.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
@@ -168,7 +169,11 @@ axiom schedule.Scheduler.Stop.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
+axiom semver.New.wp_proof
+axiom semver.Version.Equal.wp_proof
 axiom semver.Version.LessThan.wp_proof
+axiom semver.Version.Major.wp_proof
+axiom semver.Version.Minor.wp_proof
 axiom semver.Version.String.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof

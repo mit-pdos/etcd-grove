@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Done
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Downgrade
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnabled
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommitInTermNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
@@ -52,6 +53,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapsh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__downgradeCancel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__downgradeEnable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__downgradeValidate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
@@ -82,6 +86,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Manager__DowngradeCancel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Manager__DowngradeEnable
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Manager__DowngradeValidate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
@@ -104,7 +111,11 @@ public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeo
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetCompare
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetFailure
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest__GetSuccess
+public import Proof.github_com.Masterminds.semver.v3.Version__Equal
+public import Proof.github_com.Masterminds.semver.v3.Version__Major
+public import Proof.github_com.Masterminds.semver.v3.Version__Minor
 public import Proof.github_com.Masterminds.semver.v3.Version__String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.allowedDowngradeVersion
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
@@ -137,6 +148,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Proof.context.ValueStartTime
 public import Proof.context.WithValue
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.convertToClusterVersion
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
@@ -208,6 +220,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.github_com.Masterminds.semver.v3.New
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
@@ -397,6 +410,42 @@ theorem «attribute».wp_String :
     «attribute».String.spec (GF := GF) (hG := hG) :=
   «attribute».String.wp_proof
 
+theorem semver.Version.wp_Major :
+    semver.Version.Major.spec (GF := GF) (hG := hG) :=
+  semver.Version.Major.wp_proof
+
+theorem semver.Version.wp_Minor :
+    semver.Version.Minor.spec (GF := GF) (hG := hG) :=
+  semver.Version.Minor.wp_proof
+
+theorem semver.wp_New :
+    semver.New.spec (GF := GF) (hG := hG) :=
+  semver.New.wp_proof
+
+theorem version.wp_allowedDowngradeVersion :
+    version.allowedDowngradeVersion.spec (GF := GF) (hG := hG) :=
+  version.allowedDowngradeVersion.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.wp_New
+
+theorem semver.Version.wp_Equal :
+    semver.Version.Equal.spec (GF := GF) (hG := hG) :=
+  semver.Version.Equal.wp_proof
+
+theorem version.Manager.wp_DowngradeValidate :
+    version.Manager.DowngradeValidate.spec (GF := GF) (hG := hG) :=
+  version.Manager.DowngradeValidate.wp_proof version.wp_allowedDowngradeVersion semver.Version.wp_Equal
+
+theorem semver.Version.wp_String :
+    semver.Version.String.spec (GF := GF) (hG := hG) :=
+  semver.Version.String.wp_proof
+
+theorem version.Manager.wp_DowngradeEnable :
+    version.Manager.DowngradeEnable.spec (GF := GF) (hG := hG) :=
+  version.Manager.DowngradeEnable.wp_proof version.Manager.wp_DowngradeValidate
+
+theorem version.Manager.wp_DowngradeCancel :
+    version.Manager.DowngradeCancel.spec (GF := GF) (hG := hG) :=
+  version.Manager.DowngradeCancel.wp_proof
+
 theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
   PutRequest.GetKey.wp_proof
@@ -472,10 +521,6 @@ theorem membership.RaftCluster.wp_ID :
 theorem types.ID.wp_String :
     types.ID.String.spec (GF := GF) (hG := hG) :=
   types.ID.String.wp_proof
-
-theorem semver.Version.wp_String :
-    semver.Version.String.spec (GF := GF) (hG := hG) :=
-  semver.Version.String.wp_proof
 
 theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -880,6 +925,34 @@ theorem EtcdServer.wp_Done :
     EtcdServer.Done.spec (GF := GF) (hG := hG) :=
   EtcdServer.Done.wp_proof
 
+theorem wp_convertToClusterVersion :
+    convertToClusterVersion.spec (GF := GF) (hG := hG) :=
+  convertToClusterVersion.wp_proof
+
+theorem version.wp_Cluster :
+    version.Cluster.spec (GF := GF) (hG := hG) :=
+  version.Cluster.wp_proof
+
+theorem EtcdServer.wp_downgradeValidate :
+    EtcdServer.downgradeValidate.spec (GF := GF) (hG := hG) :=
+  EtcdServer.downgradeValidate.wp_proof wp_convertToClusterVersion version.Manager.wp_DowngradeValidate semver.Version.wp_String version.wp_Cluster
+
+theorem EtcdServer.wp_Logger :
+    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Logger.wp_proof
+
+theorem EtcdServer.wp_downgradeEnable :
+    EtcdServer.downgradeEnable.spec (GF := GF) (hG := hG) :=
+  EtcdServer.downgradeEnable.wp_proof EtcdServer.wp_Logger wp_convertToClusterVersion version.Manager.wp_DowngradeEnable zap.wp_Error zap.Logger.wp_Warn semver.Version.wp_String version.wp_Cluster
+
+theorem EtcdServer.wp_downgradeCancel :
+    EtcdServer.downgradeCancel.spec (GF := GF) (hG := hG) :=
+  EtcdServer.downgradeCancel.wp_proof version.Manager.wp_DowngradeCancel zap.wp_Error zap.Logger.wp_Warn semver.Version.wp_String version.wp_Cluster
+
+theorem EtcdServer.wp_Downgrade :
+    EtcdServer.Downgrade.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Downgrade.wp_proof EtcdServer.wp_downgradeValidate EtcdServer.wp_downgradeEnable EtcdServer.wp_downgradeCancel
+
 theorem notify.Notifier.wp_Receive :
     notify.Notifier.Receive.spec (GF := GF) (hG := hG) :=
   notify.Notifier.Receive.wp_proof
@@ -887,10 +960,6 @@ theorem notify.Notifier.wp_Receive :
 theorem EtcdServer.wp_FirstCommitInTermNotify :
     EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.FirstCommitInTermNotify.wp_proof notify.Notifier.wp_Receive
-
-theorem EtcdServer.wp_Logger :
-    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Logger.wp_proof
 
 theorem EtcdServer.wp_GoAttach :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
@@ -975,10 +1044,6 @@ theorem wait.timeList.wp_Trigger :
 theorem notify.wp_NewNotifier :
     notify.NewNotifier.spec (GF := GF) (hG := hG) :=
   notify.NewNotifier.wp_proof
-
-theorem version.wp_Cluster :
-    version.Cluster.spec (GF := GF) (hG := hG) :=
-  version.Cluster.wp_proof
 
 theorem prometheus.GaugeVec.wp_With :
     prometheus.GaugeVec.With.spec (GF := GF) (hG := hG) :=

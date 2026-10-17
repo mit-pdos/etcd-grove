@@ -1,0 +1,17 @@
+$ go test ./etcdserver/version/ -run TestDowngradeValidateNilClusterVersion
+--- FAIL: TestDowngradeValidateNilClusterVersion (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+	server/etcdserver/version/downgrade.go:59
+	server/etcdserver/version/version.go:47 +0x50
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/version	0.015s
+FAIL
+
+$ go test ./etcdserver/ -run TestDowngradeCancelNilClusterVersion
+--- FAIL: TestDowngradeCancelNilClusterVersion (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+	server/etcdserver/read/read.go:75 +0x37
+	server/etcdserver/interface.go:47
+	server/etcdserver/version/version.go:72 +0x2f
+	server/etcdserver/v3_server.go:1269 +0xc5
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.043s
+FAIL

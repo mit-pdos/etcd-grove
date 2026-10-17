@@ -1,0 +1,18 @@
+# etcd-io/etcd#22589 (reject downgrade requests when the cluster version is unset): the version
+# manager's downgrade API and the server's downgrade handlers with their dispatcher, and the
+# PR's nil-version test as theorems. Branch pr-verify/etcd-22589; notes/pr-verify/etcd-22589.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22589.txt [--check [--update]]
+roots allowedDowngradeVersion
+roots Manager__Downgrade
+roots EtcdServer__[dD]owngrade
+roots nilClusterVersion
+axiom convertToClusterVersion.wp_proof
+axiom semver.New.wp_proof
+axiom semver.Version.Equal.wp_proof
+axiom semver.Version.Major.wp_proof
+axiom semver.Version.Minor.wp_proof
+axiom semver.Version.String.wp_proof
+axiom version.Cluster.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Warn.wp_proof

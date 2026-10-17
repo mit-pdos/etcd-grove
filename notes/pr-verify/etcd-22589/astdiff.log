@@ -1,0 +1,6 @@
+# upstream base d3c8a1559 vs PR head aa0116420:
+server/etcdserver/v3_server.go: changed func *EtcdServer.downgradeCancel
+server/etcdserver/v3_server.go: changed func *EtcdServer.downgradeEnable
+server/etcdserver/version/version.go: changed func *Manager.DowngradeValidate
+server/etcdserver/version/version.go: added import "go.etcd.io/etcd/server/v3/etcdserver/errors"
+# upstream base d3c8a1559 vs fork pin 09669450f (v3_server.go version/version.go version/downgrade.go cluster_util.go adapters.go): no difference

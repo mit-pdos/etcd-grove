@@ -1,0 +1,7 @@
+    logger.go:146: 2026-10-16T23:24:24.554-0400	WARN	m0	failed to cancel downgrade	{"member": "m0", "error": "etcdserver: no inflight downgrade job"}
+        	Error Trace:	tests/integration/v3_downgrade_cancel_test.go:49
+        	Error:      	An error is expected but got nil.
+--- FAIL: TestDowngradeCancelWithoutDowngradeInProgress (0.15s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	0.213s
+FAIL

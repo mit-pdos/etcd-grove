@@ -182,5 +182,19 @@ credentials, an unstated precondition (unreachable in etcd's servers; reproduced
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
 "main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's
 byte-memory review, round 3; unclear what in Go should change; not filed).
+[etcd-downgrade-nil-cluster-version](etcd-downgrade-nil-cluster-version.md): `Downgrade` with
+`ENABLE` or `CANCEL` panics before the cluster version is known (reported upstream as
+etcd-io/etcd#22574, fixed by #22575, whose fix the branch `pr-verify/etcd-22575` verifies;
+reproduced; found 2026-10-16).
+[etcd-downgrade-cancel-error-dropped](etcd-downgrade-cancel-error-dropped.md): `Downgrade` with
+`CANCEL` logs the cancel's error and reports success (`ErrNoInflightDowngrade`, timeouts, a stopped
+server), since e47c3c22d; #22575 keeps it (reproduced; found 2026-10-16; not filed).
+[etcd-downgrade-target-minor-underflow](etcd-downgrade-target-minor-underflow.md): at a cluster
+version x.0 `allowedDowngradeVersion`'s `Minor()-1` wraps (Masterminds semver's `uint64`) and the
+target x.18446744073709551615 is accepted (reproduced on upstream `main`; found 2026-10-16; not filed).
+[etcd-version-manager-cancel-nil-downgradeinfo](etcd-version-manager-cancel-nil-downgradeinfo.md):
+`version.Manager.DowngradeCancel` needs a non-nil `GetDowngradeInfo()`, which the `Server`
+interface does not state (an unstated precondition; unreachable with etcd's adapter; found
+2026-10-16, pr-verify etcd#22589; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

@@ -1,6 +1,10 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# Types and names only, but the downgrade API of the version manager (version.go:
+# `Manager.DowngradeValidate`, `DowngradeEnable`, `DowngradeCancel`, and downgrade.go's
+# `allowedDowngradeVersion`), with bodies (pr-verify etcd#22589).
+translate = ["!*", "Manager.DowngradeValidate", "Manager.DowngradeEnable",
+  "Manager.DowngradeCancel", "allowedDowngradeVersion"]
+imports = ["!*", "context", "github.com/Masterminds/semver/v3", "go.uber.org/zap",
+  "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/api/v3/version"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

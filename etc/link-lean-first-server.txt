@@ -389,3 +389,22 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 StartNode: @
 newRaftNode:
 bootstrappedRaft__newRaftNode: StartNode newRaftNode
+# The downgrade RPC (pr-verify etcd#22589): the version manager's downgrade API
+# (server/v3/etcdserver/version: version.go, downgrade.go; over its `Server` contract,
+# version/Base.lean), the server's handlers and their dispatcher `Downgrade` (v3_server.go,
+# BaseDowngrade.lean). The trust boundary (`axiom … .wp_proof`): semver's `New`, `Major`, `Minor`,
+# `Equal` (names-only) and `convertToClusterVersion` (names-only); `Version()` and
+# `ClusterVersion()` are contracts of the premise (`srvVersionOk`, `clusterVersionOk`).
+semver_New:
+Version__Major:
+Version__Minor:
+Version__Equal:
+convertToClusterVersion:
+allowedDowngradeVersion: Version__Major Version__Minor semver_New
+Manager__DowngradeValidate: allowedDowngradeVersion Version__Equal
+Manager__DowngradeEnable: Manager__DowngradeValidate
+Manager__DowngradeCancel:
+EtcdServer__downgradeValidate: convertToClusterVersion Manager__DowngradeValidate Version__String version_Cluster
+EtcdServer__downgradeEnable: EtcdServer__Logger convertToClusterVersion Manager__DowngradeEnable zap_Error zap_Logger__Warn Version__String version_Cluster
+EtcdServer__downgradeCancel: Manager__DowngradeCancel zap_Error zap_Logger__Warn Version__String version_Cluster
+EtcdServer__Downgrade: EtcdServer__downgradeValidate EtcdServer__downgradeEnable EtcdServer__downgradeCancel

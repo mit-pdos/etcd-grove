@@ -268,6 +268,9 @@ root = os.path.normpath(os.path.join(here, ".."))
 # ambiguous: such a function is named `<last component of pkg>_<fn>` only)
 # (`prefix`: the module root of a spec outside `Spec/`, a part's; none now)
 where, prefix, ambiguous = {}, {}, set()
+# a spec whose `<last component of pkg>_<fn>` is another's (semver's `New` and the cache's, both
+# `v3_New`) is named by the qualified name given here instead (pr-verify etcd#22589)
+QUAL_OVERRIDE = {"github_com.Masterminds.semver.v3.New": "semver_New"}
 for mroot in (mode[4] if cache else [""]):
     spec_dir = os.path.join(root, mroot, "Spec")
     for dp, _, fs in os.walk(spec_dir):
@@ -275,7 +278,7 @@ for mroot in (mode[4] if cache else [""]):
             if f.endswith(".lean"):
                 rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
                 *pkg, stem = rel.split(os.sep)
-                qual = pkg[-1] + "_" + stem
+                qual = QUAL_OVERRIDE.get(".".join(pkg + [stem]), pkg[-1] + "_" + stem)
                 if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
                     # the same Go function in a later root (a part's, as the server's
                     # `EtcdDeps` was, etcd's raft v3.7 under the verified raft's Go path): the
