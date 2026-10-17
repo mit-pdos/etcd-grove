@@ -122,7 +122,7 @@ theorem Election.Leader.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     rw [Hlen0]
     ihave Hci : (concurrencyInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hci with ⟨-, -, -, -, ⟨%eNL, #HeNL⟩⟩
+    icases Hci with ⟨-, -, -, -, ⟨%eNL, #HeNL⟩, -⟩
     wp_auto
     iapply HΦ
     iright; ileft

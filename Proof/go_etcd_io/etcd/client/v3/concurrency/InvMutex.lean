@@ -226,6 +226,18 @@ instance acquireResp_persistent (resp : Loc) (pfx key : GoString) (rev r : w64) 
     Persistent (acquireResp (GF := GF) resp pfx key rev r hdr) := by
   unfold acquireResp; infer_instance
 
+/-- **`waitDeletes`' watch of its own key** (etcd#22387; persistent): `ch` is the channel of the
+client's watch of the single key `key` under `pfx` from revision `rev` (`Watch(key, WithRev(rev))`,
+`isEtcdRangeWatcher`); its consumer (`spscConsumer γ.spsc`, exclusive) is passed to each
+`waitDelete`, which receives from it. -/
+def waitKeyWatch (γ : EtcdWatchNames) (ch : Loc) (pfx key : GoString) (rev : w64) : IProp GF :=
+  isSpsc γ.spsc ch (rangeWatchElem γ pfx (opWatchModel key [withRevM rev]) rev)
+    (fun _ => iprop(True))
+
+instance waitKeyWatch_persistent (γ : EtcdWatchNames) (ch : Loc) (pfx key : GoString)
+    (rev : w64) : Persistent (waitKeyWatch (GF := GF) γ ch pfx key rev) := by
+  unfold waitKeyWatch; infer_instance
+
 end defs
 
 end concurrency

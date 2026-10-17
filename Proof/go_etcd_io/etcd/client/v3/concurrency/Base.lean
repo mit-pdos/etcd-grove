@@ -5,8 +5,10 @@ packages and zap it reuses). Its standard-library imports (`context`, `errors`, 
 `strings`, `sync`, `time`, `math`) are Perennial's.
 
 The package's facts (`concurrencyInit`): `Mutex`'s errors `ErrLocked`, `ErrSessionExpired`,
-`ErrLockReleased` and `Election`'s `ErrElectionNotLeader`, `ErrElectionNoLeader` hold fixed
-non-nil errors (`Session` reads no package-level variable). As in the cache's `Base.lean`, this is an assumption about package initialization,
+`ErrLockReleased` and `Election`'s `ErrElectionNotLeader`, `ErrElectionNoLeader`, and `key.go`'s
+`errLostWatcher` and `errWaitKeyDeleted` (etcd#22387), hold fixed non-nil errors (`Session` reads
+no package-level variable); `errWaitKeyDeleted` is a pointer error (`errors.New`'s
+`*errorString`), which `errors.Is` needs of a target. As in the cache's `Base.lean`, this is an assumption about package initialization,
 not proved from `initialize'`.
 -/
 module
@@ -37,14 +39,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The package's facts: `Mutex`'s three errors (`ErrLocked`, `ErrSessionExpired`,
-`ErrLockReleased`) and `Election`'s two (`ErrElectionNotLeader`, `ErrElectionNoLeader`) each hold
-a fixed non-nil error (`errors.New`), for good. -/
+`ErrLockReleased`), `Election`'s two (`ErrElectionNotLeader`, `ErrElectionNoLeader`) and
+`waitDelete`'s two (`errLostWatcher`, `errWaitKeyDeleted`, etcd#22387) each hold a fixed non-nil
+error (`errors.New`), for good; `errWaitKeyDeleted`'s is a pointer error. -/
 abbrev concurrencyInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrLocked ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrSessionExpired ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrLockReleased ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrElectionNotLeader ↦□ GoInterface.ok e) ∗
-    (∃ e : GoInterfaceOk, globalAddr ErrElectionNoLeader ↦□ GoInterface.ok e))
+    (∃ e : GoInterfaceOk, globalAddr ErrElectionNoLeader ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr errLostWatcher ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr errWaitKeyDeleted ↦□ GoInterface.ok e ∗
+      ⌜_root_.Perennial.errors.IsPointerError e⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency :=
   define_is_pkg_init concurrencyInit
