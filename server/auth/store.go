@@ -1078,7 +1078,8 @@ func (as *authStore) AuthInfoFromCtx(ctx context.Context) (*AuthInfo, error) {
 
 	// support authorization headers with bearer prefix.
 	if strings.HasPrefix(token, bearerPrefix) {
-		token = token[len(bearerPrefix):]
+		// goose: Perennial has no semantics for string slicing; the same string through bytes.
+		token = string([]byte(token)[len(bearerPrefix):])
 	}
 
 	authInfo, uok := as.authInfoFromToken(ctx, token)
