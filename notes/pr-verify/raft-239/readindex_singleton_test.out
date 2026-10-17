@@ -1,0 +1,4 @@
+--- PASS: TestReadIndexSingletonNewLeaderStale (0.00s)
+--- PASS: TestReadIndexSingletonRemovedLeaderStale (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.041s

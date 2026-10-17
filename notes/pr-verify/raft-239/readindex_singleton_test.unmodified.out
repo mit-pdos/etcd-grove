@@ -1,0 +1,6 @@
+    readindex_singleton_test.go:172: node 1 config voters=(1); node 2 config voters=(1), state StateFollower; x committed and applied at index 3 on node 2
+    readindex_singleton_test.go:206: node 2 stepped down
+--- FAIL: TestReadIndexSingletonRemovedLeaderStale (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.028s
+FAIL

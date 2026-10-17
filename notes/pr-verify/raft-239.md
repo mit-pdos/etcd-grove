@@ -33,7 +33,8 @@ Two things are not covered by any proof:
   (`TestReadIndexSingletonRemovedLeaderStale`, from the read-index fix) failed. It asserts that
   the removed leader is still leader, which was the old default. That scenario is now
   unreachable, so the test returns after checking that the node is a `StateFollower`. No
-  non-test code differs from the PR.
+  non-test code differs from the PR. The test diff and the failing and passing runs are in
+  `notes/pr-verify/raft-239/` (README).
 - `go build ./...` and `go test ./...` pass in the fork worktree.
 
 ## Changed functions, types and fields
@@ -106,7 +107,7 @@ change in its title and body).
   the register): 13 axioms and 10 `sorry`s, the same on `lean`. The `sorry`s are the
   package-initialization ones: `crypto/rand`, `errors`, `raftpb`, `proto`, `log`, `math/big`,
   `math`, `os`, `strconv`, `time`. The comparison was checked with `--check` against the main
-  checkout's `.lake/tcb.json`.
+  checkout's `.lake/tcb.json`. Output: `notes/pr-verify/raft-239/tcb-check.txt`.
 - No postulate or `sorry` was added.
 
 ## Findings

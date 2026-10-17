@@ -1,0 +1,3 @@
+tcb: trust base matches etc/tcb-baseline.txt (229 axioms, 12 sorries)
+tcb: wrote etc/tcb-collections/pr-raft-239.txt (23 entries)
+on lean: tcb: trust base matches /shared/etcd-grove-pr/raft-239/etc/tcb-collections/pr-raft-239.txt (13 axioms, 10 sorries)
