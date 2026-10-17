@@ -62,6 +62,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 
 @[expose] public section
 
@@ -863,63 +864,17 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hrg, Hw, Hrts, Hlrd, #Hle, Hif, Hok⟩ HΦ
-  ihave #Hsb := mvcc_storeBackend_of_backend d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
-  rw [show N + 2 = (N + 1) + 1 by omega]
-  icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
-  icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  iapply (mvcc.wp_New lg _ le cfg (some d) γb γl Pk f γi γok hcfg)
-    $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
-  · iframe Hpkg Hle Hif Hok
-    isplitr
-    · iintro %s %γ %hγ
-      iapply Hsb $$ %s %γ %hγ
-    rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
-      show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
-      show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
-      show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
-    unfold backend.wbTok
-    iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
-  inext
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl⟩
-  obtain ⟨hb, hl, hk, hi, hc⟩ := Hγ
-  ihave #Hws' := Hws
-  iunfold mvcc.isWatchableStore at Hws'
-  icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
-  iNamed Hws'
-  iapply HΦ
-  iexists st, γw
-  iframe Hws Hhk Hwt Hcok Hrds Hcl
-  isplitr
-  · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩
-  isplitr
-  · iunfold txn.isKV; iright; iexists ws, γw; iframe Hws; ipureintro; exact ⟨rfl, rfl⟩
-  isplitr
-  · iexists rv
-    iframe Hrv
-    iunfold mvcc.isReadView
-    iexists _
-    iframe Hrvkv Hs
-    iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
-  isplitl [Hww]
-  · iunfold mvcc.watchWriter at Hww
-    icases Hww with ⟨#Hc, Htoks, Hhalf⟩
-    iunfold txn.kvWriter
-    isplitl [Htoks]
-    · iunfold txn.soleWriter
-      iframe Hc
-      have hsb : txn.soleBudget [[], []] = mvcc.wBudget [[], []] := rfl
-      rw [hsb]
-      iframe Htoks
-      ipureintro; simp
-    iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
-    iexists ws, γw
-    iframe Hws Hhalf Hc
-    ipureintro; rfl
-  unfold txn.storeWTs
-  rw [hk]
-  iexact Hw
+        mvcc.wsCloser ws st }} :=
+  server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
+    backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+    backend.backend.wp_Size backend.backend.wp_SizeInUse
+    backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+    backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+    backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+    backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
@@ -990,16 +945,10 @@ theorem backend_server_hooks (γA : ApplyNames) (ci : Loc) (γ : backend.BNames)
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
       isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
-      backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b := by
-  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hci, #Hinv⟩
-  iapply isBackend_backendHooks storage.BackendHooks.wp_OnPreCommitUnsafe γ P W
-    (batchLockInv γA (metaTM γ P)) b bh _ lgh hH
-  iframe Hspkg Hbpkg Hsch Hh Hnh
-  iintro !> #Hb %t #Ht
-  iapply ci_saveSpec consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
-    backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket γA ci γ P W _ b t hP hH
-  iframe #
+      backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b :=
+  backend_server_hooks_of storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave
+    backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID
+    schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket γA ci γ P W b bh lgh hP hH
 
 /-- **The apply thread's KV over the real backend, its hooks the server's** (unit 8,
 2026-10-13): `server_kv_backend` with the backend's hooks' contract derived

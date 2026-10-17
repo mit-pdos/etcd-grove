@@ -105,11 +105,11 @@ and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
 /-- **The bootstrapped record `b`** (see the file header) for this node `id` of the cluster with
-raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 6` (D14g,
+raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
 2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
-entries, `NewServer.spec`'s lifetime bound, and six for the construction: `mvcc.New` two,
-`NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one; until then `2 ^ 64 + 3`, which no
-backend has). -/
+entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
+`NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
+until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
 def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
@@ -169,7 +169,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "Hhook" ∷ backend.plHook d.γB func.nil ∗ "Hopen" ∷ (∃ qo : Qp, backend.bOpen d.γB qo) ∗
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗
     "Hview" ∷ mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
-    "Hwb" ∷ ownToks d.γB.wb (N + 6) ∗
+    "Hwb" ∷ ownToks d.γB.wb (N + 7) ∗
     "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
     "Hrts" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       mvcc.bkRTx d.γB d.P d.be) ∗
@@ -179,7 +179,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
       {{ RET #(); True }}))
 
 /-- **`bootstrap`'s contract** (D13b: a premise of `NewServer.spec`, see the file header): on the
-configuration `cfg`, an error, or the record with `bootOk` (at the write-back budget `N + 6`). -/
+configuration `cfg`, an error, or the record with `bootOk` (at the write-back budget `N + 7`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames)
     (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
   iprop(□ ({{ True }} (App (Val (@! bootstrap)) (Val #cfg))
@@ -203,6 +203,14 @@ variable [sem : go.Semantics]
 abbrev transportIface (t : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t
+
+/-- **The transport `t` owned** (opaque, exclusive; unit N4, 2026-10-17): the caller owns the
+`*rafthttp.Transport` struct at `t` whole, its `Logger` `lg`, `ServerStats` `ss`, `LeaderStats` `ls`
+(`NewServer`'s literal). Its relation to the struct's points-to `t ↦ tv` is not stated: that
+points-to is built from the field types' instances, four of them axiomatized types (`probing.Prober`,
+`transport.TLSInfo`, `types.URLs`, the `Raft` interface's) whose instances are `sorry`; it awaits
+their translation (`notes/STATUS.md`, "unit N4, continued"). -/
+opaque transportOwn (t lg ss ls : Loc) : IProp GF
 
 /-- **The transport `t` live** (opaque, exclusive; unit N4, 2026-10-17): started and not
 stopped. `Start` gives it; `AddRemote`/`AddPeer` take it and give it back (`AddPeer` panics after

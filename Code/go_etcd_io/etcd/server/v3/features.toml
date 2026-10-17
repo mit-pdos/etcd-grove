@@ -1,6 +1,8 @@
-# Names only, with the two feature constants the server's request path reads
-# (`PriorityRequest` in processInternalRaftRequestOnce, `TxnModeWriteWithSharedBuffer` in Txn).
-translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer"]
+# Names only, with the feature constants the server reads: the request path's (`PriorityRequest`
+# in processInternalRaftRequestOnce, `TxnModeWriteWithSharedBuffer` in Txn) and the
+# construction's (`LeaseCheckpointPersist`, `LeaseCheckpoint` in NewServer; unit N4, 2026-10-17).
+translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer", "LeaseCheckpointPersist",
+  "LeaseCheckpoint"]
 imports = ["!*", "go.etcd.io/etcd/pkg/v3/featuregate"]
 
 # translate the definitions of all type declarations goose supports

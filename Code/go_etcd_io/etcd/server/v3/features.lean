@@ -31,9 +31,11 @@ axiom InitialCorruptCheck [FfiSyntax] [GoGlobalContext] : val
 
 axiom CompactHashCheck [FfiSyntax] [GoGlobalContext] : val
 
-axiom LeaseCheckpoint [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def LeaseCheckpoint [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"LeaseCheckpoint")
 
-axiom LeaseCheckpointPersist [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def LeaseCheckpointPersist [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"LeaseCheckpointPersist")
 
 axiom SetMemberLocalAddr [FfiSyntax] [GoGlobalContext] : val
 

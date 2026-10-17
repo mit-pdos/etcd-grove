@@ -10,7 +10,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Spec.github_com.prometheus.client_golang.prometheus.GaugeVec__With
-public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
 public import Spec.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Spec.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
@@ -51,9 +51,11 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.math.Ceil
-public import Spec.time.Duration__Seconds
+public import Spec.time.Duration__Seconds_ptr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
+public import Perennial.Proof.time
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.FloatToInt
 
 @[expose] public section
 
@@ -74,6 +76,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
+set_option maxRecDepth 100000 in
+set_option pp.maxSteps 200000 in
+set_option maxHeartbeats 0 in
 theorem NewServer.wp_proof
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
@@ -82,7 +87,7 @@ theorem NewServer.wp_proof
     (h4 : v2stats.NewServerStats.spec (GF := GF) (hG := hG))
     (h5 : membership.RaftCluster.String.spec (GF := GF) (hG := hG))
     (h6 : v2stats.NewLeaderStats.spec (GF := GF) (hG := hG))
-    (h7 : types.ID.String.spec (GF := GF) (hG := hG))
+    (h7 : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (h8 : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
     (h9 : node.Ready.spec (GF := GF) (hG := hG))
     (h10 : node.Advance.spec (GF := GF) (hG := hG))
@@ -97,7 +102,7 @@ theorem NewServer.wp_proof
     (h19 : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (h20 : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
     (h21 : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
-    (h22 : time.Duration.Seconds.spec (GF := GF) (hG := hG))
+    (h22 : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG))
     (h23 : math.Ceil.spec (GF := GF) (hG := hG))
     (h24 : lease.NewLessor.spec (GF := GF) (hG := hG))
     (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
@@ -119,6 +124,165 @@ theorem NewServer.wp_proof
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
     (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hfgp
+  wp_start
+  iNamed Hpre
+  wp_apply wp_with_defer as %defer defer
+  ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  ihave #Hboot' := Hboot
+  iunfold bootstrapContract at Hboot'
+  wp_apply Hboot' as %b %err Hb
+  icases Hb with (%Herr | ⟨%Herr, Hb⟩)
+  · -- `bootstrap` failed
+    cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei => ?_
+    wp_auto
+    wp_apply h1 as %f -
+    wp_apply wp_slice_literal (l := [f])
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl -
+    wp_auto
+    wp_apply h0
+    · ipureintro; exact Hlgnn
+    iapply HΦ
+    ileft
+    ipureintro; exact ⟨rfl, Herr⟩
+  subst Herr
+  iNamed Hb
+  iStructNamed Hbc
+  wp_auto
+  ihave #Hmpkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
+  ihave #Hspkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats $$ []
+  · iPkgInit
+  ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
+  · iPkgInit
+  wp_apply h2
+  · ipureintro; exact Hlgnn
+  wp_apply h5 as %cls -
+  · iexact Hrc
+  wp_apply h4 as %sstats -
+  (try wp_auto)
+  wp_apply h7 $$ [$nodeID] as %ids nodeID
+  wp_apply h6 as %lstats -
+  (try wp_auto)
+  -- the server's literal: `readych`, `lgMu`, `errorc`, the raft wrapper
+  wp_apply chan.wp_make1 (V := Unit) as %rdc %γrdc ⟨#Hrdc, %Hrdcap, Hrdo⟩
+  (try wp_auto)
+  wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %errc %γec ⟨#Herrc, %Herrcap, Herro⟩
+  · ipureintro; word
+  imod start_bag (V := GoInterface) (fun _ => iprop(True)) _ errc γec (by trivial) $$ Herrc Herro
+    with #Herrb
+  (try wp_auto)
+  -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started
+  -- (`NodeStartSpec`, `raftNode_of_StartNode`)
+  have hNS := raftNode_of_StartNode (GF := GF) (MemStorReg.memStorRegName GF) h8 h9 h10 h11 h12
+  obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrcq, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
+    Hrpv, Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
+  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
+    (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrcq Hrdpf
+    Hrro Hrdccv Hrsizes Hrasync Hrpv Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
+    Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
+    (by simpa [srvEr] using Hpol)) $$ [Hbv Hc Hstor Hpeers Hghost]
+    as %r ⟨%γw, %rv, %Hrnames, Hr, Hrtm, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers⟩
+  · iframe Hbv Hc Hstor Hpeers
+    rw [Hrid]
+    iframe Hghost
+    iframe #
+    iintro %γw' %hw
+    iapply Hfits
+    ipureintro; exact ⟨hw.1, hw.2.1, hw.2.2.2.1⟩
+  (try wp_auto)
+  -- the configuration, field by field from here on
+  iStructNamed cfg
+  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
+  wp_apply h13 as %cus -
+  · iframe #; ipureintro; exact HcuNN
+  (try wp_auto)
+  -- the request ids' generator, the notifiers
+  ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
+  · iPkgInit
+  ihave #Hnpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
+  · iPkgInit
+  wp_apply time.wp_Now as %now -
+  wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen ⟨#Hgen, Hidcred⟩
+  · iframe #; iframe Hids
+  (try wp_auto)
+  wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
+  wp_apply h15 as %cvn ⟨#Hcvn, Hcvnr⟩
+  (try wp_auto)
+  -- the server `s`, field by field
+  irename «$r0» => Hs
+  iStructNamed Hs
+  -- the metrics
+  ihave Hsi : (srvInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  iunfold srvInit at Hsi
+  icases Hsi with ⟨⟨-, -, -, -, -, ⟨%gvf, #Hgvf⟩, ⟨%gvi, #Hgvi⟩⟩, -⟩
+  (try wp_auto)
+  wp_apply h16 $$ []
+  · iframe #; ipureintro; exact Hfgp
+  ihave #Hppkg : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply h7 $$ [$nodeID] as %ids2 nodeID
+  (try wp_auto)
+  wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lbl Hlbl
+  wp_apply wp_mapInsert go.string lbl _ _ _ $$ [$Hlbl] as Hlbl
+  (try wp_auto)
+  wp_apply h17 as %gsi ⟨%gi, %Hgi, #Hgset⟩
+  subst Hgi
+  (try wp_auto)
+  wp_apply Hgset
+  (try wp_auto)
+  wp_apply h18 $$ []
+  · iframe #
+  (try wp_auto)
+  -- `lgMu`'s readers (`Logger()`)
+  ipersist lg
+  ipersist lgMu
+  imod sync.init_RWMutex (fun _ => iprop(True)) (E := ⊤) «$v2_ptr» $$ [] «$v2» with Hlgrs
+  · inext; itrivial
+  ihave Hlgrs := replicate_map _ (srvLgReader «$r0_ptr») (srvLgMuAddr «$r0_ptr» ↦□ «$v2_ptr») _
+    (by iintro ⟨#H, Hm⟩; iunfold srvLgReader; iexists _; iframe Hm; iexact H) $$ [$lgMu $Hlgrs]
+  -- `srv.Cfg`, field by field
+  iStructNamedSuffix Cfg "S"
+  ipersist ElectionTicksS
+  ipersist TickMsS
+  ipersist ServerFeatureGateS
+  ipersist be
+  have hM1 : 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+    have := maxReaders_ge2; omega
+  icases replicate_take1 _ _ hM1 $$ Hlgrs with ⟨Hlr1, Hlgrs⟩
+  wp_apply h19 $$ [Hlr1] as ⟨-, Hlr1⟩
+  · iframe #; iframe Hlr1; ipureintro; exact Hlgnn
+  (try wp_auto)
+  ihave #Htmpkg : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+  · iPkgInit
+  ihave #Hmapkg : isPkgInit (PROP := IProp GF) pkg_id.math $$ []
+  · iPkgInit
+  wp_apply h22 $$ [$minTTL] as %secs minTTL
+  wp_apply h23 as %ceil -
+  (try wp_auto)
+  ihave #Hfg' := Hfg
+  iunfold isFeatureGate at Hfg'
+  icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
+  rw [Hfgi]
+  (try wp_auto)
+  wp_apply Hen as %ckpp -
+  (try wp_auto)
+  -- Stopped here (unit N4, 2026-10-17; `notes/STATUS.md`, "unit N4, continued"): next,
+  -- `srv.Cfg.ReqTimeout()`, `lease.NewLessor` (its axiom over the backend made `isBackend` by
+  -- `backend_server_hooks_of`, `BuildLemmas.lean`). The proof cannot be finished as the
+  -- interface stands: `NewUberApplier` needs `apply.isApplyLessor` of the real lessor, whose
+  -- `Revoke` clause no spec gives (`lease.lessor.Revoke` is not specified, and the lessor's
+  -- invariant does not record the range deleter `mvcc.New` installs).
   sorry
 
 end proof

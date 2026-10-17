@@ -231,6 +231,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitU
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.strconv.FormatBool
 public import Proof.time.Duration__Seconds
+public import Proof.time.Duration__Seconds_ptr
 public import Proof.time.Time__After
 public import Proof.time.Time__IsZero
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
@@ -247,6 +248,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewLeaderStats
@@ -608,6 +610,10 @@ theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
   v2stats.NewLeaderStats.wp_proof
 
+theorem types.ID.wp_String_ptr :
+    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
+  types.ID.String_ptr.wp_proof
+
 theorem types.URLs.wp_StringSlice :
     types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
   types.URLs.StringSlice.wp_proof
@@ -615,6 +621,10 @@ theorem types.URLs.wp_StringSlice :
 theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
+
+theorem time.Duration.wp_Seconds_ptr :
+    time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
+  time.Duration.Seconds_ptr.wp_proof
 
 theorem math.wp_Ceil :
     math.Ceil.spec (GF := GF) (hG := hG) :=
@@ -1317,7 +1327,7 @@ theorem rafthttp.Transport.wp_AddPeer :
 
 theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] :
     NewServer.spec (GF := GF) (hG := hG) :=
-  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote membership.RaftCluster.wp_Members rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close
+  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote membership.RaftCluster.wp_Members rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close
 
 theorem lease.Lease.wp_persistTo :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) :=

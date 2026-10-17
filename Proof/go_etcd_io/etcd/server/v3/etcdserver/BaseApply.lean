@@ -332,7 +332,8 @@ instance gaugeSetSpec_persistent (g : GoInterfaceOk) :
 /-- The raft wrapper's part of the server's package facts (2026-10-12, `raft.go`): the metrics of
 `metrics.go` the `Ready` loop updates each hold a fixed gauge (`hasLeader`, `isLeader`,
 `proposalsCommitted`: `Set`) or counter (`leaderChanges`, `heartbeatSendFailures`: `Inc`, mvcc's
-`counterSpec`). -/
+`counterSpec`); and the gauge vectors the construction uses (`serverFeatureEnabled`, `serverID`;
+unit N4, 2026-10-17). -/
 abbrev srvRaftInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr hasLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ g : GoInterfaceOk, globalAddr isLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
@@ -340,7 +341,10 @@ abbrev srvRaftInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr leaderChanges ↦□ GoInterface.ok c ∗
       go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr heartbeatSendFailures ↦□ GoInterface.ok c ∗
-      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    -- the construction's metrics (unit N4, 2026-10-17: `NewServer`'s `addFeatureGateMetrics(…,
+    -- serverFeatureEnabled)` and `serverID.With(…)`): two fixed gauge vectors
+    (∃ gv : Loc, globalAddr serverFeatureEnabled ↦□ gv) ∗ (∃ gv : Loc, globalAddr serverID ↦□ gv))
 
 instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
   unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance

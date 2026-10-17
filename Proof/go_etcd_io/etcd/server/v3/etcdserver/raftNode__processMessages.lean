@@ -229,7 +229,7 @@ theorem raftNode.processMessages.wp_proof
           ihave Hsi : (srvInit : IProp GF) $$ []
           · iapply isPkgInit_access $$ Hpkg
           iunfold srvInit at Hsi
-          icases Hsi with ⟨⟨-, -, -, -, ⟨%c, #Hc, #Hcs⟩⟩, -⟩
+          icases Hsi with ⟨⟨-, -, -, -, ⟨%c, #Hc, #Hcs⟩, -⟩, -⟩
           iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hcs
           icases Hcs with ⟨#HInc, -⟩
           wp_auto
