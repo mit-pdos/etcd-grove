@@ -1,0 +1,17 @@
+=== RUN   TestProgressCommitAboveLeaderCommit
+    commit_track_pr132_test.go:80: 2: last=3 committed=0; 3: last=2 committed=2
+    commit_track_pr132_test.go:95: leader 2: committed=0; progress of 3: StateReplicate match=3 commit=2 next=4 sentCommit=0
+    commit_track_pr132_test.go:97: Invariant "Commit <= leader's commit index" violated: Commit=2 > committed=0
+    commit_track_pr132_test.go:100: Invariant "sentCommit >= Commit" violated: sentCommit=0 < Commit=2
+--- FAIL: TestProgressCommitAboveLeaderCommit (0.00s)
+=== RUN   TestReviewLeaderOwnCommitLags
+    review_commit_lag_test.go:16: leader committed=2 own=StateReplicate match=2 commit=1 next=3 p2=StateReplicate match=2 commit=2 next=3 p3=StateReplicate match=2 commit=2 next=3
+    review_commit_lag_test.go:18: leader's own Commit=1 != committed=2
+--- FAIL: TestReviewLeaderOwnCommitLags (0.01s)
+=== RUN   TestReviewSnapshotCommitNotReported
+    review_commit_lag_test.go:33: 2 sends MsgAppResp Index=11 Commit=0 (2 committed=11)
+    review_commit_lag_test.go:35: snapshot reply Commit=0, follower committed=11
+--- FAIL: TestReviewSnapshotCommitNotReported (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.099s
+FAIL

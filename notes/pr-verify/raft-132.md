@@ -144,15 +144,15 @@ Every path stops at an unchanged spec, except the user-visible change: `MsgAppRe
   is documented with "Invariant: Commit <= leader's commit index" and `sentCommit` with
   "Invariant: sentCommit >= Commit". Both fail when a follower learned a higher commit index
   from the previous leader than the new leader has.
-  - The Go test `commit_track_pr132_test.go` (in the scratch directory of this run, against
-    the PR head) uses 5 nodes. Leader 1 commits index 2, and only node 3 hears of it. Node 2
+  - The Go test `notes/pr-verify/raft-132/commit_track_pr132_test.go` (run against the PR
+    head; output in `notes/pr-verify/raft-132/test-output-pr-head.txt`) uses 5 nodes. Leader 1 commits index 2, and only node 3 hears of it. Node 2
     wins term 2 with `committed=0`, and node 3's acceptance reports `Commit=2`. After that the
     leader has `committed=0` while 3's progress has `commit=2` and `sentCommit=0`.
   - True replacements: `Commit <= Match` (proved here per method); and "`Commit` is a
     committed index", which is provable if `isMessage`'s `.appResp` arm carried `isCommitted`
     up to `m.commit`. Not done here.
 - **Incomplete tracking (low, informational; from review, confirmed by the reviewer's Go
-  tests `review_commit_lag_test.go`).**
+  tests `notes/pr-verify/raft-132/review_commit_lag_test.go`).**
   - `handleSnapshot`'s `MsgAppResp`s carry no `Commit`, so a follower restored from a
     snapshot at `committed=11` reports 0.
   - `MsgHeartbeatResp` carries none either, so a commit learned from a heartbeat is not
