@@ -1,7 +1,7 @@
 # etcd-io/etcd#19775: tests and logs
 
 Revisions:
-- **fork**: `mit-pdos/etcd-grove` branch `pr-etcd-19775-goose-lean` (`534e22e6f`): `goose-lean` `09669450f` plus the PR, plus a rewrite of the slice for Goose.
+- **fork**: `mit-pdos/etcd-grove` branch `pr-etcd-19775-goose-lean` (`65a780582`): `goose-lean` `09669450f` plus the PR, plus a rewrite of the slice for Goose.
 - **PR head**: `cad46b8e7`. **PR base**: `638b41017`, the merge base with upstream `main`.
 - **main**: upstream `main` `b25719d10`. It has etcd-io/etcd#21910's `strings.TrimPrefix`.
 
