@@ -1018,7 +1018,7 @@ theorem unstable.wp_truncateAndAppend [StorageModel GF] :
 
 theorem raftLog.wp_append [StorageModel GF] :
     raftLog.append.spec (GF := GF) (hG := hG) :=
-  raftLog.append.wp_proof raftLog.wp_lastIndex unstable.wp_truncateAndAppend raftpb.Entry.wp_GetIndex
+  raftLog.append.wp_proof raftLog.wp_lastIndex unstable.wp_truncateAndAppend raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
 
 theorem proto.wp_CloneEntry :
     proto.CloneEntry.spec (GF := GF) (hG := hG) :=
@@ -1086,7 +1086,7 @@ theorem raftpb.Message.wp_GetContext :
 
 theorem raft.wp_handleHeartbeat [StorageModel GF] :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) :=
-  raft.handleHeartbeat.wp_proof raftLog.wp_commitTo raft.wp_send raftpb.Message.wp_GetCommit raftpb.Message.wp_GetContext raftpb.MessageType.wp_Enum
+  raft.handleHeartbeat.wp_proof raftLog.wp_commitTo raft.wp_send raftpb.Message.wp_GetTerm raftpb.Message.wp_GetCommit raftpb.Message.wp_GetContext raftpb.MessageType.wp_Enum
 
 theorem unstable.wp_restore [StorageModel GF] :
     unstable.restore.spec (GF := GF) (hG := hG) :=
@@ -1106,7 +1106,7 @@ theorem raftpb.Message.wp_GetSnapshot :
 
 theorem raft.wp_handleSnapshot [StorageModel GF] :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) :=
-  raft.handleSnapshot.wp_proof raft.wp_restore raftLog.wp_lastIndex raft.wp_send raftpb.Message.wp_GetSnapshot raftpb.wp_EnsureSnapshot raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.MessageType.wp_Enum
+  raft.handleSnapshot.wp_proof raft.wp_restore raftLog.wp_lastIndex raft.wp_send raftpb.Message.wp_GetSnapshot raftpb.Message.wp_GetTerm raftpb.wp_EnsureSnapshot raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.MessageType.wp_Enum
 
 theorem raftpb.Message.wp_GetReject :
     raftpb.Message.GetReject.spec (GF := GF) (hG := hG) :=
