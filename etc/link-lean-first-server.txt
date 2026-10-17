@@ -396,10 +396,10 @@ bootstrappedRaft__newRaftNode: StartNode newRaftNode
 # return (the stats, the cluster's `String`/`SetVersionChangedNotifier`, `URLs.StringSlice`,
 # `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
-# their bodies since unit N4, 2026-10-17); pending (`?`, hypotheses of the linked
-# result until unit N1 settles them): the constructors' contracts (`lease.NewLessor`,
-# `auth.NewTokenProvider`, `auth.NewAuthStore`, `v3compactor.New`, `v3alarm.NewAlarmStore`,
-# `rafthttp.Transport`'s `Start`/`AddRemote`/`AddPeer`). `bootstrap`'s contract is a premise of
+# their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
+# the Go code (unit N1: `auth.NewTokenProvider`; unit N4, D14d/D14e: `lease.NewLessor`,
+# `auth.NewAuthStore`, `v3compactor.New`, `v3alarm.NewAlarmStore`, `rafthttp.Transport`'s
+# `Start`/`AddRemote`/`AddPeer`; their specs' docstrings say why). `bootstrap`'s contract is a premise of
 # `NewServer.spec` (D13b). raft's node methods (for the wrapper's composition, `NodeStart.lean`),
 # mvcc's `New` and `watchableStore.Close` and the backend's `SetTxPostLockInsideApplyHook` are
 # linked in their packages' Links (`@`).
@@ -415,14 +415,14 @@ schema_NewAuthBackend:
 schema_NewAlarmBackend:
 mvcc_store__HashStorage:
 math_Ceil:
-lease_NewLessor: ?
+lease_NewLessor:
 auth_NewTokenProvider:
-auth_NewAuthStore: ?
-v3compactor_New: ?
-v3alarm_NewAlarmStore: ?
-rafthttp_Transport__Start: ?
-rafthttp_Transport__AddRemote: ?
-rafthttp_Transport__AddPeer: ?
+auth_NewAuthStore:
+v3compactor_New:
+v3alarm_NewAlarmStore:
+rafthttp_Transport__Start:
+rafthttp_Transport__AddRemote:
+rafthttp_Transport__AddPeer:
 apply_NewUberApplier: @
 node__Ready: @
 node__Advance: @

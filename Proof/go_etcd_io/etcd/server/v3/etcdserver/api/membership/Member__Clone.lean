@@ -34,13 +34,15 @@ local macro "clone_fin" : tactic => `(tactic| (
     · ipureintro; exact Hmnn
     iexists _, _, il, nm, pus, cus
     iframe
+    ipureintro; exact Hpok
   · iunfold membership.memberIs
     isplitr
     · ipureintro; exact Hr0nn
     icases Hpm with ⟨%npu, Hpm1, Hpm2⟩
     icases Hcm with ⟨%ncu, Hcm1, Hcm2⟩
     iexists npu, ncu, il, nm, pus, cus
-    iframe))
+    iframe
+    ipureintro; exact Hpok))
 
 set_option hygiene false in
 /-- After the `PeerURLs` copy: the `ClientURLs` copy, then the return. -/
@@ -76,7 +78,7 @@ theorem membership.Member.Clone.wp_proof :
   intro m id
   wp_start as Hm
   iunfold membership.memberIs at Hm
-  icases Hm with ⟨%Hmnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus⟩
+  icases Hm with ⟨%Hmnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
   wp_auto
   rw [decide_eq_false Hmnn]
   wp_auto

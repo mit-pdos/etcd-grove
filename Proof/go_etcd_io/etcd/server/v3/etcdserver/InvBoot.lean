@@ -61,9 +61,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
-/-- A cluster member (`*membership.Member`), read-only. -/
+/-- A cluster member (`*membership.Member`), read-only, its peer URLs parsing (unit N4,
+2026-10-17: `membership.peerURLsOk`, the transport's `AddRemote` panics otherwise). -/
 def memberRO (m : Loc) : IProp GF :=
-  iprop(⌜m ≠ null⌝ ∗ ∃ v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member, m ↦□ v)
+  iprop(⌜m ≠ null⌝ ∗ ∃ (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member)
+      (us : List GoString), m ↦□ v ∗ v.RaftAttributes'.PeerURLs' ↦*□ us ∗
+    ⌜membership.peerURLsOk us⌝)
 
 instance memberRO_persistent (m : Loc) : Persistent (memberRO (GF := GF) m) := by
   unfold memberRO; infer_instance
@@ -78,6 +81,29 @@ is a name for what `bootstrap`'s contract promises and the constructors' axioms
 undecodable data) and the auth store reads its enabled flag (unset). -/
 opaque bkFresh (γB : backend.BNames) (name : GoString) : IProp GF
 
+/-- **The background goroutines' effects** (opaque, the named premises of D14e and D14g,
+2026-10-17): what the model does not cover of the goroutines the construction starts, assumed as
+a whole. `transportEffectsOk`: the transport's goroutines (`rafthttp`: each peer's readers and
+writers, the inbound messages) call into the server (`Process`, `ReportUnreachable`,
+`ReportSnapshot`, `IsIDRemoved`) and the network safely -- the cluster's message trust
+assumption. `ckptEffectsOk`: the lessor's loop, once its lessor is promoted, calls the server's
+checkpointer (`NewServer`'s closure over `raftRequest`, installed when the `LeaseCheckpoint`
+feature is on), which proposes outside the request path's model. Premises of
+`rafthttp.Transport`'s and `lease.NewLessor`'s axioms and so of `NewServer.spec`; nothing in the
+model proves or refutes them. -/
+opaque transportEffectsOk : Prop
+
+@[inherit_doc transportEffectsOk]
+opaque ckptEffectsOk : Prop
+
+/-- **The auth store's records fit bbolt's value bound** (opaque, a workload premise; unit N4,
+2026-10-17): a user's record grows with its roles and a role's with its permissions, each grant
+within the request size bound; a record above bbolt's `MaxValueSize` (`2 ^ 31 - 2` bytes) makes
+the backend's put fatal (`issues/etcd-backend-put-value-too-large-fatal.md`). The model does not
+keep the auth store's contents, so the bound is named, a premise of `auth.NewAuthStore`'s axiom
+and of `NewServer.spec`. -/
+opaque authRecordsFit : Prop
+
 /-- **The bootstrapped record `b`** (see the file header) for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 6` (D14g,
 2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
@@ -89,7 +115,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
       (ctxs : List (List w8)) (rms : List Loc) (cid : w64) (cil : Loc) (γA : ApplyNames)
-      (d : mvcc.KBReal) (bh lgh : Loc) (f0 : GoFunc),
+      (d : mvcc.KBReal) (bh lgh : Loc),
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
     "Hbw" ∷ sto.wal' ↦ bw ∗ "Hbc" ∷ bs.cluster' ↦ bc ∗ "Hbv" ∷ bs.raft' ↦ bv ∗
@@ -140,7 +166,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "#Hhooks" ∷ storage.isBackendHooks bh
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh ∗
-    "Hhook" ∷ backend.plHook d.γB f0 ∗ "Hopen" ∷ (∃ qo : Qp, backend.bOpen d.γB qo) ∗
+    "Hhook" ∷ backend.plHook d.γB func.nil ∗ "Hopen" ∷ (∃ qo : Qp, backend.bOpen d.γB qo) ∗
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗
     "Hview" ∷ mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
     "Hwb" ∷ ownToks d.γB.wb (N + 6) ∗
@@ -177,6 +203,11 @@ variable [sem : go.Semantics]
 abbrev transportIface (t : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t
+
+/-- **The transport `t` live** (opaque, exclusive; unit N4, 2026-10-17): started and not
+stopped. `Start` gives it; `AddRemote`/`AddPeer` take it and give it back (`AddPeer` panics after
+`Stop`); it is given up for `transportStarted` (whose `isRNTransport` has `Stop`). -/
+opaque transportLive (t : Loc) : IProp GF
 
 /-- **The transport `t` after `Start`** (persistent; names-only, see the file header). -/
 def transportStarted (t : Loc) : IProp GF :=

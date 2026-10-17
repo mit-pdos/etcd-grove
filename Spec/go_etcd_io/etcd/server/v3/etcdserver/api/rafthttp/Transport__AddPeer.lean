@@ -1,8 +1,7 @@
 /-
-`(*rafthttp.Transport).AddPeer(id, urls)` (`transport.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
-`notes/decisions.md`), for `NewServer`.
-Pending (`?` in `etc/link-lean-first-server.txt`): a hypothesis of `NewServer`'s linked result
-until unit N1 settles it (then an axiom at the trust boundary).
+`(*rafthttp.Transport).AddPeer(id, urls)` (`transport.go`): names-only. Lean-first (no Rocq counterpart); the
+server-construction unit, stage N0 (2026-10-16, D13: `notes/decisions.md`), for `NewServer`; an
+axiom at the trust boundary since unit N4 (2026-10-17, D14e), why it is true of the Go code below.
 -/
 module
 
@@ -26,15 +25,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `t.AddPeer(id, us)` on a started transport returns. -/
+/-- **`t.AddPeer(id, us)`** on a live transport, the URLs parsing: it returns.
+
+Why it is true of the Go code (`transport.go` at the etcd pin): `AddPeer` takes the transport's lock;
+it panics if the transport stopped (`transportLive` excludes it), returns for a known peer;
+`types.NewURLs(us)` succeeds (`peerURLsOk`: otherwise `Logger.Panic`); `LeaderStats.Follower`
+(the stats set at `Start`), `startPeer` starts the peer's goroutines (`transportEffectsOk`), the
+probers add it; it logs and returns. -/
 abbrev rafthttp.Transport.AddPeer.spec : Prop :=
-  ∀ (t : Loc) (id : w64) (us : GoSlice),
+  ∀ (t : Loc) (id : w64) (us : GoSlice) (ss : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      transportStarted t }}
+      ⌜transportEffectsOk⌝ ∗ transportLive t ∗ us ↦*□ ss ∗ ⌜membership.peerURLsOk ss⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); True }}
+  {{ RET #(); transportLive t }}
 
 end spec
 

@@ -1,8 +1,7 @@
 /-
-`(*rafthttp.Transport).Start()` (`transport.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
-`notes/decisions.md`), for `NewServer`.
-Pending (`?` in `etc/link-lean-first-server.txt`): a hypothesis of `NewServer`'s linked result
-until unit N1 settles it (then an axiom at the trust boundary).
+`(*rafthttp.Transport).Start()` (`transport.go`): names-only. Lean-first (no Rocq counterpart); the
+server-construction unit, stage N0 (2026-10-16, D13: `notes/decisions.md`), for `NewServer`; an
+axiom at the trust boundary since unit N4 (2026-10-17, D14e), why it is true of the Go code below.
 -/
 module
 
@@ -26,16 +25,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `t.Start()`: an error (the TLS configuration), or the transport started
-(`transportStarted`). -/
+/-- **`t.Start()`** on a transport `t` the caller owns whole (`NewServer`'s literal), its logger
+and stats set: an error, or the transport live (`transportLive t`: `AddRemote`/`AddPeer` take it),
+which the caller gives up for `transportStarted t` (`Send`, `Stop`, `ActiveSince`).
+
+Why it is true of the Go code (`transport.go` at the etcd pin): `Start` makes the two round
+trippers from the TLS info (an error returned, e.g. an unreadable certificate), the two maps and
+the two probers, and defaults the dial retry frequency; it starts no goroutine. Afterwards the
+transport's maps are guarded by its `mu` (`AddRemote`, `AddPeer`, `Send`, `Stop`, `ActiveSince`
+take it), so the caller's ownership goes into the transport; the peers' goroutines started later
+call into `t.Raft` (`Process`, `ReportUnreachable`, `ReportSnapshot`, `IsIDRemoved`), the named
+premise `transportEffectsOk`. `Send` after `Stop` finds no peer and returns; `AddPeer` after
+`Stop` panics, hence the exclusive `transportLive`, given up for `Stop`. -/
 abbrev rafthttp.Transport.Start.spec : Prop :=
-  ∀ (t : Loc),
+  ∀ (t : Loc) (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜t ≠ null⌝ }}
+      ⌜transportEffectsOk⌝ ∗ t ↦ tv ∗
+      ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null⌝ }}
     (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Start")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ transportStarted t }}
+      ⌜err ≠ GoInterface.nil⌝ ∨
+      ⌜err = GoInterface.nil⌝ ∗ transportLive t ∗ (transportLive t -∗ transportStarted t) }}
 
 end spec
 
