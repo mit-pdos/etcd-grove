@@ -35,8 +35,11 @@ theorem read_wp_Is_var (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err : GoInt
   ihave #HT := applyErrIs_tree err $$ Herr
   ihave ⟨%S, %M, #Htree, %HS⟩ := HT $$ %(GoInterface.ok e)
   have hpt : ptrTarget (GoInterface.ok e) := fun tii h => by cases h; exact hl.1
-  iapply hIs S M err (GoInterface.ok e) hpt (HS.2 hpt) $$ [] HΦ
-  iframe #; ipureintro; exact HS.1
+  iapply hIs S M err (GoInterface.ok e) hpt (HS.2 hpt)
+  · iframe #; ipureintro; exact HS.1
+  iintro !> %b -
+  iapply HΦ
+  itrivial
 
 theorem read.isStopped.wp_proof (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
     read.isStopped.spec (GF := GF) (hG := hG) := by

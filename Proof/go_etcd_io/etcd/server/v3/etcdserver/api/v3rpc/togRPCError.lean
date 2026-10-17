@@ -52,35 +52,97 @@ theorem v3rpc.togRPCError.wp_proof
   icases Hctx with ⟨-, -, -, ⟨%de, #Hde, -⟩, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxCanceledPtr at Hcanc
   icases Hcanc with ⟨%ec, #Hec, %Hecp⟩
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
+  icases Hmap with ⟨%mp, %M, #Hmp, #HM, %HMv, #HNP⟩
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.notPrimaryEntry at HNP
+  icases HNP with ⟨%ek, %ev, %ec', %ed, #Hek, #Hev, #Hec', #Hed, %Hnp⟩
+  obtain ⟨Hekp, Hekl, HekIs, HMek, Hcode, Hekc, Hedk⟩ := Hnp
+  icombine Hec Hec' gives %Hceq
+  icombine Hde Hed gives %Hdeq
+  injection Hceq with Hceq
+  subst Hceq Hdeq
+  -- the answer for `lease.ErrNotPrimary`, the same in every branch where `err` is not it
+  ihave #Hout : ∀ e : GoInterface, ⌜err ≠ GoInterface.ok ek⌝ -∗
+      v3rpc.notPrimaryOut (GF := GF) err e $$ []
+  · iintro %e %Hne
+    iunfold v3rpc.notPrimaryOut
+    iexists (GoInterface.ok ek), (GoInterface.ok ev)
+    iframe #
+    ipureintro; intro h; exact absurd h Hne
   wp_auto
+  by_cases hnp : err = GoInterface.ok ek
+  · -- `err` is `lease.ErrNotPrimary`: a leaf error, neither context error, a key of the map
+    subst hnp
+    ihave #HtreeL := _root_.Perennial.errors.errorIsTree_leaf (GF := GF) ek (fun _ => False)
+      (GoInterface.ok ec) Hekl HekIs
+    wp_apply hIs (· = GoInterface.ok ek) (fun _ => False) (GoInterface.ok ek) (GoInterface.ok ec)
+      (fun tii h => by cases h; exact Hecp)
+      (_root_.Perennial.errors.treeTyped_pointer ek _ Hekp)
+      $$ [$HtreeL] as %b1 ⟨-, -, %Hb1⟩
+    · iframe #; ipureintro; rfl
+    wp_if_destruct
+    rotate_left
+    · exfalso
+      obtain ⟨ii, hii, h⟩ := Hb1 ec rfl Hecp (by simp) rfl
+      cases hii
+      rcases h with h | h
+      · exact Hekc (by injection h)
+      · exact h
+    ihave #HtreeD := _root_.Perennial.errors.errorIsTree_leaf (GF := GF) ek (fun _ => False)
+      de Hekl HekIs
+    wp_apply hDE (· = GoInterface.ok ek) (fun _ => False) (GoInterface.ok ek) de
+      $$ [$HtreeD] as %b2 %Hb2
+    · iframe #; ipureintro; rfl
+    wp_if_destruct
+    rotate_left
+    · exfalso
+      obtain ⟨ii, hii, h⟩ := Hb2 rfl
+      cases hii
+      rcases h with ⟨tii, htii, hty⟩ | h
+      · exact Hedk tii htii hty.symm
+      · exact h
+    haveI := Hsafe
+    wp_apply wp_map_lookup2 $$ HM as -
+    simp only [HMek, Option.getD_some, Option.isSome_some, _root_.decide_true]
+    wp_auto
+    iapply HΦ
+    isplitr
+    · ipureintro; exact HMv _ _ HMek
+    iunfold v3rpc.notPrimaryOut
+    iexists (GoInterface.ok ek), (GoInterface.ok ev)
+    iframe #
+    ipureintro; intro _; exact ⟨rfl, Hcode⟩
   ihave #HIsT := applyErrIs_tree err $$ HIs
-  ihave ⟨%S, %M, #Htree, %HS⟩ := HIsT $$ %(GoInterface.ok ec)
-  wp_apply hIs S M err (GoInterface.ok ec) (fun tii h => by cases h; exact Hecp)
+  ihave ⟨%S, %M', #Htree, %HS⟩ := HIsT $$ %(GoInterface.ok ec)
+  wp_apply hIs S M' err (GoInterface.ok ec) (fun tii h => by cases h; exact Hecp)
     (HS.2 (fun tii h => by cases h; exact Hecp))
     $$ [$Htree] as %b1 -
   · iframe #; ipureintro; exact HS.1
   wp_if_destruct
   rotate_left
   · iapply HΦ
-    ipureintro; exact Hnn
-  ihave ⟨%S', %M', #Htree', %HS'⟩ := HIsT $$ %de
-  wp_apply hDE S' M' err de $$ [$Htree'] as %b2 -
+    isplitr
+    · ipureintro; exact Hnn
+    iapply Hout; ipureintro; exact hnp
+  ihave ⟨%S', %M'', #Htree', %HS'⟩ := HIsT $$ %de
+  wp_apply hDE S' M'' err de $$ [$Htree'] as %b2 -
   · iframe #; ipureintro; exact HS'.1
   wp_if_destruct
   rotate_left
   · iapply HΦ
-    ipureintro; exact Hnn
-  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMap at Hmap
-  icases Hmap with ⟨%mp, %M, #Hmp, #HM, %HMv⟩
-  wp_auto
+    isplitr
+    · ipureintro; exact Hnn
+    iapply Hout; ipureintro; exact hnp
   haveI := Hsafe
   wp_apply wp_map_lookup2 $$ HM as -
   cases hk : M !! err with
   | some v =>
-    simp only [Option.getD_some, Option.isSome_some, decide_true]
+    simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     wp_auto
     iapply HΦ
-    ipureintro; exact HMv err v hk
+    isplitr
+    · ipureintro; exact HMv err v hk
+    iapply Hout; ipureintro; exact hnp
   | none =>
     simp only [Option.getD_none, Option.isSome_none]
     wp_auto
@@ -97,7 +159,24 @@ theorem v3rpc.togRPCError.wp_proof
     iintro %e ⟨%He, -⟩
     wp_auto
     iapply HΦ
-    ipureintro; exact He
+    isplitr
+    · ipureintro; exact He
+    iapply Hout; ipureintro; exact hnp
+
+/-- The new spec implies the old one (`e ≠ nil`), which the handlers' proofs use: the change
+(PR etcd#21684) is compatible. -/
+theorem v3rpc.togRPCError.spec_implies_old (h : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
+    (err : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.srvErrIs err }}
+      (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError)) (Val #err))
+    {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ }} := by
+  iintro %Φ Hpre HΦ
+  iapply h err $$ Hpre
+  inext
+  iintro %e ⟨%He, -⟩
+  iapply HΦ
+  ipureintro; exact He
 
 end proof
 

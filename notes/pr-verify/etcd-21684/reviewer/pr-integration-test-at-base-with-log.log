@@ -1,0 +1,4 @@
+    v3_lease_test.go:1269: REVIEW: keepalive error after leader loss: code=Unavailable err=rpc error: code = Unavailable desc = etcdserver: no leader
+--- PASS: TestV3LeaseKeepAliveReturnsUnavailableOnLeaderLoss (5.41s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration	5.488s

@@ -24,8 +24,12 @@ public import Code.go_etcd_io.etcd.pkg.v3.adt
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Perennial.Code.errors
 public import Perennial.Code.io
+public import Code.go_etcd_io.etcd.server.v3.lease
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.errors
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.version
 public import Code.go_etcd_io.etcd.server.v3.storage
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Perennial.Code.math.rand
 public import Code.go_opentelemetry_io.otel.«attribute»
 public import Code.go_opentelemetry_io.otel.trace
@@ -204,8 +208,6 @@ axiom BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom ConfigGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom maintenanceServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom maxSendBytes [FfiSyntax] [GoGlobalContext] : val
 
 axiom allGRPCServices [FfiSyntax] [GoGlobalContext] : val
@@ -272,8 +274,6 @@ axiom watchSendLoopProgressDuration.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def toGRPCErrorMap [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.toGRPCErrorMap"
-
-axiom toGRPCErrorMap.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def progressReportInterval [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.progressReportInterval"
@@ -2082,7 +2082,7 @@ noncomputable def newBackendQuota.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.NewBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))))
 
-/-- go: util.go:98:6 -/
+/-- go: util.go:99:6 -/
 noncomputable def togRPCError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
@@ -2123,7 +2123,7 @@ noncomputable def togRPCError.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- in v3.4, learner is allowed to serve serializable read and endpoint status
 
-    go: util.go:143:6 -/
+    go: util.go:144:6 -/
 noncomputable def isRPCSupportedForLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "req"
   (App (Val exceptionDo)
@@ -3557,7 +3557,7 @@ noncomputable def FiltersFromRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.FilterFunc.ty)))) (Pair (Var "filters") (Var "$r0"))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.sync, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -3608,11 +3608,125 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$k0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDRemoved))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotFound))) (Val #())))
+  (Let "$k2" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound))) (Val #())))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotFound))) (Val #())))
+  (Let "$k4" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDExists))) (Val #())))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberExist))) (Val #())))
+  (Let "$k6" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrPeerURLexists))) (Val #())))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPeerURLExist))) (Val #())))
+  (Let "$k8" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner))) (Val #())))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotLearner))) (Val #())))
+  (Let "$k10" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrTooManyLearners))) (Val #())))
+  (Let "$v11" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyLearners))) (Val #())))
+  (Let "$k12" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers))) (Val #())))
+  (Let "$v13" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrMemberNotEnoughStarted))) (Val #())))
+  (Let "$k14" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady))) (Val #())))
+  (Let "$v15" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLearnerNotReady))) (Val #())))
+  (Let "$k16" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted))) (Val #())))
+  (Let "$v17" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted))) (Val #())))
+  (Let "$k18" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev))) (Val #())))
+  (Let "$v19" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev))) (Val #())))
+  (Let "$k20" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge))) (Val #())))
+  (Let "$v21" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRequestTooLarge))) (Val #())))
+  (Let "$k22" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace))) (Val #())))
+  (Let "$v23" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace))) (Val #())))
+  (Let "$k24" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests))) (Val #())))
+  (Let "$v25" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrTooManyRequests))) (Val #())))
+  (Let "$k26" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader))) (Val #())))
+  (Let "$v27" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader))) (Val #())))
+  (Let "$k28" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader))) (Val #())))
+  (Let "$v29" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotLeader))) (Val #())))
+  (Let "$k30" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged))) (Val #())))
+  (Let "$v31" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaderChanged))) (Val #())))
+  (Let "$k32" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled))) (Val #())))
+  (Let "$v33" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCanceled))) (Val #())))
+  (Let "$k34" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped))) (Val #())))
+  (Let "$v35" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCStopped))) (Val #())))
+  (Let "$k36" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout))) (Val #())))
+  (Let "$v37" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeout))) (Val #())))
+  (Let "$k38" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail))) (Val #())))
+  (Let "$v39" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToLeaderFail))) (Val #())))
+  (Let "$k40" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost))) (Val #())))
+  (Let "$v41" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToConnectionLost))) (Val #())))
+  (Let "$k42" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex))) (Val #())))
+  (Let "$v43" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutWaitAppliedIndex))) (Val #())))
+  (Let "$k44" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy))) (Val #())))
+  (Let "$v45" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUnhealthy))) (Val #())))
+  (Let "$k46" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound))) (Val #())))
+  (Let "$v47" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound))) (Val #())))
+  (Let "$k48" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))
+  (Let "$v49" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCorrupt))) (Val #())))
+  (Let "$k50" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee))) (Val #())))
+  (Let "$v51" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCBadLeaderTransferee))) (Val #())))
+  (Let "$k52" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable))) (Val #())))
+  (Let "$v53" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCClusterVersionUnavailable))) (Val #())))
+  (Let "$k54" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat))) (Val #())))
+  (Let "$v55" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWrongDowngradeVersionFormat))) (Val #())))
+  (Let "$k56" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.ErrInvalidDowngradeTargetVersion))) (Val #())))
+  (Let "$v57" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidDowngradeTargetVersion))) (Val #())))
+  (Let "$k58" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.ErrDowngradeInProcess))) (Val #())))
+  (Let "$v59" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDowngradeInProcess))) (Val #())))
+  (Let "$k60" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.ErrNoInflightDowngrade))) (Val #())))
+  (Let "$v61" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoInflightDowngrade))) (Val #())))
+  (Let "$k62" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound))) (Val #())))
+  (Let "$v63" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotFound))) (Val #())))
+  (Let "$k64" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseExists))) (Val #())))
+  (Let "$v65" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseExist))) (Val #())))
+  (Let "$k66" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge))) (Val #())))
+  (Let "$v67" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseTTLTooLarge))) (Val #())))
+  (Let "$k68" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrNotPrimary))) (Val #())))
+  (Let "$v69" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotPrimary))) (Val #())))
+  (Let "$k70" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist))) (Val #())))
+  (Let "$v71" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootUserNotExist))) (Val #())))
+  (Let "$k72" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist))) (Val #())))
+  (Let "$v73" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootRoleNotExist))) (Val #())))
+  (Let "$k74" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist))) (Val #())))
+  (Let "$v75" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserAlreadyExist))) (Val #())))
+  (Let "$k76" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrUserEmpty))) (Val #())))
+  (Let "$v77" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty))) (Val #())))
+  (Let "$k78" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrUserNotFound))) (Val #())))
+  (Let "$v79" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserNotFound))) (Val #())))
+  (Let "$k80" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist))) (Val #())))
+  (Let "$v81" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleAlreadyExist))) (Val #())))
+  (Let "$k82" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound))) (Val #())))
+  (Let "$v83" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotFound))) (Val #())))
+  (Let "$k84" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty))) (Val #())))
+  (Let "$v85" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleEmpty))) (Val #())))
+  (Let "$k86" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrAuthFailed))) (Val #())))
+  (Let "$v87" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthFailed))) (Val #())))
+  (Let "$k88" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven))) (Val #())))
+  (Let "$v89" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGiven))) (Val #())))
+  (Let "$k90" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied))) (Val #())))
+  (Let "$v91" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied))) (Val #())))
+  (Let "$k92" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted))) (Val #())))
+  (Let "$v93" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotGranted))) (Val #())))
+  (Let "$k94" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted))) (Val #())))
+  (Let "$v95" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGranted))) (Val #())))
+  (Let "$k96" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled))) (Val #())))
+  (Let "$v97" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthNotEnabled))) (Val #())))
+  (Let "$k98" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken))) (Val #())))
+  (Let "$v99" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken))) (Val #())))
+  (Let "$k100" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt))) (Val #())))
+  (Let "$v101" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthMgmt))) (Val #())))
+  (Let "$k102" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision))) (Val #())))
+  (Let "$v103" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision))) (Val #())))
+  (Let "$k104" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.context.Canceled))) (Val #())))
+  (Let "$v105" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCanceled))) (Val #())))
+  (Let "$k106" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.context.DeadlineExceeded))) (Val #())))
+  (Let "$v107" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDeadlineExceeded))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.error go.error)))) (LiteralValue [(KeyedElement (some (KeyExpression go.error (Var "$k0"))) (ElementExpression go.error (Var "$v1"))), (KeyedElement (some (KeyExpression go.error (Var "$k2"))) (ElementExpression go.error (Var "$v3"))), (KeyedElement (some (KeyExpression go.error (Var "$k4"))) (ElementExpression go.error (Var "$v5"))), (KeyedElement (some (KeyExpression go.error (Var "$k6"))) (ElementExpression go.error (Var "$v7"))), (KeyedElement (some (KeyExpression go.error (Var "$k8"))) (ElementExpression go.error (Var "$v9"))), (KeyedElement (some (KeyExpression go.error (Var "$k10"))) (ElementExpression go.error (Var "$v11"))), (KeyedElement (some (KeyExpression go.error (Var "$k12"))) (ElementExpression go.error (Var "$v13"))), (KeyedElement (some (KeyExpression go.error (Var "$k14"))) (ElementExpression go.error (Var "$v15"))), (KeyedElement (some (KeyExpression go.error (Var "$k16"))) (ElementExpression go.error (Var "$v17"))), (KeyedElement (some (KeyExpression go.error (Var "$k18"))) (ElementExpression go.error (Var "$v19"))), (KeyedElement (some (KeyExpression go.error (Var "$k20"))) (ElementExpression go.error (Var "$v21"))), (KeyedElement (some (KeyExpression go.error (Var "$k22"))) (ElementExpression go.error (Var "$v23"))), (KeyedElement (some (KeyExpression go.error (Var "$k24"))) (ElementExpression go.error (Var "$v25"))), (KeyedElement (some (KeyExpression go.error (Var "$k26"))) (ElementExpression go.error (Var "$v27"))), (KeyedElement (some (KeyExpression go.error (Var "$k28"))) (ElementExpression go.error (Var "$v29"))), (KeyedElement (some (KeyExpression go.error (Var "$k30"))) (ElementExpression go.error (Var "$v31"))), (KeyedElement (some (KeyExpression go.error (Var "$k32"))) (ElementExpression go.error (Var "$v33"))), (KeyedElement (some (KeyExpression go.error (Var "$k34"))) (ElementExpression go.error (Var "$v35"))), (KeyedElement (some (KeyExpression go.error (Var "$k36"))) (ElementExpression go.error (Var "$v37"))), (KeyedElement (some (KeyExpression go.error (Var "$k38"))) (ElementExpression go.error (Var "$v39"))), (KeyedElement (some (KeyExpression go.error (Var "$k40"))) (ElementExpression go.error (Var "$v41"))), (KeyedElement (some (KeyExpression go.error (Var "$k42"))) (ElementExpression go.error (Var "$v43"))), (KeyedElement (some (KeyExpression go.error (Var "$k44"))) (ElementExpression go.error (Var "$v45"))), (KeyedElement (some (KeyExpression go.error (Var "$k46"))) (ElementExpression go.error (Var "$v47"))), (KeyedElement (some (KeyExpression go.error (Var "$k48"))) (ElementExpression go.error (Var "$v49"))), (KeyedElement (some (KeyExpression go.error (Var "$k50"))) (ElementExpression go.error (Var "$v51"))), (KeyedElement (some (KeyExpression go.error (Var "$k52"))) (ElementExpression go.error (Var "$v53"))), (KeyedElement (some (KeyExpression go.error (Var "$k54"))) (ElementExpression go.error (Var "$v55"))), (KeyedElement (some (KeyExpression go.error (Var "$k56"))) (ElementExpression go.error (Var "$v57"))), (KeyedElement (some (KeyExpression go.error (Var "$k58"))) (ElementExpression go.error (Var "$v59"))), (KeyedElement (some (KeyExpression go.error (Var "$k60"))) (ElementExpression go.error (Var "$v61"))), (KeyedElement (some (KeyExpression go.error (Var "$k62"))) (ElementExpression go.error (Var "$v63"))), (KeyedElement (some (KeyExpression go.error (Var "$k64"))) (ElementExpression go.error (Var "$v65"))), (KeyedElement (some (KeyExpression go.error (Var "$k66"))) (ElementExpression go.error (Var "$v67"))), (KeyedElement (some (KeyExpression go.error (Var "$k68"))) (ElementExpression go.error (Var "$v69"))), (KeyedElement (some (KeyExpression go.error (Var "$k70"))) (ElementExpression go.error (Var "$v71"))), (KeyedElement (some (KeyExpression go.error (Var "$k72"))) (ElementExpression go.error (Var "$v73"))), (KeyedElement (some (KeyExpression go.error (Var "$k74"))) (ElementExpression go.error (Var "$v75"))), (KeyedElement (some (KeyExpression go.error (Var "$k76"))) (ElementExpression go.error (Var "$v77"))), (KeyedElement (some (KeyExpression go.error (Var "$k78"))) (ElementExpression go.error (Var "$v79"))), (KeyedElement (some (KeyExpression go.error (Var "$k80"))) (ElementExpression go.error (Var "$v81"))), (KeyedElement (some (KeyExpression go.error (Var "$k82"))) (ElementExpression go.error (Var "$v83"))), (KeyedElement (some (KeyExpression go.error (Var "$k84"))) (ElementExpression go.error (Var "$v85"))), (KeyedElement (some (KeyExpression go.error (Var "$k86"))) (ElementExpression go.error (Var "$v87"))), (KeyedElement (some (KeyExpression go.error (Var "$k88"))) (ElementExpression go.error (Var "$v89"))), (KeyedElement (some (KeyExpression go.error (Var "$k90"))) (ElementExpression go.error (Var "$v91"))), (KeyedElement (some (KeyExpression go.error (Var "$k92"))) (ElementExpression go.error (Var "$v93"))), (KeyedElement (some (KeyExpression go.error (Var "$k94"))) (ElementExpression go.error (Var "$v95"))), (KeyedElement (some (KeyExpression go.error (Var "$k96"))) (ElementExpression go.error (Var "$v97"))), (KeyedElement (some (KeyExpression go.error (Var "$k98"))) (ElementExpression go.error (Var "$v99"))), (KeyedElement (some (KeyExpression go.error (Var "$k100"))) (ElementExpression go.error (Var "$v101"))), (KeyedElement (some (KeyExpression go.error (Var "$k102"))) (ElementExpression go.error (Var "$v103"))), (KeyedElement (some (KeyExpression go.error (Var "$k104"))) (ElementExpression go.error (Var "$v105"))), (KeyedElement (some (KeyExpression go.error (Var "$k106"))) (ElementExpression go.error (Var "$v107")))]))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Minute)))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr progressReportInterval))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val toGRPCErrorMap.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.error go.error)))) (Pair (App (Val (GoInstruction (GlobalVarAddr toGRPCErrorMap))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val watchSendLoopProgressDuration.init) (Val #()))))))
   (App (Val doExecute)
@@ -3676,9 +3790,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.lease.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.math.rand.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3693,6 +3815,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc toGRPCErrorMap (go.GoType.MapType go.error go.error))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc progressReportInterval _root_.Perennial.time.Duration.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -4251,18 +4375,114 @@ attribute [instance] ConfigGetter.TypeAssumptions.type_repr
   ConfigGetter.TypeAssumptions.underlying
   ConfigGetter.TypeAssumptions.isUnderlying
 
-axiom maintenanceServer : Type
-axiom maintenanceServer.zero_val : ZeroVal maintenanceServer
-attribute [instance] maintenanceServer.zero_val
+structure maintenanceServer [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  rg' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter
+  hasher' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage
+  bg' : BackendGetter
+  defrag' : Defrager
+  a' : Alarmer
+  lt' : LeaderTransferrer
+  hdr' : header
+  cs' : ClusterStatusGetter
+  d' : Downgrader
+  vs' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server
+  cg' : ConfigGetter
+  healthNotifier' : notifier
+  UnsafeMaintenanceServer' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer
+
+instance maintenanceServer.zero_val [FfiSyntax] : ZeroVal maintenanceServer :=
+  ⟨maintenanceServer.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def maintenanceServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"rg" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter.ty),
+(go.field_decl.FieldDecl go!"hasher" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty),
+(go.field_decl.FieldDecl go!"bg" BackendGetter.ty),
+(go.field_decl.FieldDecl go!"defrag" Defrager.ty),
+(go.field_decl.FieldDecl go!"a" Alarmer.ty),
+(go.field_decl.FieldDecl go!"lt" LeaderTransferrer.ty),
+(go.field_decl.FieldDecl go!"hdr" header.ty),
+(go.field_decl.FieldDecl go!"cs" ClusterStatusGetter.ty),
+(go.field_decl.FieldDecl go!"d" Downgrader.ty),
+(go.field_decl.FieldDecl go!"vs" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server.ty),
+(go.field_decl.FieldDecl go!"cg" ConfigGetter.ty),
+(go.field_decl.FieldDecl go!"healthNotifier" notifier.ty),
+(go.field_decl.EmbeddedField go!"UnsafeMaintenanceServer" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer.ty)]
+
+@[irreducible] def maintenanceServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  maintenanceServer.fieldsUnsealed
+
+instance equals_unfold_maintenanceServer [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold maintenanceServer.fields maintenanceServer.fieldsUnsealed :=
+  ⟨by unfold maintenanceServer.fields; rfl⟩
+
+@[reducible] def maintenanceServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType maintenanceServer.fields)
 
 class maintenanceServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying maintenanceServer.underlying maintenanceServer
   underlying : go.UnderlyingDirectedEq maintenanceServer.ty maintenanceServer.underlying
-  isUnderlying : go.IsUnderlying maintenanceServer.underlying maintenanceServer.underlying
+  get_lg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : maintenanceServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : maintenanceServer)))
+  get_rg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"rg") #x (Val #(x.rg'))
+  set_rg : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"rg") (PairV #x #y) (Val #(({ x with rg' := y } : maintenanceServer)))
+  get_hasher : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hasher") #x (Val #(x.hasher'))
+  set_hasher : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hasher") (PairV #x #y) (Val #(({ x with hasher' := y } : maintenanceServer)))
+  get_bg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"bg") #x (Val #(x.bg'))
+  set_bg : ∀ (x : maintenanceServer) (y : BackendGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"bg") (PairV #x #y) (Val #(({ x with bg' := y } : maintenanceServer)))
+  get_defrag : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"defrag") #x (Val #(x.defrag'))
+  set_defrag : ∀ (x : maintenanceServer) (y : Defrager), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"defrag") (PairV #x #y) (Val #(({ x with defrag' := y } : maintenanceServer)))
+  get_a : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"a") #x (Val #(x.a'))
+  set_a : ∀ (x : maintenanceServer) (y : Alarmer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : maintenanceServer)))
+  get_lt : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"lt") #x (Val #(x.lt'))
+  set_lt : ∀ (x : maintenanceServer) (y : LeaderTransferrer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"lt") (PairV #x #y) (Val #(({ x with lt' := y } : maintenanceServer)))
+  get_hdr : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"hdr") #x (Val #(x.hdr'))
+  set_hdr : ∀ (x : maintenanceServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : maintenanceServer)))
+  get_cs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cs") #x (Val #(x.cs'))
+  set_cs : ∀ (x : maintenanceServer) (y : ClusterStatusGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cs") (PairV #x #y) (Val #(({ x with cs' := y } : maintenanceServer)))
+  get_d : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"d") #x (Val #(x.d'))
+  set_d : ∀ (x : maintenanceServer) (y : Downgrader), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : maintenanceServer)))
+  get_vs : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"vs") #x (Val #(x.vs'))
+  set_vs : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Server), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"vs") (PairV #x #y) (Val #(({ x with vs' := y } : maintenanceServer)))
+  get_cg : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"cg") #x (Val #(x.cg'))
+  set_cg : ∀ (x : maintenanceServer) (y : ConfigGetter), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"cg") (PairV #x #y) (Val #(({ x with cg' := y } : maintenanceServer)))
+  get_healthNotifier : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"healthNotifier") #x (Val #(x.healthNotifier'))
+  set_healthNotifier : ∀ (x : maintenanceServer) (y : notifier), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"healthNotifier") (PairV #x #y) (Val #(({ x with healthNotifier' := y } : maintenanceServer)))
+  get_UnsafeMaintenanceServer : ∀ (x : maintenanceServer), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceServer.underlying go!"UnsafeMaintenanceServer") #x (Val #(x.UnsafeMaintenanceServer'))
+  set_UnsafeMaintenanceServer : ∀ (x : maintenanceServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceServer.underlying go!"UnsafeMaintenanceServer") (PairV #x #y) (Val #(({ x with UnsafeMaintenanceServer' := y } : maintenanceServer)))
 
 attribute [instance] maintenanceServer.TypeAssumptions.type_repr
   maintenanceServer.TypeAssumptions.underlying
-  maintenanceServer.TypeAssumptions.isUnderlying
+  maintenanceServer.TypeAssumptions.get_lg
+  maintenanceServer.TypeAssumptions.set_lg
+  maintenanceServer.TypeAssumptions.get_rg
+  maintenanceServer.TypeAssumptions.set_rg
+  maintenanceServer.TypeAssumptions.get_hasher
+  maintenanceServer.TypeAssumptions.set_hasher
+  maintenanceServer.TypeAssumptions.get_bg
+  maintenanceServer.TypeAssumptions.set_bg
+  maintenanceServer.TypeAssumptions.get_defrag
+  maintenanceServer.TypeAssumptions.set_defrag
+  maintenanceServer.TypeAssumptions.get_a
+  maintenanceServer.TypeAssumptions.set_a
+  maintenanceServer.TypeAssumptions.get_lt
+  maintenanceServer.TypeAssumptions.set_lt
+  maintenanceServer.TypeAssumptions.get_hdr
+  maintenanceServer.TypeAssumptions.set_hdr
+  maintenanceServer.TypeAssumptions.get_cs
+  maintenanceServer.TypeAssumptions.set_cs
+  maintenanceServer.TypeAssumptions.get_d
+  maintenanceServer.TypeAssumptions.set_d
+  maintenanceServer.TypeAssumptions.get_vs
+  maintenanceServer.TypeAssumptions.set_vs
+  maintenanceServer.TypeAssumptions.get_cg
+  maintenanceServer.TypeAssumptions.set_cg
+  maintenanceServer.TypeAssumptions.get_healthNotifier
+  maintenanceServer.TypeAssumptions.set_healthNotifier
+  maintenanceServer.TypeAssumptions.get_UnsafeMaintenanceServer
+  maintenanceServer.TypeAssumptions.set_UnsafeMaintenanceServer
 
 structure authMaintenanceServer [FfiSyntax] where
   mk ::
@@ -4764,8 +4984,12 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_txn_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
+  import_etcdserver_errors_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.Assumptions
+  import_version_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.Assumptions
   import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
   import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
   import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_attribute_Assumption : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Assumptions
   import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
@@ -4852,8 +5076,12 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.import_txn_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_io_Assumption
+  Assumptions.import_lease_Assumption
+  Assumptions.import_etcdserver_errors_Assumption
+  Assumptions.import_version_Assumption
   Assumptions.import_storage_Assumption
   Assumptions.import_mvcc_Assumption
+  Assumptions.import_membership_Assumption
   Assumptions.import_rand_Assumption
   Assumptions.import_attribute_Assumption
   Assumptions.import_trace_Assumption

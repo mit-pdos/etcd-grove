@@ -35,14 +35,24 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 /-- `errors.Is(err, target)` for `target` the value of `context.DeadlineExceeded` and an `err`
-in an error tree: some boolean. -/
+in an error tree: `true` only if some error of the tree has `target`'s dynamic type or has an
+`Is` method that returned `true` (`M`). (PR etcd#21684's verification, 2026-10-17: the
+postcondition was `True`; `togRPCError`'s spec needs `errors.Is(lease.ErrNotPrimary,
+context.DeadlineExceeded)` to be `false`. Go's `Is` returns `true` only from its loop's
+`isComparable && err == target`, and two interfaces are `==` only at the same dynamic type, or
+from `x.Is(target)`, at an error of the tree its `Unwrap` walk reaches. It is stated by type, not
+as `ok ii = target`: the model's `==` of two values of the empty struct `deadlineExceededError`
+is `true` whatever the values, and without Go's typing an error of the tree may hold another
+value of that type; the reviewer of PR etcd#21684 found the first statement false of the model.) -/
 abbrev errors.IsDeadlineExceeded.spec : Prop :=
   ∀ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop) (err target : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
       globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ target ∗
       _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗ ⌜S err⌝ }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      ⌜b = true → ∃ ii, S (GoInterface.ok ii) ∧
+        ((∃ tii, target = GoInterface.ok tii ∧ ii.ty = tii.ty) ∨ M ii)⌝ }}
 
 end spec
 

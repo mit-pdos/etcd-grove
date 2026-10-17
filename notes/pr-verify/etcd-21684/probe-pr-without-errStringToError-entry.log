@@ -1,0 +1,12 @@
+=== RUN   TestProbeLeaseKeepAliveNotPrimaryCode
+    lease_notprimary_probe_test.go:107: server error: code=Unavailable err=rpc error: code = Unavailable desc = etcdserver: not primary lessor
+    lease_notprimary_probe_test.go:109: rpctypes.Error: rpc error: code = Unavailable desc = etcdserver: not primary lessor (an EtcdError: false)
+--- PASS: TestProbeLeaseKeepAliveNotPrimaryCode (0.01s)
+=== RUN   TestProbeClientKeepAliveOnceNotPrimary
+    lease_notprimary_probe_test.go:140: clientv3 KeepAliveOnce: err=context deadline exceeded (EtcdError: false, EtcdError.Code: OK, status.Code: Unknown) after 300.052601ms, server renews=1151
+--- PASS: TestProbeClientKeepAliveOnceNotPrimary (0.30s)
+=== RUN   TestProbeKeepAliveOnceNotPrimary
+    lease_notprimary_probe_test.go:158: KeepAliveOnce: err=rpc error: code = DeadlineExceeded desc = context deadline exceeded after 300.010563ms, server renews=2263
+--- PASS: TestProbeKeepAliveOnceNotPrimary (0.30s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.629s

@@ -241,6 +241,20 @@ def srvErrIs (err : GoInterface) : IProp GF :=
 instance srvErrIs_persistent (err : GoInterface) : Persistent (srvErrIs (GF := GF) err) := by
   unfold srvErrIs; infer_instance
 
+/-- **`togRPCError`'s answer for `lease.ErrNotPrimary`** (persistent; PR etcd#21684): if `err` is
+the value of `lease.ErrNotPrimary`, `e` is the value of `rpctypes.ErrGRPCLeaseNotPrimary`, and its
+gRPC status code (`statusCode`, what `status.FromError(e).Code()` and so `status.Code(e)`
+return) is `Unavailable` (`14`). -/
+def notPrimaryOut (err e : GoInterface) : IProp GF :=
+  iprop(∃ ek ev : GoInterface,
+    globalAddr go_etcd_io.etcd.server.v3.lease.ErrNotPrimary ↦□ ek ∗
+    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotPrimary ↦□ ev ∗
+    ⌜err = ek → e = ev ∧ EtcdGrove.statusCode e = W32 14⌝)
+
+instance notPrimaryOut_persistent (err e : GoInterface) :
+    Persistent (notPrimaryOut (GF := GF) err e) := by
+  unfold notPrimaryOut; infer_instance
+
 /-- **A check's result** `err` for the outcome `c` of its pure check: `nil`, or the error the
 `rpctypes` variable of `c` holds. -/
 def checkRes : Option CheckErr → GoInterface → IProp GF

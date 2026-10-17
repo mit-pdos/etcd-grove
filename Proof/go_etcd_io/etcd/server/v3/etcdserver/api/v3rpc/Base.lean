@@ -22,6 +22,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
+public import Spec.google_golang_org.grpc.status.FromError
 
 @[expose] public section
 
@@ -62,15 +63,44 @@ def errVarSet (g : GoString) : IProp GF :=
 instance errVarSet_persistent (g : GoString) : Persistent (errVarSet (GF := GF) g) := by
   unfold errVarSet; infer_instance
 
+/-- **The error map's entry for `lease.ErrNotPrimary`** (PR etcd#21684, `util.go`'s
+`lease.ErrNotPrimary: rpctypes.ErrGRPCLeaseNotPrimary`, and `rpctypes`' `ErrGRPCLeaseNotPrimary =
+status.Error(codes.Unavailable, "etcdserver: not primary lessor")`): the value `ek` of
+`lease.ErrNotPrimary` (`errors.New("not a primary lessor")`: a leaf pointer error without an `Is`
+method, as the lease package's `leaseErrVar`) maps in `M` to the value `ev` of
+`rpctypes.ErrGRPCLeaseNotPrimary`, whose gRPC status code is `Unavailable` (`14`); and `ek` is
+not `context.Canceled` (another `errors.New`), and `context.DeadlineExceeded` (a
+`deadlineExceededError{}`, a struct) has another dynamic type than `ek` (a pointer type). An assumption about package initialization, as the
+rest: the map literal is translated (`v3rpc.toml`) but `initialize'` is not proved; it holds of
+the Go code of the PR (later keys of the literal are other `errors.New` errors and the two
+context errors, none equal to `ek`), not of the code before it, whose map has no such key
+(`notes/pr-verify/etcd-21684/lease_notprimary_probe_test.go`). -/
+def notPrimaryEntry (M : GMap GoInterface GoInterface) : IProp GF :=
+  iprop(∃ (ek ev ec : GoInterfaceOk) (ed : GoInterface),
+    globalAddr go_etcd_io.etcd.server.v3.lease.ErrNotPrimary ↦□ GoInterface.ok ek ∗
+    globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotPrimary ↦□ GoInterface.ok ev ∗
+    globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok ec ∗
+    globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ ed ∗
+    ⌜_root_.Perennial.errors.IsPointerError ek ∧ _root_.Perennial.errors.isLeafError ek ∧
+      methodSet ek.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+      M !! GoInterface.ok ek = some (GoInterface.ok ev) ∧
+      EtcdGrove.statusCode (GoInterface.ok ev) = W32 14 ∧
+      ek ≠ ec ∧ ∀ tii, ed = GoInterface.ok tii → tii.ty ≠ ek.ty⌝)
+
+instance notPrimaryEntry_persistent (M : GMap GoInterface GoInterface) :
+    Persistent (notPrimaryEntry (GF := GF) M) := by
+  unfold notPrimaryEntry; infer_instance
+
 /-- **The gRPC error map** (`toGRPCErrorMap`, `util.go`): a fixed map from the server's errors to
 gRPC errors, every value a non-nil error (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/
-`ErrMemberNotEnoughStarted`, all `status` errors). Which keys it has is left open: `togRPCError`
-returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`, both non-nil,
-and the handlers' specs say no more of an error. -/
+`ErrMemberNotEnoughStarted`, all `status` errors). Which keys it has is left open but one:
+`togRPCError` returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`,
+both non-nil, and the handlers' specs say no more of an error; (PR etcd#21684) the entry of
+`lease.ErrNotPrimary` (`notPrimaryEntry`). -/
 def grpcErrMap : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface),
     globalAddr toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
-    ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝)
+    ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝ ∗ notPrimaryEntry M)
 
 /-- **The `rpctypes` errors the checks return** (`checkRangeRequest`, ..., `checkIntervals`,
 `checkRequestOp`), each a fixed non-nil error. -/

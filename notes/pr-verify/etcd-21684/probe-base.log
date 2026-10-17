@@ -1,0 +1,15 @@
+=== RUN   TestProbeLeaseKeepAliveNotPrimaryCode
+    lease_notprimary_probe_test.go:107: server error: code=Unknown err=rpc error: code = Unknown desc = not a primary lessor
+    lease_notprimary_probe_test.go:109: rpctypes.Error: rpc error: code = Unknown desc = not a primary lessor (an EtcdError: false)
+    lease_notprimary_probe_test.go:111: expected codes.Unavailable, got Unknown
+--- FAIL: TestProbeLeaseKeepAliveNotPrimaryCode (0.01s)
+=== RUN   TestProbeClientKeepAliveOnceNotPrimary
+    lease_notprimary_probe_test.go:140: clientv3 KeepAliveOnce: err=rpc error: code = Unknown desc = not a primary lessor (EtcdError: false, EtcdError.Code: OK, status.Code: Unknown) after 2.094431ms, server renews=1
+--- PASS: TestProbeClientKeepAliveOnceNotPrimary (0.00s)
+=== RUN   TestProbeKeepAliveOnceNotPrimary
+    lease_notprimary_probe_test.go:158: KeepAliveOnce: err=rpc error: code = Unknown desc = not a primary lessor after 2.726506ms, server renews=1
+    lease_notprimary_probe_test.go:160: expected KeepAliveOnce to retry, got 1 renew(s)
+--- FAIL: TestProbeKeepAliveOnceNotPrimary (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.031s
+FAIL

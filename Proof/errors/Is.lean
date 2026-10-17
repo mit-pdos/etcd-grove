@@ -29,9 +29,9 @@ theorem errors.Is.wp_proof : errors.Is.spec (GF := GF) (hG := hG) := by
   iapply _root_.Perennial.errors.wp_Is S M err target htarget htyped $$ [] 
   · iframe #; ipureintro; exact HS
   inext
-  iintro %b -
+  iintro %b H
   iapply HΦ
-  itrivial
+  iexact H
 
 end proof
 

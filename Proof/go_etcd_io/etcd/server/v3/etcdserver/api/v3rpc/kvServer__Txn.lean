@@ -162,7 +162,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
           | nil => exact absurd rfl Hen
           | ok ei =>
             wp_auto
-            wp_apply hTog $$ [] as %e %He
+            wp_apply hTog $$ [] as %e ⟨%He, -⟩
             · iframe #
             iapply HΦ
             rw [v3rpc.txnAllCheck_ok hc hts hes]

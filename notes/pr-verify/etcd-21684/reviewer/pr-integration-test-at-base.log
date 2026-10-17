@@ -1,0 +1,3 @@
+--- PASS: TestV3LeaseKeepAliveReturnsUnavailableOnLeaderLoss (5.39s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration	5.474s

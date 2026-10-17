@@ -14,7 +14,7 @@ translate = ["!*",
   # header.go
   "header", "newHeader", "header.fill", "header.fillWithoutRevision",
   # util.go
-  "togRPCError", "isRPCSupportedForLearner",
+  "togRPCError", "isRPCSupportedForLearner", "toGRPCErrorMap",
   # unit P3b: quota.go's KV wrapper (the quota check, the NOSPACE alarm) and interceptor.go's
   # unary interceptors (logUnaryRequestStats names only)
   "quotaKVServer", "quotaAlarmer", "quotaAlarmer.check", "NewQuotaKVServer", "quotaKVServer.Put",
@@ -41,6 +41,9 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "go.etcd.io/etcd/pkg/v3/adt", "go.etcd.io/etcd/server/v3/etcdserver",
   "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/txn",
   "go.etcd.io/etcd/server/v3/auth",
+  # PR etcd#21684: the error map literal (toGRPCErrorMap) names these packages' errors
+  "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/server/v3/etcdserver/api/membership",
+  "go.etcd.io/etcd/server/v3/etcdserver/version", "go.etcd.io/etcd/server/v3/lease",
   # watch.go
   "io", "math/rand", "sync", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace",
   "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/mvccpb",

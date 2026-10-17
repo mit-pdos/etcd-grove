@@ -34,7 +34,11 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 /-- `errors.Is(err, target)`, for a `nil` or pointer `target` and an `err` of an error tree
-`S` (with the `Is` methods' meaning `M`), returns some boolean. -/
+`S` (with the `Is` methods' meaning `M`): `err == target` if either is `nil`; otherwise `true`
+if `err == target`, and `true` only if some error of the tree is `target` or has an `Is` method
+that returned `true` (`M`). (PR etcd#21684's verification, 2026-10-17: the postcondition was
+`True`; it is now Perennial's `errors.wp_Is`'s, which `togRPCError`'s spec needs to tell that
+`errors.Is(lease.ErrNotPrimary, context.Canceled)` is `false`.) -/
 abbrev errors.Is.spec : Prop :=
   ∀ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop) (err target : GoInterface),
   (∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii) →
@@ -42,7 +46,13 @@ abbrev errors.Is.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
       _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗ ⌜S err⌝ }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      ⌜(err = GoInterface.nil ∨ target = GoInterface.nil) → b = decide (err = target)⌝ ∗
+      ⌜∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii →
+        err = target → b = true⌝ ∗
+      ⌜∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii →
+        err ≠ GoInterface.nil → b = true →
+        ∃ ii, S (GoInterface.ok ii) ∧ (GoInterface.ok ii = target ∨ M ii)⌝ }}
 
 end spec
 

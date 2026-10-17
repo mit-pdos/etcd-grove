@@ -88,7 +88,7 @@ theorem v3rpc.kvServer.Range.wp_proof
       | nil => exact absurd rfl Hen
       | ok ei =>
         wp_auto
-        wp_apply hTog $$ [] as %e %He
+        wp_apply hTog $$ [] as %e ⟨%He, -⟩
         · iframe #
         iapply HΦ
         iunfold v3rpc.kvOut

@@ -103,6 +103,9 @@ noncomputable def ErrGRPCLeaseTTLTooLarge [FfiSyntax] [GoGlobalContext] : GoStri
 
 axiom ErrGRPCLeaseTTLTooLarge.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def ErrGRPCLeaseNotPrimary [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseNotPrimary"
+
 noncomputable def ErrGRPCWatchCanceled [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWatchCanceled"
 
@@ -423,6 +426,11 @@ noncomputable def ErrLeaseTTLTooLarge [FfiSyntax] [GoGlobalContext] : GoString :
 
 axiom ErrLeaseTTLTooLarge.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def ErrLeaseNotPrimary [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseNotPrimary"
+
+axiom ErrLeaseNotPrimary.init [FfiSyntax] [GoGlobalContext] : val
+
 noncomputable def ErrMemberExist [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberExist"
 
@@ -682,7 +690,7 @@ noncomputable def ErrorDesc [FfiSyntax] [GoGlobalContext] : GoString :=
 /-- Code returns grpc/codes.Code.
     TODO: define clientv3/codes.Code.
 
-    go: error.go:248:20 -/
+    go: error.go:251:20 -/
 noncomputable def EtcdError.Code.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -691,7 +699,7 @@ noncomputable def EtcdError.Code.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"code"))) (Var "e"))))))))
 
-/-- go: error.go:252:20 -/
+/-- go: error.go:255:20 -/
 noncomputable def EtcdError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -700,7 +708,7 @@ noncomputable def EtcdError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"desc"))) (Var "e"))))))))
 
-/-- go: error.go:256:6 -/
+/-- go: error.go:259:6 -/
 noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
@@ -758,7 +766,7 @@ noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: error.go:274:6 -/
+/-- go: error.go:277:6 -/
 noncomputable def ErrorDesc.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
@@ -809,6 +817,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val _root_.Perennial.google_golang_org.grpc.codes.Unavailable)
+  (Let "$a1" (Val #(go!"etcdserver: not primary lessor"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.Error []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1025,6 +1039,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrMemberExist.init) (Val #()))))))
   (App (Val doExecute)
+  (App (Val ErrLeaseNotPrimary.init) (Val #()))))))
+  (App (Val doExecute)
   (App (Val ErrLeaseTTLTooLarge.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrLeaseExist.init) (Val #()))))))
@@ -1153,6 +1169,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCWatchCanceled.init) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrGRPCLeaseNotPrimary))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
   (App (Val ErrGRPCLeaseTTLTooLarge.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrGRPCLeaseExist.init) (Val #()))))))
@@ -1183,7 +1201,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrGRPCLeaseNotPrimary go.error)) (Val #()))))))))
 
 structure EtcdError [FfiSyntax] where
   mk ::

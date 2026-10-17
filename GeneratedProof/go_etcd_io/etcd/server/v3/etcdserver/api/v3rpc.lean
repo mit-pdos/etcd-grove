@@ -16,8 +16,12 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_etcd_io.raft.v3
@@ -787,12 +791,254 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 instance maintenanceServer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lg" l) v.lg' dq ∗
+    "rg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"rg" l) v.rg' dq ∗
+    "hasher" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hasher" l) v.hasher' dq ∗
+    "bg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"bg" l) v.bg' dq ∗
+    "defrag" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"defrag" l) v.defrag' dq ∗
+    "a" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"a" l) v.a' dq ∗
+    "lt" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lt" l) v.lt' dq ∗
+    "hdr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hdr" l) v.hdr' dq ∗
+    "cs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cs" l) v.cs' dq ∗
+    "d" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"d" l) v.d' dq ∗
+    "vs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"vs" l) v.vs' dq ∗
+    "cg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cg" l) v.cg' dq ∗
+    "healthNotifier" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"healthNotifier" l) v.healthNotifier' dq ∗
+    "UnsafeMaintenanceServer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"UnsafeMaintenanceServer" l) v.UnsafeMaintenanceServer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance maintenanceServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer.underlying := by
+  solve_into_val_typed_struct
+
+instance maintenanceServer_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_rg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"rg" l) v.rg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"rg" l) v.rg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_rg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (rg' : go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"rg" l) v.rg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"rg" l) rg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rg' := rg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_hasher (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hasher" l) v.hasher' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hasher" l) v.hasher' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_hasher (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (hasher' : go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hasher" l) v.hasher' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hasher" l) hasher' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hasher' := hasher' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_bg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"bg" l) v.bg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"bg" l) v.bg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_bg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (bg' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BackendGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"bg" l) v.bg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"bg" l) bg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bg' := bg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_defrag (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"defrag" l) v.defrag' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"defrag" l) v.defrag' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_defrag (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (defrag' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Defrager) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"defrag" l) v.defrag' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"defrag" l) defrag' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with defrag' := defrag' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_a (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"a" l) v.a' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"a" l) v.a' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_a (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (a' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Alarmer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"a" l) v.a' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"a" l) a' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with a' := a' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_lt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lt" l) v.lt' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lt" l) v.lt' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_lt (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (lt' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaderTransferrer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lt" l) v.lt' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"lt" l) lt' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lt' := lt' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_hdr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hdr" l) v.hdr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_hdr (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (hdr' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hdr" l) v.hdr' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"hdr" l) hdr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := hdr' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_cs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cs" l) v.cs' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cs" l) v.cs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_cs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (cs' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClusterStatusGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cs" l) v.cs' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cs" l) cs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := cs' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_d (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"d" l) v.d' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"d" l) v.d' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_d (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (d' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Downgrader) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"d" l) v.d' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"d" l) d' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := d' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_vs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"vs" l) v.vs' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"vs" l) v.vs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_vs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (vs' : go_etcd_io.etcd.server.v3.etcdserver.version.Server) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"vs" l) v.vs' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"vs" l) vs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vs' := vs' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_cg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cg" l) v.cg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cg" l) v.cg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_cg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (cg' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ConfigGetter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cg" l) v.cg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"cg" l) cg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cg' := cg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_healthNotifier (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"healthNotifier" l) v.healthNotifier' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"healthNotifier" l) v.healthNotifier' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_healthNotifier (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (healthNotifier' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.notifier) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"healthNotifier" l) v.healthNotifier' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"healthNotifier" l) healthNotifier' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with healthNotifier' := healthNotifier' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_load_UnsafeMaintenanceServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"UnsafeMaintenanceServer" l) v.UnsafeMaintenanceServer' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"UnsafeMaintenanceServer" l) v.UnsafeMaintenanceServer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceServer_access_store_UnsafeMaintenanceServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (UnsafeMaintenanceServer' : go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeMaintenanceServer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"UnsafeMaintenanceServer" l) v.UnsafeMaintenanceServer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer go!"UnsafeMaintenanceServer" l) UnsafeMaintenanceServer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeMaintenanceServer' := UnsafeMaintenanceServer' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.maintenanceServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end maintenanceServer

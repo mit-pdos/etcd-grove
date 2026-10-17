@@ -28,12 +28,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`togRPCError(err)`** of an error it can take (`srvErrIs`): a non-nil error (`err` itself
-for a context error, the error map's value, or a `status` error with code `Unknown`). -/
+for a context error, the error map's value, or a `status` error with code `Unknown`); and
+(PR etcd#21684, `v3rpc.notPrimaryOut`) for `lease.ErrNotPrimary`, `rpctypes.ErrGRPCLeaseNotPrimary`,
+whose gRPC status code is `Unavailable`. Before the PR (2026-10-17) the postcondition was only
+`e ≠ nil` (`v3rpc.togRPCError.spec_implies_old`); before the PR the code did not meet the new
+one: `lease.ErrNotPrimary` was no key of the map, and `togRPCError` returned
+`status.Error(codes.Unknown, ...)`. -/
 abbrev v3rpc.togRPCError.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.srvErrIs err }}
     (App (Val (@! v3rpc.togRPCError)) (Val #err))
-  {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ }}
+  {{ (e : GoInterface), RET #e; ⌜e ≠ GoInterface.nil⌝ ∗ v3rpc.notPrimaryOut err e }}
 
 end spec
 

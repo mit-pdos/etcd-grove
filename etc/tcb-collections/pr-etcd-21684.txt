@@ -1,0 +1,10 @@
+# etcd-io/etcd#21684 (lease.ErrNotPrimary to gRPC Unavailable): the result of `togRPCError`, whose
+# spec now says what it returns for `lease.ErrNotPrimary` (notes/pr-verify/etcd-21684.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21684.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots togRPCError
+axiom errors.IsDeadlineExceeded.wp_proof
+axiom status.Error.wp_proof

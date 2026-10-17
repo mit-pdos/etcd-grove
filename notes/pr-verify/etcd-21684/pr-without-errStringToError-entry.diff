@@ -1,0 +1,32 @@
+diff --git a/api/v3rpc/rpctypes/error.go b/api/v3rpc/rpctypes/error.go
+index 781c73b7b..348b66d8f 100644
+--- a/api/v3rpc/rpctypes/error.go
++++ b/api/v3rpc/rpctypes/error.go
+@@ -36,6 +36,7 @@ var (
+ 	ErrGRPCLeaseNotFound    = status.Error(codes.NotFound, "etcdserver: requested lease not found")
+ 	ErrGRPCLeaseExist       = status.Error(codes.FailedPrecondition, "etcdserver: lease already exists")
+ 	ErrGRPCLeaseTTLTooLarge = status.Error(codes.OutOfRange, "etcdserver: too large lease TTL")
++	ErrGRPCLeaseNotPrimary  = status.Error(codes.Unavailable, "etcdserver: not primary lessor")
+ 
+ 	ErrGRPCWatchCanceled = status.Error(codes.Canceled, "etcdserver: watch canceled")
+ 
+@@ -181,6 +182,7 @@ var (
+ 	ErrLeaseNotFound    = Error(ErrGRPCLeaseNotFound)
+ 	ErrLeaseExist       = Error(ErrGRPCLeaseExist)
+ 	ErrLeaseTTLTooLarge = Error(ErrGRPCLeaseTTLTooLarge)
++	ErrLeaseNotPrimary  = Error(ErrGRPCLeaseNotPrimary)
+ 
+ 	ErrMemberExist            = Error(ErrGRPCMemberExist)
+ 	ErrPeerURLExist           = Error(ErrGRPCPeerURLExist)
+diff --git a/server/etcdserver/api/v3rpc/util.go b/server/etcdserver/api/v3rpc/util.go
+index 3caeec6ed..5d6284ed0 100644
+--- a/server/etcdserver/api/v3rpc/util.go
++++ b/server/etcdserver/api/v3rpc/util.go
+@@ -71,6 +71,7 @@ var toGRPCErrorMap = map[error]error{
+ 	lease.ErrLeaseNotFound:    rpctypes.ErrGRPCLeaseNotFound,
+ 	lease.ErrLeaseExists:      rpctypes.ErrGRPCLeaseExist,
+ 	lease.ErrLeaseTTLTooLarge: rpctypes.ErrGRPCLeaseTTLTooLarge,
++	lease.ErrNotPrimary:       rpctypes.ErrGRPCLeaseNotPrimary,
+ 
+ 	auth.ErrRootUserNotExist:     rpctypes.ErrGRPCRootUserNotExist,
+ 	auth.ErrRootRoleNotExist:     rpctypes.ErrGRPCRootRoleNotExist,
