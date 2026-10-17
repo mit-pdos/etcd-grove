@@ -2,7 +2,7 @@
 
 The report is `notes/pr-verify/etcd-22291.md`. Revisions: the PR head is etcd-io/etcd
 71d57990be7323b6457b3d5fdcedbeba41ae8d28 (upstream base f744d457f484e9f748a0700b48ef96dcf792df33);
-the verified fork code is `mit-pdos/etcd-grove` branch `pr-etcd-22291-goose-lean` (commit 4a7b5b5e7 =
+the verified fork code is `mit-pdos/etcd-grove` branch `pr-etcd-22291-goose-lean` (commit 69abb3c0a =
 the fork pin 09669450f, `etc/goose.py`'s etcd pin, plus the PR); the pin itself is 09669450f.
 
 | File | What it shows | Runs against | Command |
