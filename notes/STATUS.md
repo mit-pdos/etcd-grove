@@ -45,6 +45,87 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Item 8: package initialization (branch `construct`)
+
+Work item 8 of "Open work: the client→server path": prove `wp_initialize'` for the packages on
+the path and replace the assumed package facts with proved ones. In progress (2026-10-17).
+
+### Inventory (2026-10-17)
+
+**The closure.** The import closure of the path's top packages (`v3rpc`, `etcdserver`, `read`,
+`client/v3`) has 109 packages. 25 are Perennial's standard library: 21 with Perennial's
+`wp_initialize'` (`log`, `math`, `math/big`, `time`, `crypto/rand` rest on Perennial `sorry`s);
+`os` and `strconv` with the baseline `sorry`s of `raft/v3/Init.lean`; `math/rand` and `reflect`
+with none. 6 are raft's (`raft`, `quorum`, `tracker`, `confchange` proved; `raftpb`, `proto` the
+baseline `sorry`s). The other 78 have no `wp_initialize'`; nor do the client libraries and
+examples outside the path (`cache`, `concurrency`, `leasing`, `recipes`: left out, the user's
+"out of scope for now"; `porcupine`, `lintest`).
+
+**What an initializer runs** (Goose, `finalExtraDecls`): `GlobalAlloc` of the translated
+variables, the imports' `initialize'`, each variable's initializer in Go's init order (the
+translated ones as stores, the untranslated ones as a call of the opaque `X.init`, an `axiom`
+of the translation), then the translated `init()` bodies (an untranslated `init()` is dropped:
+the translation does not run it). Over the 80 packages there are 1077 opaque `X.init`s (protobuf's
+`internal/impl` 177, `net/http` 114, `rpctypes` 128, `net` 78); only `read` has a translated
+`init()` (`prometheus.MustRegister` of its two counters).
+
+**Generic: 62 packages**, fact `True`, no translated variable or `init()`: the proof initializes
+the imports and runs the opaque initializers, which need one trust-boundary axiom per package
+(below). `container/heap`, `encoding/hex`, `semver`, `go-humanize`, `prometheus`, `bbolt`,
+`bbolt/internal/common`, `authpb`, `membershippb`, `mvccpb`, `logutil`, `transport`, `types`,
+`verify`, `client/v3/credentials`, `client/v3/internal/resolver`, `adt`, `contention`,
+`featuregate`, `idutil`, `notify`, `pbutil`, `schedule`, `traceutil`, `config`, `etcdserver/api`,
+`rafthttp`, `snap`, `v2stats`, `v3alarm`, `v3compactor`, `v3discovery`, `cindex`,
+`etcdserver/version`, `features`, `leasepb`, `storage`, `wal`, `otelgrpc`, otel's `codes`,
+`trace`, `trace/embedded`, `attribute`, `zap`, `zapcore`, grpc and its `codes`, `credentials`,
+`internal/status`, `metadata`, `peer`, `status`, protobuf's `internal/impl`, `internal/pragma`,
+`reflect/protoreflect`, `runtime/protoimpl`, `math/rand`, `net`, `net/http`, `reflect`,
+`unicode/utf8` (and the B-tree, already proved: `btree/initialize.lean`).
+
+**Special: 18 packages**, with facts or translated initializers. "Own": facts about the
+package's variables; "foreign": facts about other packages' variables, stated in this package's
+fact (they cannot be proved from this package's initializer, which only gets the imports'
+`isPkgInit`: each must move to its owner's fact, whose consumers destructure it by position).
+
+| package | fact | own variables (how initialized) | foreign facts |
+|---|---|---|---|
+| `bbolt/errors` | `bboltErrorsInit` | `ErrBucketNotFound` (opaque) + method-set facts | — |
+| `etcdserverpb` | `True` | translated `KV_ServiceDesc`, `Watch_ServiceDesc` | — (v3rpc's `sortNameMaps` are its opaque `RangeRequest_Sort*_name`) |
+| `rpctypes` | `rpctypesInit` | `errStringToError`, `ErrFutureRev`, `ErrCompacted`, `ErrUserEmpty`, ... (opaque) + `rpctypesEtcdErrorTy` (method sets) | — |
+| `api/v3/version` | `Version`, `V3_6` | opaque | — |
+| `client/v3` | `clientv3Init` | translated `noPrefixEnd`; opaque `defaultOptions` | — |
+| `pkg/v3/wait` | `True` | translated `closec` (a translated `init()` closes it) | — |
+| `auth` | `authInit` | translated `errors.New` errors + method-set facts | `rpctypes.TokenFieldName*` |
+| `etcdserver` | `srvInit` | metrics (opaque) | `etcdserver/errors`' and `auth`'s and raft's errors, `traceutil.Tracer`, `schema.AllBuckets`, `*errorString`'s method set |
+| `membership` | `ClusterVersionMetrics` | opaque | — |
+| `v3rpc` | `v3rpcInit` | `toGRPCErrorMap`, `clientRequests` (opaque) | `rpctypes` errors and keys, `etcdserverpb` sort-name maps, `context.Canceled` |
+| `apply` | `applyInit` | `alarms` (opaque) | `etcdserver/errors`', `lease`'s, `mvcc`'s errors |
+| `etcdserver/errors` | `errorsInit` | `ErrNoSpace` (opaque) | — |
+| `read` | `readInit` | translated counters (`prometheus.NewCounter`, `init()`'s `MustRegister`), `readIndexRetryTime` | `etcdserver/errors`', raft's, `context`'s errors |
+| `txn` | `txnInit` | `slowApplies` (opaque) | `lease.ErrLeaseNotFound`, `etcdserver/errors.ErrKeyNotFound` |
+| `lease` | `leaseInit` | translated `errors.New` errors, `forever`; counters (opaque) | — |
+| `backend` | `backendInit` | four histograms (opaque) | — |
+| `mvcc` | `mvccInit` | translated errors and constants; metrics (opaque) | `schema`'s two compaction key names |
+| `schema` | `schemaInit` | translated buckets and key names | — |
+
+**The work, per kind.**
+* Opaque initializers no fact reads: one axiom per package, `<pkg>.opaqueInitsOk`: each runs
+  without panicking (`{{ True }} X.init #() {{ RET #(); True }}`; Go runs them at start, and etcd
+  starts). Satisfiable whatever the semantics (the `X.init`s are uninterpreted), so it cannot make
+  the logic inconsistent.
+* Opaque initializers a fact reads: one axiom per variable, `<pkg>.<X>_init`, the fact its Go
+  initializer establishes (as `wp_GlobalAlloc` does: the variable's cell owned, then made
+  persistent by the proof); checked against the Go line.
+* Translated `errors.New` variables: `errors.wp_New_ptr` (proved).
+* Method-set facts (`*errorString` has no `Is`/`As`/`Unwrap`, `EtcdError`'s method set): the
+  model's method sets are uninterpreted; premises, as Perennial's `context.ErrorStringIsError`.
+* Prometheus constructors and `MustRegister` called by translated code (`read`): trust-boundary
+  axioms on those functions.
+* Foreign facts: move to the owner's fact (or stay assumed until then).
+* Facts on Perennial's packages (`context.Canceled` a pointer error, `DeadlineExceeded` a leaf):
+  Perennial's `context` fact keeps only that they are typed errors; not provable here without a
+  Perennial change (propose separately).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
