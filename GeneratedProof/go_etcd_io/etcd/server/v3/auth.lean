@@ -241,6 +241,86 @@ instance AuthInfo_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.server.v3
 end def_
 end AuthInfo
 
+namespace internalRootContextKey
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+instance internalRootContextKey_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.internalRootContextKey where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance internalRootContextKey_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.internalRootContextKey go_etcd_io.etcd.server.v3.auth.internalRootContextKey.underlying := by
+  solve_into_val_typed_struct
+
+end def_
+end internalRootContextKey
+
+namespace internalRootContextValue
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+instance internalRootContextValue_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.internalRootContextValue where
+  typedPointstoDef l v dq := iprop(
+    "store" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"store" l) v.store' dq ∗
+    "revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"revision" l) v.revision' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance internalRootContextValue_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.internalRootContextValue go_etcd_io.etcd.server.v3.auth.internalRootContextValue.underlying := by
+  solve_into_val_typed_struct
+
+instance internalRootContextValue_access_load_store (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.internalRootContextValue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"store" l) v.store' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"store" l) v.store' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance internalRootContextValue_access_store_store (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.internalRootContextValue) (store' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"store" l) v.store' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"store" l) store' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with store' := store' } : go_etcd_io.etcd.server.v3.auth.internalRootContextValue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance internalRootContextValue_access_load_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.internalRootContextValue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"revision" l) v.revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"revision" l) v.revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance internalRootContextValue_access_store_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.internalRootContextValue) (revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"revision" l) v.revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.internalRootContextValue go!"revision" l) revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revision' := revision' } : go_etcd_io.etcd.server.v3.auth.internalRootContextValue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end internalRootContextValue
+
 namespace AuthenticateParamIndex
 section def_
 

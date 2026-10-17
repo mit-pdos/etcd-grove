@@ -67,6 +67,16 @@ def AuthInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] AuthInfo.ty
 
+def internalRootContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/auth.internalRootContextKey" [])
+
+attribute [irreducible] internalRootContextKey.ty
+
+def internalRootContextValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/auth.internalRootContextValue" [])
+
+attribute [irreducible] internalRootContextValue.ty
+
 def AuthenticateParamIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/auth.AuthenticateParamIndex" [])
 
@@ -147,7 +157,8 @@ axiom letters [FfiSyntax] [GoGlobalContext] : val
 
 axiom defaultSimpleTokenLength [FfiSyntax] [GoGlobalContext] : val
 
-axiom rootUser [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def rootUser [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"root")
 
 axiom rootRole [FfiSyntax] [GoGlobalContext] : val
 
@@ -334,6 +345,9 @@ noncomputable def decomposeOpts [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewTokenProvider [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.NewTokenProvider"
 
+noncomputable def WithRootInternal [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/auth.WithRootInternal"
+
 noncomputable def redactToken [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.redactToken"
 
@@ -501,7 +515,7 @@ noncomputable def isOpenEnded.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd")) (Val #(W64 0))))) (Val #(W8 0)))) (Val #false))))))
 
-/-- go: store.go:790:22 -/
+/-- go: store.go:799:22 -/
 noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -519,7 +533,7 @@ noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (Pair (Var "$ret0") (Var "$ret1")))))))))))))
 
-/-- go: store.go:859:22 -/
+/-- go: store.go:868:22 -/
 noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "userName"
@@ -629,7 +643,7 @@ noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))))))))))))
 
-/-- go: store.go:901:22 -/
+/-- go: store.go:910:22 -/
 noncomputable def authStore.IsPutPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -646,7 +660,7 @@ noncomputable def authStore.IsPutPermitted.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))
 
-/-- go: store.go:905:22 -/
+/-- go: store.go:914:22 -/
 noncomputable def authStore.IsRangePermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -665,7 +679,7 @@ noncomputable def authStore.IsRangePermitted.impl [FfiSyntax] [GoGlobalContext] 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_READ)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:909:22 -/
+/-- go: store.go:918:22 -/
 noncomputable def authStore.IsDeleteRangePermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -684,7 +698,7 @@ noncomputable def authStore.IsDeleteRangePermitted.impl [FfiSyntax] [GoGlobalCon
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:913:22 -/
+/-- go: store.go:922:22 -/
 noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -741,7 +755,7 @@ noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: store.go:937:22 -/
+/-- go: store.go:946:22 -/
 noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -761,7 +775,7 @@ noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))))
 
-/-- go: store.go:1009:22 -/
+/-- go: store.go:1018:22 -/
 noncomputable def authStore.Revision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -771,13 +785,14 @@ noncomputable def authStore.Revision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef authStore.ty go!"revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadUint64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: store.go:1056:22 -/
+/-- go: store.go:1065:22 -/
 noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
   (App (Val exceptionDo)
   (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.FromIncomingContext []))) (Val #())) (Var "$a0")))
@@ -875,11 +890,93 @@ noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Pair (Var "md") (Var "$r0"))))))))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 internalRootContextValue.ty))) (Let "$a0" (App (Val (GoInstruction (Convert internalRootContextKey.ty go.any))) (App (Val (GoInstruction (CompositeLiteral internalRootContextKey.ty))) (LiteralValue [])))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Value"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Var "$a0"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "value" (App (Val (GoInstruction (GoAlloc internalRootContextValue.ty))) (App (Val (GoInstruction (GoZeroVal internalRootContextValue.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType authStore.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (App (Val (GoInstruction (StructFieldRef internalRootContextValue.ty go!"store"))) (Var "value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #false))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoAlloc AuthInfo.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val rootUser))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef internalRootContextValue.ty go!"revision"))) (Var "value")))
+  (App (Val (GoInstruction (CompositeLiteral AuthInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Username")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Revision")) (ElementExpression go.uint64 (Var "$v1")))]))))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore internalRootContextValue.ty))) (Pair (Var "value") (Var "$r0")))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #())))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthInfo.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
   (App (Val doExecute)
   (Val #())))))))))
+
+/-- WithRootInternal avoids issuing a token for in-process requests backed by the
+    built-in JWT store. Other stores retain their WithRoot behavior: simple tokens
+    use the current auth revision when they are read, not when they are issued.
+    The JWT fast path captures the auth revision but does not create an expiring
+    token. Use its context only for trusted, request-scoped in-process calls, not
+    as a credential for outgoing RPCs.
+
+    go: store.go:1217:6 -/
+noncomputable def WithRootInternal.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Lam "store"
+  (App (Val exceptionDo)
+  (Let "store" (App (Val (GoInstruction (GoAlloc AuthStore.ty))) (Var "store"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType authStore.ty)))) (App (Val (GoInstruction (GoLoad AuthStore.ty))) (Var "store")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType authStore.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert internalRootContextKey.ty go.any))) (App (Val (GoInstruction (CompositeLiteral internalRootContextKey.ty))) (LiteralValue [])))
+  (Let "$a2" (App (Val (GoInstruction (Convert internalRootContextValue.ty go.any))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral internalRootContextValue.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"store")) (ElementExpression (go.GoType.PointerType authStore.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"revision")) (ElementExpression go.uint64 (Var "$v1")))])))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithValue []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType tokenJWT.ty)))) (App (Val (GoInstruction (GoLoad TokenProvider.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"tokenProvider"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve AuthStore.ty go!"WithRoot"))) (App (Val (GoInstruction (GoLoad AuthStore.ty))) (Var "store"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (MethodResolve AuthStore.ty go!"WithRoot"))) (App (Val (GoInstruction (GoLoad AuthStore.ty))) (Var "store"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType authStore.ty)))) (Pair (Var "as") (Var "$r0")))))))))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strings, pkg_id.sync.atomic, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
@@ -1193,6 +1290,69 @@ attribute [instance] AuthInfo.TypeAssumptions.type_repr
   AuthInfo.TypeAssumptions.get_Revision
   AuthInfo.TypeAssumptions.set_Revision
 
+structure internalRootContextKey [FfiSyntax] where
+  mk ::
+
+instance internalRootContextKey.zero_val [FfiSyntax] : ZeroVal internalRootContextKey :=
+  ⟨internalRootContextKey.mk⟩
+
+@[reducible] def internalRootContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  []
+
+@[irreducible] def internalRootContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  internalRootContextKey.fieldsUnsealed
+
+instance equals_unfold_internalRootContextKey [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold internalRootContextKey.fields internalRootContextKey.fieldsUnsealed :=
+  ⟨by unfold internalRootContextKey.fields; rfl⟩
+
+@[reducible] def internalRootContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType internalRootContextKey.fields)
+
+class internalRootContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying internalRootContextKey.underlying internalRootContextKey
+  underlying : go.UnderlyingDirectedEq internalRootContextKey.ty internalRootContextKey.underlying
+
+attribute [instance] internalRootContextKey.TypeAssumptions.type_repr
+  internalRootContextKey.TypeAssumptions.underlying
+
+structure internalRootContextValue [FfiSyntax] where
+  mk ::
+  store' : Loc
+  revision' : w64
+
+instance internalRootContextValue.zero_val [FfiSyntax] : ZeroVal internalRootContextValue :=
+  ⟨internalRootContextValue.mk zeroValDef zeroValDef⟩
+
+@[reducible] def internalRootContextValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"store" (go.GoType.PointerType authStore.ty)),
+(go.field_decl.FieldDecl go!"revision" go.uint64)]
+
+@[irreducible] def internalRootContextValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  internalRootContextValue.fieldsUnsealed
+
+instance equals_unfold_internalRootContextValue [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold internalRootContextValue.fields internalRootContextValue.fieldsUnsealed :=
+  ⟨by unfold internalRootContextValue.fields; rfl⟩
+
+@[reducible] def internalRootContextValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType internalRootContextValue.fields)
+
+class internalRootContextValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying internalRootContextValue.underlying internalRootContextValue
+  underlying : go.UnderlyingDirectedEq internalRootContextValue.ty internalRootContextValue.underlying
+  get_store : ∀ (x : internalRootContextValue), go.IsGoStepPureDetTagged under (StructFieldGet internalRootContextValue.underlying go!"store") #x (Val #(x.store'))
+  set_store : ∀ (x : internalRootContextValue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet internalRootContextValue.underlying go!"store") (PairV #x #y) (Val #(({ x with store' := y } : internalRootContextValue)))
+  get_revision : ∀ (x : internalRootContextValue), go.IsGoStepPureDetTagged under (StructFieldGet internalRootContextValue.underlying go!"revision") #x (Val #(x.revision'))
+  set_revision : ∀ (x : internalRootContextValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet internalRootContextValue.underlying go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : internalRootContextValue)))
+
+attribute [instance] internalRootContextValue.TypeAssumptions.type_repr
+  internalRootContextValue.TypeAssumptions.underlying
+  internalRootContextValue.TypeAssumptions.get_store
+  internalRootContextValue.TypeAssumptions.set_store
+  internalRootContextValue.TypeAssumptions.get_revision
+  internalRootContextValue.TypeAssumptions.set_revision
+
 structure AuthenticateParamIndex [FfiSyntax] where
   mk ::
 
@@ -1442,6 +1602,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   simpleTokenTTLKeeper_instance : simpleTokenTTLKeeper.TypeAssumptions
   tokenSimple_instance : tokenSimple.TypeAssumptions
   AuthInfo_instance : AuthInfo.TypeAssumptions
+  internalRootContextKey_instance : internalRootContextKey.TypeAssumptions
+  internalRootContextValue_instance : internalRootContextValue.TypeAssumptions
   AuthenticateParamIndex_instance : AuthenticateParamIndex.TypeAssumptions
   AuthenticateParamSimpleTokenPrefix_instance : AuthenticateParamSimpleTokenPrefix.TypeAssumptions
   AuthStore_instance : AuthStore.TypeAssumptions
@@ -1457,6 +1619,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkKeyInterval_unfold : FuncUnfold checkKeyInterval [] checkKeyInterval.impl
   checkKeyPoint_unfold : FuncUnfold checkKeyPoint [] checkKeyPoint.impl
   isOpenEnded_unfold : FuncUnfold isOpenEnded [] isOpenEnded.impl
+  WithRootInternal_unfold : FuncUnfold WithRootInternal [] WithRootInternal.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
@@ -1476,6 +1639,8 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.simpleTokenTTLKeeper_instance
   Assumptions.tokenSimple_instance
   Assumptions.AuthInfo_instance
+  Assumptions.internalRootContextKey_instance
+  Assumptions.internalRootContextValue_instance
   Assumptions.AuthenticateParamIndex_instance
   Assumptions.AuthenticateParamSimpleTokenPrefix_instance
   Assumptions.AuthStore_instance
@@ -1491,6 +1656,7 @@ attribute [instance] Assumptions.tokenJWT_instance
   Assumptions.checkKeyInterval_unfold
   Assumptions.checkKeyPoint_unfold
   Assumptions.isOpenEnded_unfold
+  Assumptions.WithRootInternal_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_zap_Assumption
