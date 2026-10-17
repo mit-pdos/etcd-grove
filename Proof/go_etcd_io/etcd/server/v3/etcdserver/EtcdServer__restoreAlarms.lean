@@ -31,7 +31,7 @@ theorem EtcdServer.restoreAlarms.wp_proof
     (hAS : v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) := by
   intro s lg d W Pk qo a0 dq
-  wp_start as ⟨#Hlg, %Hlgnn, Hbe, #Hb, Ho, Hwb, Ha0⟩
+  wp_start as ⟨#Hlg, %Hlgnn, Hbe, #Hb, Ho, Hwb, Hfal, Ha0⟩
   wp_auto
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
@@ -39,9 +39,9 @@ theorem EtcdServer.restoreAlarms.wp_proof
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
   wp_apply hAB lg _ $$ [] as %ab ⟨%abl, %Hab, #Habl, #Habb⟩
-  wp_apply hAS lg ab abl d W Pk qo $$ [Ho Hwb] as %a %err ⟨Ho, Hres⟩
-  · iframe #; iframe Ho Hwb; ipureintro; exact ⟨Hlgnn, Hab⟩
-  icases Hres with (%Herr | ⟨⟨%Herr, %Hann⟩, #Has, #Hap⟩)
+  wp_apply hAS lg ab abl d W Pk qo $$ [Ho Hwb Hfal] as %a %err ⟨Ho, Hres⟩
+  · iframe #; iframe Ho Hwb Hfal; ipureintro; exact ⟨Hlgnn, Hab⟩
+  icases Hres with (%Herr | ⟨⟨%Herr, %Hann⟩, #Has, Hfr, #Hget, #Hap⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>

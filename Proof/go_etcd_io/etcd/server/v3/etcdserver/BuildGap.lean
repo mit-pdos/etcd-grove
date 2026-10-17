@@ -99,8 +99,8 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
       #Hrn, %HEr, %Hρrd, Hloop, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
-      ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB⟩,
-    ⟨⟨%ua, #Hua, #Hfor, Hakv⟩, #Hsmall, Hsnap, #HNR, #Hcv, %Hbound⟩⟩
+      ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, ⟨%ua, #Hua, #Hfor, Hakv⟩⟩,
+    ⟨#Hsmall, Hsnap, #HNR, #Hcv, %Hbound⟩⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
   iframe Hloop Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
   iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap

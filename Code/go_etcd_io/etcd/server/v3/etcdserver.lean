@@ -2943,6 +2943,19 @@ noncomputable def EtcdServer.applyEntries.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))))))
 
+/-- go: server.go:1206:22 -/
+noncomputable def EtcdServer.ForceSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"forceDiskSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$r0"))))))))))
+
 /-- go: server.go:1210:22 -/
 noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -6606,6 +6619,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_Done_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Done" EtcdServer.Done.impl
   ptr_FeatureEnabled_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FeatureEnabled" EtcdServer.FeatureEnabled.impl
   ptr_FirstCommitInTermNotify_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FirstCommitInTermNotify" EtcdServer.FirstCommitInTermNotify.impl
+  ptr_ForceSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ForceSnapshot" EtcdServer.ForceSnapshot.impl
   ptr_GoAttach_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"GoAttach" EtcdServer.GoAttach.impl
   ptr_KV_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"KV" EtcdServer.KV.impl
   ptr_Lead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Lead" EtcdServer.Lead.impl
@@ -6759,6 +6773,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_Done_unfold
   EtcdServer.TypeAssumptions.ptr_FeatureEnabled_unfold
   EtcdServer.TypeAssumptions.ptr_FirstCommitInTermNotify_unfold
+  EtcdServer.TypeAssumptions.ptr_ForceSnapshot_unfold
   EtcdServer.TypeAssumptions.ptr_GoAttach_unfold
   EtcdServer.TypeAssumptions.ptr_KV_unfold
   EtcdServer.TypeAssumptions.ptr_Lead_unfold

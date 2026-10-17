@@ -29,12 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.NewUberApplier.wp_proof
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG))
-    (hGet : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
+    (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG)) :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro s lg a cl kv au le ci be fg quota wad RD dq
+  intro s lg a cl kv au le ci be fg quota wad RD dq T z
   wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
-    #Hal, HRD⟩
+    #Hal, HRD, #HGet, HT⟩
   ihave #Hgate' := Hgate
   iunfold isFeatureGate at Hgate'
   icases Hgate' with ⟨%fi, %Hfi, #HEn⟩
@@ -50,16 +49,11 @@ theorem EtcdServer.NewUberApplier.wp_proof
   ihave #Hvpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
-  ihave #HGet : apply.alarmGetOk (GF := GF) a $$ []
-  · iunfold apply.alarmGetOk
-    iintro !> %at' %Φ' !> - HΦ'
-    iapply (hGet a at') $$ [] HΦ'
-    iframe #
-  wp_apply hNU _ RD $$ [HRD] as %ua ⟨%p, %Hua, Hown⟩
-  · iframe HRD
+  wp_apply hNU _ RD T z $$ [HRD HT] as %ua ⟨HT, %p, %Hua, Hown⟩
+  · iframe HRD HT
     iframe #
   iapply HΦ
-  iframe Hbe
+  iframe Hbe HT
   iexists p, _
   iframe Hown
   ipureintro

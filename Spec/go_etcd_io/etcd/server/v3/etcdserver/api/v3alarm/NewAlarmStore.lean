@@ -40,7 +40,12 @@ put or delete the member's encoding in the alarm bucket (`MustPutAlarm`/`MustDel
 `LockInsideApply`, the backend open, a share lent in `mvcc.bkRTx`, the frozen hook run under
 `Pk`; the alarm bucket a hook bucket, the readers' view unchanged; `Unlock`, one write-back). The
 put's key is not empty for an alarm type other than `NONE` (the contract's premise of `Activate`,
-`issues/etcd-alarm-activate-none-zero-fatal.md`). -/
+`issues/etcd-alarm-activate-none-zero-fatal.md`).
+
+Over a fresh alarm bucket (`bkFresh d.γB "alarm"`, consumed: D14i, 2026-10-17), `restore` loads no
+alarm: the map is empty, and stays so until `Activate`, which only the apply contract calls; so the
+store is fresh (`alarmFresh a`), `Get` returning an empty slice under it, and the apply contract
+is given up for the token. -/
 abbrev v3alarm.NewAlarmStore.spec : Prop :=
   ∀ (lg : Loc) (ab : GoInterface) (abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗
@@ -51,13 +56,15 @@ abbrev v3alarm.NewAlarmStore.spec : Prop :=
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #d.be : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" abl ↦□ lg ∗
-      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB }}
+      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
+      bkFresh d.γB go!"alarm" }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore)) (Val #lg))
       (Val #ab))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); backend.bOpen d.γB qo ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil ∧ a ≠ null⌝ ∗ isAlarmStore a ∗
-        □ (∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗ backend.plHookRO d.γB f -∗
-          ⌜f ≠ func.nil⌝ -∗ apply.isAlarmStore a γ Pk #f)) }}
+        alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
+        □ (alarmFresh a -∗ □ ∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗
+          backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗ apply.isAlarmStore a γ Pk #f)) }}
 
 end spec
 

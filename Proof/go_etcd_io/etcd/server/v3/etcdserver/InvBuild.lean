@@ -197,19 +197,19 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
           #rv : GoInterface) ∗
       mvcc.isReadView rv E.s E.γ) ∗
-    "HWB" ∷ txn.storeWTs E.γ N)
+    "HWB" ∷ txn.storeWTs E.γ N ∗
+    "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
+      apply.applyKV E ua x₀))
 
 /-- **The residual** (see the file header): the rows of `isServerBuilt` no `NewServer` proof
-gives -- the uber-applier's rows (its `applierFor` and its KV state `applyKV` at `x₀`),
-`storeSmall`, the raft storage's snapshot contract, the id budget, `ClusterVersion()`'s contract,
-the logic's thread bound. A premise of whoever composes `NewServer` with `start`. (`srv.kv` as
-`txn.isKV` with its read view and the write budget `txn.storeWTs` were rows here until unit N4's
-`NewServer` proof, 2026-10-17, which gives them: `srvBuilt`.) -/
+gives -- `storeSmall`, the raft storage's snapshot contract, the id budget, `ClusterVersion()`'s
+contract, the logic's thread bound. A premise of whoever composes `NewServer` with `start`.
+(`srv.kv` as `txn.isKV` with its read view and the write budget `txn.storeWTs` were rows here
+until unit N4's `NewServer` proof, 2026-10-17, and the uber-applier's `applierFor`/`applyKV`
+until D14i, the same day, which `NewServer` gives: `srvBuilt`.) -/
 def srvBuildGap (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ai₀ at₀ : w64)
     (x₀ : apply.ApplyKV) : IProp GF :=
-  iprop("Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀) ∗
-    "#Hsmall" ∷ storeSmall E.γ ∗
+  iprop("#Hsmall" ∷ storeSmall E.γ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀) ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗

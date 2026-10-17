@@ -82,6 +82,12 @@ is a name for what `bootstrap`'s contract promises and the constructors' axioms
 undecodable data) and the auth store reads its enabled flag (unset). -/
 opaque bkFresh (γB : backend.BNames) (name : GoString) : IProp GF
 
+/-- **A fresh alarm store** `a` (opaque, exclusive; D14i, 2026-10-17): made by
+`v3alarm.NewAlarmStore` over a fresh alarm bucket and not yet handed to an applier, it has no
+alarm (`Activate`, the only writer of its map, is in its apply contract, which taking this token
+gives: the axiom's postcondition). -/
+opaque alarmFresh (a : Loc) : IProp GF
+
 /-- **The background goroutines' effects** (opaque, the named premises of D14e and D14g,
 2026-10-17): what the model does not cover of the goroutines the construction starts, assumed as
 a whole. `transportEffectsOk`: the transport's goroutines (`rafthttp`: each peer's readers and
@@ -183,6 +189,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
     "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
+    "Hfal" ∷ bkFresh d.γB go!"alarm" ∗
     -- the error paths' close
     "#Hclose" ∷ □ ({{ True }}
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))

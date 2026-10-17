@@ -35,7 +35,7 @@ any `TxnModeWriteWithSharedBuffer` and with `RaftStatus`/`SnapshotServer` uncons
 caller could discharge). The alarm store is the real one (`isAlarmStore a`: its `Get`). -/
 abbrev EtcdServer.NewUberApplier.spec : Prop :=
   ∀ (s lg a cl : Loc) (kv au le ci be fg : GoInterface) (quota : w64)
-    (wad : time.Duration) (RD : IProp GF) (dq : DFrac),
+    (wad : time.Duration) (RD : IProp GF) (dq : DFrac) (T : IProp GF) (z : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ srvKVAddr s ↦□ kv ∗ srvAlarmStoreAddr s ↦□ a ∗
       srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗ srvClusterAddr s ↦□ cl ∗
@@ -43,9 +43,9 @@ abbrev EtcdServer.NewUberApplier.spec : Prop :=
       srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
       srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
       srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-      isAlarmStore a ∗ RD }}
+      isAlarmStore a ∗ RD ∗ apply.alarmGetIs a T z ∗ T }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"NewUberApplier")) (Val #()))
-  {{ (ua : GoInterface), RET #ua; srvBeAddr s ↦{dq} be ∗ ∃ (p : Loc)
+  {{ (ua : GoInterface), RET #ua; srvBeAddr s ↦{dq} be ∗ T ∗ ∃ (p : Loc)
         (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions),
       ⌜ua = interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.apply.uberApplier.ty) #p⌝ ∗
@@ -56,7 +56,8 @@ abbrev EtcdServer.NewUberApplier.spec : Prop :=
         opts.RaftStatus' = interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s ∧
         opts.SnapshotServer' = interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s⌝ ∗
       ∀ E : apply.AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
-        apply.uberIs E p opts ∗ ∃ ns cr : Bool, apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
+        apply.uberIs E p opts ∗ ∃ ns cr : Bool, ⌜z = true → ns = false ∧ cr = false⌝ ∗
+          apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
 
 end spec
 

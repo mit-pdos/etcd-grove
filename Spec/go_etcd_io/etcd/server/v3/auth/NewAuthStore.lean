@@ -52,7 +52,10 @@ at the etcd pin):
   `ForceCommit` write none back; the backend's specs of `Commit`/`ForceCommit` charge a token, a
   coarser accounting than the code's). Its keys: a new user's or role's name, bounded by the
   contract (`authReqContractN`, `issues/etcd-auth-useradd-long-name-fatal.md`); its values:
-  within bbolt's value bound (`authRecordsFit`, a named workload premise). -/
+  within bbolt's value bound (`authRecordsFit`, a named workload premise).
+* The reader resource `RD` is a reader slot of the store's `enabledMu` (a `sync.RWMutex`, made by
+  `NewAuthStore`): the lock's slots, one per reader (D14i, 2026-10-17: the request path's and the
+  apply thread's each hold one; the Go `RWMutex` panics only beyond `2 ^ 30` readers). -/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
     (W Pk : IProp GF) (qo : Qp),
@@ -69,7 +72,9 @@ abbrev auth.NewAuthStore.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
       (Val #ab)) (Val #tp)) (Val #cost))
   {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
-      ∃ RD : IProp GF, RD ∗ isReqAuth st RD ∗
+      ∃ RD : IProp GF,
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
+      isReqAuth st RD ∗
       □ (∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗ backend.plHookRO d.γB f -∗
         ⌜f ≠ func.nil⌝ -∗ apply.isAuthStore st γ Pk #f RD false) }}
 

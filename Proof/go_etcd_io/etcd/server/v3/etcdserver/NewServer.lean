@@ -95,6 +95,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Perennial.Proof.time
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.FloatToInt
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 
 @[expose] public section
 
@@ -221,7 +225,12 @@ theorem NewServer.wp_proof
     (h75 : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
     (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
-    (h78 : node.Propose.spec (GF := GF) (hG := hG)) :
+    (h78 : node.Propose.spec (GF := GF) (hG := hG))
+    (h79 : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
+    (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
+    (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
+    (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
+    (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hfgp
   wp_start
@@ -445,6 +454,9 @@ theorem NewServer.wp_proof
   ihave #Hisl := lease.isLessor_of_lessorInv h49 h50 h51 h52 lp γl $$ [$Hlspkg $Hlinv]
   rw [show N + 6 = 4 + (N + 2) by omega]
   icases (ownToks_add (N + 2) 4 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwkv⟩
+  -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
+  icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
   wp_apply (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl)
@@ -480,7 +492,7 @@ theorem NewServer.wp_proof
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
   wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo)
     $$ [Hopen Hhook Hwa Hfa]
-    as %ast ⟨Hopen, Hhook, %RD, HRD, #HisReq, #HisAuth⟩
+    as %ast ⟨Hopen, Hhook, %RD, HRDs, #HisReq, #HisAuth⟩
   · iframe #
     iframe Hopen Hhook Hwa Hfa
     ipureintro; exact ⟨Hlgnn, Htpnn, Haufit, Hab⟩
@@ -488,17 +500,20 @@ theorem NewServer.wp_proof
   -- the compactor is off (`AutoCompactionRetention = 0`)
   rw [Hacr]
   (try wp_auto)
+  -- the auth store's reader slots: one for the auth applier, one for the KV's (D14i)
+  icases replicate_take1 _ _ hM1 $$ HRDs with ⟨HRD, HRDs⟩
+  icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, -⟩
   -- `srv.restoreAlarms()`
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
   wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo _
-      (DFrac.own 1)) $$ [Hopen Hwal alarmStore be] as %aerr ⟨Hopen, be, Hares⟩
+      (DFrac.own 1)) $$ [Hopen Hwal alarmStore be Hfal] as %aerr ⟨Hopen, be, Hares⟩
   · iframe #
     unfold backend.wbTok
     rw [← Hbe0]
-    iframe Hopen Hwal alarmStore be
+    iframe Hopen Hwal alarmStore be Hfal
     ipureintro; exact Hlgnn
-  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, #HalA⟩)
+  icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, Hafr, #Hget, #HalAf⟩)
   · -- the alarms could not be restored: the error returned, the store and `b` closed
     cases aerr with
     | nil => exact absurd rfl Haerr
@@ -523,9 +538,11 @@ theorem NewServer.wp_proof
   ipersist QuotaBackendBytesS
   ipersist WarningApplyDurationS
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
-      cfg.WarningApplyDuration' RD (DFrac.own 1)) $$ [HRD be]
-    as %ua ⟨be, %up, %uopts, %Hua, %Huopts, Hulate⟩
-  · iframe #; iframe HRD be
+      cfg.WarningApplyDuration' RD (DFrac.own 1) (alarmFresh alst) true) $$ [HRD be Hafr]
+    as %ua ⟨be, Hafr, %up, %uopts, %Hua, %Huopts, Hulate⟩
+  · iframe #; iframe HRD be Hafr
+  -- the alarm store handed over: its apply contract (D14i)
+  ihave #HalA := HalAf $$ Hafr
   (try wp_auto)
   -- the checkpointer, if the feature is on (`lessorCkptOk`; its later calls: `ckptEffectsOk`)
   ihave #Hlck' := Hlck
@@ -798,6 +815,7 @@ theorem NewServer.wp_proof
     · ipureintro; exact Hhknn
   -- the persistent fields
   ipersist reqIDGen
+  ipersist uberApply
   ipersist memberID
   ipersist firstCommitInTerm
   ipersist errorc
@@ -958,7 +976,131 @@ theorem NewServer.wp_proof
     iexists _, rv
     iframe #
   -- `HWB`: the stores' write budget
-  iexact Hwts
+  isplitl [Hwts]
+  · iexact Hwts
+  -- `Hua`: the uber-applier (D14i): its options' contracts, its chain, the apply thread's KV
+  have hm0 : γA.m0.1 = W64 0 := by rw [Hci.2]
+  have hLoaded : ∀ st : ApplyState, stLoaded γA st = st := by
+    intro st; unfold stLoaded; split
+    · rename_i h; cases st; simp only at h; subst h; simp [hm0]
+    · rfl
+  ihave #Hbo : apply.backendOptsOk (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF) uopts $$ []
+  · obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9, Hu10, Hu11, Hu12⟩ := Huopts
+    iunfold apply.backendOptsOk
+    simp only
+    rw [Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu11, Hu12]
+    isplitr
+    · ipureintro; exact Hlgnn
+    isplitr
+    · iunfold apply.isApplyKV
+      isplitr
+      · iexact HisKV
+      iexists rv
+      iframe Hrvf
+      iframe #
+    isplitr
+    · iapply (mvcc.hookIs_of_init γw.st _ #func.nil d Hγw.2.2.1 hook Hhknn)
+      iframe #
+    isplitr
+    · iexact Hapl
+    isplitr
+    · iexact Hast
+    isplitr
+    · iapply HalA $$ %γw.st %hook [] Hhook
+      · ipureintro; exact Hγw.2.2.1
+      · ipureintro; exact Hhknn
+    isplitr
+    · iapply Hisc $$ %γw.st %hook [] Hhook
+      · ipureintro; exact Hγw.2.2.1
+      · ipureintro; exact Hhknn
+    isplitr
+    · iunfold apply.isRaftStatus
+      iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iintro !> !> %Φ' - HΦ'
+        iapply (h79 s bc.nodeID') $$ [] [HΦ']
+        · iframe #
+        inext; iintro -; iapply HΦ'; itrivial
+      isplitr
+      · iintro !> !> %Φ' - HΦ'
+        iapply (h80 s) $$ [] [HΦ']
+        · iframe #
+          iunfold srvLeadInv; iexact Hlead
+        inext; iintro %l -; iapply HΦ'; itrivial
+      · iintro !> !> %Φ' - HΦ'
+        iapply (h81 s) $$ [] [HΦ']
+        · iframe #
+        inext; iintro %t' -; iapply HΦ'; itrivial
+    isplitr
+    · iunfold apply.isSnapshotServer
+      iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
+      isplitr
+      · ipureintro; rfl
+      iintro !> !> %Φ' Hfs HΦ'
+      iapply (h82 s) $$ [Hfs] [HΦ']
+      · iframe #; iframe Hfs
+      inext; iintro Hfs; iapply HΦ'; iexact Hfs
+    · iunfold apply.isConsistentIndexer
+      rw [Hci.1]
+      iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
+      isplitr
+      · ipureintro; rfl
+      iintro !> %C %HC
+      obtain ⟨cst, cb, hC, hcp⟩ := HC
+      subst hC
+      iintro %Φ' !> Hpre HΦ'
+      iapply (wp_wand (Φ := fun w => iprop((∀ x : w64,
+          iprop(applyThread γA cst ∗ applyBackend γA cil cb) -∗ Φ' #x) ∗
+          (⌜w = #(ciEff γA cst.k)⌝ ∗ applyThread γA cst ∗ applyBackend γA cil cb))))
+        $$ [Hpre HΦ']
+      · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
+        iframe HΦ'
+        icases Hpre with ⟨Hcst, Hcb⟩
+        iapply (wp_ci_get h83 γA cil cb cst hcp) $$ [Hcst Hcb]
+        · iframe #; iframe Hcst Hcb
+        iintro ⟨Hcst, Hcb⟩
+        rw [hLoaded]
+        iframe Hcst Hcb
+        ipureintro; rfl
+      · iintro %w ⟨HΦ', %Hw, HP⟩
+        subst Hw
+        iapply HΦ' $$ HP
+  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF) [] Hbo
+  · ipureintro; rfl
+  icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
+  obtain ⟨hns, hcr⟩ := Hz trivial
+  subst hns hcr
+  icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨Hwrd, -⟩
+  iunfold mvcc.watchReader at Hwrd
+  icases Hwrd with ⟨Hsrd, -⟩
+  iexists ua
+  iframe uberApply
+  isplitr
+  · iunfold apply.applierFor
+    iexists up, uopts
+    iframe Hui
+    ipureintro; exact Hua
+  iunfold apply.applyKV
+  simp only [bootKV]
+  iexists up
+  isplitr
+  · ipureintro; exact Hua
+  isplitl [Huo]
+  · iexact Huo
+  iunfold apply.kvOwn
+  iframe Hsrd Hkvw HRD2
+  iunfold apply.leasesLive
+  iexists []
+  isplitr
+  · iunfold txn.leasesKnown; simp [mvcc.stateAfter, txn.leasesOk]
+    iintro !> %l %h
+    obtain ⟨a, ha, -⟩ := h
+    simp [mvcc.applyChanges] at ha
+  iunfold lease.lessorUser
+  rw [Hγw.2.1]
+  iframe Hlown Hlrd2
 
 end proof
 

@@ -57,7 +57,9 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   lease or `nil`; a lease's `ID` is never written after `NewLease`, its `TTL()` and `Keys()` take the
   lease's own lock and return. The proved `lessor.Lookup.spec` takes a reader slot of `mu` (the
   model's `RWMutex` bounds its readers by the slots); the Go `RWMutex` panics only beyond `2 ^ 30`
-  concurrent readers, which no etcd process reaches: the clause takes no slot. -/
+  concurrent readers, which no etcd process reaches: the clause takes no slot.
+* The reader slots of `mu` (a `sync.RWMutex`, made by `newLessor`): one per reader (D14i,
+  2026-10-17: the store's and the apply thread's lease owner each hold one). -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp),
@@ -71,7 +73,9 @@ abbrev lease.NewLessor.spec : Prop :=
       (Val #cl)) (Val #cfg))
   {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗ ∃ (lp : Loc) (γl : GName),
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
-      lease.lessorExpiredC lp ∗ lease.lessorRdOf γl ∗ lease.leaseOwn γl [] ∗ lessorCkptOk l ∗
+      lease.lessorExpiredC lp ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
+      lease.leaseOwn γl [] ∗ lessorCkptOk l ∗
       □ (∀ f : GoFunc, backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
         lease.lessorBackend lp Pk #f (backend.wbTok d.γB) (mvcc.bkRTx d.γB d.P d.be)) ∗
       □ (∀ id : w64,

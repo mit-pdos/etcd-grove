@@ -31,44 +31,76 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
     (hCap : apply.newApplierV3Capped.spec (GF := GF) (hG := hG))
     (hCor : apply.newApplierV3Corrupt.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG) := by
-  intro p ast base a
-  wp_start as ⟨#Has, #HGet, #Hbs, Ha⟩
-  iunfold apply.alarmGetOk at HGet
+  intro p ast base a T z
+  wp_start as ⟨#Has, #HGet, HT, #Hbs, Ha⟩
+  iunfold apply.alarmGetIs at HGet
   wp_auto
-  wp_apply HGet as %s1 -
-  wp_apply HGet as %s2 -
+  wp_bind (App (Val (ast @!! go.GoType.PointerType
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val _))
+  iapply HGet $$ HT
+  inext
+  iintro %s1 ⟨HT, %Hs1⟩
+  (try wp_auto)
+  wp_bind (App (Val (ast @!! go.GoType.PointerType
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val _))
+  iapply HGet $$ HT
+  inext
+  iintro %s2 ⟨HT, %Hs2⟩
+  (try wp_auto)
   wp_if_destruct
   · -- a `NOSPACE` alarm: capped
+    have hz : z = false := by
+      cases z
+      · rfl
+      · exfalso; have := Hs1 rfl; rw [this] at Hif; simp at Hif
+    subst hz
     wp_apply (hCap base) $$ [] as %a1 #Ha1
     (try wp_auto)
     wp_if_destruct
     · wp_apply (hCor a1) $$ [] as %a2 #Ha2
       (try wp_auto)
       iapply HΦ
+      iframe HT
       iexists true, true, _
       iframe
+      isplitr
+      · ipureintro; intro h; cases h
       iintro !> %E #Hb
       simp only [apply.alarmChain, ↓reduceIte]
       iapply Ha2 $$ %E %_ (Ha1 $$ %E %_ Hb)
     · iapply HΦ
+      iframe HT
       iexists true, false, _
       iframe
+      isplitr
+      · ipureintro; intro h; cases h
       iintro !> %E #Hb
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iapply Ha1 $$ %E %_ Hb
   · (try wp_auto)
     wp_if_destruct
-    · wp_apply (hCor base) $$ [] as %a2 #Ha2
+    · have hz : z = false := by
+        cases z
+        · rfl
+        · exfalso; have := Hs2 rfl; rw [this] at Hif; simp at Hif
+      subst hz
+      wp_apply (hCor base) $$ [] as %a2 #Ha2
       (try wp_auto)
       iapply HΦ
+      iframe HT
       iexists false, true, _
       iframe
+      isplitr
+      · ipureintro; intro h; cases h
       iintro !> %E #Hb
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iapply Ha2 $$ %E %_ Hb
     · iapply HΦ
+      iframe HT
       iexists false, false, _
       iframe
+      isplitr
+      · ipureintro; intro _; exact ⟨rfl, rfl⟩
       iintro !> %E #Hb
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iexact Hb

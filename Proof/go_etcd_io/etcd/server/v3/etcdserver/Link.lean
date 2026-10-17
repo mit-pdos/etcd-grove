@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Done
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnabled
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommitInTermNotify
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
@@ -949,6 +950,10 @@ theorem EtcdServer.wp_FirstCommitInTermNotify :
     EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.FirstCommitInTermNotify.wp_proof notify.Notifier.wp_Receive
 
+theorem EtcdServer.wp_ForceSnapshot :
+    EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG) :=
+  EtcdServer.ForceSnapshot.wp_proof
+
 theorem EtcdServer.wp_Logger :
     EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
   EtcdServer.Logger.wp_proof
@@ -979,7 +984,7 @@ theorem EtcdServer.wp_LinearizableReadNotify :
 
 theorem EtcdServer.wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) :=
-  EtcdServer.NewUberApplier.wp_proof EtcdServer.wp_KV apply.wp_NewUberApplier v3alarm.AlarmStore.wp_Get
+  EtcdServer.NewUberApplier.wp_proof EtcdServer.wp_KV apply.wp_NewUberApplier
 
 theorem EtcdServer.wp_NextRequestID :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=
@@ -1347,7 +1352,7 @@ theorem lease.lessor.wp_ExpiredLeasesC :
 
 theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] :
     NewServer.spec (GF := GF) (hG := hG) :=
-  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote membership.RaftCluster.wp_Members rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket node.wp_Propose
+  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote membership.RaftCluster.wp_Members rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket node.wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex
 
 theorem raftNode.wp_advanceTicks :
     raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=

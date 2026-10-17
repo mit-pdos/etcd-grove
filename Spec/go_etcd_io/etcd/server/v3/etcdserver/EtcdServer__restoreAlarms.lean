@@ -37,7 +37,7 @@ abbrev EtcdServer.restoreAlarms.spec : Prop :=
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be :
           GoInterface) ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
-      srvAlarmStoreAddr s ↦ a0 }}
+      bkFresh d.γB go!"alarm" ∗ srvAlarmStoreAddr s ↦ a0 }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"restoreAlarms")) (Val #()))
   {{ (err : GoInterface), RET #err; backend.bOpen d.γB qo ∗
       srvBeAddr s ↦{dq} (interface.mkOk
@@ -45,7 +45,8 @@ abbrev EtcdServer.restoreAlarms.spec : Prop :=
           GoInterface) ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ srvAlarmStoreAddr s ↦ a0) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ a : Loc, ⌜a ≠ null⌝ ∗ srvAlarmStoreAddr s ↦ a ∗
-        isAlarmStore a ∗ □ (∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗
+        isAlarmStore a ∗ alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
+        □ (alarmFresh a -∗ □ ∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗
           backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗ apply.isAlarmStore a γ Pk #f))) }}
 
 end spec

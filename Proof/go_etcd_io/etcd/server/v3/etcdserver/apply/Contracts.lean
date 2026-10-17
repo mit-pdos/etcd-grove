@@ -372,6 +372,34 @@ def alarmGetOk (st : Loc) : IProp GF :=
 instance alarmGetOk_persistent (st : Loc) : Persistent (alarmGetOk (GF := GF) st) := by
   unfold alarmGetOk; infer_instance
 
+/-- **The alarm store's `Get` under a resource `T`**, returning no alarm if `z` (D14i,
+2026-10-17: a fresh alarm store's, `alarmFresh`, during the uber-applier's construction;
+`alarmGetOk` is `T = True`, `z = false`). -/
+def alarmGetIs (st : Loc) (T : IProp GF) (z : Bool) : IProp GF :=
+  iprop(□ (∀ at' : w32,
+      {{ T }}
+        (App (Val (st @!! go.GoType.PointerType etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get"))
+          (Val #at'))
+      {{ (sl : GoSlice), RET #sl; T ∗ ⌜z = true → sl.len = W64 0⌝ }}))
+
+instance alarmGetIs_persistent (st : Loc) (T : IProp GF) (z : Bool) :
+    Persistent (alarmGetIs (GF := GF) st T z) := by
+  unfold alarmGetIs; infer_instance
+
+theorem alarmGetIs_of_ok (st : Loc) : alarmGetOk (GF := GF) st ⊢ alarmGetIs st iprop(True) false := by
+  iintro #H
+  iunfold alarmGetOk at H
+  iunfold alarmGetIs
+  iintro !> %at' %Φ !> - HΦ
+  iapply H $$ [] [HΦ]
+  · itrivial
+  inext
+  iintro %sl -
+  iapply HΦ
+  isplitr
+  · itrivial
+  ipureintro; intro h; cases h
+
 theorem alarmGetOk_of (st : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     isAlarmStore (GF := GF) st γ P f ⊢ alarmGetOk st := by
   iintro #H

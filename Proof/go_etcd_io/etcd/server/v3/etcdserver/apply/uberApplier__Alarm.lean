@@ -38,6 +38,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   iunfold apply.backendOptsOk at Hok'
   icases Hok' with ⟨-, -, -, -, -, #Hal, -⟩
   ihave #HGet := apply.alarmGetOk_of _ _ _ _ $$ Hal
+  ihave #HGetT := apply.alarmGetIs_of_ok _ $$ HGet
   ihave #Hs' := Hs
   iunfold apply.applierSpec at Hs'
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
@@ -56,9 +57,10 @@ theorem apply.uberApplier.Alarm.wp_proof
     iexact Hr
   wp_if_destruct
   · -- `ACTIVATE`: the chain the alarms ask for
-    wp_apply (hR p opts.AlarmStore' base (.ok ai)) $$ [Ha] as ⟨%ns, %cr, %a', Ha', #Hch⟩
+    wp_apply (hR p opts.AlarmStore' base (.ok ai) iprop(True) false) $$ [Ha]
+      as ⟨-, %ns, %cr, %a', -, Ha', #Hch⟩
     · iframe #
-      iexact Ha
+      iframe Ha
     iapply HΦ
     iframe Hpost HeI
     iexists a', (apply.alarmChain E.authOn ns cr)
@@ -68,9 +70,10 @@ theorem apply.uberApplier.Alarm.wp_proof
     ipureintro; right; exact ⟨ns, cr, rfl⟩
   wp_if_destruct
   · -- `DEACTIVATE`: likewise
-    wp_apply (hR p opts.AlarmStore' base (.ok ai)) $$ [Ha] as ⟨%ns, %cr, %a', Ha', #Hch⟩
+    wp_apply (hR p opts.AlarmStore' base (.ok ai) iprop(True) false) $$ [Ha]
+      as ⟨-, %ns, %cr, %a', -, Ha', #Hch⟩
     · iframe #
-      iexact Ha
+      iframe Ha
     iapply HΦ
     iframe Hpost HeI
     iexists a', (apply.alarmChain E.authOn ns cr)
