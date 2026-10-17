@@ -8277,3 +8277,68 @@ is a resource the model cannot give (`rnSnapOnce`).
   lends the snapshot while no other goroutine runs (`StartNode` calls it before the node
   goroutine); (2) a trust-boundary premise that `InitialState` runs before any concurrent
   `Snapshot()`; (3) leave `rnSnapOnce` as the construction's premise. Not decided here.
+
+## A client's facts from persistent updates: monotone ghost state, a prophecy only for a general client (D18)
+
+**2026-10-17 · proposed (the monotone route implemented for the adequacy example's Put-then-Get;
+the prophecy route not started, needs the user's decision)** (open-work item 9's "client-local
+prophecy", `notes/STATUS.md`)
+
+The client's end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`, ...,
+`client/v3/Results.lean`) take `□ AU <{∃∃ σ, etcdKV γk σ}> <{etcdKV γk (kvOpStep op σ), COMM □ Q
+σ}>` and return `∃ σ, □ Q σ`. The update is persistent because it does fire more than once: a put
+resent after a per-attempt error is proposed twice and applied twice
+(`issues/etcd-client-retry-put-ctx-error.md`), and a duplicate can commit after the put returned.
+The adequacy example (one member, `clientv3.New`, `Put(k, v)`, then `Get(k)`; the pure conclusion:
+no panic and the Get returns `v`) needs the client to hold `etcdKV` in its own invariant and get
+"Get's value = Put's" out of these updates.
+
+**What Perennial's Lean port has for prophecies** (pin `a54e1999f`): physical prophecy variables
+only. GooseLang has the `NewProph`/`ResolveProph` primitives (`GooseLang/Lang.lean`), the state
+interpretation carries iris-lean's prophecy map (`Iris.BI.Lib.ProphMap`, `prophMapInterp`), and
+`GooseLang/Lifting.lean` proves `wp_new_proph` and `wp_resolve_proph` over the untyped `proph p
+pvs` (a list of `val`); Go code reaches them through the trusted models of
+`github.com/goose-lang/primitive`'s `NewProph`/`ResolveProph` and gokv's `trusted_proph`
+(`TrustedCode/`), with no Go-level spec. There are no typed prophecies (Rocq's `typed_proph`), no
+ghost (erased) prophecies resolvable by a view shift (Rocq Perennial's `GhostProph`-style
+construction), and no prophecy-aware atomic-update lemmas.
+
+**The options.**
+
+1. **Monotone ghost state (implemented, `client/v3/PutThenGet.lean`).** The client's invariant
+   holds its half of `etcdKV` with the state sorted by key and a monotone counter (`MonoNat`)
+   that records "the put has fired"; once it has, the state's value of `k` is `v`. The client
+   makes only two updates from it: the put's (`kvOpAu (.put (putKeyOp k v))`, result the
+   counter's lower bound `1`: every firing writes `k ↦ v`, `kvOpStep_putKey`) and, holding that
+   bound, a read update whose result is `(findKey k σ.kvs).map value = some v`. A put that
+   returned `nil` gives the bound (its `□ Q`); the get's reply is its state's value
+   (`client_get_value`), so a `nil` get returns `v` (`client_get_own`). Repeated firings, before
+   or after the put returned, keep the invariant: the client is the only writer and every write
+   is the same. Cost: one new file, no statement changed, no axiom, no Perennial change. Limit:
+   a single writer of `k` (any other operation needs its own clause in the invariant: one that
+   does not touch `k` keeps it as is), and the conclusion is about values, not revisions or which
+   firing the reply is of.
+2. **A physical prophecy in the example's Go code.** The example's `main` is ours, so it could
+   call `primitive.NewProph`; but the resolution would have to happen at the linearization point,
+   which is the server's apply thread (a raft commit), not the client's code. Resolving it in
+   etcd's code means changing etcd; resolving it in the client after the reply is too late (the
+   firings have happened). Not usable without changing the verified code.
+3. **A ghost prophecy turning the persistent update into an ordinary one.** The client
+   prophesies which firing the reply will be of (needs item 2: the reply tied to its firing's
+   `σ`, `resultIs` naming the raft prefix), hands the server a persistent update that, at the
+   prophesied firing, fires an ordinary `AU` the client holds, and at the others an "extra
+   duplicate" update the client must accept. Two costs beyond item 2: (a) Perennial's Lean port
+   has no ghost prophecies; adding them (an erased prophecy resource resolved by a view shift,
+   with a soundness argument against the GooseLang adequacy theorem) is a general framework
+   change, to be designed and reviewed in Perennial on its own (`CLAUDE.md`, "Changes to
+   Perennial"), not done here; (b) the duplicates are real: a duplicated put bumps the revision
+   twice, so even with a prophecy the client's ordinary `AU` holds only for histories that admit
+   the extra writes; for linearizability checking (porcupine's model) that means a model where a
+   put may be repeated, i.e. what the persistent update already says.
+
+**Recommendation.** Option 1 for the adequacy example (done: `client_put_own`, `client_get_own`;
+the example composes them under `putGetInv_alloc` after `kvInv_alloc`). Defer option 3: it buys a
+general client spec only after item 2, needs a Perennial feature that does not exist, and cannot
+remove the duplicate writes the persistent update reflects. If a general client is wanted, the
+first step is item 2 (a write's `□ Q σ` tied to its reply), which also makes option 1 give
+revision facts.
