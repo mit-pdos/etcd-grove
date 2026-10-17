@@ -198,7 +198,9 @@ inductive StepR : RState → List Msg → RState → Prop where
               log := es',
               commit := plogCommitTo r.p.commit
                           (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
-          [Msg.mk .appResp id m.src r.p.term false lastnewi (W64 0) (W64 0) (W64 0) []] }
+          [Msg.mk .appResp id m.src r.p.term false lastnewi (W64 0)
+            (plogCommitTo r.p.commit
+              (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)) (W64 0) []] }
   | appStale (m : Msg) (r : RState) :
       m.ty = .app →
       m.dst = id →
@@ -208,7 +210,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       uint.Z m.index < uint.Z r.p.commit →
       StepR r [m] { r with
         p := psendMsgs (padoptLeader r.p m.src)
-          [Msg.mk .appResp id m.src r.p.term false r.p.commit (W64 0) (W64 0) (W64 0) []] }
+          [Msg.mk .appResp id m.src r.p.term false r.p.commit (W64 0) r.p.commit (W64 0) []] }
   | appReject (m : Msg) (r : RState) (hint hintterm : w64) :
       m.ty = .app →
       m.dst = id →

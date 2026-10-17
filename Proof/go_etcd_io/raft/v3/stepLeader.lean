@@ -76,7 +76,10 @@ theorem stepLeader.wp_proof
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
-    (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG)) :
+    (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
+    -- etcd-io/raft#132: the `MsgAppResp` arm records the follower's commit index
+    (wp_Progress_UpdateCommit : tracker.Progress.UpdateCommit.spec (GF := GF) (hG := hG))
+    (wp_GetCommit : raftpb.Message.GetCommit.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s ml m ents sn ctx rs Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc⟩ HΦ
@@ -164,7 +167,7 @@ theorem stepLeader.wp_proof
       wp_Progress_BecomeReplicate wp_Progress_CanBumpCommit wp_Inflights_FreeLE
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
-      wp_GetLogTerm r id s ml m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
+      wp_GetLogTerm wp_Progress_UpdateCommit wp_GetCommit r id s ml m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
       (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty) ents ctx sn rs _ _ _
       $$ [Hphys Hm] HΦ'
     iframe

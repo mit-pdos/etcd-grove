@@ -58,7 +58,7 @@ theorem tracker.Progress.MaybeUpdate.wp_proof :
         iexact Hinfl
       ipureintro
       apply (progressAbs_Some _ _ _).2
-      refine ⟨h1, h2, rfl, ?_, h5, h6, rfl, rfl⟩
+      refine ⟨h1, h2, rfl, ?_, h5, h6, rfl, h9⟩
       simp only [w64Max]
       rw [← h4]
       split <;> first | rfl | (exfalso; word)

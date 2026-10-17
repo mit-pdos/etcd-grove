@@ -249,17 +249,17 @@ theorem raft.reset.wp_proof
     -- the `Progress` literal has no `State` field, so `State` is the zero value
     -- `StateProbe`; `IsLearner` is copied across
     ihave Htrk := Hprback $$ %(progressOf
-        { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
+        { Match' := W64 0, Next' := li + W64 1, Commit' := 0, sentCommit' := 0, State' := 0,
           PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
           Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _) [Hpv Hifl] %Hnolearner
     · iapply ownProgress_of pr
-        { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
+        { Match' := W64 0, Next' := li + W64 1, Commit' := 0, sentCommit' := 0, State' := 0,
           PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
           Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ rfl $$ Hpv Hifl
     -- the fresh value is within the log: `Next = lastIndex + 1`, `Match = 0` (whatever its window)
     have Hli' : li = logLast s.logst := logLast_unsigned _ _ Hli0
     have Hfresh : ∀ I, PrOk s.logst (progressOf
-          { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
+          { Match' := W64 0, Next' := li + W64 1, Commit' := 0, sentCommit' := 0, State' := 0,
             PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
             Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe I) :=
       fun I => PrOk.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl

@@ -360,8 +360,21 @@ theorem raft.appendEntry.wp_proof
     try wp_auto
     imod cellRO_alloc $$ «$v2» with #cIx
     try wp_auto
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, id, 0, 0, 0, li2, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hr
-    · iframe «$a0» cTy cTo cIx
+    -- (etcd-io/raft#132) `Commit: r.raftLog.committed`, read through the log's struct
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
+    icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv3, Hl, %Hlv3, Hlb⟩
+    wp_auto
+    ihave Hlog := Hlb $$ Hl
+    ihave Hphys := Hlogback $$ Hlog
+    obtain ⟨Hcm3, -⟩ := Hlv3
+    rw [Hcm3]
+    imod cellRO_alloc $$ «$v3» with #cCo
+    try wp_auto
+    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, id, 0, 0, 0, li2,
+        (logAppend s.logst (ents.mapIdx (stamp s.term li))).committed, 0, false, 0⟩ ⊤
+      $$ [«$a0»] with Hr
+    · iframe «$a0» cTy cTo cIx cCo
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       msg_nulls

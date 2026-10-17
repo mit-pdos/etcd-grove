@@ -59,7 +59,8 @@ This spec covers the seven types `Step` dispatches to it.
   * rejected: `MaybeDecrTo`, perhaps `BecomeProbe`, perhaps `sendAppend(m.From)` --
     `Next` moves, `Match` does not; `ReplSends` growth;
   * accepted: `MaybeUpdate(m.Index)` raises the sender's `Match` to `max Match m.Index`
-    (the model's `Step.appResp`); then `BecomeReplicate`/`BecomeProbe`/
+    (the model's `Step.appResp`), and (etcd-io/raft#132) `UpdateCommit(m.Commit)` records the
+    sender's commit index in `Progress.Commit`, which no `Match` depends on; then `BecomeReplicate`/`BecomeProbe`/
     `Inflights.FreeLE` as the `Progress` state says (no `Match` moves);
     `maybeCommit()` may advance `committed` to an `N` with `CommitOk` **at the updated
     `Match` map** (`Step.commit`); then `bcastAppend` (after a commit) or `sendAppend`

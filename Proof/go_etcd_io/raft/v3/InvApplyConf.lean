@@ -191,8 +191,8 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     rw [Hinf]
     iframe Hinfl
     ipureintro
-    obtain ⟨_, h2, h3, h4, h5, h6, h7, h8⟩ := (progressAbs_Some _ _ _).1 Habs
-    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8⟩, .inr ⟨p, Hp, rfl⟩⟩ <;>
+    obtain ⟨_, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
+    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, ?_⟩, .inr ⟨p, Hp, rfl⟩⟩ <;>
       (rw [h1]; assumption)
   · -- a fresh one
     intro k pv Hf
@@ -204,7 +204,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     · simp only [progressOf]; iexact Hinfl
     ipureintro
     obtain ⟨Hm, -, -, Hst, -, -, -⟩ := Hf
-    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inl ?_⟩
+    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inl ?_⟩
     simp only [progressOf, Hm]; rfl
   -- each new object a learner exactly outside `cfg`, the domain `cfg ∪ lrn`
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs

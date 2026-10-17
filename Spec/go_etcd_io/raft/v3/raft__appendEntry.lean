@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 charges it against the uncommitted-entry budget, appends it to the log and then queues
 a self-addressed `MsgAppResp` at the new last index (`raft.appendEntry.impl`,
 `Code/go_etcd_io/raft/v3.lean`: `r.send(pb.Message{To: r.id, Type:
-pb.MsgAppResp, Index: li})`, `li` what `raftLog.append` returned). Since 2026-10-01
+pb.MsgAppResp, Index: li, Commit: r.raftLog.committed})`, `li` what `raftLog.append`
+returned; the `Commit` since etcd-io/raft#132). Since 2026-10-01
 `MsgAppResp` has an abstraction, so the outbox grows by that message, `selfAck`
 (`Defs.lean`): the leader acknowledging its own append, which the model's `Step.win`
 and `Step.propose` send. (Until then `mtypeOf MsgAppResp = none` and the abstract outbox

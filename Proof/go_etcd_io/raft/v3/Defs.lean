@@ -384,6 +384,9 @@ structure Progress where
   paused : Bool
   infl : Inflights
   learner : Bool
+  /-- `Commit` (etcd-io/raft#132, `notes/pr-verify/raft-132.md`): the follower's commit index
+  as the leader knows it, written only by `UpdateCommit`. -/
+  commit : w64
 
 /-- The tracker, as `ownTracker` is indexed by it: the vote tally, the progress map (id
 to `*Progress` -- physical state, like `NState.log`, because callers hold a raw
@@ -443,7 +446,7 @@ out. (Until 2026-10-13 also `none` on a learner.) -/
 def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
   (prstateOfW64 pv.State').map fun st =>
     ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
-      pv.IsLearner'⟩
+      pv.IsLearner', pv.Commit'⟩
 
 /-- What `progressAbs pv i = some p` says, field by field. -/
 theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) :
@@ -455,19 +458,20 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     pv.sentCommit' = p.sentCommit ∧
     pv.PendingSnapshot' = p.pendingSnapshot ∧
     pv.MsgAppFlowPaused' = p.paused ∧
-    i = p.infl := by
+    i = p.infl ∧
+    pv.Commit' = p.commit := by
   unfold progressAbs
-  obtain ⟨m, n, sc, st, ps, pa, inf, l⟩ := p
+  obtain ⟨m, n, sc, st, ps, pa, inf, l, cm⟩ := p
   rw [← prstateOfW64_Some]
   cases hs : prstateOfW64 pv.State' with
   | none => simp
   | some st' =>
     simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
     constructor
-    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
-      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
-    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7⟩
-      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩
+      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7, h9⟩
+    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7, h9⟩
+      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩
 
 end abs
 
@@ -555,6 +559,10 @@ def progressCanBumpCommit (p : Progress) (index : w64) : Bool :=
   decide (uint.Z p.sentCommit < uint.Z index ∧
           uint.Z p.sentCommit < uint.Z (p.next - W64 1))
 
+/-- `UpdateCommit(index)` (etcd-io/raft#132): `Commit = max(Commit, min(index, Match))`. -/
+def progressUpdateCommit (p : Progress) (index : w64) : Progress :=
+  { p with commit := w64Max p.commit (w64Min index p.matched) }
+
 /-- `MaybeUpdate(n)`: the new value; it is `p` itself when the ack is stale. The method
 returns `decide (matched < n)`. -/
 def progressMaybeUpdate (p : Progress) (n : w64) : Progress :=
@@ -574,6 +582,78 @@ def progressMaybeDecrTo (p : Progress) (rejected matchHint : w64) : Bool × Prog
     (true, { p with next := nx, sentCommit := w64Min p.sentCommit (nx - W64 1),
                     paused := false })
   else (false, p)
+
+/-! ### `Commit` (etcd-io/raft#132)
+
+What the PR documents of `Progress.Commit` that is a property of the `Progress` methods alone:
+`Commit <= Match` is kept by every method (`PrCommitOk`), `Commit` does not regress, and
+`Match` does not regress. `UpdateCommit` is the only method that writes `Commit`, and it
+writes nothing else. (The PR's two other documented invariants, `Commit <= leader's commit
+index` and `sentCommit >= Commit`, are false: `notes/pr-verify/raft-132.md`.) -/
+
+/-- `Commit <= Match`. -/
+def PrCommitOk (p : Progress) : Prop := uint.Z p.commit ≤ uint.Z p.matched
+
+theorem progressUpdateCommit_ok (p : Progress) (i : w64) (H : PrCommitOk p) :
+    PrCommitOk (progressUpdateCommit p i) := by
+  unfold PrCommitOk progressUpdateCommit at *
+  simp only [w64Max, w64Min]
+  (repeat' split) <;> omega
+
+theorem progressUpdateCommit_mono (p : Progress) (i : w64) :
+    uint.Z p.commit ≤ uint.Z (progressUpdateCommit p i).commit := by
+  unfold progressUpdateCommit; simp only [w64Max, w64Min]; (repeat' split) <;> omega
+
+/-- The reported index, capped at `Match`, is known. -/
+theorem progressUpdateCommit_ge (p : Progress) (i : w64) :
+    min (uint.Z i) (uint.Z p.matched) ≤ uint.Z (progressUpdateCommit p i).commit := by
+  unfold progressUpdateCommit; simp only [w64Max, w64Min]; (repeat' split) <;> omega
+
+/-- `UpdateCommit` writes `Commit` only. -/
+theorem progressUpdateCommit_only (p : Progress) (i : w64) :
+    { progressUpdateCommit p i with commit := p.commit } = p := rfl
+
+@[simp] theorem progressUpdateCommit_matched (p : Progress) (i : w64) :
+    (progressUpdateCommit p i).matched = p.matched := rfl
+@[simp] theorem progressUpdateCommit_state (p : Progress) (i : w64) :
+    (progressUpdateCommit p i).state = p.state := rfl
+@[simp] theorem progressUpdateCommit_learner (p : Progress) (i : w64) :
+    (progressUpdateCommit p i).learner = p.learner := rfl
+
+/-- `Match` does not regress: `MaybeUpdate` is the only method that writes it. -/
+theorem progressMaybeUpdate_matched_mono (p : Progress) (n : w64) :
+    uint.Z p.matched ≤ uint.Z (progressMaybeUpdate p n).matched := by
+  unfold progressMaybeUpdate; split <;> (try simp only) <;> omega
+
+/-- The other methods leave `Commit` alone. -/
+@[simp] theorem progressResetState_commit (p : Progress) (st : PRState) :
+    (progressResetState p st).commit = p.commit := rfl
+@[simp] theorem progressBecomeProbe_commit (p : Progress) :
+    (progressBecomeProbe p).commit = p.commit := rfl
+@[simp] theorem progressBecomeReplicate_commit (p : Progress) :
+    (progressBecomeReplicate p).commit = p.commit := rfl
+@[simp] theorem progressBecomeSnapshot_commit (p : Progress) (i : w64) :
+    (progressBecomeSnapshot p i).commit = p.commit := rfl
+@[simp] theorem progressSentCommit_commit (p : Progress) (c : w64) :
+    (progressSentCommit p c).commit = p.commit := rfl
+@[simp] theorem progressSentEntries_commit (p : Progress) (e b : w64) :
+    (progressSentEntries p e b).commit = p.commit := by
+  unfold progressSentEntries; split <;> (try split) <;> rfl
+@[simp] theorem progressMaybeUpdate_commit (p : Progress) (n : w64) :
+    (progressMaybeUpdate p n).commit = p.commit := by
+  unfold progressMaybeUpdate; split <;> rfl
+@[simp] theorem progressMaybeDecrTo_commit (p : Progress) (a b : w64) :
+    (progressMaybeDecrTo p a b).2.commit = p.commit := by
+  unfold progressMaybeDecrTo; split <;> (try split) <;> rfl
+
+/-- So `Commit <= Match` is kept by every method: the others keep `Commit` and do not lower
+`Match` (`BecomeProbe`, `BecomeReplicate`, `BecomeSnapshot`, `ResetState`, `SentEntries`,
+`SentCommit` and `MaybeDecrTo` do not write it at all). -/
+theorem progressMaybeUpdate_ok (p : Progress) (n : w64) (H : PrCommitOk p) :
+    PrCommitOk (progressMaybeUpdate p n) := by
+  unfold PrCommitOk at *
+  have := progressMaybeUpdate_matched_mono p n
+  rw [progressMaybeUpdate_commit]; omega
 
 /-! The `Progress` methods keep `IsLearner` (2026-10-13): what a give-back to the tracker
 needs (`ownTracker_lookup`). -/
@@ -1093,9 +1173,10 @@ def leaderEntry (s : NState) : EntryM :=
 /-- `appendEntry`'s self-acknowledgement, at a state whose log already holds the
 appended batch: a `MsgAppResp` to itself at the last index (`r.send(pb.Message{To:
 r.id, Type: pb.MsgAppResp, Index: li})`, with `li` what `raftLog.append` returned).
-Visible in the abstract outbox since 2026-10-01. -/
+Visible in the abstract outbox since 2026-10-01. Since etcd-io/raft#132 it carries
+`Commit: r.raftLog.committed`. -/
 def selfAck (id : w64) (s : NState) : Msg :=
-  Msg.mk .appResp id id s.term false (logLast s.logst) (W64 0) (W64 0) (W64 0) []
+  Msg.mk .appResp id id s.term false (logLast s.logst) (W64 0) s.logst.committed (W64 0) []
 
 /-- `becomeLeader` up to `appendEntry`'s `send`: `becomeLeaderPre`, `pendingConfIndex` at
 the last index (2026-10-13), then the empty entry appended. -/

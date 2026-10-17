@@ -56,14 +56,14 @@ private theorem wp_min_u64 (a b : w64) :
 /-- `r.send(&pb.Message{To: dst, Type: pb.MsgAppResp.Enum(), Index: ..., ...})`, the reply
 built: `SendOk`'s `MsgAppResp` clause (d) with no entries. -/
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint : w64)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint cm : w64)
     (rej : Bool) (Hdst : dst ≠ id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgOwn ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
+        msgOwn ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, cm, 0, rej, hint⟩, [], none, [], []⟩ }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
+    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint cm]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
-  wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
+  wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint cm]
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
   iapply HΦ
@@ -136,9 +136,11 @@ theorem raft.handleAppendEntries.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     imod cellRO_alloc $$ «$v2» with #cIx
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
+    -- (etcd-io/raft#132) `Commit: commit`, the value the stale test read
+    imod cellRO_alloc $$ «$v3» with #cCo
+    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', s.logst.committed, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
-    · iframe «$a0» cTy cFr cIx
+    · iframe «$a0» cTy cFr cIx cCo
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       msg_nulls
@@ -170,10 +172,20 @@ theorem raft.handleAppendEntries.wp_proof
       obtain ⟨rfl, rfl, Hprev, Hes', Happ, Hcm', Ha', Hsn', Hu', Hst'⟩ := Hma
       wp_auto
       reply_head
+      -- (etcd-io/raft#132) `Commit: r.raftLog.committed`, read after `maybeAppend`
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
+      icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv3, Hl, %Hlv3, Hlb⟩
+      wp_auto
+      ihave Hlog := Hlb $$ Hl
+      ihave Hphys := Hlogback $$ Hlog
+      obtain ⟨Hcm3, -⟩ := Hlv3
+      rw [Hcm3]
       imod cellRO_alloc $$ «$v2» with #cIx
-      imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, 0, 0, false, 0⟩ ⊤
+      imod cellRO_alloc $$ «$v3» with #cCo
+      imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, ls'.committed, 0, false, 0⟩ ⊤
         $$ [«$a0»] with Hr
-      · iframe «$a0» cTy cFr cIx
+      · iframe «$a0» cTy cFr cIx cCo
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
         msg_nulls

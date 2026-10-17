@@ -217,6 +217,7 @@ instance Progress_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "Match" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Match" l) v.Match' dq ∗
     "Next" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) v.Next' dq ∗
+    "Commit" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Commit" l) v.Commit' dq ∗
     "sentCommit" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"sentCommit" l) v.sentCommit' dq ∗
     "State" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"State" l) v.State' dq ∗
     "PendingSnapshot" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"PendingSnapshot" l) v.PendingSnapshot' dq ∗
@@ -262,6 +263,22 @@ instance Progress_access_store_Next (l : Loc) (v : go_etcd_io.raft.v3.tracker.Pr
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) v.Next' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Next" l) Next' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Next' := Next' } : go_etcd_io.raft.v3.tracker.Progress) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Progress_access_load_Commit (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Commit" l) v.Commit' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Commit" l) v.Commit' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Progress_access_store_Commit (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (Commit' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Commit" l) v.Commit' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Commit" l) Commit' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commit' := Commit' } : go_etcd_io.raft.v3.tracker.Progress) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

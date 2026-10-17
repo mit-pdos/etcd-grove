@@ -58,19 +58,19 @@ variable [FfiSyntax]
 /-- The `MsgAppResp` `handleAppendEntries` queues, as the model sees it:
 `Msg.mk ty src dst term reject index logterm commit rejecthint entries`. -/
 def appResp (id : w64) (s : NState) (dst : w64) (reject : Bool)
-    (index hintterm hint : w64) : Msg :=
-  Msg.mk .appResp id dst s.term reject index hintterm (W64 0) hint []
+    (index hintterm hint : w64) (commit : w64 := W64 0) : Msg :=
+  Msg.mk .appResp id dst s.term reject index hintterm commit hint []
 
 /-- The three exits, as a relation between the state `s` the call starts in and the
 state `s'` it ends in. The disjuncts are exclusive: the first on `m.Index < committed`,
 the second and third on whether `(m.LogTerm, m.Index)` matches the log
 (`plogMaybeAppend` is `none` exactly when it does not).
 
-- stale: the reply carries `committed`;
+- stale: the reply carries `committed` (as `Index` and, since etcd-io/raft#132, as `Commit`);
 - accept: the log is `maybeAppend`'s new log -- `prev` and `applied` unchanged, the
   entries `plogMaybeAppend`'s, `committed` raised to `min(m.Commit, lastnewi)`
   (`plogCommitTo`), `applying`, the pending snapshot and `unpersisted` unchanged
-  (2026-10-09) -- and the reply carries `lastnewi`. `ls'` is existential because
+  (2026-10-09) -- and the reply carries `lastnewi` and (etcd-io/raft#132) the new `committed`. `ls'` is existential because
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
@@ -82,7 +82,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
   let prev := entryID.mk m.LogTerm' m.Index'
   let dst := m.From'
   (uint.Z m.Index' < uint.Z ls.committed ∧
-   s' = sendMsgs s [appResp id s dst false ls.committed (W64 0) (W64 0)])
+   s' = sendMsgs s [appResp id s dst false ls.committed (W64 0) (W64 0) ls.committed])
   ∨
   (uint.Z ls.committed ≤ uint.Z m.Index' ∧
    ∃ (lastnewi : w64) (es' : List EntryM) (ls' : LogState),
@@ -96,7 +96,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
      (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted ∧
       ls'.prev = ls.prev ∧ ls'.stored = ls.stored ∧ ls'.storage = ls.storage) ∧
      s' = sendMsgs { s with logst := ls' }
-            [appResp id s dst false lastnewi (W64 0) (W64 0)])
+            [appResp id s dst false lastnewi (W64 0) (W64 0) ls'.committed])
   ∨
   (uint.Z ls.committed ≤ uint.Z m.Index' ∧
    ¬ PlogMatches ls.prev es prev ∧

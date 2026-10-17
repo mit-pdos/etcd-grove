@@ -1426,9 +1426,10 @@ def pwinState (s : PState) (mt : GMap w64 w64) : PState :=
   pappend (pbecomeLeader id s mt) [pleaderEntry s]
 
 /-- `appendEntry`'s self-acknowledgement: a `MsgAppResp` to itself at the new last
-index, which `Step(MsgAppResp)` later turns into the leader's own `Match`. -/
+index, which `Step(MsgAppResp)` later turns into the leader's own `Match`; since
+etcd-io/raft#132 it carries the leader's commit index. -/
 def pselfAck (s : PState) : Msg :=
-  Msg.mk .appResp id id s.term false (plastIndex s) (W64 0) (W64 0) (W64 0) []
+  Msg.mk .appResp id id s.term false (plastIndex s) (W64 0) s.commit (W64 0) []
 
 /-- `campaign`'s vote request to `dst`, carrying the last entry id it read (`Index:
 last.index, LogTerm: last.term`), and (2026-10-13) the `Context` `cl`: the leader-transfer
@@ -1716,7 +1717,9 @@ inductive Step : PState → List Msg → PState → Prop where
               log := es',
               commit := plogCommitTo s.commit
                           (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
-          [Msg.mk .appResp id m.src s.term false lastnewi (W64 0) (W64 0) (W64 0) []])
+          [Msg.mk .appResp id m.src s.term false lastnewi (W64 0)
+            (plogCommitTo s.commit
+              (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)) (W64 0) []])
   /-- `handleAppendEntries`, `a.prev.index < committed`: acknowledge the commit
   index. -/
   | appStale (m : Msg) (s : PState) :
@@ -1728,7 +1731,7 @@ inductive Step : PState → List Msg → PState → Prop where
       uint.Z m.index < uint.Z s.commit →
       Step s [m]
         (psendMsgs (padoptLeader s m.src)
-          [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
+          [Msg.mk .appResp id m.src s.term false s.commit (W64 0) s.commit (W64 0) []])
   /-- `handleAppendEntries`, rejecting: the log does not have `(logterm, index)`. The
   hint is an optimisation; any is allowed. -/
   | appReject (m : Msg) (s : PState) (hint hintterm : w64) :

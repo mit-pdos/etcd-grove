@@ -326,7 +326,7 @@ theorem confchange.checkInvariants.wp_proof
       icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
       iStructNamed Hpr
       wp_auto
-      ihave Hpr : (pr ↦{dqp} pv) $$ [Match Next sentCommit State PendingSnapshot RecentActive
+      ihave Hpr : (pr ↦{dqp} pv) $$ [Match Next Commit sentCommit State PendingSnapshot RecentActive
           MsgAppFlowPaused Inflights IsLearner]
       · iapply typedPointsto_combine _ _ _ Hprnn
         simp only [TypedPointsto.typedPointstoDef]
@@ -501,7 +501,7 @@ theorem confchange.checkInvariants.wp_proof
     icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
     iStructNamed Hpr
     wp_auto
-    ihave Hpr : (pr ↦{dqp} pv) $$ [Match Next sentCommit State PendingSnapshot RecentActive
+    ihave Hpr : (pr ↦{dqp} pv) $$ [Match Next Commit sentCommit State PendingSnapshot RecentActive
         MsgAppFlowPaused Inflights IsLearner]
     · iapply typedPointsto_combine _ _ _ Hprnn
       simp only [TypedPointsto.typedPointstoDef]

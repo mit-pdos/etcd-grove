@@ -209,9 +209,9 @@ private theorem isMessage_appResp_inv (γ : RaftNames) (m : Msg) :
 
 /-- An accepting `MsgAppResp`: the acknowledgement and (since 2026-10-16, stage R8a) the witness
 that its index is within the term's leader's log. -/
-private theorem isMessage_appResp (γ : RaftNames) (src dst term idx : w64) :
+private theorem isMessage_appResp (γ : RaftNames) (src dst term idx : w64) {cm : w64} :
     ⊢ isAcked (GF := GF) γ src term idx -∗ ackIn γ term idx -∗
-      isMessage γ (Msg.mk .appResp src dst term false idx (W64 0) (W64 0) (W64 0) []) := by
+      isMessage γ (Msg.mk .appResp src dst term false idx (W64 0) cm (W64 0) []) := by
   unfold isMessage
   simp only [Bool.false_eq_true, ↓reduceIte]
   iintro H Hi
@@ -390,7 +390,8 @@ theorem commitIn_ackIn (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp F : L
 /-- `Step.appStale` and `Step.snapStale`: learn the leader, adopt it, and acknowledge the
 commit index -- with the witness that it is within the leader's log (`commitIn_ackIn`, which
 reads the vote table out of the commit invariant: hence the fancy update, 2026-10-16). -/
-private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
+private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
+    (cm : w64) :
     (m.ty = .app ∨ m.ty = .snap) →
     m.src ≠ id →
     m.term = s.term →
@@ -400,7 +401,7 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
-              (W64 0) (W64 0) (W64 0) []]) md := by
+              (W64 0) cm (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -1436,9 +1437,9 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
-              (W64 0) (W64 0) (W64 0) []]) md := by
+              (W64 0) s.commit (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
-  exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole
+  exact ownRaftGhost_step_stale γ id s m s.commit (Or.inl Hty) Hfid Hterm Hrole
 
 /-- `Step.appReject`: back to follower of `m.src`; a rejection carries nothing. -/
 theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
@@ -1759,7 +1760,9 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
                            (if uint.Z m.commit < uint.Z lastnewi
                             then m.commit else lastnewi) }
            [Msg.mk .appResp id m.src s.term false lastnewi
-              (W64 0) (W64 0) (W64 0) []]) md := by
+              (W64 0) (plogCommitTo s.commit
+                         (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi))
+              (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hcidx Happ
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -2542,7 +2545,7 @@ theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m
            [Msg.mk .appResp id m.src s.term false s.commit
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
-  exact ownRaftGhost_step_stale γ id s m (Or.inr Hty) Hfid Hterm Hrole
+  exact ownRaftGhost_step_stale γ id s m (W64 0) (Or.inr Hty) Hfid Hterm Hrole
 
 /-- `Step.snapFastfwd`: the new commit index is the snapshot's, which the message carries
 the commit fact for and the log reaches (it has the snapshot's last entry, which the

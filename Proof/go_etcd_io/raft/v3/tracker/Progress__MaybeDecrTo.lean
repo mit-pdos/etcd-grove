@@ -79,7 +79,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
         iexact Hinfl
       ipureintro
       apply (progressAbs_Some _ _ _).2
-      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, h8, rfl⟩
+      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, h8, h9⟩
       rw [h5, h3]
   · have Hs : p.state ≠ .replicate := by
       intro Hc; apply Hif; rw [h2, Hc]; rfl
@@ -102,7 +102,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
         iexact Hinfl
       ipureintro
       apply (progressAbs_Some _ _ _).2
-      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, rfl, rfl⟩
+      refine ⟨h1, h2, h3, by rw [h3], ?_, h6, rfl, h9⟩
       dsimp only
       rw [h5, h3]
     · -- exit 3: stale

@@ -82,7 +82,7 @@ theorem tracker.Progress.SentEntries.wp_proof
       ipureintro
       rw [progressAbs_Some] at Habs ⊢
       obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := Habs
-      exact ⟨h1, by rw [h2, Hps], h3, by simp only [h4], h5, h6, rfl, rfl⟩
+      exact ⟨h1, by rw [h2, Hps], h3, by simp only [h4], h5, h6, rfl, rfl, h9.2⟩
     · have Hgt : ¬ 0 < sint.Z entries := by word
       wp_apply wp_Inflights_Full $$ [$Hinfl] as Hinfl
       iapply HΦ
@@ -93,7 +93,7 @@ theorem tracker.Progress.SentEntries.wp_proof
       ipureintro
       rw [progressAbs_Some] at Habs ⊢
       obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := Habs
-      exact ⟨h1, by rw [h2, Hps], h3, h4, h5, h6, rfl, rfl⟩
+      exact ⟨h1, by rw [h2, Hps], h3, h4, h5, h6, rfl, rfl, h9.2⟩
 
 end proof
 

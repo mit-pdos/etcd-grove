@@ -108,7 +108,9 @@ inductive StepCF : PState → List Msg → PState → Prop where
               log := es',
               commit := plogCommitTo s.commit
                           (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
-          [Msg.mk .appResp id m.src s.term false lastnewi (W64 0) (W64 0) (W64 0) []])
+          [Msg.mk .appResp id m.src s.term false lastnewi (W64 0)
+            (plogCommitTo s.commit
+              (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)) (W64 0) []])
   | appStale (m : Msg) (s : PState) :
       m.ty = .app →
       m.dst = id →
@@ -118,7 +120,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
       uint.Z m.index < uint.Z s.commit →
       StepCF s [m]
         (psendMsgs (padoptLeader s m.src)
-          [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
+          [Msg.mk .appResp id m.src s.term false s.commit (W64 0) s.commit (W64 0) []])
   | appReject (m : Msg) (s : PState) (hint hintterm : w64) :
       m.ty = .app →
       m.dst = id →

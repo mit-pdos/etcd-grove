@@ -315,6 +315,7 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
+public import Proof.go_etcd_io.raft.v3.tracker.Progress__UpdateCommit
 public import Proof.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
 public import Proof.go_etcd_io.raft.v3.unstable__acceptInProgress
 public import Proof.go_etcd_io.raft.v3.unstable__maybeFirstIndex
@@ -1232,9 +1233,13 @@ theorem raftpb.EntryType.wp_Enum :
     raftpb.EntryType.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.EntryType.Enum.wp_proof
 
+theorem tracker.Progress.wp_UpdateCommit :
+    tracker.Progress.UpdateCommit.spec (GF := GF) (hG := hG) :=
+  tracker.Progress.UpdateCommit.wp_proof
+
 theorem wp_stepLeader [StorageModel GF] :
     stepLeader.spec (GF := GF) (hG := hG) :=
-  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer proto.wp_UnmarshalConfChange proto.wp_UnmarshalConfChangeV2 raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetReject raftpb.Message.wp_GetIndex raftpb.Message.wp_GetRejectHint raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetContext raftpb.Message.wp_GetTo raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData raftpb.EntryType.wp_Enum wp_DescribeConfChange
+  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer proto.wp_UnmarshalConfChange proto.wp_UnmarshalConfChangeV2 raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetReject raftpb.Message.wp_GetIndex raftpb.Message.wp_GetRejectHint raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetContext raftpb.Message.wp_GetTo raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData raftpb.EntryType.wp_Enum wp_DescribeConfChange tracker.Progress.wp_UpdateCommit raftpb.Message.wp_GetCommit
 
 theorem wp_traceReceiveMessage [StorageModel GF] :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=

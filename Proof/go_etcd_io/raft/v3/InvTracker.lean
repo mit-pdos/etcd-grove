@@ -295,7 +295,7 @@ theorem ownProgress_intro (pr : Loc) (pv : tracker.Progress) (p : Progress) :
 whatever the value says. -/
 def progressOf (pv : tracker.Progress) (st : PRState) (i : Inflights) : Progress :=
   ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
-    pv.IsLearner'⟩
+    pv.IsLearner', pv.Commit'⟩
 
 theorem ownProgress_of (pr : Loc) (pv : tracker.Progress) (st : PRState) (i : Inflights)
     (Hst : pv.State' = prstateW64 st) :
@@ -307,7 +307,7 @@ theorem ownProgress_of (pr : Loc) (pv : tracker.Progress) (st : PRState) (i : In
   simp only [named, progressOf]
   iframe Hpv Hinfl
   ipureintro
-  exact (progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  exact (progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- An id set (`map[uint64]struct{}`) that is either `nil` or owned.
 
@@ -1018,7 +1018,7 @@ counterparts in `(progressAbs_Some _ _ _).1 Habs` / `.2 ⟨…⟩` and `simp onl
 record. -/
 macro "progress_abs_solve" : tactic =>
   `(tactic| (apply (Perennial.EtcdGrove.progressAbs_Some _ _ _).2;
-             refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> try rfl))
+             refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> try rfl))
 
 /-! ## A configuration, and changing to one
 

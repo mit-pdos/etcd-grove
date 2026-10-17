@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR verification: etcd-io/raft#132, follower commit tracking (2026-10-16, branch `pr-verify/raft-132`)
+
+The PR's remaining two commits translated from the unpushed fork commit `471242c60`
+(`pr-raft-132-goose-lean`; `etc/goose.py --check` fails on this branch). The `Progress` record
+gains `commit` (`progressAbs` ties it to `Commit`); `Progress.UpdateCommit` specified and
+proved; the `MsgAppResp`s of `handleAppendEntries` and `appendEntry`'s self-ack carry the
+sender's commit index, in their specs and in the protocol model (`Step`/`StepC`/`StepCF`/`StepR`);
+`stepLeader` re-proved at its unchanged spec. Trust base unchanged. Report, findings and open
+points: `notes/pr-verify/raft-132.md`.
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
