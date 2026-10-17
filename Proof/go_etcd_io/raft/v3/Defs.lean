@@ -602,7 +602,7 @@ def logLast (ls : LogState) : w64 :=
   W64 (uint.Z ls.prev.index' + ls.sents.length + ls.uents.length)
 
 /-- `ownRaftLog`'s `Hnowrap` (2026-10-16, stage R8a): `lastIndex() + 1` does not wrap. What the
-progress lemmas below take; `ownRaftPhys_prvals_ok` reads it out of the struct. -/
+progress lemmas below take; `ownRaftPhysC_prvals_ok` reads it out of the struct. -/
 def LogNoWrap (ls : LogState) : Prop :=
   uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1 < 2^64
 

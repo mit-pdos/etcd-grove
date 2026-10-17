@@ -26,7 +26,7 @@ and writes nothing else, so it owns nothing going in and hands back only the new
 (`ownReadOnly`, `InvMisc.lean`): no pending requests, no
 acknowledgements, nothing confirmed (the option it stores is in no spec, so not in the
 record; until 2026-10-08 a `safe` field said whether it is `ReadOnlySafe`). `reset`
-installs it with `ownRaftPhys_readOnly`, which
+installs it with `ownRaftPhysC_readOnly`, which
 needs the new object's ownership -- so the predicate can only be re-pointed at an
 object that was actually allocated. (Until 2026-09-23 this spec consumed and returned
 the whole of `own_raft_misc`, a raw piece of the raft struct.) -/

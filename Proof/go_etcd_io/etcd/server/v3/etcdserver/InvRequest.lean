@@ -949,12 +949,8 @@ def kvN : Namespace := nroot .@ "server_kv"
 theorem kvN_raftN : (↑kvN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
   mask_ndot_ne' nroot "server_kv" "raft_commit" (by decide)
 
-/-- Key-values are countable (for the state's ghost variable). -/
-instance kvStateKvCountable : Pos.Countable EtcdKv :=
-  .ofInjective (fun k => Pos.Countable.encode (k.key, k.createRev, k.modRev, k.version, k.value, k.lease))
-    (by rintro ⟨a, b, c, d, e, f⟩ ⟨a', b', c', d', e', f'⟩ h; have h := Pos.encode_inj h; simp_all)
-
-/-- States are countable (for the state's ghost variable). -/
+/-- States are countable (for the state's ghost variable; the key-values' instance is
+`etcdKvCountableW`, `InvWatchStore`). -/
 instance KVState.countable : Pos.Countable KVState :=
   .ofInjective (fun σ => Pos.Countable.encode (σ.kvs, σ.rev))
     (by rintro ⟨a, b⟩ ⟨a', b'⟩ h; have h := Pos.encode_inj h; simp_all)
@@ -1477,14 +1473,6 @@ theorem revAuth_step (E : apply.AEnv GF) (log log' : mvcc.Log)
         have := Hm k hk'
         omega
     · iright; iexists cs; iframe Ht; ipureintro; rfl
-
-/-- A chain's outcome leaves the log as it is or appends one revision. -/
-theorem commitLog_grow (log : mvcc.Log) (pend : List mvcc.Change) :
-    mvcc.commitLog log pend = log ∨ ∃ cs, mvcc.commitLog log pend = log ++ [cs] := by
-  unfold mvcc.commitLog
-  split
-  · left; rfl
-  · right; exact ⟨_, rfl⟩
 
 theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outcome}
     (h : apply.backendStep rq log o) :

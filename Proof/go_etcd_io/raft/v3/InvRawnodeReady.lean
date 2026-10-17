@@ -31,7 +31,7 @@ which `acceptReady` hands to the queued `MsgStorageApplyResp`) and the entries `
 out for the storage. The node itself is as `readyWithoutAccept` found it (it only reads);
 `acceptReady` takes the predicate back to `ownRawNode` at the post-`Ready` state.
 
-`ownRaftPhysReady` is `ownRaftPhys` opened as `ownRaftPhys_view` opens it, without the
+`ownRaftPhysReady` is `ownRaftPhys` opened as `ownRaftPhysC_view` opens it, without the
 contents of `r.msgs`' slice (the field is kept): what `acceptReady` needs to close it with
 empty queues.
 

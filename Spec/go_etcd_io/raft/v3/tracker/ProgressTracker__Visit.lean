@@ -22,7 +22,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **At any configuration since 2026-10-13** (reconfiguration stage A1): stated on
 `ownTrackerC c` and `visitClosureC c` (`InvTrackerC.lean`), the visited ids ending at the
 progress map's domain, which is every voter of either half and every learner. The statement
-on `ownTracker cfg`/`visitClosure cfg` is `spec_simple` below. The history that follows is of
+on `ownTracker cfg`/`visitClosure cfg` was `spec_simple`, which had no caller and is gone (2026-10-17). The history that follows is of
 the simple statement.
 
 **This statement was FALSE until 2026-09-16** and is now repaired. The repair is
@@ -127,33 +127,6 @@ abbrev tracker.ProgressTracker.Visit.spec : Prop :=
       (Val #f))
   {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTrackerC c tv' ⟨t.votes, t.prs, pvs'⟩ ∗
       I (domSet t.prs) pvs' }}
-
-open Iris.ProofMode in
-/-- The statement at a simple configuration (`ownTracker cfg`, `visitClosure cfg`), which
-`reset`, `bcastAppend`, `bcastHeartbeatWithCtx` and `switchToConfig` use. (Since 2026-10-13
-`Visit.spec` is stated at any configuration, `ownTrackerC`, `visitClosureC`.) -/
-theorem tracker.ProgressTracker.Visit.spec_simple
-    (H : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (f : GoFunc)
-    (I : GSet w64 → GMap w64 Progress → IProp GF) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv t ∗ I ∅ t.peers ∗
-      □ visitClosure cfg trk t.votes t.prs f I }}
-    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
-      (Val #f))
-  {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTracker cfg tv' ⟨t.votes, t.prs, pvs'⟩ ∗
-      I (domSet t.prs) pvs' }} := by
-  iintro %Φ ⟨#Hpkg, Htrk, Hown, HI, #Hf⟩ HΦ
-  ihave Hown := ownTracker_toC _ _ _ $$ Hown
-  iapply H _ trk tv t f I $$ [$Hpkg $Htrk $Hown $HI]
-  · imodintro
-    iapply visitClosure_toC $$ Hf
-  inext
-  iintro ⟨%tv', %pvs', Htrk, Hown, HI⟩
-  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
-  iapply HΦ
-  iexists tv', pvs'
-  iframe Htrk Hown HI
 
 end spec
 

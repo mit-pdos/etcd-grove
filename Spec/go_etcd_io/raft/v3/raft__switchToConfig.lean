@@ -94,14 +94,14 @@ then commits what the new configuration's quorums allow and sends appends.
 
 **It changes the configuration** `ownRaftPhys` is indexed by to `cfg`, and the progress map
 with it. The struct comes in *open at its tracker* -- the field `r.trk` (holding `tv0`) and
-the wand that re-seals it at any tracker of `cfg` (`ownRaftPhys_reconfig`'s) -- with what of
+the wand that re-seals it at any tracker of `cfg` (`ownRaftPhysCV_reconfig`'s) -- with what of
 the old tracker survives, its tally and inflight bound (`ownTracker_votes`), and the new
 `Config` and progress map as `ownConfigV` (`pvs` the new `Progress` records). Taking the
 struct open lets the caller move the old `Progress` objects' resources to the new ones before
 the call: `ApplyConfChange`'s new `Progress` objects are copies that share the old ones'
 `Inflights` (`ownNewPr_transfer`). (Until 2026-10-13 it took `ownRaftPhys cfg0` sealed and
-`ownConfig`, the non-leader case only: that statement is `raft.switchToConfig.spec_nonleader`
-below.)
+`ownConfig`, the non-leader case only: that statement, `spec_nonleader`, had no
+caller and is gone, 2026-10-17; `spec_nonleader_open` below is its open form.)
 
 **The leader case** (2026-10-13): `id ∈ cfg` (the node stays a voter: removing or demoting the
 leader, and `stepDownOnRemoval`, are not covered), and each new `Match` is `0` or the old one
@@ -233,54 +233,6 @@ theorem raft.switchToConfig.spec_simple
       rw [ite_eq_right hl] at Hsw
       exact Hsw
 
-/-- At a follower, from the struct sealed at any configuration `cfg0` and the new
-configuration as `confchange.Restore` builds it (`ownConfig`), with the learners `lrn`
-(2026-10-13): what `restore` calls. -/
-theorem raft.switchToConfig.spec_follower
-    (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
-    (cfg0 cfg lrn : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
-    (Hdom : domSet prs = cfg ∪ lrn) (Hd : ∀ k, k ∈ lrn → k ∉ cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg0 r id s ∗
-        ownConfig cfg cfgv prsm prs }}
-      (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
-        (Val #cfgv)) (Val #prsm))
-    {{ (cs : Loc) (xs ls : List w64)
-        (pvs : GMap w64 Progress), RET #cs;
-        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs,
-                                      isLearner := learnerOf cfg prs id } ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
-        ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Hphys, Hcfg⟩ HΦ
-  icases ownRaftPhys_reconfig cfg0 cfg r id s (fun h => absurd Hrole h) $$ Hphys
-    with ⟨%tv, Htrkf, Hold, Hback⟩
-  icases ownTracker_votes $$ Hold with ⟨Hvotes, %Hmi⟩
-  icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
-  iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs
-      (fun h => absurd (Hrole.symm.trans h) (by decide))
-      (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
-      (fun h => absurd (Hrole.symm.trans h) (by decide))
-    $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
-  · ipureintro; exact Hmi
-  inext
-  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
-  unfold SwitchOk at Hsw
-  rw [ite_eq_right (by rw [Hrole]; decide)] at Hsw
-  subst Hsw
-  have Hl : domSet prs \ cfg = lrn := by
-    rw [Hdom]
-    apply GMap.set_eq; intro k
-    rw [GMap.elem_of_difference, GMap.elem_of_union]
-    constructor
-    · rintro ⟨h | h, h'⟩
-      · exact absurd h h'
-      · exact h
-    · intro h; exact ⟨.inr h, Hd k h⟩
-  iapply HΦ $$ %cs %xs %ls %pvs
-  iframe Hphys Hcs
-  ipureintro
-  exact ⟨Hcs0.1, Hl ▸ Hcs0.2⟩
-
 /-- The statement until 2026-10-13: at a non-leader, from the struct sealed at any
 configuration `cfg0` and the new configuration as `confchange.Restore` builds it
 (`ownConfig`), with no learners (`domSet prs = cfg`). What `newRaft` and `restore` call.
@@ -335,30 +287,6 @@ theorem raft.switchToConfig.spec_nonleader_open
   iframe Hphys Hcs
   ipureintro
   exact Hcs0.1
-
-/-- `spec_nonleader_open` at a sealed struct, which `ownRaftPhys_reconfig` opens: `newRaft`'s and
-`raft.restore`'s statement until 2026-10-16 (stage R8b: `newRaft` on an empty conf state installs
-the empty tracker's own maps, so it keeps the struct open, `ownRaftPhys_intro_trk`). -/
-theorem raft.switchToConfig.spec_nonleader
-    (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
-    (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
-    (Hdom : domSet prs = cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg0 r id s ∗
-        ownConfig cfg cfgv prsm prs }}
-      (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
-        (Val #cfgv)) (Val #prsm))
-    {{ (cs : Loc) (xs : List w64)
-        (pvs : GMap w64 Progress), RET #cs;
-        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Hphys, Hcfg⟩ HΦ
-  icases ownRaftPhys_reconfig cfg0 cfg r id s (fun h => absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Hold, Hback⟩
-  icases ownTracker_votes $$ Hold with ⟨Hvotes, %Hmi⟩
-  iapply raft.switchToConfig.spec_nonleader_open H cfg r id s tv cfgv prsm prs Hrole Hdom Hmi
-    $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
-  inext
-  iexact HΦ
 
 end spec
 

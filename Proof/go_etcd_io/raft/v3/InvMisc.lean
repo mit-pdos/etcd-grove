@@ -192,7 +192,7 @@ def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
   "Hpri_cap" ∷ ownSliceCap Loc pendingReadIndex (DFrac.own 1))
 
 /-- `reset` replaces `r.readOnly` with `newReadOnly(r.readOnly.option)`, so it reads
-the old object's `option` field; it reaches the object through `ownRaftPhys_readOnly`
+the old object's `option` field; it reaches the object through `ownRaftPhysC_readOnly`
 (`InvRaftPhys.lean`), which also installs the new one. -/
 theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
     ⊢ ownReadOnly (GF := GF) ro r -∗

@@ -33,7 +33,7 @@ by `tracker.ProgressTracker.TallyVotes.spec`.
 At any configuration since 2026-10-13 (reconfiguration stage A2): the answer is exactly
 `JQuorum`/`JLost` of the joint configuration (`Protocol/StepC.lean`), with no premise -- Go's
 empty half wins every vote, which `MajQ` says. The statement at a simple configuration
-(`cfg ≠ ∅`, `IsQuorum cfg`) is `raft.poll.specS`. -/
+(`cfg ≠ ∅`, `IsQuorum cfg`) was `raft.poll.specS`; it had no caller and is gone (2026-10-17). -/
 abbrev raft.poll.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (src : w64) (t : w32) (v : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
@@ -47,40 +47,6 @@ abbrev raft.poll.spec : Prop :=
       -- see InvTracker.lean: `VoteLost` is "cannot still win", not "a majority
       -- rejected"
       ⌜res = VoteLost ↔ JLost c votes'⌝) }}
-
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.poll.spec` by `raft.poll.spec_simple`. -/
-abbrev raft.poll.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (src : w64) (t : w32) (v : Bool),
-  cfg ≠ ∅ →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"poll"))
-      (Val #src)) (Val #t)) (Val #v))
-  {{ (g rj : w64) (res : w8), RET (PairV (PairV #g #rj) #res);
-      let votes' := recordVote s.votes src v
-      iprop(ownRaftPhys cfg r id { s with votes := votes' } ∗
-      ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
-      ⌜res = VoteWon → IsQuorum cfg (granted votes')⌝ ∗
-      ⌜res = VoteLost → ¬ IsQuorum cfg (cfg \ rejected votes')⌝) }}
-
-open Iris.ProofMode in
-theorem raft.poll.spec_simple
-    (H : raft.poll.spec (GF := GF) (hG := hG)) :
-    raft.poll.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s src t v Hne
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s src t v $$ [$Hpkg $Hphys]
-  inext
-  iintro %g %rj %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  dsimp only
-  iframe Hphys
-  ipureintro
-  exact ⟨Hres, fun h => (JQuorum_of_out (c := CfgM.simple cfg (domSet s.progress \ cfg)) Hne rfl _).1
-      (Hwon.1 h),
-    fun h => (JLost_of_out (c := CfgM.simple cfg (domSet s.progress \ cfg)) Hne rfl _).1 (Hlost.1 h)⟩
 
 end spec
 
