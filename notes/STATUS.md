@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22291, `closeRequireLeader` without orphaned keep-alives (2026-10-17, branch `pr-verify/etcd-22291`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22291-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. The client's `lessor` struct and
+`lessor.closeRequireLeader` are now translated (`Code/go_etcd_io/etcd/client/v3.toml`), and proved
+(`Proof/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean`, no `sorry`) against a new lock
+invariant of the lessor (`InvLease.lean`): every `keepAlives` entry has at least one subscription,
+`chs`/`ctxs` of one length, channels non-nil, one close right `R ch ctx` per subscription. New
+axiom: grpc's `metadata.FromOutgoingContext` (`Spec/google_golang_org/grpc/metadata/`). The spec's
+premise `R ch c -∗ R ch c'` is the pinned code's bug `issues/etcd-lease-closerequireleader-ctx-misaligned.md`
+(etcd#22081); the bug the PR fixes: `issues/etcd-lease-closerequireleader-orphan.md`. A limitation met
+on the way: `wp_start` unfolds `functions go.close` inside a spec's premise, so a premise mentioning
+`close` is a `def` (`lessor.closeOk`). Report: `notes/pr-verify/etcd-22291.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

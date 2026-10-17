@@ -68,6 +68,8 @@ public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
 public import Proof.go_etcd_io.etcd.client.v3.kv__Put
 public import Proof.go_etcd_io.etcd.client.v3.kv__Txn
+public import Proof.go_etcd_io.etcd.client.v3.lessor__closeRequireLeader
+public import Proof.google_golang_org.grpc.metadata.FromOutgoingContext
 public import Proof.go_etcd_io.etcd.client.v3.newBlockLogger
 public import Proof.google_golang_org.grpc.peer.Peer__String
 public import Proof.go_etcd_io.etcd.client.v3.progressRequest__toPB
@@ -272,6 +274,10 @@ theorem v3.WatchResponse.wp_Err :
 theorem v3.WatchResponse.wp_IsProgressNotify :
     EtcdGrove.WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WatchResponse.IsProgressNotify.wp_proof ResponseHeader.wp_GetRevision
+
+theorem metadata.wp_FromOutgoingContext :
+    EtcdGrove.metadata.FromOutgoingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.FromOutgoingContext.wp_proof
 
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
@@ -511,6 +517,10 @@ theorem v3.kv.wp_Put :
 theorem v3.kv.wp_Txn :
     EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Txn.wp_proof
+
+theorem v3.lessor.wp_closeRequireLeader :
+    EtcdGrove.lessor.closeRequireLeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.closeRequireLeader.wp_proof metadata.wp_FromOutgoingContext
 
 theorem v3.wp_newBlockLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.newBlockLogger.spec (GF := GF) (hG := hG) :=
