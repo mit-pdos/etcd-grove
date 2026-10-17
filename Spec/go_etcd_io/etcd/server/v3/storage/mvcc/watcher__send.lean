@@ -39,7 +39,7 @@ abbrev mvcc.watcher.send.spec : Prop :=
   ∀ (γ : mvcc.WsNames) (w : Loc) (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice)
     (ch : GoChan) (qc ql : Qp) (evsw : List mvcc.EvM) (d : Nat) (wr : WatchResponse)
     (es : List Loc) (evm : List mvcc.EvM) (dq : DFrac) (cs : List mvcc.CovArg) (qa : Qp)
-    (CS : IProp GF),
+    (nl : Option (Qp × mvcc.Log)) (CS : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.filtersOk fcs ∗
       mvcc.watcherChan γ w γw ch ∗
@@ -48,7 +48,8 @@ abbrev mvcc.watcher.send.spec : Prop :=
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ mvcc.evsWf γ r γw.lo (evsw ++ evm) d) ∗
       wr.Events' ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
-      mvcc.covPre γ γw.wc wr.Revision' cs ∗ mvcc.covAuth qa cs ∗
+      mvcc.covPre γ γw.wc wr.Revision' cs ∗ mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗
+      ⌜evm = [] → ∃ q L, nl = some (q, L) ∧ sint.Z wr.Revision' + 1 = (L.length : Int)⌝ ∗
       ⌜evm = [] → w ∈ cs.map mvcc.CovArg.w⌝ ∗
       CS ∗ (⌜wr.WatchID' = r.id⌝ ∨ mvcc.complW γw ql CS (cs.map mvcc.CovArg.w) wr.WatchID' wr.Revision' evm) ∗
       ⌜es.length = evm.length ∧ wr.CompactRevision' = W64 0 ∧ (evm ≠ [] → wr.WatchID' = r.id) ∧
@@ -61,7 +62,7 @@ abbrev mvcc.watcher.send.spec : Prop :=
       (if b then wr.Events' ↦*□ es else wr.Events' ↦*{dq} es) ∗
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half (if b then evsw ++ evm else evsw)) ∗
-      mvcc.covAuth qa cs ∗ CS }}
+      mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗ CS }}
 
 end spec
 

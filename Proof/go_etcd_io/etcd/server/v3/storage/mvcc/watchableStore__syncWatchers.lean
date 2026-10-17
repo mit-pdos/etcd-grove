@@ -486,14 +486,18 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length
           (Nat.le_refl _)
         rw [← hevB] at hmodB
-        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw C.length _ eps B.evs (DFrac.own 1) [] 1 iprop(True))
-          $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -⟩
+        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw C.length _ eps B.evs (DFrac.own 1) [] 1 none iprop(True))
+          $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
           isplitr
           · iapply mvcc.covPre_nil
           isplitr
           · iapply mvcc.covAuth_nil
+          isplitr
+          · iapply mvcc.notifiedLent_none
+          isplitr
+          · ipureintro; intro h; exact absurd h hBne
           isplitr
           · ipureintro; intro h; exact absurd h hBne
           isplitr
@@ -527,11 +531,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           ihave Hmw := mvcc.sw_memberRes_new_victim γ σ v key r' B st' γw fcs evsw C.length
             hM Hsr hvWs fvo ⟨by rw [hst'm]; omega, by
               show C.length = (sint.Z st'.minRev).toNat; rw [hst'm]; simp,
-              fun h => absurd hmr0 h, fun ev hev => by
+              ⟨fun h => absurd hmr0 h, fun ev hev => by
                 have := hmodB ev hev
                 have : (sint.nat st.minRev : Int) = sint.Z st.minRev := by
                   show ((sint.Z st.minRev).toNat : Int) = _; omega
-                rw [hst'm]; omega⟩
+                rw [hst'm]; omega⟩, hBne⟩
             $$ [Hmeta Hfx Hch Hfo Ha Hlv Hwf']
           · rw [← hst']; iframe; iframe #
           ihave Hwo : mvcc.watcherOwn key st' $$ [HminRev Hvict Hcomp Hrest0 Hchf]
@@ -642,14 +646,18 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M
           (by omega)
         rw [← hevB] at hmodB
-        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw M _ eps B.evs (DFrac.own 1) [] 1 iprop(True))
-          $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -⟩
+        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw M _ eps B.evs (DFrac.own 1) [] 1 none iprop(True))
+          $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
           isplitr
           · iapply mvcc.covPre_nil
           isplitr
           · iapply mvcc.covAuth_nil
+          isplitr
+          · iapply mvcc.notifiedLent_none
+          isplitr
+          · ipureintro; intro h; exact absurd h hBne
           isplitr
           · ipureintro; intro h; exact absurd h hBne
           isplitr
@@ -683,11 +691,11 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           ihave Hmw := mvcc.sw_memberRes_new_victim γ σ v key r' B st' γw fcs evsw M
             hM Hsr hvWs fvo ⟨by rw [hst'm]; omega, by
               show M = (sint.Z st'.minRev).toNat; rw [hst'm]; simp,
-              fun _ => by rw [← hst'], fun ev hev => by
+              ⟨fun _ => by rw [← hst'], fun ev hev => by
                 have := hmodB ev hev
                 have : (sint.nat st.minRev : Int) = sint.Z st.minRev := by
                   show ((sint.Z st.minRev).toNat : Int) = _; omega
-                rw [hst'm]; omega⟩
+                rw [hst'm]; omega⟩, hBne⟩
             $$ [Hmeta Hfx Hch Hfo Ha Hlv Hwf']
           · rw [← hst']; iframe; iframe #
           ihave Hwo : mvcc.watcherOwn key st' $$ [HminRev Hvict Hcomp Hrest0 Hchf]

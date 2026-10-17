@@ -609,9 +609,81 @@ instance respCompl_persistent (γc : WatchChanNames) (x : RespM) :
     Persistent (respCompl (GF := GF) γc x) := by
   unfold respCompl; infer_instance
 
+/-- **The store had notified `L` (at least)** (persistent; unit W-K): a lower bound of the
+notified log (`γ.wlog` is a monotone list, half the lock's, half the sole writer's). -/
+def notifiedLb (γ : WsNames) (L : Log) : IProp GF := monoListLbOwn γ.wlog L
+
+instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb (GF := GF) γ L) := by
+  unfold notifiedLb; infer_instance
+
+/-- A fraction of the notified log's authority, at `L`, lent (`watcher.send` for a progress
+response, K2e-5), or nothing. -/
+def notifiedLent (γ : WsNames) : Option (Qp × Log) → IProp GF
+  | some (q, L) => monoListAuthOwn γ.wlog q L
+  | none => iprop(True)
+
+theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none := by
+  unfold notifiedLent; itrivial
+
+/-- **An event-less response's revision** (K2e-5): the notified log's last when it was sent, so
+at least every earlier event-less response's on the channel (`pre`). (Only `progressIfSync` sends
+one: a victim's batch has events.) -/
+def respRev (γ : WsNames) (pre : List RespM) (x : RespM) : IProp GF :=
+  iprop(⌜x.evs ≠ []⌝ ∨ ∃ L : Log, notifiedLb γ L ∗
+    ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝)
+
+instance respRev_persistent (γ : WsNames) (pre : List RespM) (x : RespM) :
+    Persistent (respRev (GF := GF) γ pre x) := by
+  unfold respRev; infer_instance
+
+/-- An event-less response's revision is the last of a log the store had notified. -/
+def revLbOf (γ : WsNames) (y : RespM) : IProp GF :=
+  iprop(⌜y.evs ≠ []⌝ ∨ ∃ L : Log, notifiedLb γ L ∗ ⌜sint.Z y.rev + 1 = (L.length : Int)⌝)
+
+instance revLbOf_persistent (γ : WsNames) (y : RespM) : Persistent (revLbOf (GF := GF) γ y) := by
+  unfold revLbOf; infer_instance
+
+theorem revLbOf_of (γ : WsNames) (pre : List RespM) (y : RespM) :
+    respRev (GF := GF) γ pre y ⊢ revLbOf γ y := by
+  unfold respRev revLbOf
+  iintro (%h | ⟨%L, #Hl, %h⟩)
+  · ileft; ipureintro; exact h
+  · iright; iexists L; iframe Hl; ipureintro; exact h.1
+
+/-- **Below the notified log** (K2e-5): with a fraction of its authority at `Lx`, every event-less
+response whose revision is the last of a notified log is at most `Lx`'s last. -/
+theorem revLbs_le (γ : WsNames) (q : Qp) (Lx : Log) :
+    ∀ l : List RespM, monoListAuthOwn (GF := GF) γ.wlog q Lx ∗ □ ([∗list] y ∈ l, revLbOf γ y) ⊢
+      ⌜∀ y ∈ l, y.evs = [] → sint.Z y.rev + 1 ≤ (Lx.length : Int)⌝
+  | [] => by iintro -; ipureintro; intro y hy; cases hy
+  | y :: l => by
+    iintro ⟨Ha, #H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Hy, #Hl⟩
+    icases persistent_entails_right (revLbs_le γ q Lx l) $$ [$Ha $Hl] with ⟨%ih, ⟨Ha, -⟩⟩
+    iunfold revLbOf at Hy
+    icases Hy with (%hne | ⟨%Ly, #Hlb, %hy⟩)
+    · ipureintro
+      intro y' hy' he
+      rcases List.mem_cons.1 hy' with rfl | h
+      · exact absurd he hne
+      · exact ih y' h he
+    · iunfold notifiedLb at Hlb
+      ihave %hp := mono_list_auth_lb_valid _ _ _ _ $$ Ha Hlb
+      ipureintro
+      intro y' hy' he
+      rcases List.mem_cons.1 hy' with rfl | h
+      · have := hp.2.length_le; omega
+      · exact ih y' h he
+
 def respCov (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) : IProp GF :=
   iprop((□ ∀ w' : Loc, ⌜w' ∈ x.cov⌝ -∗ covFact γ γc pre w' x.rev) ∗ respCompl γc x ∗
-    ⌜x.evs = [] → x.w ∈ x.cov⌝)
+    ⌜x.evs = [] → x.w ∈ x.cov⌝ ∗ respRev γ pre x)
+
+theorem respCov_rev (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
+    respCov (GF := GF) γ γc pre x ⊢ revLbOf γ x := by
+  unfold respCov
+  iintro ⟨-, -, -, #Hr⟩
+  iapply revLbOf_of γ pre x $$ Hr
 
 instance respCov_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
     Persistent (respCov (GF := GF) γ γc pre x) := by
@@ -1021,11 +1093,11 @@ open Iris.ProofMode in
 /-- The coverage of a response whose covered watchers are `cs`'s. -/
 theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM)
     (cs : List CovArg) (hcov : x.cov = cs.map CovArg.w) (hown : x.evs = [] → x.w ∈ x.cov) :
-    □ ([∗list] c ∈ cs, covFact (GF := GF) γ γc pre c.w x.rev) ∗ respCompl γc x ⊢
+    □ ([∗list] c ∈ cs, covFact (GF := GF) γ γc pre c.w x.rev) ∗ respCompl γc x ∗ respRev γ pre x ⊢
       respCov γ γc pre x := by
-  iintro ⟨#H, #Hc⟩
+  iintro ⟨#H, #Hc, #Hr⟩
   iunfold respCov
-  iframe Hc
+  iframe Hc Hr
   isplitr
   rotate_left
   · ipureintro; exact hown
@@ -1034,6 +1106,52 @@ theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM)
   obtain ⟨c, hc, rfl⟩ := List.mem_map.1 hw'
   icases BigSepL.bigSepL_mem_acc hc $$ H with ⟨Hc, -⟩
   iexact Hc
+
+/-- **The sent responses' revisions, below the notified log** (K2e-5): with a fraction of the
+notified log's authority at `Lx`, every event-less response sent is at most `Lx`'s last. -/
+theorem sentAuth_revs (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (q : Qp) (Lx : Log) :
+    sentAuth (GF := GF) γ γc sent L ∗ monoListAuthOwn γ.wlog q Lx ⊢
+      sentAuth γ γc sent L ∗ monoListAuthOwn γ.wlog q Lx ∗
+        ⌜∀ y ∈ sent, y.evs = [] → sint.Z y.rev + 1 ≤ (Lx.length : Int)⌝ := by
+  unfold sentAuth
+  iintro ⟨⟨Ha0, %RI, Hr, %HRI, #Hc⟩, Ha⟩
+  ihave #Hl : [∗list] y ∈ sent, revLbOf (GF := GF) γ y $$ []
+  · iapply (BigSepL.bigSepL_mono (fun {k y} _ => respCov_rev γ γc (sent.take k) y)) $$ Hc
+  icases persistent_entails_right (revLbs_le γ q Lx sent) $$ [$Ha $Hl] with ⟨%H, ⟨Ha, -⟩⟩
+  iframe Ha
+  isplitl
+  · iframe Ha0
+    iexists RI
+    iframe Hr Hc
+    ipureintro; exact HRI
+  ipureintro; exact H
+
+/-- **A new response's revision fact** (K2e-5): an event-less one is sent with a fraction of the
+notified log's authority at a log whose last is its revision. -/
+theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
+    (nl : Option (Qp × Log)) (x : RespM)
+    (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int)) :
+    sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ⊢
+      sentAuth γ γc sent L ∗ notifiedLent γ nl ∗ respRev γ sent x := by
+  by_cases he : x.evs = []
+  · obtain ⟨q, Lx, rfl, hx⟩ := hnl he
+    unfold notifiedLent
+    iintro ⟨Hs, Ha⟩
+    icases sentAuth_revs γ γc sent L q Lx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
+    ihave #Hlb := monoListLbOwn_get _ _ _ $$ Ha
+    iframe Hs Ha
+    iunfold respRev
+    iright
+    iexists Lx
+    iunfold notifiedLb
+    iframe Hlb
+    ipureintro
+    exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
+  · iintro ⟨Hs, Ha⟩
+    iframe Hs Ha
+    iunfold respRev
+    ileft; ipureintro; exact he
 
 /-- **What a sent response covers** (persistent; K1b): the coverage of the response at index `k`. -/
 theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
@@ -1102,7 +1220,7 @@ def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat)
       ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.Z st.minRev < Lc.length⌝)
   else match σ.victimOf w with
     | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧
-          victimBatchOk lo st B⌝ ∗
+          victimBatchOk lo st B ∧ B.evs ≠ []⌝ ∗
         evsWf γ r lo (evsw ++ B.evs) d)
     | none => iprop(True)
 
@@ -1138,8 +1256,8 @@ theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange)
     (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
     (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
     popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
-        evsWf γ r lo (evsw ++ B.evs) d) := by
+      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B ∧
+        B.evs ≠ []⌝ ∗ evsWf γ r lo (evsw ++ B.evs) d) := by
   unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
 
 /-- `memberRes` moves to a state that agrees with it at the watcher. -/
@@ -1217,13 +1335,6 @@ theorem wlogQ_cert_prefix (γ : WsNames) (q : Qp) (L C : Log) :
   unfold wlogQ
   iintro ⟨⟨-, Ha⟩, Hc⟩
   iapply idxLogAuth_cert_prefix $$ [$Ha $Hc]
-
-/-- **The store had notified `L` (at least)** (persistent; unit W-K): a lower bound of the
-notified log (`γ.wlog` is a monotone list, half the lock's, half the sole writer's). -/
-def notifiedLb (γ : WsNames) (L : Log) : IProp GF := monoListLbOwn γ.wlog L
-
-instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb (GF := GF) γ L) := by
-  unfold notifiedLb; infer_instance
 
 theorem wlogQ_lb (γ : WsNames) (q : Qp) (L : Log) :
     wlogQ (GF := GF) γ q L ⊢ wlogQ γ q L ∗ notifiedLb γ L := by

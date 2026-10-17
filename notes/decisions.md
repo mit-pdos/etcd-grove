@@ -8107,3 +8107,28 @@ of the job's log up to the compaction revision (a cursor orders the batches), so
 that log's changes, fewer than `2 ^ 62` by the premise `mvcc.CompactSmall` (a physical bound,
 as `storeSmall`), carried by `compactJobPre` and taken by `updateCompactRev`, `Compact` and
 `compactLockfree`.
+
+## Repeated proof blocks as file-local macros
+
+**2026-10-17 · accepted**
+
+A Go `if`/`select`/`switch` whose arms continue with the same code got the same tactic block
+pasted into each arm of its proof (up to 350 lines, three times, in `closeSubstream`). The
+duplication review (notes/STATUS.md, "Repeated in-proof blocks as macros") replaced them.
+
+**Decision:** prove the shared continuation once when it is easy to state (a `have`, or merging
+identical `cases` arms); otherwise a `set_option hygiene false in local macro` just before the
+theorem, with a docstring naming the branches that use it, taking as arguments the values the
+copies differ in (the pattern of `txn__Else.lean`). Copies that differ in more than a couple of
+values stay copies. The cost: an error inside a macro is reported at its use, and a reader
+expands it by eye.
+
+- **Iris's frame `$H` inside a quotation.** In a macro's `` `(tactic| …) `` Lean reads `$H` as an
+  antiquotation, so a block that frames a hypothesis does not parse as a macro body. The macros
+  write ``$(frameH `H)``, which builds the node the parser makes for `$H`
+  (`Proof/go_etcd_io/raft/v3/FrameH.lean`, beside `ProjSimps.lean`, the other generic tactic
+  utility; at first each file had its own copy, 20 in all, moved there before merging). The
+  general fix is in Iris-Lean, a frame syntax that works inside a quotation, to propose there
+  as its own change (CLAUDE.md, "Changes to Perennial"); then `frameH` goes.
+- *Rejected:* a global macro per block (they are one proof's), and an auxiliary lemma for every
+  continuation (the statements, long Iris contexts, would be longer than the blocks).

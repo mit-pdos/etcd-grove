@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewStringAffinePoint
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
+public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -556,6 +557,59 @@ def v3rpc.ciPost (us : List v3rpc.ReqOp) (Φ : val → IProp GF) : IProp GF :=
       | none => txn.errVarIs v3rpc.CheckErr.duplicateKey.var err) -∗
     Φ (PairV (PairV #m #t) #err))
 
+set_option hygiene false in
+/-- The `putsElse` loop's `dels.Intersects(adt.NewStringAffinePoint(k))` and `puts[k] = struct{}{}`, after `puts[k]` absent and after `k` in `putsThen` (`hc0` either way). -/
+local macro "else_point_check" : tactic => `(tactic| (
+    wp_apply hPt
+    wp_apply hInt $$ [$(frameH `Htl)] as Htl
+    have hh0 : (!decide (adt.stab (key, key ++ [0#8]) L = [])) = v3rpc.hits ds key := by
+      rw [← v3rpc.ci_hits_perm L ds key HL]
+      by_cases h : adt.stab (key, key ++ [0#8]) L = [] <;> simp [v3rpc.pointIvl, h]
+    rw [hh0]
+    cases hh : v3rpc.hits ds key
+    · wp_auto
+      wp_apply (wp_mapInsert (K := GoString) (V := Unit) go.string mp M' key ()) $$ [$(frameH `Hmp)]
+        as Hmp
+      unfold forMapPostcondition
+      iright; ileft
+      isplitr
+      · ipureintro; rfl
+      iexists _, _
+      simp only [named]
+      iframe
+      ipureintro
+      have hj1 : (j + 1).toNat = j.toNat + 1 := by omega
+      refine ⟨by omega, ?_, ?_⟩
+      · intro x
+        rw [hj1, v3rpc.ci_mem_take_succ Hkey, GMap.lookup_insert_is_Some, HM' x]
+        by_cases hx : key = x
+        · subst hx; simp
+        · simp [hx, Ne.symm hx]
+      · intro x hx
+        rw [hj1, v3rpc.ci_mem_take_succ Hkey] at hx
+        rcases hx with hx | rfl
+        · exact Hok x hx
+        · rw [decide_eq_false hc0, hh]
+    · wp_auto
+      unfold forMapPostcondition
+      iright; iright; iright
+      iexists _
+      isplitr
+      · ipureintro; rfl
+      iintro -
+      wp_auto
+      wp_for_post
+      iunfold v3rpc.ciPost at HΦ
+      iapply HΦ
+      rw [v3rpc.ci_txn_step_fail Hnest.1 Hnest.2 hu hT hE
+        (v3rpc.ci_nestStep_else_fail (r := ⟨pT, dT, pE, dE⟩) hkeyE (by simp [hh]))]
+      iunfold txn.errVarIs
+      simp only [v3rpc.CheckErr.var]
+      iexists edup
+      iframe Hdup
+      ipureintro; rfl
+  ))
+
 theorem v3rpc.checkIntervals.wp_proof
     (hNew : adt.NewIntervalTree.spec (GF := GF) (hG := hG))
     (hIvl : adt.NewStringAffineInterval.spec (GF := GF) (hG := hG))
@@ -651,48 +705,10 @@ theorem v3rpc.checkIntervals.wp_proof
         simp only [v3rpc.levelDels]
         rw [hdel]
         exact v3rpc.ci_insert_perm _ _ _ HL
-    | txn cs ts es =>
+    | txn _ _ _ | empty | range _ | put _ =>
       iunfold v3rpc.reqOpIs at Hp
-      icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
-      wp_auto
-      wp_for_post
-      iframe
-      iexists n + W64 1, p, L
-      iframe
-      ipureintro
-      refine ⟨by constructor <;> word, ?_⟩
-      rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-        v3rpc.ci_levelDels_append]
-      simpa [v3rpc.levelDels] using HL
-    | empty =>
-      iunfold v3rpc.reqOpIs at Hp
-      icases Hp with ⟨%Hpn, #HR⟩
-      wp_auto
-      wp_for_post
-      iframe
-      iexists n + W64 1, p, L
-      iframe
-      ipureintro
-      refine ⟨by constructor <;> word, ?_⟩
-      rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-        v3rpc.ci_levelDels_append]
-      simpa [v3rpc.levelDels] using HL
-    | range o =>
-      iunfold v3rpc.reqOpIs at Hp
-      icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
-      wp_auto
-      wp_for_post
-      iframe
-      iexists n + W64 1, p, L
-      iframe
-      ipureintro
-      refine ⟨by constructor <;> word, ?_⟩
-      rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-        v3rpc.ci_levelDels_append]
-      simpa [v3rpc.levelDels] using HL
-    | put o =>
-      iunfold v3rpc.reqOpIs at Hp
-      icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
+      -- `empty` without the operation's `w` and `r`
+      first | icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩ | icases Hp with ⟨%Hpn, #HR⟩
       wp_auto
       wp_for_post
       iframe
@@ -944,54 +960,7 @@ theorem v3rpc.checkIntervals.wp_proof
                     · exact Or.inl h
                     · exact Or.inr (Or.inl h)
                   rw [(HM' key).2 h1'] at hk; cases hk
-                wp_apply hPt
-                wp_apply hInt $$ [$Htl] as Htl
-                have hh0 : (!decide (adt.stab (key, key ++ [0#8]) L = [])) = v3rpc.hits ds key := by
-                  rw [← v3rpc.ci_hits_perm L ds key HL]
-                  by_cases h : adt.stab (key, key ++ [0#8]) L = [] <;> simp [v3rpc.pointIvl, h]
-                rw [hh0]
-                cases hh : v3rpc.hits ds key
-                · wp_auto
-                  wp_apply (wp_mapInsert (K := GoString) (V := Unit) go.string mp M' key ()) $$ [$Hmp]
-                    as Hmp
-                  unfold forMapPostcondition
-                  iright; ileft
-                  isplitr
-                  · ipureintro; rfl
-                  iexists _, _
-                  simp only [named]
-                  iframe
-                  ipureintro
-                  have hj1 : (j + 1).toNat = j.toNat + 1 := by omega
-                  refine ⟨by omega, ?_, ?_⟩
-                  · intro x
-                    rw [hj1, v3rpc.ci_mem_take_succ Hkey, GMap.lookup_insert_is_Some, HM' x]
-                    by_cases hx : key = x
-                    · subst hx; simp
-                    · simp [hx, Ne.symm hx]
-                  · intro x hx
-                    rw [hj1, v3rpc.ci_mem_take_succ Hkey] at hx
-                    rcases hx with hx | rfl
-                    · exact Hok x hx
-                    · rw [decide_eq_false hc0, hh]
-                · wp_auto
-                  unfold forMapPostcondition
-                  iright; iright; iright
-                  iexists _
-                  isplitr
-                  · ipureintro; rfl
-                  iintro -
-                  wp_auto
-                  wp_for_post
-                  iunfold v3rpc.ciPost at HΦ
-                  iapply HΦ
-                  rw [v3rpc.ci_txn_step_fail Hnest.1 Hnest.2 hu hT hE
-                    (v3rpc.ci_nestStep_else_fail (r := ⟨pT, dT, pE, dE⟩) hkeyE (by simp [hh]))]
-                  iunfold txn.errVarIs
-                  simp only [v3rpc.CheckErr.var]
-                  iexists edup
-                  iframe Hdup
-                  ipureintro; rfl
+                else_point_check
               · simp only [_root_.decide_true]
                 wp_auto
                 wp_apply (wp_map_lookup2 (K := GoString) (V := Unit) go.string (go.StructType []) mT MT
@@ -1028,54 +997,7 @@ theorem v3rpc.checkIntervals.wp_proof
                 · simp only [_root_.decide_true]
                   wp_auto
                   have hc0 : ¬ (key ∈ pts ++ pT ∧ key ∉ pT) := fun h => h.2 ((HMT key).1 hs)
-                  wp_apply hPt
-                  wp_apply hInt $$ [$Htl] as Htl
-                  have hh0 : (!decide (adt.stab (key, key ++ [0#8]) L = [])) = v3rpc.hits ds key := by
-                    rw [← v3rpc.ci_hits_perm L ds key HL]
-                    by_cases h : adt.stab (key, key ++ [0#8]) L = [] <;> simp [v3rpc.pointIvl, h]
-                  rw [hh0]
-                  cases hh : v3rpc.hits ds key
-                  · wp_auto
-                    wp_apply (wp_mapInsert (K := GoString) (V := Unit) go.string mp M' key ()) $$ [$Hmp]
-                      as Hmp
-                    unfold forMapPostcondition
-                    iright; ileft
-                    isplitr
-                    · ipureintro; rfl
-                    iexists _, _
-                    simp only [named]
-                    iframe
-                    ipureintro
-                    have hj1 : (j + 1).toNat = j.toNat + 1 := by omega
-                    refine ⟨by omega, ?_, ?_⟩
-                    · intro x
-                      rw [hj1, v3rpc.ci_mem_take_succ Hkey, GMap.lookup_insert_is_Some, HM' x]
-                      by_cases hx : key = x
-                      · subst hx; simp
-                      · simp [hx, Ne.symm hx]
-                    · intro x hx
-                      rw [hj1, v3rpc.ci_mem_take_succ Hkey] at hx
-                      rcases hx with hx | rfl
-                      · exact Hok x hx
-                      · rw [decide_eq_false hc0, hh]
-                  · wp_auto
-                    unfold forMapPostcondition
-                    iright; iright; iright
-                    iexists _
-                    isplitr
-                    · ipureintro; rfl
-                    iintro -
-                    wp_auto
-                    wp_for_post
-                    iunfold v3rpc.ciPost at HΦ
-                    iapply HΦ
-                    rw [v3rpc.ci_txn_step_fail Hnest.1 Hnest.2 hu hT hE
-                      (v3rpc.ci_nestStep_else_fail (r := ⟨pT, dT, pE, dE⟩) hkeyE (by simp [hh]))]
-                    iunfold txn.errVarIs
-                    simp only [v3rpc.CheckErr.var]
-                    iexists edup
-                    iframe Hdup
-                    ipureintro; rfl
+                  else_point_check
             iintro HP HmE
             iNamed HP
             rw [show (↑(GMap.size ME) : Int).toNat = keysE.length by omega, List.take_length] at HM' Hok
@@ -1114,48 +1036,10 @@ theorem v3rpc.checkIntervals.wp_proof
             · rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word]
               exact ⟨Hn1, Hn2⟩
             · intro x; rw [HM2 x, hmem x]
-      | delete o =>
+      | delete _ | empty | range _ | put _ =>
         iunfold v3rpc.reqOpIs at Hp
-        icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
-        wp_auto
-        wp_for_post
-        iframe
-        iexists n + W64 1, p, L, M, nest, pts, ds
-        iframe
-        ipureintro
-        refine ⟨by constructor <;> word, ?_, HL, HM⟩
-        rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-          v3rpc.ci_ivNest_snoc_other (by intro _ _ _ h; cases h)]
-        exact Hnest
-      | empty =>
-        iunfold v3rpc.reqOpIs at Hp
-        icases Hp with ⟨%Hpn, #HR⟩
-        wp_auto
-        wp_for_post
-        iframe
-        iexists n + W64 1, p, L, M, nest, pts, ds
-        iframe
-        ipureintro
-        refine ⟨by constructor <;> word, ?_, HL, HM⟩
-        rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-          v3rpc.ci_ivNest_snoc_other (by intro _ _ _ h; cases h)]
-        exact Hnest
-      | range o =>
-        iunfold v3rpc.reqOpIs at Hp
-        icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
-        wp_auto
-        wp_for_post
-        iframe
-        iexists n + W64 1, p, L, M, nest, pts, ds
-        iframe
-        ipureintro
-        refine ⟨by constructor <;> word, ?_, HL, HM⟩
-        rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, v3rpc.ci_take_succ hu,
-          v3rpc.ci_ivNest_snoc_other (by intro _ _ _ h; cases h)]
-        exact Hnest
-      | put o =>
-        iunfold v3rpc.reqOpIs at Hp
-        icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
+        -- `empty` without the operation's `w` and `r`
+        first | icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩ | icases Hp with ⟨%Hpn, #HR⟩
         wp_auto
         wp_for_post
         iframe
@@ -1247,48 +1131,10 @@ theorem v3rpc.checkIntervals.wp_proof
             iexists edup
             iframe Hdup
             ipureintro; rfl
-        | delete o =>
+        | delete _ | empty | range _ | txn _ _ _ =>
           iunfold v3rpc.reqOpIs at Hp
-          icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
-          wp_auto
-          wp_for_post
-          iframe
-          iexists n + W64 1, p, M, pts'
-          iframe
-          ipureintro
-          refine ⟨by constructor <;> word, ?_, HM⟩
-          rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word,
-            v3rpc.ci_put_other hu (by intro _ h; cases h)]
-          exact Hpre
-        | empty =>
-          iunfold v3rpc.reqOpIs at Hp
-          icases Hp with ⟨%Hpn, #HR⟩
-          wp_auto
-          wp_for_post
-          iframe
-          iexists n + W64 1, p, M, pts'
-          iframe
-          ipureintro
-          refine ⟨by constructor <;> word, ?_, HM⟩
-          rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word,
-            v3rpc.ci_put_other hu (by intro _ h; cases h)]
-          exact Hpre
-        | range o =>
-          iunfold v3rpc.reqOpIs at Hp
-          icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
-          wp_auto
-          wp_for_post
-          iframe
-          iexists n + W64 1, p, M, pts'
-          iframe
-          ipureintro
-          refine ⟨by constructor <;> word, ?_, HM⟩
-          rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word,
-            v3rpc.ci_put_other hu (by intro _ h; cases h)]
-          exact Hpre
-        | txn cs ts es =>
-          iunfold v3rpc.reqOpIs at Hp
-          icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩
+          -- `empty` without the operation's `w` and `r`
+          first | icases Hp with ⟨%Hpn, %w, %r, #HR, -⟩ | icases Hp with ⟨%Hpn, #HR⟩
           wp_auto
           wp_for_post
           iframe

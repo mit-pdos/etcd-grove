@@ -841,7 +841,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- A victim out with the mover with its batch `B` (its state as the mover took it). -/
-def outW (γ : WsNames) (w : Loc) (B : EventBatch) : IProp GF := iprop(∃ st, moverRes γ w st B)
+def outW (γ : WsNames) (w : Loc) (B : EventBatch) : IProp GF :=
+  iprop(∃ st, moverRes γ w st B ∗ ⌜B.evs ≠ []⌝)
 
 /-- `moverRes` with its delivered events and names explicit. -/
 def moverResG (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) (evsw : List EvM)
@@ -865,7 +866,7 @@ theorem moverRes_G (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) :
 theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : GoSlice) (w : Loc)
     (st : WatcherSt) (B : EventBatch) (hB : σ.victimOf w = some B) :
     memberRes (GF := GF) γ 1 σ w st ∗ watcherOwn w st (1 : Qp).half ⊢
-      outRes γ (takeState σ vs') w st ∗ moverRes γ w st B := by
+      outRes γ (takeState σ vs') w st ∗ (moverRes γ w st B ∗ ⌜B.evs ≠ []⌝) := by
   have hl : σ.live w := Or.inr (Or.inr (by rw [hB]; rfl))
   have hWs : (σ.Ws !! w).isSome = false := by
     cases h : σ.Ws !! w with
@@ -878,13 +879,16 @@ theorem mv_member_to_mover (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vs' : 
   unfold memberRes popFacts
   simp only [hl, hWs, hWu, hB, ↓reduceIte, Bool.false_eq_true]
   iintro ⟨⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hE, Ha, Hl, %Hp, #Hwf⟩, Hown⟩
-  obtain ⟨hlo, hd, hvb⟩ := Hp
+  obtain ⟨hlo, hd, hvb, hne⟩ := Hp
   subst hd
   isplitr
   · unfold outRes
     iexists γw, r, fcs
     iframe Hm Hf
     ipureintro; exact hM
+  isplitl
+  rotate_left
+  · ipureintro; exact hne
   unfold moverRes
   iexists γw, r, fcs, evsw
   iframe Hm Hf Hc Hfo Hown Ha Hl Hwf
@@ -915,7 +919,8 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
     iapply (BigSepM.bigSepM_mono (fun {k v} _ => (mv_watcherOwn_halves k v).1)) $$ HstV
   icases HstV2 with ⟨HstVa, HstVb⟩
   ihave HV : [∗map] w ↦ st ∈ vicSt σ, outRes γ (takeState σ vnil) w st ∗
-      moverRes γ w st ((σ.victimOf w).getD EventBatch.empty) $$ [HmV HstVb]
+      iprop(moverRes γ w st ((σ.victimOf w).getD EventBatch.empty) ∗
+        ⌜((σ.victimOf w).getD EventBatch.empty).evs ≠ []⌝) $$ [HmV HstVb]
   · ihave H := (mv_bigSepM_sep _ _ _).2 $$ [HmV HstVb]
     · iframe HmV HstVb
     iapply (BigSepM.bigSepM_mono (fun {k v} hk => ?_)) $$ H
@@ -960,7 +965,8 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
       · iapply (BigSepM.bigSepM_mono (fun {k v} _ => by unfold outRes; exact .rfl)) $$ Hout
       · iexact HVo
     ipureintro; exact takeState_ok hok vnil
-  iapply mv_regroup (fun w st => moverRes γ w st ((σ.victimOf w).getD EventBatch.empty))
+  iapply mv_regroup (fun w st => iprop(moverRes (GF := GF) γ w st ((σ.victimOf w).getD EventBatch.empty) ∗
+      ⌜((σ.victimOf w).getD EventBatch.empty).evs ≠ []⌝))
     (fun w b => outW γ w b) (σ.vbs.zip σ.VB) (vicSt σ) ?_ ?_ $$ HVm
   · intro i j x x' w hi hj hw hw'
     rw [List.getElem?_zip_eq_some] at hi hj
@@ -1101,7 +1107,7 @@ theorem mv_mover_to_member (γ : WsNames) (σ' : WsState) (w : Loc) (st : Watche
     (B : EventBatch) (evsw : List EvM) (hl : σ'.live w) (hWs : (σ'.Ws !! w).isSome = false)
     (hWu : (σ'.Wu !! w).isSome = false) (hv : σ'.victimOf w = some B)
     (hE : σ'.E !! w = some (evsw, sint.nat st.minRev)) (γw : WatcherNames)
-    (hM' : σ'.M !! w = some γw) :
+    (hM' : σ'.M !! w = some γw) (hne : B.evs ≠ []) :
     moverResG (GF := GF) γ w st B evsw γw ⊢ watcherOwn w st (1 : Qp).half ∗ memberRes γ 1 σ' w st := by
   unfold moverResG
   iintro ⟨%r, %fcs, #Hm, #Hf, #Hc, #Hfo, %Hp, Hown, Hev, Hl, #Hwf⟩
@@ -1116,7 +1122,7 @@ theorem mv_mover_to_member (γ : WsNames) (σ' : WsState) (w : Loc) (st : Watche
   · ipureintro; exact Hp.1
   iexists evsw, sint.nat st.minRev
   iframe Hev Hl Hwf
-  ipureintro; exact ⟨hE, Hp.2.1, rfl, Hp.2.2⟩
+  ipureintro; exact ⟨hE, Hp.2.1, rfl, Hp.2.2, hne⟩
 
 /-- The failed watchers are out in the lock's state, with the states the mover has. -/
 theorem mv_nv_wo (γ : WsNames) (σ : WsState) (hok : WsOk σ) (NV : GMap Loc NvEnt) :
@@ -1144,6 +1150,7 @@ theorem mv_nv_wo (γ : WsNames) (σ : WsState) (hok : WsOk σ) (NV : GMap Loc Nv
 theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (NV : GMap Loc NvEnt)
     (vs' : GoSlice) (nvm : GoMap)
     (hNV2 : ∀ w x, NV !! w = some x → σ.Wo !! w = some x.st ∧ σ.M !! w = some x.γw)
+    (hNVe : ∀ w x, NV !! w = some x → x.B.evs ≠ [])
     (hσ' : σ' = appendState σ NV vs' nvm) :
     ghostVar (GF := GF) γ.wst 1 σ' ∗
       wlogQ γ 1 σ.Lmu ∗ idxCert γ.st.idx σ.Lmu ∗
@@ -1208,6 +1215,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     · rw [hvo, hv, hk']; rfl
     · rw [eE, GMap.lookup_union, hE, GMap.lookup_fmap, hk']; rfl
     · rw [eM]; exact (hNV2 k x hk').2
+    · exact hNVe k x hk'
   icases (mv_bigSepM_sep _ _ _).1 $$ HnvM with ⟨HnvO2, HnvMem⟩
   ihave HnvOwn : [∗map] k ↦ v ∈ GMap.fmap NvEnt.st NV, watcherOwn (GF := GF) k v $$ [HnvO HnvO2]
   · iapply (mv_bigSepM_fmap (fun k v => watcherOwn (GF := GF) k v) NvEnt.st NV).2
