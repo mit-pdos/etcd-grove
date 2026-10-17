@@ -1,0 +1,23 @@
+diff --git a/server/etcdserver/api/v3rpc/maintenance.go b/server/etcdserver/api/v3rpc/maintenance.go
+index 4ce9166b2..0b45d668e 100644
+--- a/server/etcdserver/api/v3rpc/maintenance.go
++++ b/server/etcdserver/api/v3rpc/maintenance.go
+@@ -15,6 +15,7 @@
+ package v3rpc
+ 
+ import (
++	"fmt"
+ 	"context"
+ 	"crypto/sha256"
+ 	errorspkg "errors"
+@@ -181,6 +182,10 @@ func (ms *maintenanceServer) Snapshot(sr *pb.SnapshotRequest, srv pb.Maintenance
+ 		if err != nil && !errorspkg.Is(err, io.EOF) && !errorspkg.Is(err, io.ErrUnexpectedEOF) {
+ 			return togRPCError(err)
+ 		}
++		if n == 0 {
++			// the snapshot ended before total bytes: WriteTo stopped short
++			return togRPCError(fmt.Errorf("snapshot ended after %d of %d bytes: %w", sent, total, io.ErrUnexpectedEOF))
++		}
+ 		sent += int64(n)
+ 
+ 		// if total is x * snapshotSendBufferSize. it is possible that

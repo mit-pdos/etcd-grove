@@ -34,10 +34,20 @@ Unit 3a (2026-10-12): the server's contract discharged for `Put` and `DeleteRang
 * **`put_end_to_end_model`**, **`deleteRange_end_to_end_model`** (pure): through the
   uber-applier's chain, such a put appends the client's put change to the log (a delete commits
   its changes), no alarm raised.
+
+pr etcd#22125 (2026-10-17, branch `pr-verify/etcd-22125`; `SnapshotLoop.lean`, pure): when
+`maintenanceServer.Snapshot`'s send loop terminates, as a function of what `snap.WriteTo` did:
+* **`snapshot_old_hangs`**: before the PR, a short `WriteTo` (any error) loops forever;
+* **`snapshot_new_terminates`**: with the PR, the loop ends unless `WriteTo` returned an
+  EOF-like error, with success exactly when all `total` bytes were written;
+* **`snapshot_new_hangs_on_eof`**: with the PR, a short `WriteTo` returning `io.EOF` (bbolt's
+  on a short file) still loops forever;
+* **`snapshot_guarded_terminates`**: a loop that also fails on a read of no bytes ends always.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SnapshotLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
@@ -752,6 +762,38 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
 
 end watch_wire
 
+/-! pr etcd#22125: the snapshot send loop's termination (`SnapshotLoop.lean`, pure). -/
+
+open snapshotLoop in
+/-- Before the PR, a `WriteTo` that writes fewer than `total` bytes makes `Snapshot`'s send loop
+run forever (while `srv.Send` succeeds, i.e. until the client goes away). -/
+theorem snapshot_old_hangs (B total : Nat) (r : WriteResult) (hshort : r.written < total) :
+    ¬ Terminates false B total (pipeOld r) :=
+  old_hangs B total r hshort
+
+open snapshotLoop in
+/-- With the PR, the loop terminates unless `WriteTo` returned an EOF-like error, with success
+exactly when `WriteTo` wrote all `total` bytes. -/
+theorem snapshot_new_terminates (B total : Nat) (hB : 0 < B) (r : WriteResult)
+    (hc : WriteToContract total r) (herr : r.err ≠ some .eofLike) :
+    ∃ ok, run false B total (pipeNew r) (total + 1) 0 = some ok ∧
+      (ok = true ↔ r.written = total) :=
+  new_terminates B total hB r hc herr
+
+open snapshotLoop in
+/-- With the PR, a short `WriteTo` returning an EOF-like error (bbolt's `io.EOF` on a short
+database file) still makes the loop run forever. -/
+theorem snapshot_new_hangs_on_eof (B total : Nat) (r : WriteResult) (hshort : r.written < total)
+    (herr : r.err = some .eofLike) : ¬ Terminates false B total (pipeNew r) :=
+  new_hangs_on_eof B total r hshort herr
+
+open snapshotLoop in
+/-- A loop that also fails on a read of no bytes terminates for every writer. -/
+theorem snapshot_guarded_terminates (B total : Nat) (hB : 0 < B) (p : Pipe)
+    (hle : p.written ≤ total) :
+    ∃ ok, run true B total p (total + 1) 0 = some ok ∧ (ok = true → total ≤ p.written) :=
+  guarded_terminates B total hB p hle
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -792,6 +834,10 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_chain
 #print axioms Perennial.EtcdGrove.v3rpc.new_stream_interceptor
 #print axioms Perennial.EtcdGrove.v3rpc.etcd_watch_served_etcd_chain
+#print axioms Perennial.EtcdGrove.v3rpc.snapshot_old_hangs
+#print axioms Perennial.EtcdGrove.v3rpc.snapshot_new_terminates
+#print axioms Perennial.EtcdGrove.v3rpc.snapshot_new_hangs_on_eof
+#print axioms Perennial.EtcdGrove.v3rpc.snapshot_guarded_terminates
 
 end EtcdGrove
 end Perennial

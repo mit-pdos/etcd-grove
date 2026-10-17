@@ -45,6 +45,26 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## pr etcd#22125: the snapshot send loop's termination (2026-10-17, branch `pr-verify/etcd-22125`)
+
+Verification of etcd-io/etcd#22125 (report `notes/pr-verify/etcd-22125.md`). `maintenanceServer.Snapshot`
+is translated with its body (`v3rpc.toml`), not specified: the PR's claim is the termination of its
+send loop, a liveness property no Hoare triple states (a partial-correctness spec holds of the loop
+before and after alike), so it is a pure model, `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SnapshotLoop.lean`
+(`snapshotLoop.old_hangs`, `new_terminates`, `new_hangs_on_eof`, `guarded_terminates`, restated in
+v3rpc's `Results.lean`; no axioms beyond `propext`, `Quot.sound`).
+
+**A Perennial limitation, worked around here**: Perennial translates neither `crypto/sha256` nor
+`hash`, which `Snapshot` uses (`sha256.New()`, a `hash.Hash` local). Both are mapped to this
+repository's root (`-lean-root crypto/sha256=`, `hash=`, as `encoding/hex` and `unicode/utf8` are)
+and translated names-only (`Code/crypto/sha256.toml`, importing `hash` so that its importers see
+`hash.Hash`, the type goose allocates for the local: goose imports only the packages a Go file names;
+`Code/hash.toml`, importing `io` so that `Hash`, which embeds `io.Writer`, is a translated interface
+rather than an axiomatized type), with `True` package-init instances in v3rpc's `Base.lean`. The
+general fix is Perennial models of the two packages. The translation also makes v3rpc's
+`BackendGetter` a translated interface (its package `storage/backend` is now imported), which drops
+its three axiomatized-type stand-ins from the v3rpc results' axioms.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

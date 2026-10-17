@@ -3,7 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.crypto.sha256
 public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.dustin.go_humanize
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
@@ -19,7 +21,9 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.go_opentelemetry_io.otel.trace
@@ -739,25 +743,6 @@ instance LeaseServer_access_store_UnsafeLeaseServer (l : Loc) (v : go_etcd_io.et
 
 end def_
 end LeaseServer
-
-namespace BackendGetter
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-
-instance BackendGetter_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BackendGetter :=
-  sorry -- axiomatized type
-
-instance BackendGetter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BackendGetter go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BackendGetter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end BackendGetter
 
 namespace ConfigGetter
 section def_

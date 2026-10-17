@@ -1,0 +1,8 @@
+# Types and names only: function and method bodies are axiomatized. Imports `hash`, so that
+# its importers see `hash.Hash`, the type of what `New` returns (pr etcd#22125: the
+# maintenance server's Snapshot keeps one in a local variable).
+translate = ["!*"]
+imports = ["!*", "hash"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

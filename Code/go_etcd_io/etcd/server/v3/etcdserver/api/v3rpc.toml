@@ -30,7 +30,9 @@ translate = ["!*",
   # the watch slice's unit W-W: interceptor.go's stream interceptor
   "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
   "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
-  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod"]
+  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod",
+  # pr etcd#22125: maintenance.go's Snapshot (and the send buffer size it uses)
+  "maintenanceServer.Snapshot", "snapshotSendBufferSize"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",
@@ -45,6 +47,9 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "io", "math/rand", "sync", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace",
   "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/mvccpb",
   "go.etcd.io/etcd/client/pkg/v3/verify", "go.etcd.io/etcd/client/v3",
+  # pr etcd#22125: maintenance.go's Snapshot
+  "crypto/sha256", "github.com/dustin/go-humanize", "go.etcd.io/etcd/server/v3/storage/backend",
+  "go.etcd.io/etcd/server/v3/storage/schema",
   "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/server/v3/storage/mvcc"]
 
 # translate the definitions of all type declarations goose supports

@@ -1,0 +1,9 @@
+# pr etcd-io/etcd#22125: the snapshot send loop's termination model
+# (Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SnapshotLoop.lean, pure; restated in
+# v3rpc's Results.lean).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22125.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots v3rpc\.snapshot_(old_hangs|new_terminates|new_hangs_on_eof|guarded_terminates)$

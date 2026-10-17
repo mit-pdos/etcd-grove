@@ -1,0 +1,11 @@
+=== RUN   TestSnapshotWriteToErrorReturns
+--- PASS: TestSnapshotWriteToErrorReturns (0.00s)
+=== RUN   TestSnapshotWriteToEOFReturns
+    maintenance_snapshot_test.go:114: Snapshot did not return after WriteTo stopped short with io.EOF (busy loop on io.EOF)
+--- FAIL: TestSnapshotWriteToEOFReturns (5.00s)
+=== RUN   TestBoltWriteToShortFileReturnsEOF
+    maintenance_snapshot_test.go:157: tx.Size() = 233472, WriteTo wrote 12288 and returned EOF
+--- PASS: TestBoltWriteToShortFileReturnsEOF (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	5.025s
+FAIL

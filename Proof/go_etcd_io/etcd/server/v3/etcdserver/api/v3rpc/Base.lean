@@ -46,6 +46,17 @@ instance utf8_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.unicode.utf8 :=
 instance utf8_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.unicode.utf8 :=
   build_get_is_pkg_init_wf
 
+-- `hash`, `crypto/sha256` (names only, translated here: Perennial has neither; pr etcd#22125:
+-- the maintenance server's `Snapshot` digests what it sends with `sha256.New()`)
+instance hash_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.hash :=
+  define_is_pkg_init iprop(True)
+instance hash_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.hash :=
+  build_get_is_pkg_init_wf
+instance sha256_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.sha256 :=
+  define_is_pkg_init iprop(True)
+instance sha256_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.sha256 :=
+  build_get_is_pkg_init_wf
+
 -- `math/rand` (names only; the watch slice's unit W-S: `GetProgressReportInterval`'s jitter,
 -- `rand.Int63n`)
 instance mathRand_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.math.rand :=

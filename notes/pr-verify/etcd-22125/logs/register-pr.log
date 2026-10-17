@@ -1,0 +1,4 @@
+=== RUN   TestRegisterSessionExpiryNoGoroutineLeak
+    register_expiry_test.go:82: goroutines after 3 expiries: 39, after 20: 39; leases alive: 1
+--- PASS: TestRegisterSessionExpiryNoGoroutineLeak (26.80s)
+ok  	go.etcd.io/etcd/tests/v3/integration/proxy/grpcproxy	26.864s
