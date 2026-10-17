@@ -84,6 +84,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+omit package_sem in
 theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.os get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
@@ -95,6 +96,7 @@ theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   -- Perennial/Code/os.lean).
   sorry
 
+omit package_sem in
 theorem strconv.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.strconv get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
@@ -106,6 +108,7 @@ theorem strconv.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   -- Perennial/Code/strconv.lean).
   sorry
 
+omit package_sem in
 theorem go_etcd_io.raft.v3.raftpb.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.raftpb get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
@@ -119,6 +122,7 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize' (get_is_pkg_init : GoString →
   -- `RegisterType`, `RegisterFile`) are opaque (axioms in Code/go_etcd_io/raft/v3/raftpb.lean).
   sorry
 
+omit package_sem in
 theorem google_golang_org.protobuf.proto.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.protobuf.proto get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
