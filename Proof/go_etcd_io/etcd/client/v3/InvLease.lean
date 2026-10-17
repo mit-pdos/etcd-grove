@@ -1,13 +1,14 @@
 /-
-The lease client's lock invariant (`client/v3/lease.go`'s `lessor`, etcd#22291): the vocabulary of
+The lease client's lock invariant (`client/v3/lease.go`'s `lessor`, etcd#22291, etcd#22087): the vocabulary of
 `lessor.closeRequireLeader`'s spec. Lean-first (no Rocq counterpart).
 
 * `lessor.muInv R l`: what `l.mu` protects of the lessor, its `keepAlives` map: each entry a
   `*keepAlive` whose `chs` and `ctxs` slices hold a list `subs` of subscriptions (a channel and its
   subscriber's context), in order, the two slices of one length (`closeRequireLeader` and
-  `keepAliveCtxCloser` index one by the other's indices). The list is **non-empty**: every entry has
-  a subscriber (what etcd#22094 found broken: `closeRequireLeader` compacting an entry to no
-  subscription and leaving it in the map, whose lease is then kept alive forever). No channel is
+  `keepAliveCtxCloser` index one by the other's indices). The list may be empty here: etcd#22087
+  alone does not fix etcd#22094 (`closeRequireLeader` compacting an entry to no subscription and
+  leaving it in the map, whose lease is then kept alive until a former subscriber's context ends); with etcd#22291 too, the list is
+  non-empty (`notes/pr-verify/etcd-22087/with-22291/InvLease.lean`). No channel is
   nil, every context is stable (`metadata.outgoingStable`: its outgoing metadata does not change,
   the premise of grpc's `FromOutgoingContext` here), and the invariant holds `R ch ctx` for each
   subscription, the right to close `ch` (the caller's protocol of the channel), for the
@@ -198,7 +199,7 @@ def lessor.kaOwn (R : GoChan → GoInterface → IProp GF) (ka : Loc) : IProp GF
     structFieldRef go_etcd_io.etcd.client.v3.keepAlive go!"ctxs" ka ↦ ctxsSl ∗
     chsSl ↦* subs.map Prod.fst ∗ ownSliceCap GoChan chsSl (DFrac.own 1) ∗
     ctxsSl ↦* subs.map Prod.snd ∗ ownSliceCap GoInterface ctxsSl (DFrac.own 1) ∗
-    ⌜subs ≠ [] ∧ (∀ p ∈ subs, p.1 ≠ chan.nil) ∧ ∀ p ∈ subs, metadata.outgoingStable p.2⌝ ∗
+    ⌜(∀ p ∈ subs, p.1 ≠ chan.nil) ∧ ∀ p ∈ subs, metadata.outgoingStable p.2⌝ ∗
     [∗list] p ∈ subs, R p.1 p.2)
 
 /-- **The lessor's lock invariant** (see the file header). -/

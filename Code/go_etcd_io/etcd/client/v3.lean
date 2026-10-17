@@ -2055,7 +2055,6 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
   (Let "ka" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType keepAlive.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType keepAlive.ty)))) (Val #())))
-  (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal LeaseID.ty))) (Val #())))
   (App (App (Val (map.forRange LeaseID.ty (go.GoType.PointerType keepAlive.ty))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
@@ -2063,7 +2062,6 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (Let "reqIdxs" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2119,16 +2117,6 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (Var "newCtxs") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (Var "newChs") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doContinue) (Val #()))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
-  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
-  (App (Val doExecute)
-  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Val #(W64 0)))))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
@@ -2188,9 +2176,9 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "reqIdxs") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore LeaseID.ty))) (Pair (Var "id") (Var "$key")))))))
+  (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType keepAlive.ty)))) (Pair (Var "ka") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType keepAlive.ty)))) (Pair (Var "ka") (Var "$value"))))))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))

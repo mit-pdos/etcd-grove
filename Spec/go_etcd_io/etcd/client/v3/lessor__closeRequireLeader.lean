@@ -1,5 +1,5 @@
 /-
-`(*lessor).closeRequireLeader()` (`client/v3/lease.go`; etcd#22291 with etcd#22087). Lean-first (no Rocq
+`(*lessor).closeRequireLeader()` (`client/v3/lease.go`; etcd#22087). Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -31,14 +31,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 only through the close right `R ch c` its subscription holds in the invariant (`lessor.closeOk`,
 given for a context `c` that asks for a leader), so each channel at most once and only a channel
 whose **own** subscriber's context asks for a leader, and it keeps the lessor's invariant
-`lessor.muInv`: every kept channel stays paired with its own subscriber's context (etcd#22081,
-fixed by etcd#22087: the compaction copies `ka.ctxs[i]`, not `ka.ctxs[newIdx]`), and **every entry of
-`keepAlives` has a subscription** (etcd#22094, fixed by etcd#22291: an entry all of whose
-subscriptions asked for a leader is removed, not left with none).
+`lessor.muInv`, in which every kept channel stays paired with its own subscriber's context
+(etcd#22081, fixed by etcd#22087: the compaction copies `ka.ctxs[i]`, not `ka.ctxs[newIdx]`).
 
 What it does not say: the postcondition is `True`, so it does not say that the require-leader
 channels *are* closed (a function doing nothing meets it), nor that a subscription leaves the map
-only with its channel closed (a right can be dropped).
+only with its channel closed (a right can be dropped). Nor that every entry keeps a subscription:
+etcd#22087 alone still compacts an entry all of whose subscriptions asked for a leader to none and
+leaves it in the map (etcd#22094), so `lessor.muInv` here allows an empty entry. With etcd#22291 on
+top, the invariant with non-emptiness holds too (`notes/pr-verify/etcd-22087.md`).
 
 On `pr-verify/etcd-22291` the spec had the premise `□ ∀ ch c c', R ch c -∗ R ch c'` (a channel's
 right does not depend on its context), standing for etcd#22081; with etcd#22087's fix it is gone. -/

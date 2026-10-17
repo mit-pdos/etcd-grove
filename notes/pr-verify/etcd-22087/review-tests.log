@@ -1,0 +1,53 @@
+=== 12caed621 (12caed621 Documentation: remove trailing whitespace in features.md)
+    lease_close_require_leader_test.go:71: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-22087-scratch/review/wt/client/v3/lease_close_require_leader_test.go:71
+        	Error:      	Not equal: 
+        	            	expected: "B"
+        	            	actual  : "A"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-B
+        	            	+A
+        	Test:       	TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext
+        	Messages:   	chs[0] belongs to subscriber B but got paired with a context owned by A
+--- FAIL: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+    lease_requireleader_ctxcloser_review_test.go:54: canceling A's context closed B's channel
+--- FAIL: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_test.go:78: cancelable: orphan entry after closeRequireLeader: true
+    lease_requireleader_ctxcloser_review_test.go:82: cancelable: entry after its context's closer ran: false
+    lease_requireleader_ctxcloser_review_test.go:94: orphan entry with no subscription left in the map (no closer will reap it): chs=0 ctxs=0
+--- FAIL: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.012s
+FAIL
+=== 41ee0c1e2 (41ee0c1e2 client/v3: fix ctx/channel misalignment in closeRequireLeade)
+--- PASS: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+--- PASS: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_test.go:78: cancelable: orphan entry after closeRequireLeader: true
+    lease_requireleader_ctxcloser_review_test.go:82: cancelable: entry after its context's closer ran: false
+    lease_requireleader_ctxcloser_review_test.go:94: orphan entry with no subscription left in the map (no closer will reap it): chs=0 ctxs=0
+--- FAIL: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.017s
+FAIL
+=== 2428ff1f6 (2428ff1f6 pr etcd-io/etcd#22087 at 41ee0c1e249826fa58896281de6af5256e8)
+--- PASS: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+--- PASS: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_test.go:78: cancelable: orphan entry after closeRequireLeader: true
+    lease_requireleader_ctxcloser_review_test.go:82: cancelable: entry after its context's closer ran: false
+    lease_requireleader_ctxcloser_review_test.go:94: orphan entry with no subscription left in the map (no closer will reap it): chs=0 ctxs=0
+--- FAIL: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.022s
+FAIL
+=== dc69a2d15 (dc69a2d15 pr etcd-io/etcd#22291 at 71d57990be7323b6457b3d5fdcedbeba41a)
+--- PASS: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+--- PASS: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_test.go:78: cancelable: orphan entry after closeRequireLeader: false
+    lease_requireleader_ctxcloser_review_test.go:82: cancelable: entry after its context's closer ran: false
+--- PASS: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.021s

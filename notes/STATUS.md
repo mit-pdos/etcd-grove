@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22087, `closeRequireLeader` keeps each channel with its own context (2026-10-17, branch `pr-verify/etcd-22087`)
+
+Not for `lean`: built on `pr-verify/etcd-22291` (its two commits cherry-picked), translated from the
+fork branch `pr-etcd-22087-goose-lean` (the pin plus the PR), so `etc/goose.py --check` fails here.
+`lessor.closeRequireLeader`'s spec no longer has #22291's premise `R ch c -∗ R ch c'` (etcd#22081):
+proved of #22087 with #22291 on top (fork `pr-etcd-22087-with-22291-goose-lean`, commit dc2bb0753 of
+this branch, copies in `notes/pr-verify/etcd-22087/with-22291/`) with the invariant's non-emptiness,
+and of #22087 alone (this branch's tip) with non-emptiness dropped from `lessor.kaOwn`, since #22087
+does not fix etcd#22094. The re-pairing lemmas (`lessor.repair`, zip lemmas) are gone. Report:
+`notes/pr-verify/etcd-22087.md`.
+
 ## PR verification: etcd-io/etcd#22291, `closeRequireLeader` without orphaned keep-alives (2026-10-17, branch `pr-verify/etcd-22291`)
 
 Not for `lean`: the translation is of the fork branch `pr-etcd-22291-goose-lean` (the pin plus the

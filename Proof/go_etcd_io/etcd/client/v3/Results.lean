@@ -2560,7 +2560,7 @@ end client
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do
 #print axioms Perennial.EtcdGrove.client.v3.wp_NewKV
 #print axioms Perennial.EtcdGrove.client.v3.wp_ContextError
--- etcd#22291 (pr-verify): the lease client's closeRequireLeader (InvLease.lean)
+-- etcd#22087 (pr-verify; from etcd#22291): the lease client's closeRequireLeader (InvLease.lean)
 #print axioms Perennial.EtcdGrove.client.v3.lessor.wp_closeRequireLeader
 
 end EtcdGrove

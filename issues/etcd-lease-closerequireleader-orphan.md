@@ -6,6 +6,7 @@ links:
   - etcd-io/etcd#22291 pr open: fix (delete the entry when every subscription required a leader); verified in pr-verify/etcd-22291
   - etcd-io/etcd#22253 pr open: equivalent fix (compact, then delete when no channel is left)
   - etcd-io/etcd#22097 pr closed: earlier attempt, closed by its author
+  - etcd-io/etcd#22087 pr open: does not fix it (fixes the pairing bug etcd#22081 only); with #22291 on top both are fixed, verified in pr-verify/etcd-22087
 ---
 
 # client/v3: closeRequireLeader leaves an orphaned keep-alive entry
@@ -15,14 +16,19 @@ links:
   (`lease.go:383-418`), called by `recvKeepAliveLoop` on `ErrNoLeader` (`lease.go:486`).
 - **What happens**: when every subscription of a `keepAlive` was made with
   `WithRequireLeader`, the function closes all its channels and compacts `chs`/`ctxs` to
-  length 0, but leaves the entry in `l.keepAlives`. Nothing removes an entry with no channel:
-  `keepAliveCtxCloser` removes an entry only when it removes the last channel itself, and the
-  subscribers' closers do not find their contexts any more. `sendKeepAliveLoop` keeps sending
+  length 0, but leaves the entry in `l.keepAlives`. (Correction, 2026-10-17, verifying #22087: the
+  entry is removed later only when one of its former subscribers' contexts ends, since
+  `keepAliveCtxCloser` deletes an entry with `len(ka.chs) == 0` whether or not it found its own
+  context, or by a TTL ≤ 0 response, `deadlineLoop` or the receive loop's teardown. It stays while
+  no such context ends: `WithRequireLeader(context.Background())`, or a `concurrency.Session`, whose
+  context ends only at `Close()`; `TestReviewOrphanReapedOnlyByCtxCloser` in
+  `notes/pr-verify/etcd-22087/lease_requireleader_ctxcloser_review_internal_test.go` on
+  `pr-verify/etcd-22087`.) Until then `sendKeepAliveLoop` keeps sending
   keep-alives for it; `recvKeepAlive` refreshes its `deadline` on every response but advances
   `nextKeepAlive` only inside its loop over `ka.chs`, so the entry is due on every iteration of the
-  send loop (every `retryConnWait`, 500ms) once the leader is back, and `deadlineLoop` never reaps it.
-  The lease is never let expire, so whatever is attached to it (a `concurrency.Session`'s keys:
-  locks, election keys) is never released while the client runs. Reproduction: the PR's test
+  send loop (every `retryConnWait`, 500ms) once the leader is back, and `deadlineLoop` does not reap it
+  while the server answers. Meanwhile the lease is not let expire, so whatever is attached to it (a `concurrency.Session`'s keys:
+  locks, election keys) is not released. Reproduction: the PR's test
   `TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive` (`client/v3/lease_requireleader_internal_test.go`
   on etcd-io/etcd#22291's head 71d57990b) fails on the pin and on upstream f744d457f.
 - **Expected**: a keep-alive whose subscribers are all gone stops (as `keepAliveCtxCloser` does
@@ -33,4 +39,7 @@ links:
   PR's code only. It is not translated with a body on `lean`.
 - **Possible fixes**: etcd-io/etcd#22291 or #22253 (both verified to keep the invariant:
   `notes/pr-verify/etcd-22291.md` on `pr-verify/etcd-22291`).
+- **Not fixed by etcd-io/etcd#22087**: `TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive` fails at its
+  head 41ee0c1e2 (`notes/pr-verify/etcd-22087/tests.log` on `pr-verify/etcd-22087`), and the proof of
+  #22087's code there holds only with the invariant's non-emptiness dropped.
 - **Found**: 2026-10-17, verifying etcd-io/etcd#22291 (the bug the PR fixes).

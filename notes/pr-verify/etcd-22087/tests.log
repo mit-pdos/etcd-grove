@@ -1,0 +1,39 @@
+=== fork pin 09669450f
+    lease_requireleader_internal_test.go:48: expected orphaned keepAlive entry to be removed from l.keepAlives, got 1 entr(y/ies): map[1:0x3af6c9425b0]
+--- FAIL: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+    lease_requireleader_pairing_internal_test.go:52: after the first leader loss B's channel is paired with the wrong context (ctxs[0]==ctxA: true)
+    lease_requireleader_pairing_internal_test.go:57: second leader loss closed B's channel, whose context does not require a leader (remaining entry: &{[] [] {0 0 <nil>} {0 0 <nil>} <nil>})
+--- FAIL: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.019s
+FAIL
+=== upstream base 12caed621
+    lease_requireleader_internal_test.go:48: expected orphaned keepAlive entry to be removed from l.keepAlives, got 1 entr(y/ies): map[1:0x3daf0f9b92d0]
+--- FAIL: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+    lease_requireleader_pairing_internal_test.go:52: after the first leader loss B's channel is paired with the wrong context (ctxs[0]==ctxA: true)
+    lease_requireleader_pairing_internal_test.go:57: second leader loss closed B's channel, whose context does not require a leader (remaining entry: &{[] [] {0 0 <nil>} {0 0 <nil>} <nil>})
+--- FAIL: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.021s
+FAIL
+=== PR head 41ee0c1e2
+--- PASS: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+    lease_requireleader_internal_test.go:48: expected orphaned keepAlive entry to be removed from l.keepAlives, got 1 entr(y/ies): map[1:0x2fc3185727e0]
+--- FAIL: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+--- PASS: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.027s
+FAIL
+=== fork pr-etcd-22087-goose-lean 2428ff1f6
+--- PASS: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+    lease_requireleader_internal_test.go:48: expected orphaned keepAlive entry to be removed from l.keepAlives, got 1 entr(y/ies): map[1:0x225af4118a80]
+--- FAIL: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+--- PASS: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.022s
+FAIL
+=== fork pr-etcd-22087-with-22291-goose-lean dc69a2d15
+--- PASS: TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext (0.00s)
+--- PASS: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+--- PASS: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+ok  	go.etcd.io/etcd/client/v3	0.035s
