@@ -100,11 +100,11 @@ theorem entOwn_store_Term (l : Loc) (e : EntryM) :
   iframe HT
   iintro %p' %v HT #cT'
   iunfold entPts
-  iexists p', pi, pty, ds, uf
+  iexists p', pi, pty, ds, uf, ps, sub
   isplitr
   · ipureintro; exact Hnn
   iframe
-  iframe cT' cI cY Hd Hpb
+  iframe cT' cI cY Hd cS Hpb
 
 /-- `cloned[i].Index = new(li + 1 + uint64(i))` (`appendEntry`, `raft.go:819`). -/
 theorem entOwn_store_Index (l : Loc) (e : EntryM) :
@@ -120,11 +120,11 @@ theorem entOwn_store_Index (l : Loc) (e : EntryM) :
   iframe HI
   iintro %p' %v HI #cI'
   iunfold entPts
-  iexists pt, p', pty, ds, uf
+  iexists pt, p', pty, ds, uf, ps, sub
   isplitr
   · ipureintro; exact Hnn
   iframe
-  iframe cT cI' cY Hd Hpb
+  iframe cT cI' cY Hd cS Hpb
 
 end lemmas
 

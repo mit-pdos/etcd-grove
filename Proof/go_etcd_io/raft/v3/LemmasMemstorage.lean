@@ -67,7 +67,7 @@ theorem csPts_not_null (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     csPts (GF := GF) p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝ := by
   iintro H
   iunfold csPts at H
-  icases H with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, H⟩
+  icases H with ⟨%sv, %sl, %so, %sn, %pa, %pw, %pwo, %Hnn, H⟩
   isplitl
   · iunfold csPts
     iexists sv, sl, so, sn, pa, pw, pwo
