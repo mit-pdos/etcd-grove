@@ -13,7 +13,10 @@ etcd-io/etcd#21621, the client certificate expiry histogram; report `notes/pr-ve
 `go.int32` in raft's proofs); `intoVal` is not known injective at struct types (the spec takes the
 TLS state as an argument, `connTLSOk o oti`); `x509.Certificate` cannot be translated without
 `net`'s `IP`/`IPNet` (rebuilding nearly everything), so it stays axiomatized and its `NotAfter` is a
-points-to premise at the field's address.
+points-to premise at the field's address. Pitfall: the `StructFieldRef` step at an axiomatized
+struct type finds its `TypeRepr` through the generated `sorry -- axiomatized type`
+`IntoValTypedUnderlying` instance, so the proof silently rests on `sorry`; `HandleConn`'s proof
+installs `TypeRepr` from the type's `TypeAssumptions` (`haveI`) instead (checked: no `sorryAx`).
 storage and the log** -- `StorState.scs`/`sal`, `LogState.ksn` (the certified snapshots a node may
 send), the certificate `raftSnapCert` defined; carrying it to the receiver, `MsgSnap` at
 `RawNode.Step` and a pending snapshot in `Ready`/`Advance` left, with costs; see "Snapshots at the
