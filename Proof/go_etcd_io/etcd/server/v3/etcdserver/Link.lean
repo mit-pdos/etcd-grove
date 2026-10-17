@@ -109,6 +109,7 @@ public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.auth.WithRootInternal
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
@@ -117,6 +118,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsDeleteRangePermi
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsPutPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsRangePermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__WithRoot
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
@@ -135,8 +137,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
+public import Proof.context.ValueInternalRoot
 public import Proof.context.ValueStartTime
 public import Proof.context.WithValue
+public import Proof.context.WithValueInternalRoot
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
@@ -577,13 +581,13 @@ theorem auth.authStore.wp_IsAuthEnabled :
     auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsAuthEnabled.wp_proof
 
-theorem metadata.wp_FromIncomingContext :
-    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
-  metadata.FromIncomingContext.wp_proof
-
 theorem auth.authStore.wp_Revision :
     auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
   auth.authStore.Revision.wp_proof
+
+theorem metadata.wp_FromIncomingContext :
+    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  metadata.FromIncomingContext.wp_proof
 
 theorem auth.authStore.wp_authInfoFromToken :
     auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
@@ -660,6 +664,10 @@ theorem schema.wp_UnsafeUpdateConsistentIndex :
 theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+
+theorem context.wp_ValueInternalRoot :
+    context.ValueInternalRoot.spec (GF := GF) (hG := hG) :=
+  context.ValueInternalRoot.wp_proof
 
 theorem heap.wp_Fix :
     heap.Fix.spec (GF := GF) (hG := hG) :=
@@ -1195,6 +1203,18 @@ theorem EtcdServer.wp_Watchable :
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
+
+theorem auth.authStore.wp_WithRoot :
+    auth.authStore.WithRoot.spec (GF := GF) (hG := hG) :=
+  auth.authStore.WithRoot.wp_proof
+
+theorem context.wp_WithValueInternalRoot :
+    context.WithValueInternalRoot.spec (GF := GF) (hG := hG) :=
+  context.WithValueInternalRoot.wp_proof
+
+theorem auth.wp_WithRootInternal :
+    auth.WithRootInternal.spec (GF := GF) (hG := hG) :=
+  auth.WithRootInternal.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision auth.authStore.wp_WithRoot context.wp_WithValueInternalRoot
 
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=

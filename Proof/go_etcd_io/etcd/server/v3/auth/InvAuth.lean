@@ -142,9 +142,11 @@ instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) :
   unfold authBackendOk; infer_instance
 
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract): `info(ctx, token,
-rev)` returns an auth info (`authInfoRO`) and a boolean. -/
+rev)` returns an auth info (`authInfoRO`) and a boolean. Its dynamic value is a Go value, not a
+panic (`isPanic`; since etcd-io/etcd#22493, `pr-verify/etcd-22493`: `WithRootInternal`'s
+`as.tokenProvider.(*tokenJWT)` binds it). -/
 def tokenProviderOk (tp : GoInterface) : IProp GF :=
-  iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
+  iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗ ⌜ti.v.isPanic = false⌝ ∗
     □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
       {{ True }}
         (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx)) (Val #token)) (Val #rev))

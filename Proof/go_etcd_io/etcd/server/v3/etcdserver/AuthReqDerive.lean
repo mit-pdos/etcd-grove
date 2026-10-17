@@ -1,7 +1,8 @@
 /-
 The server's auth-store request-side contract (`isReqAuth`) of the real auth store, from the auth
-store's proofs (2026-10-14, unit P2; restated for the server's contract in unit A2). Lean-first
-(no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` and
+store's proofs (2026-10-14, unit P2; restated for the server's contract in unit A2; since
+etcd-io/etcd#22493, `pr-verify/etcd-22493`, with the context's root value from
+`context.ValueInternalRoot.spec`). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` and
 `apply/AuthDerive.lean`.
 
 `isReqAuth st RD`'s `AuthInfoFromCtx` clause takes the caller's reader resource `RD`: the real
@@ -18,6 +19,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
+public import Spec.context.ValueInternalRoot
 
 @[expose] public section
 
@@ -63,6 +65,7 @@ file header). -/
 theorem isReqAuth_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
+    (hV : context.ValueInternalRoot.spec (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ⊢
       isReqAuth (auth.authIface st) (auth.authRd st R) := by
@@ -75,9 +78,10 @@ theorem isReqAuth_of_authInv
   · iintro !> %ctx %cd %Φ !> ⟨-, Hrd⟩ HΦ
     iunfold auth.authRd at Hrd
     icases Hrd with ⟨Hen, Hca, HR⟩
-    iapply (hCtx st R (GoInterface.ok ctx)) $$ [Hen]
+    icases (hV ctx) with ⟨%o, #Hr⟩
+    iapply (hCtx st R ctx o) $$ [Hen]
     · iframe; iframe #
-    iintro !> %a %err ⟨Hen, #Ha, #Herr⟩
+    iintro !> %a %err ⟨Hen, #Ha, #Herr, -⟩
     iapply HΦ
     isplitl [Hen Hca HR]
     · iunfold auth.authRd; iframe
