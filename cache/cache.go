@@ -23,12 +23,13 @@ import (
 	"time"
 
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 var (
-	// Returned when an option combination isn’t yet handled by the cache (e.g. WithPrevKV for Watch(), WithCountOnly for Get()).
+	// Returned when an option combination isn’t yet handled by the cache (e.g. WithCountOnly for Get()).
 	ErrUnsupportedRequest = errors.New("cache: unsupported request parameters")
 	// Returned when the requested key or key‑range is invalid (empty or reversed) or lies outside c.prefix.
 	ErrKeyRangeInvalid = errors.New("cache: invalid or out‑of‑range key range")
@@ -135,6 +136,7 @@ func (c *Cache) Watch(ctx context.Context, key string, opts ...clientv3.OpOption
 		return ch
 	}
 
+	needPrevKV := op.IsPrevKV()
 	w := newWatcher(c.cfg.PerWatcherBufferSize, pred)
 	c.demux.Register(w, startRev)
 
@@ -144,6 +146,11 @@ func (c *Cache) Watch(ctx context.Context, key string, opts ...clientv3.OpOption
 		defer c.waitGroup.Done()
 		defer close(responseChan)
 		defer c.demux.Unregister(w)
+
+		mergedCtx, mergedCancel := context.WithCancel(ctx)
+		defer mergedCancel()
+		stop := context.AfterFunc(c.internalCtx, mergedCancel)
+		defer stop()
 
 		var progressTimer Timer
 		var progressChan <-chan time.Time
@@ -155,9 +162,7 @@ func (c *Cache) Watch(ctx context.Context, key string, opts ...clientv3.OpOption
 
 		for {
 			select {
-			case <-ctx.Done():
-				return
-			case <-c.internalCtx.Done():
+			case <-mergedCtx.Done():
 				return
 			case <-progressChan:
 				c.demux.BroadcastProgressTo(w)
@@ -166,17 +171,23 @@ func (c *Cache) Watch(ctx context.Context, key string, opts ...clientv3.OpOption
 				if !ok {
 					if w.cancelResp != nil {
 						select {
-						case <-ctx.Done():
-						case <-c.internalCtx.Done():
+						case <-mergedCtx.Done():
 						case responseChan <- *w.cancelResp:
 						}
 					}
 					return
 				}
+				if needPrevKV {
+					if err := c.attachPrevKV(mergedCtx, &resp); err != nil {
+						select {
+						case <-mergedCtx.Done():
+						case responseChan <- clientv3.WatchResponse{Canceled: true, CancelReason: err.Error()}:
+						}
+						return
+					}
+				}
 				select {
-				case <-ctx.Done():
-					return
-				case <-c.internalCtx.Done():
+				case <-mergedCtx.Done():
 					return
 				case responseChan <- resp:
 					if progressTimer != nil {
@@ -424,8 +435,6 @@ func (c *Cache) watchEvents(rev int64, applyErr <-chan error, readyOnce *sync.On
 
 func (c *Cache) validateWatch(key string, op clientv3.Op) (pred KeyPredicate, err error) {
 	switch {
-	case op.IsPrevKV():
-		return nil, fmt.Errorf("%w: PrevKV not supported", ErrUnsupportedRequest)
 	case op.IsFragment():
 		return nil, fmt.Errorf("%w: Fragment not supported", ErrUnsupportedRequest)
 	case op.IsCreatedNotify():
@@ -510,6 +519,47 @@ func (c *Cache) validateRange(startKey, endKey []byte) error {
 		}
 		return nil
 	}
+}
+
+func (c *Cache) attachPrevKV(ctx context.Context, resp *clientv3.WatchResponse) error {
+	if len(resp.Events) == 0 {
+		return nil
+	}
+	// Gooseable: mvccpb.Event rather than its alias clientv3.Event (the same type):
+	// Goose does not resolve a type alias when it selects a field through a pointer.
+	var respEvents []*mvccpb.Event = resp.Events
+	events := make([]*mvccpb.Event, len(respEvents))
+	for i, ev := range respEvents {
+		if isCreateEvent(ev) {
+			events[i] = ev
+			continue
+		}
+		// protobuf-go v2 (this base's mvccpb): a message is not copied by value (it holds a
+		// MessageState), so the clone is built from the fields the cache sets (the PR, against
+		// gogoproto mvccpb, has `clone := *ev`; the cache's events have no PrevKv, as its own
+		// watch does not ask for them).
+		clone := &mvccpb.Event{Type: ev.Type, Kv: ev.Kv}
+		prevRev := ev.Kv.ModRevision - 1
+		if err := c.store.waitForRev(ctx, prevRev); err != nil {
+			return err
+		}
+		kvs, _, err := c.store.Get(ev.Kv.Key, nil, prevRev)
+		switch {
+		case err == nil && len(kvs) > 0:
+			clone.PrevKv = kvs[0]
+		case errors.Is(err, rpctypes.ErrCompacted):
+			// Previous revision compacted; leave PrevKv nil.
+		case err != nil:
+			return fmt.Errorf("cache: looking up PrevKV for key %q at rev %d: %w", ev.Kv.Key, prevRev, err)
+		}
+		events[i] = clone
+	}
+	resp.Events = events
+	return nil
+}
+
+func isCreateEvent(e *mvccpb.Event) bool {
+	return e.Type == mvccpb.Event_PUT && e.Kv.CreateRevision == e.Kv.ModRevision
 }
 
 // WaitForNextResync blocks until the next resync loop iteration is complete.
