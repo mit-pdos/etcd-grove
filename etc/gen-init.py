@@ -442,9 +442,21 @@ for x, n in [('RangeRequest_SortOrder_name', 2), ('RangeRequest_SortTarget_name'
         doc=f'/-- `{x} = map[int32]string{{...}}` (`rpc.pb.go`): the enumeration\'s names, keys `0` to `{n}`. -/',
         post=f'∃ (mp : Loc) (M : GMap w32 GoString), globalAddr {x} ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ {n}⌝',
         pat='⟨%mp@, %M@, H@, #S@, %P@⟩')
-_P['finish'] = ([_P['finish'][0], 'ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name'] +
-                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit', 'iframe #',
-                 'ipureintro', 'exact ⟨PRangeRequest_SortOrder_name, PRangeRequest_SortTarget_name⟩'])
+_P['heavy'] = True
+_P['pre'] = ['/-- A small 64-bit literal\'s value as a signed natural (the descriptors\' slice indices). -/',
+             'theorem EtcdGrove.sint_nat_ofNat64 (n : Nat) (h : n < 2 ^ 63) : sint.nat (BitVec.ofNat 64 n) = n := by',
+             '  simp [sint.nat, BitVec.toInt]; omega', '']
+_PB_SL = ['KVm', 'KVs', 'Wm', 'Ws', 'Lm', 'Ls', 'Cm', 'Cs', 'Mm', 'Ms', 'Am', 'As']
+_PB_DESCS = ['KV', 'Watch', 'Lease', 'Cluster', 'Maintenance', 'Auth']
+_P['finish'] = ([f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %p{t} ⟨S{t}, -⟩; try wp_auto'
+                 for t in _PB_SL] + ['try wp_auto'] + [f'ipersist S{t}' for t in _PB_SL] +
+                [f'ipersist H{d}_ServiceDesc' for d in _PB_DESCS] +
+                [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
+                ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name'] +
+                FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs', 'iframe #',
+                 'isplitl []', '· ipureintro; exact PRangeRequest_SortOrder_name',
+                 'isplitl []', '· ipureintro; exact PRangeRequest_SortTarget_name',
+                 'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))'])
 
 _C = SPECIAL['go_etcd_io.etcd.client.v3']
 _C['custom'].update({
@@ -695,8 +707,10 @@ _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided'
            'ErrGRPCNotCapable', 'ErrGRPCInvalidClientAPIVersion', 'ErrGRPCNoLeader']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'] = dict(
     doc="""Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `rpctypes`' errors and
-metadata keys and `etcdserverpb`'s sort-name maps (from their facts), and `context.Canceled` a
+`clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
+unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
+metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
+facts), and `context.Canceled` a
 pointer error (the premise `EtcdGrove.ContextCanceledPtr`: Perennial's `context` fact lacks it).
 Its theorem takes the read package's initializer's spec (`wp_read`), not proved.""",
     pre=_CTX_PRE,
@@ -720,10 +734,29 @@ Its theorem takes the read package's initializer's spec (`wp_read`), not proved.
              ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + '⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
-             'icases Hpi with ⟨#HSO, #HST⟩',
-             'ihave #HCP := EtcdGrove.ContextCanceledPtr.canceled $$ Hd1'] +
+             'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
+             'ihave #HCP := EtcdGrove.ContextCanceledPtr.canceled $$ Hd1',
+             '-- `getServerMetrics`\' lock and what it guards (`metricsServerCached`, `nil`)',
+             'imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached] with #HMV',
+             '· inext', '  unfold EtcdGrove.v3rpc.metricsP', '  iexists _', '  iframe HmetricsServerCached',
+             '  ileft', '  ipureintro; rfl',
+             '-- the six `ServiceDesc`s, from `etcdserverpb`\'s fact',
+             'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM⟩',
+             'obtain ⟨rfl, HWp⟩ := HWp',
+             'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
+             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods',
+            
+            
+             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HL',
+             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC',
+             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HA',
+             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM',
+             '  iframe HK HL HC HA HM',
+             '  iexists ws',
+             '  iframe HW',
+             '  ipureintro; exact HWp'] +
             FIN_PRE[:6] +
-            ['imodintro', 'unfold v3rpcInit grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet',
+            ['imodintro', 'unfold v3rpcInit grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),
 )
 
@@ -917,8 +950,8 @@ def gen(p, cfg=None):
     A('')
     A(f'namespace {p}')
     A('')
-    if len(items) > 50:
-        A('set_option maxHeartbeats 2000000 in')
+    if len(items) > 50 or cfg.get('heavy'):
+        A('set_option maxHeartbeats 8000000 in')
     if hyps(p):
         A(f'theorem wp_initialize\'')
         for q in hyps(p):

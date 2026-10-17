@@ -130,7 +130,7 @@ variable [package_sem : _root_.Perennial.net.Assumptions]
 
 namespace net
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.net get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}

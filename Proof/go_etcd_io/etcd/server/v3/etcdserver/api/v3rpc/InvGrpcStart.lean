@@ -9,15 +9,14 @@ InvGrpcServer.lean`.
   `Server` registers implements its service's interface (`NewQuotaKVServer` and the other
   constructors convert to it), and has no `testEmbeddedByValue` (etcd's service types embed the
   `pb.Unsafe*Server` interfaces, or a service interface, never `Unimplemented*Server` by value).
-* `metricsVars` (persistent): the package variables `getServerMetrics` reads: the mutex
-  `metricsServerLock` guarding `metricsServerCached`, `nil` or grpc-prometheus's metrics. An
-  assumption about package initialization (`metricsServerLock`'s zero value is an unlocked
-  mutex, `metricsServerCached`'s `nil`), as `watchVars`.
+* `metricsVars` (persistent; `BaseStart.lean`): the package variables `getServerMetrics` reads:
+  the mutex `metricsServerLock` guarding `metricsServerCached`, `nil` or grpc-prometheus's
+  metrics. Part of `v3rpc`'s package facts (item 8, 2026-10-17: until then an assumption).
 * `svcDescsOk` (persistent): the `ServiceDesc`s of etcd's six services, the generated literals
   (`rpc_grpc.pb.go`) of `etcdserverpb`'s initialization, never written: their service names,
   handler types (`(*KVServer)(nil)`, ...) and distinct method and stream names; the KV service's
-  methods and the Watch service's stream exactly (the handlers `grpc.serve` runs). An assumption
-  about package initialization, as `watchDescOk`.
+  methods and the Watch service's stream exactly (the handlers `grpc.serve` runs). Part of
+  `v3rpc`'s package facts, from `etcdserverpb`'s (item 8, 2026-10-17: until then an assumption).
 * `GrpcCfg`, `grpcCfgOk s C` (persistent): the server's fields and configuration `Server` and its
   callees read, read-only (what `NewServer` set before the server is shared), and the server's
   contracts they take (`raftKV`, `watchSrvOk`, `srvIdsOk`, the leader, the cluster).
@@ -88,21 +87,6 @@ def v3rpc.kvRegs (q : Loc) : List (GoString × val × GoInterface) :=
 def v3rpc.watchSReg (p : Loc) : GoString × val × GoInterface :=
   (go!"/etcdserverpb.Watch/Watch", (@! etcdserverpb._Watch_Watch_Handler),
     interface.mkOk (go.GoType.PointerType v3rpc.watchServer.ty) #p)
-
-/-- The handler type of a generated `ServiceDesc` for the service interface `T`
-(`(*T)(nil)`). -/
-abbrev v3rpc.handlerTy (T : go.GoType) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType T) #(null : Loc)
-
-/-- **The methods of the generated `KV_ServiceDesc`** (`rpc_grpc.pb.go`): `Range`, `Put`,
-`DeleteRange`, `Txn`, `Compact`, with their generated handlers. -/
-def v3rpc.kvDescMethods : List (GoString × val) :=
-  [(go!"Range", @! etcdserverpb._KV_Range_Handler), (go!"Put", @! etcdserverpb._KV_Put_Handler),
-   (go!"DeleteRange", @! etcdserverpb._KV_DeleteRange_Handler),
-   (go!"Txn", @! etcdserverpb._KV_Txn_Handler), (go!"Compact", @! etcdserverpb._KV_Compact_Handler)]
-
-/-- `getServerMetrics`'s lock (the package variable `metricsServerLock`). -/
-abbrev v3rpc.metricsMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerLock
 
 /-- The registrations of a descriptor's methods, through their names and handlers. -/
 theorem v3rpc.descRegs_eq (sn : GoString) (mds : List google_golang_org.grpc.MethodDesc)
@@ -181,55 +165,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- What `metricsServerLock` guards: `metricsServerCached`, `nil` or metrics. -/
-def v3rpc.metricsP : IProp GF :=
-  iprop(∃ m : Loc,
-    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.metricsServerCached ↦ m ∗
-    (⌜m = null⌝ ∨ promSrvMetrics m))
-
-/-- **The package variables of `getServerMetrics`** (persistent; see the file header). -/
-def v3rpc.metricsVars : IProp GF :=
-  iprop(sync.isMutex (hlc := HasLC.hasLC) v3rpc.metricsMu v3rpc.metricsP)
-
-instance v3rpc.metricsVars_persistent : Persistent (v3rpc.metricsVars (GF := GF)) := by
-  unfold v3rpc.metricsVars; infer_instance
-
-/-- **A generated `ServiceDesc`** at `d` (persistent): the service `sn`, the handler type
-`(*T)(nil)`, some methods and streams with distinct names. -/
-def v3rpc.descOk (d : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
-  iprop(∃ (mds : List google_golang_org.grpc.MethodDesc)
-      (sds : List google_golang_org.grpc.StreamDesc),
-    grpcDescIs d sn (v3rpc.handlerTy T) mds sds ∗ ⌜(descNames mds sds).Nodup⌝)
-
-instance v3rpc.descOk_persistent (d : Loc) (sn : GoString) (T : go.GoType) :
-    Persistent (v3rpc.descOk (GF := GF) d sn T) := by
-  unfold v3rpc.descOk; infer_instance
-
-/-- **The six `ServiceDesc`s `v3rpc.Server` registers** (persistent; see the file header). -/
-def v3rpc.svcDescsOk : IProp GF :=
-  iprop((∃ (mds : List google_golang_org.grpc.MethodDesc)
-        (sds : List google_golang_org.grpc.StreamDesc),
-      grpcDescIs (globalAddr etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
-        (v3rpc.handlerTy etcdserverpb.KVServer.ty) mds sds ∗
-      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.kvDescMethods ∧
-        sds.map (·.StreamName') = [go!"RangeStream"]⌝) ∗
-    (∃ (sds : List google_golang_org.grpc.StreamDesc),
-      grpcDescIs (globalAddr etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
-        (v3rpc.handlerTy etcdserverpb.WatchServer.ty) [] sds ∗
-      ⌜sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
-        [(go!"Watch", @! etcdserverpb._Watch_Watch_Handler)]⌝) ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease"
-      etcdserverpb.LeaseServer.ty ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster"
-      etcdserverpb.ClusterServer.ty ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth"
-      etcdserverpb.AuthServer.ty ∗
-    v3rpc.descOk (globalAddr etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
-      etcdserverpb.MaintenanceServer.ty)
-
-instance v3rpc.svcDescsOk_persistent : Persistent (v3rpc.svcDescsOk (GF := GF)) := by
-  unfold v3rpc.svcDescsOk; infer_instance
-
 /-- **What `v3rpc.Server` and its callees read of the server** (a record; see the file header):
 the server's contract (`raftKV` at `A`), its watchable store (`wsl`, `γ`, the apply thread's
 environment `E`), its logger `lg` (`s.lg`), its configuration's logger `lg0` (`s.Cfg.Logger`), quota
@@ -278,7 +213,7 @@ def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
     srvCfgFieldAddr s go!"EnableDistributedTracing" ↦□ C.tr ∗
     srvCfgFieldAddr s go!"TracerOptions" ↦□ C.tsl ∗ C.tsl ↦*□ C.tos ∗
     srvCfgFieldAddr s go!"MaxConcurrentStreams" ↦□ C.mcs ∗
-    v3rpc.runsNoRequireLeader ∗ v3rpc.metricsVars ∗ v3rpc.svcDescsOk)
+    v3rpc.runsNoRequireLeader)
 
 instance v3rpc.grpcCfgOk_persistent (s : Loc) (C : v3rpc.GrpcCfg GF) :
     Persistent (v3rpc.grpcCfgOk s C) := by

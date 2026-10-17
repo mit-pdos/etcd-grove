@@ -3,8 +3,10 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `rpctypes`' errors and
-metadata keys and `etcdserverpb`'s sort-name maps (from their facts), and `context.Canceled` a
+`clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
+unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
+metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
+facts), and `context.Canceled` a
 pointer error (the premise `EtcdGrove.ContextCanceledPtr`: Perennial's `context` fact lacks it).
 Its theorem takes the read package's initializer's spec (`wp_read`), not proved.
 -/
@@ -140,7 +142,7 @@ variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'
     (wp_read : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.initialize'.spec (GF := GF) (hG := hG))
     (get_is_pkg_init : GoString → IProp GF)
@@ -219,8 +221,29 @@ theorem wp_initialize'
   icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13⟩
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
-  icases Hpi with ⟨#HSO, #HST⟩
+  icases Hpi with ⟨#HSO, #HST, #HDescs⟩
   ihave #HCP := EtcdGrove.ContextCanceledPtr.canceled $$ Hd1
+  -- `getServerMetrics`' lock and what it guards (`metricsServerCached`, `nil`)
+  imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached] with #HMV
+  · inext
+    unfold EtcdGrove.v3rpc.metricsP
+    iexists _
+    iframe HmetricsServerCached
+    ileft
+    ipureintro; rfl
+  -- the six `ServiceDesc`s, from `etcdserverpb`'s fact
+  icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM⟩
+  obtain ⟨rfl, HWp⟩ := HWp
+  ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []
+  · unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods
+    iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HL
+    iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC
+    iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HA
+    iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM
+    iframe HK HL HC HA HM
+    iexists ws
+    iframe HW
+    ipureintro; exact HWp
   iframe Hown
   imodintro
   isplitr
@@ -228,7 +251,7 @@ theorem wp_initialize'
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold v3rpcInit grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet
+  unfold v3rpcInit grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars
   iframe #
   ipureintro
   exact PtoGRPCErrorMap

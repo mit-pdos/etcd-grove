@@ -42,7 +42,13 @@ theorem v3rpc.getServerMetrics.wp_proof
     (hErr : zap.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.getServerMetrics.spec (GF := GF) (hG := hG) := by
   intro mt lg
-  wp_start as ⟨#Hvars, %Hlgn⟩
+  wp_start as %Hlgn
+  -- `metricsServerLock`: `v3rpc`'s package fact (item 8)
+  ihave #Hvars : (v3rpc.metricsVars : IProp GF) $$ []
+  · ihave Hvi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hpkg
+    icases Hvi with ⟨-, -, -, -, -, #H, -⟩
+    iexact H
   iunfold v3rpc.metricsVars at Hvars
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -85,6 +85,10 @@ axiom RangeRequest_SortTarget_name_init :
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end opaqueInits
 
+/-- A small 64-bit literal's value as a signed natural (the descriptors' slice indices). -/
+theorem EtcdGrove.sint_nat_ofNat64 (n : Nat) (h : n < 2 ^ 63) : sint.nat (BitVec.ofNat 64 n) = n := by
+  simp [sint.nat, BitVec.toInt]; omega
+
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -96,6 +100,7 @@ variable [_root_.Perennial.context.ErrorStringIsError]
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
@@ -152,7 +157,43 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of Cluster_ServiceDesc))
   -- translated initializer of Maintenance_ServiceDesc))
   -- translated initializer of Auth_ServiceDesc))
-  repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; wp_auto)
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pKVm ⟨SKVm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pKVs ⟨SKVs, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pWm ⟨SWm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pWs ⟨SWs, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pLm ⟨SLm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pLs ⟨SLs, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pCm ⟨SCm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pCs ⟨SCs, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pMm ⟨SMm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pMs ⟨SMs, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pAm ⟨SAm, -⟩; try wp_auto
+  wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pAs ⟨SAs, -⟩; try wp_auto
+  try wp_auto
+  ipersist SKVm
+  ipersist SKVs
+  ipersist SWm
+  ipersist SWs
+  ipersist SLm
+  ipersist SLs
+  ipersist SCm
+  ipersist SCs
+  ipersist SMm
+  ipersist SMs
+  ipersist SAm
+  ipersist SAs
+  ipersist HKV_ServiceDesc
+  ipersist HWatch_ServiceDesc
+  ipersist HLease_ServiceDesc
+  ipersist HCluster_ServiceDesc
+  ipersist HMaintenance_ServiceDesc
+  ipersist HAuth_ServiceDesc
+  iStructNamedSuffix HKV_ServiceDesc "KV"
+  iStructNamedSuffix HWatch_ServiceDesc "Watch"
+  iStructNamedSuffix HLease_ServiceDesc "Lease"
+  iStructNamedSuffix HCluster_ServiceDesc "Cluster"
+  iStructNamedSuffix HMaintenance_ServiceDesc "Maintenance"
+  iStructNamedSuffix HAuth_ServiceDesc "Auth"
   ipersist HRangeRequest_SortOrder_name
   ipersist HRangeRequest_SortTarget_name
   iframe Hown
@@ -162,10 +203,13 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit
+  unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescOk go_etcd_io.etcd.cache.v3.pbDescIs
   iframe #
-  ipureintro
-  exact ⟨PRangeRequest_SortOrder_name, PRangeRequest_SortTarget_name⟩
+  isplitl []
+  · ipureintro; exact PRangeRequest_SortOrder_name
+  isplitl []
+  · ipureintro; exact PRangeRequest_SortTarget_name
+  repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))
 
 
 end go_etcd_io.etcd.api.v3.etcdserverpb

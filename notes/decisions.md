@@ -7758,3 +7758,56 @@ import the package). Both go when Goose is fixed.
 needs it, and `NewClient` consumes its grpc form (`grpcResolverAt`), so `grpcConn`'s address is
 stable for good; after `New` nobody can call `SetEndpoints` (not in `New`'s postcondition), and
 `autoSync` (which would) is turned off by a premise.
+
+## Item 8: package initialization (2026-10-17, branch `construct`)
+
+**How a package's initialization is proved.** `etc/gen-init.py` writes `Proof/<pkg>/Init.lean`:
+`<pkg>.wp_initialize'` follows the translation's `initialize'` statement by statement (the
+`GlobalAlloc`s of translated variables, the imports' `initialize'` in Goose's order, the
+variables' initializers in Go's init order, the translated `init()` bodies). An untranslated
+initializer `X.init` is an axiom of the translation, so what it does is a trust-boundary axiom of
+the package: `opaqueInitsOk` (the listed ones run without panicking), `errorsNewVarsInit`
+(`X = errors.New(msg)`, messages from the Go source) or `<X>_init` (what a fact reads of `X`).
+Each is a triple about an uninterpreted constant, so a diverging `X.init` satisfies all of them:
+they cannot make the logic inconsistent. Translating the initializers instead (Goose config)
+would turn the `errors.New` ones into proofs; not done, to keep the translation unchanged under
+three concurrent agents.
+
+**A package fact states only its own variables.** A fact about another package's variable
+cannot be proved by the package's initializer (`package.init` gives back only the import's
+`isPkgInit` when it is already initialized). So the facts moved to their owners (`errorsInit`,
+raft's `isInitialized`, `traceutilInit`, `schemaInit`, `mvccInit`, `rpctypesInit`,
+`etcdserverpbInit`, `clientv3Init`, `backendInit`); the consumers' facts keep their copies, now
+derived. A fact that names a predicate defined above the owner's `Base.lean` is restated below it
+(`pbDescIs` for grpc's `grpcDescIs`; `OptsM`/`optsAt` moved to `BboltOptsDefs.lean`).
+
+**Method sets are premises** (`EtcdGrove.ErrorStringLeaf`, `EtcdGrove.RpctypesEtcdErrorMethods`),
+as Perennial's `context.ErrorStringIsError`: the semantics leaves method sets uninterpreted.
+
+**Item 8: context's facts (a Perennial proposal).** Perennial's `context` fact (`isInit`) keeps
+only that `Canceled` and `DeadlineExceeded` are typed errors, though its initializer stores
+`errors.New("context canceled")` (`wp_New_errorString`, the exact `*errorString`) and
+`deadlineExceededError{}`. `v3rpc` needs `Canceled` to be a pointer error (`togRPCError`'s
+`errors.Is`) and `read` needs both as leaf errors with their messages. A package fact cannot be
+strengthened after the fact (above), and an axiom `isPkgInit context ⊢ …` would be unsound
+(`isPkgInit` is not sealed: a proof that allocates the variables' cells can assemble it), so the
+fact is a premise here, `EtcdGrove.ContextCanceledPtr` (`v3rpc/Init.lean`). The general fix, to
+propose to Perennial on its own: `context.isInit` records the values, `Canceled ↦□
+interface.mkOk (ptr errorString) #x` with its message and `DeadlineExceeded ↦□
+interface.mkOk deadlineExceededError.ty #()`. It unblocks `v3rpc`'s premise and, with a registry
+model, `read`.
+
+**`read` stays assumed.** Its translated `init()` calls `prometheus.MustRegister`, which panics
+on a duplicate name. A true spec needs the default registry's registered names, a resource the
+whole program's initializers share; `wp_initialize'`'s shape (`ownInitializing` only) has no
+place for it, so adding one means changing every importer's theorem. `etcdserver`'s and `v3rpc`'s
+theorems take `read.initialize'.spec` as a hypothesis (`gen-init`'s `ASSUMED`).
+
+**mvcc's counter contract.** `mvcc.counterSpec` said `Add(x)` returns for every `x`; Go's
+`counter.Add` panics on a negative value. The contract now covers the arguments the code passes:
+`float64(n)` of an unsigned `n`, and of a signed `n ≥ 0`. `scheduleCompaction`'s compacted-keys
+count (an `int`) is shown non-negative by counting: the keys it deletes are distinct bucket keys
+of the job's log up to the compaction revision (a cursor orders the batches), so no more than
+that log's changes, fewer than `2 ^ 62` by the premise `mvcc.CompactSmall` (a physical bound,
+as `storeSmall`), carried by `compactJobPre` and taken by `updateCompactRev`, `Compact` and
+`compactLockfree`.

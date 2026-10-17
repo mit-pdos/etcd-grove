@@ -113,17 +113,70 @@ instance grpc_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
   build_get_is_pkg_init_wf
 
+/-- **A generated `ServiceDesc`** at `sd` (persistent, read-only): its service name `sn`, its
+handler type `ht`, its methods `mds` and its streams `sds` (grpc's `grpcDescIs`, stated here below
+grpc's server-side proofs). -/
+def pbDescIs (sd : Loc) (sn : GoString) (ht : GoInterface) (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc) : IProp GF :=
+  iprop(∃ msl ssl : GoSlice,
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" sd ↦□ sn ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" sd ↦□ ht ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" sd ↦□ msl ∗ msl ↦*□ mds ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦□ ssl ∗ ssl ↦*□ sds)
+
+instance pbDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
+    (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc) :
+    Persistent (pbDescIs (GF := GF) sd sn ht mds sds) := by
+  unfold pbDescIs; infer_instance
+
+/-- A generated `ServiceDesc` of service `sn` for the interface `T`, with distinct method and
+stream names. -/
+def pbDescOk (sd : Loc) (sn : GoString) (T : go.GoType) : IProp GF :=
+  iprop(∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+    pbDescIs sd sn (interface.mkOk (go.GoType.PointerType T) #(null : Loc)) mds sds ∗
+    ⌜(mds.map (·.MethodName') ++ sds.map (·.StreamName')).Nodup⌝)
+
+instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
+    Persistent (pbDescOk (GF := GF) sd sn T) := by
+  unfold pbDescOk; infer_instance
+
+/-- **`etcdserverpb`'s six `ServiceDesc`s** (`rpc_grpc.pb.go`: generated literals, never written;
+item 8, 2026-10-17: until then an assumption of `v3rpc.Server`, `svcDescsOk`): their service names,
+handler types and distinct method and stream names; the KV service's methods and the Watch
+service's stream exactly. -/
+abbrev etcdserverpbDescs : IProp GF :=
+  iprop((∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds.map (fun md => (md.MethodName', (#md.Handler' : val))) =
+          [(go!"Range", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler), (go!"Put", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler),
+           (go!"DeleteRange", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler),
+           (go!"Txn", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler), (go!"Compact", @! go_etcd_io.etcd.api.v3.etcdserverpb._KV_Compact_Handler)] ∧
+        sds.map (·.StreamName') = [go!"RangeStream"]⌝) ∗
+    (∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
+      pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty) #(null : Loc)) mds sds ∗
+      ⌜mds = [] ∧ sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
+        [(go!"Watch", @! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler)]⌝) ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease" go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth" go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer.ty ∗
+    pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
+      go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty)
+
 /-- **`etcdserverpb`'s fact** (item 8, 2026-10-17: moved here from `v3rpc`'s `sortNameMaps`): the
 enumerations' name maps `checkRangeRequest` looks the sort order and target up in
 (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: generated `map[int32]string`
-literals), fixed maps whose keys are the enumerations' values, `0` to `2` and `0` to `4`. -/
+literals), fixed maps whose keys are the enumerations' values, `0` to `2` and `0` to `4`; and its
+six `ServiceDesc`s (`etcdserverpbDescs`). -/
 abbrev etcdserverpbInit : IProp GF :=
   iprop((∃ (mp : Loc) (M : GMap w32 GoString),
       globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name ↦□ mp ∗
       mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝) ∗
     (∃ (mp : Loc) (M : GMap w32 GoString),
       globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget_name ↦□ mp ∗
-      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝))
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝) ∗
+    etcdserverpbDescs)
 
 instance etcdserverpb_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=

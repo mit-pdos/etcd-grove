@@ -288,7 +288,7 @@ variable [EtcdGrove.RpctypesEtcdErrorMethods]
 
 namespace go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}

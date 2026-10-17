@@ -147,7 +147,15 @@ theorem v3rpc.Server.wp_proof
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, #Hwd,
     #Hlead, #Hcl, #Hrc, #Hlk, #Hch, #Hstop, #Htm, #Het, #Hm, #Hfg, #Hgate, #Hmt, #Htr, #Htsl,
-    #Htos, #Hmcs, #Hnrl, #Hvars, #Hdescs⟩
+    #Htos, #Hmcs, #Hnrl⟩
+  -- the six `ServiceDesc`s: `v3rpc`'s package fact (item 8)
+  ihave #Hdescs : (v3rpc.svcDescsOk : IProp GF) $$ []
+  · ihave #Pv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
+    · iPkgInit
+    ihave Hvi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Pv
+    icases Hvi with ⟨-, -, -, -, -, -, #H⟩
+    iexact H
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave #Pcfg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config $$ []
@@ -324,6 +332,12 @@ theorem v3rpc.Server.wp_proof
   icases HdC with ⟨%cmds, %csds, #HdC, %HcD⟩
   icases HdA with ⟨%amds, %asds, #HdA, %HaD⟩
   icases HdM with ⟨%mmds, %msds, #HdM, %HmD⟩
+  ihave #HdKV := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdKV
+  ihave #HdW := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdW
+  ihave #HdL := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdL
+  ihave #HdC := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdC
+  ihave #HdA := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdA
+  ihave #HdM := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdM
   wp_apply (hNewKV s C.A C.n C.lg C.qb C.mid) $$ [Hlr Hbr]
     as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp, Hlr, Hbr⟩
   · iframe; iframe #; ipureintro; exact Hlgn

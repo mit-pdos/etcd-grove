@@ -164,7 +164,7 @@ variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'
     (wp_read : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.initialize'.spec (GF := GF) (hG := hG))
     (get_is_pkg_init : GoString → IProp GF)

@@ -230,7 +230,7 @@ variable [package_sem : _root_.Perennial.google_golang_org.protobuf.internal.imp
 
 namespace google_golang_org.protobuf.internal.impl
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.protobuf.internal.impl get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}

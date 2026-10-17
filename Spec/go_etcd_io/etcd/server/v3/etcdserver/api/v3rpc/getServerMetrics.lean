@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`getServerMetrics(metricType, lg)`** with a non-nil logger returns grpc-prometheus's server
 metrics (`promSrvMetrics`): the cached ones, or new ones, registered with prometheus and cached
-(`metricsVars`). -/
+(`metricsVars`, from the package's facts). -/
 abbrev v3rpc.getServerMetrics.spec : Prop :=
   ∀ (mt : GoString) (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.metricsVars ∗ ⌜lg ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ ⌜lg ≠ null⌝ }}
     (App (App (Val (@! v3rpc.getServerMetrics)) (Val #mt)) (Val #lg))
   {{ (m : Loc), RET #m; promSrvMetrics m }}
 
