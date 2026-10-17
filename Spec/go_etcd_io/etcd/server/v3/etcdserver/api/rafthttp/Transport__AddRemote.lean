@@ -30,15 +30,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 Why it is true of the Go code (`transport.go` at the etcd pin): `AddRemote` takes the transport's lock;
 it returns early for a stopped transport or a known peer or remote; `types.NewURLs(us)` succeeds
 (`peerURLsOk`: otherwise `Logger.Panic`); `startRemote` starts the remote's pipeline goroutines
-(`transportEffectsOk`); it logs and returns. -/
+(`transportEffectsOk`); it logs and returns. It only reads `us` (the parsed `types.URLs` are
+fresh), so the caller's share comes back. -/
 abbrev rafthttp.Transport.AddRemote.spec : Prop :=
-  ∀ (t : Loc) (id : w64) (us : GoSlice) (ss : List GoString),
+  ∀ (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜transportEffectsOk⌝ ∗ transportLive t ∗ us ↦*□ ss ∗ ⌜membership.peerURLsOk ss⌝ }}
+      ⌜transportEffectsOk⌝ ∗ transportLive t ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddRemote")) (Val #id))
       (Val #us))
-  {{ RET #(); transportLive t }}
+  {{ RET #(); transportLive t ∗ us ↦*{dq} ss }}
 
 end spec
 

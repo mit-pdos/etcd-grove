@@ -31,15 +31,16 @@ Why it is true of the Go code (`transport.go` at the etcd pin): `AddPeer` takes 
 it panics if the transport stopped (`transportLive` excludes it), returns for a known peer;
 `types.NewURLs(us)` succeeds (`peerURLsOk`: otherwise `Logger.Panic`); `LeaderStats.Follower`
 (the stats set at `Start`), `startPeer` starts the peer's goroutines (`transportEffectsOk`), the
-probers add it; it logs and returns. -/
+probers add it; it logs and returns. It only reads `us` (the parsed `types.URLs` are
+fresh), so the caller's share comes back. -/
 abbrev rafthttp.Transport.AddPeer.spec : Prop :=
-  ∀ (t : Loc) (id : w64) (us : GoSlice) (ss : List GoString),
+  ∀ (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜transportEffectsOk⌝ ∗ transportLive t ∗ us ↦*□ ss ∗ ⌜membership.peerURLsOk ss⌝ }}
+      ⌜transportEffectsOk⌝ ∗ transportLive t ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); transportLive t }}
+  {{ RET #(); transportLive t ∗ us ↦*{dq} ss }}
 
 end spec
 

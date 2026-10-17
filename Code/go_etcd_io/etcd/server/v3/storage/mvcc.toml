@@ -80,6 +80,8 @@ translate = ["!*",
   "BucketKey.GreaterThan",
   "watchableStore.Read", "watchableStore.FirstRev", "watchableStore.Rev",
   "watchableStore.Range", "watchableStore.DeleteRange", "watchableStore.Put",
+  # (unit N4, 2026-10-17: `NewServer` calls `srv.kv.HashStorage()` on the watchable store)
+  "watchableStore.HashStorage",
   "watchableStoreTxnWrite.FirstRev", "watchableStoreTxnWrite.Rev",
   "watchableStoreTxnWrite.Range", "watchableStoreTxnWrite.DeleteRange",
   "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes"]

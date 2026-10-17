@@ -8784,6 +8784,8 @@ class watchableStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"DeleteRange"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   FirstRev_unfold : MethodUnfold watchableStore.ty go!"FirstRev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"FirstRev"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
+  HashStorage_unfold : MethodUnfold watchableStore.ty go!"HashStorage" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"HashStorage"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   Put_unfold : MethodUnfold watchableStore.ty go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Put"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   Range_unfold : MethodUnfold watchableStore.ty go!"Range" (LamV "$r"
@@ -8797,6 +8799,8 @@ class watchableStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_FirstRev_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"FirstRev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"FirstRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
+  ptr_HashStorage_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"HashStorage" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"HashStorage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_NewWatchStream_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"NewWatchStream" watchableStore.NewWatchStream.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
@@ -8841,6 +8845,7 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.set_wg
   watchableStore.TypeAssumptions.DeleteRange_unfold
   watchableStore.TypeAssumptions.FirstRev_unfold
+  watchableStore.TypeAssumptions.HashStorage_unfold
   watchableStore.TypeAssumptions.Put_unfold
   watchableStore.TypeAssumptions.Range_unfold
   watchableStore.TypeAssumptions.Read_unfold
@@ -8848,6 +8853,7 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.ptr_Close_unfold
   watchableStore.TypeAssumptions.ptr_DeleteRange_unfold
   watchableStore.TypeAssumptions.ptr_FirstRev_unfold
+  watchableStore.TypeAssumptions.ptr_HashStorage_unfold
   watchableStore.TypeAssumptions.ptr_NewWatchStream_unfold
   watchableStore.TypeAssumptions.ptr_Put_unfold
   watchableStore.TypeAssumptions.ptr_Range_unfold
