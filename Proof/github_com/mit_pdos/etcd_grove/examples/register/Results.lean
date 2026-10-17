@@ -166,14 +166,9 @@ thread, no thread ended in a panic, and the main thread's result, if any, is `#(
 theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
-    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
-    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  register_adequate σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps
+    (σ : state) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) :
+    MainSafe registerProgram σ :=
+  register_adequate σ Hlctx Hinit
 
 end adequacy
 
