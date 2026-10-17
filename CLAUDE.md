@@ -1,9 +1,10 @@
 # etcd-grove (Lean)
 
 This branch verifies **etcd** — starting with its Raft implementation — in Lean,
-using the Lean port of Perennial (branch `lean` of
-[mit-pdos/perennial](https://github.com/mit-pdos/perennial)), which is a Lake
-dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
+using the Lean port of Perennial (for now branch `lean-temp` of
+[mit-pdos/perennial](https://github.com/mit-pdos/perennial), off `lean` at `a54e1999f`, while
+`lean` itself is fixed up: `notes/STATUS.md`, "Adequacy without semantic premises"), which is a
+Lake dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
 framework and the Goose translator; this repository has the Goose translation of
 raft (v3.7) and of etcd (`Code/`, `GeneratedProof/`), and the proofs.
 Every file is a module of Lean's module system (see "Modules" below).
@@ -220,6 +221,9 @@ without touching `.lake/packages/perennial`, which other worktrees share;
 `LAKE_OPTS=--packages=<file> etc/tcb-report.py` runs the TCB report the same way.
 
 ## Changes to Perennial
+
+Until the pin returns to `lean`, a Perennial change this repository needs is made on a branch
+off `lean-temp` and merged into `lean-temp`, which the pin then follows.
 
 Perennial (the Go framework, its standard-library models and Goose) is a shared,
 general-purpose dependency. Do not change it to unblock a particular proof: no model

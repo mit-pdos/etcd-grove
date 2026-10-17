@@ -1,7 +1,7 @@
 name = "etcdGrove"
 defaultTargets = ["EtcdGrove"]
 
-# The Perennial framework (branch `lean` of mit-pdos/perennial), including the Goose
+# The Perennial framework (branch `lean-temp` of mit-pdos/perennial, for now), including the Goose
 # translator that produced `Code/` and `GeneratedProof/` (checked by
 # `etc/goose.py --check`).
 [[require]]

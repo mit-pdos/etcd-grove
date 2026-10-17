@@ -15,9 +15,10 @@ is not added as a premise of the statement: the statement would then be about a 
 premise narrows in a way specific to the example, and every new example would add its own. It
 is fixed where it belongs, in Perennial's semantics or translation (as a general change, not
 shaped by the proof: a separate agent without the proof's context designed the method sets),
-and the example's statement stays the same. When the fix is on a Perennial branch the pin
-cannot reach yet (here: `lean` is a bump away), the pin is a backport of it to the current pin,
-replaced at the next bump (`notes/STATUS.md`, "Adequacy without semantic premises").
+and the example's statement stays the same. While `lean` needs fixing up before
+this repository can follow it, Perennial changes go on `lean-temp` (off the old pin
+`a54e1999f`; the method-set fix is its first change) and the pin follows that branch
+(`notes/STATUS.md`, "Adequacy without semantic premises").
 
 `mainSafe_of_wp` takes the WP under every `HeapGS` at the state's local context, with a
 `get_is_pkg_init` of the proof's choosing: the example substitutes `lctx` by the `HeapGS`'s
