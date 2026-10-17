@@ -42,7 +42,7 @@ theorem setupNode.wp_proof
   wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
     P15 P16 P17 (by rw [Q1]; exact List.nodup_nil) (by rw [Q1]; exact List.not_mem_nil)
     (by rw [Q1]; decide) Q2 Q3 Q4 Q5
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
+    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr, Hcb⟩
   subst Herr
   wp_auto
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
@@ -56,7 +56,7 @@ theorem setupNode.wp_proof
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   iapply HΦ
   iexists nv, rn
-  iframe n Hchans Hrn Hpeers
+  iframe n Hchans Hrn Hpeers Hcb
   ipureintro; exact Hnvrn
 
 end proof

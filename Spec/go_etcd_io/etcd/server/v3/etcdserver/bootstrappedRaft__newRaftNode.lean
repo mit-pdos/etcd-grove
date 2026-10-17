@@ -114,7 +114,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- the cluster's term budget, at least at the bootstrap term `1` (`StartNode.spec`'s)
       "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
       -- the contracts (`InvNodeStart.lean`)
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      "#Hcci" ∷ context.isClosedchanInit ∗ "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
       "#Hcl" ∷ rnClusterOk cl }}
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
@@ -132,7 +132,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         isRNIDRemoved f ∗ isRNWal st ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
-            bv.storage' st bv.heartbeat' GoInterface.nil) ∗
+            cv.ID' cv.AsyncStorageWrites' bv.storage' st bv.heartbeat' GoInterface.nil) ∗
         b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv }}
 
 end spec

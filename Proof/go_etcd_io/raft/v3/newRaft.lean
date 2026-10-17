@@ -387,7 +387,7 @@ theorem newRaft.wp_proof
   iapply HΦ $$ %«$r0_ptr» %s3 %cv'
   iframe Hphys Hc
   isplitr
-  · ipureintro; exact HpAW
+  · ipureintro; exact ⟨HpAW, HpID⟩
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro

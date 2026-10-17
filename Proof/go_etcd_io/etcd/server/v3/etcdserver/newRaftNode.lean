@@ -35,8 +35,8 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum) :
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof :
     newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E node id nl pre ms γs reg cv Hlg Hhb
-  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok⟩
+  intro E node id nl pre ms γs reg cv Hlg Hhb Hasync
+  wp_start as ⟨#Hcci, #Hzap, #Hsetlg, #Htdok, #Htkok⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
   iunfold rnTimeoutDetectorOk at Htdok
@@ -57,6 +57,14 @@ theorem newRaftNode.wp_proof :
   -- `raft.SetLogger(lg)`
   wp_apply Hsetlg $$ %l []
   (try wp_auto)
+  -- (etcd-io/etcd#22223) `context.WithCancel(context.Background())`
+  ihave #Hpctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  wp_apply context.wp_Background
+  wp_apply context.wp_WithCancel_Background iprop(True) $$ [] as %cctx %γcx %cancel
+    ⟨#Hcancel, #Hcctx, #Hccc⟩
+  · iframe #
+  (try wp_auto)
   -- the struct's components: `new(sync.RWMutex)`, `time.Now()`, the detector, the channels
   wp_apply time.wp_Now as %t -
   (try wp_auto)
@@ -69,6 +77,15 @@ theorem newRaftNode.wp_proof :
   · ipureintro; word
   (try wp_auto)
   wp_apply chan.wp_make1 (V := toApply) as %apc %γap ⟨#Hapc, %Hapcap, Hapo⟩
+  (try wp_auto)
+  -- (etcd-io/etcd#22223) `appendc`, `asyncStopc`, `asyncAppendDonec`: unused with asynchronous
+  -- storage writes off
+  wp_apply chan.wp_make2 (V := asyncAppendWork) _ as %aac %γaa ⟨#Haac, %Haacap, -⟩
+  · ipureintro; word
+  (try wp_auto)
+  wp_apply chan.wp_make1 (V := Unit) as %asc %γas ⟨#Hasc, %Hascap, -⟩
+  (try wp_auto)
+  wp_apply chan.wp_make1 (V := Unit) as %adc %γad ⟨#Hadc, %Hadcap, -⟩
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %stc %γst ⟨#Hstc, %Hstcap, Hsto⟩
   (try wp_auto)
@@ -108,9 +125,11 @@ theorem newRaftNode.wp_proof :
   isplitr
   · ipureintro; simp
   iunfold rnBuilt
-  iexists ⟨cv.lg', «$v1_ptr», t, cv, msc, apc, rsc, tk, td, stc, dnc⟩
+  iexists ⟨cv.lg', «$v1_ptr», t, cv, msc, apc, aac, asc, adc, GoInterface.ok cctx, cancel, rsc, tk,
+    td, stc, dnc⟩
   simp only [named]
-  isplitl [lgR tickMuR latestTickTsR raftNodeConfigR msgSnapCR applycR readStateCR tickerR tdR
+  isplitl [lgR tickMuR latestTickTsR raftNodeConfigR msgSnapCR applycR appendcR asyncStopcR
+    asyncAppendDonecR storageResponseCtxR cancelStorageResponsesR readStateCR tickerR tdR
     stoppedR doneR]
   · iapply typedPointsto_combine _ _ _ Hr0nn
     simp only [TypedPointsto.typedPointstoDef, named]
@@ -132,7 +151,13 @@ theorem newRaftNode.wp_proof :
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb
-  iunfold isUnitBag; iexists γst; iexact Hstb
+  isplitr
+  · iunfold isUnitBag; iexists γst; iexact Hstb
+  isplitr
+  · ipureintro; exact Hasync
+  iexists γcx
+  iunfold context.cancelSpec
+  iexact Hcancel
 
 end proof
 

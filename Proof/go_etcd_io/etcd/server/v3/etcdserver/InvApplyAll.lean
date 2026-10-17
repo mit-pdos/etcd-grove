@@ -42,7 +42,13 @@ abbrev srvForceSnapAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"forceDi
 abbrev epDiskSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"diskSnapshotIndex" ep
 abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memorySnapshotIndex" ep
 abbrev taSnapshotAddr (ta : Loc) : Loc := structFieldRef toApply go!"snapshot" ta
-abbrev taNotifycAddr (ta : Loc) : Loc := structFieldRef toApply go!"notifyc" ta
+-- (etcd-io/etcd#22223: `notifyc` replaced by explicit synchronization points)
+abbrev taSnapshotPersistedCAddr (ta : Loc) : Loc :=
+  structFieldRef toApply go!"snapshotPersistedC" ta
+abbrev taRaftStorageReadyCAddr (ta : Loc) : Loc := structFieldRef toApply go!"raftStorageReadyC" ta
+abbrev taWaitAddr (ta : Loc) : Loc := structFieldRef toApply go!"waitForStorageBeforeApply" ta
+abbrev taApplyCompletedCAddr (ta : Loc) : Loc := structFieldRef toApply go!"applyCompletedC" ta
+abbrev taOnApplyCompletedAddr (ta : Loc) : Loc := structFieldRef toApply go!"onApplyCompleted" ta
 
 end addrs
 
@@ -72,6 +78,30 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
+/-- **A batch's completion callback** (`toApply.onApplyCompleted`, etcd-io/etcd#22223): nil, or
+a function that, given `P`, returns (the asynchronous path's: the storage responses, then
+`raftAdvancedC`). -/
+def onApplyOk (f : GoFunc) (P : IProp GF) : IProp GF :=
+  iprop(⌜f = func.nil⌝ ∨ □ {{ P }} (App (Val #f) (Val #())) {{ RET #(); True }})
+
+instance onApplyOk_persistent (f : GoFunc) (P : IProp GF) : Persistent (onApplyOk f P) := by
+  unfold onApplyOk; infer_instance
+
+/-- **A batch's completion channel** (`toApply.applyCompletedC`, etcd-io/etcd#22223): nil, or a
+broadcast channel the holder may close. -/
+def applyDoneOk (c : GoChan) : IProp GF :=
+  iprop(⌜c = chan.nil⌝ ∨ ∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) .Pending)
+
+/-- **A batch's synchronization points, as the apply side uses them** (etcd-io/etcd#22223):
+`raftStorageReadyC` a broadcast channel it may receive from (before applying if `wait`, else
+after), the completion callback with its resource, the completion channel. -/
+def taSyncOk (ap : Loc) (P : IProp GF) : IProp GF :=
+  iprop(∃ (w : Bool) (rsc : GoChan) (γc : ChanNames) (f : GoFunc) (acc : GoChan),
+    taWaitAddr ap ↦□ w ∗
+    taRaftStorageReadyCAddr ap ↦□ rsc ∗ ownBroadcastChan rsc γc iprop(True) .Unknown ∗
+    taOnApplyCompletedAddr ap ↦□ f ∗ onApplyOk f P ∗ P ∗
+    taApplyCompletedCAddr ap ↦□ acc ∗ applyDoneOk acc)
+
 /-- **The apply thread's snapshot state** (see the file header). -/
 def srvSnapState (s ep : Loc) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
@@ -88,6 +118,33 @@ def srvApplyRes (s ep : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr
     srvAppliedOwn γr ai)
 
 end defs
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **A receive on a broadcast channel** (`<-c` on a channel only ever closed: etcd-io/etcd#22223's
+`raftStorageReadyC`, `applyCompletedC`): it returns once the channel is closed. -/
+theorem wp_broadcast_receive {t : go.GoType} [IntoValTyped (GF := GF) Unit t] (ch : GoChan) (γ : ChanNames) (Q : IProp GF)
+    (cl : Broadcast) :
+    {{ ownBroadcastChan ch γ Q cl }}
+      (App (Val (chan.receive t)) (Val #ch))
+    {{ RET (PairV #() #false); True }} := by
+  iintro %Φ Hown HΦ
+  ihave #Hch := ownBroadcastChan_is_chan _ _ _ _ $$ Hown
+  iapply chan.wp_receive (V := Unit) ch γ $$ Hch
+  iintro ⟨Hlc1, -, -, -⟩
+  have hau := broadcast_chan_receive (GF := GF) ch γ Q (fun v ok => Φ (PairV #v #ok)) cl
+  unfold recvAu at hau ⊢
+  imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HΦ with HΦ
+  iapply hau $$ Hown
+  iintro -
+  iapply HΦ
+  itrivial
+
+end lemmas
 
 end EtcdGrove
 end Perennial

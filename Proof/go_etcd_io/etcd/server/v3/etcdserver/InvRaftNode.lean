@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Perennial.Ghost.MonoList
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 
@@ -64,8 +65,16 @@ variable [FfiSyntax]
 -- stage R7b, the file importing raft's node layer).
 
 instance toApply_countable : Pos.Countable toApply :=
-  countableOfLeftInverse (fun a : toApply => (a.entries', a.snapshot', a.notifyc', a.raftAdvancedC'))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun a : toApply => (a.entries', a.snapshot', a.snapshotPersistedC',
+      a.raftStorageReadyC', a.waitForStorageBeforeApply', a.applyCompletedC', a.raftAdvancedC',
+      a.onApplyCompleted'))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩) (fun _ => rfl)
+
+/-- (etcd-io/etcd#22223) the append worker's queue element. -/
+instance asyncAppendWork_countable : Pos.Countable asyncAppendWork :=
+  countableOfLeftInverse (fun a : asyncAppendWork => (a.message', a.barrierC'))
+    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
 
 -- `ReadState`'s instance (`readState_countable`): `InvRequest.lean` (2026-10-13, the read loop).
 
@@ -125,6 +134,10 @@ abbrev rnTickerAddr (r : Loc) : Loc := structFieldRef raftNode go!"ticker" r
 abbrev rnTdAddr (r : Loc) : Loc := structFieldRef raftNode go!"td" r
 abbrev rnStoppedAddr (r : Loc) : Loc := structFieldRef raftNode go!"stopped" r
 abbrev rnDoneAddr (r : Loc) : Loc := structFieldRef raftNode go!"done" r
+-- (etcd-io/etcd#22223) the asynchronous-storage-writes switch and the storage responses' cancel
+abbrev rnAsyncAddr (r : Loc) : Loc :=
+  structFieldRef raftNodeConfig go!"asyncStorageWrites" (rnCfgAddr r)
+abbrev rnCancelSRAddr (r : Loc) : Loc := structFieldRef raftNode go!"cancelStorageResponses" r
 
 end addrs
 
@@ -665,22 +678,37 @@ def rnTickInv (r : Loc) (q : Qp) : IProp GF :=
 
 /-! ## `applyc` -/
 
-/-- A unit channel with no logical content (`notifyc`, `raftAdvancedC`, `stopped`). -/
+/-- A unit channel with no logical content (`raftAdvancedC`, `stopped`). -/
 def isUnitBag (c : Loc) : IProp GF :=
   iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(True)))
 
 instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) := by
   unfold isUnitBag; infer_instance
 
+/-- **A legacy (`Ready`/`Advance`) payload's synchronization points** (etcd-io/etcd#22223, which
+replaced the single `notifyc` by explicit channels): the apply side does not wait for storage
+before applying (`waitForStorageBeforeApply = false`) and has no completion callback
+(`onApplyCompleted = nil`); `raftStorageReadyC`, which the loop closes once the batch is
+persisted and appended, is a broadcast channel the apply side may receive from (`.Unknown`);
+`applyCompletedC`, which the apply side closes once done, comes with the right to close it
+(`.Pending`; the loop keeps an `.Unknown` view to wait on it); `raftAdvancedC` a unit bag. No
+payload carries a proposition: the ordering the channels enforce (persist, then snapshot; apply,
+then a follower's send) is not modeled, only that the waits do not block forever. -/
+def rnApChans (ap : toApply) : IProp GF :=
+  iprop(⌜ap.waitForStorageBeforeApply' = false ∧ ap.onApplyCompleted' = func.nil⌝ ∗
+    (∃ γc : ChanNames, ownBroadcastChan ap.raftStorageReadyC' γc iprop(True) .Unknown) ∗
+    (∃ γc : ChanNames, ownBroadcastChan ap.applyCompletedC' γc iprop(True) .Pending) ∗
+    isUnitBag ap.raftAdvancedC')
+
 /-- The `i`th payload on `applyc`: the log `F` forwarded before it (`cum[i]`) and the batch
-`ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two channels;
-and (2026-10-14, unit C2a) the committed index at least the batch's last index (`committedLast`:
-`updateCommittedIndex` raised it before the send). -/
+`ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its channels
+(`rnApChans`; etcd-io/etcd#22223); and (2026-10-14, unit C2a) the committed index at least the
+batch's last index (`committedLast`: `updateCommittedIndex` raised it before the send). -/
 def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC' ∗ committedLast E.γr ce)
+    rnApChans ap ∗ committedLast E.γr ce)
 
 /-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never
@@ -727,7 +755,8 @@ states' bridge, the `MemoryStorage`'s registration (the `raftStorage` field is t
 def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
   iprop(∃ (lg mu ms td tk : Loc) (n st tr : GoInterface) (idr : GoFunc)
-      (hb : time.Duration) (msc apc rsc stc dnc : GoChan),
+      (hb : time.Duration) (msc apc rsc stc dnc : GoChan) (csr : GoFunc)
+      (γcsr : context.ContextNames),
     "#Henv" ∷ rnEnvOk E γ ∗ "#Hfits" ∷ rnLogFits γ ∗ "#Hrsb" ∷ rnReadStateBridge E γ ∗
     "#Hreg" ∷ memStorReg γ.ms γ.γs ∗
     "#Hlg" ∷ rnLgAddr r ↦□ lg ∗ "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
@@ -746,7 +775,12 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
     "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ isUnitBag stc ∗
-    "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
+    "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown ∗
+    -- (etcd-io/etcd#22223) asynchronous storage writes off: the loop takes the `Ready`/`Advance`
+    -- path (raft's proofs cover synchronous writes only, `NewRawNode.spec`'s
+    -- `AsyncStorageWrites = false`); the storage responses' cancel function returns
+    "#Hasync" ∷ rnAsyncAddr r ↦□ false ∗
+    "#Hcsr" ∷ rnCancelSRAddr r ↦□ csr ∗ "#Hcsri" ∷ context.cancelSpec csr γcsr iprop(True))
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
     Persistent (isRaftNode E γ r) where
@@ -755,7 +789,7 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
     iintro H
     iNamed H
     imodintro
-    iexists lg, mu, ms, td, tk, n, st, tr, idr, hb, msc, apc, rsc, stc, dnc
+    iexists lg, mu, ms, td, tk, n, st, tr, idr, hb, msc, apc, rsc, stc, dnc, csr, γcsr
     simp only [named]
     iframe #
     isplit

@@ -40,7 +40,7 @@ theorem StartNode.wp_proof
   wp_apply wp_setupNode γ c cv lok si σ hs csm peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
     P8 P9 P10 P11 P12 P13 P14 P15 P16 P17 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9
     $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted]
-    as %np ⟨%nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers⟩
+    as %np ⟨%nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers, Hcb⟩
   ipersist Hn
   try wp_auto
   -- the node's ghost state
@@ -111,7 +111,7 @@ theorem StartNode.wp_proof
   iexists γn, np
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
-  iframe Hnode Hpeers
+  iframe Hnode Hpeers Hcb
   isplitl [Hdlv2]
   · unfold nodeDriver dlvLb
     iframe Hnode Hdlv2 Hdlb

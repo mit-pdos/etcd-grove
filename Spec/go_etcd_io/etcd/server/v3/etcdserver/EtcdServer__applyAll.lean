@@ -25,7 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.applyAll(ep, ap)`**, the apply loop's step on one `toApply` from raft (`ap`: its entries
 `ms`, consecutive from `f0` with no gap after the applied index `ai`, as `applyEntries` takes them;
-no snapshot, `rnApP`; its `notifyc`, a unit bag channel raft signals once it persisted the batch),
+no snapshot, `rnApP`; its synchronization points, `taSyncOk`: etcd-io/etcd#22223 replaced the
+single `notifyc` by `raftStorageReadyC`, the completion callback and `applyCompletedC`),
 by the apply thread: `applySnapshot` (nothing: no snapshot), `applyEntries` (the KV goes from `x`
 to `x'` by `entriesStep` over the entries above `ai`, under `entriesOk`; the applied index to `ai'`,
 the last entry's or `ai`; each `setAppliedIndex` deposits the KV log after its entry, so the log
@@ -33,23 +34,26 @@ applied through `ai'` is `x'.log`; 2026-10-14, unit C2a: each entry committed,
 `batchCommittedIdx`, and its log deposited ahead of its result), the backend's verification (`VerifyBackendConsistency`, the
 trust boundary), the `proposalsApplied` gauge, **`applyWait.Trigger(ai')`** (with `appliedAtLeast γr
 ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV has applied through
-`ai'`), `<-ap.notifyc`, the snapshot trigger (`snapshotIfNeededAndCompactRaftLog`, over the
-`snapshot`/`compactRaftLog` contracts), and a pending merged-snapshot request on `msgSnapC`
-(names-only contracts). The apply thread's resources come back at `ai'`, with `loopOk`. **The
+`ai'`), `<-ap.raftStorageReadyC` (before `applySnapshot` instead when
+`waitForStorageBeforeApply`, the asynchronous path's), the completion (`notifyApplyCompleted`:
+the callback with its resource `P`, then `applyCompletedC` closed), and the snapshot trigger
+(`snapshotIfNeededAndCompactRaftLog`, over the `snapshot`/`compactRaftLog` contracts). (Until
+etcd-io/etcd#22223 it also served a pending merged-snapshot request on `msgSnapC`; `run` does
+now, as a job of its own.) The apply thread's resources come back at `ai'`, with `loopOk`. **The
 write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the
 store per entry above `ai` (`txn.storeWTs E.γ (unapplied ai ms).length`), spent. **The KV model**
 (2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). -/
 abbrev EtcdServer.applyAll.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
-    (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
+    (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac : GoChan) (P : IProp GF) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → entriesOk (ciEff γ st.k) (unapplied ai ms) x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
-      taNotifycAddr ap ↦□ nc ∗ isUnitBag nc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
+      taSyncOk ap P ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvSnapState s ep ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗

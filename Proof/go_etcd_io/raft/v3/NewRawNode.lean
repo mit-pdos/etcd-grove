@@ -42,7 +42,8 @@ theorem NewRawNode.wp_proof
   wp_apply wp_newRaft c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hdccv Hmcs
     (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
     Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
-    $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAW, %Hpost⟩
+    $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAWID, %Hpost⟩
+  obtain ⟨HAW, HID⟩ := HAWID
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   try wp_auto
@@ -81,7 +82,11 @@ theorem NewRawNode.wp_proof
       | iapply ownSlice_nil
       | iapply ownSliceCap_nil
       | (simp only; rw [HAW, Hasync])
-  · ipureintro; rfl
+  · isplitr
+    · ipureintro; rfl
+    iexists cv'
+    iframe Hc
+    ipureintro; exact ⟨HID, HAW⟩
 
 end proof
 

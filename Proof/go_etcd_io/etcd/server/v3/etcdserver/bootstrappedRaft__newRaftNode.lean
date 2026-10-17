@@ -80,7 +80,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       #bv.storage' from rfl]
     rw [method_unfold (t := go.GoType.PointerType MemoryStorage.ty) (m := go!"InitialState")]
     iframe #; iframe Hc Hsto Hghost Hpeers
-  icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers⟩
+  icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers, ⟨%cv2, Hc, %Hcv2⟩⟩
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hndeq⟩ := Hnd
   subst Hndeq
   (try wp_auto)
@@ -102,10 +102,16 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   iunfold rnNewStorageOk at Hns
   wp_apply Hns $$ %bv.lg' %wal %ss [] as %st #Hst
   (try wp_auto)
+  -- (etcd-io/etcd#22223) `localID: b.config.ID`, `asyncStorageWrites: b.config.AsyncStorageWrites`,
+  -- read from the `Config` `StartNode` gave back
+  iStructNamedSuffix Hc "K"
+  (try wp_auto)
+  rw [Hcv2.1, Hcv2.2]
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γn cv.ID' n pre bv.storage' γs reg
-    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
-      bv.heartbeat' GoInterface.nil) Hlg Hhb) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
+    (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) cv.ID'
+      cv.AsyncStorageWrites' bv.storage' st bv.heartbeat' GoInterface.nil) Hlg Hhb Hasync)
+      $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]

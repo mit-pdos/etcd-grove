@@ -170,7 +170,7 @@ abbrev newRaft.spec : Prop :=
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
       ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
       -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
-      c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
+      c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites' ∧ cv'.ID' = cv.ID'⌝ ∗
       ⌜NStateWf s ∧
         s.term = hs.Term' ∧
         s.vote = hs.Vote' ∧

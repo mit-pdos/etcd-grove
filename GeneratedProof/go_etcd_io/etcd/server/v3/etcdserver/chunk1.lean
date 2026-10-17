@@ -945,8 +945,12 @@ instance toApply_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "entries" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"entries" l) v.entries' dq ∗
     "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshot" l) v.snapshot' dq ∗
-    "notifyc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"notifyc" l) v.notifyc' dq ∗
+    "snapshotPersistedC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshotPersistedC" l) v.snapshotPersistedC' dq ∗
+    "raftStorageReadyC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftStorageReadyC" l) v.raftStorageReadyC' dq ∗
+    "waitForStorageBeforeApply" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"waitForStorageBeforeApply" l) v.waitForStorageBeforeApply' dq ∗
+    "applyCompletedC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"applyCompletedC" l) v.applyCompletedC' dq ∗
     "raftAdvancedC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftAdvancedC" l) v.raftAdvancedC' dq ∗
+    "onApplyCompleted" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"onApplyCompleted" l) v.onApplyCompleted' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -988,19 +992,67 @@ instance toApply_access_store_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.
  by
   solve_pointsto_access_struct
 
-instance toApply_access_load_notifyc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
+instance toApply_access_load_snapshotPersistedC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"notifyc" l) v.notifyc' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"notifyc" l) v.notifyc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshotPersistedC" l) v.snapshotPersistedC' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshotPersistedC" l) v.snapshotPersistedC' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance toApply_access_store_notifyc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (notifyc' : GoChan) :
+instance toApply_access_store_snapshotPersistedC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (snapshotPersistedC' : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"notifyc" l) v.notifyc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"notifyc" l) notifyc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with notifyc' := notifyc' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshotPersistedC" l) v.snapshotPersistedC' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshotPersistedC" l) snapshotPersistedC' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshotPersistedC' := snapshotPersistedC' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_load_raftStorageReadyC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftStorageReadyC" l) v.raftStorageReadyC' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftStorageReadyC" l) v.raftStorageReadyC' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_store_raftStorageReadyC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (raftStorageReadyC' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftStorageReadyC" l) v.raftStorageReadyC' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftStorageReadyC" l) raftStorageReadyC' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raftStorageReadyC' := raftStorageReadyC' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_load_waitForStorageBeforeApply (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"waitForStorageBeforeApply" l) v.waitForStorageBeforeApply' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"waitForStorageBeforeApply" l) v.waitForStorageBeforeApply' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_store_waitForStorageBeforeApply (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (waitForStorageBeforeApply' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"waitForStorageBeforeApply" l) v.waitForStorageBeforeApply' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"waitForStorageBeforeApply" l) waitForStorageBeforeApply' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitForStorageBeforeApply' := waitForStorageBeforeApply' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_load_applyCompletedC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"applyCompletedC" l) v.applyCompletedC' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"applyCompletedC" l) v.applyCompletedC' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_store_applyCompletedC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (applyCompletedC' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"applyCompletedC" l) v.applyCompletedC' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"applyCompletedC" l) applyCompletedC' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyCompletedC' := applyCompletedC' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1017,6 +1069,22 @@ instance toApply_access_store_raftAdvancedC (l : Loc) (v : go_etcd_io.etcd.serve
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftAdvancedC" l) v.raftAdvancedC' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftAdvancedC" l) raftAdvancedC' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raftAdvancedC' := raftAdvancedC' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_load_onApplyCompleted (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"onApplyCompleted" l) v.onApplyCompleted' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"onApplyCompleted" l) v.onApplyCompleted' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_store_onApplyCompleted (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (onApplyCompleted' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"onApplyCompleted" l) v.onApplyCompleted' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"onApplyCompleted" l) onApplyCompleted' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onApplyCompleted' := onApplyCompleted' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1037,6 +1105,8 @@ instance raftNodeConfig_typed_pointsto :
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"lg" l) v.lg' dq ∗
     "isIDRemoved" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"isIDRemoved" l) v.isIDRemoved' dq ∗
     "Node" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"Node" l) v.Node' dq ∗
+    "localID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"localID" l) v.localID' dq ∗
+    "asyncStorageWrites" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"asyncStorageWrites" l) v.asyncStorageWrites' dq ∗
     "raftStorage" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"raftStorage" l) v.raftStorage' dq ∗
     "storage" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"storage" l) v.storage' dq ∗
     "heartbeat" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"heartbeat" l) v.heartbeat' dq ∗
@@ -1095,6 +1165,38 @@ instance raftNodeConfig_access_store_Node (l : Loc) (v : go_etcd_io.etcd.server.
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"Node" l) v.Node' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"Node" l) Node' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Node' := Node' } : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNodeConfig_access_load_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"localID" l) v.localID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"localID" l) v.localID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNodeConfig_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (localID' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"localID" l) v.localID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"localID" l) localID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with localID' := localID' } : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNodeConfig_access_load_asyncStorageWrites (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"asyncStorageWrites" l) v.asyncStorageWrites' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"asyncStorageWrites" l) v.asyncStorageWrites' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNodeConfig_access_store_asyncStorageWrites (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (asyncStorageWrites' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"asyncStorageWrites" l) v.asyncStorageWrites' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig go!"asyncStorageWrites" l) asyncStorageWrites' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncStorageWrites' := asyncStorageWrites' } : go_etcd_io.etcd.server.v3.etcdserver.raftNodeConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1164,6 +1266,63 @@ instance raftNodeConfig_access_store_transport (l : Loc) (v : go_etcd_io.etcd.se
 
 end def_
 end raftNodeConfig
+
+namespace asyncAppendWork
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+instance asyncAppendWork_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork where
+  typedPointstoDef l v dq := iprop(
+    "message" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"message" l) v.message' dq ∗
+    "barrierC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"barrierC" l) v.barrierC' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance asyncAppendWork_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork.underlying := by
+  solve_into_val_typed_struct
+
+instance asyncAppendWork_access_load_message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"message" l) v.message' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"message" l) v.message' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance asyncAppendWork_access_store_message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork) (message' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"message" l) v.message' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"message" l) message' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with message' := message' } : go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance asyncAppendWork_access_load_barrierC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"barrierC" l) v.barrierC' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"barrierC" l) v.barrierC' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance asyncAppendWork_access_store_barrierC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork) (barrierC' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"barrierC" l) v.barrierC' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork go!"barrierC" l) barrierC' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with barrierC' := barrierC' } : go_etcd_io.etcd.server.v3.etcdserver.asyncAppendWork) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end asyncAppendWork
 
 namespace Response
 section def_
@@ -1365,97 +1524,6 @@ instance etcdProgress_access_store_appliedi (l : Loc) (v : go_etcd_io.etcd.serve
 
 end def_
 end etcdProgress
-
-namespace raftReadyHandler
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-instance raftReadyHandler_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler where
-  typedPointstoDef l v dq := iprop(
-    "getLead" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"getLead" l) v.getLead' dq ∗
-    "updateLead" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLead" l) v.updateLead' dq ∗
-    "updateLeadership" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLeadership" l) v.updateLeadership' dq ∗
-    "updateCommittedIndex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateCommittedIndex" l) v.updateCommittedIndex' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance raftReadyHandler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler.underlying := by
-  solve_into_val_typed_struct
-
-instance raftReadyHandler_access_load_getLead (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"getLead" l) v.getLead' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"getLead" l) v.getLead' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_store_getLead (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (getLead' : GoFunc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"getLead" l) v.getLead' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"getLead" l) getLead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getLead' := getLead' } : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_load_updateLead (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLead" l) v.updateLead' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLead" l) v.updateLead' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_store_updateLead (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (updateLead' : GoFunc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLead" l) v.updateLead' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLead" l) updateLead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with updateLead' := updateLead' } : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_load_updateLeadership (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLeadership" l) v.updateLeadership' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLeadership" l) v.updateLeadership' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_store_updateLeadership (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (updateLeadership' : GoFunc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLeadership" l) v.updateLeadership' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateLeadership" l) updateLeadership' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with updateLeadership' := updateLeadership' } : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_load_updateCommittedIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateCommittedIndex" l) v.updateCommittedIndex' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateCommittedIndex" l) v.updateCommittedIndex' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance raftReadyHandler_access_store_updateCommittedIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (updateCommittedIndex' : GoFunc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateCommittedIndex" l) v.updateCommittedIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler go!"updateCommittedIndex" l) updateCommittedIndex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with updateCommittedIndex' := updateCommittedIndex' } : go_etcd_io.etcd.server.v3.etcdserver.raftReadyHandler) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end raftReadyHandler
 
 end go_etcd_io.etcd.server.v3.etcdserver
 end

@@ -10,8 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.toApply__notifyApplyCompleted
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 
 @[expose] public section
@@ -43,12 +42,13 @@ theorem EtcdServer.applyAll.wp_proof
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG))
-    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
-    (hSM : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG)) :
+    (hNAC : toApply.notifyApplyCompleted.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac P st ai at0 a t cs x A Hms Hai1 Hok hEok
+  wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, Hsync, #Hesl, #Hentsat, Hai, Hat, Hcs,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, HW, Hka, #Hkb⟩
+  iunfold taSyncOk at Hsync
+  icases Hsync with ⟨%w, %rsc, %γrs, %f, %acc, #Hw, #Hrsc, #Hrsb, #Hf, #Hfok, HP, #Hacc, Hdone⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -, -⟩
@@ -63,6 +63,11 @@ theorem EtcdServer.applyAll.wp_proof
   ihave #Pbe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   wp_auto
+  -- (etcd-io/etcd#22223) `if apply.waitForStorageBeforeApply { <-apply.raftStorageReadyC }`
+  wp_join with [ep apply]
+  · wp_apply wp_broadcast_receive rsc γrs iprop(True) .Unknown $$ [$Hrsb]
+    (try wp_auto)
+    wp_join_done
   -- `s.applySnapshot(ep, apply)`: no snapshot
   wp_apply hASnap s ep ap $$ []
   · iframe #
@@ -95,11 +100,15 @@ theorem EtcdServer.applyAll.wp_proof
   wp_apply HTrig $$ []
   · iintro !>; iexact Hlb
   (try wp_auto)
-  -- `<-apply.notifyc`
-  iunfold isUnitBag at Hncb
-  icases Hncb with ⟨%γn, #Hncb⟩
-  wp_apply wp_bag_receive γn nc (fun _ => iprop(True)) $$ [] as %u -
-  · iexact Hncb
+  -- `if !apply.waitForStorageBeforeApply { <-apply.raftStorageReadyC }`
+  rw [show (!w) = decide (w = false) from by cases w <;> rfl]
+  wp_join with [ep apply]
+  · wp_apply wp_broadcast_receive rsc γrs iprop(True) .Unknown $$ [$Hrsb]
+    (try wp_auto)
+    wp_join_done
+  -- `apply.notifyApplyCompleted()`
+  wp_apply hNAC ap f acc P $$ [HP Hdone]
+  · iframe #; iframe
   (try wp_auto)
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' hok'
@@ -107,92 +116,16 @@ theorem EtcdServer.applyAll.wp_proof
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe
   (try wp_auto)
-  -- `select { case m := <-s.r.msgSnapC: ...; default: }`
-  ihave #Hmscch := is_bag_is_chan γc msc Pm $$ Hmscb
-  rw [isChanBag_unseal] at *
-  iunfold isChanBagDef at Hmscb
-  icases Hmscb with ⟨-, #Hinv⟩
-  wp_apply_core chan.wp_select_nonblocking
-  isplit
-  · iapply BigAndL.bigAndL_cons.2
-    isplit
-    · simp only [chan.nonblockingClausePre]
-      iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, msc, γc
-      isplitr
-      · ipureintro; rfl
-      isplitr
-      · iexact Hmscch
-      unfold nonblockingRecvAu nonblockingRecvAuInner
-      isplit
-      · iinv Hinv with Hi Hclose
-        iapply fupd_mask_intro Std.LawfulSet.empty_subset
-        iintro Hmask
-        inext
-        unfold chanBagInv
-        icases Hi with ⟨%st0, Hoc, Hi⟩
-        iexists st0
-        iframe Hoc
-        rcases st0 with (_ | ⟨v, rest⟩) | _ | v | _ | _ | _ | (_ | ⟨_, _⟩)
-        all_goals dsimp only
-        case Buffered.cons =>
-          iintro Hoc
-          icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨-, Hi⟩
-          imod Hmask with -
-          imod Hclose $$ [Hoc Hi] with -
-          · inext; iexists .Buffered rest; iframe
-          imodintro
-          (try wp_auto)
-          wp_apply hCM s v at' ai' cs' as %merged -
-          (try wp_auto)
-          wp_apply hSM s merged
-          (try wp_auto)
-          iapply HΦ
-          iexists st'', ai', at', a', t', cs'
-          iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
-          isplitl [Hao]
-          · iexact Hao
-          isplitr
-          · iexact Hlb
-          isplitl [HKV Hka]
-          · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-          ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
-        case SndPending =>
-          iintro Hoc
-          imod Hmask with -
-          imod Hclose $$ [Hoc] with -
-          · inext; iexists .RcvCommit; iframe Hoc
-          imodintro
-          (try wp_auto)
-          wp_apply hCM s v at' ai' cs' as %merged -
-          (try wp_auto)
-          wp_apply hSM s merged
-          (try wp_auto)
-          iapply HΦ
-          iexists st'', ai', at', a', t', cs'
-          iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
-          isplitl [Hao]
-          · iexact Hao
-          isplitr
-          · iexact Hlb
-          isplitl [HKV Hka]
-          · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-          ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
-        all_goals first | itrivial | (iexfalso; iexact Hi)
-      · itrivial
-    iapply BigAndL.bigAndL_nil.2
-    itrivial
-  · -- `default`
-    (try wp_auto)
-    iapply HΦ
-    iexists st'', ai', at', a', t', cs'
-    iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
-    isplitl [Hao]
-    · iexact Hao
-    isplitr
-    · iexact Hlb
-    isplitl [HKV Hka]
-    · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-    ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
+  iapply HΦ
+  iexists st'', ai', at', a', t', cs'
+  iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
+  isplitl [Hao]
+  · iexact Hao
+  isplitr
+  · iexact Hlb
+  isplitl [HKV Hka]
+  · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
+  ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
 
 end proof
 

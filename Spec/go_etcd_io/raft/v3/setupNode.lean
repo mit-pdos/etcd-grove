@@ -91,7 +91,9 @@ abbrev setupNode.spec : Prop :=
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, mode := RNMode.static,
             cfg := cfgState (GMap.listToSet ps) ∅ } ∗
-        peers ↦*{dq} pv }}
+        peers ↦*{dq} pv ∗
+        -- (pr-verify/etcd-22223) the `Config` back (`NewRawNode`'s)
+        (∃ cv'' : Config, c ↦ cv'' ∗ ⌜cv''.ID' = cv.ID' ∧ cv''.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝) }}
 
 end spec
 

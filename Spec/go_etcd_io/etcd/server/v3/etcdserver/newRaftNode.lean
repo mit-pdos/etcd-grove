@@ -42,7 +42,12 @@ abbrev newRaftNode.spec : Prop :=
     (ms : Loc) (γs : MemStorNames) (reg : GName) (cv : raftNodeConfig),
   cv.lg' ≠ null →
   cv.heartbeat' ≠ W64 0 →
+  -- (etcd-io/etcd#22223) asynchronous storage writes off: the wrapper's proofs cover the
+  -- `Ready`/`Advance` path only
+  cv.asyncStorageWrites' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      -- (etcd-io/etcd#22223) `context.WithCancel`'s premise
+      context.isClosedchanInit ∗
       -- the contracts (`InvNodeStart.lean`)
       rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnTickerOk E }}
     (App (Val (@! newRaftNode)) (Val #cv))

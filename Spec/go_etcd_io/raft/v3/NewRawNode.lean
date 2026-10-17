@@ -145,7 +145,11 @@ abbrev NewRawNode.spec : Prop :=
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
         rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' s ∗
-        ⌜err = interface.nil⌝ }}
+        ⌜err = interface.nil⌝ ∗
+        -- (pr-verify/etcd-22223) the `Config` back, `validate`d: raft keeps no pointer to it, and
+        -- etcd-io/etcd#22223's `bootstrappedRaft.newRaftNode` reads its `ID` and
+        -- `AsyncStorageWrites` after `StartNode`
+        (∃ cv'' : Config, c ↦ cv'' ∗ ⌜cv''.ID' = cv.ID' ∧ cv''.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝) }}
 
 end spec
 

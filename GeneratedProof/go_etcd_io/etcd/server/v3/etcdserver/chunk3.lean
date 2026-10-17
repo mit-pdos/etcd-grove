@@ -250,6 +250,11 @@ instance raftNode_typed_pointsto :
     "raftNodeConfig" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"raftNodeConfig" l) v.raftNodeConfig' dq ∗
     "msgSnapC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"msgSnapC" l) v.msgSnapC' dq ∗
     "applyc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"applyc" l) v.applyc' dq ∗
+    "appendc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"appendc" l) v.appendc' dq ∗
+    "asyncStopc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncStopc" l) v.asyncStopc' dq ∗
+    "asyncAppendDonec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncAppendDonec" l) v.asyncAppendDonec' dq ∗
+    "storageResponseCtx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"storageResponseCtx" l) v.storageResponseCtx' dq ∗
+    "cancelStorageResponses" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"cancelStorageResponses" l) v.cancelStorageResponses' dq ∗
     "readStateC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"readStateC" l) v.readStateC' dq ∗
     "ticker" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"ticker" l) v.ticker' dq ∗
     "td" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"td" l) v.td' dq ∗
@@ -357,6 +362,86 @@ instance raftNode_access_store_applyc (l : Loc) (v : go_etcd_io.etcd.server.v3.e
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"applyc" l) v.applyc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"applyc" l) applyc' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyc' := applyc' } : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_load_appendc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"appendc" l) v.appendc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"appendc" l) v.appendc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_store_appendc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (appendc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"appendc" l) v.appendc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"appendc" l) appendc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with appendc' := appendc' } : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_load_asyncStopc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncStopc" l) v.asyncStopc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncStopc" l) v.asyncStopc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_store_asyncStopc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (asyncStopc' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncStopc" l) v.asyncStopc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncStopc" l) asyncStopc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncStopc' := asyncStopc' } : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_load_asyncAppendDonec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncAppendDonec" l) v.asyncAppendDonec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncAppendDonec" l) v.asyncAppendDonec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_store_asyncAppendDonec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (asyncAppendDonec' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncAppendDonec" l) v.asyncAppendDonec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"asyncAppendDonec" l) asyncAppendDonec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncAppendDonec' := asyncAppendDonec' } : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_load_storageResponseCtx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"storageResponseCtx" l) v.storageResponseCtx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"storageResponseCtx" l) v.storageResponseCtx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_store_storageResponseCtx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (storageResponseCtx' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"storageResponseCtx" l) v.storageResponseCtx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"storageResponseCtx" l) storageResponseCtx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storageResponseCtx' := storageResponseCtx' } : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_load_cancelStorageResponses (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"cancelStorageResponses" l) v.cancelStorageResponses' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"cancelStorageResponses" l) v.cancelStorageResponses' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftNode_access_store_cancelStorageResponses (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (cancelStorageResponses' : context.CancelFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"cancelStorageResponses" l) v.cancelStorageResponses' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"cancelStorageResponses" l) cancelStorageResponses' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancelStorageResponses' := cancelStorageResponses' } : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

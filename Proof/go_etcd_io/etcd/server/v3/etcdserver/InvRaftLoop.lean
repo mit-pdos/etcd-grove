@@ -55,16 +55,16 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
       rnApP E γ (rcv.length : Int) ap -∗
       ∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
-        ⌜ap.snapshot' = null⌝ ∗ isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC' ∗
+        ⌜ap.snapshot' = null⌝ ∗ rnApChans ap ∗
         committedLast E.γr ce := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
-  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, #Hn, #Hrac, #Hcl⟩
+  icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hch, #Hcl⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
   subst Heq
   iexists ce, ceL
-  iframe Hsl Hents HC Hn Hrac Hcl
+  iframe Hsl Hents HC Hch Hcl
   isplitl [Hcons]
   · iunfold rnApplyTok
     iexists rcv ++ [ap]

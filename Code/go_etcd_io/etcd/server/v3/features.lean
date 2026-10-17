@@ -44,6 +44,8 @@ axiom FastLeaseKeepAlive [FfiSyntax] [GoGlobalContext] : val
 
 axiom NonBlockingDefrag [FfiSyntax] [GoGlobalContext] : val
 
+axiom RaftAsyncStorageWrites [FfiSyntax] [GoGlobalContext] : val
+
 noncomputable def DefaultEtcdServerFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.DefaultEtcdServerFeatureGates"
 

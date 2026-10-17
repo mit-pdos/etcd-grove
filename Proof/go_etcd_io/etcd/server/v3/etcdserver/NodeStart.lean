@@ -107,13 +107,17 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
   ipersist tdR
   ipersist stoppedR
   ipersist doneR
+  ipersist asyncStorageWritesC
+  ipersist cancelStorageResponsesR
+  icases Hcsri with ⟨%γcsr, #Hcsri⟩
+  rw [Hasync]
   imodintro
   isplitr
   · iunfold isRaftNode
     iexists rv.lg', rv.tickMu', rv.raftNodeConfig'.raftStorage', rv.td', rv.ticker',
       rv.raftNodeConfig'.Node', rv.raftNodeConfig'.storage', rv.raftNodeConfig'.transport',
       rv.raftNodeConfig'.isIDRemoved', rv.raftNodeConfig'.heartbeat', rv.msgSnapC', rv.applyc',
-      rv.readStateC', rv.stopped', rv.done'
+      rv.readStateC', rv.stopped', rv.done', rv.cancelStorageResponses', γcsr
     simp only [named]
     iframe #
     isplitr
@@ -227,7 +231,7 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
         "#Hcinv" ∷ raftCommitInv γ ∗
         "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        "#Hcci" ∷ context.isClosedchanInit ∗ "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- the server's own: `rnEnvOk` for the wrapper's names raft hands back, the committed
@@ -355,7 +359,9 @@ theorem raftNode_of_StartNode (reg : GName)
   iNamed Hparts
   simp only [named]
   iframe #
-  ipureintro; exact Hlgnn
+  isplitr
+  · ipureintro; exact Hlgnn
+  ipureintro; first | assumption | simpa using Hasync
 
 end compose
 

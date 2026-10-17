@@ -195,7 +195,12 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Htki" ∷ isRNTicker E rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
     "#Hstci" ∷ isUnitBag rv.stopped' ∗
-    "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Unknown)
+    "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Unknown ∗
+    -- (etcd-io/etcd#22223) asynchronous storage writes off (the caller's configuration), and the
+    -- storage responses' context's cancel function (`context.WithCancel(context.Background())`)
+    "%Hasync" ∷ ⌜rv.raftNodeConfig'.asyncStorageWrites' = false⌝ ∗
+    "#Hcsri" ∷ (∃ γc : context.ContextNames,
+      context.cancelSpec rv.cancelStorageResponses' γc iprop(True)))
 
 instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :
     Persistent (rnParts E γ rv) := by

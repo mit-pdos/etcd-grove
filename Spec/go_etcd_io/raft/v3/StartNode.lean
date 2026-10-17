@@ -124,7 +124,9 @@ abbrev StartNode.spec : Prop :=
         -- the driver's view of the configuration: the peers'
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the peers' slice, read only
-        peers ↦*{dq} pv }}
+        peers ↦*{dq} pv ∗
+        -- (pr-verify/etcd-22223) the `Config` back (`NewRawNode`'s)
+        (∃ cv'' : Config, c ↦ cv'' ∗ ⌜cv''.ID' = cv.ID' ∧ cv''.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝) }}
 
 end spec
 
