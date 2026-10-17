@@ -14,9 +14,10 @@ at `v3rpc.etcdModelOfServer E`, for a non-empty prefix. The call is `kv.Get` at 
   `kv.Do` sends (`rangeWireOf o`) has the `Op`'s key, range, revision, limit, filters, flags; its
   sort fields are the `int32` values of the `Op`'s, the `Op`'s own for the values `getExact`
   allows, so the effective order and target are the `Op`'s.
-* **The server answers as the model says** (`wire_not_cutEarly`, `wire_fastKeysOnly`,
-  `wire_answer`): for a `getExact` get, `txn.srvRangeOk_rangeKvsOk` applies, the leases are not
-  zeroed, and `More` is the model's.
+* **The server answers as the model says** (`wire_not_cutEarly`, `wire_answer`): for a
+  `getExact` get, `txn.srvRangeOk_rangeKvsOk` applies and `More` is the model's. A keys-only get
+  is one since etcd-io/etcd#22550 (its fast read returns the leases; before, `getExact` excluded
+  keys-only gets: `issues/etcd-range-keys-only-lease.md`).
 * **A prefix get lists the state under the prefix** (`prefix_answer`, for a non-empty prefix:
   `isPrefixGet []` reads from `"\x00"` on and would leave out an empty key, which the server's
   model does not exclude; hence `pfx ≠ []`).
@@ -78,7 +79,7 @@ theorem wire_sort (o : OpFull) (hx : o.getExact) :
       (o.effSortOrder ≠ W64 0 → (rangeWireOf o).sortTarget = o.sortTarget) ∧
       (rangeWireOf o).base.sortSet =
         decide ((rangeWireOf o).sortOrder ≠ W64 0 ∨ (rangeWireOf o).sortTarget ≠ W64 0) := by
-  obtain ⟨-, -, -, ho0, ho1, ht0, ht1⟩ := hx
+  obtain ⟨-, -, ho0, ho1, ht0, ht1⟩ := hx
   have eo := sext_small o.sortOrder ho0 (by omega)
   have et := sext_small o.sortTarget ht0 ht1
   have zo := w32_zero_iff o.sortOrder ho0 (by omega)
@@ -93,7 +94,7 @@ theorem wire_sort (o : OpFull) (hx : o.getExact) :
 
 theorem wire_sort_fields (o : OpFull) (hx : o.getExact) (hs : o.base.sortSet = true) :
     (rangeWireOf o).sortOrder = o.sortOrder ∧ (rangeWireOf o).sortTarget = o.sortTarget := by
-  obtain ⟨-, -, -, ho0, ho1, ht0, ht1⟩ := hx
+  obtain ⟨-, -, ho0, ho1, ht0, ht1⟩ := hx
   have h1 := sext_small o.sortOrder ho0 (by omega)
   have h2 := sext_small o.sortTarget ht0 ht1
   constructor
@@ -109,7 +110,7 @@ theorem rangeLimit_nonpos (l : w64) (h : sint.Z l ≤ 0) :
 theorem wire_not_cutEarly (o : OpFull) (hx : o.getExact) : ¬ txn.cutEarly (rangeWireOf o) := by
   rintro ⟨he, hlim⟩
   rw [(wire_sort o hx).1] at he
-  have hc := hx.2.1
+  have hc := hx.1
   cases hs : o.base.sortSet
   · simp [OpFull.effSortOrder, hs] at he
   obtain ⟨eo, et⟩ := wire_sort_fields o hx hs
@@ -134,9 +135,6 @@ theorem wire_not_cutEarly (o : OpFull) (hx : o.getExact) : ¬ txn.cutEarly (rang
   unfold txn.rangeLimitOf at hlim
   exact absurd hlim (by simp only [] at this ⊢; omega)
 
-theorem wire_fastKeysOnly (o : OpFull) (hx : o.getExact) : txn.fastKeysOnly (rangeWireOf o) = false := by
-  simp [txn.fastKeysOnly, (wire_fields o).2.2.2.2.2.1, hx.1]
-
 theorem wire_rangeKvsOk (o : OpFull) (hx : o.getExact) (sel kvs : List EtcdKv)
     (h : rangeKvsOk (rangeWireOf o) sel kvs) : rangeKvsOk o sel kvs := by
   obtain ⟨he, ht, -⟩ := wire_sort o hx
@@ -158,16 +156,12 @@ theorem wire_answer (o : OpFull) (hx : o.getExact) (st kvs : List EtcdKv) (more 
   obtain ⟨-, -, -, el, ec, -⟩ := wire_fields o
   obtain ⟨kvs', hok, hk, hm⟩ := txn.srvRangeOk_rangeKvsOk (rangeWireOf o) st kvs more
     (wire_sort o hx).2.2 h (wire_not_cutEarly o hx)
-  rw [wire_fastKeysOnly o hx] at hk
-  have hk' : kvs = kvs' := by
-    rw [hk]; conv => rhs; rw [← List.map_id kvs']
-    congr 1
-  subst hk'
+  subst hk
   rw [wire_rangeSel] at hok hm
   refine ⟨wire_rangeKvsOk o hx _ _ hok, ?_⟩
   cases hco : o.base.countOnly
   · rw [ec, el, hco] at hm
-    rw [hm rfl hx.2.2.1]
+    rw [hm rfl hx.2.1]
     simp
   · obtain ⟨l, ⟨hperm, -⟩, hmore, -⟩ := h
     have hpre : txn.srvPre (rangeWireOf o) st = [] := by

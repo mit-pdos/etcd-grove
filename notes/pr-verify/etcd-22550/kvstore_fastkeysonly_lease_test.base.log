@@ -1,0 +1,4 @@
+--- FAIL: TestFastKeysOnlyLeaseRestore (0.26s)
+        kvstore_fastkeysonly_lease_test.go:106: live: rev 10: fast keys-only key:"k0"  create_revision:6  mod_revision:6  version:1, full read key:"k0"  create_revision:6  mod_revision:6  version:1  lease:2
+        kvstore_fastkeysonly_lease_test.go:106: live: rev 10: fast keys-only key:"k5"  create_revision:10  mod_revision:10  version:1, full read key:"k5"  create_revision:10  mod_revision:10  version:1  lease:1
+        kvstore_fastkeysonly_lease_test.go:106: live: rev 10: fast keys-only key:"k0"  create_revision:6  mod_revision:6  version:1, full read key:"k0"  create_revision:6  mod_revision:6  version:1  lease:2

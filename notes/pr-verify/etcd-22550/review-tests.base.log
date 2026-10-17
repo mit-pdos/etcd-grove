@@ -1,0 +1,8 @@
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc [build failed]
+--- FAIL: TestReviewIgnoreLeaseKeysOnly (0.02s)
+        	Error:      	Not equal: 
+        	            	expected: 7
+        	            	actual  : 0
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/txn	0.071s
+FAIL

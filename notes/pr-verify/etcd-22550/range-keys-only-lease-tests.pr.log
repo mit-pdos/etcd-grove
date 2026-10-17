@@ -1,0 +1,13 @@
+--- PASS: TestRangeKeysOnlyLease (0.01s)
+    --- PASS: TestRangeKeysOnlyLease/leased_key/KEY (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/leased_key/VERSION (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/leased_key/VALUE (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/lease_removed/KEY (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/lease_removed/VERSION (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/lease_removed/VALUE (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/lease_removed,_past_revision/KEY (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/lease_removed,_past_revision/VERSION (0.00s)
+    --- PASS: TestRangeKeysOnlyLease/lease_removed,_past_revision/VALUE (0.00s)
+ok  	go.etcd.io/etcd/server/v3/etcdserver/txn	0.016s
+--- PASS: TestKVGetKeysOnlyLease (0.16s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3	0.208s
