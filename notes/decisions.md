@@ -7768,3 +7768,107 @@ environment's `C`/`T`/`RQ` in its channels' predicates at the call, while `isSer
   `v3compactor.New`, `restoreAlarms`, `tr.Start` can fail, so their contracts do not promise
   success, and the proof steps through the two deferred closures (`b.Close()`,
   `newSrv.kv.Close()`).
+
+## The KV over both stores, the hook installed late, the constructors' contracts (unit N4)
+
+**2026-10-17 · adopted (branch `raft-retarget`; D14; after N1 stopped, `notes/STATUS.md`,
+"Server construction, unit N1")**
+
+`NewServer` sets `srv.kv = mvcc.New(…)`, a `*watchableStore`, creates the lessor and the store
+before it installs the backend's post-lock hook (`server.go:412`), and calls eight names-only
+constructors. N1 found the request-path and apply results stated for a plain `*store`
+(`txn.isKV`), the stores' backend contracts needing the hook fixed at creation, and seven
+constructor contracts false. D14 settles the three.
+
+- **D14a: the KV abstraction, by the store's own two shapes.** The `mvcc.KV` value is either the
+  plain store or the watchable store wrapping it; everything the txn and apply proofs read goes
+  through the inner `*store` `s` and its names `γ` (the watchable store's `γw.st`), unchanged.
+  * `mvcc.kvIs kv s γ` (persistent): `kv` is `*store` at `s`, or a `*watchableStore` `ws` whose
+    embedded `store` is `s` (`ws.store ↦□ s`); with `isStore s γ`. `isReadView rv s γ` becomes
+    `rv.kv ↦□ kv ∗ kvIs kv s γ` (a watchable store points its inner store's `ReadView` at itself,
+    `newWatchableStore`): `readView.*`, `store.Rev` read through either (`Read` of the watchable
+    store is the promoted `store.Read`, a wrapper lemma).
+  * `txn.isKV kv s γ`: the plain store (`γ.watchQ = false`) or a watchable store over `s`
+    (`∃ ws γw, kv = *watchableStore ws ∗ isWatchableStore ws s γw ∗ γw.st = γ`, so
+    `γ.watchQ = true`). `isApplyKV` is unchanged in form (its read view is `isReadView`'s).
+  * **The writer.** The watchable store's write transaction needs the sole writer of its notified
+    log (`watchWriter γw L`: the certificate, every token, the writer's half of `γw.wlog`; K1a,
+    final on the watch side) and notifies under `s.mu` at `End`. So the writer's resource grows a
+    part that is empty for the plain store: `txn.wlogOwn s γ L` (`if γ.watchQ`: some watchable
+    store over `s`, `γw.st = γ`, the half `ghostVar γw.wlog ½ L` and the certificate of `L`), and
+    `txn.kvWriter s γ L := soleWriter γ L ∗ wlogOwn s γ L`. Which `ws`/`γw` the half belongs to
+    is fixed by `s`: two watchable stores over `s` are the same (`s.ReadView ↦□ rv`,
+    `rv.kv ↦□ ws`), and the transaction uses the names the writer's half carries.
+  * **The txn specs.** `Put`, `DeleteRange`, `Txn` keep their token-and-certificate form (`m`
+    tokens, a certificate of `log₀`, the pin) and add the writer's part: `wlogOwn s γ Lw` with
+    `γ.watchQ → m + 1 = soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63` (a watchable store's writer is
+    the sole writer), given back at the transaction's committed log. The sole-writer corollaries
+    (`SoleWriterKV.lean`, `txn/Results.lean`) and the apply thread's `kvOwn` take `kvWriter`
+    where they took `soleWriter`. `Range`/`Count` change only through `isKV`.
+  * **The write transaction as an interface value.** The functions handed `kv.Write`'s result
+    (`put`, `deleteRange`, `getPrevKV`, `checkAndGetPrevKV`, `executeTxn`/`txn` through
+    `txnViewIs`) take `interface.mkOk tyX vX` with `mvcc.twWrap tyX vX mw`: the `*metricsTxnWrite`
+    `mw` itself, or a `*watchableStoreTxnWrite` whose embedded `TxnWrite` is `mw`
+    (`twl ↦□ {mw, ws}`: `isWatchTxnWrite`'s struct made read-only; Go never writes it after
+    `Write`). Its `Range`/`Put`/`DeleteRange`/`Rev`/`FirstRev`/`Changes` are `mw`'s (wrapper
+    lemmas, `KVView.lean`); `End` is the store's own (`metricsTxnWrite.End` or
+    `watchableStoreTxnWrite.End`), taken at the top-level functions.
+  * The watch session's predicates (`isWatchableStore`, `watchStoreBody`, `wlogQ`) are unchanged;
+    `isWatchTxnWrite` (this unit's) changes only in its struct points-to.
+  *Rejected:* a `StoreNames` field naming the notified log (ripples through every store);
+  hiding the half in the watchable store's lock (changes `watchStoreBody`); the derived sole-writer
+  statements only for the watchable store (the request path's statements cover both today).
+
+- **D14b: the post-lock hook is a ghost slot the backend owns, frozen at install.** The store and
+  lessor never call `LockInsideApply` during construction (`NewStore`, `restore`,
+  `initAndRecover` take `LockOutsideApply`), but their persistent backend contracts name the hook
+  `f` that `LockInsideApply` runs, and `f` is the closure `getTxPostLockInsideApplyHook` allocates
+  at line 412 (its value is not known before). So the contracts name the slot, not the value:
+  `isKeyBackendG`/`isBatchTxG`/`batchTxSpecG`/`storeBackend` (and the lessor's `leaseBackend`)
+  take a ghost name `γhf` for `f`, and `LockInsideApply`'s triple quantifies the hook `g` with
+  `dghostVar γhf □ g` in its precondition. The store's names get `γ.hookFn := d.γB.hook` for the
+  real backend (`plHookRO d.γB g` is that `dghostVar`), its own frozen slot for mvcc's assumed
+  backend (as now). `hookIs γ P f` keeps its meaning (`P`'s saved proposition and the frozen
+  slot at `f`), so every caller's statement (`txn`, `apply`, the server) is unchanged; `NewStore`
+  and `mvcc.New` over the real backend give the saved proposition only (`hookInv γ P`), and the
+  holder of `plHookRO d.γB f` (after `SetTxPostLockInsideApplyHook` and `plHook_persist`) puts
+  `hookIs γ P f` together. The bridge (`mvcc_NewStore_backend`) no longer takes `plHookRO`.
+  *Rejected:* predicting the closure's value (it holds a fresh cell); a prophecy.
+
+- **D14c: what `bootOk` adds.** The backend fresh beyond the `Key` bucket: the clients' view of
+  the `Lease`, `Alarm`, `Auth` buckets empty or absent (a new cluster's backend: `bootstrap` on
+  an empty data directory) with the auth flag unset; the backend's `isBackend`-level resources the
+  constructors spend at construction (`bOpen` fractions, write-back tokens beyond `NewStore`'s
+  two, reader tokens). Stated with the backend's vocabulary (`bView`, `bOpen`, `wbTok`, `rdTok`).
+
+- **D14d: the constructors' contracts are axioms true of the Go code**, their apply-side clauses
+  tied to the real batch lock and hook instead of `∀ P f`: a contract `C P f` becomes
+  `□ ∀ f, backend.plHookRO γB f -∗ C Pk f` (`Pk` the backend's batch lock invariant,
+  `isBackend γB P W Pk b`); each takes the backend resources it uses (`isBackend`, a `bOpen`
+  fraction, write-back tokens) and the fresh-bucket facts of D14c. Their true shapes are N1's
+  audit (`notes/STATUS.md`): `NewLessor` gives `lessorInv`/`lessorCfg`/`lessorExpiredC`/
+  `lessorBackend` (with `leaseRevokeRate`'s default) and the empty live set, the derived
+  contracts following (`lessorOk_of_lessorInv`, `isLessor_of_lessorInv`,
+  `isApplyLessor_of_lessorInv`); `NewAuthStore` takes a non-nil token provider and the unset auth
+  flag and gives `authInv` (`isReqAuth_of_authInv`, `isAuthStore` at `on = false`);
+  `NewAlarmStore` the backend's `ForceCommit` resources and gives the alarm store at the real
+  lock. `lessor.Revoke`'s and `Lookup`'s clauses of `isApplyLessor` stay premises
+  (`isApplyLessor_of_lessorInv`), now at `kvWriter`.
+
+- **D14e: the background goroutines, the cheap option (the user's decision, 2026-10-17).**
+  Configuration premises turn them off or make them harmless; their full modelling is open work.
+  `cfg.AutoCompactionRetention = 0` (no compactor: `v3compactor.New` and `Run` are not reached;
+  also sidesteps `issues/etcd-compactor-periodic-tiny-retention.md` and
+  `issues/etcd-compactor-started-before-start.md`); the `LeaseCheckpoint` feature off (no
+  checkpointer installed: the lessor's `runLoop` never calls one, and a non-primary lessor's loop
+  only takes its lock); the peers' URLs valid (`types.NewURLs` succeeds on each member's: no
+  `AddRemote`/`AddPeer` panic). The transport's goroutines (inbound messages into `srv.Process`,
+  the peers' senders) and the lessor's loop are stated as what they are: the transport's contract
+  promises only what `NewServer` and `start` use (`Start` returns or errs, `AddRemote`/`AddPeer`
+  return, `transportStarted`), under a named premise `transportEffectsOk` that its goroutines'
+  calls into the server (`Process`, `ReportUnreachable`, `ReportSnapshot`, `IsIDRemoved`) are
+  outside the model -- the cluster's message trust assumption, explicit.
+
+- **Staging.** N4a (D14a: the abstraction, the txn/apply/server proofs over it, `server_kv_backend`
+  for `mvcc.New`); N4b (D14b); N4c (D14c-e: `bootOk`, the contracts); N4d (`NewServer.wp_proof`,
+  `srvBuildGap` without the KV rows).
