@@ -17,6 +17,7 @@ public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import Code.go_etcd_io.etcd.client.v3.credentials
 public import Code.go_etcd_io.etcd.client.v3.internal.resolver
 public import Code.google_golang_org.protobuf.proto
+public import Code.google_golang_org.grpc.metadata
 public import Code.google_golang_org.grpc.peer
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Golang.Defn
@@ -576,8 +577,6 @@ axiom Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 axiom UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom Config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom lessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom Maintenance.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -2038,6 +2037,168 @@ noncomputable def kv.Do.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"Unknown op")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))))))
+
+/-- closeRequireLeader scans keepAlives for ctxs that have require leader
+    and closes the associated channels.
+
+    go: lease.go:383:18 -/
+noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType lessor.ty)))) (Var "l"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
+  (Let "ka" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType keepAlive.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType keepAlive.ty)))) (Val #())))
+  (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal LeaseID.ty))) (Val #())))
+  (App (App (Val (map.forRange LeaseID.ty (go.GoType.PointerType keepAlive.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "reqIdxs" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")))))
+  (Let "newChs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType _root_.Perennial.context.Context.ty)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Var "newChs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))))
+  (Let "newCtxs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "newIdx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"ctxs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Var "newChs"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Var "newCtxs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (Var "$l1") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (Var "$l0") (Var "$r0")))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Var "newChs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "newIdx"))))
+  (Let "$l1" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Var "newCtxs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "newIdx"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"ctxs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "newIdx")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "newIdx") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "newIdx")) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$l1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (Pair (Var "$l0") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (Val UntypedNil)))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "newIdx") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (Pair (Var "newCtxs") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (Var "newChs") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))]))) (Val #())) (Var "$a0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Val #(W64 0)))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.context.Context.ty)))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"ctxs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka"))))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange _root_.Perennial.context.Context.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.FromOutgoingContext []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "md" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Var "md"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey))) (Val #()))))
+  (Let "ks" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "reqIdxs") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "reqIdxs")) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)))))) (App (Val (GoInstruction (StructFieldRef keepAlive.ty go!"chs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keepAlive.ty)))) (Var "ka")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType LeaseKeepAliveResponse.ty))]))) (Val #())) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ks"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ks")) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader))) (Val #()))))))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "ks") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Pair (Var "md") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "reqIdxs") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore LeaseID.ty))) (Pair (Var "id") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType keepAlive.ty)))) (Pair (Var "ka") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l")))) (Val #()))))))))))
 
 /-- IsTxn returns true if the "Op" type is transaction.
 
@@ -6656,7 +6817,7 @@ noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -6664,6 +6825,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6775,6 +6937,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -8218,18 +8382,110 @@ attribute [instance] ErrKeepAliveHalted.TypeAssumptions.type_repr
   ErrKeepAliveHalted.TypeAssumptions.get_Reason
   ErrKeepAliveHalted.TypeAssumptions.set_Reason
 
-axiom lessor : Type
-axiom lessor.zero_val : ZeroVal lessor
-attribute [instance] lessor.zero_val
+structure lessor [FfiSyntax] where
+  mk ::
+  mu' : _root_.Perennial.sync.Mutex
+  donec' : GoChan
+  loopErr' : GoError
+  remote' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient
+  stream' : (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse)
+  streamCancel' : _root_.Perennial.context.CancelFunc
+  stopCtx' : _root_.Perennial.context.Context
+  stopCancel' : _root_.Perennial.context.CancelFunc
+  keepAlives' : GoMap
+  firstKeepAliveTimeout' : _root_.Perennial.time.Duration
+  firstKeepAliveOnce' : _root_.Perennial.sync.Once
+  callOpts' : GoSlice
+  lg' : Loc
+
+instance lessor.zero_val [FfiSyntax] : ZeroVal lessor :=
+  ⟨lessor.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def lessor.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"loopErr" go.error),
+(go.field_decl.FieldDecl go!"remote" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient.ty),
+(go.field_decl.FieldDecl go!"stream" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Lease_LeaseKeepAliveClient.ty),
+(go.field_decl.FieldDecl go!"streamCancel" _root_.Perennial.context.CancelFunc.ty),
+(go.field_decl.FieldDecl go!"stopCtx" _root_.Perennial.context.Context.ty),
+(go.field_decl.FieldDecl go!"stopCancel" _root_.Perennial.context.CancelFunc.ty),
+(go.field_decl.FieldDecl go!"keepAlives" (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))),
+(go.field_decl.FieldDecl go!"firstKeepAliveTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"firstKeepAliveOnce" _root_.Perennial.sync.Once.ty),
+(go.field_decl.FieldDecl go!"callOpts" (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)),
+(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
+
+@[irreducible] def lessor.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  lessor.fieldsUnsealed
+
+instance equals_unfold_lessor [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold lessor.fields lessor.fieldsUnsealed :=
+  ⟨by unfold lessor.fields; rfl⟩
+
+@[reducible] def lessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType lessor.fields)
 
 class lessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lessor.underlying lessor
   underlying : go.UnderlyingDirectedEq lessor.ty lessor.underlying
-  isUnderlying : go.IsUnderlying lessor.underlying lessor.underlying
+  get_mu : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : lessor) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : lessor)))
+  get_donec : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"donec") #x (Val #(x.donec'))
+  set_donec : ∀ (x : lessor) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : lessor)))
+  get_loopErr : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"loopErr") #x (Val #(x.loopErr'))
+  set_loopErr : ∀ (x : lessor) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"loopErr") (PairV #x #y) (Val #(({ x with loopErr' := y } : lessor)))
+  get_remote : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"remote") #x (Val #(x.remote'))
+  set_remote : ∀ (x : lessor) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : lessor)))
+  get_stream : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"stream") #x (Val #(x.stream'))
+  set_stream : ∀ (x : lessor) (y : (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse)), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"stream") (PairV #x #y) (Val #(({ x with stream' := y } : lessor)))
+  get_streamCancel : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"streamCancel") #x (Val #(x.streamCancel'))
+  set_streamCancel : ∀ (x : lessor) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"streamCancel") (PairV #x #y) (Val #(({ x with streamCancel' := y } : lessor)))
+  get_stopCtx : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"stopCtx") #x (Val #(x.stopCtx'))
+  set_stopCtx : ∀ (x : lessor) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"stopCtx") (PairV #x #y) (Val #(({ x with stopCtx' := y } : lessor)))
+  get_stopCancel : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"stopCancel") #x (Val #(x.stopCancel'))
+  set_stopCancel : ∀ (x : lessor) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"stopCancel") (PairV #x #y) (Val #(({ x with stopCancel' := y } : lessor)))
+  get_keepAlives : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"keepAlives") #x (Val #(x.keepAlives'))
+  set_keepAlives : ∀ (x : lessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"keepAlives") (PairV #x #y) (Val #(({ x with keepAlives' := y } : lessor)))
+  get_firstKeepAliveTimeout : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"firstKeepAliveTimeout") #x (Val #(x.firstKeepAliveTimeout'))
+  set_firstKeepAliveTimeout : ∀ (x : lessor) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"firstKeepAliveTimeout") (PairV #x #y) (Val #(({ x with firstKeepAliveTimeout' := y } : lessor)))
+  get_firstKeepAliveOnce : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"firstKeepAliveOnce") #x (Val #(x.firstKeepAliveOnce'))
+  set_firstKeepAliveOnce : ∀ (x : lessor) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"firstKeepAliveOnce") (PairV #x #y) (Val #(({ x with firstKeepAliveOnce' := y } : lessor)))
+  get_callOpts : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"callOpts") #x (Val #(x.callOpts'))
+  set_callOpts : ∀ (x : lessor) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : lessor)))
+  get_lg : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : lessor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : lessor)))
+  ptr_closeRequireLeader_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"closeRequireLeader" lessor.closeRequireLeader.impl
 
 attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.underlying
-  lessor.TypeAssumptions.isUnderlying
+  lessor.TypeAssumptions.get_mu
+  lessor.TypeAssumptions.set_mu
+  lessor.TypeAssumptions.get_donec
+  lessor.TypeAssumptions.set_donec
+  lessor.TypeAssumptions.get_loopErr
+  lessor.TypeAssumptions.set_loopErr
+  lessor.TypeAssumptions.get_remote
+  lessor.TypeAssumptions.set_remote
+  lessor.TypeAssumptions.get_stream
+  lessor.TypeAssumptions.set_stream
+  lessor.TypeAssumptions.get_streamCancel
+  lessor.TypeAssumptions.set_streamCancel
+  lessor.TypeAssumptions.get_stopCtx
+  lessor.TypeAssumptions.set_stopCtx
+  lessor.TypeAssumptions.get_stopCancel
+  lessor.TypeAssumptions.set_stopCancel
+  lessor.TypeAssumptions.get_keepAlives
+  lessor.TypeAssumptions.set_keepAlives
+  lessor.TypeAssumptions.get_firstKeepAliveTimeout
+  lessor.TypeAssumptions.set_firstKeepAliveTimeout
+  lessor.TypeAssumptions.get_firstKeepAliveOnce
+  lessor.TypeAssumptions.set_firstKeepAliveOnce
+  lessor.TypeAssumptions.get_callOpts
+  lessor.TypeAssumptions.set_callOpts
+  lessor.TypeAssumptions.get_lg
+  lessor.TypeAssumptions.set_lg
+  lessor.TypeAssumptions.ptr_closeRequireLeader_unfold
 
 structure keepAlive [FfiSyntax] where
   mk ::
@@ -10142,6 +10398,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_v3_credentials_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
   import_resolver_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
@@ -10327,6 +10584,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.import_v3_credentials_Assumption
   Assumptions.import_resolver_Assumption
   Assumptions.import_proto_Assumption
+  Assumptions.import_metadata_Assumption
   Assumptions.import_peer_Assumption
   Assumptions.import_mvccpb_Assumption
 

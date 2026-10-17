@@ -131,6 +131,7 @@ axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom membership.localKept
 axiom membership.localKept_persistent
 axiom metadata.FromIncomingContext.wp_proof
+axiom metadata.FromOutgoingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
