@@ -1951,7 +1951,8 @@ positive `CompactionBatchLimit`: the job's loop needs it to end,
 `issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel's field (its
 channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The fields `restore`
 and `Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
-(`muInv`, `revMuInv`). -/
+(`muInv`, `revMuInv`); and the certificate of the initial log `[[], []]` (`NewStore`'s:
+revision 1, `currentRev = 1`), so every committed log extends it. -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (fh : val) (Dep : IProp GF)
       (scfg : StoreConfig) (ssched : GoInterface) (sstop shs : Loc),
@@ -1976,7 +1977,8 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#HisSched" ∷ schedule.isScheduler ssched γ.sch ∗
     "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
-      (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface))
+      (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
+    "#Hc0" ∷ idxCert γ.idx [[], []])
 
 /-- **The store's backend contract** (what `NewStore` takes, for every store of the instance):
 `isKeyBackendG` at the store's view, tokens and put condition of its instance, its deletable keys

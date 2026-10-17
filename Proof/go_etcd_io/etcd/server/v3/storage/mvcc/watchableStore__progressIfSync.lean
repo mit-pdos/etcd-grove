@@ -300,8 +300,11 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       persistent_entails_right (mvcc.memberFacts_of (GF := GF) γ sync.rfrac σ _ _))) $$ Hmem with Hmem
   rw [BigSepM.bigSepM_sep_eq] at *
   icases Hmem with ⟨#HF, Hmem⟩
+  have hr1 : 1 ≤ sint.Z r := by
+    obtain ⟨-, rfl, h2, h3⟩ := HCr
+    word
   have hrevC : sint.Z r + 1 ≤ (Clog.length : Int) := by
-    obtain ⟨hne, rfl⟩ := HCr
+    obtain ⟨hne, rfl, -, -⟩ := HCr
     have : 0 < Clog.length := List.length_pos_iff.2 hne
     word
   icases mvcc.cov_entries γ σ r Clog γc Hok HCp.length_le hrevC (keys.filterMap (M !! ·))
@@ -363,7 +366,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     subst Hag1
     -- the response's id, and (K1b) for `-1`, the registered watchers: the map's, or cancelled
     ihave #Hidc : iprop(⌜rid = rr.id⌝ ∨
-        mvcc.complW γw sync.rfrac.half CS (cs.map mvcc.CovArg.w) rid) $$ []
+        mvcc.complW γw sync.rfrac.half CS (cs.map mvcc.CovArg.w) rid r) $$ []
     · icases Hrid with (%h | #Hp)
       · ileft; ipureintro; exact h
       icases Hcw with (%hne | #Hcw')
@@ -376,6 +379,9 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       icases Hcw' $$ %L %u %γw %sync.rfrac.half %hex HmetaW HCS Hregl Hlv
         with ⟨HCS, Hregl, Hlv, #Hcm⟩
       iframe HCS Hregl Hlv Hp
+      isplitl
+      rotate_left
+      · ipureintro; exact hr1
       iintro !> %w0 %hw0
       icases Hcm $$ %w0 %hw0 with (⟨%id0, %hid0⟩ | #Hr)
       · ileft; ipureintro

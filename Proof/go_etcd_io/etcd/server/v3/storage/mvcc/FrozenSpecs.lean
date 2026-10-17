@@ -503,7 +503,8 @@ abbrev mvcc.watchableStore.rev.specFrozen : Prop :=
       mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
   {{ (r : w64), RET #r; mvcc.storeReader st γ.st ∗
-      ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1)⌝ }}
+      ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1) ∧
+        2 ≤ log.length ∧ log.length < 2 ^ 63⌝ }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (the frozen fact framed). -/
