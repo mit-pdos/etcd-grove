@@ -27,11 +27,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 its record of the meta key there), before the `Unlock`: `Q ∗ W ={⊤}=∗ P ∗ W ∗ Post`. -/
 abbrev mvcc.SetFinishedCompact.spec : Prop :=
   ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (Del : GoString → IProp GF)
-    (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (f : val) (value : w64)
+    (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF) (f : val) (value : w64)
     (Pre Q Post : IProp GF),
   0 ≤ sint.Z value →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.batchTxSpec bt View Del W Dep Locked P f ∗ Pre ∗
+      mvcc.batchTxSpec bt View Del W Dep Locked P HF ∗ HF f ∗ Pre ∗
       □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ (Q ∗ W ={⊤}=∗ P ∗ W ∗ Post) }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact)) (Val #(GoInterface.ok bt)))
       (Val #value))

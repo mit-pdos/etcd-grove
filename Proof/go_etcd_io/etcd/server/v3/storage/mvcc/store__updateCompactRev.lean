@@ -214,8 +214,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
       · rw [← mvcc.own_half_half 1, hrw]; iexact Hcmpf
       icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcmpf2 with ⟨Hcmp, HcmpM⟩
       -- the caller's hook is the store's
-      imod mvcc.hookIs_agree_lc ⊤ γ P Ph f fh $$ [$Hlc2 $HhookC $Hhook] with ⟨%Hfeq, #HPP0, #HP0P⟩
-      subst Hfeq
+      imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc2 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
+      ihave #HhookC' := HhookC
+      iunfold mvcc.hookIs at HhookC'
+      icases HhookC' with ⟨-, #Hhf⟩
       iunfold mvcc.csContract at Hcs
       icases Hcs with ⟨HPre, #Htriple, Hupd⟩
       ihave #Htr0 : □ ({{ Ph ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) $$ []
@@ -225,7 +227,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iapply HP0P
         iexact HP0
       -- `SetScheduledCompact(s.b.BatchTx(), rev)`
-      ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph f hcmp $$ Hbk
+      ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
       iunfold mvcc.isKeyBackendG at Hbk'
       icases Hbk' with ⟨%bi, %Hbi, -, -, #HB, #HForce, -⟩
       subst Hbi
@@ -243,7 +245,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- `sorry`: bind and apply)
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact))
         (Val #(GoInterface.ok bt))) (Val #rev))
-      iapply (h3 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph f rev Pre Q
+      iapply (h3 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph (mvcc.hookFn γ) f rev Pre Q
           Post hrev0) $$ [HPre Hupd]
       · iframe #
         iframe HPre

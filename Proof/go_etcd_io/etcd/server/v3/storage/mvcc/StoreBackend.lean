@@ -106,7 +106,7 @@ theorem mvcc.NewStore_backend
         mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle⟩ HΦ
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
-    hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk f hf γb $$ [$Hbpkg $Hsch $Hb $Hhk $Hsz]
+    hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
@@ -119,7 +119,8 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hok, Hh, Hv, Hr, Ht, Hc, -, Hcl, Hst, Hcr⟩
+  iintro %s ⟨%γ, %Hγ, Hs, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, Hcr⟩
+  ihave #Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk]
   iapply HΦ
   iexists γ
   iframe Hs Hok Hh Hv Hr Ht Hc Hcl Hst Hcr

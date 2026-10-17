@@ -39,7 +39,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
     (P : IProp GF) (f : val) (γi : mvcc.IdxNames) (γok : GName),
   0 ≤ sint.Z cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P f) ∗
+      (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
@@ -48,7 +48,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
         γ.st.idx = γi ∧ γ.st.cok = γok⌝ ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.hookIs γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
       mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.watchReader s st γ) ∗

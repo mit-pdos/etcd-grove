@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.SetScheduledCompact.wp_proof
     (h0 : mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG) := by
-  intro bt View Del W Dep Locked P f value Pre Q Post Hv
-  wp_start as ⟨#Hbt, Hpre, #Hhook, Hupd⟩
+  intro bt View Del W Dep Locked P HF f value Pre Q Post Hv
+  wp_start as ⟨#Hbt, Hhf, Hpre, #Hhook, Hupd⟩
   ihave #Hbt0 := Hbt
   iunfold mvcc.batchTxSpec at Hbt
   iunfold mvcc.batchTxSpecG at Hbt
@@ -39,15 +39,15 @@ theorem mvcc.SetScheduledCompact.wp_proof
   (try wp_auto)
   -- `tx.LockInsideApply()`: the hook run on the caller's `Pre`
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  ihave #HLock' := HLock $$ %Pre %Q
-  iapply HLock' $$ [Hpre]
-  · iframe Hpre Hhook
+  ihave #HLock' := HLock $$ %Pre %Q %f
+  iapply HLock' $$ [Hpre Hhf]
+  · iframe Hpre Hhook Hhf
   inext
   iintro ⟨Hl, HW, HQ, -⟩
   (try wp_auto)
   wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact))
     (Val #(GoInterface.ok bt))) (Val #value))
-  iapply (h0 bt View Del W Dep Locked P f [] value Hv) $$ [Hl]
+  iapply (h0 bt View Del W Dep Locked P HF [] value Hv) $$ [Hl]
   · iframe Hpkg Hbt0 Hl
   inext
   iintro Hl

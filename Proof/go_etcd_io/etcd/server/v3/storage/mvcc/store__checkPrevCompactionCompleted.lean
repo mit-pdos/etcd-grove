@@ -35,7 +35,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   wp_start as #Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
-  ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph fh hcmp $$ Hbk
+  ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, -, -, -, -, #HCmp⟩
   subst Hbi

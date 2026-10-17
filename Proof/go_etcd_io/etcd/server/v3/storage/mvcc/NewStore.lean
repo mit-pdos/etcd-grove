@@ -203,8 +203,14 @@ theorem mvcc.NewStore.wp_proof
       γ.watchQ = wq :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
       rfl, rfl, rfl, rfl, rfl, rfl⟩
-  ihave #Hhook : mvcc.hookIs γ P f $$ []
-  · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
+  ihave #HhookP : mvcc.hookP γ P $$ []
+  · iunfold mvcc.hookP; rw [hγh]; iexact Hh
+  ihave #Hhook : mvcc.hookInit γ P f $$ []
+  · iunfold mvcc.hookInit
+    iframe HhookP
+    cases kb with
+    | none => simp only [hγk, mvcc.hookFn, mvcc.kbHookIs]; rw [hγhf]; iexact Hhf
+    | some d => simp only [hγk]; itrivial
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
   · iunfold mvcc.compactRes
     iexists none, none, 0
@@ -242,7 +248,7 @@ theorem mvcc.NewStore.wp_proof
   ipersist stopc
   ipersist hashes
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
-  ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P f $$ [Hbk]
+  ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P $$ [Hbk]
   · iapply Hbk $$ %«$r0_ptr» %γ
     ipureintro; exact ⟨hγb, rfl⟩
   iunfold mvcc.storeBackend at Hbk1
@@ -357,7 +363,7 @@ theorem mvcc.NewStore.wp_proof
     iframe HcmpM HcmpB
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %f %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
+      %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
       as ⟨Hbv2, HcurB, HcmpF, revMu⟩
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
@@ -407,7 +413,7 @@ theorem mvcc.NewStore.wp_proof
   · rw [hγl]; iexact Hlessor0
   ihave #Hs : mvcc.isStore «$r0_ptr» γ $$ []
   · iunfold mvcc.isStore
-    iexists (GoInterface.ok bi), (lease.lessorIface lp), ti, lg', P, f, Dep, cfg2, sc, stopc, hp
+    iexists (GoInterface.ok bi), (lease.lessorIface lp), ti, lg', P, Dep, cfg2, sc, stopc, hp
     simp only [named]
     iframe #
     ipureintro; exact ⟨Hlgnn, Hcfg2⟩

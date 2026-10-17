@@ -44,7 +44,7 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ true γi γok Hcfg0)
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0)
     $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, -,
       Hright⟩

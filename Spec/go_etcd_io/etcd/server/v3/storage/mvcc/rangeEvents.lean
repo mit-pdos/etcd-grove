@@ -30,12 +30,12 @@ in revision order. The backend's reader token `RT` is lent (2026-10-13, unit 5).
 not compacted (`crevFrozen`): its snapshot misses no event (compaction is out of the watchable
 store's model). -/
 abbrev mvcc.rangeEvents.spec : Prop :=
-  ∀ (lg : Loc) (b : GoInterface) (γ : mvcc.StoreNames) (Wr P : IProp GF) (f : val) (q : Qp)
+  ∀ (lg : Loc) (b : GoInterface) (γ : mvcc.StoreNames) (Wr P : IProp GF) (HF : val → IProp GF) (q : Qp)
     (log : mvcc.Log) (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange)
     (RT WT Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) Wr Wi Dep Cmp P f ∗ RT ∗
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) Wr Wi Dep Cmp P HF ∗ RT ∗
       mvcc.crevFrozen γ ∗
       mvcc.bucketView γ q (mvcc.bucketMap log) ∗
       mvcc.idxCert γ.idx log ∗ mvcc.ownWatcherGroup g W ∗

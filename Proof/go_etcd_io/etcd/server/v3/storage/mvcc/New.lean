@@ -48,7 +48,7 @@ theorem mvcc.New.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ _ γi γok Hcfg0)
+  wp_apply (hNew _ _ _ _ _ _ _ _ f γi γok Hcfg0)
     $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0]
     as %s ⟨%st, %γ, %Hγ, #Hws, #Hhook, Hww, Htw, Hok, Hreaders,
     ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hwg⟩

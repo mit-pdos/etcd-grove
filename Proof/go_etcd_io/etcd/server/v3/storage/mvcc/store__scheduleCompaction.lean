@@ -328,7 +328,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    iapply (h6 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph fh [] rev
+    iapply (h6 bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep Locked Ph (mvcc.hookFn γ) [] rev
       Hrev.1) $$ [Hlocked]
     · iframe Hlocked; iframe #
       iunfold mvcc.batchTxSpec; iexact HbtS
