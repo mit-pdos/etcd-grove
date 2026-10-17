@@ -1,0 +1,6 @@
+=== RUN   TestWaitTillRevisionLostCancelWakeup
+    waittillrevision_probe_test.go:81: waitTillRevision returned only when the store's revCond was broadcast again, after 5s (canceled context, 3s WaitTimeout): cache: timed out waiting for revision
+--- FAIL: TestWaitTillRevisionLostCancelWakeup (5.00s)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	5.028s
+FAIL

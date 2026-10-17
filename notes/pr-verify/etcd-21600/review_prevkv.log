@@ -1,0 +1,19 @@
+=== RUN   TestReviewPrevKVHistoricalWatchOldestRev
+    review_prevkv_test.go:54: demux minRev=6 (oldest replayable), store oldest snapshot=6
+    review_prevkv_test.go:71: event rev 6: PrevKv="" (etcd: "v5")
+    review_prevkv_test.go:73: event rev 6: PrevKv "", want "v5"
+    review_prevkv_test.go:71: event rev 7: PrevKv="v6" (etcd: "v6")
+    review_prevkv_test.go:71: event rev 8: PrevKv="v7" (etcd: "v7")
+--- FAIL: TestReviewPrevKVHistoricalWatchOldestRev (0.16s)
+=== RUN   TestReviewPrevKVLostAfterReconnectSameRev
+    review_prevkv_test.go:136: event rev 3: PrevKv="v2" (etcd: "v2")
+    review_prevkv_test.go:136: event rev 4: PrevKv="" (etcd: "v3")
+    review_prevkv_test.go:138: event rev 4: PrevKv "", want "v3"
+    review_prevkv_test.go:136: event rev 5: PrevKv="" (etcd: "v4")
+    review_prevkv_test.go:138: event rev 5: PrevKv "", want "v4"
+    review_prevkv_test.go:136: event rev 6: PrevKv="" (etcd: "v5")
+    review_prevkv_test.go:138: event rev 6: PrevKv "", want "v5"
+--- FAIL: TestReviewPrevKVLostAfterReconnectSameRev (0.15s)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	0.378s
+FAIL

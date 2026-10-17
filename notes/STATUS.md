@@ -45,6 +45,39 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21600 (cache `WithPrevKV`) on `pr-verify/etcd-21600` (2026-10-17; not for `lean`)
+
+This branch verifies the PR's code (fork branch `pr-etcd-21600-goose-lean`). The report is
+`notes/pr-verify/etcd-21600.md`. What it adds that `lean` lacks:
+
+- **A trust-boundary axiom: `context.AfterFunc`** (`Spec/context/AfterFunc.lean`,
+  `Proof/context/AfterFunc.lean`). Perennial translates `context.AfterFunc`, but it has no spec
+  of it.
+  - The axiom says less than Go does: the callback may run at any time, any number of times, so
+    it must be `□`-safe.
+  - The general fix is a Perennial spec of `AfterFunc` over its `isContext`, designed and
+    reviewed there on its own.
+- **Three `sorry`s, all on the error-message and event-field plumbing** (none on the `PrevKv`
+  values):
+  - `errors_Is_snapErr`: `errors.Is` of the store's error against `rpctypes.ErrCompacted`.
+    - Perennial's `errors.wp_Is` needs a pointer target.
+    - `errors.IsStatusErr` needs an `EtcdError`-typed target, and `rpctypesInit` does not type
+      `ErrCompacted`.
+  - The `fmt.argsOk` of `attachPrevKV`'s `fmt.Errorf`:
+    - `fmt.argOk` has no `[]byte` case;
+    - `ErrNotReady`'s `Error()` is not in `cacheInit`;
+    - the invalid-revision error's `Error()` is not in `snapErr`.
+  - In `Cache.Watch`, the delivered events' `CreateRevision`. `eventAt` carries only what the
+    store reads. Extending it from the server's `kvPtrFixed` (through `WatchContent.lean`) would
+    discharge this.
+- **`Cache.Watch`'s spec changes.**
+  - A `WithPrevKV` watch needs a store reader (`watchReader`), which its goroutine keeps.
+  - `cacheWatchLog` and friends take the `PrevKv` mode `pk`.
+  - The log has a fourth case: the delivery up to a response whose lookup failed, replaced by a
+    cancel response.
+  - Each response carries `respPK`.
+- **`OpModel.watchUnsupported`** (`InvOp.lean`) no longer includes `prevKV`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

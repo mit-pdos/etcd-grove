@@ -1,0 +1,18 @@
+=== RUN   TestCacheWatchPrevKVSlowConsumerLosesPrevKV
+    prevkv_probe_test.go:91: rev 4: PrevKv = nil, want value "v3"
+    prevkv_probe_test.go:91: rev 5: PrevKv = nil, want value "v4"
+    prevkv_probe_test.go:91: rev 6: PrevKv = nil, want value "v5"
+    prevkv_probe_test.go:91: rev 7: PrevKv = nil, want value "v6"
+    prevkv_probe_test.go:91: rev 8: PrevKv = nil, want value "v7"
+    prevkv_probe_test.go:91: rev 9: PrevKv = nil, want value "v8"
+    prevkv_probe_test.go:99: 6 of 10 update events delivered without PrevKv, and the watch was not canceled
+--- FAIL: TestCacheWatchPrevKVSlowConsumerLosesPrevKV (0.07s)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	0.098s
+FAIL
+=== RUN   TestStoreWaitForRevLostWakeup
+    prevkv_probe_test.go:124: iteration 1959: waitForRev ignored its cancelled context for 2s (lost wakeup)
+--- FAIL: TestStoreWaitForRevLostWakeup (2.03s)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	2.085s
+FAIL

@@ -1,0 +1,14 @@
+# etcd-io/etcd#21600 (cache: WithPrevKV for Watch): the functions the PR changes or adds and the
+# exported results that use them (notes/pr-verify/etcd-21600.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21600.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/cache/v3/(Cache__Watch|Cache__validateWatch|Cache__attachPrevKV|isCreateEvent|store__waitForRev)\.lean$
+axiom context.AfterFunc.wp_proof
+axiom context.Err.wp_proof
+axiom fmt.Errorf.wp_proof
+sorry Cache.Watch.wp_proof
+sorry Cache.attachPrevKV.wp_proof
+sorry errors_Is_snapErr

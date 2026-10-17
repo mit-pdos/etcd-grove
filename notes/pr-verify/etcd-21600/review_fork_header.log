@@ -1,0 +1,26 @@
+=== RUN   TestReviewForkPrevKVCancelNilHeader
+    review_fork_header_test.go:49: iter 1: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 3: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 4: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 5: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 6: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 9: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 10: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 13: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 14: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 19: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 20: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 24: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 28: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 29: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 30: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 31: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 33: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 34: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:49: iter 35: cancel response "context canceled" with Header == nil (resp.Header.Revision would panic)
+    review_fork_header_test.go:57: nil-header cancel responses: 19, closed without response: 21
+    review_fork_header_test.go:59: Cache.Watch sent 19 Canceled responses with a nil Header
+--- FAIL: TestReviewForkPrevKVCancelNilHeader (0.88s)
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	0.902s
+FAIL
