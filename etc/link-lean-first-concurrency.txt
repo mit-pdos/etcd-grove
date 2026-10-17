@@ -72,6 +72,10 @@ ResponseOp__GetResponseRange:
 NewMutex:
 Mutex__Key:
 Mutex__Header:
+# etcd#18779: `Mutex.Rev`, its promotion to `*lockerMutex`, and `NewDLocker`.
+Mutex__Rev:
+lockerMutex__Rev: Mutex__Rev
+NewDLocker: NewMutex
 Mutex__IsOwner: CreateRevision v3_Compare
 NewLocker: NewMutex
 waitDelete: WithRev WatchResponse__Err

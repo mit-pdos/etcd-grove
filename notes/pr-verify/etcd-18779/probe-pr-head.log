@@ -1,0 +1,8 @@
+=== RUN   TestDLockerRevFencing
+    dlocker_fence_test.go:70: holder 1 rev 8 (lease revoked), holder 2 rev 10
+--- PASS: TestDLockerRevFencing (0.12s)
+=== RUN   TestDLockerRevKeyRecreated
+    dlocker_fence_test.go:177: B's Lock returned <nil>; B.Rev()=3 D.Rev()=5 (r1=3 r2=5 r3=6)
+--- PASS: TestDLockerRevKeyRecreated (0.28s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.482s

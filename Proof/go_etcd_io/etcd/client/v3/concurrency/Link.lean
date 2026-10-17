@@ -34,9 +34,11 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Header
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__IsOwner
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Key
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Lock
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Rev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__TryLock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__Unlock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.Mutex__tryAcquire
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewDLocker
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewElection
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewLocker
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.NewMutex
@@ -80,6 +82,7 @@ public import Proof.fmt.SprintfNamed
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.isKeyCurrent
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Lock
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Rev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Unlock
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.mkSTM
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
@@ -402,17 +405,25 @@ theorem Mutex.wp_Lock :
     EtcdGrove.concurrency.Mutex.Lock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Mutex.Lock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client wp_waitDeletes v3.Client.wp_Ctx Mutex.wp_Unlock
 
+theorem Mutex.wp_Rev :
+    EtcdGrove.concurrency.Mutex.Rev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.Mutex.Rev.wp_proof
+
 theorem Mutex.wp_TryLock :
     EtcdGrove.concurrency.Mutex.TryLock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Mutex.TryLock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client
 
-theorem wp_NewElection :
-    EtcdGrove.concurrency.NewElection.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.NewElection.wp_proof
-
 theorem wp_NewMutex :
     EtcdGrove.concurrency.NewMutex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.NewMutex.wp_proof
+
+theorem wp_NewDLocker :
+    EtcdGrove.concurrency.NewDLocker.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewDLocker.wp_proof wp_NewMutex
+
+theorem wp_NewElection :
+    EtcdGrove.concurrency.NewElection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.NewElection.wp_proof
 
 theorem wp_NewLocker :
     EtcdGrove.concurrency.NewLocker.spec (GF := GF) (hG := hG) :=
@@ -569,6 +580,10 @@ theorem wp_WithTTL :
 theorem lockerMutex.wp_Lock :
     EtcdGrove.concurrency.lockerMutex.Lock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.lockerMutex.Lock.wp_proof Session.wp_Client v3.Client.wp_Ctx Mutex.wp_Lock
+
+theorem lockerMutex.wp_Rev :
+    EtcdGrove.concurrency.lockerMutex.Rev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.concurrency.lockerMutex.Rev.wp_proof Mutex.wp_Rev
 
 theorem lockerMutex.wp_Unlock :
     EtcdGrove.concurrency.lockerMutex.Unlock.spec (GF := GF) (hG := hG) :=

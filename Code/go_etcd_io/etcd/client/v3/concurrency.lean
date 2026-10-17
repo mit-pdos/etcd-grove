@@ -47,6 +47,11 @@ def lockerMutex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] lockerMutex.ty
 
+def DLocker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.DLocker" [])
+
+attribute [irreducible] DLocker.ty
+
 def Session.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/concurrency.Session" [])
 
@@ -164,6 +169,9 @@ noncomputable def NewMutex [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def NewLocker [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewLocker"
+
+noncomputable def NewDLocker [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3/concurrency.NewDLocker"
 
 noncomputable def NewSession [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/concurrency.NewSession"
@@ -1498,9 +1506,18 @@ noncomputable def Mutex.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))))))
 
+/-- go: mutex.go:157:17 -/
+noncomputable def Mutex.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Mutex.ty)))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"myRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))))))
+
 /-- Header is the response header received from etcd on acquiring the lock.
 
-    go: mutex.go:159:17 -/
+    go: mutex.go:160:17 -/
 noncomputable def Mutex.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -1509,7 +1526,7 @@ noncomputable def Mutex.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"hdr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))))))
 
-/-- go: mutex.go:163:24 -/
+/-- go: mutex.go:164:24 -/
 noncomputable def lockerMutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lm"
   (Lam BAnon
@@ -1536,7 +1553,7 @@ noncomputable def lockerMutex.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "client") (Var "$r0"))))))))))))
 
-/-- go: mutex.go:170:24 -/
+/-- go: mutex.go:171:24 -/
 noncomputable def lockerMutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lm"
   (Lam BAnon
@@ -1565,7 +1582,7 @@ noncomputable def lockerMutex.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- NewLocker creates a sync.Locker backed by an etcd mutex.
 
-    go: mutex.go:178:6 -/
+    go: mutex.go:179:6 -/
 noncomputable def NewLocker.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "pfx"
@@ -1574,6 +1591,21 @@ noncomputable def NewLocker.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType lockerMutex.ty) _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (GoAlloc lockerMutex.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx"))
+  (App (App (App (Val (GoInstruction (FuncResolve NewMutex []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral lockerMutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Mutex.ty) (Var "$v0")))])))))))))))
+
+/-- NewDLocker creates a DLocker backed by an etcd mutex.
+
+    go: mutex.go:199:6 -/
+noncomputable def NewDLocker.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "pfx"
+  (App (Val exceptionDo)
+  (Let "pfx" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pfx"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Session.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType lockerMutex.ty) DLocker.ty))) (App (Val (GoInstruction (GoAlloc lockerMutex.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "pfx"))
   (App (App (App (Val (GoInstruction (FuncResolve NewMutex []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral lockerMutex.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType Mutex.ty) (Var "$v0")))])))))))))))
@@ -3230,6 +3262,7 @@ class Mutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   ptr_IsOwner_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"IsOwner" Mutex.IsOwner.impl
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"Key" Mutex.Key.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"Lock" Mutex.Lock.impl
+  ptr_Rev_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"Rev" Mutex.Rev.impl
   ptr_TryLock_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"TryLock" Mutex.TryLock.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"Unlock" Mutex.Unlock.impl
   ptr_tryAcquire_unfold : MethodUnfold (go.GoType.PointerType Mutex.ty) go!"tryAcquire" Mutex.tryAcquire.impl
@@ -3250,6 +3283,7 @@ attribute [instance] Mutex.TypeAssumptions.type_repr
   Mutex.TypeAssumptions.ptr_IsOwner_unfold
   Mutex.TypeAssumptions.ptr_Key_unfold
   Mutex.TypeAssumptions.ptr_Lock_unfold
+  Mutex.TypeAssumptions.ptr_Rev_unfold
   Mutex.TypeAssumptions.ptr_TryLock_unfold
   Mutex.TypeAssumptions.ptr_Unlock_unfold
   Mutex.TypeAssumptions.ptr_tryAcquire_unfold
@@ -3285,6 +3319,8 @@ class lockerMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"IsOwner"))) (App (Val (GoInstruction (StructFieldGet lockerMutex.ty go!"Mutex"))) (Var "$r"))))
   Key_unfold : MethodUnfold lockerMutex.ty go!"Key" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Key"))) (App (Val (GoInstruction (StructFieldGet lockerMutex.ty go!"Mutex"))) (Var "$r"))))
+  Rev_unfold : MethodUnfold lockerMutex.ty go!"Rev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Rev"))) (App (Val (GoInstruction (StructFieldGet lockerMutex.ty go!"Mutex"))) (Var "$r"))))
   TryLock_unfold : MethodUnfold lockerMutex.ty go!"TryLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"TryLock"))) (App (Val (GoInstruction (StructFieldGet lockerMutex.ty go!"Mutex"))) (Var "$r"))))
   tryAcquire_unfold : MethodUnfold lockerMutex.ty go!"tryAcquire" (LamV "$r"
@@ -3296,6 +3332,8 @@ class lockerMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType lockerMutex.ty) go!"Key" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef lockerMutex.ty go!"Mutex"))) (Var "$r")))))
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType lockerMutex.ty) go!"Lock" lockerMutex.Lock.impl
+  ptr_Rev_unfold : MethodUnfold (go.GoType.PointerType lockerMutex.ty) go!"Rev" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"Rev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef lockerMutex.ty go!"Mutex"))) (Var "$r")))))
   ptr_TryLock_unfold : MethodUnfold (go.GoType.PointerType lockerMutex.ty) go!"TryLock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Mutex.ty) go!"TryLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (App (Val (GoInstruction (StructFieldRef lockerMutex.ty go!"Mutex"))) (Var "$r")))))
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType lockerMutex.ty) go!"Unlock" lockerMutex.Unlock.impl
@@ -3309,15 +3347,27 @@ attribute [instance] lockerMutex.TypeAssumptions.type_repr
   lockerMutex.TypeAssumptions.Header_unfold
   lockerMutex.TypeAssumptions.IsOwner_unfold
   lockerMutex.TypeAssumptions.Key_unfold
+  lockerMutex.TypeAssumptions.Rev_unfold
   lockerMutex.TypeAssumptions.TryLock_unfold
   lockerMutex.TypeAssumptions.tryAcquire_unfold
   lockerMutex.TypeAssumptions.ptr_Header_unfold
   lockerMutex.TypeAssumptions.ptr_IsOwner_unfold
   lockerMutex.TypeAssumptions.ptr_Key_unfold
   lockerMutex.TypeAssumptions.ptr_Lock_unfold
+  lockerMutex.TypeAssumptions.ptr_Rev_unfold
   lockerMutex.TypeAssumptions.ptr_TryLock_unfold
   lockerMutex.TypeAssumptions.ptr_Unlock_unfold
   lockerMutex.TypeAssumptions.ptr_tryAcquire_unfold
+
+abbrev DLocker [FfiSyntax] : Type := GoInterface
+
+@[reducible] def DLocker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Rev" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.sync.Locker.ty)])])
+
+class DLocker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq DLocker.ty DLocker.underlying
+
+attribute [instance] DLocker.TypeAssumptions.underlying
 
 structure Session [FfiSyntax] where
   mk ::
@@ -3809,6 +3859,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Election_instance : Election.TypeAssumptions
   Mutex_instance : Mutex.TypeAssumptions
   lockerMutex_instance : lockerMutex.TypeAssumptions
+  DLocker_instance : DLocker.TypeAssumptions
   Session_instance : Session.TypeAssumptions
   sessionOptions_instance : sessionOptions.TypeAssumptions
   SessionOption_instance : SessionOption.TypeAssumptions
@@ -3829,6 +3880,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   waitDeletes_unfold : FuncUnfold waitDeletes [] waitDeletes.impl
   NewMutex_unfold : FuncUnfold NewMutex [] NewMutex.impl
   NewLocker_unfold : FuncUnfold NewLocker [] NewLocker.impl
+  NewDLocker_unfold : FuncUnfold NewDLocker [] NewDLocker.impl
   NewSession_unfold : FuncUnfold NewSession [] NewSession.impl
   WithTTL_unfold : FuncUnfold WithTTL [] WithTTL.impl
   WithLease_unfold : FuncUnfold WithLease [] WithLease.impl
@@ -3859,6 +3911,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 attribute [instance] Assumptions.Election_instance
   Assumptions.Mutex_instance
   Assumptions.lockerMutex_instance
+  Assumptions.DLocker_instance
   Assumptions.Session_instance
   Assumptions.sessionOptions_instance
   Assumptions.SessionOption_instance
@@ -3879,6 +3932,7 @@ attribute [instance] Assumptions.Election_instance
   Assumptions.waitDeletes_unfold
   Assumptions.NewMutex_unfold
   Assumptions.NewLocker_unfold
+  Assumptions.NewDLocker_unfold
   Assumptions.NewSession_unfold
   Assumptions.WithTTL_unfold
   Assumptions.WithLease_unfold

@@ -19,6 +19,11 @@ history laws only (`etcdState_revs`, `etcdState_create_persist`): if both were p
 one created first (say `c1 < c2`) was present at `R2` (its creation `c1 < c2 ≤ R2 ≤ a`), with a
 create revision below `c2`, against `lockedAt k2 c2 R2`'s minimality.
 
+**Fencing tokens** (`lockFloor`, etcd#18779's `Mutex.Rev`): a lock acquired with create
+revision `c` and observed at `R` (`lockedAt`, or `Lock`'s `keyRecreated`) leaves no key under `pfx`
+created below `c` at `R`, and so at any later revision (`lockFloor_later`): a later holder's create
+revision is at least `c` (`lockFloor_fence`), from the same two history laws.
+
 **The client** (`isEtcdMutexClient client pfx`, persistent): its `KV` answers gets (`isEtcdKV`,
 with the range clause `getRespRange`), transactions (`isEtcdTxnKV`) and deletes
 (`isEtcdDeleteKV`), its `Watcher` range watches (`isEtcdRangeWatcher`: a key, a sub-prefix), all for the prefix
@@ -142,6 +147,84 @@ theorem lockedAt_exclusion (pfx k1 k2 : GoString) (c1 c2 R1 R2 a : w64) (s : Lis
     ipureintro; exact fun ⟨h, _⟩ => H h
   · ihave %H := lockedAt_excludes_earlier pfx k2 k1 c2 c1 R1 a s hgt h1 $$ [$H1 $Hs]
     ipureintro; exact fun ⟨_, h⟩ => H h
+
+/-! ## Fencing tokens (etcd#18779, `Mutex.Rev`) -/
+
+/-- **A fencing floor**: at revision `R`, `c ≤ R` and no key under `pfx` has a create revision
+below `c`. What a lock acquired with the create revision `c` (`Mutex.Rev`) leaves behind, in either
+of `Lock`'s outcomes (`lockedAt_floor`, `keyRecreated_floor`). -/
+def lockFloor (pfx : GoString) (c R : w64) : IProp GF :=
+  iprop(∃ s : List EtcdKv, □ etcdState R pfx s ∗
+    ⌜sint.Z c ≤ sint.Z R ∧ ∀ v ∈ s, sint.Z c ≤ sint.Z v.createRev⌝)
+
+instance lockFloor_persistent (pfx : GoString) (c R : w64) :
+    Persistent (lockFloor (GF := GF) pfx c R) := by
+  unfold lockFloor; infer_instance
+
+theorem lockedAt_floor (pfx key : GoString) (c R : w64) :
+    lockedAt (GF := GF) pfx key c R ⊢ lockFloor pfx c R := by
+  unfold lockedAt lockFloor
+  iintro ⟨%s, #Hs, %Hl⟩
+  ihave %Hrevs := etcdState_revs R pfx s $$ Hs
+  iexists s
+  isplitl
+  · iexact Hs
+  ipureintro
+  obtain ⟨⟨w, hw, -, hwc⟩, hmin⟩ := Hl
+  have := Hrevs w hw
+  rw [hwc] at this
+  exact ⟨by omega, hmin⟩
+
+theorem keyRecreated_floor (pfx key : GoString) (c R : w64) :
+    keyRecreated (GF := GF) pfx key c R ⊢ lockFloor pfx c R := by
+  unfold keyRecreated lockFloor
+  iintro ⟨%s, #Hs, %Hl⟩
+  ihave %Hrevs := etcdState_revs R pfx s $$ Hs
+  iexists s
+  isplitl
+  · iexact Hs
+  ipureintro
+  obtain ⟨⟨w, hw, -, hwc⟩, hmin⟩ := Hl
+  have := Hrevs w hw
+  exact ⟨by omega, hmin⟩
+
+/-- **Fencing**: after a lock acquired with create revision `c1` was observed at `R1`
+(`lockFloor`), every key under `pfx` present at a later revision `a ≥ R1` has a create revision at
+least `c1`: in particular every later holder's `Rev()`. A key created at or before `R1` and still
+present at `a` was present at `R1` (`etcdState_create_persist`), so at least `c1`; one created
+after `R1` is above `R1 ≥ c1`. -/
+theorem lockFloor_later (pfx : GoString) (c1 R1 a : w64) (s : List EtcdKv)
+    (ha : sint.Z R1 ≤ sint.Z a) :
+    lockFloor (GF := GF) pfx c1 R1 ∗ etcdState a pfx s ⊢
+      ⌜∀ v ∈ s, sint.Z c1 ≤ sint.Z v.createRev⌝ := by
+  unfold lockFloor
+  iintro ⟨⟨%s1, #Hs1, %Hf⟩, Hs⟩
+  ihave %Hp := etcdState_create_persist a R1 pfx s s1 $$ [$Hs $Hs1]
+  ipureintro
+  intro v hv
+  obtain ⟨hcR, hmin⟩ := Hf
+  by_cases hle : sint.Z v.createRev ≤ sint.Z R1
+  · obtain ⟨v', hv', -, hv'c⟩ := Hp v hv hle ha
+    have := hmin v' hv'
+    rw [hv'c] at this
+    exact this
+  · omega
+
+/-- **Fencing tokens increase**: two holders of the lock on `pfx` (`TryLock`'s or `Lock`'s `nil`;
+`Lock`'s re-created case is `keyRecreated_floor`'s `lockFloor`), with create revisions (`Rev()`)
+`c1` observed at `R1` and `c2` held at `R2 ≥ R1`: `c1 ≤ c2`, and `c1 < c2` when they differ. -/
+theorem lockFloor_fence (pfx k2 : GoString) (c1 c2 R1 R2 : w64)
+    (h12 : sint.Z R1 ≤ sint.Z R2) :
+    lockFloor (GF := GF) pfx c1 R1 ∗ lockedAt pfx k2 c2 R2 ⊢ ⌜sint.Z c1 ≤ sint.Z c2⌝ := by
+  iintro ⟨#H1, H2⟩
+  iunfold lockedAt at H2
+  icases H2 with ⟨%s2, #Hs2, %Hl⟩
+  ihave %H := lockFloor_later pfx c1 R1 R2 s2 h12 $$ [$H1 $Hs2]
+  ipureintro
+  obtain ⟨⟨w, hw, -, hwc⟩, -⟩ := Hl
+  have := H w hw
+  rw [hwc] at this
+  exact this
 
 /-! ## The client -/
 

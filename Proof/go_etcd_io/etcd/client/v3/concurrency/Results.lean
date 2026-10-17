@@ -12,6 +12,12 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
 * **`Unlock`** (`mutex_Unlock`): `nil` means the key is gone.
 * **`NewLocker`'s `Lock`/`Unlock`** (`locker_Lock`, `locker_Unlock`): `Mutex.Lock`/`Unlock` with
   the client's context; any error is a panic (`panic(err)`), the specs' panic outcome.
+* **`Rev`, `NewDLocker`** (etcd#18779; `mutex_Rev`, `dlocker_NewDLocker`, `dlocker_Rev`): `myRev`;
+  `NewLocker`'s locker as a `DLocker`, whose `Rev` is its mutex's.
+* **Fencing tokens increase** (`mutex_fence`, `mutex_fence_strict`, etcd#18779): a holder's
+  `Rev()` `c1`, observed at `R1` (either of `Lock`'s `nil` outcomes), is at most the create
+  revision `c2` of any holder at a revision `R2 ≥ R1`, and below it when they differ. From the
+  same two history laws.
 * **Mutual exclusion** (`mutex_exclusion`): two holders of the lock on one prefix, with
   different create revisions, are never both present in etcd's state at a revision at or after
   both of their `lockedAt` revisions; and at one revision the holder's create revision is unique
@@ -95,6 +101,45 @@ theorem locker_Lock : lockerMutex.Lock.spec (GF := GF) (hG := hG) := lockerMutex
 /-- `lm.Unlock()` of `NewLocker`'s locker
 (`Spec/go_etcd_io/etcd/client/v3/concurrency/lockerMutex__Unlock.lean`). -/
 theorem locker_Unlock : lockerMutex.Unlock.spec (GF := GF) (hG := hG) := lockerMutex.wp_Unlock
+
+/-- `m.Rev()` (`Spec/go_etcd_io/etcd/client/v3/concurrency/Mutex__Rev.lean`, etcd#18779). -/
+theorem mutex_Rev : Mutex.Rev.spec (GF := GF) (hG := hG) := Mutex.wp_Rev
+
+/-- `NewDLocker(s, pfx)` (`Spec/go_etcd_io/etcd/client/v3/concurrency/NewDLocker.lean`,
+etcd#18779). -/
+theorem dlocker_NewDLocker : NewDLocker.spec (GF := GF) (hG := hG) := wp_NewDLocker
+
+/-- `lm.Rev()` of `NewDLocker`'s locker
+(`Spec/go_etcd_io/etcd/client/v3/concurrency/lockerMutex__Rev.lean`, etcd#18779). -/
+theorem dlocker_Rev : lockerMutex.Rev.spec (GF := GF) (hG := hG) := lockerMutex.wp_Rev
+
+/-- **Fencing tokens increase** (etcd#18779). A holder of the lock on `pfx` with create revision
+(`Rev()`) `c1`, observed at `R1` — either of `Lock`'s `nil` outcomes, or `TryLock`'s — and a
+holder `(k2, c2)` at `R2 ≥ R1`: `c1 ≤ c2`. -/
+theorem mutex_fence (pfx k1 k2 : GoString) (c1 c2 R1 R2 : w64)
+    (h12 : sint.Z R1 ≤ sint.Z R2) :
+    (lockedAt (GF := GF) pfx k1 c1 R1 ∨ keyRecreated pfx k1 c1 R1) ∗ lockedAt pfx k2 c2 R2 ⊢
+      ⌜sint.Z c1 ≤ sint.Z c2⌝ := by
+  iintro ⟨H1, #H2⟩
+  ihave #Hf : lockFloor pfx c1 R1 $$ [H1]
+  · icases H1 with (#H | #H)
+    · iapply lockedAt_floor pfx k1 c1 R1; iexact H
+    · iapply keyRecreated_floor pfx k1 c1 R1; iexact H
+  iapply lockFloor_fence pfx k2 c1 c2 R1 R2 h12
+  isplitl
+  · iexact Hf
+  · iexact H2
+
+/-- **Fencing tokens increase strictly** between different holders: with `c1 ≠ c2`, `c1 < c2`. -/
+theorem mutex_fence_strict (pfx k1 k2 : GoString) (c1 c2 R1 R2 : w64)
+    (h12 : sint.Z R1 ≤ sint.Z R2) (hne : c1 ≠ c2) :
+    (lockedAt (GF := GF) pfx k1 c1 R1 ∨ keyRecreated pfx k1 c1 R1) ∗ lockedAt pfx k2 c2 R2 ⊢
+      ⌜sint.Z c1 < sint.Z c2⌝ := by
+  iintro H
+  ihave %Hle := mutex_fence pfx k1 k2 c1 c2 R1 R2 h12 $$ H
+  ipureintro
+  have hz : sint.Z c1 ≠ sint.Z c2 := fun h => hne (by word)
+  omega
 
 /-- **Mutual exclusion.** Two holders of the lock on `pfx` (what `TryLock` and `Lock` return on
 `nil`), `(k1, c1)` at `R1` and `(k2, c2)` at `R2`, with different create revisions, are never both
@@ -223,6 +268,11 @@ end Perennial
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Unlock
 #print axioms Perennial.EtcdGrove.concurrency.locker_Lock
 #print axioms Perennial.EtcdGrove.concurrency.locker_Unlock
+#print axioms Perennial.EtcdGrove.concurrency.mutex_Rev
+#print axioms Perennial.EtcdGrove.concurrency.dlocker_NewDLocker
+#print axioms Perennial.EtcdGrove.concurrency.dlocker_Rev
+#print axioms Perennial.EtcdGrove.concurrency.mutex_fence
+#print axioms Perennial.EtcdGrove.concurrency.mutex_fence_strict
 #print axioms Perennial.EtcdGrove.concurrency.mutex_exclusion
 #print axioms Perennial.EtcdGrove.concurrency.mutex_holder_unique
 #print axioms Perennial.EtcdGrove.concurrency.election_Campaign
