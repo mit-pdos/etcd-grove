@@ -187,7 +187,9 @@ namespace EtcdGrove
 #print axioms unstable.wp_nextSnapshot
 #print axioms unstable.wp_acceptInProgress
 #print axioms unstable.wp_stableTo
-#print axioms unstable.wp_shrinkEntriesArray
+#print axioms unstable.wp_shrinkEntriesSlice
+#print axioms unstable.wp_doEntriesNeedCompaction
+#print axioms unstable.wp_compactEntriesSlice
 #print axioms unstable.wp_restore
 #print axioms unstable.wp_truncateAndAppend
 #print axioms unstable.wp_slice

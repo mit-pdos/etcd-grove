@@ -13392,3 +13392,10 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/raft#96 (branch `pr-verify/raft-96`, 2026-10-16)
+
+The PR's `log_unstable.go` translated (fork `pr-raft-96-goose-lean` `d22236cb2`, not pushed: `etc/goose.py
+--check` fails here by design); `unstable.stableTo`'s spec re-proved unchanged, `shrinkEntriesArray` gone,
+`shrinkEntriesSlice`/`doEntriesNeedCompaction`/`compactEntriesSlice` proved (no `sorry`; `stableTo` now
+reaches the existing `proto.SizeEntry` postulate). Report: `notes/pr-verify/raft-96.md`. Not for `lean`.

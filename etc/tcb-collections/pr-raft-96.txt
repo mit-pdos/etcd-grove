@@ -1,0 +1,11 @@
+# etcd-io/raft#96 (notes/pr-verify/raft-96.md): `unstable.stableTo` and the three functions the PR
+# adds, and the caller `raftLog.stableTo`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-96.txt [--check [--update]]
+#
+# The baseline below is from `#print axioms` of these results (Results.lean, a build of the raft
+# tree only), filtered to this repository's axioms, not from etc/tcb-report.py, which needs a
+# full `lake build`; rerun `--check --update` after one.
+roots unstable\.wp_(stableTo|shrinkEntriesSlice|doEntriesNeedCompaction|compactEntriesSlice)$
+roots raftLog\.wp_stableTo$
+axiom proto.SizeEntry.wp_proof

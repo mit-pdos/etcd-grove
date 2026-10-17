@@ -317,6 +317,8 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
 public import Proof.go_etcd_io.raft.v3.unstable__acceptInProgress
+public import Proof.go_etcd_io.raft.v3.unstable__compactEntriesSlice
+public import Proof.go_etcd_io.raft.v3.unstable__doEntriesNeedCompaction
 public import Proof.go_etcd_io.raft.v3.unstable__maybeFirstIndex
 public import Proof.go_etcd_io.raft.v3.unstable__maybeLastIndex
 public import Proof.go_etcd_io.raft.v3.unstable__maybeTerm
@@ -324,7 +326,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__mustCheckOutOfBounds
 public import Proof.go_etcd_io.raft.v3.unstable__nextEntries
 public import Proof.go_etcd_io.raft.v3.unstable__nextSnapshot
 public import Proof.go_etcd_io.raft.v3.unstable__restore
-public import Proof.go_etcd_io.raft.v3.unstable__shrinkEntriesArray
+public import Proof.go_etcd_io.raft.v3.unstable__shrinkEntriesSlice
 public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
@@ -1244,13 +1246,21 @@ theorem raftLog.wp_isUpToDate [StorageModel GF] :
     raftLog.isUpToDate.spec (GF := GF) (hG := hG) :=
   raftLog.isUpToDate.wp_proof raftLog.wp_lastEntryID
 
-theorem unstable.wp_shrinkEntriesArray [StorageModel GF] :
-    unstable.shrinkEntriesArray.spec (GF := GF) (hG := hG) :=
-  unstable.shrinkEntriesArray.wp_proof
+theorem unstable.wp_doEntriesNeedCompaction [StorageModel GF] :
+    unstable.doEntriesNeedCompaction.spec (GF := GF) (hG := hG) :=
+  unstable.doEntriesNeedCompaction.wp_proof proto.wp_SizeEntry
+
+theorem unstable.wp_compactEntriesSlice [StorageModel GF] :
+    unstable.compactEntriesSlice.spec (GF := GF) (hG := hG) :=
+  unstable.compactEntriesSlice.wp_proof
+
+theorem unstable.wp_shrinkEntriesSlice [StorageModel GF] :
+    unstable.shrinkEntriesSlice.spec (GF := GF) (hG := hG) :=
+  unstable.shrinkEntriesSlice.wp_proof unstable.wp_doEntriesNeedCompaction unstable.wp_compactEntriesSlice
 
 theorem unstable.wp_stableTo [StorageModel GF] :
     unstable.stableTo.spec (GF := GF) (hG := hG) :=
-  unstable.stableTo.wp_proof unstable.wp_maybeTerm unstable.wp_shrinkEntriesArray
+  unstable.stableTo.wp_proof unstable.wp_maybeTerm unstable.wp_shrinkEntriesSlice
 
 theorem raftLog.wp_stableTo [StorageModel GF] :
     raftLog.stableTo.spec (GF := GF) (hG := hG) :=

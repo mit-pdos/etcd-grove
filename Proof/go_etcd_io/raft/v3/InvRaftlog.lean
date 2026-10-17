@@ -316,7 +316,7 @@ as `uv.logger = ok ulg ∗ isLogger ulg`; notes/decisions.md, "Predicate indices
 outright. That is what the Go code guarantees (`log_unstable.go`, upamanyus/etcd-raft
 531b20c): no statement ever writes an element of `u.entries` in place. Every assignment
 to `u.entries` re-slices it (`stableTo`), copies it into a new array
-(`shrinkEntriesArray`), adopts the caller's slice, or appends -- in place only past
+(`shrinkEntriesArray`; `compactEntriesSlice` under raft#96), adopts the caller's slice, or appends -- in place only past
 `len`, into the slack; the truncating case appends to `u.slice(...)`, which caps its
 result "so that an append will reallocate and copy this slice instead of corrupting
 the neighbouring u.entries" (`log_unstable.go:228-234`). So a sub-slice

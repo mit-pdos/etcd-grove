@@ -32,17 +32,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `u.stableTo(id)` (`log_unstable.go:134`):
+/-- `u.stableTo(id)` (`log_unstable.go:138`):
 
     gt, ok := u.maybeTerm(id.index)
     if !ok { Infof; return }
     if id.index < u.offset { Infof; return }      // the snapshot's index
     if gt != id.term { Infof; return }
-    num := int(id.index + 1 - u.offset)
-    u.entries = u.entries[num:]
+    nextUnstableEntryIndex := int(id.index + 1 - u.offset)
+    u.shrinkEntriesSlice(nextUnstableEntryIndex)   // raft#96; was u.entries = u.entries[num:]
     u.offset = id.index + 1
     u.offsetInProgress = max(u.offsetInProgress, u.offset)
-    u.shrinkEntriesArray()
+    // (raft#96 removed the trailing u.shrinkEntriesArray())
 
 On a hit (`UnstableHit`) the suffix loses its first `id.index + 1 - offset` entries and
 `offset` moves past `id`; otherwise nothing changes. The premises are `maybeTerm`'s;

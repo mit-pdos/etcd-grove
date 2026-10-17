@@ -5,7 +5,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.unstable__stableTo
 public import Spec.go_etcd_io.raft.v3.unstable__maybeTerm
-public import Spec.go_etcd_io.raft.v3.unstable__shrinkEntriesArray
+public import Spec.go_etcd_io.raft.v3.unstable__shrinkEntriesSlice
 
 @[expose] public section
 
@@ -61,7 +61,7 @@ private theorem wp_max2_uint64 (x y : w64) :
 
 theorem unstable.stableTo.wp_proof
     (wp_unstable_maybeTerm : unstable.maybeTerm.spec (GF := GF) (hG := hG))
-    (wp_unstable_shrinkEntriesArray : unstable.shrinkEntriesArray.spec (GF := GF) (hG := hG)) :
+    (wp_unstable_shrinkEntriesSlice : unstable.shrinkEntriesSlice.spec (GF := GF) (hG := hG)) :
     unstable.stableTo.spec (GF := GF) (hG := hG) := by
   intro u us id Hsoff Hnw
   wp_start as H
@@ -113,41 +113,26 @@ theorem unstable.stableTo.wp_proof
     rw [He] at He'; cases He'; exact absurd Ht' Ht
   rw [decide_eq_true Ht]
   wp_auto
-  -- the hit: drop the persisted prefix
+  -- the hit: `shrinkEntriesSlice` drops the persisted prefix (raft#96)
   have Hnum : sint.Z (id.index' + W64 1 - us.offset) =
       uint.Z id.index' + 1 - uint.Z us.offset := by word
-  ihave %Hwf := ownSlice_wf $$ Hls
-  rw [ite_eq_left ⟨by word, by word, Hwf.2⟩]
-  icases (ownSlice_slice (id.index' + W64 1 - us.offset) uv.entries'.len uv.entries'
-      DFrac.discard ls ⟨by word, by word, by word⟩).1 $$ Hls with ⟨-, #Hls2, -⟩
-  ihave Hents_cap := (ownSliceCap_slice uv.entries' (id.index' + W64 1 - us.offset) _
-      ⟨by word, by word, Hwf.2⟩).1 $$ Hents_cap
+  wp_apply wp_unstable_shrinkEntriesSlice u us (id.index' + W64 1 - us.offset)
+      (by word) (by word) $$ [Hu Hents_cap] as Hun
+  · close_unstable
+  generalize Hus1 : ({ us with ents := us.ents.drop (sint.Z (id.index' + W64 1 - us.offset)).toNat }
+    : UnstableSt) = us1
+  open_unstable_again
   wp_auto
   wp_apply wp_max2_uint64
-  have Hsub : subslice (sint.nat (id.index' + W64 1 - us.offset)) (sint.nat uv.entries'.len)
-      us.ents = us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat := by
-    rw [subslice_def, List.take_of_length_le (by word)]
-    congr 1
-    word
-  ihave #Hents2 : entsRO (slice.slice uv.entries' Loc (id.index' + W64 1 - us.offset)
-      uv.entries'.len) (us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat) $$ [Hls2 Hb]
-  · rw [← Hsub]
-    iunfold entsRO; iunfold entsPts
-    iexists _
-    iframe Hls2
-    iapply entsBig_subslice $$ Hb
-  wp_apply wp_unstable_shrinkEntriesArray u
-      { us with ents := us.ents.drop (uint.Z id.index' + 1 - uint.Z us.offset).toNat,
-                offset := id.index' + W64 1,
-                inprogress := w64Max us.inprogress (id.index' + W64 1) } $$ [Hu Hents_cap] as Hun
-  · iapply ownUnstable_intro $$ Hu Hents_cap Hents2 Hsnap Hpksn Hlogger
-    ipureintro; exact ⟨rfl, rfl⟩
   iapply HΦ
-  isplitl [Hun]
-  · iexact Hun
+  isplitl
+  · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+    ipureintro; exact ⟨rfl, rfl⟩
   ipureintro
-  refine ⟨fun _ => rfl, fun Hn => absurd ?_ Hn⟩
-  exact ⟨⟨by omega, by omega⟩, e, He, Ht⟩
+  subst Hus1
+  refine ⟨fun _ => ?_, fun Hn => absurd ?_ Hn⟩
+  · simp only [Hnum]
+  · exact ⟨⟨by omega, by omega⟩, e, He, Ht⟩
 
 end proof
 

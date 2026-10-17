@@ -1,0 +1,21 @@
+== up-base @ 89c97ed7f
+    log_unstable_mem_test.go:59: len=1 cap=1 visible=32 MB (max 64 MB) heap retained=162 MB
+    log_unstable_mem_test.go:63: unstable retains 162 MB, more than twice the most it ever held visibly (64 MB)
+--- FAIL: TestUnstableRetainedMemoryIssue71 (0.08s)
+    log_unstable_mem_test.go:84: len=31 cap=31 heap retained=31 MB
+--- PASS: TestUnstableRetainedMemorySpareCap (0.08s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.170s
+FAIL
+BenchmarkUnstableStableToLongLog-32    	   20000	       894.7 ns/op	     375 B/op	       2 allocs/op
+== up-pr @ 0e643b1b3
+    log_unstable_mem_test.go:59: len=1 cap=1 visible=32 MB (max 64 MB) heap retained=162 MB
+    log_unstable_mem_test.go:63: unstable retains 162 MB, more than twice the most it ever held visibly (64 MB)
+--- FAIL: TestUnstableRetainedMemoryIssue71 (0.10s)
+    log_unstable_mem_test.go:84: len=31 cap=71 heap retained=60 MB
+    log_unstable_mem_test.go:87: unstable retains 60 MB for 31 MB of unstable entries
+--- FAIL: TestUnstableRetainedMemorySpareCap (0.06s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.181s
+FAIL
+BenchmarkUnstableStableToLongLog-32    	   20000	    293754 ns/op	     375 B/op	       2 allocs/op
