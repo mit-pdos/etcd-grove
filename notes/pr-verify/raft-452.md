@@ -48,7 +48,8 @@ against the unchanged spec.
 
 No new postulates or `sorry`s. `#print axioms` of the three results, `unstable.wp_stableTo`,
 `raftLog.wp_stableTo` and `raft.wp_Step` (from `Proof/go_etcd_io/raft/v3/Link.lean`), gives the
-same output on this branch as on `lean`, byte for byte, and none of them reaches `sorryAx`.
+same output on this branch as on `lean`, byte for byte (the probe `raft-452/Ax.lean`, its
+output `raft-452/axioms-pr-branch.txt`, and how to rerun them in `raft-452/README.md`), and none of them reaches `sorryAx`.
 `unstable.wp_stableTo` and `raftLog.wp_stableTo` rest on 294 axioms each: Lean's three
 (`propext`, `Classical.choice`, `Quot.sound`) plus the opaque Go types and their
 `underlying`/`zero_val` instances (standard library, protobuf internals). `raft.wp_Step`
@@ -61,7 +62,7 @@ supplies.
 this branch: it requires every root of the repository to be up to date, and the changed
 `Code.go_etcd_io.raft.v3` would mean rebuilding all of the server's proofs downstream of it. The
 built modules were `Proof.go_etcd_io.raft.v3.Link` and `Proof.go_etcd_io.raft.v3.Results`, which
-covers every raft proof. So the collection's baseline lines are not written; a run of
+covers every raft proof (`raft-452/build-excerpt.txt`). So the collection's baseline lines are not written; a run of
 `etc/tcb-report.py --collection etc/tcb-collections/pr-raft-452.txt --check --update` after a
 full build fills them in. `etc/verified-code.py` would count the same for `go.etcd.io/raft/v3`
 before and after: one function's body changed and it stays verified.

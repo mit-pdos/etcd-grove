@@ -1,0 +1,11 @@
+✔ [1074/1837] Built Code.go_etcd_io.raft.v3 (29s)
+✔ [1407/1837] Built Spec.go_etcd_io.raft.v3.unstable__stableTo (2.6s)
+✔ [1409/1837] Built Spec.go_etcd_io.raft.v3.raftLog__stableTo (2.9s)
+✔ [1489/1837] Built Proof.go_etcd_io.raft.v3.raftLog__stableTo (21s)
+✔ [1518/1837] Built Proof.go_etcd_io.raft.v3.unstable__stableTo (32s)
+✔ [1644/1837] Built Spec.go_etcd_io.raft.v3.raft__Step (5.1s)
+✔ [1834/1837] Built Proof.go_etcd_io.raft.v3.raft__Step (15s)
+✔ [1835/1837] Built Proof.go_etcd_io.raft.v3.Link (3.6s)
+ℹ [1837/1837] Built Proof.go_etcd_io.raft.v3.Results (34s)
+info: Proof/go_etcd_io/raft/v3/Results.lean:388:0: 'Perennial.EtcdGrove.leader_completeness' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (1837 jobs).
