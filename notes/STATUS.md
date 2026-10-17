@@ -45,6 +45,15 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#20915, the CI image pipeline (2026-10-17, branch `pr-verify/etcd-20915`)
+
+Its last commit is etcd#22261's (same patch-id). Its other commits are build scripts, `go.mod`
+versions and e2e tests, so the verified Go code and the Lean tree are #22261's (cherry-picked;
+fork `pr-etcd-20915-goose-lean` `e249b47ed`). The scripts inject `version.Version` from
+`git describe`, so #22261's stale-cache finding applies to real builds. New: without a reachable
+`v*` tag (a tarball, a shallow clone), `Version` is a commit hash or `GitNotFound`, and etcd panics
+at startup in `semver.MustParse(version.Version)`. Report `notes/pr-verify/etcd-20915.md`.
+
 ## PR verification: etcd-io/etcd#22261, `VersionForPeer` and rafthttp's per-peer version cache (2026-10-17, branch `pr-verify/etcd-22261`)
 
 The PR translated (fork `pr-etcd-22261-goose-lean` `22be0af01`, not pushed; the pin is unchanged, so

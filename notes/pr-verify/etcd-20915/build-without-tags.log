@@ -1,0 +1,33 @@
+## PR head b7e2d97fc, source tarball (git archive)
+etcd --version: etcd Version: GitNotFound
+run exit 2
+panic: invalid semantic version
+
+goroutine 119 [running]:
+github.com/Masterminds/semver/v3.MustParse(...)
+	github.com/Masterminds/semver/v3@v3.5.0/version.go:330
+go.etcd.io/etcd/server/v3/etcdserver/version.(*Monitor).membersMinimalServerVersion(0x38f3c93af70)
+	go.etcd.io/etcd/server/v3/etcdserver/version/monitor.go:159 +0x6c5
+go.etcd.io/etcd/server/v3/etcdserver/version.(*Monitor).decideClusterVersion(0x38f3c93af70)
+	go.etcd.io/etcd/server/v3/etcdserver/version/monitor.go:70 +0x48
+go.etcd.io/etcd/server/v3/etcdserver/version.(*Monitor).UpdateClusterVersionIfNeeded(0x38f3c93af70)
+	go.etcd.io/etcd/server/v3/etcdserver/version/monitor.go:57 +0x1c
+
+## PR head b7e2d97fc, shallow clone without tags
+etcd --version: etcd Version: b7e2d97fc251f8
+run exit 2
+panic: invalid semantic version
+
+goroutine 194 [running]:
+github.com/Masterminds/semver/v3.MustParse(...)
+	github.com/Masterminds/semver/v3@v3.5.0/version.go:330
+go.etcd.io/etcd/server/v3/etcdserver/version.(*Monitor).membersMinimalServerVersion(0x3ab1d3c42f70)
+	go.etcd.io/etcd/server/v3/etcdserver/version/monitor.go:159 +0x6c5
+go.etcd.io/etcd/server/v3/etcdserver/version.(*Monitor).decideClusterVersion(0x3ab1d3c42f70)
+	go.etcd.io/etcd/server/v3/etcdserver/version/monitor.go:70 +0x48
+go.etcd.io/etcd/server/v3/etcdserver/version.(*Monitor).UpdateClusterVersionIfNeeded(0x3ab1d3c42f70)
+	go.etcd.io/etcd/server/v3/etcdserver/version/monitor.go:57 +0x1c
+
+## base b1d3e04be, source tarball
+etcd --version: etcd Version: 3.8.0-alpha.0
+run exit 124 (still serving at the 20 s timeout), no panic

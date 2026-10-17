@@ -1,0 +1,10 @@
+--- FAIL: TestPeerVersionCacheStaleAfterDowngrade (0.01s)
+    logger.go:146: 2026-10-17T05:44:44.097-0400	DEBUG	dial stream reader	{"from": "2", "to": "1", "address": "http://127.0.0.1:42583/raft/stream/message/2"}
+    logger.go:146: 2026-10-17T05:44:44.097-0400	DEBUG	dial stream reader	{"from": "2", "to": "1", "address": "http://127.0.0.1:42583/raft/stream/message/2"}
+    logger.go:146: 2026-10-17T05:44:44.098-0400	DEBUG	dial stream reader	{"from": "2", "to": "1", "address": "http://127.0.0.1:42583/raft/stream/message/2"}
+    logger.go:146: 2026-10-17T05:44:44.098-0400	DEBUG	dial stream reader	{"from": "2", "to": "1", "address": "http://127.0.0.1:42583/raft/stream/message/2"}
+    logger.go:146: 2026-10-17T05:44:44.101-0400	DEBUG	dial stream reader	{"from": "3", "to": "1", "address": "http://127.0.0.1:42583/raft/stream/message/3"}
+    peer_version_downgrade_test.go:117: BUG: after the downgrade the member can no longer reach the peer (stale cached version 3.8.0, header "v3.8.0"), while a member without the cache can
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp	0.015s
+FAIL
