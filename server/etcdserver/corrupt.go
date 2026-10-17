@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	_ "net/url" // Gooseable: goose imports the package of http.Request.URL's type only when the file does
 	"sort"
 	"strings"
 	"sync"
