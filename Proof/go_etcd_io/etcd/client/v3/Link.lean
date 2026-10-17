@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__getToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__refreshToken
+public import Proof.go_etcd_io.etcd.client.v3.Client__roundRobinQuorumBackoff
 public import Proof.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__unaryClientInterceptor
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
@@ -43,6 +44,7 @@ public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.WithCancelValCtx
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.IsStatusErr
+public import Proof.go_etcd_io.etcd.client.v3.expBackoff
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
 public import Proof.google_golang_org.grpc.ClientConn__NewStream
@@ -59,6 +61,7 @@ public import Proof.go_etcd_io.etcd.client.v3.isSafeRetry
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isUnavailableErr
+public import Proof.go_etcd_io.etcd.client.v3.jitterUp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
@@ -128,6 +131,7 @@ public import Proof.go_etcd_io.etcd.client.v3.withRepeatablePolicy
 public import Proof.go_etcd_io.etcd.client.v3.withVersion
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Float64
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
@@ -152,6 +156,22 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+theorem zap.wp_Uint :
+    EtcdGrove.zap.Uint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Uint.wp_proof
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
+theorem zap.wp_Float64 :
+    EtcdGrove.zap.Float64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Float64.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Debug.wp_proof
 
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
@@ -180,14 +200,6 @@ theorem grpc.ClientConn.wp_Target :
 theorem zap.wp_String :
     EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.String.wp_proof
-
-theorem zap.wp_Uint :
-    EtcdGrove.zap.Uint.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Uint.wp_proof
-
-theorem zap.Logger.wp_Debug :
-    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Debug.wp_proof
 
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
@@ -285,10 +297,6 @@ theorem zap.wp_Int' :
     EtcdGrove.zap.Int'.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Int'.wp_proof
 
-theorem zap.wp_Duration :
-    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Duration.wp_proof
-
 theorem zap.Logger.wp_Info :
     EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Info.wp_proof
@@ -319,6 +327,18 @@ theorem v3.Client.wp_getToken :
 theorem v3.Client.wp_refreshToken :
     EtcdGrove.Client.refreshToken.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.refreshToken.wp_proof v3.Client.wp_getToken
+
+theorem v3.wp_expBackoff :
+    EtcdGrove.expBackoff.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.expBackoff.wp_proof
+
+theorem v3.wp_jitterUp :
+    EtcdGrove.jitterUp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.jitterUp.wp_proof
+
+theorem v3.Client.wp_roundRobinQuorumBackoff :
+    EtcdGrove.Client.roundRobinQuorumBackoff.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.roundRobinQuorumBackoff.wp_proof v3.Client.wp_Endpoints v3.Client.wp_GetLogger v3.wp_expBackoff v3.wp_jitterUp zap.wp_Uint zap.wp_Duration zap.wp_Float64 zap.Logger.wp_Debug
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=

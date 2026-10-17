@@ -173,6 +173,11 @@ translate = [
   "Op.isWrite",
   "retryKVClient.DeleteRange",
   "retryKVClient.Txn",
+  # PR etcd#20731 (exponential backoff): the dial's round-robin backoff function
+  # `Client.roundRobinQuorumBackoff` and the new `expBackoff` (float arithmetic, with `math.Pow`
+  # and `math.Min`: hence the import of `math`); `jitterUp` (math/rand) stays names-only
+  "Client.roundRobinQuorumBackoff",
+  "expBackoff",
   # the watch slice's unit W-C: the client's watch (`watch.go`, all of it but
   # `streamKeyFromCtx`, names only: grpc's `metadata.FromOutgoingContext` and `fmt.Sprintf` of a
   # map), with `block_logger.go` (the substream's buffer logger) and `client.go`'s `isHaltErr`,
@@ -221,7 +226,7 @@ translate = [
   "isHaltErr",
   "isUnavailableErr",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "math"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

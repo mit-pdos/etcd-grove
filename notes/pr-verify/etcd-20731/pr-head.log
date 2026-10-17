@@ -1,0 +1,21 @@
+=== RUN   TestPR20731DefaultExponentCapsLargeWaitBetween
+    backoff_pr20731_test.go:50: BackoffWaitBetween=10s, defaults otherwise: backoff = 5s, want 10s (the pre-PR wait)
+--- FAIL: TestPR20731DefaultExponentCapsLargeWaitBetween (0.00s)
+=== RUN   TestPR20731FirstBackoffIsGenerationOne
+    backoff_pr20731_test.go:62: first backoff = 200ms, not BackoffWaitBetween = 100ms
+    backoff_pr20731_test.go:68: 3 endpoints, attempt 1: 0s
+    backoff_pr20731_test.go:68: 3 endpoints, attempt 2: 200ms
+    backoff_pr20731_test.go:68: 3 endpoints, attempt 3: 0s
+    backoff_pr20731_test.go:68: 3 endpoints, attempt 4: 400ms
+    backoff_pr20731_test.go:68: 3 endpoints, attempt 6: 800ms
+--- PASS: TestPR20731FirstBackoffIsGenerationOne (0.00s)
+=== RUN   TestPR20731HugeMaxWaitBetweenGivesNegativeBackoff
+    backoff_pr20731_test.go:80: expBackoff(100, 2.0, 25ms, MaxInt64) = -2562047h47m16.854775808s (-9223372036854775808), want a positive wait
+    backoff_pr20731_test.go:91: 60 of 60 capped backoffs are <= 0 (no wait)
+--- FAIL: TestPR20731HugeMaxWaitBetweenGivesNegativeBackoff (0.00s)
+=== RUN   TestPR20731ExponentBelowOneShrinks
+    backoff_pr20731_test.go:101: exponent 0.5, attempt 10: backoff = 97.656µs < BackoffWaitBetween
+--- PASS: TestPR20731ExponentBelowOneShrinks (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.023s
+FAIL

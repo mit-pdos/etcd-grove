@@ -1,0 +1,4 @@
+=== RUN   TestBaseLargeWaitBetweenNotCapped
+--- PASS: TestBaseLargeWaitBetweenNotCapped (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.035s

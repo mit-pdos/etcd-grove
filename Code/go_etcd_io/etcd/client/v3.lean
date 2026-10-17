@@ -17,6 +17,7 @@ public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import Code.go_etcd_io.etcd.client.v3.credentials
 public import Code.go_etcd_io.etcd.client.v3.internal.resolver
 public import Code.google_golang_org.protobuf.proto
+public import Perennial.Code.math
 public import Code.google_golang_org.grpc.peer
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Golang.Defn
@@ -736,6 +737,16 @@ noncomputable def defaultBackoffJitterFraction [FfiSyntax] [GoGlobalContext] : G
 
 axiom defaultBackoffJitterFraction.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def defaultBackoffExponent [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3.defaultBackoffExponent"
+
+axiom defaultBackoffExponent.init [FfiSyntax] [GoGlobalContext] : val
+
+noncomputable def defaultBackoffMaxWaitBetween [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3.defaultBackoffMaxWaitBetween"
+
+axiom defaultBackoffMaxWaitBetween.init [FfiSyntax] [GoGlobalContext] : val
+
 noncomputable def defaultCallOpts [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultCallOpts"
 
@@ -1067,6 +1078,9 @@ noncomputable def backoffLinearWithJitter [FfiSyntax] [GoGlobalContext] : GoStri
 noncomputable def jitterUp [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.jitterUp"
 
+noncomputable def expBackoff [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3.expBackoff"
+
 noncomputable def ensureWatchHeader [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ensureWatchHeader"
 
@@ -1203,10 +1217,98 @@ noncomputable def Client.Ctx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))))))
 
+/-- roundRobinQuorumBackoff retries against quorum between each backoff.
+    This is intended for use with a round robin load balancer.
+
+    go: client.go:501:18 -/
+noncomputable def Client.roundRobinQuorumBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "waitBetween"
+  (Lam "jitterFraction"
+  (Lam "backoffExponent"
+  (Lam "maxWaitBetween"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "maxWaitBetween" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxWaitBetween"))
+  (Let "backoffExponent" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "backoffExponent"))
+  (Let "jitterFraction" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "jitterFraction"))
+  (Let "waitBetween" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (App (Val doReturn)
+  (Lam "attempt"
+  (App (Val exceptionDo)
+  (Let "attempt" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "attempt"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uint))) (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"Endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")) (Val #(W64 2)))) (Val #(W64 1))))
+  (Let "quorum" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"backoff skipped"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"attempt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"quorum"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt")) (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt")) (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum"))))
+  (Let "generation" (App (Val (GoInstruction (GoAlloc go.uint))) (App (Val (GoInstruction (GoZeroVal go.uint))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint))) (Var "generation"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "backoffExponent"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxWaitBetween"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve expBackoff []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "jitterFraction"))
+  (App (App (App (Val (GoInstruction (FuncResolve jitterUp []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"backoff"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"attempt"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "attempt"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"quorum"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "quorum"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"generation"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint))) (Var "generation"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Uint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"waitBetween"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitBetween"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl4" (Let "$a0" (Val #(go!"jitterFraction"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "jitterFraction"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Float64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl5" (Let "$a0" (Val #(go!"backoffExponent"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.float64))) (Var "backoffExponent"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Float64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl6" (Let "$a0" (Val #(go!"maxWaitBetween"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxWaitBetween"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Duration []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl4"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl5"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl6")))])))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Debug"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "generation") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "quorum") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "n") (Var "$r0"))))))))))))))))))))))
+
 /-- isHaltErr returns true if the given error and context indicate no forward
     progress can be made, even after reconnecting.
 
-    go: client.go:570:6 -/
+    go: client.go:590:6 -/
 noncomputable def isHaltErr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -1243,7 +1345,7 @@ noncomputable def isHaltErr.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- isUnavailableErr returns true if the given error is an unavailable error
 
-    go: client.go:588:6 -/
+    go: client.go:608:6 -/
 noncomputable def isUnavailableErr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -1288,7 +1390,7 @@ noncomputable def isUnavailableErr.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- ContextError converts the error into an EtcdError if the error message matches one of
     the defined messages; otherwise, it tries to retrieve the context error.
 
-    go: client.go:606:6 -/
+    go: client.go:626:6 -/
 noncomputable def ContextError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -4345,6 +4447,35 @@ noncomputable def txn.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef txn.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType txn.ty)))) (Var "txn")))) (Val #())))))))))
 
+/-- expBackoff returns an exponential backoff duration.
+
+    This will calculate exponential backoff based upon generation and exponent. The backoff is within [minDelay, maxDelay].
+    For example, an exponent of 2.0 will double the backoff duration every subsequent generation. A generation of 0 will
+    return minDelay.
+
+    go: utils.go:39:6 -/
+noncomputable def expBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "generation"
+  (Lam "exponent"
+  (Lam "minDelay"
+  (Lam "maxDelay"
+  (App (Val exceptionDo)
+  (Let "maxDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "maxDelay"))
+  (Let "minDelay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "minDelay"))
+  (Let "exponent" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "exponent"))
+  (Let "generation" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "generation"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "exponent"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.uint go.float64))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "generation")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.Pow []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "minDelay")))))
+  (Let "$a1" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "maxDelay")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.Min []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "delay" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.float64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.float64))) (Var "delay"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "delay") (Var "$r0"))))))))))))))))
+
 /-- go: watch.go:56:6 -/
 noncomputable def ensureWatchHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "hdr"
@@ -6656,7 +6787,7 @@ noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.math, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -6664,6 +6795,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6702,6 +6834,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(W64 0))
@@ -6719,6 +6853,10 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val defaultOptions.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val defaultCallOpts.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val defaultBackoffMaxWaitBetween.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val defaultBackoffExponent.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val defaultBackoffJitterFraction.init) (Val #()))))))
   (App (Val doExecute)
@@ -6775,6 +6913,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.proto.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7289,6 +7429,7 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" Client.Ctx.impl
   ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" Client.GetLogger.impl
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
+  ptr_roundRobinQuorumBackoff_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" Client.roundRobinQuorumBackoff.impl
   ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" Client.shouldRefreshToken.impl
   ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" Client.unaryClientInterceptor.impl
 
@@ -7337,6 +7478,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_Ctx_unfold
   Client.TypeAssumptions.ptr_GetLogger_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
+  Client.TypeAssumptions.ptr_roundRobinQuorumBackoff_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
 
@@ -10123,6 +10265,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   withBackoff_unfold : FuncUnfold withBackoff [] withBackoff.impl
   reuseOrNewWithCallOptions_unfold : FuncUnfold reuseOrNewWithCallOptions [] reuseOrNewWithCallOptions.impl
   filterCallOptions_unfold : FuncUnfold filterCallOptions [] filterCallOptions.impl
+  expBackoff_unfold : FuncUnfold expBackoff [] expBackoff.impl
   ensureWatchHeader_unfold : FuncUnfold ensureWatchHeader [] ensureWatchHeader.impl
   NewWatcher_unfold : FuncUnfold NewWatcher [] NewWatcher.impl
   NewWatchFromWatchClient_unfold : FuncUnfold NewWatchFromWatchClient [] NewWatchFromWatchClient.impl
@@ -10142,6 +10285,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_v3_credentials_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions
   import_resolver_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.internal.resolver.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
+  import_math_Assumption : _root_.Perennial.math.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
@@ -10308,6 +10452,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.withBackoff_unfold
   Assumptions.reuseOrNewWithCallOptions_unfold
   Assumptions.filterCallOptions_unfold
+  Assumptions.expBackoff_unfold
   Assumptions.ensureWatchHeader_unfold
   Assumptions.NewWatcher_unfold
   Assumptions.NewWatchFromWatchClient_unfold
@@ -10327,6 +10472,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.import_v3_credentials_Assumption
   Assumptions.import_resolver_Assumption
   Assumptions.import_proto_Assumption
+  Assumptions.import_math_Assumption
   Assumptions.import_peer_Assumption
   Assumptions.import_mvccpb_Assumption
 

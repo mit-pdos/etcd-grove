@@ -94,6 +94,7 @@ axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
+axiom expBackoff.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
@@ -125,6 +126,7 @@ axiom grpcStreamServerAt
 axiom grpcWrotePeer
 axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
+axiom jitterUp.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
@@ -212,6 +214,7 @@ axiom withVersion.wp_proof
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
+axiom zap.Float64.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int32.wp_proof
 axiom zap.Int64.wp_proof

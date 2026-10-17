@@ -17,6 +17,7 @@ public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time

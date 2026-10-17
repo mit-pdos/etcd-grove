@@ -28,6 +28,7 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.io
+public import Perennial.Proof.math
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section

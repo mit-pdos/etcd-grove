@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR etcd#20731 (exponential client backoff): floats are a Perennial limitation (2026-10-17, branch `pr-verify/etcd-20731`)
+
+The PR's `expBackoff` is float arithmetic (`math.Pow`, `math.Min`) converted back to a
+`time.Duration`. Perennial models a `float64` as an opaque bit pattern with uninterpreted
+operations (`FloatOps`), gives `math.Pow`/`math.Min` no specs (`math` is names-only) and has no
+semantics for a float-to-integer conversion (`Convert go.float64 <int type>`), so no proof can say
+anything about the value of `expBackoff` or `jitterUp`, nor even run their bodies: both are
+trust-boundary axioms here ("returns some duration", `Proof/go_etcd_io/etcd/client/v3/{expBackoff,jitterUp}.lean`),
+and the numeric findings were made with Go tests (`notes/pr-verify/etcd-20731/`). The general fix
+would be a Perennial model of IEEE-754 doubles (Lean's `Float` or a bit-level model) with a spec of
+the conversion's in-range case; not proposed yet. Translating `expBackoff` made `clientv3` import
+`math`, so `cache/v3/Base.lean` (whose `isPkgInit` instances cover every package reachable from
+clientv3) imports `Perennial.Proof.math`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

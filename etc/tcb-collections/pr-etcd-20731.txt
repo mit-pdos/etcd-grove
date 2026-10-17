@@ -1,0 +1,20 @@
+# PR etcd-io/etcd#20731 (exponential backoff in the client's retry): the round-robin backoff
+# function `Client.roundRobinQuorumBackoff` (proved) over its callees, and the new
+# `expBackoff`/`jitterUp` (trust boundary: float arithmetic). notes/pr-verify/etcd-20731.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-20731.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update. The baseline below was written
+# by hand from `#print axioms` of `client.v3.Client.wp_roundRobinQuorumBackoff` (this repository's
+# axioms only; a full `lake build` for etc/tcb-report.py was not run on this branch).
+roots Client__roundRobinQuorumBackoff
+roots expBackoff
+roots jitterUp
+axiom Client.Endpoints.wp_proof
+axiom expBackoff.wp_proof
+axiom jitterUp.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Float64.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Uint.wp_proof

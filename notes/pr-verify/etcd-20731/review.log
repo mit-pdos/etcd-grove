@@ -1,0 +1,27 @@
+=== RUN   TestReviewJitterExceedsMax
+    review_pr20731_test.go:38: capped backoff above max 5s: 492/1000, highest 5.499530374s
+--- PASS: TestReviewJitterExceedsMax (0.00s)
+=== RUN   TestReviewLargeMaxJitterOverflow
+    review_pr20731_test.go:54: max=9e18ns (< MaxInt64), jitter 0.1: 376/1000 capped backoffs <= 0; expBackoff=9000000000000000000
+--- PASS: TestReviewLargeMaxJitterOverflow (0.00s)
+=== RUN   TestReviewSmallExponentZeroWait
+    review_pr20731_test.go:63: exponent 0.5, attempt 1: 12.427988ms
+    review_pr20731_test.go:63: exponent 0.5, attempt 10: 23.269µs
+    review_pr20731_test.go:63: exponent 0.5, attempt 25: 0s
+    review_pr20731_test.go:63: exponent 0.5, attempt 30: 0s
+    review_pr20731_test.go:63: exponent 0.5, attempt 40: 0s
+--- PASS: TestReviewSmallExponentZeroWait (0.00s)
+=== RUN   TestReviewInfInputs
+    review_pr20731_test.go:70: exp=+Inf: 5s
+    review_pr20731_test.go:71: exp=MaxFloat64: 5s
+    review_pr20731_test.go:79: jitter=+Inf: 100/100 <= 0 (pre-existing: jitterUp is unchanged)
+--- PASS: TestReviewInfInputs (0.00s)
+=== RUN   TestReviewQuorumChange
+    review_pr20731_test.go:94: 1 endpoint, then 7 from attempt 4: [20ms 40ms 80ms 20ms 0s 0s 0s 40ms]
+    review_pr20731_test.go:96: 0 endpoints (quorum 1), attempt 3: 80ms
+--- PASS: TestReviewQuorumChange (0.00s)
+=== RUN   TestReviewNilLoggerPanics
+    review_pr20731_test.go:104: recovered: runtime error: invalid memory address or nil pointer dereference
+--- PASS: TestReviewNilLoggerPanics (0.00s)
+PASS
+ok  	go.etcd.io/etcd/client/v3	0.038s

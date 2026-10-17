@@ -159,3 +159,10 @@ watcher__Watch: OpWatch streamKeyFromCtx watcher__newWatcherGRPCStream
 NewWatchFromWatchClient: Client__GetLogger
 NewWatcher: NewWatchClient NewWatchFromWatchClient
 watcher__Close: watchGRPCStream__close errors_IsStatusErr
+# PR etcd#20731 (exponential backoff): the dial's round-robin backoff function. Trust boundary:
+# zap's `Float64`; the client's `jitterUp` (math/rand) and `expBackoff` (float arithmetic, with
+# `math.Pow`/`math.Min` and a float-to-`time.Duration` conversion, none of which Perennial models).
+zap_Float64:
+jitterUp:
+expBackoff:
+Client__roundRobinQuorumBackoff: Client__Endpoints Client__GetLogger expBackoff jitterUp zap_Uint zap_Duration zap_Float64 zap_Logger__Debug
