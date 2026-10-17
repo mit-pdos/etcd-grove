@@ -4940,11 +4940,37 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     `sendSt_neg1`: the send loop never buffers one). Its force comes with K1b, which adds that
     the watcher was registered before `l0`. Statements that changed form: `watchDn`,
     `ctrlWatcher`, `NewWatchStream.spec`, `isWatchStream`, `swsIs`, `auxOf`.
-- **K1 (mvcc: progress means synced).** `progressIfSync` sends at the store's revision `rev` under
-  `s.mu.RLock` only when every watcher of the map is synced with `startRev ≤ rev`: so the
-  stream's channel already holds every event `≤ rev` of each of them. Give a progress response
-  (per-watcher `progress`, id `w.id`; `progressAll`, id `-1`, for every watcher of the map) that
-  content in mvcc's channel invariant and in `watchRecvOk` (deliveries cover `[lo, rev + 1)`).
+- **K1b (mvcc: what a progress response covers; in progress).** The design is
+  `notes/decisions.md`, "What a progress response covers". Done:
+  - **K1b-1**: a watcher's registration index on its channel (`WatchChanNames.regi`,
+    `chanRegAt γc w n`, `n` the sent length at the registration; `sentAuth` keeps the authority
+    with the sent list's; `watcherIs` carries it).
+  - **K1b-2a (coverage)**: `RespM.cov`, the watchers a response covers; `sentAuth` keeps
+    `respCov` of every response sent (each covered watcher's responses before it are its
+    deliveries, whose events are its range's up past the response's revision: `covFact`).
+    `watcher.send` takes `covPre` (persistent: an events lower bound and `evsWf`; `cov_one`
+    agrees it with the channel's entry, `watchEvents_cover`); `progressIfSync` covers every
+    watcher of its map (all synced: `synced_d`, K1a's `wlogQ_cert_prefix`), so `progress(w)`
+    covers `w` and `progressAll` the stream's map.
+  - **K1b-2b (completeness of id `-1`)**: `RespM.regs` (the channel's registered watchers when
+    sent), `regsOk` (a `-1` response sent at or after a watcher's registration lists it:
+    `sentAuth_reg_regs`), `respCompl` (each of `regs` covered or cancelled for its reason, `rsnW`:
+    its id has `rsnFor γc.rsn`, a saved predicate the stream's creator fixes: v3rpc's `cancelQ`,
+    the client sent a cancel request for the id). `watcher.send` and `progressIfSync` take a
+    caller's resource `CS` (lent, returned) with a persistent extraction (`complW`, `complWS`), so
+    the stream's close right comes back; `progressAll` is lent `progCompl` (its branch a Boolean
+    parameter, for the same reason). The stream's invariant keeps each entry's range id and, for a
+    watcher out of the map, its reason (`cancelledFor`); `Cancel id` takes `rsnFor γ.rsn id`;
+    once closed, every watcher of the map is cancelled. The store's `IW` says the id is not `-1`.
+    Statements that changed form: `watcher.send`, `progressIfSync`, `progressAll` (and the
+    `isWatchable` interface's), `watchStream.Cancel`, `NewWatchStream` (`Ψ`), `storeWatchParams`,
+    `watchStreamInv`, `isWatchStream`, `swsIs`, `auxOf`, `watcherIs`. Gates so far: `lake build`
+    5,104 jobs.
+  - **Next (K1b-3)**: export to the client: `mvccOk` gives a response's channel index `k` and its
+    `respCov` (the client opens the channel's invariant for `sentAuth_reg_regs` with its
+    watcher's `chanRegAt`); `createdAfter` adds the created watcher's registration before its
+    snapshot `l0`; then K2 derives a broadcast's coverage of a live substream (registered before
+    `k` by O3, not cancelled for its reason since the client never asked to cancel it).
 - **K2 (the client: progress requests, completeness).** `RequestProgress` specified; `run` sends
   progress requests and broadcasts id `-1` responses (W-C's invariant: every substream in
   `substreams` has an open `recvc`, by K0); `rangeWatchRespOk` gains completeness (the events
