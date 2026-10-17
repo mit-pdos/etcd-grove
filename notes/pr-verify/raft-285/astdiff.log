@@ -1,0 +1,30 @@
+== .
+changed 
+changed sendMsgReadIndexResponse
+changed stepLeader
+changed traceEvent
+== confchange
+changed Changer.EnterJoint
+changed Changer.LeaveJoint
+changed Changer.Simple
+changed Changer.apply
+changed Changer.initProgress
+changed Changer.makeLearner
+changed Changer.makeVoter
+changed Changer.remove
+changed checkInvariants
+changed joint
+removed incoming
+removed outgoing
+removed outgoingPtr
+== quorum
+changed 
+changed JointConfig.CommittedIndex
+changed JointConfig.IDs
+changed JointConfig.String
+changed JointConfig.VoteResult
+changed type JointConfig
+== tracker
+changed Config.Clone
+changed ProgressTracker.ConfState
+changed ProgressTracker.IsSingleton

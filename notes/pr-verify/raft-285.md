@@ -56,7 +56,7 @@ Two problems are not about behaviour:
 
 ## Changed functions
 
-Found by comparing the `go/ast` of the two revisions function by function (a scratch program). All
+Found by comparing the `go/ast` of the two revisions function by function (`notes/pr-verify/raft-285/astdiff/main.go`, output in `astdiff.log`). All
 are refactors (the PR claims no behaviour change). "Before" is the state on `lean`; "verified"
 means proved with no `sorry` of its own.
 
@@ -138,7 +138,7 @@ All of them come from the full `lake build` on the branch (see the trust base).
 ## Findings (step 8)
 
 - **No bug in the PR's behaviour.**
-- **Lint**: `go vet ./...` at the PR's head reports `tracker/tracker.go:108:17`,
+- **Lint** (`notes/pr-verify/raft-285/vet-pr-head.log`, `vet-base.log`): `go vet ./...` at the PR's head reports `tracker/tracker.go:108:17`,
   `tracker/tracker.go:134:12` and `rawnode_test.go:733:35`, each "quorum.JointConfig struct
   literal uses unkeyed fields". The merge base `8fa0e55da` reports nothing. Fix: key them,
   `quorum.JointConfig{Incoming: ..., Outgoing: ...}`. That would also keep a later field reorder

@@ -1,0 +1,3 @@
+tracker/tracker.go:108:17: go.etcd.io/raft/v3/quorum.JointConfig struct literal uses unkeyed fields
+tracker/tracker.go:134:12: go.etcd.io/raft/v3/quorum.JointConfig struct literal uses unkeyed fields
+rawnode_test.go:733:35: go.etcd.io/raft/v3/quorum.JointConfig struct literal uses unkeyed fields
