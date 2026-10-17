@@ -71,12 +71,12 @@ inductive `pending.t` are `HardSt`, `SoftSt`, `RNState`, `Pending` (`HardSt`/`So
 after the Go fields `prevHardSt`/`prevSoftSt`: `SoftState` is the Goose type of
 `go_etcd_io.raft.v3`, opened here; they are the proofs' now, no spec mentions them); the
 constructors `pending.self`, `pending.append_ack`, `pending.apply_ack` are
-`Pending.self`, `.appendAck`, `.applyAck`. `hs_abs`, `hs_empty_abs`, `node_hardstate`,
+`Pending.self`, `.appendAck`, `.applyAck`. `hs_abs`, `node_hardstate`,
 `node_softstate`, `hardstate_val`, `softstate_val`, `append_ack_msg`, `apply_ack_msg`,
-`pending_rel`, `pending_own`, `own_RawNode` are `hsAbs`, `hsEmptyAbs`, `nodeHardstate`,
+`pending_rel`, `pending_own`, `own_RawNode` are `hsAbs`, `nodeHardstate`,
 `nodeSoftstate`, `hardstateVal`, `softstateVal`, `appendAckMsg`, `applyAckMsg`,
 `pendingRel`, `pendingOwn`, `ownRawNode`; the `EqDecision` instances are `deriving
-DecidableEq`.
+DecidableEq`. (`hs_empty_abs`'s port `hsEmptyAbs` had no user and is gone, 2026-10-17.)
 -/
 module
 
@@ -222,7 +222,7 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
         fun hm => absurd hty hm⟩
 
 
--- (2026-10-16, stage R5) `hsAbs`, `hsEmptyAbs`, `nodeHardstate`, `nodeSoftstate`,
+-- (2026-10-16, stage R5) `hsAbs`, `nodeHardstate`, `nodeSoftstate`,
 -- `hardstateVal`, `softstateVal` are `InvRaftPhys.lean`'s (stage R4)
 
 /-- The two local messages, as `newStorageAppendRespMsg` and `newStorageApplyRespMsg`

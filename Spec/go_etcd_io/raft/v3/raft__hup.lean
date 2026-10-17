@@ -40,7 +40,7 @@ turned into an update of `ownRaftGhost`.
 
 At any configuration since 2026-10-13 (reconfiguration stage A2): the post is `HupOkC`, a
 `StepC c` step (a campaign by a voter of either half, asking every other one), and nothing
-at a node that is not a voter. The old statement is `raft.hup.specS`. -/
+at a node that is not a voter. The old statement, `raft.hup.specS`, had no caller and is gone (2026-10-17). -/
 abbrev raft.hup.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
   -- `hup` may reach `campaign`, which increments the term -- see the note on
@@ -54,38 +54,6 @@ abbrev raft.hup.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();
       ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ }}
-
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.hup.spec` by `raft.hup.spec_simple`. -/
-abbrev raft.hup.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
-  uint.Z s.term + 1 < 2 ^ 64 →
-  (t = campaignPreElection → s.prevote = true) →
-  NStateWf s →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
-  {{ (s' : NState), RET #();
-      ownRaftPhys cfg r id s' ∗ ⌜NStateWf s'⌝ ∗
-      ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
-      ⌜s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-       uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh⌝ }}
-
-open Iris.ProofMode in
-theorem raft.hup.spec_simple
-    (H : raft.hup.spec (GF := GF) (hG := hG)) :
-    raft.hup.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hnw Hpv Hwf
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s t Hnw Hpv Hwf $$ [$Hpkg $Hphys]
-  inext
-  iintro %s' ⟨Hphys, %Hok⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  have Hok' := Hok.simple
-  iapply HΦ
-  iframe Hphys
-  ipureintro
-  exact ⟨Hok'.1, Hok'.2.1, Hok'.2.2⟩
 
 end spec
 

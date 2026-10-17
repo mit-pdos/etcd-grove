@@ -12,7 +12,7 @@ closed inline by `simp [sendMsgs]`, `rfl`, `replSends_prvals`/`replSends_send_pr
 
 Read-index (2026-10-13, Lean-first): `MsgReadIndex` (`wp_stepLeader_readindex`), the read
 path of `MsgHeartbeatResp` (`recvAck`, `maybeAdvance` on the tracker's voter map, through
-`ownRaftPhys_readOnly_trk`, and the range over the confirmed requests, each answered by
+`ownRaftPhysC_readOnly_trk`, and the range over the confirmed requests, each answered by
 `responseToReadIndexReq` and a `send`), and the release of the pending requests after a
 commit (`MsgAppResp`). A queued request's fields are loaded from its persistent points-to
 through the generated field accessors (`wp_auto` does not split `p ↦□ rv`).

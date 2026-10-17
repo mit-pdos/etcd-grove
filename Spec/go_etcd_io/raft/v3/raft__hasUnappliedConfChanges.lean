@@ -54,32 +54,6 @@ abbrev raft.hasUnappliedConfChanges.spec : Prop :=
   {{ (b : Bool), RET #b; ownRaftPhysCV c c.voters r id s ∗
       ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.hasUnappliedConfChanges.spec` by `raft.hasUnappliedConfChanges.spec_simple`. -/
-abbrev raft.hasUnappliedConfChanges.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.logst.snap = none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
-      (Val #()))
-  {{ (b : Bool), RET #b; ownRaftPhys cfg r id s ∗
-      ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
-
-open Iris.ProofMode in
-theorem raft.hasUnappliedConfChanges.spec_simple
-    (H : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
-    raft.hasUnappliedConfChanges.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hsn
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hsn $$ [$Hpkg $Hphys]
-  inext
-  iintro %b ⟨Hphys, %Hb⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact Hb
-
 end spec
 
 end EtcdGrove

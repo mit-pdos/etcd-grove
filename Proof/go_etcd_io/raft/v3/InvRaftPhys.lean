@@ -68,7 +68,7 @@ Lean notes:
   Hoare triples so that `wp_apply` uses them; the field `AccessStrict` instances are
   the generated ones. `split_field_proof` unseals only the struct points-to, with
   `typedPointsto_unseal_eq`.
-* `ownRaftPhys_reconfig`'s and `ownRaftPhys_retrack`'s new states are written
+* `ownRaftPhysCV_reconfig`'s and `ownRaftPhysC_retrack`'s new states are written
   `{ s with progress := prs', prvals := pvs' }` etc., Rocq's chains of setters (the
   same value).
 * The Rocq `wp_raft_log` tactic is the macro `wp_raft_log` at the end of this file
@@ -273,9 +273,6 @@ deriving DecidableEq
 def hsAbs (h : HardStateM) : HardSt :=
   ⟨h.Term', h.Vote', h.Commit'⟩
 
-def hsEmptyAbs (h : HardSt) : Bool :=
-  decide (h.term = W64 0 ∧ h.vote = W64 0 ∧ h.commit = W64 0)
-
 /-- `r.hardState()` and `r.softState()` of a node in physical state `s`. -/
 def nodeHardstate (s : NState) : HardSt :=
   ⟨s.term, s.vote, s.logst.committed⟩
@@ -287,15 +284,13 @@ def hardstateVal (h : HardSt) : HardStateM :=
 def softstateVal (h : SoftSt) : SoftState :=
   SoftState.mk h.lead h.state
 
-theorem hsAbs_hardstateVal (h : HardSt) : hsAbs (hardstateVal h) = h := rfl
-
 /-! ### The raft struct's points-to, with `id` and `logger` shared (2026-10-10)
 
 `raftOwn l v` is the struct points-to `l ↦ v` with the two fields nobody writes after
 `newRaft` -- `id` and `logger` -- persistent (`↦□`) and every other field owned. `node.go`'s
 `Tick` reads `n.rn.raft.logger` and `n.rn.raft.id` (its warning when the tick channel is
 full) concurrently with the `run` goroutine, which owns the raft struct; with the two fields
-persistent, `ownRaftPhys` can hand out a copy (`ownRaftPhys_shared`). The `AccessStrict`
+persistent, `ownRaftPhys` can hand out a copy (`ownRaftPhysC_shared`). The `AccessStrict`
 instances below let the field lemmas use `raftOwn` as they used `l ↦ v`; `raftOwn_of_pts`
 makes it from the points-to `newRaft` allocates. -/
 def raftOwn (l : Loc) (v : raft) : IProp GF :=
@@ -787,7 +782,7 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
   "%Hgh_unst" ∷ ⌜s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none⌝ ∗
   -- only a voter leaves the follower role (2026-10-13, reconfiguration stage L): a learner
   -- never campaigns (`promotable`), so the role stores of `becomeCandidate`,
-  -- `becomePreCandidate` and `becomeLeader` (`raft.wp_store_state`) are at a voter
+  -- `becomePreCandidate` and `becomeLeader` (`raft.wp_store_stateC`) are at a voter
   "%Hvoter" ∷ ⌜s.role ≠ .follower → id ∈ V⌝ ∗
   -- the leader's progress bound (2026-10-16, stage R8a, D11): every tracked peer's `Next` within
   -- `[1, lastIndex + 1]`, its `Match` and pending snapshot at most `lastIndex` (`PrvalsOk`,
@@ -930,7 +925,7 @@ and the voter set of `Hvoter` the voters of both halves (`c.voters`). Sealed the
 (`ownRaftPhys_toC`, `ownRaftPhysC_toPhys`, below the accessors), so every spec stated on
 `ownRaftPhys` keeps its statement; a function whose behaviour depends on the configuration
 gets a spec on `ownRaftPhysC` (stage A2). Accessors so far: `ownRaftPhysC_tracker`,
-`ownRaftPhysC_reconfig`, `ownRaftPhysC_voter`, `ownRaftPhysC_progress_dom`; the field
+`ownRaftPhysCV_reconfig`, `ownRaftPhysC_voter`; the field
 lemmas are `ownRaftPhys`'s (through the equivalence when the configuration is simple; at a
 joint one they are to be restated, A2). -/
 
@@ -1074,16 +1069,6 @@ theorem ownRaftPhys_progress_size (r : Loc) (id : w64) (s : NState) :
   · ipureintro; exact Hsz
   reseal s
 
-/-- The leader-transfer target is never the node itself (2026-10-13): read out without
-consuming anything. -/
-theorem ownRaftPhys_lt_ne (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗ ⌜s.lt ≠ id⌝ ∗ ownRaftPhys cfg r id s := by
-  iintro H
-  iNamed_phys H
-  isplitr
-  · ipureintro; exact HnoTransfer.2
-  reseal s
-
 /-- Only a voter is out of the follower role (2026-10-13): read out without consuming
 anything. -/
 theorem ownRaftPhys_voter (r : Loc) (id : w64) (s : NState) :
@@ -1094,48 +1079,6 @@ theorem ownRaftPhys_voter (r : Loc) (id : w64) (s : NState) :
   isplitr
   · ipureintro; exact Hvoter
   reseal s
-
-/-- The leader's progress bound (2026-10-16, stage R8a, D11) and that `lastIndex() + 1` does not
-wrap (`ownRaftLog`'s `Hnowrap`), read out without consuming anything. -/
-theorem ownRaftPhys_prvals_ok (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ⌜PrvalsOk s⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗ ownRaftPhys cfg r id s := by
-  iintro H
-  iNamed_phys H
-  icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
-  isplitr
-  · ipureintro; exact Hprok
-  isplitr
-  · ipureintro; exact Hnw
-  clear Hnw
-  reseal s
-
-/-- Changing only the outbox, up to permutation. -/
-theorem ownRaftPhys_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
-    o ≡ₚ s.outbox →
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗ ownRaftPhys cfg r id { s with outbox := o } := by
-  intro Ho
-  iintro H
-  iNamed_phys H
-  ihave Houtbox' := outboxRel_perm _ o _ _ Ho $$ Houtbox
-  iapply ownRaftPhys_intro _ _ _ { s with outbox := o } _ msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
-    Hprok
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
-
-/-- Sending nothing, in both directions: an exit that sends nothing proves a
-postcondition stated at `sendMsgs s ms` with `ms = []`, and a `send` of a message the
-model does not see comes back at `sendMsgs s []`. -/
-theorem ownRaftPhys_send_nil (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗ ownRaftPhys cfg r id (sendMsgs s []) := by
-  have H : sendMsgs s [] = s := by cases s; simp [sendMsgs]
-  rw [H]; iintro H; iexact H
-
-theorem ownRaftPhys_unsend (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id (sendMsgs s []) -∗ ownRaftPhys cfg r id s := by
-  have H : sendMsgs s [] = s := by cases s; simp [sendMsgs]
-  rw [H]; iintro H; iexact H
 
 /-! ## The interface: field lemmas and accessors
 
@@ -1235,42 +1178,6 @@ theorem raft.wp_load_Term (r : Loc) (id : w64) (s : NState) :
   wp_apply wp_load_access _ rv.Term' _ (raftOwn_access_load_Term _ _) $$ Hr as Hr
   rw [Hterm]; iapply HΦ; reseal s
 
-theorem raft.wp_load_Vote (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.uint64))) (Val #(r.[raft, go!"Vote"])))
-    {{ RET #s.vote; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.Vote' _ (raftOwn_access_load_Vote _ _) $$ Hr as Hr
-  rw [Hvote]; iapply HΦ; reseal s
-
-theorem raft.wp_load_lead (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.uint64))) (Val #(r.[raft, go!"lead"])))
-    {{ RET #s.lead; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.lead' _ (raftOwn_access_load_lead _ _) $$ Hr as Hr
-  rw [Hlead]; iapply HΦ; reseal s
-
-theorem raft.wp_load_state (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad StateType.ty))) (Val #(r.[raft, go!"state"])))
-    {{ RET #(stateW64 s.role); ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.state' _ (raftOwn_access_load_state _ _) $$ Hr as Hr
-  rw [Hstate]; iapply HΦ; reseal s
-
-theorem raft.wp_load_step (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad stepFunc.ty))) (Val #(r.[raft, go!"step"])))
-    {{ RET #s.stepfn; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.step' _ (raftOwn_access_load_step _ _) $$ Hr as Hr
-  rw [Hstepfn]; iapply HΦ; reseal s
-
 /-- The log's *location*. Its contents are `ownRaftPhys_log_at`'s. -/
 theorem raft.wp_load_raftLog (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
@@ -1281,6 +1188,8 @@ theorem raft.wp_load_raftLog (r : Loc) (id : w64) (s : NState) :
   iNamed_phys H
   wp_apply wp_load_access _ rv.raftLog' _ (raftOwn_access_load_raftLog _ _) $$ Hr as Hr
   rw [show (#rv.raftLog' : val) = #s.log by rw [Hlogp]]; iapply HΦ; reseal s
+
+/-! ### Loads of fields the abstraction does not track -/
 
 theorem raft.wp_load_logger (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
@@ -1295,172 +1204,6 @@ theorem raft.wp_load_logger (r : Loc) (id : w64) (s : NState) :
   isplitl
   · reseal s
   · iexact Hlogger
-
-/-- The two fields shared with other goroutines (2026-10-10, `raftOwn`): `node.go`'s
-`Tick` reads `r.logger` and `r.id` while `run` owns the struct. -/
-theorem ownRaftPhys_shared (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ lok : GoInterfaceOk, r.[raft, go!"id"] ↦□ id ∗
-        r.[raft, go!"logger"] ↦□ (interface.ok lok : GoInterface) ∗ isLogger lok ∗
-        ownRaftPhys cfg r id s := by
-  iintro H
-  iNamed_phys H
-  ihave #Hfid := raftOwn_id _ _ $$ Hr
-  ihave #Hflg := raftOwn_logger _ _ $$ Hr
-  ihave #Hfid' : r.[raft, go!"id"] ↦□ id $$ [Hfid]
-  · rw [← Hid]; iexact Hfid
-  ihave #Hflg' : r.[raft, go!"logger"] ↦□ (interface.ok lok : GoInterface) $$ [Hflg]
-  · rw [← Hlok]; iexact Hflg
-  iexists lok
-  iframe Hfid' Hflg' Hlogger
-  reseal s
-
-theorem raft.wp_load_checkQuorum (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.bool))) (Val #(r.[raft, go!"checkQuorum"])))
-    {{ RET #false; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.checkQuorum' _ (raftOwn_access_load_checkQuorum _ _) $$ Hr as Hr
-  rw [HnoCheckQuorum]; iapply HΦ; reseal s
-
-theorem raft.wp_load_preVote (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.bool))) (Val #(r.[raft, go!"preVote"])))
-    {{ RET #s.prevote; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.preVote' _ (raftOwn_access_load_preVote _ _) $$ Hr as Hr
-  rw [Hprevote.1]; iapply HΦ; reseal s
-
-theorem raft.wp_load_disableProposalForwarding (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.bool)))
-        (Val #(r.[raft, go!"disableProposalForwarding"])))
-    {{ RET #false; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.disableProposalForwarding' _ (raftOwn_access_load_disableProposalForwarding _ _) $$ Hr as Hr
-  rw [HpropForward]; iapply HΦ; reseal s
-
-/-- `false` (2026-10-13): `ownRaftPhys`'s scope conjunct. -/
-theorem raft.wp_load_disableConfChangeValidation (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.bool)))
-        (Val #(r.[raft, go!"disableConfChangeValidation"])))
-    {{ RET #false; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.disableConfChangeValidation' _ (raftOwn_access_load_disableConfChangeValidation _ _) $$ Hr as Hr
-  rw [HnoCCV]; iapply HΦ; reseal s
-
-theorem raft.wp_load_isLearner (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.bool))) (Val #(r.[raft, go!"isLearner"])))
-    {{ RET #s.isLearner; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.isLearner' _ (raftOwn_access_load_isLearner _ _) $$ Hr as Hr
-  rw [HnoLearner]; iapply HΦ; reseal s
-
-theorem raft.wp_load_leadTransferee (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.uint64))) (Val #(r.[raft, go!"leadTransferee"])))
-    {{ RET #s.lt; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.leadTransferee' _ (raftOwn_access_load_leadTransferee _ _) $$ Hr as Hr
-  rw [HnoTransfer.1]; iapply HΦ; reseal s
-
-/-! ### Loads of fields the abstraction does not track -/
-
-theorem raft.wp_load_electionTimeout (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.int))) (Val #(r.[raft, go!"electionTimeout"])))
-    {{ (v : w64), RET #v; ownRaftPhys cfg r id s ∗ ⌜0 < sint.Z v⌝ }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.electionTimeout' _ (raftOwn_access_load_electionTimeout _ _) $$ Hr as Hr
-  iapply HΦ
-  isplitl
-  · reseal s
-  · ipureintro; exact HelectionTimeout
-
-theorem raft.wp_load_electionElapsed (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.int))) (Val #(r.[raft, go!"electionElapsed"])))
-    {{ (v : w64), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.electionElapsed' _ (raftOwn_access_load_electionElapsed _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_load_heartbeatElapsed (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.int))) (Val #(r.[raft, go!"heartbeatElapsed"])))
-    {{ (v : w64), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.heartbeatElapsed' _ (raftOwn_access_load_heartbeatElapsed _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_load_heartbeatTimeout (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.int))) (Val #(r.[raft, go!"heartbeatTimeout"])))
-    {{ (v : w64), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.heartbeatTimeout' _ (raftOwn_access_load_heartbeatTimeout _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_load_randomizedElectionTimeout (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.int)))
-        (Val #(r.[raft, go!"randomizedElectionTimeout"])))
-    {{ (v : w64), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.randomizedElectionTimeout' _ (raftOwn_access_load_randomizedElectionTimeout _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_load_pendingConfIndex (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad go.uint64))) (Val #(r.[raft, go!"pendingConfIndex"])))
-    {{ RET #s.pci; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.pendingConfIndex' _ (raftOwn_access_load_pendingConfIndex _ _) $$ Hr as Hr
-  rw [Hpci]; iapply HΦ; reseal s
-
-theorem raft.wp_load_uncommittedSize (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad entryPayloadSize.ty)))
-        (Val #(r.[raft, go!"uncommittedSize"])))
-    {{ (v : entryPayloadSize), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.uncommittedSize' _ (raftOwn_access_load_uncommittedSize _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_load_maxUncommittedSize (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad entryPayloadSize.ty)))
-        (Val #(r.[raft, go!"maxUncommittedSize"])))
-    {{ (v : entryPayloadSize), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.maxUncommittedSize' _ (raftOwn_access_load_maxUncommittedSize _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_load_maxMsgSize (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad entryEncodingSize.ty)))
-        (Val #(r.[raft, go!"maxMsgSize"])))
-    {{ (v : entryEncodingSize), RET #v; ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.maxMsgSize' _ (raftOwn_access_load_maxMsgSize _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
 
 /-! ### Stores to fields `NState` tracks -/
 
@@ -1496,172 +1239,7 @@ theorem raft.wp_store_Vote (r : Loc) (id : w64) (s : NState) (v : w64) :
   wp_apply wp_store_access _ rv.Vote' v _ _ (raftOwn_access_store_Vote _ _ _) $$ Hr as Hr
   iapply HΦ; reseal { s with vote := v }
 
-theorem raft.wp_store_lead (r : Loc) (id : w64) (s : NState) (v : w64) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.uint64))) (Val (PairV #(r.[raft, go!"lead"]) #v)))
-    {{ RET #(); ownRaftPhys cfg r id { s with lead := v } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.lead' v _ _ (raftOwn_access_store_lead _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal { s with lead := v }
-
-/-- Stated at `stateW64 ro`, so the caller names the role; the Go code stores the
-constant (`StateFollower` = `W64 0`), which unifies with `stateW64 .follower` by
-computation. -/
-theorem raft.wp_store_state (r : Loc) (id : w64) (s : NState) (ro : PRole)
-    (Hro : ro ≠ .follower → id ∈ cfg)
-    (Hpc : ro = .preCandidate → s.prevote = true := by intro h; cases h)
-    -- (2026-10-16, stage R8a) a leader's `Progress` values are within its log (`PrvalsOk`):
-    -- `becomeLeader` supplies it from `reset`'s values
-    (Hpr : ro = .leader → ∀ v p, s.prvals !! v = some p → PrOk s.logst p := by intro h; cases h) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore StateType.ty)))
-        (Val (PairV #(r.[raft, go!"state"]) #(stateW64 ro))))
-    {{ RET #(); ownRaftPhys cfg r id { s with role := ro } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.state' (stateW64 ro) _ _ (raftOwn_access_store_state _ _ _) $$ Hr as Hr
-  have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower → id ∈ cfg := Hro
-  have Hpv' : rv.preVote' = ({ s with role := ro } : NState).prevote ∧
-      (({ s with role := ro } : NState).role = .preCandidate →
-        ({ s with role := ro } : NState).prevote = true) := ⟨Hprevote.1, Hpc⟩
-  iapply HΦ
-  iapply ownRaftPhys_intro _ _ _ { s with role := ro } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) Hvoter' Hpr
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-theorem raft.wp_store_step (r : Loc) (id : w64) (s : NState) (f : GoFunc) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore stepFunc.ty))) (Val (PairV #(r.[raft, go!"step"]) #f)))
-    {{ RET #(); ownRaftPhys cfg r id { s with stepfn := f } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.step' f _ _ (raftOwn_access_store_step _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal { s with stepfn := f }
-
 /-! ### Stores to fields the abstraction does not track, and the pinned one -/
-
-/-- `r.tick = f`, for one of the two tick functions: `r.tick` is set from now on. -/
-theorem raft.wp_store_tick (r : Loc) (id : w64) (s : NState) (f : GoFunc)
-    (Hf : TickFnOk r f) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [])))))
-        (Val (PairV #(r.[raft, go!"tick"]) #f)))
-    {{ RET #(); ownRaftPhys cfg r id { s with ticking := true } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.tick' f _ _ (raftOwn_access_store_tick _ _ _) $$ Hr as Hr
-  iapply HΦ
-  iapply ownRaftPhys_intro _ _ _ { s with ticking := true } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
-    (by phys_pure) (by phys_pure) (fun _ => Hf) (by phys_pure) (by phys_pure) Hgh_out Hgh_unst Hvoter
-    (by phys_pure)
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-/-- `r.tick`, once set: one of the two tick functions. -/
-theorem raft.wp_load_tick (r : Loc) (id : w64) (s : NState) (Ht : s.ticking = true) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [])))))
-        (Val #(r.[raft, go!"tick"])))
-    {{ (f : GoFunc), RET #f; ownRaftPhys cfg r id s ∗ ⌜TickFnOk r f⌝ }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_load_access _ rv.tick' _ (raftOwn_access_load_tick _ _) $$ Hr as Hr
-  iapply HΦ
-  isplitl
-  · reseal s
-  ipureintro; exact Htick Ht
-
-theorem raft.wp_store_electionElapsed (r : Loc) (id : w64) (s : NState) (v : w64) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.int)))
-        (Val (PairV #(r.[raft, go!"electionElapsed"]) #v)))
-    {{ RET #(); ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.electionElapsed' v _ _ (raftOwn_access_store_electionElapsed _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_store_heartbeatElapsed (r : Loc) (id : w64) (s : NState) (v : w64) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.int)))
-        (Val (PairV #(r.[raft, go!"heartbeatElapsed"]) #v)))
-    {{ RET #(); ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.heartbeatElapsed' v _ _ (raftOwn_access_store_heartbeatElapsed _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_store_randomizedElectionTimeout (r : Loc) (id : w64) (s : NState) (v : w64) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.int)))
-        (Val (PairV #(r.[raft, go!"randomizedElectionTimeout"]) #v)))
-    {{ RET #(); ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.randomizedElectionTimeout' v _ _ (raftOwn_access_store_randomizedElectionTimeout _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-theorem raft.wp_store_pendingConfIndex (r : Loc) (id : w64) (s : NState) (v : w64) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.uint64)))
-        (Val (PairV #(r.[raft, go!"pendingConfIndex"]) #v)))
-    {{ RET #(); ownRaftPhys cfg r id { s with pci := v } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.pendingConfIndex' v _ _ (raftOwn_access_store_pendingConfIndex _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal { s with pci := v }
-
-theorem raft.wp_store_uncommittedSize (r : Loc) (id : w64) (s : NState) (v : entryPayloadSize) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore entryPayloadSize.ty)))
-        (Val (PairV #(r.[raft, go!"uncommittedSize"]) #v)))
-    {{ RET #(); ownRaftPhys cfg r id s }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.uncommittedSize' v _ _ (raftOwn_access_store_uncommittedSize _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
-
-/-- `switchToConfig` stores `ok && pr.IsLearner` (any value since 2026-10-13, recorded in
-`NState.isLearner`; until then only `false`). -/
-theorem raft.wp_store_isLearner (r : Loc) (id : w64) (s : NState) (b : Bool) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.bool)))
-        (Val (PairV #(r.[raft, go!"isLearner"]) #b)))
-    {{ RET #(); ownRaftPhys cfg r id { s with isLearner := b } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.isLearner' b _ _ (raftOwn_access_store_isLearner _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal { s with isLearner := b }
-
-/-- `None` (`W64 0`, `abortLeaderTransfer`). -/
-theorem raft.wp_store_leadTransferee (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.uint64)))
-        (Val (PairV #(r.[raft, go!"leadTransferee"]) #(W64 0))))
-    {{ RET #(); ownRaftPhys cfg r id { s with lt := W64 0 } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.leadTransferee' (W64 0) _ _ (raftOwn_access_store_leadTransferee _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal { s with lt := W64 0 }
-
-/-- Another node (2026-10-13, `stepLeader`'s `MsgTransferLeader`). -/
-theorem raft.wp_store_leadTransferee_to (r : Loc) (id : w64) (s : NState) (x : w64)
-    (Hx : x ≠ id) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoStore go.uint64)))
-        (Val (PairV #(r.[raft, go!"leadTransferee"]) #x)))
-    {{ RET #(); ownRaftPhys cfg r id { s with lt := x } }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  wp_apply wp_store_access _ rv.leadTransferee' x _ _ (raftOwn_access_store_leadTransferee _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal { s with lt := x }
 
 /-- Two states that are equal: for a state reached by a run of field stores and the
 name a spec gives it (`becomeFollower s t l`, say). Proving the `=` with `rfl` is
@@ -1760,7 +1338,7 @@ private theorem raft_split_view (l : Loc) (rv : raft) :
   iframe
   try iframe #
 
-/-- The three read-index fields (2026-10-12): `ownRaftPhys_misc`. -/
+/-- The three read-index fields (2026-10-12): `ownRaftPhysC_misc`. -/
 private theorem raft_split_misc (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
       l.[raft, go!"readStates"] ↦ rv.readStates' ∗
@@ -1787,7 +1365,7 @@ private theorem raft_split_readOnly (l : Loc) (rv : raft) :
   split_field_proof H_readOnly
 
 /-- Two fields at once, `raftLog` (read-only here) and `trk`: for
-`ownRaftPhys_retrack`. -/
+`ownRaftPhysC_retrack`. -/
 private theorem raft_split_raftLog_trk (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
       l.[raft, go!"raftLog"] ↦ rv.raftLog' ∗
@@ -1803,7 +1381,7 @@ private theorem raft_split_raftLog_trk (l : Loc) (rv : raft) :
   iframe
   try iframe #
 
-/-- Two fields at once, `trk` and `readOnly`: for `ownRaftPhys_readOnly_trk`
+/-- Two fields at once, `trk` and `readOnly`: for `ownRaftPhysC_readOnly_trk`
 (2026-10-13). -/
 private theorem raft_split_trk_readOnly (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
@@ -1828,7 +1406,7 @@ and `ownTracker`. The wand takes it back at any tracker value and vote tally, an
 the same progress map and `Progress` values (`NState.progress` is stable: nothing on
 the election path inserts into the map). A map lookup `r.trk.Progress[i]` is done on
 what this hands out, with `ownTracker_progress_map` / `wp_tracker_progress_lookup`; a
-function that changes a `Progress` uses `ownRaftPhys_tracker_prvals`. -/
+function that changes a `Progress` uses `ownRaftPhysC_tracker_prvals`. -/
 theorem ownRaftPhys_tracker (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
       ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
@@ -1863,96 +1441,6 @@ theorem ownRaftPhys_tracker_same (r : Loc) (id : w64) (s : NState) :
   iintro %tvx Htrkf Htrk
   ihave Hphys := Hback $$ %tvx %s.votes Htrkf Htrk
   iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
-
-/-- The tracker, put back with new `Progress` values (at the same tally): for a
-function that writes a `Progress` -- `reset`'s `Visit` closure, `becomeLeader`'s
-`RecentActive` and `BecomeReplicate`, `SentEntries`. -/
-theorem ownRaftPhys_tracker_prvals (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
-        ownTracker cfg tv ⟨s.votes, s.progress, s.prvals⟩ ∗
-        (∀ tv' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, s.progress, pvs'⟩ -∗
-           ⌜PrvalsOk { s with prvals := pvs' }⌝ -∗
-           ownRaftPhys cfg r id { s with prvals := pvs' }) := by
-  iintro H
-  iNamed_phys H
-  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
-  iexists rv.trk'
-  iframe Hf Htrk
-  iintro %tv' %pvs' Hf Htrk %Hok
-  ihave Hr := Hback $$ %tv' Hf
-  reseal { s with prvals := pvs' }
-
-/-- One peer's `Progress`, borrowed out of the struct by its key at the value
-`NState.prvals` records, and given back at that value -- for a read (`IsPaused`, field
-loads, `Inflights.Full`). The lookup of `r.trk.Progress[to]` itself goes through
-`ownRaftPhys_tracker_same`: it reads the tracker field. The two lookups are premises
-inside the logic, so that `s` is fixed by the struct hypothesis the lemma is applied
-to, not by the lookups' types: `icases ownRaftPhys_pr … $$ Hphys %Hlk %Hv with …`. -/
-theorem ownRaftPhys_pr (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc)
-    (p : Progress) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ⌜s.progress !! to = some pr⌝ -∗
-      ⌜s.prvals !! to = some p⌝ -∗
-      ownProgress pr p ∗ (ownProgress pr p -∗ ownRaftPhys cfg r id s) := by
-  iintro Hphys %Hlk %Hv
-  icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_lookup_same cfg tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hlk $$ Htrk
-    with ⟨%p', %Hv', Hp, Hpb⟩
-  have Heq : p = p' := Option.some.inj (Hv.symm.trans Hv')
-  subst Heq
-  iframe Hp
-  iintro Hp
-  ihave Htrk := Hpb $$ Hp
-  iapply Hback $$ Htrkf Htrk
-
-/-- The same, given back at new values, which the state then records -- for a write
-(`SentEntries`). -/
-theorem ownRaftPhys_pr_upd (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc)
-    (p : Progress) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ⌜s.progress !! to = some pr⌝ -∗
-      ⌜s.prvals !! to = some p⌝ -∗
-      ⌜s.role = .leader → PrOk s.logst p⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗
-      ownProgress pr p ∗
-      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
-         ⌜s.role = .leader → PrOk s.logst p'⌝ -∗
-         ownRaftPhys cfg r id { s with prvals := <[to := p']> s.prvals }) := by
-  iintro Hphys %Hlk %Hv
-  icases ownRaftPhys_prvals_ok cfg r id s $$ Hphys with ⟨%Hok, %Hnw, Hphys⟩
-  isplitr
-  · ipureintro; exact fun Hl => Hok.lookup Hl Hv
-  isplitr
-  · ipureintro; exact Hnw
-  icases ownRaftPhys_tracker_prvals cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_lookup cfg tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hlk $$ Htrk
-    with ⟨%p', %Hv', Hp, Hpb⟩
-  have Heq : p = p' := Option.some.inj (Hv.symm.trans Hv')
-  subst Heq
-  iframe Hp
-  iintro %p'' Hp %Hl %Hok'
-  ihave Htrk := Hpb $$ %p'' Hp %Hl
-  iapply Hback $$ Htrkf Htrk %(Hok.insert Hok')
-
-/-- A write that does not need to know the value it overwrites (`SentCommit`). -/
-theorem ownRaftPhys_pr_any (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ⌜s.progress !! to = some pr⌝ -∗
-      ∃ p, ownProgress pr p ∗
-      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
-         ⌜s.role = .leader → PrOk s.logst p'⌝ -∗
-         ownRaftPhys cfg r id { s with prvals := <[to := p']> s.prvals }) := by
-  iintro Hphys %Hlk
-  icases ownRaftPhys_prvals_ok cfg r id s $$ Hphys with ⟨%Hok, -, Hphys⟩
-  icases ownRaftPhys_tracker_prvals cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_lookup cfg tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hlk $$ Htrk
-    with ⟨%p', %Hv', Hp, Hpb⟩
-  iexists p'
-  iframe Hp
-  iintro %p'' Hp %Hl %Hok'
-  ihave Htrk := Hpb $$ %p'' Hp %Hl
-  iapply Hback $$ Htrkf Htrk %(Hok.insert Hok')
 
 /-- The log, at the state `s` records, put back at any state. This is the accessor for
 a function that changes the log (`appendEntry`'s `append`, `loadState`'s `committed`,
@@ -1994,299 +1482,6 @@ theorem ownRaftPhys_log_same (r : Loc) (id : w64) (s : NState) :
   ihave H := Hback $$ %s.logst Hlog %Hgh %(fun _ => Int.le_refl _)
   iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ H
 
-/-- The ghost flag `unst` holds of the log (2026-10-10, `NGhost`), read out. -/
-theorem ownRaftPhys_gh (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗ ⌜LogGhOk s s.logst⌝ ∗ ownRaftPhys cfg r id s := by
-  iintro H
-  icases ownRaftPhys_log_at cfg r id s $$ H with ⟨Hlog, %Hgh, Hback⟩
-  isplitr
-  · ipureintro; exact Hgh
-  ihave H := Hback $$ %s.logst Hlog %Hgh %(fun _ => Int.le_refl _)
-  iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ H
-
-/-- `r.msgs`, append-only: a message appended joins the abstract outbox (at the end, up to
-permutation -- see `Houtbox`) as whatever `msgAbs` says it contributes: nothing for a type the
-model does not describe, else its abstraction. (Stage R4: the queue holds pointers; the
-appended one, `l'`, is owned, holding `st'`, and the queue keeps it.) -/
-theorem ownRaftPhys_msgs (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ (sl : GoSlice) (ls : List Loc), r.[raft, go!"msgs"] ↦ sl ∗ sl ↦* ls ∗
-        ownSliceCap Loc sl (DFrac.own 1) ∗
-        (∀ (sl' : GoSlice) (l' : Loc) (st' : MsgSt) (a : Option Msg),
-           r.[raft, go!"msgs"] ↦ sl' -∗ sl' ↦* (ls ++ [l']) -∗
-           ownSliceCap Loc sl' (DFrac.own 1) -∗
-           msgOwn l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
-           ⌜OutTermOk s.prevote s.term st'.msg⌝ -∗
-           ownRaftPhys (GF := GF) cfg r id { s with outbox := s.outbox ++ absList [a] }) := by
-  iintro H
-  iNamed_phys H
-  icases raft_split_msgs r rv $$ Hr with ⟨Hf, Hback⟩
-  iexists rv.msgs', msgs.map QMsg.loc
-  iframe Hf Hmsgs Hmsgs_cap
-  iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot
-  have Hout_term' : ∀ m ∈ (msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA,
-      OutTermOk s.prevote s.term m.st.msg := by
-    intro m Hm
-    simp only [List.mem_append, List.mem_singleton] at Hm
-    rcases Hm with (Hm | rfl) | Hm
-    · exact Hout_term m (List.mem_append_left _ Hm)
-    · exact Hot
-    · exact Hout_term m (List.mem_append_right _ Hm)
-  ihave Hr := Hback $$ %sl' Hf
-  ihave Hmsgs : (sl' ↦* (msgs ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [Hmsgs]
-  · simp only [List.map_append, List.map_cons, List.map_nil]; iexact Hmsgs
-  ihave Houtbox := outboxRel_snoc _ _ _ ⟨l', st'⟩ a $$ Houtbox [Hm]
-  · unfold msgQ; iframe Hm; ipureintro; exact Ha
-  iapply ownRaftPhys_intro _ _ _ { s with outbox := s.outbox ++ absList [a] }
-      { rv with msgs' := sl' } (msgs ++ [⟨l', st'⟩]) msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term'
-    (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst Hvoter
-    (Hprok.of_fields rfl rfl rfl)
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-/-- `r.msgsAfterAppend`, likewise; the appended message is `AAMsgOk`. -/
-theorem ownRaftPhys_msgsAA (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ (sl : GoSlice) (ls : List Loc), r.[raft, go!"msgsAfterAppend"] ↦ sl ∗ sl ↦* ls ∗
-        ownSliceCap Loc sl (DFrac.own 1) ∗
-        (∀ (sl' : GoSlice) (l' : Loc) (st' : MsgSt) (a : Option Msg),
-           r.[raft, go!"msgsAfterAppend"] ↦ sl' -∗
-           sl' ↦* (ls ++ [l']) -∗
-           ownSliceCap Loc sl' (DFrac.own 1) -∗
-           msgOwn l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
-           ⌜AAMsgOk id s.term st'⌝ -∗
-           ⌜OutTermOk s.prevote s.term st'.msg⌝ -∗
-           ownRaftPhys (GF := GF) cfg r id { s with outbox := s.outbox ++ absList [a] }) := by
-  iintro H
-  iNamed_phys H
-  icases raft_split_msgsAA r rv $$ Hr with ⟨Hf, Hback⟩
-  iexists rv.msgsAfterAppend', msgsAA.map QMsg.loc
-  iframe Hf HmsgsAA HmsgsAA_cap
-  iintro %sl' %l' %st' %a Hf HmsgsAA HmsgsAA_cap Hm %Ha %Hok %Hot
-  have Hout_term' : ∀ m ∈ msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)]),
-      OutTermOk s.prevote s.term m.st.msg := by
-    intro m Hm
-    simp only [List.mem_append, List.mem_singleton] at Hm
-    rcases Hm with Hm | Hm | rfl
-    · exact Hout_term m (List.mem_append_left _ Hm)
-    · exact Hout_term m (List.mem_append_right _ Hm)
-    · exact Hot
-  have HmsgsAA_ok' : ∀ m ∈ msgsAA ++ [(⟨l', st'⟩ : QMsg)], AAMsgOk id s.term m.st := by
-    intro m Hm
-    rcases List.mem_append.1 Hm with Hm | Hm
-    · exact HmsgsAA_ok m Hm
-    · rw [List.mem_singleton.1 Hm]; exact Hok
-  ihave Hr := Hback $$ %sl' Hf
-  ihave HmsgsAA : (sl' ↦* (msgsAA ++ [(⟨l', st'⟩ : QMsg)]).map QMsg.loc : IProp GF) $$ [HmsgsAA]
-  · simp only [List.map_append, List.map_cons, List.map_nil]; iexact HmsgsAA
-  ihave Houtbox := outboxRel_snocAA _ _ _ ⟨l', st'⟩ a $$ Houtbox [Hm]
-  · unfold msgQ; iframe Hm; ipureintro; exact Ha
-  iapply ownRaftPhys_intro _ _ _ { s with outbox := s.outbox ++ absList [a] }
-      { rv with msgsAfterAppend' := sl' } msgs (msgsAA ++ [⟨l', st'⟩]) lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term'
-    (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst Hvoter
-    (Hprok.of_fields rfl rfl rfl)
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-/-- The `readOnly` object (2026-10-12: at `s.rd.ro`, and back at any record, which the state
-then records). `reset` replaces it; `bcastHeartbeat` reads its context. -/
-theorem ownRaftPhys_readOnly (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ (ro : Loc),
-        r.[raft, go!"readOnly"] ↦ ro ∗ ownReadOnly ro s.rd.ro ∗
-        (∀ (ro' : Loc) (rr' : ReadOnly),
-           r.[raft, go!"readOnly"] ↦ ro' -∗ ownReadOnly ro' rr' -∗
-           ownRaftPhys cfg r id { s with rd := { s.rd with ro := rr' } }) := by
-  iintro H
-  iNamed_phys H
-  iunfold ownRaftMisc at Hmisc
-  iNamed Hmisc
-  icases raft_split_readOnly r rv $$ Hr with ⟨Hf, Hback⟩
-  iexists rv.readOnly'
-  iframe Hf Hro_obj
-  iintro %ro' %rr' Hf Hro_obj
-  ihave Hr := Hback $$ %ro' Hf
-  ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' ro' rv.pendingReadIndexMessages'
-      { s.rd with ro := rr' } $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
-  · unfold ownRaftMisc
-    simp only [named]
-    iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap
-  reseal { s with rd := { s.rd with ro := rr' } }
-
-/-- The tracker and the `readOnly` object together (2026-10-13): `stepLeader`'s
-`r.readOnly.maybeAdvance(r.trk.Voters)` lends the tracker's voter map to the read-only
-object's method. Back at any tracker value (same tally, progress map and values) and any
-read-only record, which the state then records. -/
-theorem ownRaftPhys_readOnly_trk (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ (tv : tracker.ProgressTracker) (ro : Loc),
-        r.[raft, go!"trk"] ↦ tv ∗
-        ownTracker cfg tv ⟨s.votes, s.progress, s.prvals⟩ ∗
-        r.[raft, go!"readOnly"] ↦ ro ∗ ownReadOnly ro s.rd.ro ∗
-        (∀ (tv' : tracker.ProgressTracker) (ro' : Loc) (rr' : ReadOnly),
-           r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, s.progress, s.prvals⟩ -∗
-           r.[raft, go!"readOnly"] ↦ ro' -∗ ownReadOnly ro' rr' -∗
-           ownRaftPhys cfg r id { s with rd := { s.rd with ro := rr' } }) := by
-  iintro H
-  iNamed_phys H
-  iunfold ownRaftMisc at Hmisc
-  iNamed Hmisc
-  icases raft_split_trk_readOnly r rv $$ Hr with ⟨Hft, Hf, Hback⟩
-  iexists rv.trk', rv.readOnly'
-  iframe Hft Htrk Hf Hro_obj
-  iintro %tv' %ro' %rr' Hft Htrk Hf Hro_obj
-  ihave Hr := Hback $$ %tv' %ro' Hft Hf
-  ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' ro' rv.pendingReadIndexMessages'
-      { s.rd with ro := rr' } $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
-  · unfold ownRaftMisc
-    simp only [named]
-    iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap
-  iapply ownRaftPhys_intro cfg r id { s with rd := { s.rd with ro := rr' } }
-      { rv with trk' := tv', readOnly' := ro' } msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
-    Hprok
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-/-- The three read-index fields with what hangs off them (2026-10-12), back at any values
-and any read state, which the state then records. -/
-theorem ownRaftPhys_misc (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ∃ (rs : GoSlice) (ro : Loc) (pr : GoSlice),
-        r.[raft, go!"readStates"] ↦ rs ∗ r.[raft, go!"readOnly"] ↦ ro ∗
-        r.[raft, go!"pendingReadIndexMessages"] ↦ pr ∗
-        ownRaftMisc rs ro pr s.rd ∗
-        (∀ (rs' : GoSlice) (ro' : Loc) (pr' : GoSlice) (rd' : RdState),
-           r.[raft, go!"readStates"] ↦ rs' -∗ r.[raft, go!"readOnly"] ↦ ro' -∗
-           r.[raft, go!"pendingReadIndexMessages"] ↦ pr' -∗
-           ownRaftMisc rs' ro' pr' rd' -∗
-           ownRaftPhys cfg r id { s with rd := rd' }) := by
-  iintro H
-  iNamed_phys H
-  icases raft_split_misc r rv $$ Hr with ⟨Hf1, Hf2, Hf3, Hback⟩
-  iexists rv.readStates', rv.readOnly', rv.pendingReadIndexMessages'
-  iframe Hf1 Hf2 Hf3 Hmisc
-  iintro %rs' %ro' %pr' %rd' Hf1 Hf2 Hf3 Hmisc
-  ihave Hr := Hback $$ %rs' %ro' %pr' Hf1 Hf2 Hf3
-  reseal { s with rd := rd' }
-
-/-- Rocq `own_raft_phys_view`: the struct open for `RawNode.Ready` (see
-`raft_split_view`). Since 2026-10-13 with the `ReadState`s' slice (read-only, and its
-capacity), and `Hclose` takes `readStates` back at any slice and any read state that
-changes only the `ReadState`s (`acceptReady` sets the field to `nil`). -/
-theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      iprop(∃ (rs sl1 sl2 : GoSlice) (ms1 ms2 : List QMsg),
-        "#Hf_id" ∷ r.[raft, go!"id"] ↦□ id ∗
-        "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
-        "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
-        "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rs ∗
-        "%Hrs" ∷ ⌜s.rd.states.length = sint.nat rs.len ∧ 0 ≤ sint.Z rs.len⌝ ∗
-        "#HreadStates" ∷ readStatesPts rs s.rd.states ∗
-        "HreadStates_cap" ∷ ownSliceCap ReadState rs (DFrac.own 1) ∗
-        "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
-        "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
-        "Hf_lead" ∷ r.[raft, go!"lead"] ↦ s.lead ∗
-        "Hf_msgs" ∷ r.[raft, go!"msgs"] ↦ sl1 ∗ "Hmsgs" ∷ sl1 ↦* ms1.map QMsg.loc ∗
-        "Hmsgs_cap" ∷ ownSliceCap Loc sl1 (DFrac.own 1) ∗
-        "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗ "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
-        "HmsgsAA_cap" ∷ ownSliceCap Loc sl2 (DFrac.own 1) ∗
-        "Houtbox" ∷ outboxRel s.outbox ms1 ms2 ∗
-        "%HmsgsAA_ok" ∷ ⌜∀ m ∈ ms2, AAMsgOk id s.term m.st⌝ ∗
-        "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.prevote s.term m.st.msg⌝ ∗
-        "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
-        "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
-        "Hlog" ∷ ownRaftLog s.log s.logst ∗
-        "Hclose" ∷ (∀ (sl1' sl2' : GoSlice) (ms1' ms2' : List QMsg) (o : List Msg)
-                      (ls' : LogState) (g : NGhost) (rs' : GoSlice) (rd' : RdState),
-            r.[raft, go!"Term"] ↦ s.term -∗
-            r.[raft, go!"Vote"] ↦ s.vote -∗
-            r.[raft, go!"readStates"] ↦ rs' -∗
-            readStatesPts rs' rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
-            ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend⌝ -∗
-            r.[raft, go!"raftLog"] ↦ s.log -∗
-            r.[raft, go!"state"] ↦ stateW64 s.role -∗
-            r.[raft, go!"lead"] ↦ s.lead -∗
-            r.[raft, go!"msgs"] ↦ sl1' -∗ sl1' ↦* ms1'.map QMsg.loc -∗
-            ownSliceCap Loc sl1' (DFrac.own 1) -∗
-            r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
-            ownSliceCap Loc sl2' (DFrac.own 1) -∗
-            outboxRel o ms1' ms2' -∗
-            ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
-            ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.prevote s.term m.st.msg⌝ -∗
-            ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
-            ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
-            ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
-            ownRaftLog s.log ls' -∗
-            ownRaftPhys cfg r id { s with outbox := o, logst := ls', gh := g, rd := rd' })) := by
-  iintro H
-  iNamed_phys H
-  iunfold ownRaftMisc at Hmisc
-  iNamed Hmisc
-  ihave #HreadStates := HreadStates
-  ihave %Hrl := readStatesPts_len _ _ $$ HreadStates
-  icases raft_split_view r rv $$ Hr with
-    ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hback⟩
-  ihave #Hfid : r.[raft, go!"id"] ↦□ id $$ [Hfid]
-  · rw [← Hid]; iexact Hfid
-  ihave HfTerm : r.[raft, go!"Term"] ↦ s.term $$ [HfTerm]
-  · rw [← Hterm]; iexact HfTerm
-  ihave HfVote : r.[raft, go!"Vote"] ↦ s.vote $$ [HfVote]
-  · rw [← Hvote]; iexact HfVote
-  ihave Hflog : r.[raft, go!"raftLog"] ↦ s.log $$ [Hflog]
-  · rw [← Hlogp]; iexact Hflog
-  ihave Hfst : r.[raft, go!"state"] ↦ stateW64 s.role $$ [Hfst]
-  · rw [← Hstate]; iexact Hfst
-  ihave Hfld : r.[raft, go!"lead"] ↦ s.lead $$ [Hfld]
-  · rw [← Hlead]; iexact Hfld
-  ihave Hlog : ownRaftLog (GF := GF) s.log s.logst $$ [Hlog]
-  · rw [← Hlogp]; iexact Hlog
-  iexists rv.readStates', rv.msgs', rv.msgsAfterAppend', msgs, msgsAA
-  simp only [named]
-  iframe Hfid HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm Hfma Hmsgs Hmsgs_cap HmsgsAA
-    HmsgsAA_cap Houtbox Hlog HreadStates HreadStates_cap
-  isplitr
-  · ipureintro; exact Hrl
-  isplitr
-  · ipureintro; exact HmsgsAA_ok
-  isplitr
-  · ipureintro; exact Hout_term
-  isplitr
-  · ipureintro; exact Hgh_out
-  isplitr
-  · ipureintro; exact Hgh_unst
-  iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrs'_cap
-    %Hrd' Hflog Hfst Hfld Hfm Hmsgs
-    Hmsgs_cap Hfma HmsgsAA HmsgsAA_cap Houtbox' %HmsgsAA_ok' %Hout_term' %Hg1 %Hg2 %Hle' Hlog
-  ihave Hmisc : ownRaftMisc (GF := GF) rs' rv.readOnly' rv.pendingReadIndexMessages' rd'
-      $$ [Hrs' Hrs'_cap Hro_obj Hpri Hpri_cap]
-  · unfold ownRaftMisc
-    simp only [named]
-    rw [Hrd'.1, Hrd'.2]
-    iframe Hrs' Hrs'_cap Hro_obj Hpri Hpri_cap
-  ihave HfTerm : r.[raft, go!"Term"] ↦ rv.Term' $$ [HfTerm]
-  · rw [Hterm]; iexact HfTerm
-  ihave HfVote : r.[raft, go!"Vote"] ↦ rv.Vote' $$ [HfVote]
-  · rw [Hvote]; iexact HfVote
-  ihave Hflog : r.[raft, go!"raftLog"] ↦ rv.raftLog' $$ [Hflog]
-  · rw [Hlogp]; iexact Hflog
-  ihave Hfst : r.[raft, go!"state"] ↦ rv.state' $$ [Hfst]
-  · rw [Hstate]; iexact Hfst
-  ihave Hfld : r.[raft, go!"lead"] ↦ rv.lead' $$ [Hfld]
-  · rw [Hlead]; iexact Hfld
-  ihave Hlog : ownRaftLog (GF := GF) rv.raftLog' ls' $$ [Hlog]
-  · rw [Hlogp]; iexact Hlog
-  ihave Hr := Hback $$ %sl1' %sl2' %rs' HfTerm HfVote Hfrs Hflog Hfst Hfm Hfma Hfld
-  iapply ownRaftPhys_intro _ _ _ { s with outbox := o, logst := ls', gh := g, rd := rd' }
-      { rv with msgs' := sl1', msgsAfterAppend' := sl2', readStates' := rs' } ms1' ms2' lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
-    ((Hprok.mono_log Hle').of_fields rfl rfl rfl)
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
-
 end proof
 
 /-! ### Reconfiguration
@@ -2303,31 +1498,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem ownRaftPhys_reconfig (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hv : s.role ≠ .follower → id ∈ cfg) :
-    ⊢ ownRaftPhys (GF := GF) cfg0 r id s -∗
-      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
-        ownTracker cfg0 tv ⟨s.votes, s.progress, s.prvals⟩ ∗
-        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
-           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
-           ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) := by
-  iintro H
-  iNamed_phys H
-  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
-  iexists rv.trk'
-  iframe Hf Htrk
-  iintro %tv' %prs' %pvs' Hf Htrk %Hok
-  ihave Hr := Hback $$ %tv' Hf
-  iapply ownRaftPhys_intro cfg r id { s with progress := prs', prvals := pvs' }
-      { rv with trk' := tv' } msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
-    Hok
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
 /-- `ownRaftPhys_intro` with the tracker left out (2026-10-16, stage R8b): the struct's `trk`
-field and the re-sealing wand `switchToConfig`'s spec takes (`Hback`, as `ownRaftPhys_reconfig`
+field and the re-sealing wand `switchToConfig`'s spec takes (`Hback`, as `ownRaftPhysCV_reconfig`
 gives it), for a struct whose tracker is about to be replaced. `newRaft` on an empty conf state
 installs the empty tracker's own maps, which `confchange.Restore` hands back unchanged
 (`confchange.Restore.spec_empty`): they cannot also make an `ownTracker` for the struct first. -/
@@ -2384,52 +1556,6 @@ theorem ownRaftPhys_intro_trk (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
     Hgh_unst Hvoter Hok
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-/-- The tracker replaced while the log is in use (2026-10-02): `restore` stores a fresh
-tracker into `r.trk`, loads it back, calls `r.raftLog.lastIndex()` and only then hands
-the new tracker's (empty) voter map to `confchange.Restore` -- so between the store and
-that call the struct cannot be re-sealed without losing which tracker value it holds.
-This accessor hands out the tracker field and the `raftLog` field (read-only: its value
-is `s.log`) together with the log, and takes them back at any tracker -- a new
-configuration `cfg`, tally, progress map and values -- and any log state. -/
-theorem ownRaftPhys_retrack (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hv : s.role ≠ .follower → id ∈ cfg) :
-    ⊢ ownRaftPhys (GF := GF) cfg0 r id s -∗
-      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
-        ownTracker cfg0 tv ⟨s.votes, s.progress, s.prvals⟩ ∗
-        r.[raft, go!"raftLog"] ↦ s.log ∗
-        ownRaftLog s.log s.logst ∗
-        (∀ tv' votes' prs' pvs' ls',
-           r.[raft, go!"raftLog"] ↦ s.log -∗
-           r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨votes', prs', pvs'⟩ -∗
-           ownRaftLog s.log ls' -∗ ⌜LogGhOk s ls'⌝ -∗
-           ⌜PrvalsOk { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }⌝ -∗
-           ownRaftPhys cfg r id
-             { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }) := by
-  iintro H
-  iNamed_phys H
-  icases raft_split_raftLog_trk r rv $$ Hr with ⟨Hlf, Hf, Hback⟩
-  iexists rv.trk'
-  iframe Hf Htrk
-  ihave Hlf : r.[raft, go!"raftLog"] ↦ s.log $$ [Hlf]
-  · rw [← Hlogp]; iexact Hlf
-  ihave Hlog : ownRaftLog (GF := GF) s.log s.logst $$ [Hlog]
-  · rw [← Hlogp]; iexact Hlog
-  iframe Hlf Hlog
-  iintro %tv' %votes' %prs' %pvs' %ls' Hlf Hf Htrk Hlog %Hgh_unst' %Hok
-  ihave Hlf : r.[raft, go!"raftLog"] ↦ rv.raftLog' $$ [Hlf]
-  · rw [Hlogp]; iexact Hlf
-  ihave Hlog : ownRaftLog (GF := GF) rv.raftLog' ls' $$ [Hlog]
-  · rw [Hlogp]; iexact Hlog
-  ihave Hr := Hback $$ %tv' Hlf Hf
-  iapply ownRaftPhys_intro cfg r id
-      { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }
-      { rv with trk' := tv' } msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
-    Hgh_unst' Hv Hok
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 end reconfig
@@ -2531,8 +1657,7 @@ theorem ownRaftPhysC_tracker (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with votes := votes' }
 
-/-- The tracker, given back with new `Progress` values (`ownRaftPhys_tracker_prvals` at
-`c`). -/
+/-- The tracker, given back with new `Progress` values. -/
 theorem ownRaftPhysC_tracker_prvals (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
       ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
@@ -2550,33 +1675,7 @@ theorem ownRaftPhysC_tracker_prvals (c : CfgM) {V : GSet w64} (r : Loc) (id : w6
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with prvals := pvs' }
 
-/-- A new configuration (`ownRaftPhys_reconfig` at any configurations): the tracker at `c0`
-handed out, taken back at `c` with a new progress map and values -- what `switchToConfig`
-does at a joint configuration. The voter premise is for the new configuration. -/
-theorem ownRaftPhysC_reconfig (c0 c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Hv : s.role ≠ .follower → id ∈ c.voters) :
-    ⊢ ownRaftPhysCV (GF := GF) c0 c0.voters r id s -∗
-      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
-        ownTrackerC c0 tv ⟨s.votes, s.progress, s.prvals⟩ ∗
-        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTrackerC c tv' ⟨s.votes, prs', pvs'⟩ -∗
-           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
-           ownRaftPhysCV c c.voters r id { s with progress := prs', prvals := pvs' }) := by
-  iintro H
-  iNamed_physC H
-  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
-  iexists rv.trk'
-  iframe Hf Htrk
-  iintro %tv' %prs' %pvs' Hf Htrk %Hok
-  ihave Hr := Hback $$ %tv' Hf
-  iapply ownRaftPhysCV_intro c _ r id { s with progress := prs', prvals := pvs' }
-      { rv with trk' := tv' } msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
-    Hok
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
-/-- `ownRaftPhys_prvals_ok` at `c` (2026-10-16, stage R8a): the leader's progress bound and that
+/-- At `c` (2026-10-16, stage R8a): the leader's progress bound and that
 `lastIndex() + 1` does not wrap, read out without consuming anything. -/
 theorem ownRaftPhysC_prvals_ok (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
@@ -2609,18 +1708,6 @@ theorem ownRaftPhysC_precand (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   iNamed_physC H
   isplitr
   · ipureintro; exact Hprevote.2
-  resealC c s
-
-/-- The progress map tracks exactly the configuration's ids, at most `2^62` of them. -/
-theorem ownRaftPhysC_progress_dom (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜domSet s.progress = c.ids ∧ (GMap.size s.progress : Int) ≤ 2 ^ 62⌝ ∗
-      ownRaftPhysCV c V r id s := by
-  iintro H
-  iNamed_physC H
-  icases ownTrackerC_pure _ _ _ $$ Htrk with ⟨%Hp, Htrk⟩
-  isplitr
-  · ipureintro; exact ⟨Hp.2.1, Hp.2.2.2.1⟩
   resealC c s
 
 end physC
@@ -3184,7 +2271,7 @@ theorem ownRaftPhysC_tracker_same (r : Loc) (id : w64) (s : NState) :
 loads, `Inflights.Full`). The lookup of `r.trk.Progress[to]` itself goes through
 `ownRaftPhys_tracker_same`: it reads the tracker field. The two lookups are premises
 inside the logic, so that `s` is fixed by the struct hypothesis the lemma is applied
-to, not by the lookups' types: `icases ownRaftPhys_pr … $$ Hphys %Hlk %Hv with …`. -/
+to, not by the lookups' types: `icases ownRaftPhysC_pr … $$ Hphys %Hlk %Hv with …`. -/
 theorem ownRaftPhysC_pr (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc)
     (p : Progress) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
@@ -3225,25 +2312,6 @@ theorem ownRaftPhysC_pr_upd (r : Loc) (id : w64) (s : NState) (to : w64) (pr : L
     with ⟨%p', %Hv', Hp, Hpb⟩
   have Heq : p = p' := Option.some.inj (Hv.symm.trans Hv')
   subst Heq
-  iframe Hp
-  iintro %p'' Hp %Hl %Hok'
-  ihave Htrk := Hpb $$ %p'' Hp %Hl
-  iapply Hback $$ Htrkf Htrk %(Hok.insert Hok')
-
-/-- A write that does not need to know the value it overwrites (`SentCommit`). -/
-theorem ownRaftPhysC_pr_any (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜s.progress !! to = some pr⌝ -∗
-      ∃ p, ownProgress pr p ∗
-      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
-         ⌜s.role = .leader → PrOk s.logst p'⌝ -∗
-         ownRaftPhysCV c V r id { s with prvals := <[to := p']> s.prvals }) := by
-  iintro Hphys %Hlk
-  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok, -, Hphys⟩
-  icases ownRaftPhysC_tracker_prvals c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTrackerC_lookup c tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hlk $$ Htrk
-    with ⟨%p', %Hv', Hp, Hpb⟩
-  iexists p'
   iframe Hp
   iintro %p'' Hp %Hl %Hok'
   ihave Htrk := Hpb $$ %p'' Hp %Hl
@@ -3583,8 +2651,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 
-/-- The tracker replaced while the log is in use (`ownRaftPhys_retrack` at any
-configurations): `restore` at a node of any configuration `c0` installs the snapshot's `c`. -/
+/-- The tracker replaced while the log is in use (at any configurations): `restore` at a node of any configuration `c0` installs the snapshot's `c`. -/
 theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64) (s : NState)
     (Hv : s.role ≠ .follower → id ∈ V') :
     ⊢ ownRaftPhysCV (GF := GF) c0 V0 r id s -∗
@@ -3624,19 +2691,6 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64)
     Hgh_unst' Hv Hok
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
-/-- `Hvoter`'s set matters only out of the follower role: a follower's struct is at any `V`. -/
-theorem ownRaftPhysCV_follower (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hf : s.role = .follower) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysCV c V' r id s := by
-  iintro H
-  iNamed_physC H
-  have Hvoter' : s.role ≠ .follower → id ∈ V' := fun h => absurd Hf h
-  iapply ownRaftPhysCV_intro c V' _ _ s _ msgs msgsAA lok
-    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
-    Hgh_unst Hvoter' Hprok
-    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
-
 /-- `Hvoter`'s set changed to any `V'` that holds of the role (a superset, or any set at a
 follower). -/
 theorem ownRaftPhysCV_widen (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
@@ -3651,7 +2705,7 @@ theorem ownRaftPhysCV_widen (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
     Hgh_unst Hvoter' Hprok
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
-/-- `ownRaftPhysC_reconfig` to any `Hvoter` set: the tracker at `c0` handed out, taken back at
+/-- At any `Hvoter` set: the tracker at `c0` handed out, taken back at
 `c` with `Hvoter` at `V'` (which must hold of the role now). -/
 theorem ownRaftPhysCV_reconfig (c' : CfgM) (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
     (Hv : s.role ≠ .follower → id ∈ V') :

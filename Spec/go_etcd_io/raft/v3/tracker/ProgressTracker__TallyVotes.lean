@@ -37,8 +37,8 @@ answer is `VoteWon` exactly when the granted votes are a quorum of both voter ha
 (`JQuorum`) and `VoteLost` exactly when one half's non-rejecting voters are not a majority
 of it (`JLost`) -- equivalences, with no premise: `MajQ` carries Go's convention that an
 empty half wins every election. The statement at a simple configuration (`ownTracker cfg`,
-`cfg ≠ ∅`, `IsQuorum cfg`) is `tracker.ProgressTracker.TallyVotes.spec_simple`, which
-`raft.poll` uses.
+`cfg ≠ ∅`, `IsQuorum cfg`) was `tracker.ProgressTracker.TallyVotes.spec_simple`; it had no caller and is gone
+(2026-10-17).
 
 History, from the Rocq port: proved 2026-09-20 after two Goose fixes (array indexing of
 `quorum.JointConfig`, `len` of a nil map); the `VoteLost` conjunct was corrected 2026-09-16
@@ -55,35 +55,6 @@ abbrev tracker.ProgressTracker.TallyVotes.spec : Prop :=
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
       ⌜res = VoteWon ↔ JQuorum c (granted t.votes)⌝ ∗
       ⌜res = VoteLost ↔ JLost c t.votes⌝ }}
-
-open Iris.ProofMode in
-/-- The statement until 2026-10-13, at a simple configuration (`ownTracker cfg`) with
-`cfg ≠ ∅`: an empty configuration "wins" every election in Go, while `IsQuorum ∅ q` is
-false. -/
-theorem tracker.ProgressTracker.TallyVotes.spec_simple
-    (H : tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (Hne : cfg ≠ ∅) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv t }}
-    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"TallyVotes"))
-      (Val #()))
-  {{ (g rj : w64) (res : w8), RET (PairV (PairV #g #rj) #res);
-      trk ↦ tv ∗ ownTracker cfg tv t ∗
-      ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
-      ⌜res = VoteWon → IsQuorum cfg (granted t.votes)⌝ ∗
-      ⌜res = VoteLost → ¬ IsQuorum cfg (cfg \ rejected t.votes)⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
-  ihave Hown := ownTracker_toC _ _ _ $$ Hown
-  iapply H _ trk tv t $$ [$Hpkg $Htrk $Hown]
-  inext
-  iintro %g %rj %res ⟨Htrk, Hown, %Hres, %Hwon, %Hlost⟩
-  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
-  iapply HΦ
-  iframe Htrk Hown
-  ipureintro
-  exact ⟨Hres, fun h => (JQuorum_of_out (c := CfgM.simple cfg (domSet t.prs \ cfg)) Hne rfl _).1
-      (Hwon.1 h),
-    fun h => (JLost_of_out (c := CfgM.simple cfg (domSet t.prs \ cfg)) Hne rfl _).1 (Hlost.1 h)⟩
 
 end spec
 

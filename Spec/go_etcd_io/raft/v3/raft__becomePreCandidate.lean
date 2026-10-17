@@ -43,31 +43,6 @@ abbrev raft.becomePreCandidate.spec : Prop :=
       (Val #()))
   {{ RET #(); ownRaftPhysCV c c.voters r id (becomePrecandidate s) }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.becomePreCandidate.spec` by `raft.becomePreCandidate.spec_simple`. -/
-abbrev raft.becomePreCandidate.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.role ≠ .leader →
-  id ∈ cfg →
-  s.prevote = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomePreCandidate"))
-      (Val #()))
-  {{ RET #(); ownRaftPhys cfg r id (becomePrecandidate s) }}
-
-open Iris.ProofMode in
-theorem raft.becomePreCandidate.spec_simple
-    (H : raft.becomePreCandidate.spec (GF := GF) (hG := hG)) :
-    raft.becomePreCandidate.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hl Hid Hpv
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hl (by rw [CfgM.voters_simple]; exact Hid) Hpv $$ [$Hpkg $Hphys]
-  inext
-  iintro Hphys
-  iapply HΦ $$ [Hphys]
-  iapply ownRaftPhysC_toS $$ Hphys
-
 end spec
 
 end EtcdGrove

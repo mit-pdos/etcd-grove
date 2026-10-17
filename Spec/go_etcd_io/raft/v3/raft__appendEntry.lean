@@ -185,46 +185,6 @@ abbrev raft.appendEntry.spec : Prop :=
         -- dropped: `Warningf` and `return false`, nothing written
         ownRaftPhysCV c c.voters r id s }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.appendEntry.spec` by `raft.appendEntry.spec_simple`. -/
-abbrev raft.appendEntry.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List EntryM) (dq : DFrac),
-  (ents.length : Int) < 2^61 →
-  s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
-      "Hes" ∷ entsPts es dq ents }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
-  {{ (accepted : Bool), RET #accepted;
-      ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
-      entsPts es dq ents ∗
-      if accepted then
-        ownRaftPhys cfg r id
-          (sendMsgs
-            { s with logst :=
-                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
-            [selfAck id
-              { s with logst :=
-                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
-      else
-        ownRaftPhys cfg r id s }}
-
-open Iris.ProofMode in
-theorem raft.appendEntry.spec_simple
-    (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
-    raft.appendEntry.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents dq Hlen Ht
-  iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s es ents dq Hlen Ht $$ [$Hpkg $Hphys $Hes]
-  inext
-  iintro %acc ⟨%Hacc, Hes, Hphys⟩
-  iapply HΦ $$ %acc
-  iframe Hes
-  isplitr
-  · ipureintro; exact Hacc
-  cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iapply ownRaftPhysC_toS $$ Hphys
-
 end spec
 
 end EtcdGrove

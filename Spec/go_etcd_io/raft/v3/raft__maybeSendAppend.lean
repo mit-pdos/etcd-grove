@@ -68,37 +68,6 @@ abbrev raft.maybeSendAppend.spec : Prop :=
       -- `SentEntries`, `SentCommit`, `BecomeSnapshot` leave `Match` alone
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `raft.maybeSendAppend.spec` by `raft.maybeSendAppend.spec_simple`. -/
-abbrev raft.maybeSendAppend.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64) (sendIfEmpty : Bool),
-  to ≠ id →
-  to ∈ domSet s.progress →
-  s.role = .leader →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s }}
-    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendAppend"))
-      (Val #to)) (Val #sendIfEmpty))
-  {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;
-      ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜ReplSends id s ms⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
-
-open Iris.ProofMode in
-theorem raft.maybeSendAppend.spec_simple
-    (H : raft.maybeSendAppend.spec (GF := GF) (hG := hG)) :
-    raft.maybeSendAppend.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s to sie Hto Hdom Hlead
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s to sie Hto Hdom Hlead $$ [$Hpkg $Hphys]
-  inext
-  iintro %b %ms %pvs ⟨Hphys, %H1, %H2⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact ⟨H1, H2⟩
-
 end spec
 
 end EtcdGrove

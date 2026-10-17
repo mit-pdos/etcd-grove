@@ -37,8 +37,8 @@ tracker is unchanged and the result is `JCommittedIdx` of the two voter halves o
 voters' `Match` (`pvsMatchAt t.peers v`, `0` off the map, which no voter is: the map tracks
 every voter): the smaller of the halves' quorum indices, an empty half counting `MaxUint64`.
 The statement at a simple configuration (`ownTracker cfg`: `MaxUint64` for `cfg = ∅`,
-otherwise the quorum index over `cfg`, `IsQuorumIndex`) is
-`tracker.ProgressTracker.Committed.spec_simple`, which `raft.maybeCommit` uses. -/
+otherwise the quorum index over `cfg`, `IsQuorumIndex`) was
+`tracker.ProgressTracker.Committed.spec_simple`; it had no caller and is gone (2026-10-17). -/
 abbrev tracker.ProgressTracker.Committed.spec : Prop :=
   ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
@@ -48,31 +48,6 @@ abbrev tracker.ProgressTracker.Committed.spec : Prop :=
   {{ (N : w64), RET #N;
       trk ↦ tv ∗ ownTrackerC c tv t ∗
       ⌜JCommittedIdx c.incoming c.outgoing (pvsMatchAt t.peers) N⌝ }}
-
-open Iris.ProofMode in
-/-- The statement until 2026-10-13, at a simple configuration (`ownTracker`). -/
-theorem tracker.ProgressTracker.Committed.spec_simple
-    (H : tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
-      ownTracker cfg tv t }}
-    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Committed"))
-      (Val #()))
-  {{ (N : w64), RET #N;
-      trk ↦ tv ∗ ownTracker cfg tv t ∗
-      ⌜cfg = ∅ → N = W64 (2 ^ 64 - 1)⌝ ∗
-      ⌜cfg ≠ ∅ → IsQuorumIndex cfg (pvsMatchAt t.peers) N⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
-  ihave Hown := ownTracker_toC _ _ _ $$ Hown
-  iapply H _ trk tv t $$ [$Hpkg $Htrk $Hown]
-  inext
-  iintro %N ⟨Htrk, Hown, %HN⟩
-  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
-  have HN' := JCommittedIdx_simple _ _ _ HN
-  iapply HΦ
-  iframe Htrk Hown
-  ipureintro
-  exact HN'
 
 end spec
 
