@@ -586,7 +586,7 @@ def opRespRel (skip : Bool) : TxnOp → TxnOpResult → OpRespM → Prop
   | .get o, .range sel n, .range _ kvs more count =>
       if skip then kvs = [] ∧ more = false ∧ count = W64 0
       else count = W64 (n : Int) ∧
-        ∃ kvs', rangeKvsOk o sel kvs' ∧ kvs = kvs'.map (txn.leaseZ (txn.fastKeysOnly o))
+        ∃ kvs', rangeKvsOk o sel kvs' ∧ kvs = kvs'
   | .put .., .put, .put _ _ => True
   | .putKeep .., .put, .put _ _ => True
   | .putIgnVal .., .put, .put _ _ => True
