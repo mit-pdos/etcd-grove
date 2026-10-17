@@ -1,0 +1,19 @@
+# etcd#21764 (server: lightweight request logging via --experimental-log-request-path), branch
+# pr-verify/etcd-21764: the functions it changes or adds that are translated with bodies (v3rpc's
+# logLightweightRequestInfo and the log interceptor, the server's RequestLogger).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21764.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots logLightweightRequestInfo
+roots newLogUnaryInterceptor
+roots RequestLogger
+axiom v3rpc.logUnaryRequestStats.wp_proof
+axiom zap.ByteString.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Strings.wp_proof

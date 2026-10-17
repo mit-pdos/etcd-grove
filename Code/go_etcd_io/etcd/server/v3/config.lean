@@ -42,7 +42,7 @@ noncomputable def CheckDuplicateURL [FfiSyntax] [GoGlobalContext] : GoString :=
 
 /-- ReqTimeout returns timeout for request to finish.
 
-    go: config.go:316:24 -/
+    go: config.go:321:24 -/
 noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -51,7 +51,7 @@ noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second))) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))))) (Val _root_.Perennial.time.Millisecond))))))))))
 
-/-- go: config.go:322:24 -/
+/-- go: config.go:327:24 -/
 noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -60,7 +60,7 @@ noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))) (Val _root_.Perennial.time.Millisecond))))))))
 
-/-- go: config.go:354:24 -/
+/-- go: config.go:359:24 -/
 noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -136,6 +136,8 @@ structure ServerConfig [FfiSyntax] where
   MaxConcurrentStreams' : w32
   WarningApplyDuration' : _root_.Perennial.time.Duration
   WarningUnaryRequestDuration' : _root_.Perennial.time.Duration
+  ExperimentalLogRequestPath' : GoString
+  ExperimentalLogRequestRotationConfigJSON' : GoString
   StrictReconfigCheck' : Bool
   ClientCertAuthEnabled' : Bool
   AuthToken' : GoString
@@ -163,7 +165,7 @@ structure ServerConfig [FfiSyntax] where
   Metrics' : GoString
 
 instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
-  ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def ServerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
@@ -198,6 +200,8 @@ instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
 (go.field_decl.FieldDecl go!"MaxConcurrentStreams" go.uint32),
 (go.field_decl.FieldDecl go!"WarningApplyDuration" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"WarningUnaryRequestDuration" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"ExperimentalLogRequestPath" go.string),
+(go.field_decl.FieldDecl go!"ExperimentalLogRequestRotationConfigJSON" go.string),
 (go.field_decl.FieldDecl go!"StrictReconfigCheck" go.bool),
 (go.field_decl.FieldDecl go!"ClientCertAuthEnabled" go.bool),
 (go.field_decl.FieldDecl go!"AuthToken" go.string),
@@ -301,6 +305,10 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_WarningApplyDuration : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WarningApplyDuration") (PairV #x #y) (Val #(({ x with WarningApplyDuration' := y } : ServerConfig)))
   get_WarningUnaryRequestDuration : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"WarningUnaryRequestDuration") #x (Val #(x.WarningUnaryRequestDuration'))
   set_WarningUnaryRequestDuration : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"WarningUnaryRequestDuration") (PairV #x #y) (Val #(({ x with WarningUnaryRequestDuration' := y } : ServerConfig)))
+  get_ExperimentalLogRequestPath : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ExperimentalLogRequestPath") #x (Val #(x.ExperimentalLogRequestPath'))
+  set_ExperimentalLogRequestPath : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ExperimentalLogRequestPath") (PairV #x #y) (Val #(({ x with ExperimentalLogRequestPath' := y } : ServerConfig)))
+  get_ExperimentalLogRequestRotationConfigJSON : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ExperimentalLogRequestRotationConfigJSON") #x (Val #(x.ExperimentalLogRequestRotationConfigJSON'))
+  set_ExperimentalLogRequestRotationConfigJSON : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ExperimentalLogRequestRotationConfigJSON") (PairV #x #y) (Val #(({ x with ExperimentalLogRequestRotationConfigJSON' := y } : ServerConfig)))
   get_StrictReconfigCheck : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"StrictReconfigCheck") #x (Val #(x.StrictReconfigCheck'))
   set_StrictReconfigCheck : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"StrictReconfigCheck") (PairV #x #y) (Val #(({ x with StrictReconfigCheck' := y } : ServerConfig)))
   get_ClientCertAuthEnabled : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"ClientCertAuthEnabled") #x (Val #(x.ClientCertAuthEnabled'))
@@ -421,6 +429,10 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.set_WarningApplyDuration
   ServerConfig.TypeAssumptions.get_WarningUnaryRequestDuration
   ServerConfig.TypeAssumptions.set_WarningUnaryRequestDuration
+  ServerConfig.TypeAssumptions.get_ExperimentalLogRequestPath
+  ServerConfig.TypeAssumptions.set_ExperimentalLogRequestPath
+  ServerConfig.TypeAssumptions.get_ExperimentalLogRequestRotationConfigJSON
+  ServerConfig.TypeAssumptions.set_ExperimentalLogRequestRotationConfigJSON
   ServerConfig.TypeAssumptions.get_StrictReconfigCheck
   ServerConfig.TypeAssumptions.set_StrictReconfigCheck
   ServerConfig.TypeAssumptions.get_ClientCertAuthEnabled

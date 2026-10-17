@@ -1,0 +1,15 @@
+=== RUN   TestRequestLogTxnOpKeysNotLogged
+    interceptor_requestlog_probe_test.go:65: entry: {"level":"info","ts":1792243956.4606566,"msg":"request info","method":"/etcdserverpb.KV/Txn","remote":"10.0.0.1:1","time_spent":0.001}
+--- PASS: TestRequestLogTxnOpKeysNotLogged (0.00s)
+=== RUN   TestRequestLogCompareRangeEndsAmbiguous
+    interceptor_requestlog_probe_test.go:83: a: "msg":"request info","method":"/etcdserverpb.KV/Txn","remote":"r","time_spent":0,"compare_keys":["a","b"],"compare_range_ends":["z"]}
+    interceptor_requestlog_probe_test.go:84: b: "msg":"request info","method":"/etcdserverpb.KV/Txn","remote":"r","time_spent":0,"compare_keys":["a","b"],"compare_range_ends":["z"]}
+--- PASS: TestRequestLogCompareRangeEndsAmbiguous (0.00s)
+=== RUN   TestRequestLogBlocksOnSlowSink
+    interceptor_requestlog_probe_test.go:107: slowest logLightweightRequestInfo call: 300.406986ms
+--- PASS: TestRequestLogBlocksOnSlowSink (0.61s)
+=== RUN   TestRequestLogLostAfterStop
+    interceptor_requestlog_probe_test.go:131: the entry logged after Stop is never written
+--- PASS: TestRequestLogLostAfterStop (0.50s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	1.126s

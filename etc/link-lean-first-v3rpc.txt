@@ -87,12 +87,21 @@ utf8_ValidString:
 prometheus_CounterVec__WithLabelValues:
 logUnaryRequestStats:
 isRPCSupportedForLearner:
+# etcd#21764 (pr-verify): the request logger's getter (the server's Link), the request log's entry
+# over zap's field constructors and `Logger.Info` (axioms, zap is names-only).
+EtcdServer__RequestLogger: @
+zap_String:
+zap_ByteString:
+zap_Int:
+zap_Int64:
+zap_Strings:
+zap_Logger__Info:
 newBackendQuota: EtcdServer__Logger EtcdServer__Backend storage_NewBackendQuota
 NewQuotaKVServer: NewKVServer newBackendQuota EtcdServer__MemberID
 quotaAlarmer__check: EtcdServer__Alarm
 quotaKVServer__Put: quotaAlarmer__check
 quotaKVServer__Txn: quotaAlarmer__check
-newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
+newLogUnaryInterceptor: EtcdServer__Logger EtcdServer__RequestLogger logUnaryRequestStats
 newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner isRPCSupportedForLearner metadata_FromIncomingContext metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues EtcdServer__Leader
 #
 # Unit W-S (the watch slice): the gRPC watch service (watch.go), over the mvcc watch stream (its
@@ -160,3 +169,5 @@ EtcdServer__GoAttach: @
 EtcdServer__StoppingNotify: @
 monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
 newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
+# etcd#21764 (pr-verify): the request log's entry (after zap_Duration above)
+logLightweightRequestInfo: zap_String zap_ByteString zap_Duration zap_Int zap_Int64 zap_Strings zap_Logger__Info

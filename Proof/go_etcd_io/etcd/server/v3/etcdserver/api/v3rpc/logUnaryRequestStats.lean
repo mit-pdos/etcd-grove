@@ -1,7 +1,9 @@
 /-
 The trust boundary: `v3rpc.logUnaryRequestStats` (`v3rpc/interceptor.go`, names-only; unit
 P3b): zap's logger (`Core().Enabled`, `Debug`, `Warn`), grpc's `peer.FromContext`, protobuf's
-`proto.Size` and the messages' stringers (`pb.NewLoggablePutRequest`, `NewLoggableTxnRequest`).
+`proto.Size` and the messages' stringers (`pb.NewLoggablePutRequest`, `NewLoggableTxnRequest`);
+since etcd#21764 also the request logger's branch, a call of the proved
+`logLightweightRequestInfo` on the decoded request.
 -/
 module
 

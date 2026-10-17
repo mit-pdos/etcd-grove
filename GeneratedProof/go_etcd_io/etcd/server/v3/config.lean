@@ -71,6 +71,8 @@ instance ServerConfig_typed_pointsto :
     "MaxConcurrentStreams" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxConcurrentStreams" l) v.MaxConcurrentStreams' dq ∗
     "WarningApplyDuration" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningApplyDuration" l) v.WarningApplyDuration' dq ∗
     "WarningUnaryRequestDuration" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) v.WarningUnaryRequestDuration' dq ∗
+    "ExperimentalLogRequestPath" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestPath" l) v.ExperimentalLogRequestPath' dq ∗
+    "ExperimentalLogRequestRotationConfigJSON" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestRotationConfigJSON" l) v.ExperimentalLogRequestRotationConfigJSON' dq ∗
     "StrictReconfigCheck" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"StrictReconfigCheck" l) v.StrictReconfigCheck' dq ∗
     "ClientCertAuthEnabled" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientCertAuthEnabled" l) v.ClientCertAuthEnabled' dq ∗
     "AuthToken" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AuthToken" l) v.AuthToken' dq ∗
@@ -614,6 +616,38 @@ instance ServerConfig_access_store_WarningUnaryRequestDuration (l : Loc) (v : go
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) v.WarningUnaryRequestDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) WarningUnaryRequestDuration' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarningUnaryRequestDuration' := WarningUnaryRequestDuration' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_load_ExperimentalLogRequestPath (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestPath" l) v.ExperimentalLogRequestPath' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestPath" l) v.ExperimentalLogRequestPath' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_store_ExperimentalLogRequestPath (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ExperimentalLogRequestPath' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestPath" l) v.ExperimentalLogRequestPath' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestPath" l) ExperimentalLogRequestPath' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExperimentalLogRequestPath' := ExperimentalLogRequestPath' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_load_ExperimentalLogRequestRotationConfigJSON (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestRotationConfigJSON" l) v.ExperimentalLogRequestRotationConfigJSON' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestRotationConfigJSON" l) v.ExperimentalLogRequestRotationConfigJSON' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerConfig_access_store_ExperimentalLogRequestRotationConfigJSON (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ExperimentalLogRequestRotationConfigJSON' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestRotationConfigJSON" l) v.ExperimentalLogRequestRotationConfigJSON' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ExperimentalLogRequestRotationConfigJSON" l) ExperimentalLogRequestRotationConfigJSON' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExperimentalLogRequestRotationConfigJSON' := ExperimentalLogRequestRotationConfigJSON' } : go_etcd_io.etcd.server.v3.config.ServerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

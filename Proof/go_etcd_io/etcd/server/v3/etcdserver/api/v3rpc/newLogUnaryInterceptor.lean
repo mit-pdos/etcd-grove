@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestLogger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
 
 @[expose] public section
@@ -30,10 +31,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 theorem v3rpc.newLogUnaryInterceptor.wp_proof
     (wp_Logger : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (wp_RequestLogger : EtcdServer.RequestLogger.spec (GF := GF) (hG := hG))
     (wp_log : v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG)) :
     v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) := by
-  intro s lg wd
-  wp_start as ⟨#Hlg, %Hlgn, #Hwd⟩
+  intro s lg rl wd
+  wp_start as ⟨#Hlg, %Hlgn, #Hwd, #Hrl⟩
   wp_pures
   wp_alloc_auto
   irename : (s_ptr ↦ s : IProp GF) => Hs
@@ -60,6 +62,8 @@ theorem v3rpc.newLogUnaryInterceptor.wp_proof
   · iframe; iframe #; ipureintro; exact Hlgn
   wp_if_destruct
   · exact absurd rfl Hlgn
+  wp_apply wp_RequestLogger s rl
+  · iexact Hrl
   wp_apply wp_log $$ []
   · iframe #; ipureintro; exact Hlgn
   iapply HΨ

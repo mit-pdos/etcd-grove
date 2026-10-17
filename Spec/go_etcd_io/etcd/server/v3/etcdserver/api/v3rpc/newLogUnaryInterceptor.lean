@@ -6,6 +6,7 @@ counterpart); the vocabulary is `Proof/google_golang_org/grpc/InvGrpc.lean` and
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequestLog
 
 @[expose] public section
 
@@ -31,13 +32,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`newLogUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, for any
 requests), whose run holds a reader slot of `s.lgMu` (`s.Logger()`, after the handler): it calls
 the handler and, the logger being non-nil, logs the call in a deferred `logUnaryRequestStats`
-with `s.Cfg.WarningUnaryRequestDuration`. -/
+with `s.Cfg.WarningUnaryRequestDuration` and the request logger `s.RequestLogger()` (etcd#21764:
+`s.requestLogger`, read-only, nil or not). -/
 abbrev v3rpc.newLogUnaryInterceptor.spec : Prop :=
-  ∀ (s lg : Loc) (wd : w64),
+  ∀ (s lg rl : Loc) (wd : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
-      srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ wd }}
+      srvCfgFieldAddr s go!"WarningUnaryRequestDuration" ↦□ wd ∗ srvReqLgAddr s ↦□ rl }}
     (App (Val (@! v3rpc.newLogUnaryInterceptor)) (Val #s))
   {{ (ic : GoFunc), RET #ic; □ ∀ Q : GoInterface → IProp GF,
       srvInterceptorOk ic (srvLgReader s) Q }}

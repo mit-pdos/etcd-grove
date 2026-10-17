@@ -30,7 +30,9 @@ translate = ["!*",
   # the watch slice's unit W-W: interceptor.go's stream interceptor
   "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
   "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
-  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod"]
+  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod",
+  # etcd#21764 (pr-verify): the request log's entry (logUnaryRequestStats stays names only)
+  "logLightweightRequestInfo", "maxLogKeys"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",

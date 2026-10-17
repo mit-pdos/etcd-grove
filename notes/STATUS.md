@@ -45,6 +45,24 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR etcd#21764 (lightweight request logging), verified on branch `pr-verify/etcd-21764` (2026-10-17)
+
+Report: `notes/pr-verify/etcd-21764.md`. The verified code is the PR's diff on the fork,
+`mit-pdos/etcd-grove` branch `pr-etcd-21764-goose-lean`. This branch is not for merging into `lean`.
+
+**Proved**:
+- `v3rpc.logLightweightRequestInfo` (new): no panic for any decoded request (`v3rpc.lwReqIs`,
+  `Proof/.../v3rpc/InvRequestLog.lean`);
+- `EtcdServer.RequestLogger` (new);
+- the log interceptor, re-proved with the new premise `srvReqLgAddr s ↦□ rl`.
+
+**Changed axioms**: `logUnaryRequestStats` gains its parameter `rl`; `Cleanup`'s docstring.
+
+**New axiom**: `zap.Strings.wp_proof`.
+
+**New `sorry`s**: none.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

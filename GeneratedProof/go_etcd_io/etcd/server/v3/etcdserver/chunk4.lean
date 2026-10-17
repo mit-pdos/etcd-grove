@@ -45,6 +45,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.go_uber_org.zap.zapcore
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.log
 public import GeneratedProof.net.http
@@ -77,6 +78,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+-- many fields: the instance search for the points-to's DFractional/Timeless is large
+set_option synthInstance.maxSize 1024 in
+set_option synthInstance.maxHeartbeats 200000 in
 instance EtcdServer_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.EtcdServer where
   typedPointstoDef l v dq := iprop(
@@ -91,6 +95,8 @@ instance EtcdServer_typed_pointsto :
     "Cfg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"Cfg" l) v.Cfg' dq ∗
     "lgMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"lgMu" l) v.lgMu' dq ∗
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"lg" l) v.lg' dq ∗
+    "requestLogger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLogger" l) v.requestLogger' dq ∗
+    "requestLoggerWS" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLoggerWS" l) v.requestLoggerWS' dq ∗
     "w" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"w" l) v.w' dq ∗
     "read" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"read" l) v.read' dq ∗
     "stop" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"stop" l) v.stop' dq ∗
@@ -309,6 +315,38 @@ instance EtcdServer_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etc
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"lg" l) lg' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdServer_access_load_requestLogger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLogger" l) v.requestLogger' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLogger" l) v.requestLogger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdServer_access_store_requestLogger (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (requestLogger' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLogger" l) v.requestLogger' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLogger" l) requestLogger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requestLogger' := requestLogger' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdServer_access_load_requestLoggerWS (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLoggerWS" l) v.requestLoggerWS' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLoggerWS" l) v.requestLoggerWS' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdServer_access_store_requestLoggerWS (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (requestLoggerWS' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLoggerWS" l) v.requestLoggerWS' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"requestLoggerWS" l) requestLoggerWS' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requestLoggerWS' := requestLoggerWS' } : go_etcd_io.etcd.server.v3.etcdserver.EtcdServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

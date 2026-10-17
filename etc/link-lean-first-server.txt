@@ -92,6 +92,8 @@ EtcdServer__getLead:
 EtcdServer__Lead: EtcdServer__getLead
 EtcdServer__isLeader: EtcdServer__MemberID EtcdServer__Lead
 EtcdServer__Logger:
+# etcd#21764 (pr-verify): the request logger's getter
+EtcdServer__RequestLogger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:

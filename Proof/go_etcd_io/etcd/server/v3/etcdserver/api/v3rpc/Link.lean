@@ -52,6 +52,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Del
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logLightweightRequestInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.google_golang_org.grpc.metadata.MD__Get
@@ -84,12 +85,18 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.unicode.utf8.ValidString
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer__Watch
+public import Proof.go_uber_org.zap.ByteString
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Int
+public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Error
+public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.go_uber_org.zap.String
+public import Proof.go_uber_org.zap.Strings
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -236,6 +243,34 @@ theorem kvServer.wp_Range :
 theorem kvServer.wp_Txn :
     EtcdGrove.v3rpc.kvServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.kvServer.Txn.wp_proof wp_checkTxnRequest wp_checkIntervals wp_togRPCError header.wp_fill
+
+theorem zap.wp_String :
+    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.String.wp_proof
+
+theorem zap.wp_ByteString :
+    EtcdGrove.zap.ByteString.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.ByteString.wp_proof
+
+theorem zap.wp_Int' :
+    EtcdGrove.zap.Int'.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int'.wp_proof
+
+theorem zap.wp_Int64 :
+    EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int64.wp_proof
+
+theorem zap.wp_Strings :
+    EtcdGrove.zap.Strings.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Strings.wp_proof
+
+theorem zap.Logger.wp_Info :
+    EtcdGrove.zap.Logger.Info.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Info.wp_proof
+
+theorem wp_logLightweightRequestInfo :
+    EtcdGrove.v3rpc.logLightweightRequestInfo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.logLightweightRequestInfo.wp_proof zap.wp_String zap.wp_ByteString zap.wp_Duration zap.wp_Int' zap.wp_Int64 zap.wp_Strings zap.Logger.wp_Info
 
 theorem metadata.wp_FromIncomingContext :
     EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
@@ -394,7 +429,7 @@ theorem wp_monitorLeader :
 
 theorem wp_newLogUnaryInterceptor :
     EtcdGrove.v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger wp_logUnaryRequestStats
+  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger EtcdServer.wp_RequestLogger wp_logUnaryRequestStats
 
 theorem wp_newStreamInterceptor :
     EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=

@@ -22,7 +22,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.Cleanup()` returns (names-only: it closes the backend and the WAL). -/
+/-- `s.Cleanup()` returns (names-only: it closes the backend and the WAL; since etcd#21764 it
+first stops the request log's `BufferedWriteSyncer`, which waits for its flush loop and flushes). -/
 abbrev EtcdServer.Cleanup.spec : Prop :=
   ∀ (s : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
