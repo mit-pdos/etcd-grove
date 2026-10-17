@@ -4,7 +4,7 @@ The report is `notes/pr-verify/etcd-21982.md`. Revisions:
 
 - PR head: etcd-io/etcd `9f62dc886b4a5ef248ee993e3a9ef87ed474342a` (base `61d518f55effaf5edcedcb2a696504795b4fa7bd`).
   Its `go.mod` asks for Go 1.26 (`toolchain go1.26.4`); with Go 1.27 its grpc dependency does not build.
-- Fork branch: `mit-pdos/etcd-grove` branch `pr-etcd-21982-goose-lean` (`8b09c04a4`), the PR on the etcd pin
+- Fork branch: `mit-pdos/etcd-grove` branch `pr-etcd-21982-goose-lean` (`6a282d4fa`), the PR on the etcd pin
   `09669450f`.
 
 | File | What it shows | Runs against | Command |
