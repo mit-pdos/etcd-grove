@@ -22,7 +22,8 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.features
 
-axiom StopGRPCServiceOnDefrag [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StopGRPCServiceOnDefrag [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"StopGRPCServiceOnDefrag")
 
 @[reducible] noncomputable def TxnModeWriteWithSharedBuffer [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"TxnModeWriteWithSharedBuffer")

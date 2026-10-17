@@ -1,0 +1,4 @@
+# Names only (item 4, the server start): grpc's health service, which `v3rpc.Server` registers
+# (`NewServer`, `Server.SetServingStatus`). Types axiomatized.
+translate = ["!*"]
+imports = ["!*"]

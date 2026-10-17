@@ -1331,22 +1331,14 @@ noncomputable def Watch_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Lease_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Lease_ServiceDesc"
 
-axiom Lease_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def Cluster_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Cluster_ServiceDesc"
-
-axiom Cluster_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Maintenance_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Maintenance_ServiceDesc"
 
-axiom Maintenance_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def Auth_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Auth_ServiceDesc"
-
-axiom Auth_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def file_etcdserver_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_rawDescGZIP"
@@ -2692,6 +2684,142 @@ noncomputable def _Watch_Watch_Handler.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.google_golang_org.grpc.GenericServerStream.ty WatchRequest.ty WatchResponse.ty)))) (LiteralValue [(KeyedElement (some (KeyField go!"ServerStream")) (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerStream.ty (Var "$v0")))])))))
   (App (App (Val (GoInstruction (MethodResolve WatchServer.ty go!"Watch"))) (App (Val (GoInstruction (TypeAssert WatchServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")))))))))
 
+/-- go: rpc_grpc.pb.go:602:6 -/
+noncomputable def RegisterLeaseServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc LeaseServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr Lease_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert LeaseServer.ty go.any))) (App (Val (GoInstruction (GoLoad LeaseServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad LeaseServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:858:6 -/
+noncomputable def RegisterClusterServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc ClusterServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr Cluster_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert ClusterServer.ty go.any))) (App (Val (GoInstruction (GoLoad ClusterServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad ClusterServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1201:6 -/
+noncomputable def RegisterMaintenanceServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc MaintenanceServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr Maintenance_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert MaintenanceServer.ty go.any))) (App (Val (GoInstruction (GoLoad MaintenanceServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad MaintenanceServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:1742:6 -/
+noncomputable def RegisterAuthServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc AuthServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr Auth_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert AuthServer.ty go.any))) (App (Val (GoInstruction (GoLoad AuthServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad AuthServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.context, pkg_id.google_golang_org.grpc]
 
@@ -2701,6 +2829,10 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2766,17 +2898,114 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v4" (Val #(go!"rpc.proto"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType WatchServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.Lease"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType LeaseServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (Let "$v0" (Val #(go!"LeaseGrant"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Lease_LeaseGrant_Handler []))) (Val #()))
+  (Let "$v2" (Val #(go!"LeaseRevoke"))
+  (Let "$v3" (App (Val (GoInstruction (FuncResolve _Lease_LeaseRevoke_Handler []))) (Val #()))
+  (Let "$v4" (Val #(go!"LeaseTimeToLive"))
+  (Let "$v5" (App (Val (GoInstruction (FuncResolve _Lease_LeaseTimeToLive_Handler []))) (Val #()))
+  (Let "$v6" (Val #(go!"LeaseLeases"))
+  (Let "$v7" (App (Val (GoInstruction (FuncResolve _Lease_LeaseLeases_Handler []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v1")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v3")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v5")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v7")))]))]))))))))))
+  (Let "$v3" (Let "$v0" (Val #(go!"LeaseKeepAlive"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Lease_LeaseKeepAlive_Handler []))) (Val #()))
+  (Let "$v2" (Val #true)
+  (Let "$v3" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"StreamName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.google_golang_org.grpc.ServerStream.ty] false [go.error])) (Var "$v1"))), (KeyedElement (some (KeyField go!"ServerStreams")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"ClientStreams")) (ElementExpression go.bool (Var "$v3")))]))]))))))
+  (Let "$v4" (Val #(go!"rpc.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType LeaseServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.Cluster"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ClusterServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (Let "$v0" (Val #(go!"MemberAdd"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Cluster_MemberAdd_Handler []))) (Val #()))
+  (Let "$v2" (Val #(go!"MemberRemove"))
+  (Let "$v3" (App (Val (GoInstruction (FuncResolve _Cluster_MemberRemove_Handler []))) (Val #()))
+  (Let "$v4" (Val #(go!"MemberUpdate"))
+  (Let "$v5" (App (Val (GoInstruction (FuncResolve _Cluster_MemberUpdate_Handler []))) (Val #()))
+  (Let "$v6" (Val #(go!"MemberList"))
+  (Let "$v7" (App (Val (GoInstruction (FuncResolve _Cluster_MemberList_Handler []))) (Val #()))
+  (Let "$v8" (Val #(go!"MemberPromote"))
+  (Let "$v9" (App (Val (GoInstruction (FuncResolve _Cluster_MemberPromote_Handler []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v1")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v3")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v5")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v7")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v9")))]))]))))))))))))
+  (Let "$v3" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue []))
+  (Let "$v4" (Val #(go!"rpc.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType ClusterServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.Maintenance"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType MaintenanceServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (Let "$v0" (Val #(go!"Alarm"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Maintenance_Alarm_Handler []))) (Val #()))
+  (Let "$v2" (Val #(go!"Status"))
+  (Let "$v3" (App (Val (GoInstruction (FuncResolve _Maintenance_Status_Handler []))) (Val #()))
+  (Let "$v4" (Val #(go!"Defragment"))
+  (Let "$v5" (App (Val (GoInstruction (FuncResolve _Maintenance_Defragment_Handler []))) (Val #()))
+  (Let "$v6" (Val #(go!"Hash"))
+  (Let "$v7" (App (Val (GoInstruction (FuncResolve _Maintenance_Hash_Handler []))) (Val #()))
+  (Let "$v8" (Val #(go!"HashKV"))
+  (Let "$v9" (App (Val (GoInstruction (FuncResolve _Maintenance_HashKV_Handler []))) (Val #()))
+  (Let "$v10" (Val #(go!"MoveLeader"))
+  (Let "$v11" (App (Val (GoInstruction (FuncResolve _Maintenance_MoveLeader_Handler []))) (Val #()))
+  (Let "$v12" (Val #(go!"Downgrade"))
+  (Let "$v13" (App (Val (GoInstruction (FuncResolve _Maintenance_Downgrade_Handler []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v1")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v3")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v5")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v7")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v9")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v10"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v11")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v12"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v13")))]))]))))))))))))))))
+  (Let "$v3" (Let "$v0" (Val #(go!"Snapshot"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Maintenance_Snapshot_Handler []))) (Val #()))
+  (Let "$v2" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"StreamName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.google_golang_org.grpc.ServerStream.ty] false [go.error])) (Var "$v1"))), (KeyedElement (some (KeyField go!"ServerStreams")) (ElementExpression go.bool (Var "$v2")))]))])))))
+  (Let "$v4" (Val #(go!"rpc.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType MaintenanceServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.Auth"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (Let "$v0" (Val #(go!"AuthEnable"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Auth_AuthEnable_Handler []))) (Val #()))
+  (Let "$v2" (Val #(go!"AuthDisable"))
+  (Let "$v3" (App (Val (GoInstruction (FuncResolve _Auth_AuthDisable_Handler []))) (Val #()))
+  (Let "$v4" (Val #(go!"AuthStatus"))
+  (Let "$v5" (App (Val (GoInstruction (FuncResolve _Auth_AuthStatus_Handler []))) (Val #()))
+  (Let "$v6" (Val #(go!"Authenticate"))
+  (Let "$v7" (App (Val (GoInstruction (FuncResolve _Auth_Authenticate_Handler []))) (Val #()))
+  (Let "$v8" (Val #(go!"UserAdd"))
+  (Let "$v9" (App (Val (GoInstruction (FuncResolve _Auth_UserAdd_Handler []))) (Val #()))
+  (Let "$v10" (Val #(go!"UserGet"))
+  (Let "$v11" (App (Val (GoInstruction (FuncResolve _Auth_UserGet_Handler []))) (Val #()))
+  (Let "$v12" (Val #(go!"UserList"))
+  (Let "$v13" (App (Val (GoInstruction (FuncResolve _Auth_UserList_Handler []))) (Val #()))
+  (Let "$v14" (Val #(go!"UserDelete"))
+  (Let "$v15" (App (Val (GoInstruction (FuncResolve _Auth_UserDelete_Handler []))) (Val #()))
+  (Let "$v16" (Val #(go!"UserChangePassword"))
+  (Let "$v17" (App (Val (GoInstruction (FuncResolve _Auth_UserChangePassword_Handler []))) (Val #()))
+  (Let "$v18" (Val #(go!"UserGrantRole"))
+  (Let "$v19" (App (Val (GoInstruction (FuncResolve _Auth_UserGrantRole_Handler []))) (Val #()))
+  (Let "$v20" (Val #(go!"UserRevokeRole"))
+  (Let "$v21" (App (Val (GoInstruction (FuncResolve _Auth_UserRevokeRole_Handler []))) (Val #()))
+  (Let "$v22" (Val #(go!"RoleAdd"))
+  (Let "$v23" (App (Val (GoInstruction (FuncResolve _Auth_RoleAdd_Handler []))) (Val #()))
+  (Let "$v24" (Val #(go!"RoleGet"))
+  (Let "$v25" (App (Val (GoInstruction (FuncResolve _Auth_RoleGet_Handler []))) (Val #()))
+  (Let "$v26" (Val #(go!"RoleList"))
+  (Let "$v27" (App (Val (GoInstruction (FuncResolve _Auth_RoleList_Handler []))) (Val #()))
+  (Let "$v28" (Val #(go!"RoleDelete"))
+  (Let "$v29" (App (Val (GoInstruction (FuncResolve _Auth_RoleDelete_Handler []))) (Val #()))
+  (Let "$v30" (Val #(go!"RoleGrantPermission"))
+  (Let "$v31" (App (Val (GoInstruction (FuncResolve _Auth_RoleGrantPermission_Handler []))) (Val #()))
+  (Let "$v32" (Val #(go!"RoleRevokePermission"))
+  (Let "$v33" (App (Val (GoInstruction (FuncResolve _Auth_RoleRevokePermission_Handler []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v1")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v3")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v5")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v7")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v9")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v10"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v11")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v12"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v13")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v14"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v15")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v16"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v17")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v18"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v19")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v20"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v21")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v22"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v23")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v24"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v25")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v26"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v27")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v28"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v29")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v30"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v31")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v32"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v33")))]))]))))))))))))))))))))))))))))))))))))
+  (Let "$v3" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue []))
+  (Let "$v4" (Val #(go!"rpc.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType AuthServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
   (App (Val doExecute)
-  (App (Val Auth_ServiceDesc.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Auth_ServiceDesc))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val Maintenance_ServiceDesc.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Maintenance_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Cluster_ServiceDesc.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Cluster_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Lease_ServiceDesc.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Lease_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Watch_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2848,7 +3077,15 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc KV_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc Watch_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc Watch_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Lease_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Cluster_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Maintenance_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Auth_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 
 axiom Metadata : Type
 axiom Metadata.zero_val : ZeroVal Metadata
@@ -8268,6 +8505,10 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewWatchClient_unfold : FuncUnfold NewWatchClient [] NewWatchClient.impl
   RegisterWatchServer_unfold : FuncUnfold RegisterWatchServer [] RegisterWatchServer.impl
   _Watch_Watch_Handler_unfold : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
+  RegisterLeaseServer_unfold : FuncUnfold RegisterLeaseServer [] RegisterLeaseServer.impl
+  RegisterClusterServer_unfold : FuncUnfold RegisterClusterServer [] RegisterClusterServer.impl
+  RegisterMaintenanceServer_unfold : FuncUnfold RegisterMaintenanceServer [] RegisterMaintenanceServer.impl
+  RegisterAuthServer_unfold : FuncUnfold RegisterAuthServer [] RegisterAuthServer.impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
@@ -8450,6 +8691,10 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.NewWatchClient_unfold
   Assumptions.RegisterWatchServer_unfold
   Assumptions._Watch_Watch_Handler_unfold
+  Assumptions.RegisterLeaseServer_unfold
+  Assumptions.RegisterClusterServer_unfold
+  Assumptions.RegisterMaintenanceServer_unfold
+  Assumptions.RegisterAuthServer_unfold
   Assumptions.import_protoimpl_Assumption
   Assumptions.import_membershippb_Assumption
   Assumptions.import_authpb_Assumption

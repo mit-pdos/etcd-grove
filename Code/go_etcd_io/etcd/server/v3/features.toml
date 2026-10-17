@@ -1,6 +1,7 @@
 # Names only, with the two feature constants the server's request path reads
-# (`PriorityRequest` in processInternalRaftRequestOnce, `TxnModeWriteWithSharedBuffer` in Txn).
-translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer"]
+# (`PriorityRequest` in processInternalRaftRequestOnce, `TxnModeWriteWithSharedBuffer` in Txn)
+# and the one `v3rpc.newHealthNotifier` reads (item 4, the server start).
+translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer", "StopGRPCServiceOnDefrag"]
 imports = ["!*", "go.etcd.io/etcd/pkg/v3/featuregate"]
 
 # translate the definitions of all type declarations goose supports

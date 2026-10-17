@@ -81,7 +81,12 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # first `StreamDesc`)
   "NewWatchClient", "watchClient.Watch", "Watch_Watch_FullMethodName", "WatchClient",
   "watchClient", "Watch_WatchClient", "Watch_WatchServer", "RegisterWatchServer",
-  "Watch_ServiceDesc"]
+  "Watch_ServiceDesc",
+  # item 4 (the server start): the registrations `v3rpc.Server` makes of the other services, their
+  # `ServiceDesc`s and their service interfaces
+  "RegisterLeaseServer", "Lease_ServiceDesc", "LeaseServer", "RegisterClusterServer",
+  "Cluster_ServiceDesc", "ClusterServer", "RegisterAuthServer", "Auth_ServiceDesc", "AuthServer",
+  "RegisterMaintenanceServer", "Maintenance_ServiceDesc", "MaintenanceServer"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

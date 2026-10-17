@@ -30,7 +30,12 @@ translate = ["!*",
   # the watch slice's unit W-W: interceptor.go's stream interceptor
   "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
   "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
-  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod"]
+  "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod",
+  # item 4 (server start): grpc.go's Server and getServerMetrics, the constructors of the other
+  # services it registers, the health notifier
+  "Server", "getServerMetrics", "maxSendBytes", "metricsServerLock", "metricsServerCached",
+  "codec", "NewQuotaLeaseServer", "NewLeaseServer", "NewClusterServer", "NewAuthServer",
+  "NewMaintenanceServer", "newHealthNotifier", "healthNotifier.startServe", "allGRPCServices"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",
@@ -45,7 +50,14 @@ imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "io", "math/rand", "sync", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace",
   "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/mvccpb",
   "go.etcd.io/etcd/client/pkg/v3/verify", "go.etcd.io/etcd/client/v3",
-  "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/server/v3/storage/mvcc"]
+  "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/server/v3/storage/mvcc",
+  # grpc.go (item 4, the server start): the options' and the registered services' packages
+  "crypto/tls", "math", "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus",
+  "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
+  "google.golang.org/grpc/health", "google.golang.org/grpc/health/grpc_health_v1",
+  "go.etcd.io/etcd/client/v3/credentials", "go.etcd.io/etcd/server/v3/features",
+  "go.etcd.io/etcd/server/v3/etcdserver/version", "go.etcd.io/etcd/server/v3/storage/backend",
+  "go.etcd.io/etcd/server/v3/config"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

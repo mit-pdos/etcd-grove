@@ -142,7 +142,8 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
-                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=", "crypto/tls="],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=", "crypto/tls=",
+                    "github.com/grpc-ecosystem="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -287,6 +288,14 @@ PROJECTS = [
             "google.golang.org/grpc/credentials/insecure",
             "google.golang.org/grpc/resolver",
             "crypto/tls",
+            # names only (item 4, the server start): what `v3rpc.Server` names: grpc-prometheus
+            # (its server metrics and interceptors), grpc's health service and its protobuf
+            # package (the registration, the serving status), grpc's reflection interface
+            # (`ServerMetrics.InitializeMetrics`'s parameter)
+            "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus",
+            "google.golang.org/grpc/health",
+            "google.golang.org/grpc/health/grpc_health_v1",
+            "google.golang.org/grpc/reflection",
             # (and go.uber.org/zap, above)
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
@@ -295,7 +304,8 @@ PROJECTS = [
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
-               os.path.join("github_com", "dustin")],
+               os.path.join("github_com", "dustin"),
+               os.path.join("github_com", "grpc_ecosystem")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
