@@ -1205,11 +1205,11 @@ func TestHandleHeartbeat(t *testing.T) {
 // TestHandleHeartbeatResp ensures that we re-send log entries when we get a heartbeat response.
 func TestHandleHeartbeatResp(t *testing.T) {
 	storage := newTestMemoryStorage(withPeers(1, 2))
+	require.NoError(t, storage.SetHardState(&pb.HardState{Term: new(uint64(3)), Vote: new(uint64(1)), Commit: new(uint64(3))}))
 	require.NoError(t, storage.Append(index(1).terms(1, 2, 3)))
 	sm := newTestRaft(1, 5, 1, storage)
 	sm.becomeCandidate()
 	sm.becomeLeader()
-	sm.raftLog.commitTo(sm.raftLog.lastIndex())
 
 	// A heartbeat response from a node that is behind; re-send MsgApp
 	sm.Step(&pb.Message{From: new(uint64(2)), Type: pb.MsgHeartbeatResp.Enum()})
@@ -2388,6 +2388,7 @@ func TestLeaderIncreaseNext(t *testing.T) {
 	for i, tt := range tests {
 		sm := newTestRaft(1, 10, 1, newTestMemoryStorage(withPeers(1, 2)))
 		sm.raftLog.append(previousEnts...)
+		sm.becomeFollower(3, None)
 		sm.becomeCandidate()
 		sm.becomeLeader()
 		sm.trk.Progress[2].State = tt.state
@@ -2481,6 +2482,7 @@ func TestRecvMsgUnreachable(t *testing.T) {
 	s := newTestMemoryStorage(withPeers(1, 2))
 	s.Append(previousEnts)
 	r := newTestRaft(1, 10, 1, s)
+	r.becomeFollower(3, None)
 	r.becomeCandidate()
 	r.becomeLeader()
 	r.readMessages()
@@ -2507,6 +2509,7 @@ func TestRestore(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
 	require.True(t, sm.restore(s))
 
 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
@@ -2532,7 +2535,8 @@ func TestRestoreWithLearner(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2), withLearners(3))
 	sm := newTestLearnerRaft(3, 8, 2, storage)
-	assert.True(t, sm.restore(s))
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(s))
 
 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
 	assert.Equal(t, s.GetMetadata().GetTerm(), mustTerm(sm.raftLog.term(s.GetMetadata().GetIndex())))
@@ -2565,6 +2569,7 @@ func TestRestoreWithVotersOutgoing(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
 	require.True(t, sm.restore(s))
 
 	assert.Equal(t, s.GetMetadata().GetIndex(), sm.raftLog.lastIndex())
@@ -2601,9 +2606,9 @@ func TestRestoreVoterToLearner(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2, 3))
 	sm := newTestRaft(3, 10, 1, storage)
-
-	assert.False(t, sm.isLearner)
-	assert.True(t, sm.restore(s))
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
+	require.True(t, !sm.isLearner)
+	require.True(t, sm.restore(s))
 }
 
 // TestRestoreLearnerPromotion checks that a learner can become to a follower after
@@ -2619,10 +2624,10 @@ func TestRestoreLearnerPromotion(t *testing.T) {
 
 	storage := newTestMemoryStorage(withPeers(1, 2), withLearners(3))
 	sm := newTestLearnerRaft(3, 10, 1, storage)
-
-	assert.True(t, sm.isLearner)
-	assert.True(t, sm.restore(s))
-	assert.False(t, sm.isLearner)
+	require.True(t, sm.isLearner)
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(s))
+	require.True(t, !sm.isLearner)
 }
 
 // TestLearnerReceiveSnapshot tests that a learner can receive a snpahost from leader
@@ -2638,13 +2643,13 @@ func TestLearnerReceiveSnapshot(t *testing.T) {
 
 	store := newTestMemoryStorage(withPeers(1), withLearners(2))
 	n1 := newTestLearnerRaft(1, 10, 1, store)
-	n2 := newTestLearnerRaft(2, 10, 1, newTestMemoryStorage(withPeers(1), withLearners(2)))
-
-	n1.restore(s)
+	n1.becomeFollower(s.GetMetadata().GetTerm(), 0)
+	require.True(t, n1.restore(s))
 	snap := n1.raftLog.nextUnstableSnapshot()
 	store.ApplySnapshot(snap)
 	n1.appliedSnap(snap)
 
+	n2 := newTestLearnerRaft(2, 10, 1, newTestMemoryStorage(withPeers(1), withLearners(2)))
 	nt := newNetwork(n1, n2)
 
 	setRandomizedElectionTimeout(n1, n1.electionTimeout)
@@ -2672,6 +2677,7 @@ func TestRestoreIgnoreSnapshot(t *testing.T) {
 			ConfState: &pb.ConfState{Voters: []uint64{1, 2}},
 		},
 	}
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
 
 	// ignore snapshot
 	assert.False(t, sm.restore(s))
@@ -2694,8 +2700,8 @@ func TestProvideSnap(t *testing.T) {
 	}
 	storage := newTestMemoryStorage(withPeers(1))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(s)
-
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(s))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
@@ -2720,8 +2726,8 @@ func TestIgnoreProvidingSnap(t *testing.T) {
 	}
 	storage := newTestMemoryStorage(withPeers(1))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(s)
-
+	sm.becomeFollower(s.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(s))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
@@ -2744,12 +2750,12 @@ func TestRestoreFromSnapMsg(t *testing.T) {
 			ConfState: &pb.ConfState{Voters: []uint64{1, 2}},
 		},
 	}
-	m := &pb.Message{Type: pb.MsgSnap.Enum(), From: new(uint64(1)), Term: new(uint64(2)), Snapshot: s}
+	m := &pb.Message{Type: pb.MsgSnap.Enum(), From: new(uint64(1)), Term: new(uint64(11)), Snapshot: s}
 
 	sm := newTestRaft(2, 10, 1, newTestMemoryStorage(withPeers(1, 2)))
 	sm.Step(m)
+	require.Equal(t, uint64(1), sm.lead)
 
-	assert.Equal(t, uint64(1), sm.lead)
 	// TODO(bdarnell): what should this test?
 }
 

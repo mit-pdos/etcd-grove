@@ -36,8 +36,8 @@ var (
 func TestSendingSnapshotSetPendingSnapshot(t *testing.T) {
 	storage := newTestMemoryStorage(withPeers(1))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(testingSnap)
-
+	sm.becomeFollower(testingSnap.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(testingSnap))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
@@ -52,8 +52,8 @@ func TestSendingSnapshotSetPendingSnapshot(t *testing.T) {
 func TestPendingSnapshotPauseReplication(t *testing.T) {
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(testingSnap)
-
+	sm.becomeFollower(testingSnap.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(testingSnap))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
@@ -67,8 +67,8 @@ func TestPendingSnapshotPauseReplication(t *testing.T) {
 func TestSnapshotFailure(t *testing.T) {
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(testingSnap)
-
+	sm.becomeFollower(testingSnap.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(testingSnap))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
@@ -84,8 +84,8 @@ func TestSnapshotFailure(t *testing.T) {
 func TestSnapshotSucceed(t *testing.T) {
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(testingSnap)
-
+	sm.becomeFollower(testingSnap.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(testingSnap))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
@@ -101,8 +101,8 @@ func TestSnapshotSucceed(t *testing.T) {
 func TestSnapshotAbort(t *testing.T) {
 	storage := newTestMemoryStorage(withPeers(1, 2))
 	sm := newTestRaft(1, 10, 1, storage)
-	sm.restore(testingSnap)
-
+	sm.becomeFollower(testingSnap.GetMetadata().GetTerm(), 0)
+	require.True(t, sm.restore(testingSnap))
 	sm.becomeCandidate()
 	sm.becomeLeader()
 
