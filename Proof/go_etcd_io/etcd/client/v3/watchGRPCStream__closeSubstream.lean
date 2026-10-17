@@ -51,7 +51,7 @@ set_option maxHeartbeats 2000000 in
 theorem watchGRPCStream.closeSubstream.wp_proof
     (wp_sendCloseSubstream : watchGRPCStream.sendCloseSubstream.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.closeSubstream.spec (GF := GF) (hG := hG) := by
-  intro V wgs ws id e dq1 dq2 dq3 m M s l
+  intro V wgs ws id e dq1 dq2 dq3 m M s l dq0
   wp_start as ⟨Hcl, Hid, Hce, #Hse, Hsub, Hmap, Hres, Hs⟩
   iunfold closingBody at Hcl
   icases Hcl with ⟨%P, %rc, %HPws, #Hws, Hprod, Hrc, Hret, Hclosing⟩

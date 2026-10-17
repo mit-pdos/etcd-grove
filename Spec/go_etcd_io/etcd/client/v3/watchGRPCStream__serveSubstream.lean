@@ -35,14 +35,20 @@ producer's side, the cursor `γ.cur` from `rev - 1`) in order, each with the con
 (`rangeWatchElem`, from `recvElem`'s), until `recvc` is closed or the stream's or the watch's
 context is done (`resumec` is never closed: `False`); then closes its `donec`, hands what it holds
 to `run` on `closingc` (`closingP`) and signals the wait group, which gives it the thread token it
-exits with (`wgDone`; `run` keeps the fresh token of the `go` statement). -/
+exits with (`wgDone`; `run` keeps the fresh token of the `go` statement). The buffer limit
+(`maxBufferSize`, `mb`, and the warning threshold `th`, read-only, which `run` set) and the warning
+flag (`bufferWarningLogged`, owned) only decide when the goroutine logs and when it waits on `outc`
+before taking another response: the same responses are published, in the same order (the proof
+also keeps `len(buf) ≤ mb` for `mb > 0`). -/
 abbrev watchGRPCStream.serveSubstream.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (P : WsPrm GF) (b0 : GoSlice) (bl : Loc)
-    (t0 : _root_.Perennial.time.Time) (rc : Loc) (γrc : ChanNames),
+    (t0 : _root_.Perennial.time.Time) (rc : Loc) (γrc : ChanNames) (mb th : w64) (wl : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
       wsIs V P ∗
       wsF P.ws go!"closing" ↦ false ∗ wsF P.ws go!"buf" ↦ b0 ∗ sliceOwn b0 [] ∗
       wsF P.ws go!"bufLogger" ↦ bl ∗ bufLogOk P.ws bl ∗ wsF P.ws go!"bufWaitStartTime" ↦ t0 ∗
+      wsF P.ws go!"maxBufferSize" ↦□ mb ∗ wsF P.ws go!"bufferWarningThreshold" ↦□ th ∗
+      wsF P.ws go!"bufferWarningLogged" ↦ wl ∗
       wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∗ wsReqF P.ws go!"retc" ↦ P.retc ∗
       retcRes P ∗
       spscProducer P.γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗

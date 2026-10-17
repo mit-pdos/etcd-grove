@@ -401,7 +401,9 @@ instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
 `Revision` owned for a response with events; no close error, no compaction, not canceled),
 satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γhi`, a mono list
 `run` extends); the first (`k = 0`) is the created response, with `run`'s half of the request's
-`rev` field (the substream writes it from then on), with no events; no other is created. Or the
+`rev` field (the substream writes it from then on) and the substream's `id` field, read-only from
+then on (`addSubstream` wrote it before this dispatch; the substream's goroutine logs it), with no
+events; no other is created. Or the
 substream's goroutine has stopped for good (`γx` set: what its `donec` publishes): `run`'s dispatch
 to it after a failed one (the select took `donec`), which the stopped goroutine never receives. -/
 def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
@@ -414,7 +416,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗
     (if k = 0 then
-      iprop(⌜r.created = true ∧ r.events = []⌝ ∗
+      iprop(⌜r.created = true ∧ r.events = []⌝ ∗ (∃ id : w64, wsF P.ws go!"id" ↦□ id) ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
     else iprop(⌜r.created = false⌝))) ∨
     dghostVar P.γx DFrac.discard true)
@@ -542,7 +544,8 @@ def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
     context.isContext G.ctx G.cd ∗ context.cancelSpec G.cancel G.γctx iprop(True) ∗
     isChanBag G.γreq G.reqc (reqP V) ∗ isChanBag G.γerr G.errc errP ∗
     isChanBag G.γclosing G.closingc (closingP V G) ∗
-    ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown)
+    ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown ∗
+    ∃ mb : w64, watcherF G.w go!"maxBufferSize" ↦□ mb)
 
 instance isWGS_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
     Persistent (isWGS V G callSl) := by
@@ -565,7 +568,8 @@ def isClientWatcher (V : WEnv GF) (w : Loc) : IProp GF :=
     watcherF w go!"remote" ↦□ wcIface V.wc ∗ watcherF w go!"callOpts" ↦□ callSl ∗
     callSl ↦*□ vs ∗ callOptsOk vs ∗ watcherF w go!"lg" ↦□ V.lg ∗
     sync.isMutex (watcherF w go!"mu") (watcherMu V w callSl) ∗
-    watchSrvFacts V ∗ ⌜V.lg ≠ null ∧ threadBound GF ≤ 2 ^ 31⌝)
+    watchSrvFacts V ∗ ⌜V.lg ≠ null ∧ threadBound GF ≤ 2 ^ 31⌝ ∗
+    ∃ mb : w64, watcherF w go!"maxBufferSize" ↦□ mb)
 
 instance isClientWatcher_persistent (V : WEnv GF) (w : Loc) : Persistent (isClientWatcher V w) := by
   unfold isClientWatcher; infer_instance

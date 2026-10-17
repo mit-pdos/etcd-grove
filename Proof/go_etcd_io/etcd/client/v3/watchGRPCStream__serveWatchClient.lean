@@ -34,7 +34,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
   icases Hwgs' with ⟨%Hwnn, -, #Hfacts, -, -, -, -, -, -, -, -, #Frespc, #Fdonec, #Ferrc, -, -,
-    -, -, -, #Herr, -, #Hdone⟩
+    -, -, -, #Herr, -, #Hdone, -⟩
   iunfold watchSrvFacts at Hfacts
   icases Hfacts with ⟨-, #Hfacts⟩
   iunfold watchConnFacts at Hfacts

@@ -1,0 +1,36 @@
+# etcd-io/etcd#21203 (the watch buffer limit): the changed functions and the callers re-checked
+# (notes/pr-verify/etcd-21203.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21203.txt [--check [--update]]
+roots serveSubstream
+roots watchGRPCStream__run
+roots NewWatchFromWatchClient
+roots NewWatcher
+roots closeSubstream
+roots newWatcherGRPCStream
+roots client_newWatcher_rangeWatcher
+axiom context.WithCancelValCtx.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom streamKeyFromCtx.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.v3.Config.Config_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.v3.Config.Config_typed_pointsto

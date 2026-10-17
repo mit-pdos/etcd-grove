@@ -2508,22 +2508,25 @@ theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
 satisfies `watchConnFacts V`, `NewWatcher` (linked) returns the `Watcher` interface of a
 `*watcher` meeting the clients' closable range-watch contract at the server's model. -/
 theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice)
-    (vs : List GoInterface) :
+    (vs : List GoInterface) (mb : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.context ∗
         watchConnFacts V ∗ ⌜c ≠ null⌝ ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" c ↦□ V.conn ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
-        callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+        callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Config go!"MaxWatcherBufferSize"
+          (structFieldRef go_etcd_io.etcd.client.v3.Client go!"cfg" c) ↦□ mb ∗
+        ⌜threadBound GF ≤ 2 ^ 31⌝ }}
       (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
     {{ (wi : GoInterface), RET #wi; ∃ (w : Loc),
         ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗
         isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx }} := by
-  iintro %Φ ⟨#P1, #P2, #P3, #Hf, %Hc, #Hconn, #Hcall, #Hvs, #Hok, #Hlg, %Hb⟩ HΦ
-  iapply (v3.wp_NewWatcher V c callSl vs) $$ [] [HΦ]
+  iintro %Φ ⟨#P1, #P2, #P3, #Hf, %Hc, #Hconn, #Hcall, #Hvs, #Hok, #Hlg, #Hmb, %Hb⟩ HΦ
+  iapply (v3.wp_NewWatcher V c callSl vs mb) $$ [] [HΦ]
   · iframe #; ipureintro; exact ⟨Hc, Hb⟩
-  · iintro !> %wi ⟨%w, %wc, %lg, %Hwi, Hw⟩
+  · iintro !> %wi ⟨%w, %wc, %lg, %Hwi, Hw, -⟩
     iapply HΦ
     iexists w
     isplitr; · ipureintro; exact Hwi

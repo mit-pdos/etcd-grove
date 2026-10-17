@@ -42,7 +42,7 @@ theorem watcher.Watch.wp_proof
   obtain ⟨Hrw, Hnp, Hrev, Hunder⟩ := Hreq
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
-  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
+  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb, #Hwmb⟩
   obtain ⟨Hlgnn, Hb⟩ := Hlgb
   wp_auto
   wp_apply wp_OpWatch key sl gs $$ [] as %op #Hop
@@ -181,7 +181,7 @@ theorem watcher.Watch.wp_proof
   iunfold isWGS at HG
   icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
-    #Hbdone⟩
+    #Hbdone, #Hgmb⟩
   wp_auto
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst HM]
   · inext

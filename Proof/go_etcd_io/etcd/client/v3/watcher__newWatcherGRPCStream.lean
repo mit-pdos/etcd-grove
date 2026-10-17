@@ -42,7 +42,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   wp_start as ⟨#Hw, #Hin, %Hb⟩
   ihave #Hw' := Hw
   iunfold isClientWatcher at Hw'
-  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb⟩
+  icases Hw' with ⟨%callSl, %vs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgb, #Hwmb⟩
   obtain ⟨Hlgnn, -⟩ := Hlgb
   wp_auto
   wp_alloc vcp as Hvc

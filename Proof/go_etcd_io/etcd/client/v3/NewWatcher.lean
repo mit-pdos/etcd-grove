@@ -33,12 +33,13 @@ theorem NewWatcher.wp_proof
     (wp_NewWatchClient : NewWatchClient.spec (GF := GF) (hG := hG))
     (wp_NewWatchFromWatchClient : NewWatchFromWatchClient.spec (GF := GF) (hG := hG)) :
     NewWatcher.spec (GF := GF) (hG := hG) := by
-  intro V c callSl vs
-  wp_start as ⟨#Hf, %Hc, #Hconn, #Hco, #Hvs, #Hok, #Hlg⟩
+  intro V c callSl vs mb
+  wp_start as ⟨#Hf, %Hc, #Hconn, #Hco, #Hvs, #Hok, #Hlg, #Hmb⟩
   wp_auto
   wp_apply wp_NewWatchClient as %v ⟨%wc, %Hv, #Hcc⟩
   subst Hv
-  wp_apply wp_NewWatchFromWatchClient { V with wc := wc } c callSl vs $$ [] as %wi ⟨%w, %lg, %Hwi, #Hw⟩
+  wp_apply wp_NewWatchFromWatchClient { V with wc := wc } c callSl vs mb $$ [] as %wi
+    ⟨%w, %lg, %Hwi, #Hw, #Hwmb⟩
   · iframe #
     isplitr
     · unfold watchSrvFacts

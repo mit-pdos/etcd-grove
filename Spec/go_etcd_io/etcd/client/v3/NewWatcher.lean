@@ -29,16 +29,20 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `NewWatcher(c)` of a client `c` on the connection `V.conn` (its `conn` field, its call options,
 its logger): a watcher over a new stub (`NewWatchClient`). -/
 abbrev NewWatcher.spec : Prop :=
-  ∀ (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface),
+  ∀ (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface) (mb : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       watchConnFacts V ∗ ⌜c ≠ null⌝ ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" c ↦□ V.conn ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
-      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+      callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗
+      structFieldRef go_etcd_io.etcd.client.v3.Config go!"MaxWatcherBufferSize"
+        (structFieldRef go_etcd_io.etcd.client.v3.Client go!"cfg" c) ↦□ mb ∗
+      ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
   {{ (wi : GoInterface), RET #wi; ∃ (w wc lg : Loc),
-      ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗ isClientWatcher { V with wc := wc, lg := lg } w }}
+      ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗ isClientWatcher { V with wc := wc, lg := lg } w ∗
+      watcherF w go!"maxBufferSize" ↦□ mb }}
 
 end spec
 

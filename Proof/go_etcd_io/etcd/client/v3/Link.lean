@@ -638,7 +638,7 @@ theorem v3.watchGRPCStream.wp_startBufWait [go_etcd_io.etcd.server.v3.etcdserver
 
 theorem v3.watchGRPCStream.wp_serveSubstream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watchGRPCStream.serveSubstream.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchGRPCStream.serveSubstream.wp_proof v3.watchGRPCStream.wp_startBufWait v3.watchGRPCStream.wp_recordBufWait v3.watcherStream.wp_resetBufWait v3.WatchResponse.wp_Err
+  EtcdGrove.watchGRPCStream.serveSubstream.wp_proof v3.watchGRPCStream.wp_startBufWait v3.watchGRPCStream.wp_recordBufWait v3.watcherStream.wp_resetBufWait v3.WatchResponse.wp_Err zap.wp_String zap.wp_Int64 zap.wp_Int' zap.Logger.wp_Warn
 
 theorem v3.watchRequest.wp_toPB [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watchRequest.toPB.spec (GF := GF) (hG := hG) :=

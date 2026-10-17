@@ -1,0 +1,23 @@
+=== RUN   TestWatchBufferLimitStallsOtherWatchers
+    watch_buffer_limit_probe_test.go:132: MaxWatcherBufferSize=0: watch B received its event: true
+    watch_buffer_limit_probe_test.go:132: MaxWatcherBufferSize=2: watch B received its event: false
+    watch_buffer_limit_probe_test.go:134: MaxWatcherBufferSize=2: watch B's event is not delivered while watch A is not read
+--- FAIL: TestWatchBufferLimitStallsOtherWatchers (2.00s)
+=== RUN   TestWatchBufferLimitResumeLosesEvent
+    watch_buffer_limit_probe_test.go:173: MaxWatcherBufferSize=0: resume from revision 5; revisions received: [2 3 4 5]
+    watch_buffer_limit_probe_test.go:173: MaxWatcherBufferSize=1: resume from revision 5; revisions received: [2 3 5]
+    watch_buffer_limit_probe_test.go:176: MaxWatcherBufferSize=1: revisions received [2 3 5], want 2, 3, 4, 5 (revision 4 lost)
+--- FAIL: TestWatchBufferLimitResumeLosesEvent (2.41s)
+=== RUN   TestReviewerCompactedThenProgressKeepsChannelOpen
+    watch_buffer_limit_reviewer_probe_test.go:51: MaxWatcherBufferSize=0: received [events err:etcdserver: mvcc: required revision has been compacted], channel closed: true
+    watch_buffer_limit_reviewer_probe_test.go:51: MaxWatcherBufferSize=1: received [events err:etcdserver: mvcc: required revision has been compacted progress], channel closed: false
+    watch_buffer_limit_reviewer_probe_test.go:53: MaxWatcherBufferSize=1: after the compacted response the channel should close; got [events err:etcdserver: mvcc: required revision has been compacted progress] closed=false
+--- FAIL: TestReviewerCompactedThenProgressKeepsChannelOpen (1.81s)
+=== RUN   TestReviewerWatchFromConsumerDeadlocks
+    watch_buffer_limit_reviewer_probe_test.go:86: MaxWatcherBufferSize=0: create request for B sent: true
+    watch_buffer_limit_reviewer_probe_test.go:86: MaxWatcherBufferSize=1: create request for B sent: false
+    watch_buffer_limit_reviewer_probe_test.go:88: MaxWatcherBufferSize=1: Watch(B) called from A's consumer blocks
+--- FAIL: TestReviewerWatchFromConsumerDeadlocks (2.70s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	8.948s
+FAIL

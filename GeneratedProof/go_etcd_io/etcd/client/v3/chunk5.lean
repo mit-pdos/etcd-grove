@@ -114,6 +114,9 @@ instance watcherStream_typed_pointsto :
     "buf" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) v.buf' dq ∗
     "bufLogger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) v.bufLogger' dq ∗
     "bufWaitStartTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' dq ∗
+    "maxBufferSize" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"maxBufferSize" l) v.maxBufferSize' dq ∗
+    "bufferWarningThreshold" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningThreshold" l) v.bufferWarningThreshold' dq ∗
+    "bufferWarningLogged" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningLogged" l) v.bufferWarningLogged' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -264,6 +267,54 @@ instance watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.e
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) bufWaitStartTime' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufWaitStartTime' := bufWaitStartTime' } : go_etcd_io.etcd.client.v3.watcherStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_load_maxBufferSize (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"maxBufferSize" l) v.maxBufferSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"maxBufferSize" l) v.maxBufferSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_store_maxBufferSize (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (maxBufferSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"maxBufferSize" l) v.maxBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"maxBufferSize" l) maxBufferSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxBufferSize' := maxBufferSize' } : go_etcd_io.etcd.client.v3.watcherStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_load_bufferWarningThreshold (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningThreshold" l) v.bufferWarningThreshold' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningThreshold" l) v.bufferWarningThreshold' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_store_bufferWarningThreshold (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufferWarningThreshold' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningThreshold" l) v.bufferWarningThreshold' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningThreshold" l) bufferWarningThreshold' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufferWarningThreshold' := bufferWarningThreshold' } : go_etcd_io.etcd.client.v3.watcherStream) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_load_bufferWarningLogged (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningLogged" l) v.bufferWarningLogged' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningLogged" l) v.bufferWarningLogged' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherStream_access_store_bufferWarningLogged (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufferWarningLogged' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningLogged" l) v.bufferWarningLogged' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufferWarningLogged" l) bufferWarningLogged' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bufferWarningLogged' := bufferWarningLogged' } : go_etcd_io.etcd.client.v3.watcherStream) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

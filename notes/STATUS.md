@@ -13434,3 +13434,18 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification etcd-io/etcd#21203 (branch `pr-verify/etcd-21203`, 2026-10-17)
+
+The PR's watch buffer limit, verified over the fork branch `pr-etcd-21203-goose-lean`
+(report: `notes/pr-verify/etcd-21203.md`). `serveSubstream`, `run`, `NewWatchFromWatchClient`
+and `NewWatcher` are re-proved: `run` now keeps the substream's `id` field in full only while the
+substream is queued, and read-only after it is created (`idFr`). The created response gives the
+substream's goroutine a read-only copy of the field, which the PR's log calls read. `isWGS` and
+`isClientWatcher` carry the watcher's `maxBufferSize` field. The trust base is unchanged.
+
+Perennial limitation: there is no semantics for `Convert go.float64 go.int`; `Float64Semantics`
+has int-to-float conversions only. So the PR's `int(float64(ws.maxBufferSize) * 0.8)` cannot be
+stepped. The fork rewrites it as `ws.maxBufferSize * 4 / 5`, which gives the same result for every
+limit in 1..1e8. The general fix would be a float-to-int conversion (an uninterpreted function,
+like the int-to-float ones), proposed separately to Perennial.

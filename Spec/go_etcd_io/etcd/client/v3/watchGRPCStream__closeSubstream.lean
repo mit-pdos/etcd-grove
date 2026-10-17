@@ -35,13 +35,13 @@ it; then unregisters the substream: from `substreams` if it has an id, otherwise
 in `resuming` set to nil. -/
 abbrev watchGRPCStream.closeSubstream.spec : Prop :=
   ∀ (V : WEnv GF) (wgs ws : Loc) (id : w64) (e : GoInterface) (dq1 dq2 dq3 : DFrac) (m : Loc)
-    (M : GMap w64 Loc) (s : GoSlice) (l : List Loc),
+    (M : GMap w64 Loc) (s : GoSlice) (l : List Loc) (dq0 : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ closingBody V ws ∗
-      wsF ws go!"id" ↦ id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗ statusErrOk e ∗
+      wsF ws go!"id" ↦{dq0} id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗ statusErrOk e ∗
       wgsF wgs go!"substreams" ↦{dq2} m ∗ ownMap m (DFrac.own 1) M ∗
       wgsF wgs go!"resuming" ↦{dq3} s ∗ s ↦* l }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"closeSubstream")) (Val #ws))
-  {{ RET #(); wsF ws go!"id" ↦ id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗
+  {{ RET #(); wsF ws go!"id" ↦{dq0} id ∗ wgsF wgs go!"closeErr" ↦{dq1} e ∗
       wgsF wgs go!"substreams" ↦{dq2} m ∗ wgsF wgs go!"resuming" ↦{dq3} s ∗
       (if decide (id = W64 (-1)) then iprop(ownMap m (DFrac.own 1) M ∗ s ↦* nilOut l ws)
        else iprop(ownMap m (DFrac.own 1) (GMap.delete id M) ∗ s ↦* l)) }}

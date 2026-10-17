@@ -46,7 +46,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgsnn, ⟨%vs, #Hvs, #Hcoo⟩, #Hsf, %Hlg, #Fowner, #Fremote, #Fcall, #Fctx, #Fckey,
     #Fcancel, #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg, #Hctx, #Hcancel, #Hreq, #Herr,
-    #Hclosing, #Hdone⟩
+    #Hclosing, #Hdone, -⟩
   wp_auto
   wp_apply wp_broadcast_chan_close rc γrc iprop(True) $$ [$Hrcb] as -
   · imodintro; itrivial

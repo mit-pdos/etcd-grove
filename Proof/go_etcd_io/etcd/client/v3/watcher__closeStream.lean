@@ -31,11 +31,11 @@ theorem watcher.closeStream.wp_proof : watcher.closeStream.spec (GF := GF) (hG :
   intro V G callSl
   wp_start as ⟨#Hw, #Hg, Hdc, #Hpub⟩
   iunfold isClientWatcher at Hw
-  icases Hw with ⟨%wsl, %wvs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgnn⟩
+  icases Hw with ⟨%wsl, %wvs, %Hwnn, #Hrem, #Hco, #Hvs, #Hok, #Hlg, #Hmu, #Hf, %Hlgnn, #Hwmb⟩
   iunfold isWGS at Hg
   icases Hg with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
-    #Hbdone⟩
+    #Hbdone, #Hgmb⟩
   wp_auto
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   wp_apply wp_broadcast_chan_close G.donec G.γdone (closeErrPub G.wgs) $$ [$Hdc] as -

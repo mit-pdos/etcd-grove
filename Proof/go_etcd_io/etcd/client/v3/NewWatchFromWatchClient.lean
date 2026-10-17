@@ -31,8 +31,8 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem NewWatchFromWatchClient.wp_proof
     (wp_GetLogger : Client.GetLogger.spec (GF := GF) (hG := hG)) :
     NewWatchFromWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V c callSl vs
-  wp_start as ⟨#Hf, %Hc, #Hco, #Hvs, #Hok, #Hlg, %Hbd⟩
+  intro V c callSl vs mb
+  wp_start as ⟨#Hf, %Hc, #Hco, #Hvs, #Hok, #Hlg, #Hmb, %Hbd⟩
   wp_auto
   wp_apply wp_map_make1 (K := GoString) (V := Loc) as %mS HS
   icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hwnn⟩
@@ -45,6 +45,8 @@ theorem NewWatchFromWatchClient.wp_proof
   wp_apply wp_GetLogger c $$ [] as %lg %Hlg0
   · iframe #
   ipersist lg
+  (try wp_auto)
+  ipersist maxBufferSize
   imod sync.init_Mutex (watcherMu { V with lg := lg } «$r0_ptr» callSl) ⊤
     (watcherF «$r0_ptr» go!"mu") $$ mu [streams HS] with #Hmu
   · inext
@@ -61,6 +63,9 @@ theorem NewWatchFromWatchClient.wp_proof
   iexists «$r0_ptr», lg
   isplitr
   · ipureintro; rfl
+  isplitr
+  rotate_left
+  · iexact maxBufferSize
   unfold isClientWatcher
   iexists callSl, vs
   iframe #
@@ -69,7 +74,13 @@ theorem NewWatchFromWatchClient.wp_proof
   isplitr
   · iapply (show watchSrvFacts (GF := GF) V ⊢ watchSrvFacts { V with lg := lg } from by
       unfold watchSrvFacts watchConnFacts; exact .rfl) $$ Hf
-  ipureintro; exact ⟨Hlg0, Hbd⟩
+  isplitr
+  · ipureintro; exact Hlg0
+  first
+    | (ipureintro; exact Hbd)
+    | (isplitr
+       · ipureintro; exact Hbd
+       iexists mb; iexact maxBufferSize)
 
 end proof
 

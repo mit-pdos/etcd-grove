@@ -82,3 +82,5 @@ axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Uint.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.v3.Config.Config_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.v3.Config.Config_typed_pointsto

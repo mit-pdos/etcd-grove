@@ -4406,7 +4406,7 @@ noncomputable def WatchResponse.IsProgressNotify.impl [FfiSyntax] [GoGlobalConte
   (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Canceled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty) go!"GetRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))) (Val #())) (Val #(W64 0))))) (Val #false)))))))
 
-/-- go: watch.go:252:6 -/
+/-- go: watch.go:261:6 -/
 noncomputable def NewWatcher.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -4417,7 +4417,7 @@ noncomputable def NewWatcher.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
   (App (App (App (Val (GoInstruction (FuncResolve NewWatchFromWatchClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
 
-/-- go: watch.go:256:6 -/
+/-- go: watch.go:265:6 -/
 noncomputable def NewWatchFromWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wc"
   (Lam "c"
@@ -4436,8 +4436,12 @@ noncomputable def NewWatchFromWatchClient.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Client.ty) go!"GetLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxWatcherBufferSize"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcher.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$r0"))))))
   (App (Val doExecute)
@@ -4445,7 +4449,7 @@ noncomputable def NewWatchFromWatchClient.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "w") (Var "$r0"))))))))))))
 
-/-- go: watch.go:277:19 -/
+/-- go: watch.go:287:19 -/
 noncomputable def valCtx.Deadline.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "vc"
   (Lam BAnon
@@ -4454,7 +4458,7 @@ noncomputable def valCtx.Deadline.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GlobalVarAddr zeroTime))) (Val #()))) (Val #false)))))))
 
-/-- go: watch.go:278:19 -/
+/-- go: watch.go:288:19 -/
 noncomputable def valCtx.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "vc"
   (Lam BAnon
@@ -4463,7 +4467,7 @@ noncomputable def valCtx.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GlobalVarAddr valCtxCh))) (Val #())))))))))
 
-/-- go: watch.go:279:19 -/
+/-- go: watch.go:289:19 -/
 noncomputable def valCtx.Err.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "vc"
   (Lam BAnon
@@ -4472,7 +4476,7 @@ noncomputable def valCtx.Err.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))
 
-/-- go: watch.go:281:19 -/
+/-- go: watch.go:291:19 -/
 noncomputable def watcher.newWatcherGRPCStream.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "inctx"
@@ -4524,7 +4528,7 @@ noncomputable def watcher.newWatcherGRPCStream.impl [FfiSyntax] [GoGlobalContext
 
 /-- Watch posts a watch request to run() and waits for a new watcher channel
 
-    go: watch.go:304:19 -/
+    go: watch.go:314:19 -/
 noncomputable def watcher.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ctx"
@@ -4726,7 +4730,7 @@ noncomputable def watcher.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Op.ty))) (Pair (Var "ow") (Var "$r0"))))))))))))))))
 
-/-- go: watch.go:395:19 -/
+/-- go: watch.go:405:19 -/
 noncomputable def watcher.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4785,7 +4789,7 @@ noncomputable def watcher.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- RequestProgress requests a progress notify response be sent in all watch channels.
 
-    go: watch.go:413:19 -/
+    go: watch.go:423:19 -/
 noncomputable def watcher.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ctx"
@@ -4867,7 +4871,7 @@ noncomputable def watcher.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ctxKey") (Var "$r0")))))))))))))
 
-/-- go: watch.go:446:27 -/
+/-- go: watch.go:456:27 -/
 noncomputable def watchGRPCStream.close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4895,7 +4899,7 @@ noncomputable def watchGRPCStream.close.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w")))) (Val #())))))))))
 
-/-- go: watch.go:456:19 -/
+/-- go: watch.go:466:19 -/
 noncomputable def watcher.closeStream.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wgs"
@@ -4926,7 +4930,7 @@ noncomputable def watcher.closeStream.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))) (Val #()))))))))))
 
-/-- go: watch.go:466:27 -/
+/-- go: watch.go:476:27 -/
 noncomputable def watchGRPCStream.addSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "resp"
@@ -4962,7 +4966,7 @@ noncomputable def watchGRPCStream.addSubstream.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: watch.go:478:27 -/
+/-- go: watch.go:488:27 -/
 noncomputable def watchGRPCStream.sendCloseSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -4992,7 +4996,7 @@ noncomputable def watchGRPCStream.sendCloseSubstream.impl [FfiSyntax] [GoGlobalC
   (App (Val doExecute)
   (Val #()))))])))))))))))))))
 
-/-- go: watch.go:487:27 -/
+/-- go: watch.go:497:27 -/
 noncomputable def watchGRPCStream.closeSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -5061,7 +5065,7 @@ noncomputable def watchGRPCStream.closeSubstream.impl [FfiSyntax] [GoGlobalConte
 
 /-- run is the root of the goroutines for managing a watcher client
 
-    go: watch.go:512:27 -/
+    go: watch.go:522:27 -/
 noncomputable def watchGRPCStream.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -5109,8 +5113,10 @@ noncomputable def watchGRPCStream.run.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val InvalidWatchID))
   (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "outc"))
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral watcherStream.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"initReq")) (ElementExpression watchRequest.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"id")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"outc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"recvc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty)) (Var "$v3")))])))))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcher.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"owner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))))
+  (App (Val (GoInstruction (CompositeLiteral watcherStream.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"initReq")) (ElementExpression watchRequest.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"id")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"outc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"recvc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType WatchResponse.ty)) (Var "$v3"))), (KeyedElement (some (KeyField go!"maxBufferSize")) (ElementExpression go.int (Var "$v4")))]))))))))
   (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcherStream.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcherStream.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
@@ -5160,6 +5166,12 @@ noncomputable def watchGRPCStream.run.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"newWatcherStreamBufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType blockLogger.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufLogger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 4)))) (Val #(W64 5))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningThreshold"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -5653,7 +5665,7 @@ noncomputable def watchGRPCStream.run.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- nextResume chooses the next resuming to register with the grpc stream. Abandoned
     streams are marked as nil in the queue since the head must wait for its inflight registration.
 
-    go: watch.go:716:27 -/
+    go: watch.go:734:27 -/
 noncomputable def watchGRPCStream.nextResume.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -5681,7 +5693,7 @@ noncomputable def watchGRPCStream.nextResume.impl [FfiSyntax] [GoGlobalContext] 
 
 /-- dispatchEvent sends a WatchResponse to the appropriate watcher stream
 
-    go: watch.go:727:27 -/
+    go: watch.go:745:27 -/
 noncomputable def watchGRPCStream.dispatchEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "pbresp"
@@ -5714,7 +5726,7 @@ noncomputable def watchGRPCStream.dispatchEvent.impl [FfiSyntax] [GoGlobalContex
 
 /-- broadcastResponse send a watch response to all watch substreams.
 
-    go: watch.go:748:27 -/
+    go: watch.go:766:27 -/
 noncomputable def watchGRPCStream.broadcastResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wr"
@@ -5746,7 +5758,7 @@ noncomputable def watchGRPCStream.broadcastResponse.impl [FfiSyntax] [GoGlobalCo
 
 /-- unicastResponse sends a watch response to a specific watch substream.
 
-    go: watch.go:759:27 -/
+    go: watch.go:777:27 -/
 noncomputable def watchGRPCStream.unicastResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wr"
@@ -5788,7 +5800,7 @@ noncomputable def watchGRPCStream.unicastResponse.impl [FfiSyntax] [GoGlobalCont
 
 /-- serveWatchClient forwards messages from the grpc stream to run()
 
-    go: watch.go:773:27 -/
+    go: watch.go:791:27 -/
 noncomputable def watchGRPCStream.serveWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wc"
@@ -5841,7 +5853,7 @@ noncomputable def watchGRPCStream.serveWatchClient.impl [FfiSyntax] [GoGlobalCon
 
 /-- serveSubstream forwards watch responses from run() to the subscriber
 
-    go: watch.go:792:27 -/
+    go: watch.go:810:27 -/
 noncomputable def watchGRPCStream.serveSubstream.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -5917,11 +5929,122 @@ noncomputable def watchGRPCStream.serveSubstream.impl [FfiSyntax] [GoGlobalConte
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")))
+  (Let "bufLen" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "bufLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (Var "outc"))
+  (Let "$v0" (App (Val (GoInstruction (GoLoad WatchResponse.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "curWr")))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Val #()))
+  (Let "$ch2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"ctx"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #()))
+  (Let "$ch3" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Var "resumec"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (SendCase WatchResponse.ty (Var "$ch0") (Var "$v0")) (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType WatchResponse.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningThreshold"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))))
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningLogged"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType WatchResponse.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType WatchResponse.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchGRPCStream.ty) go!"recordBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))) (Var "$a0")))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch2")) (Lam "$recvVal"
+  (App (Val doReturn)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch3")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "resuming") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherStream.ty) go!"resetBufWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Val #()))))))])))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"watch buffer full, applying backpressure"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"watch-id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"key"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"key"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"buffer-size"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "bufLen"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"max-buffer-size"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3")))]))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1"))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType WatchResponse.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "bufLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningThreshold"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #false)))
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningLogged"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "bufLen")) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningThreshold"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningLogged"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufferWarningLogged"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"watch buffer approaching limit"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"watch-id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"key"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef watchRequest.ty go!"key"))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"initReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"buffer-size"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "bufLen"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"max-buffer-size"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"maxBufferSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl4" (Let "$a0" (Val #(go!"num-events"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType Event.ty))))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType Event.ty))]))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl4")))])))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "bufLen") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Created"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr"))))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
@@ -6074,7 +6197,7 @@ noncomputable def watchGRPCStream.serveSubstream.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: watch.go:898:27 -/
+/-- go: watch.go:971:27 -/
 noncomputable def watchGRPCStream.startBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -6094,7 +6217,7 @@ noncomputable def watchGRPCStream.startBufWait.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: watch.go:905:27 -/
+/-- go: watch.go:978:27 -/
 noncomputable def watchGRPCStream.recordBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -6118,7 +6241,7 @@ noncomputable def watchGRPCStream.recordBufWait.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: watch.go:913:26 -/
+/-- go: watch.go:986:26 -/
 noncomputable def watcherStream.resetBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
@@ -6131,7 +6254,7 @@ noncomputable def watcherStream.resetBufWait.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))))
 
-/-- go: watch.go:917:27 -/
+/-- go: watch.go:990:27 -/
 noncomputable def watchGRPCStream.newWatcherStreamBufLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -6182,7 +6305,7 @@ noncomputable def watchGRPCStream.newWatcherStreamBufLogger.impl [FfiSyntax] [Go
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))))))))))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve newBlockLogger []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))))))
 
-/-- go: watch.go:932:27 -/
+/-- go: watch.go:1005:27 -/
 noncomputable def watchGRPCStream.newWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6329,7 +6452,7 @@ noncomputable def watchGRPCStream.newWatchClient.impl [FfiSyntax] [GoGlobalConte
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resumec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
 
-/-- go: watch.go:978:27 -/
+/-- go: watch.go:1051:27 -/
 noncomputable def watchGRPCStream.waitCancelSubstreams.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "stopc"
@@ -6458,7 +6581,7 @@ noncomputable def watchGRPCStream.waitCancelSubstreams.impl [FfiSyntax] [GoGloba
 
 /-- joinSubstreams waits for all substream goroutines to complete.
 
-    go: watch.go:1015:27 -/
+    go: watch.go:1088:27 -/
 noncomputable def watchGRPCStream.joinSubstreams.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6498,7 +6621,7 @@ noncomputable def watchGRPCStream.joinSubstreams.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value"))))))))))))))))
 
-/-- go: watch.go:1028:27 -/
+/-- go: watch.go:1101:27 -/
 noncomputable def watchGRPCStream.backoffIfUnavailable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "backoff"
@@ -6537,7 +6660,7 @@ noncomputable def watchGRPCStream.backoffIfUnavailable.impl [FfiSyntax] [GoGloba
     manually retry in case "ws==nil && err==nil"
     TODO: remove FailFast=false
 
-    go: watch.go:1046:27 -/
+    go: watch.go:1119:27 -/
 noncomputable def watchGRPCStream.openWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6604,7 +6727,7 @@ noncomputable def watchGRPCStream.openWatchClient.impl [FfiSyntax] [GoGlobalCont
 
 /-- toPB converts an internal watch request structure to its protobuf WatchRequest structure.
 
-    go: watch.go:1069:25 -/
+    go: watch.go:1142:25 -/
 noncomputable def watchRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wr"
   (Lam BAnon
@@ -6634,7 +6757,7 @@ noncomputable def watchRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- toPB converts an internal progress request structure to its protobuf WatchRequest structure.
 
-    go: watch.go:1084:28 -/
+    go: watch.go:1157:28 -/
 noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
@@ -9487,16 +9610,18 @@ structure watcher [FfiSyntax] where
   mu' : _root_.Perennial.sync.Mutex
   streams' : GoMap
   lg' : Loc
+  maxBufferSize' : w64
 
 instance watcher.zero_val [FfiSyntax] : ZeroVal watcher :=
-  ⟨watcher.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨watcher.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def watcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"remote" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.ty),
 (go.field_decl.FieldDecl go!"callOpts" (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"streams" (go.GoType.MapType go.string (go.GoType.PointerType watchGRPCStream.ty))),
-(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
+(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"maxBufferSize" go.int)]
 
 @[irreducible] def watcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   watcher.fieldsUnsealed
@@ -9521,6 +9646,8 @@ class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_streams : ∀ (x : watcher) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : watcher)))
   get_lg : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watcher)))
+  get_maxBufferSize : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"maxBufferSize") #x (Val #(x.maxBufferSize'))
+  set_maxBufferSize : ∀ (x : watcher) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"maxBufferSize") (PairV #x #y) (Val #(({ x with maxBufferSize' := y } : watcher)))
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Close" watcher.Close.impl
   ptr_RequestProgress_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"RequestProgress" watcher.RequestProgress.impl
   ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Watch" watcher.Watch.impl
@@ -9539,6 +9666,8 @@ attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.set_streams
   watcher.TypeAssumptions.get_lg
   watcher.TypeAssumptions.set_lg
+  watcher.TypeAssumptions.get_maxBufferSize
+  watcher.TypeAssumptions.set_maxBufferSize
   watcher.TypeAssumptions.ptr_Close_unfold
   watcher.TypeAssumptions.ptr_RequestProgress_unfold
   watcher.TypeAssumptions.ptr_Watch_unfold
@@ -9852,9 +9981,12 @@ structure watcherStream [FfiSyntax] where
   buf' : GoSlice
   bufLogger' : Loc
   bufWaitStartTime' : _root_.Perennial.time.Time
+  maxBufferSize' : w64
+  bufferWarningThreshold' : w64
+  bufferWarningLogged' : Bool
 
 instance watcherStream.zero_val [FfiSyntax] : ZeroVal watcherStream :=
-  ⟨watcherStream.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨watcherStream.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def watcherStream.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"initReq" watchRequest.ty),
@@ -9865,7 +9997,10 @@ instance watcherStream.zero_val [FfiSyntax] : ZeroVal watcherStream :=
 (go.field_decl.FieldDecl go!"id" go.int64),
 (go.field_decl.FieldDecl go!"buf" (go.GoType.SliceType (go.GoType.PointerType WatchResponse.ty))),
 (go.field_decl.FieldDecl go!"bufLogger" (go.GoType.PointerType blockLogger.ty)),
-(go.field_decl.FieldDecl go!"bufWaitStartTime" _root_.Perennial.time.Time.ty)]
+(go.field_decl.FieldDecl go!"bufWaitStartTime" _root_.Perennial.time.Time.ty),
+(go.field_decl.FieldDecl go!"maxBufferSize" go.int),
+(go.field_decl.FieldDecl go!"bufferWarningThreshold" go.int),
+(go.field_decl.FieldDecl go!"bufferWarningLogged" go.bool)]
 
 @[irreducible] def watcherStream.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   watcherStream.fieldsUnsealed
@@ -9898,6 +10033,12 @@ class watcherStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_bufLogger : ∀ (x : watcherStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufLogger") (PairV #x #y) (Val #(({ x with bufLogger' := y } : watcherStream)))
   get_bufWaitStartTime : ∀ (x : watcherStream), go.IsGoStepPureDetTagged under (StructFieldGet watcherStream.underlying go!"bufWaitStartTime") #x (Val #(x.bufWaitStartTime'))
   set_bufWaitStartTime : ∀ (x : watcherStream) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufWaitStartTime") (PairV #x #y) (Val #(({ x with bufWaitStartTime' := y } : watcherStream)))
+  get_maxBufferSize : ∀ (x : watcherStream), go.IsGoStepPureDetTagged under (StructFieldGet watcherStream.underlying go!"maxBufferSize") #x (Val #(x.maxBufferSize'))
+  set_maxBufferSize : ∀ (x : watcherStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"maxBufferSize") (PairV #x #y) (Val #(({ x with maxBufferSize' := y } : watcherStream)))
+  get_bufferWarningThreshold : ∀ (x : watcherStream), go.IsGoStepPureDetTagged under (StructFieldGet watcherStream.underlying go!"bufferWarningThreshold") #x (Val #(x.bufferWarningThreshold'))
+  set_bufferWarningThreshold : ∀ (x : watcherStream) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufferWarningThreshold") (PairV #x #y) (Val #(({ x with bufferWarningThreshold' := y } : watcherStream)))
+  get_bufferWarningLogged : ∀ (x : watcherStream), go.IsGoStepPureDetTagged under (StructFieldGet watcherStream.underlying go!"bufferWarningLogged") #x (Val #(x.bufferWarningLogged'))
+  set_bufferWarningLogged : ∀ (x : watcherStream) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufferWarningLogged") (PairV #x #y) (Val #(({ x with bufferWarningLogged' := y } : watcherStream)))
   ptr_resetBufWait_unfold : MethodUnfold (go.GoType.PointerType watcherStream.ty) go!"resetBufWait" watcherStream.resetBufWait.impl
 
 attribute [instance] watcherStream.TypeAssumptions.type_repr
@@ -9920,6 +10061,12 @@ attribute [instance] watcherStream.TypeAssumptions.type_repr
   watcherStream.TypeAssumptions.set_bufLogger
   watcherStream.TypeAssumptions.get_bufWaitStartTime
   watcherStream.TypeAssumptions.set_bufWaitStartTime
+  watcherStream.TypeAssumptions.get_maxBufferSize
+  watcherStream.TypeAssumptions.set_maxBufferSize
+  watcherStream.TypeAssumptions.get_bufferWarningThreshold
+  watcherStream.TypeAssumptions.set_bufferWarningThreshold
+  watcherStream.TypeAssumptions.get_bufferWarningLogged
+  watcherStream.TypeAssumptions.set_bufferWarningLogged
   watcherStream.TypeAssumptions.ptr_resetBufWait_unfold
 
 structure valCtx [FfiSyntax] where

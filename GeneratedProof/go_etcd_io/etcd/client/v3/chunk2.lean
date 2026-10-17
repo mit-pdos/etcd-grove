@@ -855,6 +855,7 @@ instance watcher_typed_pointsto :
     "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"mu" l) v.mu' dq ∗
     "streams" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"streams" l) v.streams' dq ∗
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"lg" l) v.lg' dq ∗
+    "maxBufferSize" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"maxBufferSize" l) v.maxBufferSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -941,6 +942,22 @@ instance watcher_access_store_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.watche
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"lg" l) lg' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.client.v3.watcher) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcher_access_load_maxBufferSize (l : Loc) (v : go_etcd_io.etcd.client.v3.watcher) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"maxBufferSize" l) v.maxBufferSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"maxBufferSize" l) v.maxBufferSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcher_access_store_maxBufferSize (l : Loc) (v : go_etcd_io.etcd.client.v3.watcher) (maxBufferSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"maxBufferSize" l) v.maxBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcher go!"maxBufferSize" l) maxBufferSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxBufferSize' := maxBufferSize' } : go_etcd_io.etcd.client.v3.watcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
