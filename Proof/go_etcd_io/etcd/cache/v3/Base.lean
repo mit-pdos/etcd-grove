@@ -28,6 +28,7 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.io
+public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 
 @[expose] public section
@@ -263,6 +264,36 @@ instance clientv3_resolver_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etc
   define_is_pkg_init iprop(True)
 instance clientv3_resolver_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.resolver :=
+  build_get_is_pkg_init_wf
+
+-- Names only (item 5, client construction, branch `construct`): what `clientv3.New`'s dial
+-- names (the type of `Config.TLS`, grpc's keepalive parameters and insecure credentials, an
+-- endpoint's credentials requirement, the default logger); `logutil`'s instance moved here from
+-- `etcdserver/BaseApply.lean` (stage R8b), now that `clientv3` imports it.
+instance tls_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
+  define_is_pkg_init iprop(True)
+instance tls_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
+  build_get_is_pkg_init_wf
+instance grpc_keepalive_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
+  define_is_pkg_init iprop(True)
+instance grpc_keepalive_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.keepalive :=
+  build_get_is_pkg_init_wf
+instance grpc_insecure_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure :=
+  define_is_pkg_init iprop(True)
+instance grpc_insecure_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials.insecure :=
+  build_get_is_pkg_init_wf
+instance clientv3_endpoint_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint :=
+  define_is_pkg_init iprop(True)
+instance clientv3_endpoint_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint :=
+  build_get_is_pkg_init_wf
+instance logutil_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
+  define_is_pkg_init iprop(True)
+instance logutil_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil :=
   build_get_is_pkg_init_wf
 
 -- zap imports zapcore (translated since the merge with the server's names-only zap).

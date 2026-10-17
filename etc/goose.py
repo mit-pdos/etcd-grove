@@ -142,7 +142,7 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "net=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
-                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3="],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=", "crypto/tls="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -277,13 +277,23 @@ PROJECTS = [
             "google.golang.org/grpc/metadata",
             "go.etcd.io/etcd/client/v3/credentials",
             "go.etcd.io/etcd/client/v3/internal/resolver",
+            # names only (item 5, client construction): what `clientv3.New`'s dial names:
+            # the credentials requirement of an endpoint, grpc's keepalive parameters, insecure
+            # credentials and resolver builders (the type of `grpc.WithResolvers`'s parameter,
+            # for the trusted body of `dialWithBalancer`), and the type of `Config.TLS`
+            # (crypto/tls, a standard-library package Perennial does not translate)
+            "go.etcd.io/etcd/client/v3/internal/endpoint",
+            "google.golang.org/grpc/keepalive",
+            "google.golang.org/grpc/credentials/insecure",
+            "google.golang.org/grpc/resolver",
+            "crypto/tls",
             # (and go.uber.org/zap, above)
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               "net", os.path.join("encoding", "hex"),
+               "net", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin")],
         # etcd itself: not its tests, tools or root module

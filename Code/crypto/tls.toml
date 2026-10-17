@@ -1,0 +1,5 @@
+# Names only (item 5, client construction): the type of `clientv3.Config`'s field `TLS`
+# (`*tls.Config`). Function and method bodies, and the types, are axiomatized (not
+# `translate_types`).
+translate = ["!*"]
+imports = ["!*"]

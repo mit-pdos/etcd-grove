@@ -1,0 +1,7 @@
+# Types and names only (item 5, client construction): `keepalive.ClientParameters`, which
+# `clientv3`'s `dialSetupOpts` builds when `Config.DialKeepAliveTime` is positive.
+translate = ["!*"]
+imports = ["!*", "time"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
