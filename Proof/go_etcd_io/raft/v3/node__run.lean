@@ -697,7 +697,7 @@ theorem node.run.wp_proof
     imod budget_spend γ.bud rs.term ⊤ (by solve_ndisj) $$ Hbud Hcr Hlb' with ⟨%Hb, #Hlb1⟩
     wp_apply wp_RawNode_Tick γ.raft nv.rn' id rs (by omega) $$ [$Hrn] as %t H
     iNamed H
-    ihave #Hlbt := termLB_le γ.bud (rs.term + W64 1) t (by word) $$ Hlb1
+    ihave #Hlbt := termLB_le γ.bud (rs.term + W64 (2 ^ 17)) t (by word) $$ Hlb1
     ihave Hrest := headRest_term γ nv rs ac rc' rdv' t $$ Hrest Hlbt
     wp_for_post
     iframe HΦ n r

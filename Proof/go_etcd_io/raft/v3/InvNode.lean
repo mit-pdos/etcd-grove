@@ -21,12 +21,14 @@ index as a monotone nat (`cam`), and an answer slot (`ccq`); see `confcP`, `conf
 
 ## The ghost state
 
-- **The term budget** (`BudgetNames`, one per cluster): `RawNode.Tick` needs `term + 1 <
-  2^64`, and `RawNode.Step` moves a node's term to at most a message's. The invariant
+- **The term budget** (`BudgetNames`, one per cluster): `RawNode.Tick` needs `term + 2^16 <
+  2^64` (PR raft#86: not the last epoch; until then `term + 1 < 2^64`), and `RawNode.Step`
+  moves a node's term to at most a message's. The invariant
   `isBudget` holds a monotone bound `M` (`monoNatAuthOwn`) and the number `c` of tick
-  credits handed out (`● c`, additive), with `M + c < 2^64 - 1`. A tick credit
+  credits handed out (`● c`, additive), with `M + (c + 1) * 2^17 < 2^64` (until PR raft#86,
+  `M + c < 2^64 - 1`). A tick credit
   (`tickCred bud 1`, `◯ 1`) is what `Node.Tick` spends (`budget_spend`): it raises `M` by
-  at most one past a term. Every node's term is at most `M` (`termLB`, a lower bound on
+  at most `2^17` past a term (a campaign's `nextTerm()`; one before PR raft#86). Every node's term is at most `M` (`termLB`, a lower bound on
   `M`, persistent), and so is every message's term a `Ready` hands out (`readyData`): a
   receiver's `Step` keeps its term under `M` too. The application creates the budget once
   (`budget_alloc`), with as many credits as it will ever tick.
@@ -142,7 +144,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 /-- See the file header. -/
 def budgetInv (bud : BudgetNames) : IProp GF :=
   iprop(∃ (M c : Nat), monoNatAuthOwn bud.bound 1 M ∗ own bud.creds (● c : Auth Nat) ∗
-    ⌜M + c < 2 ^ 64 - 1⌝)
+    ⌜M + (c + 1) * 2 ^ 17 < 2 ^ 64⌝)
 
 /-- `n` tick credits: `Node.Tick` spends one. -/
 def tickCred (bud : BudgetNames) (n : Nat) : IProp GF :=
@@ -178,7 +180,7 @@ theorem termLB_le (bud : BudgetNames) (t t' : w64) (h : uint.Z t' ≤ uint.Z t) 
   omega
 
 /-- The budget, created once per cluster, with `N` credits. -/
-theorem budget_alloc (N : Nat) (HN : N < 2 ^ 64 - 1) (E : CoPset) :
+theorem budget_alloc (N : Nat) (HN : (N + 1) * 2 ^ 17 < 2 ^ 64) (E : CoPset) :
     ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗ tickCred bud N ∗
       termLB bud (W64 0) := by
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γM, HM, #HMlb⟩
@@ -202,7 +204,7 @@ theorem budget_alloc (N : Nat) (HN : N < 2 ^ 64 - 1) (E : CoPset) :
 /-- The budget of a new cluster (2026-10-16, stage R8b, `StartNode`): its bound at the bootstrap
 term `1` from the start (`RawNode.Bootstrap`'s `becomeFollower(1, None)`), so that `run` starts
 with `termLB bud 1`. -/
-theorem budget_alloc_boot (N : Nat) (HN : N + 1 < 2 ^ 64 - 1) (E : CoPset) :
+theorem budget_alloc_boot (N : Nat) (HN : 1 + (N + 1) * 2 ^ 17 < 2 ^ 64) (E : CoPset) :
     ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗ tickCred bud N ∗
       termLB bud (W64 1) := by
   imod mono_nat_own_alloc (GF := GF) 1 with ⟨%γM, HM, #HMlb⟩
@@ -228,9 +230,11 @@ theorem termLB_zero (bud : BudgetNames) : ⊢ |==> termLB (GF := GF) bud (W64 0)
   unfold termLB
   exact monoNatLbOwn_0 bud.bound
 
-/-- A term at most the budget's bound is not the last one. -/
+/-- A term at most the budget's bound is far from the last one: `2^17` below (PR raft#86: a
+campaign's `nextTerm()` moves the term by less than `2^17`; until then the bound was one). -/
 theorem termLB_bound (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN ⊆ E) :
-    ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ termLB bud t ={E}=∗ ⌜uint.Z t < 2 ^ 64 - 1⌝ := by
+    ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ termLB bud t ={E}=∗
+      ⌜uint.Z t + 2 ^ 17 < 2 ^ 64⌝ := by
   iintro #Hinv #Hlb
   iinv Hinv with >Hi Hclose
   unfold budgetInv
@@ -242,12 +246,15 @@ theorem termLB_bound (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN
   imodintro
   ipureintro
   have := uint_nat_eq t
+  have : (c + 1) * 2 ^ 17 ≥ 2 ^ 17 := by
+    have := Nat.mul_le_mul_right (2 ^ 17) (Nat.succ_le_succ (Nat.zero_le c)); omega
   omega
 
-/-- Spending a tick credit: the bound covers one term more (`Node.Tick`'s). -/
+/-- Spending a tick credit: the bound covers `2^17` terms more (`Node.Tick`'s campaign, at
+`nextTerm()`: PR raft#86; until then one). -/
 theorem budget_spend (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN ⊆ E) :
     ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ tickCred bud 1 -∗ termLB bud t ={E}=∗
-      ⌜uint.Z t + 1 < 2 ^ 64 - 1⌝ ∗ termLB bud (t + W64 1) := by
+      ⌜uint.Z t + 2 * 2 ^ 17 < 2 ^ 64⌝ ∗ termLB bud (t + W64 (2 ^ 17)) := by
   iintro #Hinv Hcr #Hlb
   iinv Hinv with >Hi Hclose
   unfold budgetInv
@@ -265,16 +272,22 @@ theorem budget_spend (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN
     $$ HCC with HCC
   icases (own_op bud.creds _ _).1 $$ HCC with ⟨HC, -⟩
   have := uint_nat_eq t
-  have Hnw : uint.Z t + 1 < 2 ^ 64 - 1 := by omega
-  imod mono_nat_own_update (max M (uint.nat (t + W64 1))) (Nat.le_max_left _ _) $$ HM
+  obtain ⟨c', rfl⟩ : ∃ c', c = c' + 1 := ⟨c - 1, by omega⟩
+  have Hmul : (c' + 1 + 1) * 2 ^ 17 = (c' + 1) * 2 ^ 17 + 2 ^ 17 := by
+    rw [Nat.add_mul, Nat.one_mul]
+  have Hmul2 : (c' + 1) * 2 ^ 17 ≥ 2 ^ 17 := by
+    have := Nat.mul_le_mul_right (2 ^ 17) (Nat.succ_le_succ (Nat.zero_le c')); omega
+  have Hnw : uint.Z t + 2 * 2 ^ 17 < 2 ^ 64 := by omega
+  have Ht' : uint.Z (t + W64 (2 ^ 17)) = uint.Z t + 2 ^ 17 := by word
+  have := uint_nat_eq (t + W64 (2 ^ 17))
+  imod mono_nat_own_update (max M (uint.nat (t + W64 (2 ^ 17)))) (Nat.le_max_left _ _) $$ HM
     with ⟨HM, #HMlb⟩
   imod Hclose $$ [HM HC] with -
   · inext
-    iexists max M (uint.nat (t + W64 1)), c - 1
+    iexists max M (uint.nat (t + W64 (2 ^ 17))), c' + 1 - 1
     iframe HM HC
     ipureintro
-    have : uint.Z (t + W64 1) = uint.Z t + 1 := by word
-    have := uint_nat_eq (t + W64 1)
+    simp only [Nat.add_sub_cancel]
     omega
   imodintro
   isplitr
@@ -283,15 +296,16 @@ theorem budget_spend (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN
   exact Nat.le_max_right _ _
 
 /-- (2026-10-13) A step of a message of term `t2` at a node of term `t1`, with a tick credit
-if `P` (a `MsgTimeoutNow`, which campaigns one term past both): neither term is the last
-one, and the bound covers the larger, one more if `P`. -/
+if `P` (a `MsgTimeoutNow`, which campaigns past both: at `nextTerm()`, less than `2^17` past,
+PR raft#86): neither term is in the last epoch, and the bound covers the larger, `2^17` more
+if `P`. -/
 theorem budget_step (bud : BudgetNames) (t1 t2 : w64) (P : Prop) [Decidable P] (E : CoPset)
     (HE : ↑budgetN ⊆ E) :
     ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ termLB bud t1 -∗ termLB bud t2 -∗
       tickCred bud (if P then 1 else 0) ={E}=∗
-      ⌜uint.Z t1 + 1 < 2 ^ 64 ∧ uint.Z t2 + 1 < 2 ^ 64⌝ ∗
+      ⌜uint.Z t1 + 2 ^ 16 < 2 ^ 64 ∧ uint.Z t2 + 2 ^ 16 < 2 ^ 64⌝ ∗
       ∃ tb : w64, termLB bud tb ∗
-        ⌜max (uint.Z t1) (uint.Z t2) + (if P then 1 else 0) ≤ uint.Z tb⌝ := by
+        ⌜max (uint.Z t1) (uint.Z t2) + (if P then 2 ^ 17 else 0) ≤ uint.Z tb⌝ := by
   iintro #Hinv #Hl1 #Hl2 Hcr
   imod termLB_bound bud t1 E HE $$ Hinv Hl1 with %Hb1
   imod termLB_bound bud t2 E HE $$ Hinv Hl2 with %Hb2
@@ -311,10 +325,10 @@ theorem budget_step (bud : BudgetNames) (t1 t2 : w64) (P : Prop) [Decidable P] (
     imodintro
     isplitr
     · ipureintro; omega
-    iexists tm + W64 1
+    iexists tm + W64 (2 ^ 17)
     iframe Hl
     ipureintro
-    have : uint.Z (tm + W64 1) = uint.Z tm + 1 := by word
+    have : uint.Z (tm + W64 (2 ^ 17)) = uint.Z tm + 2 ^ 17 := by word
     omega
   · simp only [hP, ↓reduceIte]
     imodintro
