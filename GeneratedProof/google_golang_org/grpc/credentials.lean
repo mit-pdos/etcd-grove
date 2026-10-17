@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.net
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.credentials
 
@@ -148,25 +149,6 @@ instance ProtocolInfo_access_store_ServerName (l : Loc) (v : google_golang_org.g
 
 end def_
 end ProtocolInfo
-
-namespace TransportCredentials
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
-
-instance TransportCredentials_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.TransportCredentials :=
-  sorry -- axiomatized type
-
-instance TransportCredentials_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.TransportCredentials google_golang_org.grpc.credentials.TransportCredentials.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end TransportCredentials
 
 namespace RequestInfo
 section def_

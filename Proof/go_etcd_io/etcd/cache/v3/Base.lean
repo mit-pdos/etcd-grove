@@ -236,18 +236,20 @@ instance rpctypes_get_is_pkg_init_wf_inst :
 
 -- The names-only packages of `clientv3.Client`'s field types.
 
+-- `net` (names only; unit P3a: the type of grpc's `peer.Peer`'s fields; item 5: grpc's
+-- `credentials` imports it, for `TransportCredentials`'s handshakes).
+instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
+  define_is_pkg_init iprop(True)
+instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
+  build_get_is_pkg_init_wf
+
 instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init iprop(True)
 instance grpc_credentials_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   build_get_is_pkg_init_wf
 
--- grpc's `peer` and `net` (names only; unit P3a: the retry interceptor's `peer.Peer`).
-instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
-  define_is_pkg_init iprop(True)
-instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
-  build_get_is_pkg_init_wf
-
+-- grpc's `peer` (names only; unit P3a: the retry interceptor's `peer.Peer`).
 instance grpc_peer_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.peer :=
   define_is_pkg_init iprop(True)
 instance grpc_peer_get_is_pkg_init_wf_inst :

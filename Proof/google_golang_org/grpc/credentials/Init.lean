@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
+public import Proof.net.Init
 
 @[expose] public section
 
@@ -69,6 +70,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply _root_.Perennial.net.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply _root_.Perennial.context.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk ErrConnDispatched.init (by mem_tac))
   wp_apply (opaqueInitsOk logger.init (by mem_tac))
