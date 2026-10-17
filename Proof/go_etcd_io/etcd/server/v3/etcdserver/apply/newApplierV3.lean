@@ -33,21 +33,22 @@ theorem apply.newApplierV3.wp_proof
     (hQ : apply.newQuotaApplierV3.spec (GF := GF) (hG := hG))
     (hA : apply.newAuthApplierV3.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3.spec (GF := GF) (hG := hG) := by
-  intro E opts
-  wp_start as ⟨#Hopts, Hard⟩
+  intro opts RD
+  wp_start as Hard
+  wp_auto
+  wp_apply (hB opts) $$ [] as %b #Hb
+  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b) $$ [] as %q #Hq
+  wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p #Hp
+  · iframe
+  iapply HΦ
+  iintro !> %E %hRD #Hopts
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
-  wp_auto
-  wp_apply (hB E opts) $$ [] as %b #Hb
-  · iframe #
-  wp_apply (hQ E .backend opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b) $$ [] as %q #Hq
-  · iframe #
-  wp_apply (hA E (.quota .backend) opts.AuthStore' q opts.Lessor') $$ [Hard] as %p #Hp
-  · iframe; iframe #
-  iapply HΦ
+  ihave #Hb' := Hb $$ %E Hopts
+  ihave #Hq' := Hq $$ %E %.backend Hb'
   simp only [apply.baseChain]
-  iexact Hp
+  iapply Hp $$ %E %(.quota .backend) %hRD Has Hle Hq'
 
 end proof
 

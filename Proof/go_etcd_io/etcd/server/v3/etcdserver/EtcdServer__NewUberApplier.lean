@@ -5,6 +5,7 @@ counterpart); placed at the server-construction unit's stage N0 (2026-10-16), un
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Get
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier
 
@@ -28,11 +29,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.NewUberApplier.wp_proof
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG)) :
+    (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG))
+    (hGet : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro s E lg a cl kv au le ci be fg quota wad
+  intro s lg a cl kv au le ci be fg quota wad RD
   wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, #Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
-    #Hok, HRD⟩
+    #Hal, HRD⟩
   ihave #Hgate' := Hgate
   iunfold isFeatureGate at Hgate'
   icases Hgate' with ⟨%fi, %Hfi, #HEn⟩
@@ -45,16 +47,22 @@ theorem EtcdServer.NewUberApplier.wp_proof
   ihave #Hapkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
-  wp_apply hNU E _ $$ [HRD] as %ua ⟨%p, %Hua, #Hui, Hown⟩
+  ihave #Hvpkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
+  · iPkgInit
+  ihave #HGet : apply.alarmGetOk (GF := GF) a $$ []
+  · iunfold apply.alarmGetOk
+    iintro !> %at' %Φ' !> - HΦ'
+    iapply (hGet a at') $$ [] HΦ'
+    iframe #
+  wp_apply hNU _ RD $$ [HRD] as %ua ⟨%p, %Hua, Hown⟩
   · iframe HRD
     iframe #
-    iapply Hok
-    ipureintro
-    simp only [and_self]
   iapply HΦ
   iexists p, _
-  iframe Hui Hown
-  ipureintro; exact Hua
+  iframe Hown
+  ipureintro
+  exact ⟨Hua, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 end proof
 

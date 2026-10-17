@@ -359,6 +359,27 @@ instance isAlarmStore_persistent (st : Loc) (γ : mvcc.StoreNames) (P : IProp GF
     Persistent (isAlarmStore st γ P f) := by
   unfold isAlarmStore; infer_instance
 
+/-- **The alarm store's `Get`** (persistent; `isAlarmStore`'s first clause, which names no
+environment: the uber-applier's construction calls it before the environment's hook exists;
+unit N4, 2026-10-17). -/
+def alarmGetOk (st : Loc) : IProp GF :=
+  iprop(□ (∀ at' : w32,
+      {{ True }}
+        (App (Val (st @!! go.GoType.PointerType etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get"))
+          (Val #at'))
+      {{ (sl : GoSlice), RET #sl; True }}))
+
+instance alarmGetOk_persistent (st : Loc) : Persistent (alarmGetOk (GF := GF) st) := by
+  unfold alarmGetOk; infer_instance
+
+theorem alarmGetOk_of (st : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+    isAlarmStore (GF := GF) st γ P f ⊢ alarmGetOk st := by
+  iintro #H
+  iunfold isAlarmStore at H
+  icases H with ⟨-, #HG, -⟩
+  iunfold alarmGetOk
+  iexact HG
+
 /-- **The `*membership.RaftCluster` `c`** (trust boundary: `membership` is names-only):
 `Version` (a `*semver.Version`, maybe nil) and `ID` return; `SetVersion` (with a version not
 nil), `UpdateAttributes` and `SetDowngradeInfo` (which keeps the `DowngradeInfo` pointer) write

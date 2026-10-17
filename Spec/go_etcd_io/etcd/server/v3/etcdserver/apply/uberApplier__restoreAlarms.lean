@@ -30,11 +30,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 answers ask (`capped` for a `NOSPACE` alarm, then `corrupt` for a `CORRUPT` one; the store's
 answers are any slices: any `ns cr`). -/
 abbrev apply.uberApplier.restoreAlarms.spec : Prop :=
-  ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (a : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
+  ∀ (p ast : Loc) (base a : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      structFieldRef uberApplier go!"alarmStore" p ↦□ ast ∗ apply.alarmGetOk ast ∗
+      structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a }}
     (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"restoreAlarms")) (Val #()))
-  {{ RET #(); ∃ ns cr : Bool, apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
+  {{ RET #(); ∃ (ns cr : Bool) (a' : GoInterface), structFieldRef uberApplier go!"applyV3" p ↦ a' ∗
+      □ (∀ E : AEnv GF, apply.applierSpec E (apply.baseChain E.authOn) base -∗
+        apply.applierSpec E (apply.alarmChain E.authOn ns cr) a') }}
 
 end spec
 

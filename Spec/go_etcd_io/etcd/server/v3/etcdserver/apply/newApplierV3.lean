@@ -30,10 +30,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 `applierV3backend`) over the options `opts`, whose contracts hold in `E`; the auth layer's mutex
 takes the reader resource `E.RD` (2026-10-14, unit A2). -/
 abbrev apply.newApplierV3.spec : Prop :=
-  ∀ (E : AEnv GF) (opts : ApplierOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts ∗ E.RD }}
+  ∀ (opts : ApplierOptions) (RD : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
-  {{ (a : GoInterface), RET #a; apply.applierSpec E (apply.baseChain E.authOn) a }}
+  {{ (a : GoInterface), RET #a;
+      □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
+        apply.applierSpec E (apply.baseChain E.authOn) a) }}
 
 end spec
 

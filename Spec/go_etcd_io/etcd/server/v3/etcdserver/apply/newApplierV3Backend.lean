@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`newApplierV3Backend(opts)`**: the backend applier over the options `opts` (a logger, the KV `E.s`, the components with their contracts): an applier value of the chain `backend`. -/
 abbrev apply.newApplierV3Backend.spec : Prop :=
-  ∀ (E : AEnv GF) (opts : ApplierOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts }}
+  ∀ (opts : ApplierOptions),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Backend)) (Val #opts))
-  {{ (a : GoInterface), RET #a; apply.applierSpec E .backend a }}
+  {{ (a : GoInterface), RET #a;
+      □ (∀ E : AEnv GF, apply.backendOptsOk E opts -∗ apply.applierSpec E .backend a) }}
 
 end spec
 

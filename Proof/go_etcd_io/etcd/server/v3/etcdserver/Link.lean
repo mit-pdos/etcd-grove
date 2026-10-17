@@ -979,7 +979,7 @@ theorem EtcdServer.wp_LinearizableReadNotify :
 
 theorem EtcdServer.wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) :=
-  EtcdServer.NewUberApplier.wp_proof EtcdServer.wp_KV apply.wp_NewUberApplier
+  EtcdServer.NewUberApplier.wp_proof EtcdServer.wp_KV apply.wp_NewUberApplier v3alarm.AlarmStore.wp_Get
 
 theorem EtcdServer.wp_NextRequestID :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=

@@ -31,12 +31,14 @@ hold in `E`): its fields from the options and the base chain (`uberIs`, persiste
 applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain E.authOn ns cr`); the auth
 layer's mutex takes the reader resource `E.RD` (2026-10-14, unit A2). -/
 abbrev apply.NewUberApplier.spec : Prop :=
-  ∀ (E : AEnv GF) (opts : ApplierOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts ∗ E.RD }}
+  ∀ (opts : ApplierOptions) (RD : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD ∗
+      apply.alarmGetOk opts.AlarmStore' }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
   {{ (ua : GoInterface), RET #ua; ∃ p : Loc,
-      ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗ apply.uberIs E p opts ∗
-      ∃ ns cr : Bool, apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
+      ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
+      ∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
+        apply.uberIs E p opts ∗ ∃ ns cr : Bool, apply.uberOwn E p (apply.alarmChain E.authOn ns cr) }}
 
 end spec
 

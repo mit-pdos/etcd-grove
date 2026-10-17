@@ -34,8 +34,15 @@ theorem apply.newApplierV3Capped.wp_proof
     (hTxn : apply.applierV3Capped.Txn.spec (GF := GF) (hG := hG))
     (hLG : apply.applierV3Capped.LeaseGrant.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3Capped.spec (GF := GF) (hG := hG) := by
-  intro E c base
-  wp_start as #Hbase
+  intro base
+  wp_start
+  wp_auto
+  wp_alloc p as Hp
+  iStructNamed Hp
+  ipersist applierV3
+  wp_auto
+  iapply HΦ
+  iintro !> %E %c #Hbase
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
@@ -43,12 +50,6 @@ theorem apply.newApplierV3Capped.wp_proof
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
     #HApply⟩
-  wp_auto
-  wp_alloc p as Hp
-  iStructNamed Hp
-  ipersist applierV3
-  wp_auto
-  iapply HΦ
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType applierV3Capped.ty, #p⟩
   isplitr

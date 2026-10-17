@@ -36,15 +36,8 @@ theorem apply.newQuotaApplierV3.wp_proof
     (hTxn : apply.quotaApplierV3.Txn.spec (GF := GF) (hG := hG))
     (hLG : apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG)) :
     apply.newQuotaApplierV3.spec (GF := GF) (hG := hG) := by
-  intro E c lg cfg be base
-  wp_start as #Hbase
-  ihave #Hb := Hbase
-  iunfold apply.applierSpec at Hb
-  icases Hb with ⟨%bi, %Hbi, #Ht⟩
-  subst Hbi
-  iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
-    #HApply⟩
+  intro lg cfg be base
+  wp_start
   wp_auto
   wp_apply hNBQ as %q #Hq
   wp_alloc p as Hp
@@ -53,6 +46,14 @@ theorem apply.newQuotaApplierV3.wp_proof
   ipersist q
   wp_auto
   iapply HΦ
+  iintro !> %E %c #Hbase
+  ihave #Hb := Hbase
+  iunfold apply.applierSpec at Hb
+  icases Hb with ⟨%bi, %Hbi, #Ht⟩
+  subst Hbi
+  iunfold apply.applierTriples at Ht
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
+    #HApply⟩
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType quotaApplierV3.ty, #p⟩
   isplitr
