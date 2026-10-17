@@ -374,7 +374,7 @@ theorem Cache.watchEvents.wp_proof
     (wp_ctxErr : EtcdGrove.context.Err.spec (GF := GF) (hG := hG)) :
     Cache.watchEvents.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap rev aec γa P Ws Wc ro c0
-  wp_start as ⟨#Hc, #Hae, Haec, #Honce, Hw, %Hrev, #Hk0⟩
+  wp_start as ⟨#Hc, #Hae, Haec, #Honce, Hw, %Hrev, #Hrd0, #Hk0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -424,7 +424,7 @@ theorem Cache.watchEvents.wp_proof
     %([withPrefixM, withRevM rev, withProgressNotifyM, withCreatedNotifyM] : List (OpFull → OpFull))
     %rev
   wp_apply HW $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
-  · iframe Hctxi Hopts
+  · iframe Hctxi Hopts Hrd0
     ipureintro
     exact ⟨(watchEvents_opts cf.pfx rev).1, (watchEvents_opts cf.pfx rev).2, Hrev⟩
   try ipersist c

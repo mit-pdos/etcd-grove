@@ -42,7 +42,7 @@ abbrev Cache.get.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"get")) (Val #(GoInterface.ok ctx)))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheBound cf B ∗ errStrOk err) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, getRespRev resp R ∗ cacheBound cf R ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, getRespRev resp R ∗ cacheBound cf R ∗ etcdRead R ∗
         storeRevLb cf.γs R ∗ storeSnapLb cf.γs R ∗
         ⌜sint.Z B ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
 

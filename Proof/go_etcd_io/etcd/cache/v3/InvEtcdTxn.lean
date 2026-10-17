@@ -899,7 +899,7 @@ instance kvGetResultR_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp 
 theorem kvGetResult_R (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
     kvGetResult (GF := GF) pfx lo o resp err ⊢ kvGetResultR pfx lo o resp err := by
   unfold kvGetResult kvGetResultR
-  iintro (%H | ⟨%H, %r, %m, #Hrev, #Hkvs, #Hr, %Hp, Hif⟩)
+  iintro (%H | ⟨%H, %r, %m, #Hrev, #Hkvs, #Hr, -, %Hp, Hif⟩)
   · ileft; ipureintro; exact H
   · iright
     isplitr

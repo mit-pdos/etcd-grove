@@ -168,7 +168,7 @@ theorem Cache.get.wp_proof
     rintro ⟨-, h⟩
     simp [opFold, withPrefixM, OpFull.newOp] at h
   iunfold kvGetResult at Hres
-  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, #Hreach, %Hle0, Hkvs⟩)
+  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, #Hreach, #Hread, %Hle0, Hkvs⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr
@@ -225,6 +225,8 @@ theorem Cache.get.wp_proof
     · iunfold cacheBound
       iframe Ha Hreach
       ipureintro; exact Hr0
+    isplitr
+    · iapply etcdRead_of_at $$ Hread
     ipureintro; exact Hle
 
 end proof

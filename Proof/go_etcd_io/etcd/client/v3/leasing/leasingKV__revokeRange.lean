@@ -80,7 +80,7 @@ theorem leasingKV.revokeRange.wp_proof
     ipureintro
     simp [opGetPanics, opGetModel, opFold, withRangeM, OpFull.getInit, OpFull.newOp]
   iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, Hgr⟩)
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, gerr = GoInterface.ok g := by
       cases gerr with
       | nil => exact absurd rfl Hgne

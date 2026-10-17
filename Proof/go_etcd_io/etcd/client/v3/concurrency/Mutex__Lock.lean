@@ -171,7 +171,7 @@ theorem Mutex.Lock.wp_proof
     ipureintro
     exact ⟨keyOp_not_panics, (keyOp_t key).1⟩
   iunfold kvGetResult at Hgres
-  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, %HRle, Hgr⟩)
+  icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, #HgRev, -, #HRR, -, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
       cases gerr with
       | nil => exact absurd rfl Hgne

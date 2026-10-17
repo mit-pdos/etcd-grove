@@ -190,7 +190,7 @@ theorem txnLeasing.guardRanges.wp_proof
           · iframe Hctx Hopts H0
             ipureintro; exact ⟨Hnp, Ht1⟩
           iunfold kvGetResult at Hgres
-          icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, Hgr⟩)
+          icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
           · obtain ⟨ge, rfl⟩ : ∃ ge, gerr = GoInterface.ok ge := by
               cases gerr with
               | nil => exact absurd rfl Hgne

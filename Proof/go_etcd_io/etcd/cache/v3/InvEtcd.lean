@@ -98,6 +98,25 @@ theorem etcdReached_zero : ⊢ etcdReached (GF := GF) (W64 0) := by
   iintro
   ileft; ipureintro; simp
 
+/-- **etcd's store had committed revision `r`** (K2e-6), downward closed: a read showed some
+`r' ≥ r` (`etcdReadAt`), or `r ≤ 0`. -/
+def etcdRead (r : w64) : IProp GF :=
+  iprop(⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r')
+
+instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := by
+  unfold etcdRead; infer_instance
+
+theorem etcdRead_mono (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
+    etcdRead (GF := GF) r ⊢ etcdRead r' := by
+  unfold etcdRead
+  iintro (%h0 | ⟨%r1, %h1, #H⟩)
+  · ileft; ipureintro; omega
+  · iright; iexists r1; iframe H; ipureintro; omega
+
+theorem etcdRead_of_at (r : w64) : etcdReadAt (GF := GF) r ⊢ etcdRead r := by
+  unfold etcdRead
+  iintro #H; iright; iexists r; iframe H; ipureintro; exact Int.le_refl _
+
 /-- A step's revision by an equal one. -/
 theorem EtcdStep_congr {r0 r1 r1' : w64} {pfx : GoString} {evs : List EtcdEv} (h : r1 = r1') :
     EtcdStep (GF := GF) r0 r1 pfx evs ⊢ EtcdStep r0 r1' pfx evs := by
@@ -718,7 +737,7 @@ def kvGetResult (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoI
     IProp GF :=
   iprop(⌜err ≠ GoInterface.nil⌝ ∨
     (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (m : KvMap), getRespRev resp r ∗ isEtcdKvs r pfx m ∗
-      etcdReached r ∗
+      etcdReached r ∗ etcdReadAt r ∗
       ⌜(o.base.serializable = false → sint.Z lo ≤ sint.Z r) ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
       (if o.isPrefixGet pfx then getRespKvs resp m else getRespRange pfx r o resp)))
 
@@ -875,7 +894,7 @@ def isEtcdWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗
         ⌜(opWatchModel key gs).isPrefixWatch pfx rev = true ∧ ¬ opWatchPanics key gs ∧
-          0 < sint.Z rev⌝ }}
+          0 < sint.Z rev⌝ ∗ etcdRead (rev - W64 1) }}
       (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;

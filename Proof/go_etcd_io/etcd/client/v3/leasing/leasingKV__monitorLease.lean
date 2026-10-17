@@ -242,7 +242,7 @@ theorem leasingKV.monitorLease.wp_proof
       ipureintro
       exact ⟨concurrency.keyOp_not_panics, (concurrency.keyOp_t (pfx ++ key)).1⟩
     iunfold kvGetResult at Hgres
-    icases Hgres with (%Hgne | ⟨%Hgnil, %r, %gm, #HgRev, -, -, %HRle, Hgr⟩)
+    icases Hgres with (%Hgne | ⟨%Hgnil, %r, %gm, #HgRev, -, -, -, %HRle, Hgr⟩)
     · -- an error: the next iteration
       obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
         cases gerr with
