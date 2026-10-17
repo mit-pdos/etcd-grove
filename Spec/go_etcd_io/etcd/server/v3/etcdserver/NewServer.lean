@@ -61,8 +61,9 @@ abbrev NewServer.spec : Prop :=
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
-  -- the configuration
-  cfg.Logger' ≠ null →
+  -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
+  -- `issues/etcd-compaction-negative-batch-limit.md`)
+  cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

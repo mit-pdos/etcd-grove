@@ -30,7 +30,31 @@ theorem EtcdServer.NewUberApplier.wp_proof
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hNU : apply.NewUberApplier.spec (GF := GF) (hG := hG)) :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro s E lg a cl kv au le ci be fg quota wad
+  wp_start as ⟨#Hlg, #Hkv, #Ha, #Hau, #Hle, #Hcl, #Hci, #Hbe, #Hfg, #Hgate, #Hquota, #Hwad,
+    #Hok, HRD⟩
+  ihave #Hgate' := Hgate
+  iunfold isFeatureGate at Hgate'
+  icases Hgate' with ⟨%fi, %Hfi, #HEn⟩
+  wp_auto
+  wp_apply hKV s kv $$ []
+  · iframe #
+  subst Hfi
+  wp_auto
+  wp_apply HEn as %b -
+  ihave #Hapkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
+  · iPkgInit
+  wp_apply hNU E _ $$ [HRD] as %ua ⟨%p, %Hua, #Hui, Hown⟩
+  · iframe HRD
+    iframe #
+    iapply Hok
+    ipureintro
+    simp only [and_self]
+  iapply HΦ
+  iexists p, _
+  iframe Hui Hown
+  ipureintro; exact Hua
 
 end proof
 

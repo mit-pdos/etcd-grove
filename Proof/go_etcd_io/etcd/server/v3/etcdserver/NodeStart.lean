@@ -24,10 +24,12 @@ its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok
   `raftCommitInv γ`, `isCommitted γ bootLog`, `ownRaftGhost γ cv.ID' (bootPState bootLog)`, the
   budget's invariant and `termLB bud 1` (`budget_alloc_boot`), `memStorReg`, `isStorage`/`ownStorage` of the fresh
   storage (`memOwnStorage_empty`, `memStorage_isStorage`);
-* the server's own invariants, taken as hypotheses: `rnEnvOk` (its `E.C` clauses are the KV
-  invariant's, the server-construction unit's: here for whichever wrapper names raft hands back
-  with these raft, budget and storage names), `srvCommittedInv s E.γr`, the names `E.γr.raft =
-  ⟨γ, [], 0⟩` and the conf-change policy `srvCCPolicy` (the server's choice at the allocation);
+* the server's own invariants: `rnEnvOk` (its `E.C` clauses are the KV invariant's, the
+  server-construction unit's: for the wrapper names raft hands back) and `srvCommittedInv s E.γr`,
+  premises of the installer (since unit N1 of the server-construction unit, 2026-10-17: `NewServer`
+  evaluates `newRaftNode` inside the `EtcdServer` literal, before the server `s` exists); the names
+  `E.γr.raft = ⟨γ, [], 0⟩` and the conf-change policy `srvCCPolicy` (the server's choice at the
+  allocation), premises of the call;
 * trust-boundary premises: `rnLogFits` (D10: raft's `Ready`s fit the `MemoryStorage`), `rnStopOk`
   (`Stop` returns), `rnTickerOk`/`isRNTicker` (Perennial models no ticker), the `InitialState`
   closure in `StartNode.spec`'s `□` shape (a `MemoryStorage`'s `InitialState` consumes
@@ -180,7 +182,7 @@ not etcd's own configuration**), the peers and the bootstrap log, and the server
 wrapper's struct value, the tokens, `srvRaftLogInv`, and the installer of `isRaftNode` at the
 address the server copies the struct to. -/
 abbrev NodeStartSpec (reg : GName) : Prop :=
-  ∀ (E : RNEnv GF) (s : Loc) (γ : RaftNames) (bud : BudgetNames) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (E : RNEnv GF) (γ : RaftNames) (bud : BudgetNames) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM),
     -- `newRaftNode`'s premises
@@ -230,12 +232,6 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
-        -- the server's own: `rnEnvOk` for the wrapper's names raft hands back, the committed
-        -- index's invariant
-        "#Henv" ∷ (∀ γw : RNNames,
-          ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
-            γw.node.mode = RNMode.static ∧ γw.pre = [] ∧ γw.ms = bv.storage'⌝ -∗ rnEnvOk E γw) ∗
-        "#Hcommi" ∷ srvCommittedInv s E.γr ∗
         -- trust boundary: raft's `Ready`s fit (D10), `Stop` returns
         "#Hfits" ∷ (∀ γw : RNNames,
           ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
@@ -256,8 +252,10 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
           -- `isServerBuilt`'s rows but `isRaftNode`
           rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ srvRaftLogInv E.γr.raft ∗
           -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
-          -- to, once its `transport` is set to `tr`
-          (∀ (a : Loc) (tr : GoInterface),
+          -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
+          -- wrapper's names and the committed index's invariant of the server `s` (allocated
+          -- after the call: `NewServer` evaluates `newRaftNode` inside the server's literal)
+          (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             a ↦ { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a) ∗
@@ -277,7 +275,7 @@ theorem raftNode_of_StartNode (reg : GName)
     (wp_ReadIndex : letI : MemStorReg GF := ⟨reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) reg := by
   letI : MemStorReg GF := ⟨reg⟩
-  intro E s γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
+  intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
     HbootOk HEγ HEpre HEai Hpol
   iintro %Φ Hpre HΦ
@@ -292,12 +290,7 @@ theorem raftNode_of_StartNode (reg : GName)
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
-  -- the server's `rnEnvOk` for these names, and the bridges
-  ihave #Henv' : rnEnvOk E γw $$ []
-  · iapply Henv
-    ipureintro
-    exact ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
-      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hwpre, Hwms⟩
+  -- the bridges
   ihave #Hfits' : rnLogFits γw $$ []
   · iapply Hfits
     ipureintro
@@ -307,8 +300,6 @@ theorem raftNode_of_StartNode (reg : GName)
   · iapply srvRaftLogInv_of_boot E.γr.raft bootLog HEpre HEai Hpol
     rw [HEγ]
     iframe Hcinv Hcomm
-  ihave #Hrsb : rnReadStateBridge E γw $$ []
-  · iapply rnReadStateBridge_of_raft E γw $$ Henv' Hlinv
   ihave #Hreg' : memStorReg γw.ms γw.γs $$ []
   · rw [Hwms, Hwγs]; iexact Hreg
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -319,10 +310,6 @@ theorem raftNode_of_StartNode (reg : GName)
     iexact Hreg'
   ihave #Hisnode : rnIsNode γw $$ []
   · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
-  ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
-  · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex
-    iframe Hpkg Henv' Hisnode Hlinv Hcommi
-    iapply Hstop
   -- the tokens
   ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw 0 (cfgState (GMap.listToSet ps) ∅) Hwpre
     $$ [Hdrv Hncfg Hprod Hcons Hcum Hcum0]
@@ -337,7 +324,13 @@ theorem raftNode_of_StartNode (reg : GName)
       Hrvlg, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
   iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers
   -- the installer
-  iintro %a %tr Ha #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi Ha #Htri Hmu'
+  ihave #Hrsb : rnReadStateBridge E γw $$ []
+  · iapply rnReadStateBridge_of_raft E γw $$ Henv' Hlinv
+  ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
+  · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex
+    iframe Hpkg Henv' Hisnode Hlinv Hcommi
+    iapply Hstop
   iapply isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } }
   iframe Hpkg Henv' Hfits' Hrsb Hreg' Ha Hmu' Hdtok

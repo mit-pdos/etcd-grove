@@ -30,7 +30,36 @@ theorem EtcdServer.restoreAlarms.wp_proof
     (hAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAS : v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro s lg be a0
+  wp_start as ⟨#Hlg, %Hlgnn, #Hbe, Ha0⟩
+  wp_auto
+  ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
+  · iPkgInit
+  ihave #Hapkg : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
+  · iPkgInit
+  wp_apply hAB lg be $$ [] as %ab -
+  wp_apply hAS lg ab $$ [] as %a %err Hres
+  · iframe #; ipureintro; exact Hlgnn
+  icases Hres with (%Herr | ⟨⟨%Herr, %Hann⟩, #Has, #Hap⟩)
+  · cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei =>
+      wp_auto
+      iapply HΦ
+      ileft
+      iframe Ha0
+      ipureintro; exact Herr
+  · subst Herr
+    wp_auto
+    iapply HΦ
+    iright
+    isplitr
+    · ipureintro; rfl
+    iexists a
+    iframe
+    iframe #
+    ipureintro; exact Hann
 
 end proof
 
