@@ -45,15 +45,19 @@ local macro "early_return" e:term : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type `RawNode.Step` does not take: vacuous. -/
-local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
-  (rw [h] at Hty; simp [netStepTypes,
-  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgHup,
+local macro "not_net" : tactic => `(tactic| (intro h; first
+  | (obtain h | h := h <;> (first | exact h.elim | (rw [h] at Hty; simp [netStepTypes,
+  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgHup,
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
   MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
+  | (first | exact h.elim | (rw [h] at Hty; simp [netStepTypes,
+  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgHup,
+  MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty))))
 
 /-- A stamped type is not one of the unstamped ones. -/
 local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
-  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
+  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp,
   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
 
 /-- The two guards, each an early return or on (`all_goals` over the paths that go on),
@@ -119,7 +123,7 @@ theorem RawNode.Step.wp_proof
           (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
       have P4 : m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id := by not_net
-      have P5 : m.Type' = MsgBeat → m.Term' = W64 0 := by not_net
+      have P5 : m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0 := by not_net
       have P6 : m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id) := by
         not_net
       have P7 : m.Type' = MsgStorageAppendResp → sn = none ∧

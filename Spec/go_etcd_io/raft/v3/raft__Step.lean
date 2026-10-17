@@ -67,20 +67,21 @@ open Iris Iris.BI go_etcd_io.raft.v3
 (2026-10-02; until then only `MsgHup`/`MsgVote`/`MsgVoteResp`, `ElectionMsg`;
 `MsgPreVote`/`MsgPreVoteResp` since 2026-10-04; the two local storage acknowledgements
 `RawNode.Advance` steps, `MsgStorageAppendResp`/`MsgStorageApplyResp`, since
-2026-10-05). -/
+2026-10-05; `MsgCheckQuorum` since 2026-10-17, with `CheckQuorum` on). -/
 def stepMsgTypes : List w32 :=
   [MsgHup, MsgVote, MsgVoteResp, MsgApp, MsgAppResp, MsgHeartbeat,
    MsgHeartbeatResp, MsgBeat, MsgProp, MsgSnap, MsgPreVote, MsgPreVoteResp,
    MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp,
-   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgTimeoutNow]
+   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgTimeoutNow,
+   MsgCheckQuorum]
 
 /-- (2026-10-13) The premises of the types `Step` was extended to last: the local reports
 (`ReportUnreachable`, `ReportSnapshot`) and `ForgetLeader` are unstamped (`Term = 0`);
 a `MsgTimeoutNow` makes a follower campaign, at the message's term if it is later, so
 neither term wraps; and a leader-transfer request stamped with a term (forwarded by a
 follower to the leader it knew, `To: r.lead`) reaches a node that, at that term, is no
-follower with a leader -- the leader it was sent to stays leader for the term (with
-`checkQuorum` off a leader steps down only to a later term) -- since a follower would
+follower with a leader -- the leader it was sent to stays leader for the term, or (2026-10-17,
+`checkQuorum` on) steps down at it to a follower with no leader, and no other node leads it -- since a follower would
 forward it again and `send` panics on a stamped `MsgTransferLeader`; and it carries no
 entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it).
 These are transport premises, like the others: no message fact carries them
@@ -364,7 +365,8 @@ abbrev raft.Step.spec : Prop :=
   -- with a sender (`From = 0`), or is stamped with the node's own id
   -- (`RawNode.Propose` sets `From: r.id`; since 2026-10-06). The proposal's batch is
   -- constrained in `Hm` below, where its list is named.
-  (m.Type' = MsgBeat → m.Term' = W64 0) →
+  -- (2026-10-17, `CheckQuorum` on) so is the quorum check `tickHeartbeat` steps
+  (m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0) →
   (m.Type' = MsgProp →
      m.Term' = W64 0 ∧
      (m.From' = W64 0 ∨ m.From' = id)) →
@@ -445,8 +447,8 @@ abbrev raft.Step.spec : Prop :=
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents ctx))) ∗
       -- the `Context`. (Until 2026-10-13 not the leader-transfer marker -- a transfer's
-      -- vote request is now an ordinary one: with `checkQuorum` off its `force` changes
-      -- nothing -- and empty on a heartbeat response; a read-index position is now what
+      -- vote request is now an ordinary one, whose `force` only bypasses the lease check
+      -- (2026-10-17, `checkQuorum` on) -- and empty on a heartbeat response; a read-index position is now what
       -- `isMessage` says it is.)
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗

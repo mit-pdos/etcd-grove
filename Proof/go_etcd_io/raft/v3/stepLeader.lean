@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
 public import Proof.go_etcd_io.raft.v3.stepLeader.MsgProp
+public import Proof.go_etcd_io.raft.v3.stepLeader.CheckQuorum
 
 @[expose] public section
 
@@ -76,7 +77,12 @@ theorem stepLeader.wp_proof
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
-    (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG)) :
+    (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
+    -- (2026-10-17, `CheckQuorum` on) the quorum check
+    (wp_ProgressTracker_QuorumActive :
+      tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG))
+    (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
+    (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s ml m ents sn ctx rs Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc⟩ HΦ
@@ -116,8 +122,8 @@ theorem stepLeader.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; exact Herr
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
-    Hty | Hty
-  rotate_right 6
+    Hty | Hty | Hty
+  rotate_right 7
   · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
       (Or.inr (Or.inr (Or.inr (Or.inr Hty)))) $$ [Hphys Hm] HΦ'
     iframe
@@ -141,6 +147,11 @@ theorem stepLeader.wp_proof
   · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
       r id s ml m ents ctx sn rs _ _ _ Hty Hlead $$ [Hphys Hm] HΦ'
+    iframe
+    iexact Hinit
+  · -- (2026-10-17) `MsgCheckQuorum`
+    iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
+      wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hty $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _

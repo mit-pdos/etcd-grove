@@ -100,6 +100,8 @@ def MsgStorageAppendResp : w32 := W32 20
 -- (2026-10-13) the local reports, leader transfer and `ForgetLeader`
 def MsgUnreachable : w32 := W32 10
 def MsgSnapStatus : w32 := W32 11
+-- (2026-10-17) `CheckQuorum` on: the leader's quorum check, which `tickHeartbeat` steps
+def MsgCheckQuorum : w32 := W32 12
 def MsgTransferLeader : w32 := W32 13
 def MsgTimeoutNow : w32 := W32 14
 def MsgForgetLeader : w32 := W32 23
@@ -898,6 +900,13 @@ structure NState [FfiSyntax] where
   demoted leader steps down in `switchToConfig` exactly when it is set. Never written after
   `newRaft` (`Config.StepDownOnRemoval`). Invisible to the protocol (`toPState`). -/
   sdr : Bool := false
+  /-- `r.checkQuorum` (2026-10-17; until then a scope conjunct of `ownRaftPhys` pinned it to
+  `false`), recorded: a leader past its election timeout steps `MsgCheckQuorum` and steps down
+  when the voters it heard from are no quorum; a node that heard from a leader within the
+  election timeout ignores a vote request of a higher term (`Step`'s lease check); a node
+  answers a stale leader's `MsgApp`/`MsgHeartbeat` with an empty `MsgAppResp`. Never written
+  after `newRaft` (`Config.CheckQuorum`). Invisible to the protocol (`toPState`). -/
+  cq : Bool := false
 
 /-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
 node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`

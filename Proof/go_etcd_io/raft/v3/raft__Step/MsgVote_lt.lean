@@ -99,13 +99,9 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_gets
   rw [decide_eq_true Hlt0]
   wp_auto
-  -- `checkQuorum` is off; with pre-vote on the type test runs: not MsgHeartbeat, not MsgApp
+  -- with `checkQuorum` or pre-vote on the type test runs: not MsgHeartbeat, not MsgApp
   wp_gets
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
-  cases s.prevote
-  all_goals try wp_auto
+  wp_cq_pv
   -- pre-vote on: not MsgHeartbeat, not MsgApp
   all_goals try
     (wp_gets

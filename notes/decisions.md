@@ -8136,7 +8136,15 @@ expands it by eye.
 
 ## The verified configuration turns `CheckQuorum` and `PreVote` off: a patched `bootstrap` (D15, temporary)
 
-**2026-10-17 · adopted (branch `raft-retarget`; the user's choice (b), a stopgap until (a) lands)**
+**2026-10-17 · adopted, then **reverted** the same day (branch `raft-retarget`; the user's choice (b), a stopgap until (a) lands)**
+
+**Reverted (2026-10-17, the user's decision once (a)'s `CheckQuorum` half was merged):** the patch
+only ever changed `CheckQuorum`, which the raft proof now covers (merge of `raft-checkquorum`,
+"`CheckQuorum` on"); `PreVote` comes from `cfg.PreVote` with no patch. So the etcd pin is back at
+`goose-lean` (`09669450f`; the translation identical to before D15), `ServerConfig.DisableCheckQuorum`
+is gone, `bootOk` states no `CheckQuorum` clause (the raft start result no longer reads it), and
+`NewServer.spec` keeps only `cfg.PreVote' = false`, a configuration etcd's code allows (embed's
+default is on). The fork branch `goose-lean-raft-cq-off` is no longer referenced.
 
 The raft start result (`NewRawNode.spec`, `bootstrappedRaft.newRaftNode.spec`) requires
 `CheckQuorum = false` and `PreVote = false`; etcd's `raftConfig` (`bootstrap.go:572`) sets
@@ -8377,3 +8385,38 @@ regenerated handler of another shape fails to build, and no axiom or `sorry` is 
   tactic macro (the user's choice: a named lemma with a docstring reads as the reasoning, a macro
   must be expanded by eye); deriving the generic body from the translation by a meta-program
   (more machinery than the copied term, which the build checks anyway).
+
+## `CheckQuorum` on: one model rule for a leader's step-down at its term
+
+**2026-10-17 · adopted** (branch `raft-checkquorum`, the user's decision "(a)": etcd's own
+`raftConfig`)
+
+`MsgCheckQuorum` makes a leader that heard from no quorum within the election timeout a follower
+at its own term (`becomeFollower(r.Term, None)`). The model had no such step for a leader
+(`Step.abandon` is a non-leader's).
+
+**Decision:** one rule `stepDown` (a leader becomes `pbecomeFollower s s.term 0`) in `Step` and
+`StepC`, and `StepR.stepDown` without its premise `id ∉ cfg.voters`, so that the reconfiguration
+step-down (`switchToConfig` with `StepDownOnRemoval`) and the quorum check are the same rule. Its
+ghost update is the one stage B5 proved for the removal step-down (`ownRaftGhost_step_stepDown`):
+the leader voted for itself at its term, so it neither votes nor campaigns there again, and the
+known-leaders table keeps its entry. `QuorumActive`'s answer is not related to the abstract state
+(`RecentActive` is in no `Progress` record), so `stepLeader`'s spec allows either outcome; that is
+all safety needs. `r.checkQuorum` is recorded (`NState.cq`), like `r.preVote` and
+`r.stepDownOnRemoval`, rather than pinned.
+
+- *Rejected:* dropping `Step.abandon`'s `role ≠ leader` premise instead of a new rule: the static
+  ghost lemma for `abandon` uses it (`leaderWit`, `ownLogGhost_mono` for a non-leader), and the
+  removal step-down already had its own rule in `StepR`.
+- `ReadOnlyLeaseBased` (which `CheckQuorum` would make a legal configuration) stays out of scope:
+  `ReadOnlyOption = ReadOnlySafe` remains a premise; etcd uses `ReadOnlySafe`.
+
+**Pre-vote at the `RawNode` layer (not adopted, waiting for the user):** `readyWithoutAccept`'s
+`∀ m ∈ ms, m.Term ≤ rs.term` is false with pre-vote on (a `MsgPreVote` is at `term + 1`, a granted
+`MsgPreVoteResp` at the requester's term). The proposal: a ghost term ceiling `tc` in `NGhost`,
+raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), exposed as
+`RNState.tc`; `Ready`'s bound becomes `m.Term ≤ max rs.term rs.tc`, and `node.go`'s budget holds
+`termLB` of the ceiling. A pre-candidate's win on a stale grant of its own term raises the term to
+`term + 1` past the message's, so `ownRawNode` must keep `preCandidate → term + 1 ≤ tc`, which
+needs a new `raft.Step` postcondition (`ownRaftPhys` cannot keep it: `reset` stores the term while
+the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and PreVote on".

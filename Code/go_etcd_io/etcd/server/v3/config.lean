@@ -42,7 +42,7 @@ noncomputable def CheckDuplicateURL [FfiSyntax] [GoGlobalContext] : GoString :=
 
 /-- ReqTimeout returns timeout for request to finish.
 
-    go: config.go:324:24 -/
+    go: config.go:316:24 -/
 noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -51,7 +51,7 @@ noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second))) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))))) (Val _root_.Perennial.time.Millisecond))))))))))
 
-/-- go: config.go:330:24 -/
+/-- go: config.go:322:24 -/
 noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -60,7 +60,7 @@ noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))) (Val _root_.Perennial.time.Millisecond))))))))
 
-/-- go: config.go:362:24 -/
+/-- go: config.go:354:24 -/
 noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -145,7 +145,6 @@ structure ServerConfig [FfiSyntax] where
   CorruptCheckTime' : _root_.Perennial.time.Duration
   CompactHashCheckTime' : _root_.Perennial.time.Duration
   PreVote' : Bool
-  DisableCheckQuorum' : Bool
   SocketOpts' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts
   Logger' : Loc
   ForceNewCluster' : Bool
@@ -164,7 +163,7 @@ structure ServerConfig [FfiSyntax] where
   Metrics' : GoString
 
 instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
-  ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨ServerConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def ServerConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
@@ -208,7 +207,6 @@ instance ServerConfig.zero_val [FfiSyntax] : ZeroVal ServerConfig :=
 (go.field_decl.FieldDecl go!"CorruptCheckTime" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"CompactHashCheckTime" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"PreVote" go.bool),
-(go.field_decl.FieldDecl go!"DisableCheckQuorum" go.bool),
 (go.field_decl.FieldDecl go!"SocketOpts" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts.ty),
 (go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"ForceNewCluster" go.bool),
@@ -321,8 +319,6 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_CompactHashCheckTime : ∀ (x : ServerConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"CompactHashCheckTime") (PairV #x #y) (Val #(({ x with CompactHashCheckTime' := y } : ServerConfig)))
   get_PreVote : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"PreVote") #x (Val #(x.PreVote'))
   set_PreVote : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"PreVote") (PairV #x #y) (Val #(({ x with PreVote' := y } : ServerConfig)))
-  get_DisableCheckQuorum : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"DisableCheckQuorum") #x (Val #(x.DisableCheckQuorum'))
-  set_DisableCheckQuorum : ∀ (x : ServerConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"DisableCheckQuorum") (PairV #x #y) (Val #(({ x with DisableCheckQuorum' := y } : ServerConfig)))
   get_SocketOpts : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"SocketOpts") #x (Val #(x.SocketOpts'))
   set_SocketOpts : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"SocketOpts") (PairV #x #y) (Val #(({ x with SocketOpts' := y } : ServerConfig)))
   get_Logger : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Logger") #x (Val #(x.Logger'))
@@ -443,8 +439,6 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.set_CompactHashCheckTime
   ServerConfig.TypeAssumptions.get_PreVote
   ServerConfig.TypeAssumptions.set_PreVote
-  ServerConfig.TypeAssumptions.get_DisableCheckQuorum
-  ServerConfig.TypeAssumptions.set_DisableCheckQuorum
   ServerConfig.TypeAssumptions.get_SocketOpts
   ServerConfig.TypeAssumptions.set_SocketOpts
   ServerConfig.TypeAssumptions.get_Logger

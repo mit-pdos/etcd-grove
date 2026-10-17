@@ -160,7 +160,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A premise of `Step` about another message type: the type is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
-  MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
+  MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum, MsgSnap,
   MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
   MsgReadIndexResp, appendAckM, applyAckM, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
@@ -174,7 +174,7 @@ local macro "not_self" : tactic => `(tactic| (
   | (exfalso
      rcases Hty with Hty | Hty | Hty <;> rw [Hty] at Hc <;>
        simp [MsgHup, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat,
-         MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
+         MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
          MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc)))
 
 /-- The node's id is nonzero (the ghost state's `Hidnz`): a self-addressed response's

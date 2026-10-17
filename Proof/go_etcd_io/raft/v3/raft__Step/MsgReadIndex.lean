@@ -47,7 +47,7 @@ theorem followerStepResult_readIndex (c : CfgM) {scfg : CSLists} {c' : CfgM} (id
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, W32] at H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, W32] at H
   simpa using H
 
 theorem candidateStepResult_readIndex (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
@@ -60,7 +60,7 @@ theorem candidateStepResult_readIndex (c : CfgM) {scfg : CSLists} {c' : CfgM} (i
   replace H := H.2
   rcases Hty with h | h <;>
   simp only [h, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, W32] at H <;>
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, W32] at H <;>
   simpa using H
 
 theorem toPState_rd_leader' (s : NState) (Hr : s.role = .leader) : (toPState s).rd = s.rd := by
@@ -207,7 +207,9 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
     obtain ⟨rfl, Hres⟩ := Hres
     unfold LeaderNonpropResultC at Hres
-    rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hri⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+    rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hri⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩
+    rotate_right
+    · exfalso; first | (rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne)) | (rcases Hty with h' | h' <;> rw [h'] at Hc7 <;> exact absurd Hc7 (by w32_ne)) | exact absurd Hc7 (by w32_ne)
     rotate_right
     · exfalso
       rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)

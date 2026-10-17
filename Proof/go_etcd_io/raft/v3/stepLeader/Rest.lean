@@ -259,7 +259,7 @@ private theorem rest_res (id : w64) (s : NState) (m : MessageM) (ents : List Ent
     (Hms : ReplSends id s ms) (Hmm : prvalsMatch pvs = prvalsMatch s.prvals) :
     LeaderNonpropResultC c id s m ents ctx
       { sendMsgs { s with lt := lt' } ms with prvals := pvs } :=
-  Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, lt', ms, pvs, rfl, Hms, Hmm⟩))))
+  Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, lt', ms, pvs, rfl, Hms, Hmm⟩)))))
 
 private theorem rest_nil (s : NState) :
     s = { sendMsgs { s with lt := s.lt } [] with prvals := s.prvals } := by
@@ -270,7 +270,9 @@ private theorem rest_res_self (id : w64) (s : NState) (m : MessageM)
     (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader) :
     LeaderNonpropResultC c id s m ents ctx s := by
-  have H := rest_res c id s m ents ctx s.lt [] s.prvals Hty
+  have H : LeaderNonpropResultC c id s m ents ctx
+      { sendMsgs { s with lt := s.lt } [] with prvals := s.prvals } :=
+    rest_res c id s m ents ctx s.lt [] s.prvals Hty
     (fun _ h => absurd h List.not_mem_nil) rfl
   rwa [← rest_nil s] at H
 

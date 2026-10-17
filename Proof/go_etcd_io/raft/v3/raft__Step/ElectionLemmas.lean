@@ -137,6 +137,87 @@ macro "wp_get" : tactic =>
 macro "wp_gets" : tactic => `(tactic| repeat (wp_get; try wp_auto))
 
 set_option hygiene false in
+/-- (2026-10-17, `CheckQuorum` on) `Step`'s lease check on a `MsgVote`/`MsgPreVote` of a higher
+term, from the load of `r.checkQuorum` on (`force`, the message's `Context` the transfer marker
+or not, is `Hforce`'s):
+
+    inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout
+    if !force && inLease { r.logger.Infof(...); return nil }
+
+Split on `r.checkQuorum` (`Hcq`), the leader and the election timer, then on `force`. Where the
+message is ignored (`checkQuorum` on, a leader known, within the timeout, not forced) the step is
+`StepC.refl`, closed here; every other goal is left at the code after the check, `inLease`
+having been false or the request forced. -/
+macro "wp_lease_check " cx:term : tactic => `(tactic| (
+  wp_apply Perennial.EtcdGrove.raft.wp_load_checkQuorumC $$ Hphys as Hphys
+  cases Hcq : s.cq
+  all_goals try wp_auto
+  all_goals try (
+    have _ : s.cq = true := Hcq
+    wp_apply Perennial.EtcdGrove.raft.wp_load_leadC $$ Hphys as Hphys
+    try wp_auto
+    wp_if_destruct)
+  all_goals try (
+    have _ : s.cq = true := Hcq
+    wp_apply Perennial.EtcdGrove.raft.wp_load_electionElapsedC $$ Hphys as %ee Hphys
+    try wp_auto
+    wp_apply Perennial.EtcdGrove.raft.wp_load_electionTimeoutC $$ Hphys as %et ⟨Hphys, %Het⟩
+    try wp_auto)
+  all_goals by_cases Hforce : $cx = go!"CampaignTransfer"
+  all_goals (
+    wp_gets
+    try (first | rw [decide_eq_true Hforce] | rw [decide_eq_false Hforce])
+    try wp_auto)
+  -- not forced, a leader known: the timer decides
+  all_goals try (
+    have _ : s.cq = true := Hcq
+    have _ : ¬ $cx = go!"CampaignTransfer" := Hforce
+    have _ : ¬ s.lead = W64 0 := Hif
+    wp_if_destruct)
+  -- ignored within the lease: `lastEntryID` for the log line, then `nil`
+  all_goals try (
+    wp_apply Perennial.EtcdGrove.raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases Perennial.EtcdGrove.ownRaftPhysC_log_same $$ Hphys with ⟨Hlog1, Hback⟩
+    wp_gets
+    wp_apply _P.lastEntryID $$ [Hlog1] as %lastID ⟨Hlog1, -⟩
+    · iframe
+    ihave Hphys := Hback $$ Hlog1
+    try wp_auto
+    repeat (first
+      | (wp_get; try wp_auto)
+      | (wp_apply Perennial.EtcdGrove.raft.wp_load_idC $$ Hphys as Hphys; try wp_auto)
+      | (wp_apply Perennial.EtcdGrove.raft.wp_load_VoteC $$ Hphys as Hphys; try wp_auto)
+      | (wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys; try wp_auto)
+      | (wp_apply Perennial.EtcdGrove.raft.wp_load_electionTimeoutC $$ Hphys as %et' ⟨Hphys, -⟩;
+         try wp_auto)
+      | (wp_apply Perennial.EtcdGrove.raft.wp_load_electionElapsedC $$ Hphys as %ee' Hphys;
+         try wp_auto))
+    wp_raft_logC
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    first
+      | exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil,
+          Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
+          Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
+      | exact ⟨Hwf, Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _),
+          rfl, Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩)))
+
+set_option hygiene false in
+/-- (2026-10-17, `CheckQuorum` on) `Step`'s `r.checkQuorum || r.preVote`, in the stale-term arm:
+both loads, split on both flags -- `checkQuorum` off with pre-vote off, off with pre-vote on, and
+on (the `||` short-circuits) -- each run past the `||`. -/
+macro "wp_cq_pv" : tactic => `(tactic| (
+  wp_apply Perennial.EtcdGrove.raft.wp_load_checkQuorumC $$ Hphys as Hphys
+  cases s.cq
+  all_goals try wp_auto
+  all_goals try (
+    wp_gets
+    wp_apply Perennial.EtcdGrove.raft.wp_load_preVoteC $$ Hphys as Hphys
+    cases s.prevote)
+  all_goals try wp_auto))
+
+set_option hygiene false in
 /-- `m.Type' = W32 k` is false: `m` is a `MsgVote` (`Hty`). -/
 macro "ty_ne " k:num : tactic =>
   `(tactic| (wp_gets; rw [decide_eq_false (show m.Type' ≠ W32 $k by rw [Hty]; w32_ne)]))

@@ -45,6 +45,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgAppResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeatResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgBeat
+public import Proof.go_etcd_io.raft.v3.raft__Step.MsgCheckQuorum
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVote
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp
@@ -349,6 +350,29 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
         {{ v, |={⊤}=> Φ v }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HΦ
   wp_apply (wp_Step_MsgBeat P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf)
+    $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+  iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
+      (by resp_other) $$ Hghost Hrest Hphys [] HΦ
+  ileft; ipureintro; exact Herr
+
+/-- `MsgCheckQuorum` (2026-10-17, `CheckQuorum` on): as `MsgBeat`, a local message; the leader
+may step down at its term. -/
+private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
+    (rs : List Loc) (Φ : val → IProp GF)
+    (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
+    (Hty : m.Type' = MsgCheckQuorum) (Hterm : m.Term' = W64 0) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
+      ownRaftPhysCV c c.voters r id s -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
+      msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
+      ▷ stepPost γ md c r id s m Φ -∗
+      WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+        {{ v, |={⊤}=> Φ v }} := by
+  iintro #Hinit Hphys Hghost Hrest Hmsg HΦ
+  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) $$ Hghost Hrest Hphys [] HΦ
@@ -820,7 +844,11 @@ theorem raft.Step.wp_proof
       $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
   by_cases Hty : m.Type' = MsgBeat
   · -- MsgBeat: `dispatch_Beat`.
-    iapply dispatch_Beat P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hbeat Hty)
+    iapply dispatch_Beat P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hbeat (.inl Hty))
+      $$ Hinit Hphys Hghost Hrest Hmi HΦ
+  by_cases Hty : m.Type' = MsgCheckQuorum
+  · -- MsgCheckQuorum (2026-10-17): `dispatch_CheckQuorum`.
+    iapply dispatch_CheckQuorum P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Hbeat (.inr Hty))
       $$ Hinit Hphys Hghost Hrest Hmi HΦ
   by_cases Hty : m.Type' = MsgReadIndex
   · -- MsgReadIndex (2026-10-13): `dispatch_ReadIndex`, with the request's credit.
@@ -875,11 +903,11 @@ theorem raft.Step.wp_proof
       (fun _ => Hfr) (fun _ => Htm) (by resp_other)
       (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hrest Hphys [] HΦ
     ileft; ipureintro; exact Herr
-  -- none of the twenty-one (the two storage acknowledgements were handled above)
+  -- none of the twenty-two (the two storage acknowledgements were handled above)
   exfalso
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
   rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h |
-    h <;> first | contradiction | exact HtyL (by simp [h])
+    h | h <;> first | contradiction | exact HtyL (by simp [h])
 
 end dispatch
 

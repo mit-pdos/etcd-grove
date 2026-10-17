@@ -805,7 +805,8 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
   -- `stepLeader` refuses a conf change while one is pending or the configuration is not
   -- as the change expects. Never written after `newRaft`.
   "%HnoCCV" ∷ ⌜rv.disableConfChangeValidation' = false⌝ ∗
-  "%HnoCheckQuorum" ∷ ⌜rv.checkQuorum' = false⌝ ∗
+  -- `r.checkQuorum` (2026-10-17; until then a scope conjunct pinned it to `false`), recorded
+  "%HnoCheckQuorum" ∷ ⌜rv.checkQuorum' = s.cq⌝ ∗
   -- `r.isLearner` (2026-10-13; until then a scope conjunct pinned it to `false`), recorded
   "%HnoLearner" ∷ ⌜rv.isLearner' = s.isLearner⌝ ∗
   -- `r.leadTransferee` (2026-10-13; until then a scope conjunct pinned it to `0`): never
@@ -876,7 +877,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
     rv.disableProposalForwarding' = false →
     rv.disableConfChangeValidation' = false →
-    rv.checkQuorum' = false →
+    rv.checkQuorum' = s.cq →
     rv.isLearner' = s.isLearner →
     rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
     rv.pendingConfIndex' = s.pci →
@@ -964,7 +965,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
     rv.disableProposalForwarding' = false →
     rv.disableConfChangeValidation' = false →
-    rv.checkQuorum' = false →
+    rv.checkQuorum' = s.cq →
     rv.isLearner' = s.isLearner →
     rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
     rv.pendingConfIndex' = s.pci →
@@ -1514,7 +1515,7 @@ theorem ownRaftPhys_intro_trk (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
     rv.disableProposalForwarding' = false →
     rv.disableConfChangeValidation' = false →
-    rv.checkQuorum' = false →
+    rv.checkQuorum' = s.cq →
     rv.isLearner' = s.isLearner →
     rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
     rv.pendingConfIndex' = s.pci →
@@ -1879,7 +1880,7 @@ theorem ownRaftPhysC_shared (r : Loc) (id : w64) (s : NState) :
 theorem raft.wp_load_checkQuorumC (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
       (App (Val (GoInstruction (GoLoad go.bool))) (Val #(r.[raft, go!"checkQuorum"])))
-    {{ RET #false; ownRaftPhysCV c V r id s }} := by
+    {{ RET #s.cq; ownRaftPhysCV c V r id s }} := by
   iintro %Φ H HΦ
   iNamed_physC H
   wp_apply wp_load_access _ rv.checkQuorum' _ (raftOwn_access_load_checkQuorum _ _) $$ Hr as Hr
