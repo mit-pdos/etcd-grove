@@ -45,6 +45,29 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#19693, bootstrap from the backend's position (2026-10-17, branch `pr-verify/etcd-19693`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-19693-goose-lean` (the pin plus the
+PR's commits 2-3; its first, "Remove v2 store", is upstream), so `etc/goose.py --check` fails here.
+Translated (`etcdserver.toml`, `schema.toml`): `bootstrapWALFromBackend`,
+`bootstrappedWAL.MemoryStorage`, the types `bootstrappedWAL`, `snapshotMetadata`, and schema's
+`ReadConfStateFromBackend` (schema now imports `zap` and `raftpb`, so the server's `Base.lean`
+imports raft's `Base` for raftpb's package facts). Proved: `bootstrappedWAL.MemoryStorage` over
+raft's `MemoryStorage` specs (the append token from `memStorage_handout`, the receipt absorbed);
+`bootstrapWALFromBackend` **off `--force-new-cluster` only** (a premise); `ReadConfStateFromBackend`.
+New trust-boundary axioms: `openWALFromPosition` (the names-only `wal` package's `Open`/`ReadAll`),
+`schema.UnsafeConfStateFromBackend` (`json.Unmarshal`), `(*types.ID).String`. The model of the
+restart (`InvBootWAL.lean`: `bwalStor`, `RestartOk` = `raft.loadState`'s premise) and three Go
+tests show the PR's restart failures (report: `notes/pr-verify/etcd-19693.md`).
+
+**Limitations met**: (1) a names-only package (`client/pkg/v3/types`) gets no method set for
+its pointer types, so `(*ID).String` (Go's lifted method) is opaque and needs its own axiom
+(`ID__String_ptr`, as `time.Duration.Seconds_ptr`); (2) raft's `memStorage_handout`/`absorb` are
+stated in a section over `[StorageModel GF]` they do not use, so a client proof that calls them
+takes the instance (`bootstrappedWAL.MemoryStorage.spec` is stated over it for `gen-link.py`);
+(3) `bootstrapWALFromBackend` takes `cfg` by value, so it reaches the generated `sorry` instances
+of `ServerConfig`'s axiomatized field types, as `Finalize` on `pr-verify/etcd-21867` does.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

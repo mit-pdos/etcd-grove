@@ -1,0 +1,17 @@
+# etcd-io/etcd#19693 (pr-verify): the WAL bootstrap from the backend position.
+roots bootstrapWALFromBackend
+roots bootstrappedWAL__MemoryStorage
+roots ReadConfStateFromBackend
+axiom openWALFromPosition.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom schema.UnsafeConfStateFromBackend.wp_proof
+axiom types.ID.String_ptr.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Uint64.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_into_val_typed
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_typed_pointsto
