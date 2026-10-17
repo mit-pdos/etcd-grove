@@ -1,0 +1,9 @@
+=== RUN   TestHashKVHandlerBodyBound
+=== RUN   TestHashKVHandlerBodyBound/exactly_the_limit
+    corrupt_bodybound_test.go:93: body 65536 bytes: status 200, read 65536 bytes
+=== RUN   TestHashKVHandlerBodyBound/one_byte_over
+    corrupt_bodybound_test.go:93: body 65537 bytes: status 413, read 65537 bytes
+=== RUN   TestHashKVHandlerBodyBound/16_MiB
+    corrupt_bodybound_test.go:93: body 16777216 bytes: status 413, read 65537 bytes
+--- PASS: TestHashKVHandlerBodyBound (0.07s)
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.100s

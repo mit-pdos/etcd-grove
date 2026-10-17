@@ -389,3 +389,16 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 StartNode: @
 newRaftNode:
 bootstrappedRaft__newRaftNode: StartNode newRaftNode
+# The peer hashKV handler (corrupt.go; PR etcd#22243, 2026-10-17), see InvHashKV.lean: net/http
+# (MaxBytesReader, Error, Header's Get and Set), io.ReadAll over a MaxBytesReader, encoding/json
+# (the request's Unmarshal, the response's Marshal) and errors.As of an error of exactly the
+# target's type are the trust boundary.
+http_MaxBytesReader:
+http_Error:
+http_Header__Get:
+http_Header__Set:
+io_ReadAllMaxBytes:
+json_UnmarshalHashKVRequest:
+json_MarshalHashKVResponse:
+errors_AsExact:
+hashKVHandler__ServeHTTP: EtcdServer__KV EtcdServer__Cluster membership_RaftCluster__ID types_ID__String zap_Logger__Warn zap_Error zap_Int64 http_MaxBytesReader http_Error http_Header__Get http_Header__Set io_ReadAllMaxBytes json_UnmarshalHashKVRequest json_MarshalHashKVResponse errors_AsExact

@@ -1,0 +1,14 @@
+=== RUN   TestHashKVHandlerBodyBound
+=== RUN   TestHashKVHandlerBodyBound/exactly_the_limit
+    corrupt_bodybound_test.go:93: body 65536 bytes: status 200, read 65536 bytes
+=== RUN   TestHashKVHandlerBodyBound/one_byte_over
+    corrupt_bodybound_test.go:93: body 65537 bytes: status 200, read 65537 bytes
+    corrupt_bodybound_test.go:98: status 200, want 413
+=== RUN   TestHashKVHandlerBodyBound/16_MiB
+    corrupt_bodybound_test.go:93: body 16777216 bytes: status 200, read 16777216 bytes
+    corrupt_bodybound_test.go:98: status 200, want 413
+    corrupt_bodybound_test.go:101: read 16777216 bytes of the body, want at most 65537
+--- FAIL: TestHashKVHandlerBodyBound (0.11s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.132s
+FAIL

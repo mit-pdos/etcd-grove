@@ -137,6 +137,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Proof.context.ValueStartTime
 public import Proof.context.WithValue
+public import Proof.errors.AsExact
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
@@ -148,12 +149,20 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.hashKVHandler__ServeHTTP
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Push
+public import Proof.net.http.Error
+public import Proof.net.http.Header__Get
+public import Proof.net.http.Header__Set
+public import Proof.net.http.MaxBytesReader
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
+public import Proof.io.ReadAllMaxBytes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
+public import Proof.encoding.json.MarshalHashKVResponse
+public import Proof.encoding.json.UnmarshalHashKVRequest
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Less
@@ -1203,6 +1212,42 @@ theorem wp_newRaftNode :
 theorem bootstrappedRaft.wp_newRaftNode [StorageModel GF] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
   bootstrappedRaft.newRaftNode.wp_proof wp_StartNode EtcdGrove.wp_newRaftNode
+
+theorem errors.wp_AsExact :
+    errors.AsExact.spec (GF := GF) (hG := hG) :=
+  errors.AsExact.wp_proof
+
+theorem http.wp_MaxBytesReader :
+    http.MaxBytesReader.spec (GF := GF) (hG := hG) :=
+  http.MaxBytesReader.wp_proof
+
+theorem http.wp_Error :
+    http.Error.spec (GF := GF) (hG := hG) :=
+  http.Error.wp_proof
+
+theorem http.Header.wp_Get :
+    http.Header.Get.spec (GF := GF) (hG := hG) :=
+  http.Header.Get.wp_proof
+
+theorem http.Header.wp_Set :
+    http.Header.Set.spec (GF := GF) (hG := hG) :=
+  http.Header.Set.wp_proof
+
+theorem io.wp_ReadAllMaxBytes :
+    io.ReadAllMaxBytes.spec (GF := GF) (hG := hG) :=
+  io.ReadAllMaxBytes.wp_proof
+
+theorem json.wp_UnmarshalHashKVRequest :
+    json.UnmarshalHashKVRequest.spec (GF := GF) (hG := hG) :=
+  json.UnmarshalHashKVRequest.wp_proof
+
+theorem json.wp_MarshalHashKVResponse :
+    json.MarshalHashKVResponse.spec (GF := GF) (hG := hG) :=
+  json.MarshalHashKVResponse.wp_proof
+
+theorem hashKVHandler.wp_ServeHTTP :
+    hashKVHandler.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  hashKVHandler.ServeHTTP.wp_proof EtcdServer.wp_KV EtcdServer.wp_Cluster membership.RaftCluster.wp_ID types.ID.wp_String zap.Logger.wp_Warn zap.wp_Error zap.wp_Int64 http.wp_MaxBytesReader http.wp_Error http.Header.wp_Get http.Header.wp_Set io.wp_ReadAllMaxBytes json.wp_UnmarshalHashKVRequest json.wp_MarshalHashKVResponse errors.wp_AsExact
 
 theorem lease.Lease.wp_persistTo :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) :=
