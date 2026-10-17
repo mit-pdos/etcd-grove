@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22585, the leasing cache's `Count` after a delete (2026-10-16, branch `pr-verify/etcd-22585`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22585-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `leaseCache.delete` now sets the cached response's
+`Count` to 0 (`LeaseEntry.del`), and a new invariant `LeaseEntry.countOk` (at most one cached
+key-value, `Count` their number) is part of `entryOwn`, established at acquisition
+(`keyGet_count`, `acquireResult`'s count), kept by `Update`/`delete`, exported by `leaseCache.Get`,
+`getCached`/`getAcquired` and `respOpFresh`. No new axiom or `sorry`. The bug the PR fixes, in the
+pinned code: `issues/leasing-delete-stale-count.md`. Report: `notes/pr-verify/etcd-22585.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

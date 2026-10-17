@@ -104,9 +104,9 @@ instance cmpsSetAt_persistent (sl : GoSlice) (ms : List CmpModel) :
   unfold cmpsSetAt; infer_instance
 
 /-- A fresh `*pb.ResponseOp` `p` (owned) wrapping the cached get's answer to `o` from the entry
-`e` (a fresh response, `freshGetResp`). -/
+`e` (a fresh response, `freshGetResp`, whose `Count` is `e.count`: `e.countOk`). -/
 def respOpFresh (p : Loc) (o : OpFull) (e : LeaseEntry) : IProp GF :=
-  iprop(⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+  iprop(⌜p ≠ null⌝ ∗ ⌜e.countOk⌝ ∗ ∃ (w r : Loc),
     structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦
       interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseRange.ty) #w ∗
     structFieldRef etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" w ↦ r ∗

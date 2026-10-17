@@ -162,7 +162,7 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
       simp only
       iframe
       iframe #
-      have hcnt2 : ∀ c' : CachedKv, e1.count = W64 ((c' :: cs).length : Int) := by
+      have hcnt2 : ∀ c' : CachedKv, (c' :: cs).length ≤ 1 ∧ e1.count = W64 ((c' :: cs).length : Int) := by
         intro c'; unfold LeaseEntry.countOk at hcnt1; rw [hc] at hcnt1; simpa using hcnt1
       ipureintro
       first | exact ⟨hli, ⟨Hrnn, Hhnn, Hc0nn⟩, hcnt2 _⟩ | exact ⟨hli, ⟨Hrnn, Hc0nn⟩, hcnt2 _⟩
@@ -185,7 +185,7 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
       simp only
       iframe
       iframe #
-      have hcnt2 : ∀ c' : CachedKv, e1.count = W64 ((c' :: cs).length : Int) := by
+      have hcnt2 : ∀ c' : CachedKv, (c' :: cs).length ≤ 1 ∧ e1.count = W64 ((c' :: cs).length : Int) := by
         intro c'; unfold LeaseEntry.countOk at hcnt1; rw [hc] at hcnt1; simpa using hcnt1
       ipureintro
       first | exact ⟨hli, ⟨Hrnn, Hhnn, Hc0nn⟩, hcnt2 _⟩ | exact ⟨hli, ⟨Hrnn, Hc0nn⟩, hcnt2 _⟩

@@ -1,0 +1,11 @@
+--- FAIL: TestLeaseCacheDeleteClearsCount (0.00s)
+    cache_test.go:66: 
+        	Error Trace:	<upstream d3c8a1559>/client/v3/leasing/cache_test.go:66
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestLeaseCacheDeleteClearsCount
+        	Messages:   	Count should be 0 after delete
+FAIL
+FAIL	go.etcd.io/etcd/client/v3/leasing	0.012s
+FAIL
