@@ -8,7 +8,8 @@ public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__newWatchClient
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__joinSubstreams
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__waitCancelSubstreams
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__openWatchClient
-public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__serveWatchClient
+public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__recvLoop
+public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__sendLoop
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 
 @[expose] public section
@@ -37,11 +38,12 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     (wp_join : watchGRPCStream.joinSubstreams.spec (GF := GF) (hG := hG))
     (wp_wait : watchGRPCStream.waitCancelSubstreams.spec (GF := GF) (hG := hG))
     (wp_open : watchGRPCStream.openWatchClient.spec (GF := GF) (hG := hG))
-    (wp_serve : watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG))
+    (wp_serve : watchGRPCStream.recvLoop.spec (GF := GF) (hG := hG))
+    (wp_sendLoop : watchGRPCStream.sendLoop.spec (GF := GF) (hG := hG))
     (wp_Error : rpctypes.Error.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.newWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V G callSl m0 s0 rc γrc γresp
-  wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, #Hrespc, Hrespo⟩
+  intro V G callSl m0 s0 rc γrc γresp cc0 bc0
+  wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, #Hrespc, Hrespo, Fsc, Fsb, Had, Htt⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgsnn, ⟨%vs, #Hvs, #Hcoo⟩, #Hsf, %Hlg, #Fowner, #Fremote, #Fcall, #Fctx, #Fckey,
@@ -100,10 +102,44 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   wp_for IH2
   icases Hopen with (⟨%Herr, %γs, %Dn, %cd', #Hcli, Htok, Hrtok, #Hspec⟩ | ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
   · subst Herr
-    wp_auto
+    (try wp_auto)
+    wp_apply chan.wp_make2 (V := Loc) (W64 16) as %cc %γcc ⟨#Hccc, %-, Hcco⟩
+    · ipureintro; decide
+    (try wp_auto)
+    wp_apply chan.wp_make2 (V := Loc) (W64 128) as %bc %γbc ⟨#Hbcc, %-, Hbco⟩
+    · ipureintro; decide
+    (try wp_auto)
+    imod start_spsc (V := Loc) cc (sendElem V) (fun _ => iprop(True)) γcc $$ Hccc [Hcco]
+      with ⟨%γc, #Hcsp, Hcprod, Hccons⟩
+    · iright; iexact Hcco
+    imod start_spsc (V := Loc) bc (sendElem V) (fun _ => iprop(True)) γbc $$ Hbcc [Hbco]
+      with ⟨%γb, #Hbsp, Hbprod, Hbcons⟩
+    · iright; iexact Hbco
+    ipersist Fsc
+    ipersist Fsb
+    ihave #HQ : sendQIs V G.wgs (SendQ.mk cc γc bc γb) $$ []
+    · iunfold sendQIs
+      iframe #
+    ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+    · iPkgInit
+    wp_apply wp_wgsWg_Add $$ [Had Htt] as ⟨Had, Hwd⟩
+    · iframe
     imod start_spsc (V := Loc) G.respc (respcElem γs Dn) (fun _ => iprop(False)) γresp $$ Hrespc
       [Hrespo] with ⟨%γr, #Hsp, Hprod, Hcons⟩
     · ileft; iexact Hrespo
+    ipersist w
+    ipersist wc
+    wp_apply wp_fork_tok_self $$ [Hwd Htok Hccons Hbcons] as Htt
+    · (try wp_auto)
+      wp_apply wp_with_defer as %defer' defer'
+      (try wp_auto)
+      wp_apply wp_sendLoop V G callSl (SendQ.mk cc γc bc γb) wc γs Dn cd' [] [] [] $$ [Htok Hccons Hbcons]
+      · iframe #; iframe
+      (try wp_auto)
+      wp_apply wp_wgsWg_Done $$ [Hwd] as Htt
+      · iframe #; iframe
+      (try wp_auto)
+      iframe Htt
     wp_apply wp_fork $$ [Hrtok Hprod]
     · wp_apply wp_serve V G callSl wc γs Dn cd' γr $$ [$Hrtok $Hprod]
       · iframe #
@@ -118,7 +154,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γs, Dn, cd', γr
+    iexists γs, Dn, γr, SendQ.mk cc γc bc γb
     iframe #
     iframe
   · cases err with
@@ -136,7 +172,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
         · iapply (ownSliceCap_nil (V := Loc))
       iright
       isplitr
-      · ipureintro; exact ⟨rfl, Hne'⟩
+      · ipureintro; exact Hne'
       iframe #
       iframe
 
