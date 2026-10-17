@@ -100,7 +100,9 @@ run every `lake` (and the scripts that call it) with `LAKE_ARTIFACT_CACHE=true
 LAKE_RESTORE_ARTIFACTS=true` (the second copies artifacts into `.lake/build`, where
 `etc/tcb-report.py` and `etc/verified-code.py` look). Symlink the worktree's `.lake/packages` to the
 main checkout's (do not change the dependencies). The cache is filled by a build of `lean` with the
-same variables in the main checkout; if it is empty, run that first. When done, delete the worktree's
+same variables in the main checkout; if it is empty, run that first. (Lake 4.34's cache can fail a
+module with `failed to cache artifact: no such file or directory` under parallel builds, seen
+2026-10-16; rerunning the same `lake build` finishes it.) When done, delete the worktree's
 `.lake/build` (the cache keeps the artifacts). Then:
 
 - if a changed or new function is in a package translated names-only, or excluded by its `.toml`, add
@@ -194,6 +196,13 @@ the affected packages, before and after.
 - A bug the PR fixes that `issues/` records: the report says whether the proof confirms the fix.
 - Bugs in this repository's specs and proofs go in the branch's `notes/`.
 
+Everything the report relies on is committed on `pr-verify/<repo>-<n>`, in `notes/pr-verify/<repo>-<n>/`:
+every Go test or probe written for a finding (the reviewer's too), as `.go` files named as they would be
+in the target repo, scripts and models, and small logs that show a result (a failing test's output). A
+`README.md` there lists each file: what it shows, the revision it runs against (the PR head, the
+upstream base, the fork branch), and the command (`cp <file> <checkout>/ && go test -run <Name> .`). The
+report links these paths, not the scratchpad or a scratch worktree, which do not outlive the session.
+
 ### 9. Report
 
 `notes/pr-verify/<repo>-<n>.md`, on the branch:
@@ -209,7 +218,7 @@ the affected packages, before and after.
 - the caller graph of step 6;
 - the trust base of step 7: new postulates and `sorry`s, with a sentence each on why they are
   believed;
-- findings (step 8), and the reviewer's open points;
+- findings (step 8), and the reviewer's open points, each with its test in `notes/pr-verify/<repo>-<n>/`;
 - optionally, a draft review comment for the PR, in etcd's terms (no vocabulary of this repository:
   spec, proof, Goose, postulate), for the user to edit and post. Same writing rules as
   `.claude/skills/upstream-report`, "Writing for upstream".
