@@ -4,7 +4,7 @@
   one commit. Says it fixes #25 (a closed draft PR, "prevent follower panic on commit index
   regression"). In #25, tbg asked for a reproduction and proposed opt-in, event-based handling
   instead; that became issue #29.
-- Verified at: fork branch `pr-raft-104-goose-lean`, commit `d9ab8730d`, which is the PR's `log.go`
+- Verified at: fork branch `pr-raft-104-goose-lean`, commit `0997b9505`, which is the PR's `log.go`
   and `log_test.go` changes applied onto the pinned raft base `509271dac` (`raft37-goose-lean`:
   raft v3.7.0 plus the single-voter read-index fix). The patch applied cleanly with no conflicts and
   no rewrites, so the verified code is the PR's code. `go build ./...` and `go test .` pass on the fork.

@@ -48,7 +48,7 @@ module system").
 
 ## PR verification: etcd-io/raft#104, `commitTo` clamps instead of panicking (2026-10-16, branch `pr-verify/raft-104`)
 
-The PR translated (fork `pr-raft-104-goose-lean` `d9ab8730d`, not pushed; the pin is unchanged, so
+The PR translated (fork `pr-raft-104-goose-lean` `0997b9505`, not pushed; the pin is unchanged, so
 `etc/goose.py --check` fails on this branch). `raftLog.commitTo`: old spec re-proved unchanged, new
 premise-free spec `specNew` proved, `spec_implies_old`; raft's Link and Results rebuild, `#print
 axioms` identical to `lean`. Verdict: the new branch is dead under the model and unsafe under the data
