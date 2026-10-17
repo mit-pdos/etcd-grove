@@ -131,15 +131,38 @@ instance barrierCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (
     Persistent (barrierCtx (GF := GF) ctx cd) := by
   unfold barrierCtx; infer_instance
 
+/-- **A compaction at `c` deletes fewer than `2 ^ 62` keys** (a physical bound, as the server's
+`storeSmall`; item 8, 2026-10-17): the log up to revision `c` has fewer than `2 ^ 62` changes.
+The keys a compaction deletes are distinct bucket keys of those changes, so `scheduleCompaction`'s
+count of them, an `int`, never wraps, and `dbCompactionKeysCounter.Add(float64(count))` gets a
+non-negative value (prometheus' `counter.Add` panics on a negative one). -/
+def CompactSmall (log : Log) (c : Int) : Prop :=
+  ((log.take (c.toNat + 1)).map List.length).sum < 2 ^ 62
+
+/-- `CompactSmall` depends only on the log up to `c`: two logs in prefix order, both longer than
+`c`, agree on it. -/
+theorem CompactSmall_of_prefix {log log' : Log} {c : Int} (hc : 0 ≤ c) (h : log <+: log' ∨ log' <+: log)
+    (h1 : c < log.length) (h2 : c < log'.length) (hs : CompactSmall log c) : CompactSmall log' c := by
+  unfold CompactSmall at *
+  have : log.take (c.toNat + 1) = log'.take (c.toNat + 1) := by
+    rcases h with h | h
+    · obtain ⟨t, rfl⟩ := h
+      rw [List.take_append_of_le_length (by omega)]
+    · obtain ⟨t, rfl⟩ := h
+      rw [List.take_append_of_le_length (by omega)]
+  rw [← this]; exact hs
+
 /-- **What the compaction job at `rev` needs** (persistent): the store and its stop channel, its
 backend supporting the compaction (`storeCmp`), a lower bound `rev` of the compaction revision
 (`Compact` set it), a certified log with revision `rev`, which does not delete a key and put it
 again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job deletes carry it,
-`delKey`; 2026-10-13, unit 6a). -/
+`delKey`; 2026-10-13, unit 6a), and has fewer than `2 ^ 62` changes up to `rev` (`CompactSmall`:
+the caller's physical bound; item 8, 2026-10-17). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ storeStop s ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
     ∃ log : Log, idxCert γ.idx log ∗
-      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev) ∧
+        CompactSmall log (sint.Z rev)⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :
     Persistent (compactJobPre (GF := GF) s γ rev) := by

@@ -118,10 +118,17 @@ end go_opentelemetry_io.otel.trace
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 
-/-- A prometheus `Counter` as the KV core uses it: `Inc()` and `Add(x)` return. -/
+/-- A prometheus `Counter` as the KV core uses it: `Inc()` returns, and so does `Add(v)` for a
+non-negative `v` (prometheus' `counter.Add` panics on a negative value, "counter cannot decrease in
+value"; item 8, 2026-10-17: until then `Add(x)` for every `x`, false of the Go code), stated for
+the arguments the code passes: `float64(n)` of an unsigned `n` (`metricsTxnWrite.End`) and of a
+non-negative signed `n` (`scheduleCompaction`'s compacted-keys count). -/
 def counterSpec (c : GoInterfaceOk) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods c.ty go!"Inc" c.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ (∀ x : w64, {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #x)) {{ RET #(); True }}))
+    □ (∀ n : w64, {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(uint64ToFloat64 n)))
+      {{ RET #(); True }}) ∗
+    □ (∀ n : w64, ⌜0 ≤ sint.Z n⌝ →
+      {{ True }} (App (Val #(methods c.ty go!"Add" c.v)) (Val #(int64ToFloat64 n))) {{ RET #(); True }}))
 
 instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (GF := GF) c) := by
   unfold counterSpec; infer_instance
