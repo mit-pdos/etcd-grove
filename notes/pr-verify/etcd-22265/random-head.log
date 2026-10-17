@@ -1,0 +1,15 @@
+    watchable_store_cohort_random_test.go:124: watcher 0 (key a, start 6, max 1): got [28 29 31 34 36 37 47 52 53 54 57 61] want [6 8 16 22 24 28 29 31 34 36 37 47 52 53 54 57 61 64]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key a, start 26, max 6): got [31 34 40 42 50 51 53 55 59 62] want [26 27 31 34 40 42 50 51 53 55 59 62]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key a, start 7, max 5): got [7 35 38 39 40 41 44 47 49 50 51 52 54 56 58 59] want [7 13 15 16 20 27 35 38 39 40 41 44 47 49 50 51 52 54 56 58 59]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key c, start 22, max 5): got [30 32 36 39 40 41 42 44 47 50 59 61 65 68] want [22 26 29 30 32 36 39 40 41 42 44 47 50 59 61 65 68]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key a, start 20, max 2): got [36 45 46 54 55 56 59 69 70 72] want [20 21 24 26 28 30 31 32 36 45 46 54 55 56 59 60 61 69 70 72]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key c, start 29, max 1): got [35 36 39 45 46 47 49 52 59 60 66 70] want [33 35 36 39 45 46 47 49 52 59 60 66 70]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key c, start 31, max 1): got [35 38 46 47 51 59 60 61 62 74 75] want [32 33 35 38 41 46 47 51 55 59 60 61 62 66 68 70 74 75]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key c, start 26, max 3): got [39 41 42 52 54 58 60 63 66 70] want [26 28 29 30 39 41 42 47 52 54 58 60 63 66 70]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key a, start 6, max 5): got [6 8 47 49 52 53 61 64 68 78 79 80 82 83] want [6 8 14 23 24 25 27 28 29 30 31 37 40 42 43 47 49 52 53 61 64 68 78 79 80 82 83]
+    watchable_store_cohort_random_test.go:124: watcher 0 (key c, start 21, max 6): got [36 40 46 47 48 50 51 52 53 54 58 60 67 69] want [22 24 25 26 29 30 36 40 46 47 48 50 51 52 53 54 58 60 67 69]
+... (198 mismatch lines in all; 198 of the 200 seeds fail)
+--- FAIL: TestSyncWatchersCohortsRandomized (8.36s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	8.384s
+FAIL

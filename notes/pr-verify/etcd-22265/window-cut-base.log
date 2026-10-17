@@ -1,0 +1,7 @@
+    watchable_store_window_cut_test.go:80: synced after 1 passes
+    watchable_store_window_cut_test.go:80: synced after 1 passes
+--- PASS: TestSyncWatchersWindowCutDeliversAll (0.48s)
+    --- PASS: TestSyncWatchersWindowCutDeliversAll/event_in_window_and_after (0.29s)
+    --- PASS: TestSyncWatchersWindowCutDeliversAll/event_only_after (0.19s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.506s

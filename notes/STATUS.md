@@ -45,6 +45,13 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22265, bounded `syncWatchers` scan window (2026-10-17, branch `pr-verify/etcd-22265`)
+
+The PR (unmerged) translated on this branch only: report `notes/pr-verify/etcd-22265.md`.
+`syncWatchers` keeps its spec and rests on the false `sorry` `mvcc.syncWatchers_window_reaches_curRev`
+(the window `[minRev, minRev+1001)` reaches `curRev`): the PR loses watch events and hangs etcd's own
+`TestWatchBatchUnsynced` (Go tests in `notes/pr-verify/etcd-22265/`). Not for merging into `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

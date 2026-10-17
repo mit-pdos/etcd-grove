@@ -1,0 +1,5 @@
+--- PASS: TestSyncWatchersScanLimitDeliversAll (0.46s)
+    --- PASS: TestSyncWatchersScanLimitDeliversAll/event_of_the_watched_key_only_past_the_scan (0.14s)
+    --- PASS: TestSyncWatchersScanLimitDeliversAll/one_event_inside_the_scan,_one_past_it (0.32s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.489s

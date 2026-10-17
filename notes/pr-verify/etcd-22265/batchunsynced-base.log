@@ -1,0 +1,5 @@
+--- PASS: TestWatchBatchUnsynced (0.46s)
+    --- PASS: TestWatchBatchUnsynced/3_revisions,_4_revs_per_batch,_1_events_per_revision (0.24s)
+    --- PASS: TestWatchBatchUnsynced/3_revisions,_4_revs_per_batch,_3_events_per_revision (0.22s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.493s
