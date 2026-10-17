@@ -290,6 +290,15 @@ theorem lastCreateOp_not_panics (n : w64) :
     ¬ opGetPanics (withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM n]) := by
   simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opGetPanics]
 
+/-- `Watch(key, WithRev(rev))` is a single-key watch from `rev` that does not panic. -/
+theorem waitDelete_opts (key : GoString) (rev : w64) :
+    (opWatchModel key [withRevM rev]).isRangeWatch rev = true ∧
+      ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
+      (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
+  refine ⟨?_, ?_, ?_, ?_⟩ <;>
+  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
+    OpModel.zero, withRevM, OpFull.isRangeWatch]
+
 /-- **`waitDeletes`'s get** (`OpGet(pfx, WithLastCreate()..., WithMaxCreateRev(n))`, `n ≥ 0`; `0`
 is no filter): nothing means no key was created at or before `n`; anything listed is in the
 state. -/

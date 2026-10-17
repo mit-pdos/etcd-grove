@@ -1,6 +1,11 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/client/v3/concurrency/waitDeletes.lean`. Lean-first (no Rocq
 counterpart).
+
+etcd#22387: the first `Get(waitKey)` (at a revision `G ≥ lo`) returns `errWaitKeyDeleted` if it
+finds nothing (`waitKey` absent at `G`); otherwise the watch of `waitKey` from `G` (on a child
+context, canceled by the `defer`) is passed, with its consumer, to every `waitDelete`, whose
+`errWaitKeyDeleted` (an absence at a revision `≥ G`) is returned as is.
 -/
 module
 
@@ -8,6 +13,7 @@ public import Spec.go_etcd_io.etcd.client.v3.concurrency.waitDeletes
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.waitDelete
 public import Spec.go_etcd_io.etcd.client.v3.WithLastCreate
 public import Spec.go_etcd_io.etcd.client.v3.WithMaxCreateRev
+public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutexLemmas
 
 @[expose] public section
@@ -28,16 +34,134 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
+set_option maxRecDepth 4000 in
 theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF) (hG := hG))
     (wp_WithMaxCreateRev : WithMaxCreateRev.spec (GF := GF) (hG := hG))
-    (wp_waitDelete : waitDelete.spec (GF := GF) (hG := hG)) :
+    (wp_waitDelete : waitDelete.spec (GF := GF) (hG := hG))
+    (wp_WithRev : WithRev.spec (GF := GF) (hG := hG)) :
     waitDeletes.spec (GF := GF) (hG := hG) := by
-  intro ctx cs client pfx maxCreateRev lo
+  intro ctx cs client pfx waitKey maxCreateRev lo
   wp_start as ⟨#Hcl, #Hctx, #Hcc, #Hlo, %Hp⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, -, -, #HKV, -, -, -⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, #Hwf, -, -, #HKV, -, -, #HW⟩
+  ihave Hci : (concurrencyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨-, -, -, -, -, -, ⟨%eWK, #HeWK, -⟩⟩
+  wp_apply wp_with_defer
+  iintro %defer Hdefer
+  (try wp_auto)
+  -- `Get(waitKey)`: absent means `errWaitKeyDeleted`
+  ihave #Hopts0 : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
+  · iapply optsAt_nil
+  ihave #HKV0 := HKV
+  iunfold isEtcdKV at HKV0
+  ihave #HG0 := HKV0 $$ %ctx %cs %waitKey %slice.nil %([] : List (OpFull → OpFull)) %lo
+  wp_apply HG0 $$ [] as %wresp %werr0 #Hwres
+  · iframe Hctx Hopts0 Hlo
+    ipureintro
+    exact ⟨keyOp_not_panics, (keyOp_t waitKey).1⟩
+  iunfold kvGetResult at Hwres
+  icases Hwres with (%Hw0ne | ⟨%Hw0nil, %G, %wm, #HwRev, -, #HGR, %HGle, Hwgr⟩)
+  · obtain ⟨e, rfl⟩ : ∃ e, werr0 = GoInterface.ok e := by
+      cases werr0 with
+      | nil => exact absurd rfl Hw0ne
+      | ok e => exact ⟨e, rfl⟩
+    wp_auto
+    iapply HΦ
+    iright; iright; ipureintro; exact Hw0ne
+  subst Hw0nil
+  have HkT : (opGetModel waitKey []).t = W64 1 ∧ (opGetModel waitKey []).key = waitKey ∧
+      (opGetModel waitKey []).base.rangeEnd = [] ∧ (opGetModel waitKey []).base.rev = W64 0 ∧
+      (opGetModel waitKey []).base.serializable = false := keyOp_t waitKey
+  have HGle' : sint.Z lo ≤ sint.Z G := HGle.1 HkT.2.2.2.2
+  have HkP : (opGetModel waitKey []).isPrefixGet pfx = false := keyOp_isPrefixGet pfx waitKey
+  rw [ite_eq_right (c := (opGetModel waitKey []).isPrefixGet pfx = true) (by rw [HkP]; simp)]
+  unfold getRespRange
+  rw [ite_eq_left (show (opGetModel waitKey []).base.rev = W64 0 ∧
+      KeyRangeUnder pfx (opGetModel waitKey []).key (opGetModel waitKey []).base.rangeEnd from
+    ⟨HkT.2.2.2.1, by rw [HkT.2.1, HkT.2.2.1]; exact keyRangeUnder_key pfx waitKey Hp.2.2⟩)]
+  icases Hwgr with ⟨%ws, %wsl, %wps, %wkvs, #Hws, %Hwwf, #Hwsl, #Hwps, #Hwkvs, %Hwok⟩
   wp_auto
+  iunfold kvPtrsAt at Hwkvs
+  icases Hwkvs with ⟨%Hwl, #Hwkv⟩
+  ihave %Hwsl := ownSlice_len $$ Hwps
+  obtain ⟨Hkabs, Hkpres⟩ := keyOp_kvs pfx waitKey ws wkvs Hwwf Hwok
+  wp_if_destruct
+  · -- no key-value: `waitKey` is absent at `G`
+    have Hnil : wkvs = [] := by
+      apply List.eq_nil_of_length_eq_zero
+      rw [← Hwl, Hwsl.1, Hif]; rfl
+    (try wp_auto)
+    iapply HΦ
+    iright; ileft
+    isplitr
+    · iunfold isPkgErr
+      iframe HeWK
+      ipureintro; intro h; cases h
+    iexists G
+    iframe HGR
+    isplitr
+    · iunfold etcdAbsent
+      iexists ws
+      iframe Hws
+      ipureintro
+      intro v hv hk
+      have := Hkpres v hv hk
+      rw [Hnil] at this
+      cases this
+    ipureintro; exact HGle'
+  -- `waitKey` is present at `G`: watch it from `G`
+  ihave %Hrevs := etcdState_revs G pfx ws $$ Hws
+  have HG0 : 0 ≤ sint.Z G := by
+    have Hpres : ∃ v ∈ ws, v.key = waitKey := by
+      rcases Classical.em (∃ v ∈ ws, v.key = waitKey) with h | h
+      · exact h
+      · have h' : wkvs = [] := Hkabs (fun v hv hk => h ⟨v, hv, hk⟩)
+        rw [h'] at Hwl
+        exfalso; apply Hif
+        have : sint.nat wsl.len = 0 := by rw [← Hwsl.1, Hwl]; rfl
+        word
+    obtain ⟨v, hv, -⟩ := Hpres
+    have := Hrevs v hv
+    omega
+  iunfold getRespRev at HwRev
+  icases HwRev with ⟨%whdr, #Hwh, %Hwhnn, #HwhR⟩
+  wp_apply context.wp_WithCancel iprop(True) ctx cs $$ [$Hctx $Hcc]
+      as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
+  ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
+  (try wp_auto)
+  wp_apply wp_WithRev G as %f0 #Hf0
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %sl0 ⟨Hsl0, -⟩
+  ipersist Hsl0
+  generalize hsl0 : slice.mk sl0 _ _ = optsSl0
+  ihave #Hopts1 : optsAt optsSl0 ([withRevM G] : List (OpFull → OpFull)) $$ []
+  · iunfold optsAt
+    iexists _
+    iframe Hsl0
+    isplitr
+    · ipureintro; rfl
+    imodintro
+    iintro %i %f' %g %Hf' %Hg
+    rcases i with _ | i
+    · cases Hf'; cases Hg; iexact Hf0
+    · simp at Hf'
+  iunfold isEtcdRangeWatcher at HW
+  ihave #HWa := HW $$ %ctx' %({ cs with PDone := iprop(cs.PDone ∨ True), Done_gn := γ' })
+    %waitKey %optsSl0 %([withRevM G] : List (OpFull → OpFull)) %G
+  wp_auto
+  obtain ⟨Hv1, Hv2, Hv3, Hv4⟩ := waitDelete_opts waitKey G
+  wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
+  · iframe Hctx' Hopts1
+    ipureintro
+    refine ⟨Hv1, Hv2, HG0, ?_⟩
+    rw [Hv3, Hv4]; exact keyRangeUnder_key pfx waitKey Hp.2.2
+  ihave #Hwkw : waitKeyWatch γw wch pfx waitKey G $$ []
+  · iunfold waitKeyWatch; iexact Hwch
+  (try wp_auto)
   wp_apply wp_WithLastCreate as %sl1 ⟨#Hsl1, Hcap1⟩
   wp_apply wp_WithMaxCreateRev maxCreateRev as %f #Hf
   wp_apply wp_slice_literal
@@ -73,18 +197,19 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
         cases Hf'; cases Hg; iexact Hf
       · rw [List.getElem?_eq_none (by simp; omega)] at Hf'
         cases Hf'
-  ihave IH : iprop(∃ lo' : w64, "#Hlo'" ∷ etcdReached lo' ∗ "%Hlo'" ∷ ⌜sint.Z lo ≤ sint.Z lo'⌝) $$ []
-  · iexists lo
+  ihave IH : iprop(∃ (lo' : w64) (rcv : List go_etcd_io.etcd.client.v3.WatchResponse),
+      "#Hlo'" ∷ etcdReached lo' ∗ "%Hlo'" ∷ ⌜sint.Z lo ≤ sint.Z lo'⌝ ∗
+      "Hcons" ∷ spscConsumer γw.spsc rcv) $$ [Hcons]
+  · iexists lo, []
     simp only [named]
-    iframe Hlo
+    iframe Hlo Hcons
     ipureintro; exact Int.le_refl _
   wp_for IH
   (try wp_auto)
-  iunfold isEtcdKV at HKV
-  ihave #HG := HKV $$ %ctx %cs %pfx %gsl
+  ihave #HG := HKV0 $$ %ctx' %({ cs with PDone := iprop(cs.PDone ∨ True), Done_gn := γ' }) %pfx %gsl
     %(withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM maxCreateRev]) %lo'
   wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx Hopts Hlo'
+  · iframe Hctx' Hopts Hlo'
     ipureintro
     exact ⟨lastCreateOp_not_panics maxCreateRev, lastCreateOp_t pfx maxCreateRev⟩
   iunfold kvGetResult at Hgres
@@ -95,8 +220,11 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     wp_for_post
+    wp_apply Hcancel'
+    · imodintro; itrivial
+    (try wp_auto)
     iapply HΦ
-    ileft; ipureintro; exact Hgne
+    iright; iright; ipureintro; exact Hgne
   subst Hgnil
   obtain ⟨Hrev0, Hser, HnP⟩ := lastCreateOp_rev pfx maxCreateRev
   have HRle' : sint.Z lo' ≤ sint.Z R := HRle.1 Hser
@@ -124,8 +252,11 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
       rw [← Hgl, Hgsl.1, Hif]; rfl
     (try wp_auto)
     wp_for_post
+    wp_apply Hcancel'
+    · imodintro; itrivial
+    (try wp_auto)
     iapply HΦ
-    iright
+    ileft
     isplitr
     · ipureintro; rfl
     iexists R, s'
@@ -162,24 +293,49 @@ theorem waitDeletes.wp_proof (wp_WithLastCreate : WithLastCreate.spec (GF := GF)
   have HR0 : 0 ≤ sint.Z R := by
     have := Hrevs w Hws
     omega
-  wp_apply wp_waitDelete ctx cs client pfx w.key R $$ [$Hcl $Hctx $Hcc] as %werr Hwd
+  wp_apply wp_waitDelete ctx' _ client pfx w.key R wch γw waitKey G rcv
+      $$ [$Hcl $Hctx' $Hcc' $Hwkw $Hcons] as %werr Hwd
   · ipureintro; exact ⟨Hwf'.2 w Hws, HR0⟩
-  icases Hwd with (%Hwne | ⟨%Hwnil, -⟩)
+  icases Hwd with (⟨%Hwnil, ⟨%rcv', Hcons⟩, -⟩ | ⟨#Hwk, %rw, #Hrw, #Habs, %Hrwle⟩ | %Hwne)
+  rotate_left
+  · -- `waitKey` deleted: `errWaitKeyDeleted`, returned as is
+    ihave #Hwk' := Hwk
+    iunfold isPkgErr at Hwk'
+    icases Hwk' with ⟨-, %Hwkne⟩
+    obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+      cases werr with
+      | nil => exact absurd rfl Hwkne
+      | ok e => exact ⟨e, rfl⟩
+    (try wp_auto)
+    wp_for_post
+    wp_apply Hcancel'
+    · imodintro; itrivial
+    (try wp_auto)
+    iapply HΦ
+    iright; ileft
+    isplitr
+    · iexact Hwk
+    iexists rw
+    iframe Hrw Habs
+    ipureintro; omega
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
       cases werr with
       | nil => exact absurd rfl Hwne
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
     wp_for_post
+    wp_apply Hcancel'
+    · imodintro; itrivial
+    (try wp_auto)
     iapply HΦ
-    ileft; ipureintro; exact Hwne
+    iright; iright; ipureintro; exact Hwne
   subst Hwnil
   (try wp_auto)
   wp_for_post
   iframe
-  iexists R
+  iexists R, rcv'
   simp only [named]
-  iframe HRR
+  iframe HRR Hcons
   ipureintro; omega
 
 end proof

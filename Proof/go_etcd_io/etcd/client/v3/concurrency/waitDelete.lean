@@ -27,15 +27,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-/-- `Watch(key, WithRev(rev))` is a single-key watch from `rev` that does not panic. -/
-theorem waitDelete_opts (key : GoString) (rev : w64) :
-    (opWatchModel key [withRevM rev]).isRangeWatch rev = true ∧
-      ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
-      (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
-  refine ⟨?_, ?_, ?_, ?_⟩ <;>
-  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, withRevM, OpFull.isRangeWatch]
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
