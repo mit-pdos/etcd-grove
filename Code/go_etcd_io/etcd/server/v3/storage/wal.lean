@@ -61,6 +61,11 @@ def WAL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] WAL.ty
 
+def Position.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Position" [])
+
+attribute [irreducible] Position.ty
+
 axiom Decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -279,8 +284,8 @@ noncomputable def Open [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def OpenForRead [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.OpenForRead"
 
-noncomputable def openAtIndex [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/storage/wal.openAtIndex"
+noncomputable def openAtPosition [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/wal.openAtPosition"
 
 noncomputable def selectWALFiles [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.selectWALFiles"
@@ -455,6 +460,43 @@ attribute [instance] WAL.TypeAssumptions.type_repr
   WAL.TypeAssumptions.underlying
   WAL.TypeAssumptions.isUnderlying
 
+structure Position [FfiSyntax] where
+  mk ::
+  Term' : w64
+  Index' : w64
+
+instance Position.zero_val [FfiSyntax] : ZeroVal Position :=
+  ⟨Position.mk zeroValDef zeroValDef⟩
+
+@[reducible] def Position.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Term" go.uint64),
+(go.field_decl.FieldDecl go!"Index" go.uint64)]
+
+@[irreducible] def Position.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Position.fieldsUnsealed
+
+instance equals_unfold_Position [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Position.fields Position.fieldsUnsealed :=
+  ⟨by unfold Position.fields; rfl⟩
+
+@[reducible] def Position.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Position.fields)
+
+class Position.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Position.underlying Position
+  underlying : go.UnderlyingDirectedEq Position.ty Position.underlying
+  get_Term : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Position)))
+  get_Index : ∀ (x : Position), go.IsGoStepPureDetTagged under (StructFieldGet Position.underlying go!"Index") #x (Val #(x.Index'))
+  set_Index : ∀ (x : Position) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Position.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : Position)))
+
+attribute [instance] Position.TypeAssumptions.type_repr
+  Position.TypeAssumptions.underlying
+  Position.TypeAssumptions.get_Term
+  Position.TypeAssumptions.set_Term
+  Position.TypeAssumptions.get_Index
+  Position.TypeAssumptions.set_Index
+
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Decoder_instance : Decoder.TypeAssumptions
   decoder_instance : decoder.TypeAssumptions
@@ -464,6 +506,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   walVersion_instance : walVersion.TypeAssumptions
   Visitor_instance : Visitor.TypeAssumptions
   WAL_instance : WAL.TypeAssumptions
+  Position_instance : Position.TypeAssumptions
 
 attribute [instance] Assumptions.Decoder_instance
   Assumptions.decoder_instance
@@ -473,6 +516,7 @@ attribute [instance] Assumptions.Decoder_instance
   Assumptions.walVersion_instance
   Assumptions.Visitor_instance
   Assumptions.WAL_instance
+  Assumptions.Position_instance
 
 end go_etcd_io.etcd.server.v3.storage.wal
 

@@ -2,8 +2,10 @@
 # bodies; the `Key` bucket (the mvcc store's) and the `bucket` type's methods (bucket.go,
 # with bodies: the backend's `Bucket` interface on schema's buckets); the rest of the
 # package is names only.
-translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket"]
-imports = ["!*", "encoding/binary", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify"]
+translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket",
+  # etcd-io/etcd#19693 (pr-verify): the conf state's read under the read lock (confstate.go)
+  "ReadConfStateFromBackend"]
+imports = ["!*", "encoding/binary", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

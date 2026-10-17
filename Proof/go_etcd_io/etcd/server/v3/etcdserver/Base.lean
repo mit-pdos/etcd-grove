@@ -21,6 +21,8 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.encoding.binary
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
+-- raftpb's package facts: schema imports it since etcd-io/etcd#19693's ReadConfStateFromBackend
+public import Proof.go_etcd_io.raft.v3.Base
 
 @[expose] public section
 

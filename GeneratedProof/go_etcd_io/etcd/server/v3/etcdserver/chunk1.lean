@@ -39,6 +39,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
@@ -287,7 +288,6 @@ instance bootstrappedBackend_typed_pointsto :
     "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"be" l) v.be' dq ∗
     "ci" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"ci" l) v.ci' dq ∗
     "beExist" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"beExist" l) v.beExist' dq ∗
-    "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"snapshot" l) v.snapshot' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -358,22 +358,6 @@ instance bootstrappedBackend_access_store_beExist (l : Loc) (v : go_etcd_io.etcd
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"beExist" l) v.beExist' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"beExist" l) beExist' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beExist' := beExist' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance bootstrappedBackend_access_load_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance bootstrappedBackend_access_store_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend) (snapshot' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"snapshot" l) v.snapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend go!"snapshot" l) snapshot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := snapshot' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedBackend) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -632,10 +616,11 @@ instance bootstrappedWAL_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"lg" l) v.lg' dq ∗
     "haveWAL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"haveWAL" l) v.haveWAL' dq ∗
+    "pos" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"pos" l) v.pos' dq ∗
+    "confstate" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"confstate" l) v.confstate' dq ∗
     "w" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"w" l) v.w' dq ∗
     "st" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"st" l) v.st' dq ∗
     "ents" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"ents" l) v.ents' dq ∗
-    "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"snapshot" l) v.snapshot' dq ∗
     "meta'" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"meta" l) v.meta' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -675,6 +660,38 @@ instance bootstrappedWAL_access_store_haveWAL (l : Loc) (v : go_etcd_io.etcd.ser
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"haveWAL" l) v.haveWAL' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"haveWAL" l) haveWAL' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with haveWAL' := haveWAL' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance bootstrappedWAL_access_load_pos (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"pos" l) v.pos' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"pos" l) v.pos' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance bootstrappedWAL_access_store_pos (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (pos' : go_etcd_io.etcd.server.v3.storage.wal.Position) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"pos" l) v.pos' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"pos" l) pos' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pos' := pos' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance bootstrappedWAL_access_load_confstate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"confstate" l) v.confstate' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"confstate" l) v.confstate' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance bootstrappedWAL_access_store_confstate (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (confstate' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"confstate" l) v.confstate' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"confstate" l) confstate' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with confstate' := confstate' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -723,22 +740,6 @@ instance bootstrappedWAL_access_store_ents (l : Loc) (v : go_etcd_io.etcd.server
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"ents" l) v.ents' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"ents" l) ents' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ents' := ents' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance bootstrappedWAL_access_load_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance bootstrappedWAL_access_store_snapshot (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (snapshot' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"snapshot" l) v.snapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL go!"snapshot" l) snapshot' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := snapshot' } : go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

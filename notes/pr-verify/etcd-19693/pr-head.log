@@ -1,0 +1,21 @@
+=== RUN   TestRestartAfterSnapshotPersistedBeforeApplied
+        	Error:      	Not equal: 
+        	            	expected: 0xa
+        	            	actual  : 0x3
+        	Messages:   	the backend is not recovered from the snapshot database
+raft2026/10/17 14:27:53 1 state.commit 10 is out of range [3, 3]
+        	Error:      	Expected nil, but got: "1 state.commit 10 is out of range [3, 3]"
+--- FAIL: TestRestartAfterSnapshotPersistedBeforeApplied (0.04s)
+=== RUN   TestRestartWithConsistentIndexPastWALCommit
+raft2026/10/17 14:27:53 1 state.commit 5 is out of range [8, 10]
+        	Error:      	Expected nil, but got: "1 state.commit 5 is out of range [8, 10]"
+--- FAIL: TestRestartWithConsistentIndexPastWALCommit (0.03s)
+=== RUN   TestRestartWithBackendWithoutConfState
+raft2026/10/17 14:27:53 missing log entry [last: 0, append at: 4]
+--- FAIL: TestRestartWithBackendWithoutConfState (0.03s)
+panic: missing log entry [last: 0, append at: 4] [recovered]
+	panic: missing log entry [last: 0, append at: 4]
+panic({0xc1f760?, 0xc0000481e0?})
+	/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.3.linux-amd64/src/runtime/panic.go:792 +0x132
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.129s
+FAIL

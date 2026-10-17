@@ -389,3 +389,20 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 StartNode: @
 newRaftNode:
 bootstrappedRaft__newRaftNode: StartNode newRaftNode
+#
+# etcd-io/etcd#19693 (pr-verify, 2026-10-17): the WAL's bootstrap from the backend's position
+# (bootstrap.go, schema/confstate.go), see InvBootWAL.lean, InvBootWALFromBackend.lean,
+# InvConfState.lean: the conf state's read (its decoding, `UnsafeConfStateFromBackend`, is the
+# trust boundary), `bootstrapWALFromBackend` (off `--force-new-cluster`; the WAL's
+# `openWALFromPosition` and `(*types.ID).String` are the trust boundary) and the raft storage
+# `bootstrappedWAL.MemoryStorage` over raft's `MemoryStorage` (`@`: raft's Link).
+schema_UnsafeConfStateFromBackend:
+schema_ReadConfStateFromBackend: schema_UnsafeConfStateFromBackend
+openWALFromPosition:
+types_ID__String_ptr:
+bootstrapWALFromBackend: schema_ReadConsistentIndex schema_ReadConfStateFromBackend openWALFromPosition HardState__GetCommit zap_Logger__Info zap_String zap_Uint64 types_ID__String_ptr
+NewMemoryStorage: @
+MemoryStorage__ApplySnapshot: @
+MemoryStorage__SetHardState: @
+MemoryStorage__Append: @
+bootstrappedWAL__MemoryStorage: NewMemoryStorage MemoryStorage__ApplySnapshot MemoryStorage__SetHardState MemoryStorage__Append

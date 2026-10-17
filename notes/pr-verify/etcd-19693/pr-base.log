@@ -1,0 +1,8 @@
+=== RUN   TestRestartAfterSnapshotPersistedBeforeApplied
+--- PASS: TestRestartAfterSnapshotPersistedBeforeApplied (0.06s)
+=== RUN   TestRestartWithConsistentIndexPastWALCommit
+--- PASS: TestRestartWithConsistentIndexPastWALCommit (0.03s)
+=== RUN   TestRestartWithBackendWithoutConfState
+--- PASS: TestRestartWithBackendWithoutConfState (0.03s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.149s

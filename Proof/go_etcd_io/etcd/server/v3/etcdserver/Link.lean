@@ -126,7 +126,9 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapWALFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
@@ -184,6 +186,7 @@ public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.openWALFromPosition
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
@@ -203,7 +206,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConfStateFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeConfStateFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
@@ -229,6 +234,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
@@ -644,6 +650,26 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem schema.wp_UnsafeConfStateFromBackend :
+    schema.UnsafeConfStateFromBackend.spec (GF := GF) (hG := hG) :=
+  schema.UnsafeConfStateFromBackend.wp_proof
+
+theorem schema.wp_ReadConfStateFromBackend :
+    schema.ReadConfStateFromBackend.spec (GF := GF) (hG := hG) :=
+  schema.ReadConfStateFromBackend.wp_proof schema.wp_UnsafeConfStateFromBackend
+
+theorem wp_openWALFromPosition :
+    openWALFromPosition.spec (GF := GF) (hG := hG) :=
+  openWALFromPosition.wp_proof
+
+theorem types.ID.wp_String_ptr :
+    types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
+  types.ID.String_ptr.wp_proof
+
+theorem wp_bootstrapWALFromBackend :
+    bootstrapWALFromBackend.spec (GF := GF) (hG := hG) :=
+  bootstrapWALFromBackend.wp_proof schema.wp_ReadConsistentIndex schema.wp_ReadConfStateFromBackend wp_openWALFromPosition raftpb.HardState.wp_GetCommit zap.Logger.wp_Info zap.wp_String zap.wp_Uint64 types.ID.wp_String_ptr
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
@@ -1203,6 +1229,10 @@ theorem wp_newRaftNode :
 theorem bootstrappedRaft.wp_newRaftNode [StorageModel GF] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
   bootstrappedRaft.newRaftNode.wp_proof wp_StartNode EtcdGrove.wp_newRaftNode
+
+theorem bootstrappedWAL.wp_MemoryStorage [StorageModel GF] :
+    bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) :=
+  bootstrappedWAL.MemoryStorage.wp_proof wp_NewMemoryStorage MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_SetHardState MemoryStorage.wp_Append
 
 theorem lease.Lease.wp_persistTo :
     lease.Lease.persistTo.spec (GF := GF) (hG := hG) :=

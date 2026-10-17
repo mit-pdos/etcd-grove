@@ -169,6 +169,63 @@ instance WAL_into_val_typed :
 end def_
 end WAL
 
+namespace Position
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+
+instance Position_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Position where
+  typedPointstoDef l v dq := iprop(
+    "Term" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Term" l) v.Term' dq ∗
+    "Index" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Index" l) v.Index' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance Position_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.Position go_etcd_io.etcd.server.v3.storage.wal.Position.underlying := by
+  solve_into_val_typed_struct
+
+instance Position_access_load_Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.Position) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Term" l) v.Term' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Term" l) v.Term' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Position_access_store_Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.Position) (Term' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Term" l) v.Term' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Term" l) Term' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := Term' } : go_etcd_io.etcd.server.v3.storage.wal.Position) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Position_access_load_Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.Position) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Index" l) v.Index' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Index" l) v.Index' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Position_access_store_Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.Position) (Index' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Index" l) v.Index' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.Position go!"Index" l) Index' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := Index' } : go_etcd_io.etcd.server.v3.storage.wal.Position) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Position
+
 end go_etcd_io.etcd.server.v3.storage.wal
 end
 end Perennial
