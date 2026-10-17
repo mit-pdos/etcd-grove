@@ -6,7 +6,8 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Close
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__close
-public import Spec.errors.IsStatusErr
+public import Spec.errors.IsJoinedStatusErr
+public import Spec.errors.Join
 
 @[expose] public section
 
@@ -32,7 +33,8 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 set_option maxHeartbeats 0 in
 theorem watcher.Close.wp_proof
     (wp_close : watchGRPCStream.close.spec (GF := GF) (hG := hG))
-    (wp_Is : errors.IsStatusErr.spec (GF := GF) (hG := hG)) :
+    (wp_Is : errors.IsJoinedStatusErr.spec (GF := GF) (hG := hG))
+    (wp_Join : errors.Join.spec (GF := GF) (hG := hG)) :
     watcher.Close.spec (GF := GF) (hG := hG) := by
   intro V w
   wp_start as ⟨⟨%ce, #Hce, %Hcep⟩, #Hw⟩
@@ -46,10 +48,9 @@ theorem watcher.Close.wp_proof
   wp_auto
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst]
   · inext; unfold watcherMu; iexists map.nil; iframe Hst; ileft; ipureintro; rfl
-  ihave Hnil : iprop(∃ e : GoInterface, err_ptr ↦ e ∗ statusErrOk e) $$ [err]
+  ihave Hnil : iprop(∃ e : GoInterface, err_ptr ↦ e ∗ joinedStatusErrOk e) $$ [err]
   · iexists _; iframe
-    unfold statusErrOk
-    iintro !> %e0 %h; cases h
+    iapply joinedStatusErrOk_nil
   icases HM with (%Hn | ⟨%M, HM, #HMs⟩)
   · subst Hn
     icases Hnil with ⟨%e, err, #Hse⟩
@@ -58,13 +59,11 @@ theorem watcher.Close.wp_proof
     wp_call
     try simp only [show (null : Loc) = map.nil from rfl, _root_.decide_true]
     wp_auto
-    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr ⟨ce, rfl, Hcep⟩) $$ [] as %bIs -
-    · iframe #
-    cases bIs <;> (wp_auto; iapply HΦ; itrivial)
+    iapply HΦ; itrivial
   · wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
     iapply wp_map_for_range (fun (_ : List GoString) (_ : Int) => iprop(∃ (v : Loc) (e : GoInterface),
-        wgs_ptr ↦ v ∗ err_ptr ↦ e ∗ statusErrOk e)) _ _ _ m M (DFrac.own 1) $$ HM
+        wgs_ptr ↦ v ∗ err_ptr ↦ e ∗ joinedStatusErrOk e)) _ _ _ m M (DFrac.own 1) $$ HM
     iintro %keys %Hkeys
     isplitl [wgs Hnil]
     · icases Hnil with ⟨%e, err, #Hse⟩
@@ -88,17 +87,41 @@ theorem watcher.Close.wp_proof
         iframe; iframe #
       | ok i =>
         wp_auto
-        unfold forMapPostcondition
-        iright; ileft
-        isplitr
-        · ipureintro; rfl
-        iexists _, _
-        iframe; iframe #
+        wp_apply wp_Is e (GoInterface.ok ce) ⟨ce, rfl, Hcep⟩ $$ [] as %bIs -
+        · iframe #
+        cases bIs
+        · wp_auto
+          wp_apply wp_slice_literal (l := [e, GoInterface.ok i])
+          isplitr
+          · ipureintro; rfl
+          iintro %sl ⟨Hsl, -⟩
+          (try wp_auto)
+          ihave #Hwe' := joinedStatusErrOk_of_statusErrOk _ $$ Hwe
+          wp_apply wp_Join $$ [$Hsl] as %je ⟨-, -, #Hje⟩
+          · iapply BigSepL.bigSepL_cons.2
+            isplitl []
+            · iexact Hse
+            iapply BigSepL.bigSepL_cons.2
+            isplitl []
+            · iexact Hwe'
+            iapply (BigSepL.bigSepL_nil_intro (P := iprop(True)))
+            itrivial
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          iexists _, je
+          iframe; iframe #
+        · wp_auto
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          iexists _, e
+          iframe; iframe #
     iintro ⟨%v, %e, Hws, err, #Hse⟩ HM
     wp_auto
-    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr ⟨ce, rfl, Hcep⟩) $$ [] as %bIs -
-    · iframe #
-    cases bIs <;> (wp_auto; iapply HΦ; itrivial)
+    iapply HΦ; itrivial
 
 end proof
 

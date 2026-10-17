@@ -88,6 +88,8 @@ zap_Error:
 zap_Logger__Debug:
 zap_Logger__Warn:
 errors_IsStatusErr:
+errors_IsJoinedStatusErr:
+errors_Join:
 waitRetryBackoff:
 withVersion:
 Client__getToken:
@@ -158,4 +160,6 @@ watcher__newWatcherGRPCStream: context_WithCancelValCtx streamKeyFromCtx watchGR
 watcher__Watch: OpWatch streamKeyFromCtx watcher__newWatcherGRPCStream
 NewWatchFromWatchClient: Client__GetLogger
 NewWatcher: NewWatchClient NewWatchFromWatchClient
-watcher__Close: watchGRPCStream__close errors_IsStatusErr
+# etcd#19935: `Close` joins its streams' errors (`errors.Join`, names-only in Perennial: trust
+# boundary `errors_Join`) and asks `errors.Is` of the join (`errors_IsJoinedStatusErr`).
+watcher__Close: watchGRPCStream__close errors_IsJoinedStatusErr errors_Join

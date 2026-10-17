@@ -42,7 +42,9 @@ public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.WithCancelValCtx
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
+public import Proof.errors.IsJoinedStatusErr
 public import Proof.errors.IsStatusErr
+public import Proof.errors.Join
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
 public import Proof.google_golang_org.grpc.ClientConn__NewStream
@@ -424,6 +426,14 @@ theorem v3.wp_ensureWatchHeader [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.
     EtcdGrove.ensureWatchHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ensureWatchHeader.wp_proof
 
+theorem errors.wp_IsJoinedStatusErr :
+    EtcdGrove.errors.IsJoinedStatusErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsJoinedStatusErr.wp_proof
+
+theorem errors.wp_Join :
+    EtcdGrove.errors.Join.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Join.wp_proof
+
 theorem grpc.ClientConn.wp_Invoke :
     EtcdGrove.grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.ClientConn.Invoke.wp_proof
@@ -654,7 +664,7 @@ theorem v3.watchGRPCStream.wp_run [go_etcd_io.etcd.server.v3.etcdserver.api.v3rp
 
 theorem v3.watcher.wp_Close [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watcher.Close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watcher.Close.wp_proof v3.watchGRPCStream.wp_close errors.wp_IsStatusErr
+  EtcdGrove.watcher.Close.wp_proof v3.watchGRPCStream.wp_close errors.wp_IsJoinedStatusErr errors.wp_Join
 
 theorem v3.watcher.wp_newWatcherGRPCStream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG) :=
