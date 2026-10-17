@@ -1631,6 +1631,33 @@ theorem batchTxSpecG_cmp (bt : GoInterfaceOk) (s : Loc) (γ : StoreNames) (Dep :
   simp only [h]
   exact .rfl
 
+/-- **A caller's lent fraction of the committed log's authority** (unit W-K): `some (q, L)`, the
+fraction `q` at `L` (a reader holding it knows the committed log is `L`: `store.Read` finds it so);
+`none`, nothing. -/
+def logLent (γ : IdxNames) : Option (Qp × Log) → IProp GF
+  | some (q, L) => idxLogAuth γ q L
+  | none => iprop(True)
+
+/-- A lent fraction agrees with another's. -/
+theorem logLent_agree (γ : IdxNames) (q0 : Qp) (log : Log) (oa : Option (Qp × Log)) :
+    idxLogAuth (GF := GF) γ q0 log ∗ logLent γ oa ⊢
+      idxLogAuth γ q0 log ∗ logLent γ oa ∗ ⌜∀ q L, oa = some (q, L) → log = L⌝ := by
+  cases oa with
+  | none =>
+    iintro ⟨H, -⟩
+    iframe H
+    unfold logLent
+    isplitr
+    · itrivial
+    ipureintro; intro q L h; cases h
+  | some p =>
+    obtain ⟨q, L⟩ := p
+    iintro ⟨H, Hl⟩
+    unfold logLent at *
+    ihave %Hag := monoListAuthOwn_agree γ.log q0 q log L $$ H Hl
+    iframe H Hl
+    ipureintro; intro q' L' h; cases h; exact Hag.2
+
 /-- **The committed log `log` is certified OK by the caller** (persistent; 2026-10-14, unit T1):
 `NewStore`'s logs (at most two revisions), or an element of the caller's map `γ.cok`. -/
 def certOk (γ : StoreNames) (log : Log) : IProp GF :=

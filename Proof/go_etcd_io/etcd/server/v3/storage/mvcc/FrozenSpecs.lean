@@ -64,11 +64,14 @@ theorem mvcc.store.Read.spec_frozen (h : mvcc.store.Read.spec (GF := GF) (hG := 
   icases mvcc.storeReader_toC s γ $$ Hrd with ⟨Hrd, #Hf⟩
   imod mvcc.crevLb_neg γ.idx with #Hlb
   iapply wp_fupd
-  iapply (h s γ mode trace m log₀ te (-1) (mvcc.crevFrozen γ)) $$ %(fun v => iprop(|={⊤}=> Φ v))
+  iapply (h s γ mode trace m log₀ te (-1) (mvcc.crevFrozen γ) none) $$ %(fun v => iprop(|={⊤}=> Φ v))
     [Hrd Hm Htrc]
-  · iframe Hrd Hm Htrc; iframe #; ipureintro; exact Ht
+  · iframe Hrd Hm Htrc; iframe #
+    isplitr
+    · ipureintro; exact Ht
+    unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', #Hrok, %Hp⟩
+  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', #Hrok, %Hp, -, -⟩
   imod mvcc.isTxnRead_frozen mw s γ trace log rev crev $$ Htx with ⟨Htx, %Hcr⟩
   subst Hcr
   imodintro
@@ -498,23 +501,23 @@ theorem mvcc.readView.FirstRev.spec_frozen (h : mvcc.readView.FirstRev.spec (GF 
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.watchableStore.rev.specFrozen : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
-  {{ (r : w64), RET #r; mvcc.storeReader st γ.st ∗
+  {{ (r : w64), RET #r; mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
       ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1) ∧
-        2 ≤ log.length ∧ log.length < 2 ^ 63⌝ }}
+        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (the frozen fact framed). -/
 theorem mvcc.watchableStore.rev.spec_frozen (h : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.rev.specFrozen (GF := GF) (hG := hG) := by
-  intro s st γ
-  iintro %Φ ⟨#Hpkg, #Hws, Hrd⟩ HΦ
+  intro s st γ oa
+  iintro %Φ ⟨#Hpkg, #Hws, Hrd, HoA⟩ HΦ
   icases mvcc.storeReader_toC st γ.st $$ Hrd with ⟨Hrd, #Hf⟩
-  iapply (h s st γ) $$ %Φ [Hrd]
-  · iframe Hrd; iframe #
+  iapply (h s st γ oa) $$ %Φ [Hrd HoA]
+  · iframe Hrd HoA; iframe #
   inext
   iintro %v ⟨Hrd, Hpost⟩
   iapply HΦ

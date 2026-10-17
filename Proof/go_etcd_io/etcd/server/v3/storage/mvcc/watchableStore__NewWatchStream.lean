@@ -71,10 +71,11 @@ theorem mvcc.isWatchable_store
     simp only [mvcc.storeWatchParams]
     iunfold mvcc.watchReader at HR
     icases HR with ⟨Hsr, Hmur⟩
-    iapply (hRev s st γ) $$ [Hsr] [Hmur HΦ]
+    iapply (hRev s st γ none) $$ [Hsr] [Hmur HΦ]
     · iframe Hpkg Hws Hsr
+      unfold mvcc.logLent; itrivial
     inext
-    iintro %r ⟨Hsr, -⟩
+    iintro %r ⟨Hsr, -, -⟩
     iapply HΦ
     iunfold mvcc.watchReader
     iframe Hsr Hmur

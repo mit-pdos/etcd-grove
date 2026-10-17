@@ -36,18 +36,20 @@ revision `crev` (`s.compactMainRev`, read under both locks, `firstRev`; fixed un
 `Compact` updates it holding `s.mu` exclusively), at or above the caller's lower bound `c` (with
 `store.Compact`'s `crevLb` after a compaction at `rev`: `rev ≤ crev`), a revision of `log` (or
 `-1`); the reader's tag `Z` (persistent) is carried to `End`. The frozen statement (a store
-never compacted, `storeReader`: `crev = -1`) is `specFrozen`, a corollary (`spec_frozen`, `FrozenSpecs.lean`). -/
+never compacted, `storeReader`: `crev = -1`) is `specFrozen`, a corollary (`spec_frozen`, `FrozenSpecs.lean`). A caller lending a fraction of the committed log's authority
+(`logLent`, unit W-K) learns the log read is the one it names. -/
 abbrev mvcc.store.Read.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
-    (c : Int) (Z : IProp GF),
+    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te }}
+      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
         ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
-        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ }}
+        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
+        ⌜∀ q L, oa = some (q, L) → log = L⌝ }}
 
 end spec
 

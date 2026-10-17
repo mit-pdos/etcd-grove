@@ -174,14 +174,27 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hslot] as ⟨Hrl, HP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
-  wp_apply hrev $$ [$Hws $Hrd] as %r ⟨Hrd, %Clog, #HcertR, %HCr⟩
+  -- `s.rev()`, lent the lock body's fraction of the committed log: the notified log (unit W-K)
+  iunfold mvcc.watchStoreInv at HP
+  icases HP with ⟨%σ, HP⟩
+  iunfold mvcc.watchStoreBody at HP
+  iNamed HP
+  iunfold mvcc.wlogQ at Hwlog
+  icases Hwlog with ⟨Hwl, Hla⟩
+  wp_apply (hrev s st γ (some (sync.rfrac.half.half, σ.Lmu))) $$ [$Hws $Hrd Hla]
+    as %r ⟨Hrd, Hla, %Clog, #HcertR, %HCr⟩
+  · unfold mvcc.logLent; iexact Hla
+  have hClm : Clog = σ.Lmu := HCr.2.2.2.2 _ _ rfl
+  ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
+      [Hσ Hwl Hla Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
+  · iunfold mvcc.watchStoreBody; iunfold mvcc.wlogQ; simp only [named]
+    unfold mvcc.logLent at *
+    iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
   (try wp_auto)
   ihave Hdx : (defer ↦ func.mk BAnon BAnon
       (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
         (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) $$ [defer]
   · iexact defer
-  iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP⟩
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ wv : Loc,

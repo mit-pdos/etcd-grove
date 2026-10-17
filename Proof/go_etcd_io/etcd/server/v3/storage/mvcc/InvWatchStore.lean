@@ -1173,6 +1173,15 @@ theorem wlogQ_cert_prefix (γ : WsNames) (q : Qp) (L C : Log) :
   iintro ⟨⟨-, Ha⟩, Hc⟩
   iapply idxLogAuth_cert_prefix $$ [$Ha $Hc]
 
+/-- **Under `s.mu`, the committed log is the notified one** (unit W-K): another fraction of the
+committed log's authority agrees with the lock's. -/
+theorem wlogQ_auth_agree (γ : WsNames) (q q' : Qp) (L C : Log) :
+    wlogQ (GF := GF) γ q L ∗ idxLogAuth γ.st.idx q' C ⊢ ⌜C = L⌝ := by
+  unfold wlogQ
+  iintro ⟨⟨-, Ha⟩, Hc⟩
+  ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ Hc Ha
+  ipureintro; exact H.2
+
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
   iprop("Hσ" ∷ ghostVar γ.wst q σ ∗

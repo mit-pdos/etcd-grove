@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀ te clb Z
-  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc⟩
+  intro s γ mode trace m log₀ te clb Z oa
+  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA⟩
   ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
   · iexists te; iexact Htrc
   iunfold mvcc.idxCert at Hc0
@@ -58,6 +58,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   iunfold mvcc.revMuInv at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
+  icases mvcc.logLent_agree γ.idx _ log oa $$ [$Hlog $HoA] with ⟨Hlog, HoA, %HoaL⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ cm c HcM Hc.1 $$ HcrevM Hcrev
   subst Hcc
   -- the caller's tokens are among the budget's
@@ -120,9 +121,10 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iStructNamedPrefix Htrw "W"
     iapply HΦ
     iexists log, (W64 ((log.length : Int) - 1)), cm
-    isplitr [Hmine]
+    isplitr [Hmine HoA]
     rotate_left
-    · iframe Hmine Hlbc Hok; ipureintro; exact ⟨Hpre.2, by omega, Hclbc⟩
+    · iframe Hmine Hlbc Hok HoA
+      ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩
     iunfold mvcc.isTxnRead
     iexists trw, tr, ti2, rt, (W64 0)
     simp only [named]
