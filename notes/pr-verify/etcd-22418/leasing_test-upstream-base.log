@@ -1,0 +1,10 @@
+--- FAIL: TestLeasingDeleteOwner (0.12s)
+    leasing_test.go:412: 
+        	Error Trace:	<upstream-base>/tests/integration/clientv3/lease/leasing_test.go:412
+        	Error:      	Should be zero, but was 1
+        	Test:       	TestLeasingDeleteOwner
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.304s
+FAIL
+--- PASS: TestLeasingDeleteNonOwner (0.17s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.234s

@@ -1,0 +1,3 @@
+--- PASS: TestLeasingDeleteCount (0.11s)
+--- PASS: TestLeasingTxnDeleteCount (0.13s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.306s

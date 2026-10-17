@@ -1,0 +1,8 @@
+--- FAIL: TestLeaseCacheDeleteClearsCount (0.00s)
+    util_test.go:52: 
+        	Error Trace:	<upstream-base>/client/v3/leasing/util_test.go:52
+        	Error:      	Should be zero, but was 1
+        	Test:       	TestLeaseCacheDeleteClearsCount
+FAIL
+FAIL	go.etcd.io/etcd/client/v3/leasing	0.009s
+FAIL

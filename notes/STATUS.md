@@ -45,6 +45,13 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22418, the same leasing `Count` fix as #22585 (2026-10-17, branch `pr-verify/etcd-22418`)
+
+Not for `lean`. #22418's `cache.go` change is byte-identical to #22585's (below), so the fork
+tree, the translation and the proofs are #22585's, cherry-picked; only the tests differ (#22418
+adds a unit test and `Count` checks to two integration tests). No new axiom or `sorry`. Report:
+`notes/pr-verify/etcd-22418.md`.
+
 ## PR verification: etcd-io/etcd#22585, the leasing cache's `Count` after a delete (2026-10-16, branch `pr-verify/etcd-22585`)
 
 Not for `lean`: the translation is of the fork branch `pr-etcd-22585-goose-lean` (the pin plus the

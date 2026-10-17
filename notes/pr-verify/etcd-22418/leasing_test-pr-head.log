@@ -1,0 +1,3 @@
+--- PASS: TestLeasingDeleteOwner (0.20s)
+--- PASS: TestLeasingDeleteNonOwner (0.16s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	0.409s
