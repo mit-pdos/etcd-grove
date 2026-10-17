@@ -1,0 +1,12 @@
+# etcd-io/etcd#21165 (concurrency: resign election on campaign failure): the linked result of the
+# function it changes, Election.Campaign (notes/pr-verify/etcd-21165.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21165.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/client/v3/concurrency/Election__Campaign\.lean$
+axiom fmt.SprintfNamed.wp_proof
+axiom proto.Clone.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof

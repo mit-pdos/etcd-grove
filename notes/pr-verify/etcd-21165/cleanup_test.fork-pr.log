@@ -1,0 +1,4 @@
+=== RUN   TestElectionCampaignCleanupOnWaitDeletesError
+--- PASS: TestElectionCampaignCleanupOnWaitDeletesError (0.12s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.231s

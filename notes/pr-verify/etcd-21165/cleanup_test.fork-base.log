@@ -1,0 +1,10 @@
+=== RUN   TestElectionCampaignCleanupOnWaitDeletesError
+    election_test.go:148: 
+        	Error Trace:	/root/etcd-pr/etcd-21165/tests/integration/clientv3/concurrency/election_test.go:148
+        	Error:      	Should not be: "candidate2"
+        	Test:       	TestElectionCampaignCleanupOnWaitDeletesError
+        	Messages:   	candidate2's key "/test-election-cleanup//39bfa14ad1e36407" was not cleaned up after Campaign error
+--- FAIL: TestElectionCampaignCleanupOnWaitDeletesError (0.07s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.153s
+FAIL

@@ -1,0 +1,9 @@
+# Files for notes/pr-verify/etcd-21165.md
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `cleanup_test.fork-base.log` | The PR's own test `TestElectionCampaignCleanupOnWaitDeletesError` fails without the fix: candidate2's key is left after `Campaign`'s compacted-error return (`issues/election-campaign-wait-error-key-left.md`). | `mit-pdos/etcd-grove` branch `pr-etcd-21165-goose-lean` with `client/v3/concurrency/election.go` taken from its parent (`09669450f`, the pinned code) | `git show pr-etcd-21165:tests/integration/clientv3/concurrency/election_test.go > tests/integration/clientv3/concurrency/election_test.go && cd tests && go test ./integration/clientv3/concurrency -run TestElectionCampaignCleanupOnWaitDeletesError -count=1 -v` |
+| `cleanup_test.fork-pr.log` | The same test passes with the PR. | `pr-etcd-21165-goose-lean` (`0a99d09ed`) | the same |
+| `review_21165_test.go` | The reviewer's two tests. `TestReviewCampaignCleanupIgnoresCallerDeadline`: after a non-context wait error with the server down, `Campaign` blocks in `Resign(client.Ctx())` past the caller's canceled context (finding 1). `TestReviewCampaignCleanupDeletesSharedKey`: a failing `Campaign` deletes the key another `Election` on the same session and prefix is waiting on; that one then returns nil without a key, and a third candidate also wins (finding 2). Each fails at the PR head and passes at its base. | upstream PR head `3982e162e`, and its merge base `e7ca1c055` | `cp review_21165_test.go <checkout>/tests/integration/clientv3/concurrency/ && cd <checkout>/tests && go test ./integration/clientv3/concurrency -run TestReview -count=1 -v` (`GOTOOLCHAIN=go1.27.1`) |
+| `review_tests.pr-head.log` | Its output at the PR head: both tests fail. | `3982e162e` | as above |
+| `review_tests.base.log` | Its output at the base: both pass. | `e7ca1c055` | as above |

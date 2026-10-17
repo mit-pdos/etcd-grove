@@ -1,0 +1,13 @@
+e7ca1c055 Merge pull request #21770 from silentred/update-changelog
+=== RUN   TestReviewCampaignCleanupIgnoresCallerDeadline
+    review_21165_test.go:79: server stopped; waitDeletes now fails with a compacted error
+    review_21165_test.go:89: Campaign returned within 6s (caller ctx canceled at 2s): true; elapsed 45.695µs; err etcdserver: mvcc: required revision has been compacted
+--- PASS: TestReviewCampaignCleanupIgnoresCallerDeadline (2.66s)
+=== RUN   TestReviewCampaignCleanupDeletesSharedKey
+    review_21165_test.go:156: e2.Campaign: etcdserver: mvcc: required revision has been compacted
+    review_21165_test.go:162: after e2's failed Campaign, the shared key "/review-shared//4dc5a14ae23af907" exists: true
+    review_21165_test.go:181: e1.Campaign returned: true (err <nil>), its key exists: true
+    review_21165_test.go:182: e3.Campaign returned: false (err <nil>)
+--- PASS: TestReviewCampaignCleanupDeletesSharedKey (3.60s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	6.294s

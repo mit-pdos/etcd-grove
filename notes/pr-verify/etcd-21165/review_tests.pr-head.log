@@ -1,0 +1,19 @@
+3982e162e Merge branch 'etcd-io:main' into fix-election-cleanup
+=== RUN   TestReviewCampaignCleanupIgnoresCallerDeadline
+    review_21165_test.go:79: server stopped; waitDeletes now fails with a compacted error
+    review_21165_test.go:89: Campaign returned within 6s (caller ctx canceled at 2s): false; elapsed 6.000958924s; err <nil>
+    review_21165_test.go:95: Campaign returned after the server restarted: elapsed 7.747512648s; err etcdserver: mvcc: required revision has been compacted
+    review_21165_test.go:100: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-21165-scratch/pr-head/tests/integration/clientv3/concurrency/review_21165_test.go:100
+--- FAIL: TestReviewCampaignCleanupIgnoresCallerDeadline (9.85s)
+=== RUN   TestReviewCampaignCleanupDeletesSharedKey
+    review_21165_test.go:156: e2.Campaign: etcdserver: mvcc: required revision has been compacted
+    review_21165_test.go:162: after e2's failed Campaign, the shared key "/review-shared//7799a14ae226ed07" exists: false
+    review_21165_test.go:181: e1.Campaign returned: true (err <nil>), its key exists: false
+    review_21165_test.go:182: e3.Campaign returned: true (err <nil>)
+    review_21165_test.go:185: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-21165-scratch/pr-head/tests/integration/clientv3/concurrency/review_21165_test.go:185
+--- FAIL: TestReviewCampaignCleanupDeletesSharedKey (0.75s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	10.623s
+FAIL

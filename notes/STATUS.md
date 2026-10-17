@@ -45,6 +45,15 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21165, `Campaign` resigns on every wait error (2026-10-17, branch `pr-verify/etcd-21165`)
+
+`Election.Campaign` re-proved over the PR's code (no `sorry`, no new axiom), against a stronger spec
+whose error case says the state is unchanged (the transaction failed) or `Resign` ran: the leader
+key and session are cleared, and the key is gone unless `Resign`'s delete failed. The old spec
+follows from it (`spec_implies_old`). The bug the PR fixes, in the pinned code, is
+`issues/election-campaign-wait-error-key-left.md` (etcd-io/etcd#21128). The report is
+`notes/pr-verify/etcd-21165.md`. The branch translates unmerged code: not for `lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -340,13 +340,9 @@ noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))
-  (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
-  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Session.ty)))) (Val UntypedNil))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Session.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Election.ty go!"leaderSession"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$r0")))))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Election.ty) go!"Resign"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$a0"))))))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Election.ty) go!"Resign"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e"))) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -411,7 +407,7 @@ noncomputable def Election.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Proclaim lets the leader announce a new value without another election.
 
-    go: election.go:110:20 -/
+    go: election.go:104:20 -/
 noncomputable def Election.Proclaim.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -497,7 +493,7 @@ noncomputable def Election.Proclaim.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Resign lets a leader start a new election.
 
-    go: election.go:132:20 -/
+    go: election.go:126:20 -/
 noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -564,7 +560,7 @@ noncomputable def Election.Resign.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Leader returns the leader value for the current election.
 
-    go: election.go:148:20 -/
+    go: election.go:142:20 -/
 noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -613,7 +609,7 @@ noncomputable def Election.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
     The channel closes when the context is canceled or the underlying watcher
     is otherwise disrupted.
 
-    go: election.go:167:20 -/
+    go: election.go:161:20 -/
 noncomputable def Election.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -635,7 +631,7 @@ noncomputable def Election.Observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty))))) (Pair (Var "retc") (Var "$r0"))))))))))))
 
-/-- go: election.go:173:20 -/
+/-- go: election.go:167:20 -/
 noncomputable def Election.observe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ctx"
@@ -902,7 +898,7 @@ noncomputable def Election.observe.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Key returns the leader key if elected, empty string otherwise.
 
-    go: election.go:254:20 -/
+    go: election.go:248:20 -/
 noncomputable def Election.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -913,7 +909,7 @@ noncomputable def Election.Key.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Rev returns the leader key's creation revision, if elected.
 
-    go: election.go:257:20 -/
+    go: election.go:251:20 -/
 noncomputable def Election.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -924,7 +920,7 @@ noncomputable def Election.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Header is the response header from the last successful election proposal.
 
-    go: election.go:260:20 -/
+    go: election.go:254:20 -/
 noncomputable def Election.Header.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon

@@ -34,8 +34,14 @@ knowing etcd has reached `lo`:
   `Mutex.Lock`, `Campaign` does not look at its key after the wait (see `notes/STATUS.md`,
   "Election"). The state holds `key`, `rev`, the session, and the transaction's header (revision
   `r`, `lo ≤ r ≤ R`);
-* an error, in some state (the transaction failed, the proclamation failed and `Resign` ran, or the
-  wait failed: then `Resign` ran if the context is done, otherwise the leader session is cleared). -/
+* an error, and either the state is unchanged (the transaction failed: nothing was recorded in
+  `e`), or **`Resign` ran** (the proclamation failed, or the wait failed: since etcd#21165, whether
+  or not the context is done): the leader key and the leader session are cleared (the revision kept), and the key `key`
+  (under the prefix) the transaction created or found, with create revision `rev`, **is gone**
+  (`notLeaderAt pfx key rev R`, at some `R ≥ lo`) unless `Resign`'s delete failed. Before
+  etcd#21165, a wait that failed with the context not done only cleared the leader session, leaving
+  `key` in etcd as the session's (issue etcd#21128). (`s = null` is a degenerate case the
+  predicates do not exclude: then `Resign` does nothing.) -/
 abbrev Election.Campaign.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
@@ -50,7 +56,11 @@ abbrev Election.Campaign.spec : Prop :=
         keyValAt pfx key rev val rv ∗ (leaderAt pfx key rev R ∨ campaignLost pfx key rev R) ∗
         ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z r ∧ sint.Z lo ≤ sint.Z r ∧
           sint.Z r ≤ sint.Z rv ∧ sint.Z rv ≤ sint.Z R⌝) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionState e s st') }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionState e s st' ∗
+        (⌜st' = st ∨ s = null⌝ ∨
+         ∃ (key : GoString) (rev : w64), ⌜pfx <+: key ∧ st'.key = [] ∧ st'.sess = null ∧ st'.rev = rev⌝ ∗
+           ((∃ R : w64, etcdReached R ∗ notLeaderAt pfx key rev R ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
+            ⌜True⌝ /- `Resign`'s delete failed -/))) }}
 
 end spec
 

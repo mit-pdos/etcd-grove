@@ -7,7 +7,9 @@ the value at `r`, or finds it (`Responses[0]`), its create revision becoming `le
 value either the proposal's or replaced by `Proclaim` (whose `ProclaimStep` gives the value,
 `proclaimStep_guard`). `waitDeletes(leaderRev - 1)` then gives a state at `R` with no key created
 before `leaderRev`: the key is there with that create revision (`leaderAt`) or not
-(`campaignLost`); `Campaign` does not look.
+(`campaignLost`); `Campaign` does not look. On an error after the transaction `Resign` runs
+(etcd#21165: also when the wait fails with the context not done), and its outcome gives the error
+case (`campaign_resign_key`; after `Proclaim` found the key gone, `campaign_resign_cleared`).
 -/
 module
 
@@ -163,6 +165,72 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+
+/-- **`Resign` of the campaign's own key** (`key`, create revision `rev`, with the leader session
+`s`, from a revision `lo' ≥ lo`) gives `Campaign`'s error postcondition: `s = null` (nothing
+happened), or the state cleared with `key` gone at some `R ≥ lo` (the delete succeeded) or not
+(it failed). -/
+theorem campaign_resign_key (e s : Loc) (pfx key : GoString) (st : ElectionSt) (rev lo lo' : w64)
+    (h0 : Loc) (rerr : GoInterface) (Hpk : pfx <+: key) (Hl : sint.Z lo ≤ sint.Z lo') :
+    ((⌜(⟨key, rev, s, h0⟩ : ElectionSt).sess = null ∧ rerr = GoInterface.nil⌝ ∗
+        electionState (GF := GF) e s ⟨key, rev, s, h0⟩) ∨
+      (⌜(⟨key, rev, s, h0⟩ : ElectionSt).sess ≠ null ∧ rerr = GoInterface.nil⌝ ∗ ∃ hdr : Loc,
+        electionState e s ⟨[], (⟨key, rev, s, h0⟩ : ElectionSt).rev, null, hdr⟩ ∗
+        (⌜¬ pfx <+: (⟨key, rev, s, h0⟩ : ElectionSt).key⌝ ∨ ∃ R : w64, hdrRevAt hdr R ∗
+          etcdReached R ∗ notLeaderAt pfx (⟨key, rev, s, h0⟩ : ElectionSt).key
+            (⟨key, rev, s, h0⟩ : ElectionSt).rev R ∗ ⌜sint.Z lo' ≤ sint.Z R⌝)) ∨
+      (⌜(⟨key, rev, s, h0⟩ : ElectionSt).sess ≠ null ∧ rerr ≠ GoInterface.nil⌝ ∗
+        electionState e s ⟨[], (⟨key, rev, s, h0⟩ : ElectionSt).rev, null,
+          (⟨key, rev, s, h0⟩ : ElectionSt).hdr⟩)) ⊢
+    ∃ st' : ElectionSt, electionState e s st' ∗
+        (⌜st' = st ∨ s = null⌝ ∨
+         ∃ (key : GoString) (rev : w64), ⌜pfx <+: key ∧ st'.key = [] ∧ st'.sess = null ∧ st'.rev = rev⌝ ∗
+           ((∃ R : w64, etcdReached R ∗ notLeaderAt pfx key rev R ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
+            ⌜True⌝)) := by
+  iintro (⟨%Hn, Hst'⟩ | ⟨-, %hdr, Hst', Hfact⟩ | ⟨-, Hst'⟩)
+  · iexists _; iframe Hst'; ileft; ipureintro; right; exact Hn.1
+  · iexists _; iframe Hst'; iright; iexists key, rev
+    isplitr
+    · ipureintro; exact ⟨Hpk, rfl, rfl, rfl⟩
+    icases Hfact with (%Hnp | ⟨%R, -, #HR, #Hnl, %HlR⟩)
+    · exact absurd Hpk Hnp
+    ileft; iexists R; iframe HR Hnl; ipureintro; omega
+  · iexists _; iframe Hst'; iright; iexists key, rev
+    isplitr
+    · ipureintro; exact ⟨Hpk, rfl, rfl, rfl⟩
+    iright; ipureintro; trivial
+
+/-- **`Resign` after `Proclaim` found the key gone** (it cleared the leader key, kept the session,
+and saw `key` not there with create revision `rev` at some `R ≥ lo`): `Campaign`'s error
+postcondition, whatever `Resign` did. -/
+theorem campaign_resign_cleared (e s : Loc) (pfx key : GoString) (st : ElectionSt) (rev lo lo' R : w64)
+    (h0 : Loc) (rerr : GoInterface) (Hpk : pfx <+: key) (HlR : sint.Z lo ≤ sint.Z R) :
+    etcdReached (GF := GF) R -∗ notLeaderAt pfx key rev R -∗
+    ((⌜(⟨[], rev, s, h0⟩ : ElectionSt).sess = null ∧ rerr = GoInterface.nil⌝ ∗
+        electionState (GF := GF) e s ⟨[], rev, s, h0⟩) ∨
+      (⌜(⟨[], rev, s, h0⟩ : ElectionSt).sess ≠ null ∧ rerr = GoInterface.nil⌝ ∗ ∃ hdr : Loc,
+        electionState e s ⟨[], (⟨[], rev, s, h0⟩ : ElectionSt).rev, null, hdr⟩ ∗
+        (⌜¬ pfx <+: (⟨[], rev, s, h0⟩ : ElectionSt).key⌝ ∨ ∃ R' : w64, hdrRevAt hdr R' ∗
+          etcdReached R' ∗ notLeaderAt pfx (⟨[], rev, s, h0⟩ : ElectionSt).key
+            (⟨[], rev, s, h0⟩ : ElectionSt).rev R' ∗ ⌜sint.Z lo' ≤ sint.Z R'⌝)) ∨
+      (⌜(⟨[], rev, s, h0⟩ : ElectionSt).sess ≠ null ∧ rerr ≠ GoInterface.nil⌝ ∗
+        electionState e s ⟨[], (⟨[], rev, s, h0⟩ : ElectionSt).rev, null,
+          (⟨[], rev, s, h0⟩ : ElectionSt).hdr⟩)) -∗
+    ∃ st' : ElectionSt, electionState e s st' ∗
+        (⌜st' = st ∨ s = null⌝ ∨
+         ∃ (key : GoString) (rev : w64), ⌜pfx <+: key ∧ st'.key = [] ∧ st'.sess = null ∧ st'.rev = rev⌝ ∗
+           ((∃ R : w64, etcdReached R ∗ notLeaderAt pfx key rev R ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
+            ⌜True⌝)) := by
+  iintro #HR #Hnl (⟨%Hn, Hst'⟩ | ⟨-, %hdr, Hst', -⟩ | ⟨-, Hst'⟩)
+  · iexists _; iframe Hst'; ileft; ipureintro; right; exact Hn.1
+  · iexists _; iframe Hst'; iright; iexists key, rev
+    isplitr
+    · ipureintro; exact ⟨Hpk, rfl, rfl, rfl⟩
+    ileft; iexists R; iframe HR Hnl; ipureintro; exact HlR
+  · iexists _; iframe Hst'; iright; iexists key, rev
+    isplitr
+    · ipureintro; exact ⟨Hpk, rfl, rfl, rfl⟩
+    ileft; iexists R; iframe HR Hnl; ipureintro; exact HlR
 
 theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG))
     (hLe : Session.Lease.spec (GF := GF) (hG := hG))
@@ -344,9 +412,9 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     isplitr
     · ipureintro; exact Hne
     iexists st
-    unfold electionState
-    iframe
-    ipureintro; exact Hsess0
+    isplitl
+    · unfold electionState; iframe; ipureintro; exact Hsess0
+    · ileft; ipureintro; left; rfl
   subst Heq
   have hm : ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } :
       TxnBuild).model = campaignTxn key pv id := rfl
@@ -421,53 +489,16 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
           | nil => exact absurd rfl Hwne
           | ok e' => exact ⟨e', rfl⟩
         (try wp_auto)
-        ihave HΦ' : iprop(∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')) $$ [HΦ]
-        · iintro %st' Hst'
-          iapply HΦ
-          iright
-          isplitr
-          · ipureintro; intro h; cases h
-          iexists st'
-          iexact Hst'
-        ihave #Hctx2 := Hctx
-        iNamed Hctx2
-        wp_apply HDone as %dch %γd #Hdone
-        wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
-            iprop(e_ptr ↦ e ∗ client_ptr ↦ client ∗ err_ptr ↦ (GoInterface.ok e' : GoInterface) ∗
-              structFieldRef Election go!"leaderKey" e ↦ key ∗
-              structFieldRef Election go!"leaderRev" e ↦ (v.createRev) ∗
-              structFieldRef Election go!"leaderSession" e ↦ s ∗
-              structFieldRef Election go!"hdr" e ↦ (st.hdr) ∗
-              (∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')))
-            $$ [] [e client err Hk Hrv Hls Hh HΦ'] []
-        · iapply BigSepL2.bigSepL2_singleton.2
-          iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩
-          simp only [chan.nonblockingAltClausePre]
-          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
-          isplitr
-          · ipureintro; rfl
-          isplitr
-          · iapply context.isContextDone_is_chan $$ Hdone
-          iapply context.isContextDone_nonblocking_receive _ _ _ _ _ $$ Hdone
-          isplit
-          · iintro -
-            (try wp_auto)
-            wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcv $Hctxf]
-            ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
-            · iapply etcdReached_zero
-            wp_apply hResign e s γ client id pfx ⟨key, (v.createRev), s, (st.hdr)⟩ cctx ccs (W64 0)
-              $$ [$Hpkg $He Hk Hrv Hls Hh $Hcctx $H0] as %rerr Hres
-            · unfold electionState; iframe; ipureintro; right; rfl
-            (try wp_auto)
-            icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst'
-          · iframe
-        · iframe
-        · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩ -
-          (try wp_auto)
-          iapply HΦ' $$ %(⟨key, (v.createRev), null, (st.hdr)⟩ : ElectionSt)
-          unfold electionState
-          iframe
-          ipureintro; left; rfl
+        wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcv $Hctxf]
+        wp_apply hResign e s γ client id pfx ⟨key, (v.createRev), s, (st.hdr)⟩ cctx ccs r
+          $$ [$Hpkg $He Hk Hrv Hls Hh $Hcctx $Hr] as %rerr Hres
+        · unfold electionState; iframe; ipureintro; right; rfl
+        (try wp_auto)
+        iapply HΦ
+        iright
+        isplitr
+        · ipureintro; intro h; cases h
+        iapply campaign_resign_key e s pfx key st (v.createRev) lo r (st.hdr) rerr Hpk (by have := Hlo_r; omega) $$ Hres
       subst Hwnil
       (try wp_auto)
       iapply HΦ
@@ -518,53 +549,16 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
             | nil => exact absurd rfl Hwne
             | ok e' => exact ⟨e', rfl⟩
           (try wp_auto)
-          ihave HΦ' : iprop(∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')) $$ [HΦ]
-          · iintro %st' Hst'
-            iapply HΦ
-            iright
-            isplitr
-            · ipureintro; intro h; cases h
-            iexists st'
-            iexact Hst'
-          ihave #Hctx2 := Hctx
-          iNamed Hctx2
-          wp_apply HDone as %dch %γd #Hdone
-          wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
-              iprop(e_ptr ↦ e ∗ client_ptr ↦ client ∗ err_ptr ↦ (GoInterface.ok e' : GoInterface) ∗
-                structFieldRef Election go!"leaderKey" e ↦ key ∗
-                structFieldRef Election go!"leaderRev" e ↦ (v.createRev) ∗
-                structFieldRef Election go!"leaderSession" e ↦ s ∗
-                structFieldRef Election go!"hdr" e ↦ (hdr') ∗
-                (∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')))
-              $$ [] [e client err Hk Hrv Hls Hh HΦ'] []
-          · iapply BigSepL2.bigSepL2_singleton.2
-            iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩
-            simp only [chan.nonblockingAltClausePre]
-            iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
-            isplitr
-            · ipureintro; rfl
-            isplitr
-            · iapply context.isContextDone_is_chan $$ Hdone
-            iapply context.isContextDone_nonblocking_receive _ _ _ _ _ $$ Hdone
-            isplit
-            · iintro -
-              (try wp_auto)
-              wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcv $Hctxf]
-              ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
-              · iapply etcdReached_zero
-              wp_apply hResign e s γ client id pfx ⟨key, (v.createRev), s, (hdr')⟩ cctx ccs (W64 0)
-                $$ [$Hpkg $He Hk Hrv Hls Hh $Hcctx $H0] as %rerr Hres
-              · unfold electionState; iframe; ipureintro; right; rfl
-              (try wp_auto)
-              icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst'
-            · iframe
-          · iframe
-          · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩ -
-            (try wp_auto)
-            iapply HΦ' $$ %(⟨key, (v.createRev), null, (hdr')⟩ : ElectionSt)
-            unfold electionState
-            iframe
-            ipureintro; left; rfl
+          wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcv $Hctxf]
+          wp_apply hResign e s γ client id pfx ⟨key, (v.createRev), s, (hdr')⟩ cctx ccs r'
+            $$ [$Hpkg $He Hk Hrv Hls Hh $Hcctx $Hr'] as %rerr Hres
+          · unfold electionState; iframe; ipureintro; right; rfl
+          (try wp_auto)
+          iapply HΦ
+          iright
+          isplitr
+          · ipureintro; intro h; cases h
+          iapply campaign_resign_key e s pfx key st (v.createRev) lo r' (hdr') rerr Hpk (by have := Hlo_r; have := HREV.2.2; omega) $$ Hres
         subst Hwnil
         (try wp_auto)
         iapply HΦ
@@ -595,29 +589,43 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
           cases perr with
           | nil => exact absurd rfl Hpne
           | ok e' => exact ⟨e', rfl⟩
-        ihave Hst : iprop(∃ st'' : ElectionSt, electionState (GF := GF) e s st'') $$ [Hrest]
-        · icases Hrest with (⟨-, Hst⟩ | ⟨-, Hst, -⟩) <;> iexists _ <;> iexact Hst
-        icases Hst with ⟨%st'', Hst⟩
+        icases Hrest with (⟨%Hsn, Hst⟩ | ⟨-, Hst, Hfact⟩)
+        · -- `s = null`: `Resign` does nothing
+          (try wp_auto)
+          wp_apply hResign e s γ client id pfx _ ctx cs r $$ [$Hpkg $He $Hst $Hctx $Hr] as %rerr Hres
+          (try wp_auto)
+          iapply HΦ
+          iright
+          isplitr
+          · ipureintro; intro h; cases h
+          icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iexists _ <;> iframe Hst' <;>
+            ileft <;> ipureintro <;> right <;> exact Hsn
+        icases Hfact with (%Hnp | ⟨%r'', #Hr'', #Hnl, %Hrr''⟩)
+        · exact absurd Hpk Hnp
         (try wp_auto)
-        wp_apply hResign e s γ client id pfx st'' ctx cs r $$ [$Hpkg $He $Hst $Hctx $Hr] as %rerr Hres
+        wp_apply hResign e s γ client id pfx ⟨[], v.createRev, s, st.hdr⟩ ctx cs r
+          $$ [$Hpkg $He $Hst $Hctx $Hr] as %rerr Hres
         (try wp_auto)
         iapply HΦ
         iright
         isplitr
         · ipureintro; intro h; cases h
-        icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iexists _ <;> iexact Hst'
+        iapply campaign_resign_cleared e s pfx key st v.createRev lo r r'' st.hdr rerr Hpk
+          (by have := Hlo_r; omega) $$ Hr'' Hnl Hres
       · obtain ⟨e', rfl⟩ : ∃ e', perr = GoInterface.ok e' := by
           cases perr with
           | nil => exact absurd rfl Hpne
           | ok e' => exact ⟨e', rfl⟩
         (try wp_auto)
-        wp_apply hResign e s γ client id pfx _ ctx cs r $$ [$Hpkg $He $Hst $Hctx $Hr] as %rerr Hres
+        wp_apply hResign e s γ client id pfx ⟨key, v.createRev, s, st.hdr⟩ ctx cs r
+          $$ [$Hpkg $He $Hst $Hctx $Hr] as %rerr Hres
         (try wp_auto)
         iapply HΦ
         iright
         isplitr
         · ipureintro; intro h; cases h
-        icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iexists _ <;> iexact Hst'
+        iapply campaign_resign_key e s pfx key st v.createRev lo r st.hdr rerr Hpk
+          (by have := Hlo_r; omega) $$ Hres
   · obtain ⟨h1, h2, h3, hkv⟩ := campaignTxn_then key pv id r s0 hpos hok
     have hb : (campaignTxn key pv id).branch true = [.put key pv id] := rfl
     simp only [h2, h1, hok, hb] at Hlens ⊢
@@ -637,53 +645,16 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         | nil => exact absurd rfl Hwne
         | ok e' => exact ⟨e', rfl⟩
       (try wp_auto)
-      ihave HΦ' : iprop(∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')) $$ [HΦ]
-      · iintro %st' Hst'
-        iapply HΦ
-        iright
-        isplitr
-        · ipureintro; intro h; cases h
-        iexists st'
-        iexact Hst'
-      ihave #Hctx2 := Hctx
-      iNamed Hctx2
-      wp_apply HDone as %dch %γd #Hdone
-      wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
-          iprop(e_ptr ↦ e ∗ client_ptr ↦ client ∗ err_ptr ↦ (GoInterface.ok e' : GoInterface) ∗
-            structFieldRef Election go!"leaderKey" e ↦ key ∗
-            structFieldRef Election go!"leaderRev" e ↦ (r) ∗
-            structFieldRef Election go!"leaderSession" e ↦ s ∗
-            structFieldRef Election go!"hdr" e ↦ (st.hdr) ∗
-            (∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')))
-          $$ [] [e client err Hk Hrv Hls Hh HΦ'] []
-      · iapply BigSepL2.bigSepL2_singleton.2
-        iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩
-        simp only [chan.nonblockingAltClausePre]
-        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
-        isplitr
-        · ipureintro; rfl
-        isplitr
-        · iapply context.isContextDone_is_chan $$ Hdone
-        iapply context.isContextDone_nonblocking_receive _ _ _ _ _ $$ Hdone
-        isplit
-        · iintro -
-          (try wp_auto)
-          wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcv $Hctxf]
-          ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
-          · iapply etcdReached_zero
-          wp_apply hResign e s γ client id pfx ⟨key, (r), s, (st.hdr)⟩ cctx ccs (W64 0)
-            $$ [$Hpkg $He Hk Hrv Hls Hh $Hcctx $H0] as %rerr Hres
-          · unfold electionState; iframe; ipureintro; right; rfl
-          (try wp_auto)
-          icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst'
-        · iframe
-      · iframe
-      · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩ -
-        (try wp_auto)
-        iapply HΦ' $$ %(⟨key, (r), null, (st.hdr)⟩ : ElectionSt)
-        unfold electionState
-        iframe
-        ipureintro; left; rfl
+      wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcv $Hctxf]
+      wp_apply hResign e s γ client id pfx ⟨key, (r), s, (st.hdr)⟩ cctx ccs r
+        $$ [$Hpkg $He Hk Hrv Hls Hh $Hcctx $Hr] as %rerr Hres
+      · unfold electionState; iframe; ipureintro; right; rfl
+      (try wp_auto)
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iapply campaign_resign_key e s pfx key st (r) lo r (st.hdr) rerr Hpk (by have := Hlo_r; omega) $$ Hres
     subst Hwnil
     (try wp_auto)
     iapply HΦ
@@ -707,6 +678,41 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       · iright; unfold campaignLost; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
     ipureintro
     exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, Hw.1⟩
+
+/-- **`Campaign`'s spec before etcd#21165** (`lean`, `Spec/.../Election__Campaign.lean` there): the
+same `nil` case, and an error in some state. The new spec's error case adds what the state is
+(unchanged, or resigned) and that the key is gone when `Resign`'s delete succeeded. -/
+abbrev Election.Campaign.spec_old : Prop :=
+  ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
+    (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
+      electionState e s st ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      etcdReached lo }}
+    (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Campaign"))
+      (Val #(GoInterface.ok ctx))) (Val #val))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R : w64) (hdr : Loc),
+        electionState e s ⟨key, rev, s, hdr⟩ ∗ hdrRevAt hdr r ∗ etcdReached R ∗
+        keyValAt pfx key rev val rv ∗ (leaderAt pfx key rev R ∨ campaignLost pfx key rev R) ∗
+        ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z r ∧ sint.Z lo ≤ sint.Z r ∧
+          sint.Z r ≤ sint.Z rv ∧ sint.Z rv ≤ sint.Z R⌝) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionState e s st') }}
+
+/-- The new spec is compatible: it implies the old one (only the error case is stronger). -/
+theorem Election.Campaign.spec_implies_old (h : Election.Campaign.spec (GF := GF) (hG := hG)) :
+    Election.Campaign.spec_old (GF := GF) (hG := hG) := by
+  intro e s γ client id pfx st ctx cs val lo
+  iintro %Φ Hpre HΦ
+  iapply h e s γ client id pfx st ctx cs val lo $$ Hpre
+  inext
+  iintro %err Hpost
+  iapply HΦ
+  icases Hpost with (H | ⟨%Hne, %st', Hst', -⟩)
+  · ileft; iexact H
+  · iright
+    isplitr
+    · ipureintro; exact Hne
+    iexists st'; iexact Hst'
 
 end proof
 
