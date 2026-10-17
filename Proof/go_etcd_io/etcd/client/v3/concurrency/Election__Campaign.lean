@@ -25,6 +25,8 @@ public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Spec.fmt.SprintfNamed
+public import Spec.errors.IsAnyErr
+public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutexLemmas
 
 @[expose] public section
 
@@ -45,6 +47,20 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
+
+/-- A re-created key (`RecreatedState`) of a well-formed state is not there with its old create
+revision (`LostState`): a state has one entry per key. -/
+theorem recreated_lost (pfx key : GoString) (c : w64) (s : List EtcdKv) (hwf : EtcdStateWf pfx s)
+    (h : RecreatedState key c s) : LostState key c s := by
+  obtain ⟨⟨v2, hv2, hk2, hc2⟩, hmin⟩ := h
+  refine ⟨?_, hmin⟩
+  rintro ⟨v1, hv1, hk1, hc1⟩
+  have e1 := filter_key_single s hwf.1 key (fun w => decide (w.key = key)) (by simp) v1 hv1 hk1
+  have e2 := filter_key_single s hwf.1 key (fun w => decide (w.key = key)) (by simp) v2 hv2 hk2
+  rw [e1] at e2
+  have : v1 = v2 := by simpa using e2
+  subst this
+  rw [hc1] at hc2; omega
 
 /-- The state before a transaction has positive create revisions. -/
 theorem campaign_txnStates_pos (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) :
@@ -176,7 +192,8 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     (hResign : Election.Resign.spec (GF := GF) (hG := hG))
     (hWD : waitDeletes.spec (GF := GF) (hG := hG))
     (hCtx : Client.Ctx.spec (GF := GF) (hG := hG))
-    (hSp : EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG)) :
+    (hSp : EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG))
+    (hIs : errors.IsAnyErr.spec (GF := GF) (hG := hG)) :
     Election.Campaign.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs pv lo
   wp_start as ⟨#He, Hst, #Hctx, #Hcc, #Hlo⟩
@@ -229,7 +246,12 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   ipersist HslC
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
-  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, #Hctxf, #Hcctx, -, #HTxn, -, -⟩
+  icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #HKV, -, #Hctxf, #Hcctx, #HKVg, #HTxn, -, -⟩
+  ihave Hci : (concurrencyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨-, -, -, ⟨%eNL, #HeNL⟩, -, -, ⟨%eWK, #HeWK, %HWKp⟩⟩
+  ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+  · iPkgInit
   (try wp_auto)
   iunfold isEtcdTxnKV at HTxn
   wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
@@ -413,9 +435,29 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       · unfold keyValAt; iexists s0; iframe Hs; ipureintro; exact ⟨v, hv, hvk, rfl, rfl⟩
       have HREV : 0 < sint.Z (v.createRev) ∧ sint.Z (v.createRev) ≤ sint.Z r ∧ sint.Z r ≤ sint.Z (r) := ⟨hc0, Hcr_r, Int.le_refl _⟩
       (try wp_auto)
-      wp_apply hWD ctx cs client pfx ((v.createRev) - W64 1) (r) $$ [$Hcl $Hctx $Hcc $Hr] as %werr Hwd
-      · ipureintro; exact ⟨Hpfx, by have := HREV.1; word⟩
-      icases Hwd with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
+      wp_apply hWD ctx cs client pfx key ((v.createRev) - W64 1) (r) $$ [$Hcl $Hctx $Hcc $Hr] as %werr Hwd
+      · ipureintro; exact ⟨Hpfx, by have := HREV.1; word, Hpk⟩
+      -- etcd#22387: `errors.Is(err, errWaitKeyDeleted)` returns `ErrElectionNotLeader`
+      (try wp_auto)
+      wp_apply hIs werr eWK HWKp $$ [$Herrs] as %b -
+      cases b
+      rotate_left
+      · (try wp_auto)
+        iapply HΦ
+        iright
+        isplitr
+        · ipureintro; intro h; cases h
+        iexists (⟨key, (v.createRev), null, st.hdr⟩ : ElectionSt)
+        unfold electionState; iframe; ipureintro; left; rfl
+      (try wp_auto)
+      ihave Hwd' : iprop(⌜werr ≠ GoInterface.nil⌝ ∨ ⌜werr = GoInterface.nil⌝ ∗ ∃ (R : w64) (sw : List EtcdKv),
+          etcdReached R ∗ □ etcdState R pfx sw ∗ ⌜sint.Z (r) ≤ sint.Z R ∧
+            ∀ w ∈ sw, sint.Z ((v.createRev) - W64 1) < sint.Z w.createRev⌝) $$ [Hwd]
+      · icases Hwd with (H | ⟨#Hwk, -⟩ | %H)
+        · iright; iexact H
+        · ileft; iunfold isPkgErr at Hwk; icases Hwk with ⟨-, %H⟩; ipureintro; exact H
+        · ileft; ipureintro; exact H
+      icases Hwd' with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
       · obtain ⟨e', rfl⟩ : ∃ e', werr = GoInterface.ok e' := by
           cases werr with
           | nil => exact absurd rfl Hwne
@@ -470,27 +512,85 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
           ipureintro; left; rfl
       subst Hwnil
       (try wp_auto)
+      -- etcd#22387: the final `Get(leaderKey)`
+      ihave #Hopts0 : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
+      · iapply optsAt_nil
+      ihave #HKV0 := HKVg
+      iunfold isEtcdKV at HKV0
+      ihave #HG0 := HKV0 $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %R
+      wp_apply HG0 $$ [] as %gresp %gerr #Hgres
+      · iframe Hctx Hopts0 HRR
+        ipureintro
+        exact ⟨keyOp_not_panics, (keyOp_t key).1⟩
+      iunfold kvGetResult at Hgres
+      icases Hgres with (%Hgne | ⟨%Hgnil, %R2, %gm, #HgRev, -, #HRR2, %HR2le, Hgr⟩)
+      · obtain ⟨e', rfl⟩ : ∃ e', gerr = GoInterface.ok e' := by
+          cases gerr with
+          | nil => exact absurd rfl Hgne
+          | ok e' => exact ⟨e', rfl⟩
+        (try wp_auto)
+        iapply HΦ
+        iright
+        isplitr
+        · ipureintro; intro h; cases h
+        iexists (⟨key, (v.createRev), null, st.hdr⟩ : ElectionSt)
+        unfold electionState; iframe; ipureintro; left; rfl
+      subst Hgnil
+      have HkT : (opGetModel key []).t = W64 1 ∧ (opGetModel key []).key = key ∧
+          (opGetModel key []).base.rangeEnd = [] ∧ (opGetModel key []).base.rev = W64 0 ∧
+          (opGetModel key []).base.serializable = false := keyOp_t key
+      have HR2le' : sint.Z R ≤ sint.Z R2 := HR2le.1 HkT.2.2.2.2
+      have HkP : (opGetModel key []).isPrefixGet pfx = false := keyOp_isPrefixGet pfx key
+      rw [ite_eq_right (c := (opGetModel key []).isPrefixGet pfx = true) (by rw [HkP]; simp)]
+      unfold getRespRange
+      rw [ite_eq_left (show (opGetModel key []).base.rev = W64 0 ∧
+          KeyRangeUnder pfx (opGetModel key []).key (opGetModel key []).base.rangeEnd from
+        ⟨HkT.2.2.2.1, by rw [HkT.2.1, HkT.2.2.1]; exact keyRangeUnder_key pfx key Hpk⟩)]
+      icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', %Hwf', #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
+      (try wp_auto)
+      iunfold kvPtrsAt at Hgkvs
+      icases Hgkvs with ⟨%Hgl, -⟩
+      ihave %Hgsl := ownSlice_len $$ Hgps
+      obtain ⟨Hkabs, Hkpres⟩ := keyOp_kvs pfx key s' gkvs Hwf' Hgok
+      wp_if_destruct
+      · -- the key is gone: `ErrElectionNotLeader`
+        (try wp_auto)
+        iapply HΦ
+        iright
+        isplitr
+        · ipureintro; intro h; cases h
+        iexists (⟨key, (v.createRev), null, st.hdr⟩ : ElectionSt)
+        unfold electionState; iframe; ipureintro; left; rfl
+      have Hpres : ∃ v ∈ s', v.key = key := by
+        rcases Classical.em (∃ v ∈ s', v.key = key) with h | h
+        · exact h
+        · have h' : gkvs = [] := Hkabs (fun v hv hk => h ⟨v, hv, hk⟩)
+          rw [h'] at Hgl
+          exfalso; apply Hif
+          have : sint.nat gsl.len = 0 := by rw [← Hgsl.1, Hgl]; rfl
+          word
+      ihave %Hfin := lock_final pfx key (v.createRev) (r) R R2 sw s' HREV.1 (Int.le_trans HREV.2.1 HREV.2.2) Hw.1
+        HR2le' Hw.2 Hpres $$ [$Hsw $Hs']
+      (try wp_auto)
       iapply HΦ
       ileft
       isplitr
       · ipureintro; rfl
-      iexists key, (v.createRev), r, (r), R, hdr
+      iexists key, (v.createRev), r, (r), R2, hdr
       isplitl [Hk Hrv Hls Hh]
       · unfold electionState; iframe; ipureintro; right; rfl
       isplitr
       · unfold hdrRevAt; iframe HRev; ipureintro; exact Hhdr
-      iframe HRR HKV'
-      have Hmin : ∀ w ∈ sw, sint.Z (v.createRev) ≤ sint.Z w.createRev := by
-        intro w hw
-        have h1 := Hw.2 w hw
-        have h2 : sint.Z ((v.createRev) - W64 1) = sint.Z (v.createRev) - 1 := by have := HREV.1; word
-        omega
+      iframe HRR2 HKV'
       isplitr
-      · by_cases hh : HasKeyAt key (v.createRev) sw
-        · ileft; unfold leaderAt lockedAt; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
-        · iright; unfold campaignLost; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
+      · rcases Hfin with Hl | Hrc
+        · ileft; unfold leaderAt lockedAt; iexists s'; iframe Hs'; ipureintro; exact Hl
+        · iright
+          isplitr
+          · unfold keyRecreated; iexists s'; iframe Hs'; ipureintro; exact Hrc
+          unfold campaignLost; iexists s'; iframe Hs'; ipureintro; exact recreated_lost pfx key _ s' Hwf' Hrc
       ipureintro
-      exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, Hw.1⟩
+      exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, by have := Hw.1; omega⟩
     · -- a different value: `Proclaim`
       ihave Hst : electionState (GF := GF) e s ⟨key, v.createRev, s, st.hdr⟩ $$ [Hk Hrv Hls Hh]
       · unfold electionState; iframe; ipureintro; right; rfl
@@ -510,9 +610,29 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         (try wp_auto)
         have HREV : 0 < sint.Z (v.createRev) ∧ sint.Z (v.createRev) ≤ sint.Z r ∧ sint.Z r ≤ sint.Z (r') := ⟨hc0, Hcr_r, Hrr'⟩
         (try wp_auto)
-        wp_apply hWD ctx cs client pfx ((v.createRev) - W64 1) (r') $$ [$Hcl $Hctx $Hcc $Hr'] as %werr Hwd
-        · ipureintro; exact ⟨Hpfx, by have := HREV.1; word⟩
-        icases Hwd with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
+        wp_apply hWD ctx cs client pfx key ((v.createRev) - W64 1) (r') $$ [$Hcl $Hctx $Hcc $Hr'] as %werr Hwd
+        · ipureintro; exact ⟨Hpfx, by have := HREV.1; word, Hpk⟩
+        -- etcd#22387: `errors.Is(err, errWaitKeyDeleted)` returns `ErrElectionNotLeader`
+        (try wp_auto)
+        wp_apply hIs werr eWK HWKp $$ [$Herrs] as %b -
+        cases b
+        rotate_left
+        · (try wp_auto)
+          iapply HΦ
+          iright
+          isplitr
+          · ipureintro; intro h; cases h
+          iexists (⟨key, (v.createRev), null, hdr'⟩ : ElectionSt)
+          unfold electionState; iframe; ipureintro; left; rfl
+        (try wp_auto)
+        ihave Hwd' : iprop(⌜werr ≠ GoInterface.nil⌝ ∨ ⌜werr = GoInterface.nil⌝ ∗ ∃ (R : w64) (sw : List EtcdKv),
+            etcdReached R ∗ □ etcdState R pfx sw ∗ ⌜sint.Z (r') ≤ sint.Z R ∧
+              ∀ w ∈ sw, sint.Z ((v.createRev) - W64 1) < sint.Z w.createRev⌝) $$ [Hwd]
+        · icases Hwd with (H | ⟨#Hwk, -⟩ | %H)
+          · iright; iexact H
+          · ileft; iunfold isPkgErr at Hwk; icases Hwk with ⟨-, %H⟩; ipureintro; exact H
+          · ileft; ipureintro; exact H
+        icases Hwd' with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
         · obtain ⟨e', rfl⟩ : ∃ e', werr = GoInterface.ok e' := by
             cases werr with
             | nil => exact absurd rfl Hwne
@@ -567,27 +687,85 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
             ipureintro; left; rfl
         subst Hwnil
         (try wp_auto)
+        -- etcd#22387: the final `Get(leaderKey)`
+        ihave #Hopts0 : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
+        · iapply optsAt_nil
+        ihave #HKV0 := HKVg
+        iunfold isEtcdKV at HKV0
+        ihave #HG0 := HKV0 $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %R
+        wp_apply HG0 $$ [] as %gresp %gerr #Hgres
+        · iframe Hctx Hopts0 HRR
+          ipureintro
+          exact ⟨keyOp_not_panics, (keyOp_t key).1⟩
+        iunfold kvGetResult at Hgres
+        icases Hgres with (%Hgne | ⟨%Hgnil, %R2, %gm, #HgRev, -, #HRR2, %HR2le, Hgr⟩)
+        · obtain ⟨e', rfl⟩ : ∃ e', gerr = GoInterface.ok e' := by
+            cases gerr with
+            | nil => exact absurd rfl Hgne
+            | ok e' => exact ⟨e', rfl⟩
+          (try wp_auto)
+          iapply HΦ
+          iright
+          isplitr
+          · ipureintro; intro h; cases h
+          iexists (⟨key, (v.createRev), null, hdr'⟩ : ElectionSt)
+          unfold electionState; iframe; ipureintro; left; rfl
+        subst Hgnil
+        have HkT : (opGetModel key []).t = W64 1 ∧ (opGetModel key []).key = key ∧
+            (opGetModel key []).base.rangeEnd = [] ∧ (opGetModel key []).base.rev = W64 0 ∧
+            (opGetModel key []).base.serializable = false := keyOp_t key
+        have HR2le' : sint.Z R ≤ sint.Z R2 := HR2le.1 HkT.2.2.2.2
+        have HkP : (opGetModel key []).isPrefixGet pfx = false := keyOp_isPrefixGet pfx key
+        rw [ite_eq_right (c := (opGetModel key []).isPrefixGet pfx = true) (by rw [HkP]; simp)]
+        unfold getRespRange
+        rw [ite_eq_left (show (opGetModel key []).base.rev = W64 0 ∧
+            KeyRangeUnder pfx (opGetModel key []).key (opGetModel key []).base.rangeEnd from
+          ⟨HkT.2.2.2.1, by rw [HkT.2.1, HkT.2.2.1]; exact keyRangeUnder_key pfx key Hpk⟩)]
+        icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', %Hwf', #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
+        (try wp_auto)
+        iunfold kvPtrsAt at Hgkvs
+        icases Hgkvs with ⟨%Hgl, -⟩
+        ihave %Hgsl := ownSlice_len $$ Hgps
+        obtain ⟨Hkabs, Hkpres⟩ := keyOp_kvs pfx key s' gkvs Hwf' Hgok
+        wp_if_destruct
+        · -- the key is gone: `ErrElectionNotLeader`
+          (try wp_auto)
+          iapply HΦ
+          iright
+          isplitr
+          · ipureintro; intro h; cases h
+          iexists (⟨key, (v.createRev), null, hdr'⟩ : ElectionSt)
+          unfold electionState; iframe; ipureintro; left; rfl
+        have Hpres : ∃ v ∈ s', v.key = key := by
+          rcases Classical.em (∃ v ∈ s', v.key = key) with h | h
+          · exact h
+          · have h' : gkvs = [] := Hkabs (fun v hv hk => h ⟨v, hv, hk⟩)
+            rw [h'] at Hgl
+            exfalso; apply Hif
+            have : sint.nat gsl.len = 0 := by rw [← Hgsl.1, Hgl]; rfl
+            word
+        ihave %Hfin := lock_final pfx key (v.createRev) (r') R R2 sw s' HREV.1 (Int.le_trans HREV.2.1 HREV.2.2) Hw.1
+          HR2le' Hw.2 Hpres $$ [$Hsw $Hs']
+        (try wp_auto)
         iapply HΦ
         ileft
         isplitr
         · ipureintro; rfl
-        iexists key, (v.createRev), r, (r'), R, hdr
+        iexists key, (v.createRev), r, (r'), R2, hdr
         isplitl [Hk Hrv Hls Hh]
         · unfold electionState; iframe; ipureintro; right; rfl
         isplitr
         · unfold hdrRevAt; iframe HRev; ipureintro; exact Hhdr
-        iframe HRR HKV'
-        have Hmin : ∀ w ∈ sw, sint.Z (v.createRev) ≤ sint.Z w.createRev := by
-          intro w hw
-          have h1 := Hw.2 w hw
-          have h2 : sint.Z ((v.createRev) - W64 1) = sint.Z (v.createRev) - 1 := by have := HREV.1; word
-          omega
+        iframe HRR2 HKV'
         isplitr
-        · by_cases hh : HasKeyAt key (v.createRev) sw
-          · ileft; unfold leaderAt lockedAt; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
-          · iright; unfold campaignLost; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
+        · rcases Hfin with Hl | Hrc
+          · ileft; unfold leaderAt lockedAt; iexists s'; iframe Hs'; ipureintro; exact Hl
+          · iright
+            isplitr
+            · unfold keyRecreated; iexists s'; iframe Hs'; ipureintro; exact Hrc
+            unfold campaignLost; iexists s'; iframe Hs'; ipureintro; exact recreated_lost pfx key _ s' Hwf' Hrc
         ipureintro
-        exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, Hw.1⟩
+        exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, by have := Hw.1; omega⟩
       · -- `ErrElectionNotLeader`: `Resign`, return the error
         iunfold isPkgErr at Herr
         icases Herr with ⟨-, %Hpne⟩
@@ -629,9 +807,29 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     · unfold keyValAt; iexists _; iframe Hs; ipureintro; exact hkv
     have HREV : 0 < sint.Z (r) ∧ sint.Z (r) ≤ sint.Z r ∧ sint.Z r ≤ sint.Z (r) := ⟨Hr0, Int.le_refl _, Int.le_refl _⟩
     (try wp_auto)
-    wp_apply hWD ctx cs client pfx ((r) - W64 1) (r) $$ [$Hcl $Hctx $Hcc $Hr] as %werr Hwd
-    · ipureintro; exact ⟨Hpfx, by have := HREV.1; word⟩
-    icases Hwd with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
+    wp_apply hWD ctx cs client pfx key ((r) - W64 1) (r) $$ [$Hcl $Hctx $Hcc $Hr] as %werr Hwd
+    · ipureintro; exact ⟨Hpfx, by have := HREV.1; word, Hpk⟩
+    -- etcd#22387: `errors.Is(err, errWaitKeyDeleted)` returns `ErrElectionNotLeader`
+    (try wp_auto)
+    wp_apply hIs werr eWK HWKp $$ [$Herrs] as %b -
+    cases b
+    rotate_left
+    · (try wp_auto)
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iexists (⟨key, (r), null, st.hdr⟩ : ElectionSt)
+      unfold electionState; iframe; ipureintro; left; rfl
+    (try wp_auto)
+    ihave Hwd' : iprop(⌜werr ≠ GoInterface.nil⌝ ∨ ⌜werr = GoInterface.nil⌝ ∗ ∃ (R : w64) (sw : List EtcdKv),
+        etcdReached R ∗ □ etcdState R pfx sw ∗ ⌜sint.Z (r) ≤ sint.Z R ∧
+          ∀ w ∈ sw, sint.Z ((r) - W64 1) < sint.Z w.createRev⌝) $$ [Hwd]
+    · icases Hwd with (H | ⟨#Hwk, -⟩ | %H)
+      · iright; iexact H
+      · ileft; iunfold isPkgErr at Hwk; icases Hwk with ⟨-, %H⟩; ipureintro; exact H
+      · ileft; ipureintro; exact H
+    icases Hwd' with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
     · obtain ⟨e', rfl⟩ : ∃ e', werr = GoInterface.ok e' := by
         cases werr with
         | nil => exact absurd rfl Hwne
@@ -686,27 +884,127 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         ipureintro; left; rfl
     subst Hwnil
     (try wp_auto)
+    -- etcd#22387: the final `Get(leaderKey)`
+    ihave #Hopts0 : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
+    · iapply optsAt_nil
+    ihave #HKV0 := HKVg
+    iunfold isEtcdKV at HKV0
+    ihave #HG0 := HKV0 $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %R
+    wp_apply HG0 $$ [] as %gresp %gerr #Hgres
+    · iframe Hctx Hopts0 HRR
+      ipureintro
+      exact ⟨keyOp_not_panics, (keyOp_t key).1⟩
+    iunfold kvGetResult at Hgres
+    icases Hgres with (%Hgne | ⟨%Hgnil, %R2, %gm, #HgRev, -, #HRR2, %HR2le, Hgr⟩)
+    · obtain ⟨e', rfl⟩ : ∃ e', gerr = GoInterface.ok e' := by
+        cases gerr with
+        | nil => exact absurd rfl Hgne
+        | ok e' => exact ⟨e', rfl⟩
+      (try wp_auto)
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iexists (⟨key, (r), null, st.hdr⟩ : ElectionSt)
+      unfold electionState; iframe; ipureintro; left; rfl
+    subst Hgnil
+    have HkT : (opGetModel key []).t = W64 1 ∧ (opGetModel key []).key = key ∧
+        (opGetModel key []).base.rangeEnd = [] ∧ (opGetModel key []).base.rev = W64 0 ∧
+        (opGetModel key []).base.serializable = false := keyOp_t key
+    have HR2le' : sint.Z R ≤ sint.Z R2 := HR2le.1 HkT.2.2.2.2
+    have HkP : (opGetModel key []).isPrefixGet pfx = false := keyOp_isPrefixGet pfx key
+    rw [ite_eq_right (c := (opGetModel key []).isPrefixGet pfx = true) (by rw [HkP]; simp)]
+    unfold getRespRange
+    rw [ite_eq_left (show (opGetModel key []).base.rev = W64 0 ∧
+        KeyRangeUnder pfx (opGetModel key []).key (opGetModel key []).base.rangeEnd from
+      ⟨HkT.2.2.2.1, by rw [HkT.2.1, HkT.2.2.1]; exact keyRangeUnder_key pfx key Hpk⟩)]
+    icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', %Hwf', #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
+    (try wp_auto)
+    iunfold kvPtrsAt at Hgkvs
+    icases Hgkvs with ⟨%Hgl, -⟩
+    ihave %Hgsl := ownSlice_len $$ Hgps
+    obtain ⟨Hkabs, Hkpres⟩ := keyOp_kvs pfx key s' gkvs Hwf' Hgok
+    wp_if_destruct
+    · -- the key is gone: `ErrElectionNotLeader`
+      (try wp_auto)
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iexists (⟨key, (r), null, st.hdr⟩ : ElectionSt)
+      unfold electionState; iframe; ipureintro; left; rfl
+    have Hpres : ∃ v ∈ s', v.key = key := by
+      rcases Classical.em (∃ v ∈ s', v.key = key) with h | h
+      · exact h
+      · have h' : gkvs = [] := Hkabs (fun v hv hk => h ⟨v, hv, hk⟩)
+        rw [h'] at Hgl
+        exfalso; apply Hif
+        have : sint.nat gsl.len = 0 := by rw [← Hgsl.1, Hgl]; rfl
+        word
+    ihave %Hfin := lock_final pfx key (r) (r) R R2 sw s' HREV.1 (Int.le_trans HREV.2.1 HREV.2.2) Hw.1
+      HR2le' Hw.2 Hpres $$ [$Hsw $Hs']
+    (try wp_auto)
     iapply HΦ
     ileft
     isplitr
     · ipureintro; rfl
-    iexists key, (r), r, (r), R, hdr
+    iexists key, (r), r, (r), R2, hdr
     isplitl [Hk Hrv Hls Hh]
     · unfold electionState; iframe; ipureintro; right; rfl
     isplitr
     · unfold hdrRevAt; iframe HRev; ipureintro; exact Hhdr
-    iframe HRR HKV'
-    have Hmin : ∀ w ∈ sw, sint.Z (r) ≤ sint.Z w.createRev := by
-      intro w hw
-      have h1 := Hw.2 w hw
-      have h2 : sint.Z ((r) - W64 1) = sint.Z (r) - 1 := by have := HREV.1; word
-      omega
+    iframe HRR2 HKV'
     isplitr
-    · by_cases hh : HasKeyAt key (r) sw
-      · ileft; unfold leaderAt lockedAt; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
-      · iright; unfold campaignLost; iexists sw; iframe Hsw; ipureintro; exact ⟨hh, Hmin⟩
+    · rcases Hfin with Hl | Hrc
+      · ileft; unfold leaderAt lockedAt; iexists s'; iframe Hs'; ipureintro; exact Hl
+      · iright
+        isplitr
+        · unfold keyRecreated; iexists s'; iframe Hs'; ipureintro; exact Hrc
+        unfold campaignLost; iexists s'; iframe Hs'; ipureintro; exact recreated_lost pfx key _ s' Hwf' Hrc
     ipureintro
-    exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, Hw.1⟩
+    exact ⟨Hpk, HREV.1, HREV.2.1, Hlo_r, HREV.2.2, by have := Hw.1; omega⟩
+
+/-- `Campaign`'s spec before etcd#22387 (`git show lean:Spec/go_etcd_io/etcd/client/v3/concurrency/
+Election__Campaign.lean`): its `nil` case allowed the key to be gone (`campaignLost`). -/
+abbrev Election.Campaign.spec_old : Prop :=
+  ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
+    (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
+      electionState e s st ∗ context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗
+      etcdReached lo }}
+    (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Campaign"))
+      (Val #(GoInterface.ok ctx))) (Val #val))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R : w64) (hdr : Loc),
+        electionState e s ⟨key, rev, s, hdr⟩ ∗ hdrRevAt hdr r ∗ etcdReached R ∗
+        keyValAt pfx key rev val rv ∗ (leaderAt pfx key rev R ∨ campaignLost pfx key rev R) ∗
+        ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z r ∧ sint.Z lo ≤ sint.Z r ∧
+          sint.Z r ≤ sint.Z rv ∧ sint.Z rv ≤ sint.Z R⌝) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionState e s st') }}
+
+
+/-- **The new spec implies the old** (etcd#22387 is compatible): its `nil` case's
+`keyRecreated ∗ campaignLost` is a `campaignLost`; the rest is unchanged. -/
+theorem Election.Campaign.spec_implies_old (h : Election.Campaign.spec (GF := GF) (hG := hG)) :
+    Election.Campaign.spec_old (GF := GF) (hG := hG) := by
+  intro e s γ client id pfx st ctx cs val lo
+  iintro %Φ Hpre HΦ
+  iapply h e s γ client id pfx st ctx cs val lo $$ Hpre
+  inext
+  iintro %err Hpost
+  iapply HΦ
+  icases Hpost with (⟨%H, %key, %rev, %r, %rv, %R, %hdr, Hst, #Hh, #HR, #Hk, Hor, %Hp⟩ | H)
+  · ihave #Hor' : iprop(leaderAt pfx key rev R ∨ campaignLost pfx key rev R) $$ [Hor]
+    · icases Hor with (#Hl | ⟨-, #Hc⟩)
+      · ileft; iexact Hl
+      · iright; iexact Hc
+    ileft
+    isplitr
+    · ipureintro; exact H
+    iexists key, rev, r, rv, R, hdr
+    iframe Hst Hh HR Hk Hor'
+    ipureintro; exact Hp
+  · iright; iexact H
 
 end proof
 

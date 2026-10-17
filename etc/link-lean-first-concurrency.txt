@@ -75,14 +75,17 @@ Mutex__Header:
 Mutex__IsOwner: CreateRevision v3_Compare
 NewLocker: NewMutex
 waitDelete: WithRev WatchResponse__Err
-waitDeletes: WithLastCreate WithMaxCreateRev waitDelete
+waitDeletes: WithLastCreate WithMaxCreateRev waitDelete WithRev
 # `fmt.Sprintf` of a `LeaseID` (`%x`): the trust boundary (an etcd-grove axiom,
 # `Proof/fmt/SprintfNamed.lean`).
 fmt_SprintfNamed:
 Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange fmt_SprintfNamed
 Mutex__Unlock: Session__Client
 Mutex__TryLock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client
-Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock
+# `errors.Is` of any error against a pointer error: the trust boundary (an etcd-grove axiom,
+# `Proof/errors/IsAnyErr.lean`; etcd#22387's `errors.Is(err, errWaitKeyDeleted)`).
+errors_IsAnyErr:
+Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock errors_IsAnyErr
 lockerMutex__Lock: Session__Client Client__Ctx Mutex__Lock
 lockerMutex__Unlock: Session__Client Client__Ctx Mutex__Unlock
 # Election (client/v3/concurrency/election.go), see InvElection.lean.
@@ -94,7 +97,7 @@ Election__Header:
 Election__Leader: Session__Client WithFirstCreate
 Election__Resign: Session__Client CreateRevision v3_Compare OpDelete
 Election__Proclaim: Session__Client CreateRevision v3_Compare Session__Lease v3_WithLease OpPut
-Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx fmt_SprintfNamed
+Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx fmt_SprintfNamed errors_IsAnyErr
 Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
 Election__Observe: Election__observe
 # STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)

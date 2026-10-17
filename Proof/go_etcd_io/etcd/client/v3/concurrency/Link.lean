@@ -76,6 +76,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithTTL
+public import Proof.errors.IsAnyErr
 public import Proof.fmt.SprintfNamed
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.isKeyCurrent
@@ -348,11 +349,15 @@ theorem wp_waitDelete :
 
 theorem wp_waitDeletes :
     EtcdGrove.concurrency.waitDeletes.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.waitDeletes.wp_proof v3.wp_WithLastCreate v3.wp_WithMaxCreateRev wp_waitDelete
+  EtcdGrove.concurrency.waitDeletes.wp_proof v3.wp_WithLastCreate v3.wp_WithMaxCreateRev wp_waitDelete v3.wp_WithRev
+
+theorem errors.wp_IsAnyErr :
+    EtcdGrove.errors.IsAnyErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsAnyErr.wp_proof
 
 theorem Election.wp_Campaign :
     EtcdGrove.concurrency.Election.Campaign.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Election.Campaign.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange Election.wp_Proclaim Election.wp_Resign wp_waitDeletes v3.Client.wp_Ctx fmt.wp_SprintfNamed
+  EtcdGrove.concurrency.Election.Campaign.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange Election.wp_Proclaim Election.wp_Resign wp_waitDeletes v3.Client.wp_Ctx fmt.wp_SprintfNamed errors.wp_IsAnyErr
 
 theorem Election.wp_Header :
     EtcdGrove.concurrency.Election.Header.spec (GF := GF) (hG := hG) :=
@@ -400,7 +405,7 @@ theorem Mutex.wp_Unlock :
 
 theorem Mutex.wp_Lock :
     EtcdGrove.concurrency.Mutex.Lock.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Mutex.Lock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client wp_waitDeletes v3.Client.wp_Ctx Mutex.wp_Unlock
+  EtcdGrove.concurrency.Mutex.Lock.wp_proof Mutex.wp_tryAcquire ResponseOp.wp_GetResponseRange Session.wp_Client wp_waitDeletes v3.Client.wp_Ctx Mutex.wp_Unlock errors.wp_IsAnyErr
 
 theorem Mutex.wp_TryLock :
     EtcdGrove.concurrency.Mutex.TryLock.spec (GF := GF) (hG := hG) :=
