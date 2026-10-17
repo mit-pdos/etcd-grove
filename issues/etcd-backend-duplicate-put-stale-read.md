@@ -107,6 +107,13 @@ links:
   gone from `UnsafePut`, the backend's session invariant (`wbDupOk` deleted) and the server's
   hooks (`csDupOk`); every backend and server result rebuilds over it. The reproduction above
   passes at the PR.
+- **The fix of etcd#21987, verified** (branch `pr-verify/etcd-21987`, report
+  `notes/pr-verify/etcd-21987.md`): the same code change as etcd#22298, without the comment, so
+  the same translation and the same specs and proofs. The reproduction above and the PR's test
+  (`TestWritebackDedupesIntraBatchDuplicateForNonSeqBucket`) fail at the pin and pass at the PR.
+  The overlap path fails too at the pin when a batch has more than 12 entries, where `sort.Sort` is
+  unstable (`notes/pr-verify/etcd-21987/review_extra_test.go`, `TestReviewOverlapManyDups`); both
+  PRs fix it.
 - **Possible fixes**: in `writeback`, deduplicate a non-sequential bucket's buffer on both
   branches (`wb.dedupe()` in place of `sort.Sort(wb)`; `dedupe` sorts stably and keeps the
   newest); or make `merge` deduplicate whenever the source is not known to be duplicate-free.

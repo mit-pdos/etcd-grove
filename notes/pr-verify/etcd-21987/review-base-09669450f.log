@@ -1,0 +1,11 @@
+=== RUN   TestReviewOverlapManyDups
+    review_extra_test.go:65: key "k00": got ["v0"] want "v10"
+--- FAIL: TestReviewOverlapManyDups (0.00s)
+=== RUN   TestReviewSeqBucket
+--- PASS: TestReviewSeqBucket (0.00s)
+=== RUN   TestReviewMixedAndReuse
+    review_extra_test.go:93: not strictly sorted at 3: "m" "m"
+--- FAIL: TestReviewMixedAndReuse (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.012s
+FAIL

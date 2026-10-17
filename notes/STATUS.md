@@ -45,6 +45,14 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21987, `writeback` dedupes before merge (2026-10-17, branch `pr-verify/etcd-21987`)
+
+The same Go change as etcd#22298 but a comment (fork `pr-etcd-21987-goose-lean` `2fc9e9d30`, not
+pushed; the pin is unchanged, so `etc/goose.py --check` fails on this branch). The branch is
+`pr-verify/etcd-22298`'s commit cherry-picked plus this PR's translation, which differs from
+#22298's only in doc-comment line numbers; full build, no new axiom or `sorry`. Report
+`notes/pr-verify/etcd-21987.md` (with a comparison of the two PRs). Not for `lean`.
+
 ## PR verification: etcd-io/etcd#22298, `writeback` dedupes on both paths (2026-10-17, branch `pr-verify/etcd-22298`)
 
 The PR translated (fork `pr-etcd-22298-goose-lean` `01a459f07`, not pushed; the pin is unchanged, so

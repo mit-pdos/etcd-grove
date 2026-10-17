@@ -1,0 +1,31 @@
+=== RUN   TestWritebackDedupesIntraBatchDuplicateForNonSeqBucket
+    tx_buffer_test.go:127: 
+        	Error Trace:	/root/etcd-pr/etcd-21987/server/storage/backend/tx_buffer_test.go:127
+        	Error:      	Not equal: 
+        	            	expected: [][]uint8{[]uint8{0x4e, 0x45, 0x57}}
+        	            	actual  : [][]uint8{[]uint8{0x4f, 0x4c, 0x44}}
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -2,3 +2,3 @@
+        	            	  ([]uint8) (len=3) {
+        	            	-  00000000  4e 45 57                                          |NEW|
+        	            	+  00000000  4f 4c 44                                          |OLD|
+        	            	  }
+        	Test:       	TestWritebackDedupesIntraBatchDuplicateForNonSeqBucket
+--- FAIL: TestWritebackDedupesIntraBatchDuplicateForNonSeqBucket (0.00s)
+=== RUN   TestReviewDupPut
+    review_dup_put_test.go:45: dup put, emptied read bucket: ReadTx: k=v1, want k=v2
+    review_dup_put_test.go:45: dup put, emptied read bucket: ConcurrentReadTx: k=v1, want k=v2
+    review_dup_put_test.go:45: mixed seq/put: ReadTx: m=s1, want m=p2
+    review_dup_put_test.go:45: mixed seq/put: ConcurrentReadTx: m=s1, want m=p2
+    review_dup_put_test.go:45: safe range: ReadTx: a=1 b=1 b=2 c=1, want a=1 b=2 c=1
+    review_dup_put_test.go:45: safe range: ConcurrentReadTx: a=1 b=1 b=2 c=1, want a=1 b=2 c=1
+    review_dup_put_test.go:45: after commit range: ConcurrentReadTx: a=1 b=2 c=3 b=2 c=3, want a=1 b=2 c=3
+--- FAIL: TestReviewDupPut (0.01s)
+=== RUN   TestReadTxStaleAfterDuplicatePut
+    stale_read_test.go:45: ReadTx reads "v2", BatchTx reads "v3"
+--- FAIL: TestReadTxStaleAfterDuplicatePut (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/backend	0.035s
+FAIL
