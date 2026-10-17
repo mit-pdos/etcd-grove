@@ -29,6 +29,88 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
 variable [RegStor GF]
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- `apply` from `if replica == r.id` on (the waiter's removal and the handoff of `r.value`), after `if kind == opPut` with and without the store. -/
+local macro "apply_rest" : tactic => `(tactic| (
+    wp_if_destruct
+    · -- this replica's operation: its waiter, if any
+      wp_apply wp_map_lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string) mW W sq
+        (DFrac.own 1) $$ [$(frameH `HW)] as HW
+      cases HWs : W !! sq with
+      | none =>
+        simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
+        wp_auto
+        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hcred Hwaiters Hrds]
+        · inext
+          unfold lockInv
+          iexists ns, mW, W, c
+          iframe
+          ipureintro; exact ⟨Hc, HWdom⟩
+
+        iapply HΦ
+        iapply Hfin $$ Hv HmA HA
+      | some ch =>
+        simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
+        wp_auto
+        wp_apply wp_mapDelete mW W sq go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)
+          $$ [$(frameH `HW)] as HW
+        icases (BigSepM.bigSepM_delete (Φ := fun s ch => waiterOk (GF := GF) γr id s ch) HWs).1
+          $$ Hwaiters with ⟨Hw, Hwaiters⟩
+        iunfold waiterOk at Hw
+        icases Hw with ⟨%d0, %γh, #Hmint, #Hho, Hprod⟩
+        -- the waiter's operation is `em.Data'`: both are minted at `(id, sq)`
+        have Hkey : opKey em.Data' = some (rep, sq) := by simp [opKey, Hdec]
+        imod reg_deposited_minted γr em.Data' d0 (rep, sq) ⊤ CoPset.subseteq_top
+          (by rw [show (⊤ : CoPset) \ ↑regN = ⊤ \ ↑regN from rfl]; exact raftN_regN) Hkey
+          $$ Hinv [] [] [] with %Hd0
+        · rw [← Hraft]; open_node HisNode; iexact Hcinv
+        · rw [← Hraft]; iexact Hdep
+        · rw [Hif]; iexact Hmint
+        subst Hd0
+        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hcred Hwaiters Hrds]
+        · inext
+          unfold lockInv
+          iexists ns, mW, GMap.delete sq W, c
+          iframe
+          ipureintro
+          refine ⟨Hc, fun s ch' Hs => HWdom s ch' ?_⟩
+          by_cases Hss : s = sq
+          · subst Hss; rw [GMap.lookup_delete_eq] at Hs; cases Hs
+          · rwa [GMap.lookup_delete_ne _ (Ne.symm Hss)] at Hs
+        wp_apply wp_handoff_send (t := go.string) γh ch (waitP γr em.Data') iprop(True) iprop(False)
+          (regApply v em.Data') $$ [$(frameH `Hho) $(frameH `Hprod)]
+        · isplitl
+          · unfold waitP
+            iexists ap ++ [em], ods ++ [some em.Data'], ods.length
+            rw [← Hraft]
+            iframe Hce Hods'
+            ipureintro
+            refine ⟨by simp, ?_, ?_⟩
+            · rw [List.take_left' rfl]; exact Hnew
+            · rw [List.take_left' rfl, regFold_snoc, ← Hval]
+          · itrivial
+        iintro -
+        wp_auto
+        iapply HΦ
+        iapply Hfin $$ Hv HmA HA
+    · -- another replica's operation
+      wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hcred Hwaiters Hrds]
+      · inext
+        unfold lockInv
+        iexists ns, mW, W, c
+        iframe
+        ipureintro; exact ⟨Hc, HWdom⟩
+
+      iapply HΦ
+      iapply Hfin $$ Hv HmA HA
+  ))
+
 theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
@@ -177,152 +259,12 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
         · simp only [regApply, Hdec]
           rw [ite_eq_left (show W8 1 = opPutB from rfl)]
           iexact Hv
-        wp_if_destruct
-        · -- this replica's operation: its waiter, if any
-          wp_apply wp_map_lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string) mW W sq
-            (DFrac.own 1) $$ [$HW] as HW
-          cases HWs : W !! sq with
-          | none =>
-            simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
-            wp_auto
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
-            · inext
-              unfold lockInv
-              iexists ns, mW, W, c
-              iframe
-              ipureintro; exact ⟨Hc, HWdom⟩
-
-            iapply HΦ
-            iapply Hfin $$ Hv HmA HA
-          | some ch =>
-            simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
-            wp_auto
-            wp_apply wp_mapDelete mW W sq go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)
-              $$ [$HW] as HW
-            icases (BigSepM.bigSepM_delete (Φ := fun s ch => waiterOk (GF := GF) γr id s ch) HWs).1
-              $$ Hwaiters with ⟨Hw, Hwaiters⟩
-            iunfold waiterOk at Hw
-            icases Hw with ⟨%d0, %γh, #Hmint, #Hho, Hprod⟩
-            -- the waiter's operation is `em.Data'`: both are minted at `(id, sq)`
-            have Hkey : opKey em.Data' = some (rep, sq) := by simp [opKey, Hdec]
-            imod reg_deposited_minted γr em.Data' d0 (rep, sq) ⊤ CoPset.subseteq_top
-              (by rw [show (⊤ : CoPset) \ ↑regN = ⊤ \ ↑regN from rfl]; exact raftN_regN) Hkey
-              $$ Hinv [] [] [] with %Hd0
-            · rw [← Hraft]; open_node HisNode; iexact Hcinv
-            · rw [← Hraft]; iexact Hdep
-            · rw [Hif]; iexact Hmint
-            subst Hd0
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
-            · inext
-              unfold lockInv
-              iexists ns, mW, GMap.delete sq W, c
-              iframe
-              ipureintro
-              refine ⟨Hc, fun s ch' Hs => HWdom s ch' ?_⟩
-              by_cases Hss : s = sq
-              · subst Hss; rw [GMap.lookup_delete_eq] at Hs; cases Hs
-              · rwa [GMap.lookup_delete_ne _ (Ne.symm Hss)] at Hs
-            wp_apply wp_handoff_send (t := go.string) γh ch (waitP γr em.Data') iprop(True) iprop(False)
-              (regApply v em.Data') $$ [$Hho $Hprod]
-            · isplitl
-              · unfold waitP
-                iexists ap ++ [em], ods ++ [some em.Data'], ods.length
-                rw [← Hraft]
-                iframe Hce Hods'
-                ipureintro
-                refine ⟨by simp, ?_, ?_⟩
-                · rw [List.take_left' rfl]; exact Hnew
-                · rw [List.take_left' rfl, regFold_snoc, ← Hval]
-              · itrivial
-            iintro -
-            wp_auto
-            iapply HΦ
-            iapply Hfin $$ Hv HmA HA
-        · -- another replica's operation
-          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
-          · inext
-            unfold lockInv
-            iexists ns, mW, W, c
-            iframe
-            ipureintro; exact ⟨Hc, HWdom⟩
-
-          iapply HΦ
-          iapply Hfin $$ Hv HmA HA
+        apply_rest
       · ihave Hv : r.[RRegister, go!"value"] ↦ regApply v em.Data' $$ [Hv]
         · simp only [regApply, Hdec]
           rw [ite_eq_right (by unfold opPutB; exact Hif)]
           iexact Hv
-        wp_if_destruct
-        · -- this replica's operation: its waiter, if any
-          wp_apply wp_map_lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string) mW W sq
-            (DFrac.own 1) $$ [$HW] as HW
-          cases HWs : W !! sq with
-          | none =>
-            simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
-            wp_auto
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
-            · inext
-              unfold lockInv
-              iexists ns, mW, W, c
-              iframe
-              ipureintro; exact ⟨Hc, HWdom⟩
-
-            iapply HΦ
-            iapply Hfin $$ Hv HmA HA
-          | some ch =>
-            simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
-            wp_auto
-            wp_apply wp_mapDelete mW W sq go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)
-              $$ [$HW] as HW
-            icases (BigSepM.bigSepM_delete (Φ := fun s ch => waiterOk (GF := GF) γr id s ch) HWs).1
-              $$ Hwaiters with ⟨Hw, Hwaiters⟩
-            iunfold waiterOk at Hw
-            icases Hw with ⟨%d0, %γh, #Hmint, #Hho, Hprod⟩
-            -- the waiter's operation is `em.Data'`: both are minted at `(id, sq)`
-            have Hkey : opKey em.Data' = some (rep, sq) := by simp [opKey, Hdec]
-            imod reg_deposited_minted γr em.Data' d0 (rep, sq) ⊤ CoPset.subseteq_top
-              (by rw [show (⊤ : CoPset) \ ↑regN = ⊤ \ ↑regN from rfl]; exact raftN_regN) Hkey
-              $$ Hinv [] [] [] with %Hd0
-            · rw [← Hraft]; open_node HisNode; iexact Hcinv
-            · rw [← Hraft]; iexact Hdep
-            · rw [Hif]; iexact Hmint
-            subst Hd0
-            wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
-            · inext
-              unfold lockInv
-              iexists ns, mW, GMap.delete sq W, c
-              iframe
-              ipureintro
-              refine ⟨Hc, fun s ch' Hs => HWdom s ch' ?_⟩
-              by_cases Hss : s = sq
-              · subst Hss; rw [GMap.lookup_delete_eq] at Hs; cases Hs
-              · rwa [GMap.lookup_delete_ne _ (Ne.symm Hss)] at Hs
-            wp_apply wp_handoff_send (t := go.string) γh ch (waitP γr em.Data') iprop(True) iprop(False)
-              (regApply v em.Data') $$ [$Hho $Hprod]
-            · isplitl
-              · unfold waitP
-                iexists ap ++ [em], ods ++ [some em.Data'], ods.length
-                rw [← Hraft]
-                iframe Hce Hods'
-                ipureintro
-                refine ⟨by simp, ?_, ?_⟩
-                · rw [List.take_left' rfl]; exact Hnew
-                · rw [List.take_left' rfl, regFold_snoc, ← Hval]
-              · itrivial
-            iintro -
-            wp_auto
-            iapply HΦ
-            iapply Hfin $$ Hv HmA HA
-        · -- another replica's operation
-          wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
-          · inext
-            unfold lockInv
-            iexists ns, mW, W, c
-            iframe
-            ipureintro; exact ⟨Hc, HWdom⟩
-
-          iapply HΦ
-          iapply Hfin $$ Hv HmA HA
+        apply_rest
 
 
 end proof

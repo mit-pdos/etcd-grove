@@ -51,6 +51,119 @@ macro "ctx_check" : tactic => `(tactic| (
   iclear Herr
   wp_auto))
 
+set_option hygiene false in
+/-- `seq` made if `nil` (the copy of `calls`' ids) and `longest[entry.id] = &seq`, after `longest[entry.id] == nil` and after `len(*longest[entry.id]) < len(calls)`. -/
+local macro "longest_update" : tactic => `(tactic| (
+    -- `if seq == nil { seq = make(..); for i, v := range calls { seq[i] = v.entry.id } }`
+    wp_join iprop((∃ (sl : GoSlice) (xs : List w64),
+        ((seq_ptr ↦ sl ∗ sl ↦* xs) ∨ (seq_ptr ↦□ sl ∗ sl ↦*□ xs)) ∗ ⌜sl ≠ slice.nil⌝) ∗
+        csl ↦* ces ∗ nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
+        calls_ptr ↦ csl) at next with [Hseq Hcalls HG calls] as ⟨Hseq, Hcalls, HG, calls⟩
+    · icases Hseq with (Hs0 | ⟨%sl, %xs, #Hs, #Hsl, %Hslne⟩)
+      · -- the copy, made now
+        wp_auto
+        wp_apply wp_slice_make2 (V := w64) $$ [] as %sq ⟨Hsq, -⟩
+        · ipureintro; exact Hcsl2
+        rename_i iu_ptr
+        irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+        ihave HF : (∃ (k' iv : w64) (vv' : callsEntry) (xs : List w64),
+            "i" ∷ i_ptr ↦ k' ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "v" ∷ v_ptr ↦ vv' ∗ "Hsq" ∷ sq ↦* xs ∗
+            "%Hk'" ∷ ⌜0 ≤ sint.Z k' ∧ sint.Z k' ≤ sint.Z csl.len ∧ xs.length = ces.length⌝ : IProp GF)
+          $$ [i Hiu v Hsq]
+        · iexists W64 0, _, _, _
+          iframe
+          ipureintro
+          refine ⟨by decide, by word, ?_⟩
+          rw [List.length_replicate]; word
+        wp_for HF
+        obtain ⟨Hk1', Hk2', Hk3'⟩ := Hk'
+        (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
+        wp_if_destruct
+        · have Hb : 0 ≤ sint.Z k' ∧ sint.Z k' < sint.Z csl.len := ⟨Hk1', Hif⟩
+          simp only [Hb, _root_.and_self, ↓reduceIte]
+          list_elem ces (sint.nat k') as ce'
+          have hkf' : sint.nat k' < fs.reverse.length := by rw [List.length_reverse, ← Hcl]; word
+          list_elem fs.reverse (sint.nat k') as f'
+          wp_apply wp_load_slice_index csl (sint.Z k') ces (DFrac.own 1) ce' Hk1' $$ [Hcalls] as Hcalls
+          · iframe; ipureintro; exact Hce'_lookup
+          ihave %Hcent' := callsRep_get S loc ces fs Hce'_lookup Hf'_lookup $$ Hces
+          have hfm' : f' ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf'_lookup)
+          have hcm' : (⟨false, f'.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f' hfm'
+          rw [Hcent']
+          icases nodesG_read hnd (mem_slots_some hcm') _ $$ HG with ⟨Hc', HG⟩
+          simp only [slotLoc]
+          wp_auto
+          ihave HG := HG $$ Hc'
+          ihave %Hsql := ownSlice_len $$ Hsq
+          obtain ⟨Hsql1, Hsql2⟩ := Hsql
+          have Hb' : 0 ≤ sint.Z k' ∧ sint.Z k' < sint.Z sq.len := by
+            constructor
+            · exact Hk1'
+            · have : xs.length = ces.length := Hk3'
+              word
+          simp only [Hb', _root_.and_self, ↓reduceIte]
+          wp_apply wp_store_slice_index $$ [Hsq] as Hsq
+          · iframe; ipureintro; constructor <;> word
+          wp_for_post
+          iframe
+          iexists k' + W64 1, k', ce', _
+          iframe
+          ipureintro
+          refine ⟨by word, by word, by simp [Hk3']⟩
+        · -- the copy is made
+          ihave %Hsql := ownSlice_len $$ Hsq
+          obtain ⟨Hsql1, Hsql2⟩ := Hsql
+          have hsqne : sq ≠ slice.nil := by
+            intro h'
+            subst h'
+            have : xs.length = 0 := by simp [Hsql1, slice.nil]
+            have : csl.len = W64 0 := len_zero_of _ (by rw [← Hcsl1, ← Hk3', this]) Hcsl2
+            exact hlen0 this
+          isplitr
+          · itrivial
+          iframe
+          iexists sq, xs
+          isplitl [Hs0 Hsq]
+          · ileft; iframe
+          ipureintro; exact hsqne
+      · -- the copy, made before
+        wp_auto
+        simp only [Hslne, _root_.decide_false]
+        wp_auto
+        isplitr
+        · ipureintro; rfl
+        iframe
+        iexists sl, xs
+        isplitl []
+        · iright; iframe Hs Hsl
+        ipureintro; exact Hslne
+    -- `longest[v.entry.id] = &seq`
+    icases Hseq with ⟨%sl, %xs, Hsq, %Hslne⟩
+    imod persist_or seq_ptr sl xs $$ Hsq with ⟨#Hs, #Hsl⟩
+    rw [Hcent]
+    icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
+    simp only [slotLoc]
+    wp_auto
+    ihave HG := HG $$ Hc
+    simp only [Hb2, _root_.and_self, ↓reduceIte]
+    wp_apply wp_store_slice_index $$ [Hps] as Hps
+    · iframe; ipureintro; constructor <;> word
+    wp_for_post
+    iframe
+    iexists k + W64 1, ce, _
+    iframe
+    isplitl []
+    · iapply longestElems_set ps _ seq_ptr (by word)
+      iframe Hpse
+      iright
+      iexists sl, xs
+      iframe Hs Hsl
+    isplitl []
+    · iright; iexists sl, xs; iframe Hs Hsl; ipureintro; exact Hslne
+    ipureintro
+    refine ⟨by word, by word, by simp [Hk3]⟩
+  ))
+
 set_option maxHeartbeats 4000000 in
 theorem checkSingle.wp_proof
     (wp_makeLinkedEntries : makeLinkedEntries.spec (GF := GF) (hG := hG))
@@ -512,114 +625,7 @@ theorem checkSingle.wp_proof
           by_cases hp0 : p0 = null
           · simp only [hp0, _root_.decide_true]
             wp_auto
-            -- `if seq == nil { seq = make(..); for i, v := range calls { seq[i] = v.entry.id } }`
-            wp_join iprop((∃ (sl : GoSlice) (xs : List w64),
-                ((seq_ptr ↦ sl ∗ sl ↦* xs) ∨ (seq_ptr ↦□ sl ∗ sl ↦*□ xs)) ∗ ⌜sl ≠ slice.nil⌝) ∗
-                csl ↦* ces ∗ nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
-                calls_ptr ↦ csl) at next with [Hseq Hcalls HG calls] as ⟨Hseq, Hcalls, HG, calls⟩
-            · icases Hseq with (Hs0 | ⟨%sl, %xs, #Hs, #Hsl, %Hslne⟩)
-              · -- the copy, made now
-                wp_auto
-                wp_apply wp_slice_make2 (V := w64) $$ [] as %sq ⟨Hsq, -⟩
-                · ipureintro; exact Hcsl2
-                rename_i iu_ptr
-                irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
-                ihave HF : (∃ (k' iv : w64) (vv' : callsEntry) (xs : List w64),
-                    "i" ∷ i_ptr ↦ k' ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "v" ∷ v_ptr ↦ vv' ∗ "Hsq" ∷ sq ↦* xs ∗
-                    "%Hk'" ∷ ⌜0 ≤ sint.Z k' ∧ sint.Z k' ≤ sint.Z csl.len ∧ xs.length = ces.length⌝ : IProp GF)
-                  $$ [i Hiu v Hsq]
-                · iexists W64 0, _, _, _
-                  iframe
-                  ipureintro
-                  refine ⟨by decide, by word, ?_⟩
-                  rw [List.length_replicate]; word
-                wp_for HF
-                obtain ⟨Hk1', Hk2', Hk3'⟩ := Hk'
-                (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
-                wp_if_destruct
-                · have Hb : 0 ≤ sint.Z k' ∧ sint.Z k' < sint.Z csl.len := ⟨Hk1', Hif⟩
-                  simp only [Hb, _root_.and_self, ↓reduceIte]
-                  list_elem ces (sint.nat k') as ce'
-                  have hkf' : sint.nat k' < fs.reverse.length := by rw [List.length_reverse, ← Hcl]; word
-                  list_elem fs.reverse (sint.nat k') as f'
-                  wp_apply wp_load_slice_index csl (sint.Z k') ces (DFrac.own 1) ce' Hk1' $$ [Hcalls] as Hcalls
-                  · iframe; ipureintro; exact Hce'_lookup
-                  ihave %Hcent' := callsRep_get S loc ces fs Hce'_lookup Hf'_lookup $$ Hces
-                  have hfm' : f' ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf'_lookup)
-                  have hcm' : (⟨false, f'.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f' hfm'
-                  rw [Hcent']
-                  icases nodesG_read hnd (mem_slots_some hcm') _ $$ HG with ⟨Hc', HG⟩
-                  simp only [slotLoc]
-                  wp_auto
-                  ihave HG := HG $$ Hc'
-                  ihave %Hsql := ownSlice_len $$ Hsq
-                  obtain ⟨Hsql1, Hsql2⟩ := Hsql
-                  have Hb' : 0 ≤ sint.Z k' ∧ sint.Z k' < sint.Z sq.len := by
-                    constructor
-                    · exact Hk1'
-                    · have : xs.length = ces.length := Hk3'
-                      word
-                  simp only [Hb', _root_.and_self, ↓reduceIte]
-                  wp_apply wp_store_slice_index $$ [Hsq] as Hsq
-                  · iframe; ipureintro; constructor <;> word
-                  wp_for_post
-                  iframe
-                  iexists k' + W64 1, k', ce', _
-                  iframe
-                  ipureintro
-                  refine ⟨by word, by word, by simp [Hk3']⟩
-                · -- the copy is made
-                  ihave %Hsql := ownSlice_len $$ Hsq
-                  obtain ⟨Hsql1, Hsql2⟩ := Hsql
-                  have hsqne : sq ≠ slice.nil := by
-                    intro h'
-                    subst h'
-                    have : xs.length = 0 := by simp [Hsql1, slice.nil]
-                    have : csl.len = W64 0 := len_zero_of _ (by rw [← Hcsl1, ← Hk3', this]) Hcsl2
-                    exact hlen0 this
-                  isplitr
-                  · itrivial
-                  iframe
-                  iexists sq, xs
-                  isplitl [Hs0 Hsq]
-                  · ileft; iframe
-                  ipureintro; exact hsqne
-              · -- the copy, made before
-                wp_auto
-                simp only [Hslne, _root_.decide_false]
-                wp_auto
-                isplitr
-                · ipureintro; rfl
-                iframe
-                iexists sl, xs
-                isplitl []
-                · iright; iframe Hs Hsl
-                ipureintro; exact Hslne
-            -- `longest[v.entry.id] = &seq`
-            icases Hseq with ⟨%sl, %xs, Hsq, %Hslne⟩
-            imod persist_or seq_ptr sl xs $$ Hsq with ⟨#Hs, #Hsl⟩
-            rw [Hcent]
-            icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
-            simp only [slotLoc]
-            wp_auto
-            ihave HG := HG $$ Hc
-            simp only [Hb2, _root_.and_self, ↓reduceIte]
-            wp_apply wp_store_slice_index $$ [Hps] as Hps
-            · iframe; ipureintro; constructor <;> word
-            wp_for_post
-            iframe
-            iexists k + W64 1, ce, _
-            iframe
-            isplitl []
-            · iapply longestElems_set ps _ seq_ptr (by word)
-              iframe Hpse
-              iright
-              iexists sl, xs
-              iframe Hs Hsl
-            isplitl []
-            · iright; iexists sl, xs; iframe Hs Hsl; ipureintro; exact Hslne
-            ipureintro
-            refine ⟨by word, by word, by simp [Hk3]⟩
+            longest_update
           · simp only [hp0, _root_.decide_false]
             wp_auto
             rw [Hcent]
@@ -636,114 +642,7 @@ theorem checkSingle.wp_proof
             by_cases hlt : sint.Z sl0.len < sint.Z csl.len
             · simp only [hlt, _root_.decide_true]
               wp_auto
-              -- `if seq == nil { seq = make(..); for i, v := range calls { seq[i] = v.entry.id } }`
-              wp_join iprop((∃ (sl : GoSlice) (xs : List w64),
-                  ((seq_ptr ↦ sl ∗ sl ↦* xs) ∨ (seq_ptr ↦□ sl ∗ sl ↦*□ xs)) ∗ ⌜sl ≠ slice.nil⌝) ∗
-                  csl ↦* ces ∗ nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
-                  calls_ptr ↦ csl) at next with [Hseq Hcalls HG calls] as ⟨Hseq, Hcalls, HG, calls⟩
-              · icases Hseq with (Hs0 | ⟨%sl, %xs, #Hs, #Hsl, %Hslne⟩)
-                · -- the copy, made now
-                  wp_auto
-                  wp_apply wp_slice_make2 (V := w64) $$ [] as %sq ⟨Hsq, -⟩
-                  · ipureintro; exact Hcsl2
-                  rename_i iu_ptr
-                  irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
-                  ihave HF : (∃ (k' iv : w64) (vv' : callsEntry) (xs : List w64),
-                      "i" ∷ i_ptr ↦ k' ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "v" ∷ v_ptr ↦ vv' ∗ "Hsq" ∷ sq ↦* xs ∗
-                      "%Hk'" ∷ ⌜0 ≤ sint.Z k' ∧ sint.Z k' ≤ sint.Z csl.len ∧ xs.length = ces.length⌝ : IProp GF)
-                    $$ [i Hiu v Hsq]
-                  · iexists W64 0, _, _, _
-                    iframe
-                    ipureintro
-                    refine ⟨by decide, by word, ?_⟩
-                    rw [List.length_replicate]; word
-                  wp_for HF
-                  obtain ⟨Hk1', Hk2', Hk3'⟩ := Hk'
-                  (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
-                  wp_if_destruct
-                  · have Hb : 0 ≤ sint.Z k' ∧ sint.Z k' < sint.Z csl.len := ⟨Hk1', Hif⟩
-                    simp only [Hb, _root_.and_self, ↓reduceIte]
-                    list_elem ces (sint.nat k') as ce'
-                    have hkf' : sint.nat k' < fs.reverse.length := by rw [List.length_reverse, ← Hcl]; word
-                    list_elem fs.reverse (sint.nat k') as f'
-                    wp_apply wp_load_slice_index csl (sint.Z k') ces (DFrac.own 1) ce' Hk1' $$ [Hcalls] as Hcalls
-                    · iframe; ipureintro; exact Hce'_lookup
-                    ihave %Hcent' := callsRep_get S loc ces fs Hce'_lookup Hf'_lookup $$ Hces
-                    have hfm' : f' ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf'_lookup)
-                    have hcm' : (⟨false, f'.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f' hfm'
-                    rw [Hcent']
-                    icases nodesG_read hnd (mem_slots_some hcm') _ $$ HG with ⟨Hc', HG⟩
-                    simp only [slotLoc]
-                    wp_auto
-                    ihave HG := HG $$ Hc'
-                    ihave %Hsql := ownSlice_len $$ Hsq
-                    obtain ⟨Hsql1, Hsql2⟩ := Hsql
-                    have Hb' : 0 ≤ sint.Z k' ∧ sint.Z k' < sint.Z sq.len := by
-                      constructor
-                      · exact Hk1'
-                      · have : xs.length = ces.length := Hk3'
-                        word
-                    simp only [Hb', _root_.and_self, ↓reduceIte]
-                    wp_apply wp_store_slice_index $$ [Hsq] as Hsq
-                    · iframe; ipureintro; constructor <;> word
-                    wp_for_post
-                    iframe
-                    iexists k' + W64 1, k', ce', _
-                    iframe
-                    ipureintro
-                    refine ⟨by word, by word, by simp [Hk3']⟩
-                  · -- the copy is made
-                    ihave %Hsql := ownSlice_len $$ Hsq
-                    obtain ⟨Hsql1, Hsql2⟩ := Hsql
-                    have hsqne : sq ≠ slice.nil := by
-                      intro h'
-                      subst h'
-                      have : xs.length = 0 := by simp [Hsql1, slice.nil]
-                      have : csl.len = W64 0 := len_zero_of _ (by rw [← Hcsl1, ← Hk3', this]) Hcsl2
-                      exact hlen0 this
-                    isplitr
-                    · itrivial
-                    iframe
-                    iexists sq, xs
-                    isplitl [Hs0 Hsq]
-                    · ileft; iframe
-                    ipureintro; exact hsqne
-                · -- the copy, made before
-                  wp_auto
-                  simp only [Hslne, _root_.decide_false]
-                  wp_auto
-                  isplitr
-                  · ipureintro; rfl
-                  iframe
-                  iexists sl, xs
-                  isplitl []
-                  · iright; iframe Hs Hsl
-                  ipureintro; exact Hslne
-              -- `longest[v.entry.id] = &seq`
-              icases Hseq with ⟨%sl, %xs, Hsq, %Hslne⟩
-              imod persist_or seq_ptr sl xs $$ Hsq with ⟨#Hs, #Hsl⟩
-              rw [Hcent]
-              icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
-              simp only [slotLoc]
-              wp_auto
-              ihave HG := HG $$ Hc
-              simp only [Hb2, _root_.and_self, ↓reduceIte]
-              wp_apply wp_store_slice_index $$ [Hps] as Hps
-              · iframe; ipureintro; constructor <;> word
-              wp_for_post
-              iframe
-              iexists k + W64 1, ce, _
-              iframe
-              isplitl []
-              · iapply longestElems_set ps _ seq_ptr (by word)
-                iframe Hpse
-                iright
-                iexists sl, xs
-                iframe Hs Hsl
-              isplitl []
-              · iright; iexists sl, xs; iframe Hs Hsl; ipureintro; exact Hslne
-              ipureintro
-              refine ⟨by word, by word, by simp [Hk3]⟩
+              longest_update
             · simp only [hlt, _root_.decide_false]
               wp_auto
               wp_for_post

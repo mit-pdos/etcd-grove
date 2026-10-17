@@ -109,6 +109,78 @@ theorem v3rpc.wp_Is_applyErr (hIs : errors.Is.spec (GF := GF) (hG := hG)) (err :
   iapply HΦ
   itrivial
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- A refused create's response (`Created` and `Canceled`, watch id `-1`, `CancelReason = msg`) sent on
+`sws.ctrlStream`, or the return on `sws.closec`: after a negative start revision (the compacted
+response), the watcher's creation refused and permission denied (`msg` the reason). -/
+local macro "create_refused" msg:term:max : tactic => `(tactic| (
+    wp_auto_lc 3
+    irename «$r0» => Hwr
+    ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
+    ipersist Hwr
+    let m : v3rpc.WatchRespM := ⟨⟨r.srv.cid, r.srv.mid, rv, t, ld⟩, W64 (-1), true, true, 0,
+      $msg, false, [], none⟩
+    ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr» m $$ []
+    · iapply v3rpc.ctrlMsg_intro
+      isplitr
+      · ipureintro; exact Hwrn
+      isplitl
+      · iexact Hwr
+      iexact Hh
+    wp_apply_core chan.wp_select_blocking
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `sws.ctrlStream <- wr`
+      simp only [chan.blockingClausePre]
+      iexists (Loc), inferInstance, inferInstance, inferInstance, inferInstance, r.ctrl,
+        r.γctrl.chanName, «$r0_ptr»
+      isplit
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplit
+      · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
+      iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$(frameH `Hlc1) $(frameH `Hlc2) $(frameH `Hlc3)] [Hprod Hans]
+      · iframe Hprod
+        iunfold v3rpc.ctrlP
+        iexists m
+        iframe Hmsg
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl, rfl⟩
+        iunfold v3rpc.ctrlOk
+        iexists L.length, (.create c), r.γo, r.γa
+        iframe Hat Haux Hans
+        isplitr
+        · ipureintro
+          first
+            | simp [v3rpc.ctrlAnswers, m]; done
+            | exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inl ⟨rfl, rfl⟩⟩
+        simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
+        itrivial
+      iintro !> Hprod
+      wp_auto
+      recv_next
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `<-sws.closec`: return
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, r.cc, r.γcc
+      isplit
+      · ipureintro; rfl
+      isplit
+      · iapply ownBroadcastChan_is_chan $$ Hcc
+      iapply broadcast_chan_receive _ _ _ _ _ $$ Hcc
+      iintro -
+      wp_auto
+      recv_ret_nil
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+  ))
+
 set_option maxHeartbeats 0 in
 theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     (hWatch : mvcc.watchStream.Watch.spec (GF := GF) (hG := hG))
@@ -246,68 +318,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · iframe #
         wp_apply hHdr $$ [] as %h ⟨%t, %ld, #Hh⟩
         · iframe #
-        wp_bind (App (Val #(methods eC.ty go!"Error" eC.v)) (Val #()))
-        iunfold errMsgOk at HeCm
-        iapply HeCm
-        · itrivial
-        iintro !> %msg -
-        wp_auto_lc 3
-        irename «$r0» => Hwr
-        ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
-        ipersist Hwr
-        let m : v3rpc.WatchRespM := ⟨⟨r.srv.cid, r.srv.mid, rv, t, ld⟩, W64 (-1), true, true, 0,
-          msg, false, [], none⟩
-        ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr» m $$ []
-        · iapply v3rpc.ctrlMsg_intro
-          isplitr
-          · ipureintro; exact Hwrn
-          isplitl
-          · iexact Hwr
-          iexact Hh
-        wp_apply_core chan.wp_select_blocking
-        iapply BigAndL.bigAndL_cons.2
-        isplit
-        · -- `sws.ctrlStream <- wr`
-          simp only [chan.blockingClausePre]
-          iexists (Loc), inferInstance, inferInstance, inferInstance, inferInstance, r.ctrl,
-            r.γctrl.chanName, «$r0_ptr»
-          isplit
-          · ipureintro; exact ⟨rfl, rfl⟩
-          isplit
-          · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-          iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
-          · iframe Hprod
-            iunfold v3rpc.ctrlP
-            iexists m
-            iframe Hmsg
-            isplitr
-            · ipureintro; exact ⟨rfl, rfl, rfl⟩
-            iunfold v3rpc.ctrlOk
-            iexists L.length, (.create c), r.γo, r.γa
-            iframe Hat Haux Hans
-            isplitr
-            · ipureintro
-              simp [v3rpc.ctrlAnswers, m]
-            simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
-            itrivial
-          iintro !> Hprod
-          wp_auto
-          recv_next
-        iapply BigAndL.bigAndL_cons.2
-        isplit
-        · -- `<-sws.closec`: return
-          simp only [chan.blockingClausePre]
-          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, r.cc, r.γcc
-          isplit
-          · ipureintro; rfl
-          isplit
-          · iapply ownBroadcastChan_is_chan $$ Hcc
-          iapply broadcast_chan_receive _ _ _ _ _ $$ Hcc
-          iintro -
-          wp_auto
-          recv_ret_nil
-        iapply BigAndL.bigAndL_nil.2
-        itrivial
+        err_msg eC HeCm
+        create_refused msg
       -- the permission check
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
@@ -598,63 +610,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           · iframe #
           wp_auto
           err_msg ei Heim
-          wp_auto_lc 3
-          irename «$r0» => Hwr
-          ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
-          ipersist Hwr
-          let m : v3rpc.WatchRespM := ⟨⟨r.srv.cid, r.srv.mid, rv, t, ld⟩, W64 (-1), true, true, 0,
-            msg, false, [], none⟩
-          ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr» m $$ []
-          · iapply v3rpc.ctrlMsg_intro
-            isplitr
-            · ipureintro; exact Hwrn
-            isplitl
-            · iexact Hwr
-            iexact Hh
-          wp_apply_core chan.wp_select_blocking
-          iapply BigAndL.bigAndL_cons.2
-          isplit
-          · -- `sws.ctrlStream <- wr`
-            simp only [chan.blockingClausePre]
-            iexists (Loc), inferInstance, inferInstance, inferInstance, inferInstance, r.ctrl,
-              r.γctrl.chanName, «$r0_ptr»
-            isplit
-            · ipureintro; exact ⟨rfl, rfl⟩
-            isplit
-            · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
-            · iframe Hprod
-              iunfold v3rpc.ctrlP
-              iexists m
-              iframe Hmsg
-              isplitr
-              · ipureintro; exact ⟨rfl, rfl, rfl⟩
-              iunfold v3rpc.ctrlOk
-              iexists L.length, (.create c), r.γo, r.γa
-              iframe Hat Haux Hans
-              isplitr
-              · ipureintro
-                exact ⟨rfl, rfl, rfl, rfl, rfl, Or.inl ⟨rfl, rfl⟩⟩
-              simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
-              itrivial
-            iintro !> Hprod
-            wp_auto
-            recv_next
-          iapply BigAndL.bigAndL_cons.2
-          isplit
-          · -- `<-sws.closec`: return
-            simp only [chan.blockingClausePre]
-            iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, r.cc, r.γcc
-            isplit
-            · ipureintro; rfl
-            isplit
-            · iapply ownBroadcastChan_is_chan $$ Hcc
-            iapply broadcast_chan_receive _ _ _ _ _ $$ Hcc
-            iintro -
-            wp_auto
-            recv_ret_nil
-          iapply BigAndL.bigAndL_nil.2
-          itrivial
+          create_refused msg
       -- not permitted: the denied response
       wp_auto
       wp_join iprop(∃ reason : GoString, cancelReason_ptr ↦ reason ∗ err_ptr ↦ GoInterface.ok pi ∗
@@ -702,63 +658,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       · iframe #
       wp_apply hHdr $$ [] as %h ⟨%t, %ld, #Hh⟩
       · iframe #
-      wp_auto_lc 3
-      irename «$r0» => Hwr
-      ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
-      ipersist Hwr
-      let m : v3rpc.WatchRespM := ⟨⟨r.srv.cid, r.srv.mid, rv, t, ld⟩, W64 (-1), true, true, 0,
-        reason, false, [], none⟩
-      ihave #Hmsg : v3rpc.watchRespMsg «$r0_ptr» m $$ []
-      · iapply v3rpc.ctrlMsg_intro
-        isplitr
-        · ipureintro; exact Hwrn
-        isplitl
-        · iexact Hwr
-        iexact Hh
-      wp_apply_core chan.wp_select_blocking
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · -- `sws.ctrlStream <- wr`
-        simp only [chan.blockingClausePre]
-        iexists (Loc), inferInstance, inferInstance, inferInstance, inferInstance, r.ctrl,
-          r.γctrl.chanName, «$r0_ptr»
-        isplit
-        · ipureintro; exact ⟨rfl, rfl⟩
-        isplit
-        · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-        iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans]
-        · iframe Hprod
-          iunfold v3rpc.ctrlP
-          iexists m
-          iframe Hmsg
-          isplitr
-          · ipureintro; exact ⟨rfl, rfl, rfl⟩
-          iunfold v3rpc.ctrlOk
-          iexists L.length, (.create c), r.γo, r.γa
-          iframe Hat Haux Hans
-          isplitr
-          · ipureintro
-            simp [v3rpc.ctrlAnswers, m]
-          simp only [v3rpc.ctrlWatcher, m, ↓reduceIte]
-          itrivial
-        iintro !> Hprod
-        wp_auto
-        recv_next
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · -- `<-sws.closec`: return
-        simp only [chan.blockingClausePre]
-        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, r.cc, r.γcc
-        isplit
-        · ipureintro; rfl
-        isplit
-        · iapply ownBroadcastChan_is_chan $$ Hcc
-        iapply broadcast_chan_receive _ _ _ _ _ $$ Hcc
-        iintro -
-        wp_auto
-        recv_ret_nil
-      iapply BigAndL.bigAndL_nil.2
-      itrivial
+      create_refused reason
     · -- cancel
       ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L (.cancel cid) $$ Hrt
       icases Hm with ⟨%cr, %Hcrn, Hon, #Hcid⟩

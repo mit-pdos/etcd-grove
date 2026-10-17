@@ -25,6 +25,110 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- `NewSession` from `context.WithCancel(ops.ctx)` on, with lease `id = sid` and `ops.leaseID = lid`
+(`Hok : sessionLeaseOk ops sid`): after `Lease.Grant` (`ops.leaseID == NoLease`) and with the
+caller's lease. -/
+local macro "newsession_rest" sid:term:max lid:term:max : tactic => `(tactic| (
+    wp_apply context.wp_WithCancel iprop(True) pctx pcs $$ [$(frameH `Hpctx) $(frameH `Hpcc)]
+        as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
+    ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
+    (try wp_auto)
+    wp_apply HKA $$ [$(frameH `Hctx')] as %ka %err Hres
+    icases Hres with (%Herr | ⟨%Herr, Hka⟩)
+    · cases err with
+      | nil => exact absurd rfl Herr
+      | ok e =>
+        (try wp_auto)
+        wp_apply Hcancel'
+        · imodintro; itrivial
+        (try wp_auto)
+        iapply HΦ; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
+    · subst Herr
+      icases Hka with ⟨%γk, #Hka⟩
+      ihave #Hka' := Hka
+      iunfold isChanAny at Hka'
+      icases Hka' with ⟨#Hkach, #Hkainv⟩
+      ihave %Hkann := isChan_not_null $$ Hkach
+      (try wp_auto)
+      have hkn : ka ≠ chan.nil := Hkann
+      rw [decide_eq_false hkn]
+      (try wp_auto)
+      wp_apply chan.wp_make1 (V := Unit) as %dch %γd ⟨#Hdch, %_, Hdoc⟩
+      imod alloc_broadcast_chan iprop(True) γd dch $$ Hdch Hdoc with Hpend
+      icases ownBroadcastChan_open _ _ _ _ $$ Hpend with ⟨%γch, #Hint, Hown⟩
+      ihave #Hdunk : ownBroadcastChan dch γd iprop(True) .Unknown $$ []
+      · iapply ownBroadcastChan_close _ _ _ _ γch
+        iframe #
+      ihave Hpend : ownBroadcastChan dch γd iprop(True) .Pending $$ [Hown]
+      · iapply ownBroadcastChan_close _ _ _ _ γch
+        iframe #
+        iexact Hown
+      (try wp_auto)
+      irename cancel => Hcanp
+      irename donec => Hdonp
+      ipersist Hcanp
+      ipersist Hdonp
+      ipersist keepAlive
+      icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨Hr0, %Hsnn⟩
+      iStructNamed Hr0
+      ipersist client
+      ipersist opts
+      ipersist id
+      ipersist ctx
+      ipersist cancel
+      ipersist donec
+      wp_apply wp_fork $$ [Hpend]
+      · (try wp_auto)
+        wp_apply wp_with_defer
+        iintro %defer Hdefer
+        (try wp_auto)
+        ihave IH : iprop(True) $$ []
+        · itrivial
+        wp_for IH
+        (try rw [if_pos (decide_eq_true rfl)])
+        (try wp_auto)
+        wp_bind (App (Val (chan.receive _)) _)
+        iapply chan.wp_receive (V := Loc) ka γk $$ Hkach
+        iintro ⟨Hlc1, Hlc2, -, -⟩
+        iapply chanAny_recv_au γk ka _ $$ [$(frameH `Hlc1) $(frameH `Hlc2)] Hka
+        inext
+        iintro %v %ok
+        cases ok
+        · (try wp_auto)
+          wp_for_post
+          wp_apply wp_broadcast_chan_close dch γd iprop(True) $$ [$(frameH `Hpend)] as -
+          · imodintro; itrivial
+          (try wp_auto)
+          wp_apply Hcancel'
+          · imodintro; itrivial
+          (try wp_auto)
+          (try itrivial)
+        · (try wp_auto)
+          wp_for_post
+          iframe
+      (try wp_auto)
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact ⟨rfl, Hsnn⟩
+      iexists ⟨γd⟩, $sid
+      isplitl
+      · unfold isSession
+        iexists optsp, { ttl := ottl, leaseID := $lid, ctx := GoInterface.ok pctx }, pctx, pcs, ctx', _,
+          cancel, dch
+        unfold SessionOpts.val cancelSpec sessionDoneChan
+        iframe #
+        ipureintro; exact ⟨rfl, Hok.1⟩
+      · ipureintro; exact Hok
+  ))
+
 theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
     (hCtx : Client.Ctx.spec (GF := GF) (hG := hG)) :
     NewSession.spec (GF := GF) (hG := hG) := by
@@ -106,189 +210,13 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
         ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
     · subst Herr
       (try wp_auto)
-      wp_apply context.wp_WithCancel iprop(True) pctx pcs $$ [$Hpctx $Hpcc]
-          as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
-      ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
-      (try wp_auto)
-      wp_apply HKA $$ [$Hctx'] as %ka %err Hres
-      icases Hres with (%Herr | ⟨%Herr, Hka⟩)
-      · cases err with
-        | nil => exact absurd rfl Herr
-        | ok e =>
-          (try wp_auto)
-          wp_apply Hcancel'
-          · imodintro; itrivial
-          (try wp_auto)
-          iapply HΦ; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
-      · subst Herr
-        icases Hka with ⟨%γk, #Hka⟩
-        ihave #Hka' := Hka
-        iunfold isChanAny at Hka'
-        icases Hka' with ⟨#Hkach, #Hkainv⟩
-        ihave %Hkann := isChan_not_null $$ Hkach
-        (try wp_auto)
-        have hkn : ka ≠ chan.nil := Hkann
-        rw [decide_eq_false hkn]
-        (try wp_auto)
-        wp_apply chan.wp_make1 (V := Unit) as %dch %γd ⟨#Hdch, %_, Hdoc⟩
-        imod alloc_broadcast_chan iprop(True) γd dch $$ Hdch Hdoc with Hpend
-        icases ownBroadcastChan_open _ _ _ _ $$ Hpend with ⟨%γch, #Hint, Hown⟩
-        ihave #Hdunk : ownBroadcastChan dch γd iprop(True) .Unknown $$ []
-        · iapply ownBroadcastChan_close _ _ _ _ γch
-          iframe #
-        ihave Hpend : ownBroadcastChan dch γd iprop(True) .Pending $$ [Hown]
-        · iapply ownBroadcastChan_close _ _ _ _ γch
-          iframe #
-          iexact Hown
-        (try wp_auto)
-        irename cancel => Hcanp
-        irename donec => Hdonp
-        ipersist Hcanp
-        ipersist Hdonp
-        ipersist keepAlive
-        icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨Hr0, %Hsnn⟩
-        iStructNamed Hr0
-        ipersist client
-        ipersist opts
-        ipersist id
-        ipersist ctx
-        ipersist cancel
-        ipersist donec
-        wp_apply wp_fork $$ [Hpend]
-        · (try wp_auto)
-          wp_apply wp_with_defer
-          iintro %defer Hdefer
-          (try wp_auto)
-          ihave IH : iprop(True) $$ []
-          · itrivial
-          wp_for IH
-          (try rw [if_pos (decide_eq_true rfl)])
-          (try wp_auto)
-          wp_bind (App (Val (chan.receive _)) _)
-          iapply chan.wp_receive (V := Loc) ka γk $$ Hkach
-          iintro ⟨Hlc1, Hlc2, -, -⟩
-          iapply chanAny_recv_au γk ka _ $$ [$Hlc1 $Hlc2] Hka
-          inext
-          iintro %v %ok
-          cases ok
-          · (try wp_auto)
-            wp_for_post
-            wp_apply wp_broadcast_chan_close dch γd iprop(True) $$ [$Hpend] as -
-            · imodintro; itrivial
-            (try wp_auto)
-            wp_apply Hcancel'
-            · imodintro; itrivial
-            (try wp_auto)
-            (try itrivial)
-          · (try wp_auto)
-            wp_for_post
-            iframe
-        (try wp_auto)
-        iapply HΦ
-        iright
-        isplitr
-        · ipureintro; exact ⟨rfl, Hsnn⟩
-        iexists ⟨γd⟩, gid
-        isplitl
-        · unfold isSession
-          iexists optsp, { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx }, pctx, pcs, ctx', _,
-            cancel, dch
-          unfold SessionOpts.val cancelSpec sessionDoneChan
-          iframe #
-          ipureintro; exact ⟨rfl, (⟨Hid, fun h => absurd rfl h⟩ : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx } gid).1⟩
-        · ipureintro; exact (⟨Hid, fun h => absurd rfl h⟩ : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx } gid)
+      have Hok : sessionLeaseOk { ttl := ottl, leaseID := W64 0, ctx := GoInterface.ok pctx } gid :=
+        ⟨Hid, fun h => absurd rfl h⟩
+      newsession_rest gid (W64 0)
   · (try wp_auto)
-    wp_apply context.wp_WithCancel iprop(True) pctx pcs $$ [$Hpctx $Hpcc]
-        as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #Hcc'⟩
-    ihave #Hcancel' := context.cancel_spec_forget _ _ _ $$ Hcancel
-    (try wp_auto)
-    wp_apply HKA $$ [$Hctx'] as %ka %err Hres
-    icases Hres with (%Herr | ⟨%Herr, Hka⟩)
-    · cases err with
-      | nil => exact absurd rfl Herr
-      | ok e =>
-        (try wp_auto)
-        wp_apply Hcancel'
-        · imodintro; itrivial
-        (try wp_auto)
-        iapply HΦ; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
-    · subst Herr
-      icases Hka with ⟨%γk, #Hka⟩
-      ihave #Hka' := Hka
-      iunfold isChanAny at Hka'
-      icases Hka' with ⟨#Hkach, #Hkainv⟩
-      ihave %Hkann := isChan_not_null $$ Hkach
-      (try wp_auto)
-      have hkn : ka ≠ chan.nil := Hkann
-      rw [decide_eq_false hkn]
-      (try wp_auto)
-      wp_apply chan.wp_make1 (V := Unit) as %dch %γd ⟨#Hdch, %_, Hdoc⟩
-      imod alloc_broadcast_chan iprop(True) γd dch $$ Hdch Hdoc with Hpend
-      icases ownBroadcastChan_open _ _ _ _ $$ Hpend with ⟨%γch, #Hint, Hown⟩
-      ihave #Hdunk : ownBroadcastChan dch γd iprop(True) .Unknown $$ []
-      · iapply ownBroadcastChan_close _ _ _ _ γch
-        iframe #
-      ihave Hpend : ownBroadcastChan dch γd iprop(True) .Pending $$ [Hown]
-      · iapply ownBroadcastChan_close _ _ _ _ γch
-        iframe #
-        iexact Hown
-      (try wp_auto)
-      irename cancel => Hcanp
-      irename donec => Hdonp
-      ipersist Hcanp
-      ipersist Hdonp
-      ipersist keepAlive
-      icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨Hr0, %Hsnn⟩
-      iStructNamed Hr0
-      ipersist client
-      ipersist opts
-      ipersist id
-      ipersist ctx
-      ipersist cancel
-      ipersist donec
-      wp_apply wp_fork $$ [Hpend]
-      · (try wp_auto)
-        wp_apply wp_with_defer
-        iintro %defer Hdefer
-        (try wp_auto)
-        ihave IH : iprop(True) $$ []
-        · itrivial
-        wp_for IH
-        (try rw [if_pos (decide_eq_true rfl)])
-        (try wp_auto)
-        wp_bind (App (Val (chan.receive _)) _)
-        iapply chan.wp_receive (V := Loc) ka γk $$ Hkach
-        iintro ⟨Hlc1, Hlc2, -, -⟩
-        iapply chanAny_recv_au γk ka _ $$ [$Hlc1 $Hlc2] Hka
-        inext
-        iintro %v %ok
-        cases ok
-        · (try wp_auto)
-          wp_for_post
-          wp_apply wp_broadcast_chan_close dch γd iprop(True) $$ [$Hpend] as -
-          · imodintro; itrivial
-          (try wp_auto)
-          wp_apply Hcancel'
-          · imodintro; itrivial
-          (try wp_auto)
-          (try itrivial)
-        · (try wp_auto)
-          wp_for_post
-          iframe
-      (try wp_auto)
-      iapply HΦ
-      iright
-      isplitr
-      · ipureintro; exact ⟨rfl, Hsnn⟩
-      iexists ⟨γd⟩, olid
-      isplitl
-      · unfold isSession
-        iexists optsp, { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx }, pctx, pcs, ctx', _,
-          cancel, dch
-        unfold SessionOpts.val cancelSpec sessionDoneChan
-        iframe #
-        ipureintro; exact ⟨rfl, (⟨‹¬olid = W64 0›, fun _ => rfl⟩ : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx } olid).1⟩
-      · ipureintro; exact (⟨‹¬olid = W64 0›, fun _ => rfl⟩ : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx } olid)
+    have Hok : sessionLeaseOk { ttl := ottl, leaseID := olid, ctx := GoInterface.ok pctx } olid :=
+      ⟨‹¬olid = W64 0›, fun _ => rfl⟩
+    newsession_rest olid olid
 
 
 end proof

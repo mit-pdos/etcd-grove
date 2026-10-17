@@ -40,6 +40,83 @@ theorem adt.del_exit_post (t s : Loc) (C : adt.RbCtx adt.Entry) (ls : List (Loc 
   exact ⟨adt.RbCtx.delInv_exit C tx h hx,
     adt.RbCtx.inorder_plug_congr C (adt.RbT.inorder_blacken tx)⟩
 
+set_option hygiene false in
+/-- The loop's exit, `x.color = black` (`x` the sentinel or a node), with `h` the reason the loop
+ends (`x` the root, `x` red): after `x == ivt.root` and after `x.color(ivt.sentinel) == red`. -/
+local macro "del_exit" h:term:max : tactic => `(tactic| (
+    cases tx with
+    | leaf =>
+      icases adt.ownNode_leaf_open _ _ _ _ $$ Hx with %Hxs
+      rw [Hxs]
+      unfold adt.sentAt
+      icases Hsent with ⟨%v, Hsv, -⟩
+      icases adt.node_c _ _ $$ Hsv with ⟨Hc, %Hsn, Hcback⟩
+      rw [_root_.decide_eq_false Hsn]
+      rw [show black = #(adt.colorW .black) from rfl]
+      wp_auto
+      ihave Hsv := Hcback $$ %(adt.colorW .black) Hc
+      iapply HΦ
+      iframe Hs
+      isplitl [Hsv]
+      · unfold adt.ownSentinel; iexists _; iexact Hsv
+      rw [← hord]
+      iapply adt.del_exit_post t s _ ls s p .leaf hinv $h
+      iframe
+    | node c l e r =>
+      ihave %Hxn := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ Hx
+      rw [_root_.decide_eq_false Hxn.2]
+      icases adt.ownNode_blacken _ _ _ _ _ _ _ $$ Hx with ⟨Hc, Hxback⟩
+      rw [show black = #(adt.colorW .black) from rfl]
+      wp_auto
+      ihave Hx := Hxback $$ Hc
+      iapply HΦ
+      iframe Hs
+      isplitl [Hsent]
+      · iapply adt.sentAt_ownSentinel; iexact Hsent
+      rw [← hord]
+      iapply adt.del_exit_post t s _ ls x p (.node c l e r) hinv $h
+      iframe
+  ))
+
+set_option hygiene false in
+/-- `w.left.color(...) == black && w.right.color(...) == black`, for a black sibling `w`, `x` a left
+and a right child. -/
+local macro "sib_colors" : tactic => `(tactic| (
+    icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
+      ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
+    rw [_root_.decide_eq_false Hwn.2]
+    wp_auto
+    icases adt.ownNode_colorAt _ _ _ _ $$ Hwln with ⟨Hlc, Hlback⟩
+    icases adt.ownNode_colorAt _ _ _ _ $$ Hwrn with ⟨Hrc, Hrback⟩
+    wp_join (Q := fun v => iprop(⌜v = #(decide (wl'.color = .black ∧ wr'.color = .black))⌝ ∗
+        adt.colorAt s wlp wl'.color (DFrac.own 1) ∗ adt.colorAt s wrp wr'.color (DFrac.own 1) ∗
+        w'.[intervalNode, go!"left"] ↦ wlp ∗ w'.[intervalNode, go!"right"] ↦ wrp ∗
+        w_ptr ↦ w' ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s))
+      at (if: _ then _ else #false) with [Hlc Hrc Hwl Hwr w ivt Hs]
+    · wp_apply h_color wlp s wl'.color (DFrac.own 1) $$ [Hlc] as Hlc
+      · iframe
+      cases hl : wl'.color with
+      | red =>
+        rw [show decide (adt.colorW .red = adt.colorW .black) = false by decide]
+        wp_auto
+        iframe
+        ipureintro; simp
+      | black =>
+        rw [show decide (adt.colorW .black = adt.colorW .black) = true by decide]
+        wp_auto
+        wp_apply h_color wrp s wr'.color (DFrac.own 1) $$ [Hrc] as Hrc
+        · iframe
+        iframe
+        cases hr : wr'.color with
+        | red =>
+          ipureintro; simp [show adt.colorW .red ≠ adt.colorW .black by decide]
+        | black =>
+          ipureintro; simp
+    iintro ⟨%hv, Hlc, Hrc, Hwl, Hwr, w, ivt, Hs⟩
+    subst hv
+    obtain ⟨hinv', hord'⟩ := Hinv'
+  ))
+
 theorem adt.intervalTree.deleteFixup.wp_proof
     (h_color : adt.intervalNode.color.spec (GF := GF) (hG := hG))
     (h_rotateLeft : adt.intervalTree.rotateLeft.spec (GF := GF) (hG := hG))
@@ -71,38 +148,7 @@ theorem adt.intervalTree.deleteFixup.wp_proof
     wp_auto
     ihave HC := HCback $$ Hroot
     -- the exit: `x` blackened
-    cases tx with
-    | leaf =>
-      icases adt.ownNode_leaf_open _ _ _ _ $$ Hx with %Hxs
-      rw [Hxs]
-      unfold adt.sentAt
-      icases Hsent with ⟨%v, Hsv, -⟩
-      icases adt.node_c _ _ $$ Hsv with ⟨Hc, %Hsn, Hcback⟩
-      rw [_root_.decide_eq_false Hsn]
-      rw [show black = #(adt.colorW .black) from rfl]
-      wp_auto
-      ihave Hsv := Hcback $$ %(adt.colorW .black) Hc
-      iapply HΦ
-      iframe Hs
-      isplitl [Hsv]
-      · unfold adt.ownSentinel; iexists _; iexact Hsv
-      rw [← hord]
-      iapply adt.del_exit_post t s _ ls s p .leaf hinv (Or.inl rfl)
-      iframe
-    | node c l e r =>
-      ihave %Hxn := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ Hx
-      rw [_root_.decide_eq_false Hxn.2]
-      icases adt.ownNode_blacken _ _ _ _ _ _ _ $$ Hx with ⟨Hc, Hxback⟩
-      rw [show black = #(adt.colorW .black) from rfl]
-      wp_auto
-      ihave Hx := Hxback $$ Hc
-      iapply HΦ
-      iframe Hs
-      isplitl [Hsent]
-      · iapply adt.sentAt_ownSentinel; iexact Hsent
-      rw [← hord]
-      iapply adt.del_exit_post t s _ ls x p (.node c l e r) hinv (Or.inl rfl)
-      iframe
+    del_exit (Or.inl rfl)
   · ihave HC := HCback $$ Hroot
     ihave %Hne := adt.ownCtxAt_root_ne_hole t s C ls x p _ tx hCt $$ HC Hx
     icases adt.ownCtxAt_root _ _ _ _ _ _ _ $$ HC with ⟨Hroot, HCback⟩
@@ -121,38 +167,7 @@ theorem adt.intervalTree.deleteFixup.wp_proof
       simp only [hvb, Bool.false_eq_true, ↓reduceIte, _root_.decide_true]
       wp_auto
       -- the exit: `x` blackened
-      cases tx with
-      | leaf =>
-        icases adt.ownNode_leaf_open _ _ _ _ $$ Hx with %Hxs
-        rw [Hxs]
-        unfold adt.sentAt
-        icases Hsent with ⟨%v, Hsv, -⟩
-        icases adt.node_c _ _ $$ Hsv with ⟨Hc, %Hsn, Hcback⟩
-        rw [_root_.decide_eq_false Hsn]
-        rw [show black = #(adt.colorW .black) from rfl]
-        wp_auto
-        ihave Hsv := Hcback $$ %(adt.colorW .black) Hc
-        iapply HΦ
-        iframe Hs
-        isplitl [Hsv]
-        · unfold adt.ownSentinel; iexists _; iexact Hsv
-        rw [← hord]
-        iapply adt.del_exit_post t s _ ls s p .leaf hinv (Or.inr htxc)
-        iframe
-      | node c l e r =>
-        ihave %Hxn := adt.ownNode_node_ne _ _ _ _ _ _ _ _ $$ Hx
-        rw [_root_.decide_eq_false Hxn.2]
-        icases adt.ownNode_blacken _ _ _ _ _ _ _ $$ Hx with ⟨Hc, Hxback⟩
-        rw [show black = #(adt.colorW .black) from rfl]
-        wp_auto
-        ihave Hx := Hxback $$ Hc
-        iapply HΦ
-        iframe Hs
-        isplitl [Hsent]
-        · iapply adt.sentAt_ownSentinel; iexact Hsent
-        rw [← hord]
-        iapply adt.del_exit_post t s _ ls x p (.node c l e r) hinv (Or.inr htxc)
-        iframe
+      del_exit (Or.inr htxc)
 
     | black =>
       rw [show decide (adt.colorW .black = W64 0) = true by decide]
@@ -245,39 +260,7 @@ theorem adt.intervalTree.deleteFixup.wp_proof
         -- the sibling black: `w`'s children's colours
         icases (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
           ⟨%Hpn', Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
-        icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
-          ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
-        rw [_root_.decide_eq_false Hwn.2]
-        wp_auto
-        icases adt.ownNode_colorAt _ _ _ _ $$ Hwln with ⟨Hlc, Hlback⟩
-        icases adt.ownNode_colorAt _ _ _ _ $$ Hwrn with ⟨Hrc, Hrback⟩
-        wp_join (Q := fun v => iprop(⌜v = #(decide (wl'.color = .black ∧ wr'.color = .black))⌝ ∗
-            adt.colorAt s wlp wl'.color (DFrac.own 1) ∗ adt.colorAt s wrp wr'.color (DFrac.own 1) ∗
-            w'.[intervalNode, go!"left"] ↦ wlp ∗ w'.[intervalNode, go!"right"] ↦ wrp ∗
-            w_ptr ↦ w' ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s))
-          at (if: _ then _ else #false) with [Hlc Hrc Hwl Hwr w ivt Hs]
-        · wp_apply h_color wlp s wl'.color (DFrac.own 1) $$ [Hlc] as Hlc
-          · iframe
-          cases hl : wl'.color with
-          | red =>
-            rw [show decide (adt.colorW .red = adt.colorW .black) = false by decide]
-            wp_auto
-            iframe
-            ipureintro; simp
-          | black =>
-            rw [show decide (adt.colorW .black = adt.colorW .black) = true by decide]
-            wp_auto
-            wp_apply h_color wrp s wr'.color (DFrac.own 1) $$ [Hrc] as Hrc
-            · iframe
-            iframe
-            cases hr : wr'.color with
-            | red =>
-              ipureintro; simp [show adt.colorW .red ≠ adt.colorW .black by decide]
-            | black =>
-              ipureintro; simp
-        iintro ⟨%hv, Hlc, Hrc, Hwl, Hwr, w, ivt, Hs⟩
-        subst hv
-        obtain ⟨hinv', hord'⟩ := Hinv'
+        sib_colors
         by_cases hA : wl'.color = .black ∧ wr'.color = .black
         · -- case 2: both of `w`'s children black: `w` red, `x` moves up
           rw [_root_.decide_eq_true hA]
@@ -531,39 +514,7 @@ theorem adt.intervalTree.deleteFixup.wp_proof
         -- the sibling black: `w`'s children's colours
         icases (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
           ⟨%Hpn', Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hw, HC⟩
-        icases adt.ownNode_node_open _ _ _ _ _ _ _ _ $$ Hw with
-          ⟨%wlp, %wrp, %Hwn, Hwiv, Hwmx, Hwl, Hwr, Hwp, Hwc, Hwln, Hwrn⟩
-        rw [_root_.decide_eq_false Hwn.2]
-        wp_auto
-        icases adt.ownNode_colorAt _ _ _ _ $$ Hwln with ⟨Hlc, Hlback⟩
-        icases adt.ownNode_colorAt _ _ _ _ $$ Hwrn with ⟨Hrc, Hrback⟩
-        wp_join (Q := fun v => iprop(⌜v = #(decide (wl'.color = .black ∧ wr'.color = .black))⌝ ∗
-            adt.colorAt s wlp wl'.color (DFrac.own 1) ∗ adt.colorAt s wrp wr'.color (DFrac.own 1) ∗
-            w'.[intervalNode, go!"left"] ↦ wlp ∗ w'.[intervalNode, go!"right"] ↦ wrp ∗
-            w_ptr ↦ w' ∗ ivt_ptr ↦ t ∗ t.[intervalTree, go!"sentinel"] ↦{dq} s))
-          at (if: _ then _ else #false) with [Hlc Hrc Hwl Hwr w ivt Hs]
-        · wp_apply h_color wlp s wl'.color (DFrac.own 1) $$ [Hlc] as Hlc
-          · iframe
-          cases hl : wl'.color with
-          | red =>
-            rw [show decide (adt.colorW .red = adt.colorW .black) = false by decide]
-            wp_auto
-            iframe
-            ipureintro; simp
-          | black =>
-            rw [show decide (adt.colorW .black = adt.colorW .black) = true by decide]
-            wp_auto
-            wp_apply h_color wrp s wr'.color (DFrac.own 1) $$ [Hrc] as Hrc
-            · iframe
-            iframe
-            cases hr : wr'.color with
-            | red =>
-              ipureintro; simp [show adt.colorW .red ≠ adt.colorW .black by decide]
-            | black =>
-              ipureintro; simp
-        iintro ⟨%hv, Hlc, Hrc, Hwl, Hwr, w, ivt, Hs⟩
-        subst hv
-        obtain ⟨hinv', hord'⟩ := Hinv'
+        sib_colors
         by_cases hA : wl'.color = .black ∧ wr'.color = .black
         · -- case 2: both of `w`'s children black: `w` red, `x` moves up
           rw [_root_.decide_eq_true hA]

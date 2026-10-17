@@ -30,6 +30,92 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- Not the lowest waiter (`!isLowest`, with `len(resp.Kvs) == 1` and without): `b.myKey.Delete()`, the wait for the lowest's deletion, then the retry (`IH`). -/
+local macro "leave_not_lowest" : tactic => `(tactic| (
+    (try wp_auto)
+    wp_method_call
+    wp_auto
+    wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$(frameH `Hek) $(frameH `Hkv) $(frameH `Hlo)] as %derr ⟨Hek, Hres⟩
+    · ipureintro; exact Hk
+    ihave #Hres := leaveResult_of_delete _ st lo derr $$ Hres
+    iunfold leaveResult at Hres
+    icases Hres with (⟨%Hdnil, #Hown⟩ | %Hdne)
+    rotate_left
+    · obtain ⟨e, rfl⟩ : ∃ e, derr = GoInterface.ok e := by
+        cases derr with
+        | nil => exact absurd rfl Hdne
+        | ok e => exact ⟨e, rfl⟩
+      (try wp_auto)
+      iapply HΦ
+      isplitl [Hmk Hek]
+      · iexists GoInterface.nil
+        try simp only [dbMyKey]
+        try unfold ownEphemeralKV
+        iframe Hmk Hek
+        isplitr
+        · unfold isRecipesKV; itrivial
+        ipureintro; exact Hk
+      unfold leaveResult
+      iright; ipureintro; exact Hdne
+    subst Hdnil
+    (try wp_auto)
+    wp_apply wp_bytes_to_string lkeySl wl.key DFrac.discard $$ [$(frameH `HlkeySl)] as -
+    (try wp_auto)
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %esl ⟨Hesl, -⟩
+    ipersist Hesl
+    wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
+      $$ [$(frameH `Hclosed) $(frameH `Hcl) $(frameH `Hesl)] as %ev %werr Hwr
+    · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
+    icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
+    rotate_left
+    · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
+        cases werr with
+        | nil => exact absurd rfl Hwne
+        | ok e => exact ⟨e, rfl⟩
+      (try wp_auto)
+      iapply HΦ
+      isplitl [Hmk Hek]
+      · iexists GoInterface.nil
+        try simp only [dbMyKey]
+        try unfold ownEphemeralKV
+        iframe Hmk Hek
+        isplitr
+        · unfold isRecipesKV; itrivial
+        ipureintro; exact Hk
+      unfold leaveResult
+      iright; ipureintro; exact Hwne
+    subst Hwnil
+    (try wp_auto)
+    wp_method_call
+    wp_apply IH $$ %{ st with kv := GoInterface.nil } %lo [Hmk Hek] as %lerr ⟨Hmk', #Hl⟩
+    · iframe Hb Hlo
+      try unfold ownEphemeralKV
+      iframe Hmk Hek
+      isplitr
+      · unfold isRecipesKV; itrivial
+      ipureintro; (try simp only); first | exact ⟨Hk, Hst⟩ | exact Hst | exact Hk
+    iapply HΦ
+    iframe Hmk'
+    try unfold leaveResult
+    (try iunfold leaveResult at Hl)
+    icases Hl with (⟨%Hlnil, -⟩ | %Hlne)
+    · ileft
+      isplitr
+      · ipureintro; exact Hlnil
+      iexact Hown
+    iright; ipureintro; exact Hlne
+  ))
+
 theorem DoubleBarrier.Leave.wp_proof
     (wp_Client : concurrency.Session.Client.spec (GF := GF) (hG := hG))
     (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
@@ -288,81 +374,7 @@ theorem DoubleBarrier.Leave.wp_proof
       · unfold isRecipesKV; itrivial
       ipureintro; exact Hk
     · -- not the lowest: delete the key, wait for the lowest's deletion, retry
-      (try wp_auto)
-      wp_method_call
-      wp_auto
-      wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hek $Hkv $Hlo] as %derr ⟨Hek, Hres⟩
-      · ipureintro; exact Hk
-      ihave #Hres := leaveResult_of_delete _ st lo derr $$ Hres
-      iunfold leaveResult at Hres
-      icases Hres with (⟨%Hdnil, #Hown⟩ | %Hdne)
-      rotate_left
-      · obtain ⟨e, rfl⟩ : ∃ e, derr = GoInterface.ok e := by
-          cases derr with
-          | nil => exact absurd rfl Hdne
-          | ok e => exact ⟨e, rfl⟩
-        (try wp_auto)
-        iapply HΦ
-        isplitl [Hmk Hek]
-        · iexists GoInterface.nil
-          try simp only [dbMyKey]
-          try unfold ownEphemeralKV
-          iframe Hmk Hek
-          isplitr
-          · unfold isRecipesKV; itrivial
-          ipureintro; exact Hk
-        unfold leaveResult
-        iright; ipureintro; exact Hdne
-      subst Hdnil
-      (try wp_auto)
-      wp_apply wp_bytes_to_string lkeySl wl.key DFrac.discard $$ [$HlkeySl] as -
-      (try wp_auto)
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %esl ⟨Hesl, -⟩
-      ipersist Hesl
-      wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
-        $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-      · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
-      icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
-      rotate_left
-      · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
-          cases werr with
-          | nil => exact absurd rfl Hwne
-          | ok e => exact ⟨e, rfl⟩
-        (try wp_auto)
-        iapply HΦ
-        isplitl [Hmk Hek]
-        · iexists GoInterface.nil
-          try simp only [dbMyKey]
-          try unfold ownEphemeralKV
-          iframe Hmk Hek
-          isplitr
-          · unfold isRecipesKV; itrivial
-          ipureintro; exact Hk
-        unfold leaveResult
-        iright; ipureintro; exact Hwne
-      subst Hwnil
-      (try wp_auto)
-      wp_method_call
-      wp_apply IH $$ %{ st with kv := GoInterface.nil } %lo [Hmk Hek] as %lerr ⟨Hmk', #Hl⟩
-      · iframe Hb Hlo
-        try unfold ownEphemeralKV
-        iframe Hmk Hek
-        isplitr
-        · unfold isRecipesKV; itrivial
-        ipureintro; (try simp only); first | exact ⟨Hk, Hst⟩ | exact Hst | exact Hk
-      iapply HΦ
-      iframe Hmk'
-      try unfold leaveResult
-      (try iunfold leaveResult at Hl)
-      icases Hl with (⟨%Hlnil, -⟩ | %Hlne)
-      · ileft
-        isplitr
-        · ipureintro; exact Hlnil
-        iexact Hown
-      iright; ipureintro; exact Hlne
+      leave_not_lowest
   · (try wp_auto)
     wp_if_destruct
     · -- the lowest of several: wait for the highest's deletion, retry
@@ -405,81 +417,7 @@ theorem DoubleBarrier.Leave.wp_proof
       iapply HΦ
       iframe Hmk' Hl
     · -- not the lowest: delete the key, wait for the lowest's deletion, retry
-      (try wp_auto)
-      wp_method_call
-      wp_auto
-      wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hek $Hkv $Hlo] as %derr ⟨Hek, Hres⟩
-      · ipureintro; exact Hk
-      ihave #Hres := leaveResult_of_delete _ st lo derr $$ Hres
-      iunfold leaveResult at Hres
-      icases Hres with (⟨%Hdnil, #Hown⟩ | %Hdne)
-      rotate_left
-      · obtain ⟨e, rfl⟩ : ∃ e, derr = GoInterface.ok e := by
-          cases derr with
-          | nil => exact absurd rfl Hdne
-          | ok e => exact ⟨e, rfl⟩
-        (try wp_auto)
-        iapply HΦ
-        isplitl [Hmk Hek]
-        · iexists GoInterface.nil
-          try simp only [dbMyKey]
-          try unfold ownEphemeralKV
-          iframe Hmk Hek
-          isplitr
-          · unfold isRecipesKV; itrivial
-          ipureintro; exact Hk
-        unfold leaveResult
-        iright; ipureintro; exact Hdne
-      subst Hdnil
-      (try wp_auto)
-      wp_apply wp_bytes_to_string lkeySl wl.key DFrac.discard $$ [$HlkeySl] as -
-      (try wp_auto)
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %esl ⟨Hesl, -⟩
-      ipersist Hesl
-      wp_apply wp_WaitEvents client (key ++ go!"/") wl.key wl.modRev _ [W32 1] (W32 1)
-        $$ [$Hclosed $Hcl $Hesl] as %ev %werr Hwr
-      · ipureintro; exact ⟨rfl, Hwf'.2 wl Hwls, by have := (Hrevs wl Hwls).2.1; have := (Hrevs wl Hwls).1; omega⟩
-      icases Hwr with (⟨%Hwnil, -⟩ | %Hwne)
-      rotate_left
-      · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
-          cases werr with
-          | nil => exact absurd rfl Hwne
-          | ok e => exact ⟨e, rfl⟩
-        (try wp_auto)
-        iapply HΦ
-        isplitl [Hmk Hek]
-        · iexists GoInterface.nil
-          try simp only [dbMyKey]
-          try unfold ownEphemeralKV
-          iframe Hmk Hek
-          isplitr
-          · unfold isRecipesKV; itrivial
-          ipureintro; exact Hk
-        unfold leaveResult
-        iright; ipureintro; exact Hwne
-      subst Hwnil
-      (try wp_auto)
-      wp_method_call
-      wp_apply IH $$ %{ st with kv := GoInterface.nil } %lo [Hmk Hek] as %lerr ⟨Hmk', #Hl⟩
-      · iframe Hb Hlo
-        try unfold ownEphemeralKV
-        iframe Hmk Hek
-        isplitr
-        · unfold isRecipesKV; itrivial
-        ipureintro; (try simp only); first | exact ⟨Hk, Hst⟩ | exact Hst | exact Hk
-      iapply HΦ
-      iframe Hmk'
-      try unfold leaveResult
-      (try iunfold leaveResult at Hl)
-      icases Hl with (⟨%Hlnil, -⟩ | %Hlne)
-      · ileft
-        isplitr
-        · ipureintro; exact Hlnil
-        iexact Hown
-      iright; ipureintro; exact Hlne
+      leave_not_lowest
 
 end proof
 

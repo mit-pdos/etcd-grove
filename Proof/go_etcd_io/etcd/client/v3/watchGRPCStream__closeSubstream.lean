@@ -47,6 +47,372 @@ theorem nilOut_none (l : List Loc) (ws : Loc) (hall : ∀ j, j < l.length → l[
   rw [List.getElem?_eq_getElem hj] at this
   simpa using this
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- The code after the `select` on `ws.initReq.retc <- ws.outc` (closing `ws.outc` or forking `sendCloseSubstream`, then the `substreams`/`resuming` removal), for the `select`'s three ways out: `retc` nil (`default`), and with `retc` live the send done and `default`. -/
+local macro "close_rest" : tactic => `(tactic| (
+    (try wp_auto)
+    cases e with
+    | nil =>
+      (try wp_auto)
+      wp_if_destruct
+      · (try wp_auto)
+        wp_if_destruct
+        · rename_i ig
+          irename : (ig ↦ zero_val w64 : IProp GF) => gi
+          ihave %Hsll := ownSlice_len $$ Hs
+          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
+              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
+                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
+          · iexists W64 0, _
+            simp only [named]
+            iframe
+            ipureintro
+            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+          wp_for IH
+          (try wp_auto)
+          wp_if_destruct
+          · have Hc : sint.Z n < sint.Z s.len := by
+              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
+            have Hlt : sint.nat n < l.length := by word
+            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
+            rw [ite_eq_left Hbnd]
+            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+            · iframe; ipureintro; rw [← Hx]
+            (try wp_auto)
+            rw [ite_eq_left Hbnd]
+            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+            · iframe; ipureintro; rw [← Hx]
+            (try wp_auto)
+            wp_if_destruct
+            · -- found: set to nil, return
+              (try wp_auto)
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
+              · iframe; ipureintro; constructor <;> word
+              (try wp_auto)
+              wp_for_post
+              iapply HΦ
+              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
+              iframe
+            · (try wp_auto)
+              wp_for_post
+              iframe
+              iexists n + W64 1, n
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by word, by word, fun j hj => ?_⟩
+              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
+              · exact Hn.2.2 j h
+              · subst h; rw [Hx]; intro h'; cases h'; contradiction
+          · -- the end: no place held `ws`
+            have Hc : ¬ sint.Z n < sint.Z s.len := by
+              first | assumption | (intro h; apply Hif; simp [h])
+            (try wp_auto)
+            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
+            (try wp_auto)
+            iapply HΦ
+            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
+            iframe
+        · (try wp_auto)
+          wp_apply wp_mapDelete $$ [$(frameH `Hmap)] as Hmap
+          (try wp_auto)
+          iapply HΦ
+          iframe
+      · iunfold outcProd at Hprod
+        icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
+        (try wp_auto)
+        wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$(frameH `Hspsc) $(frameH `Hprod)]
+        (try wp_auto)
+        wp_if_destruct
+        · rename_i ig
+          irename : (ig ↦ zero_val w64 : IProp GF) => gi
+          ihave %Hsll := ownSlice_len $$ Hs
+          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
+              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
+                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
+          · iexists W64 0, _
+            simp only [named]
+            iframe
+            ipureintro
+            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+          wp_for IH
+          (try wp_auto)
+          wp_if_destruct
+          · have Hc : sint.Z n < sint.Z s.len := by
+              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
+            have Hlt : sint.nat n < l.length := by word
+            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
+            rw [ite_eq_left Hbnd]
+            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+            · iframe; ipureintro; rw [← Hx]
+            (try wp_auto)
+            rw [ite_eq_left Hbnd]
+            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+            · iframe; ipureintro; rw [← Hx]
+            (try wp_auto)
+            wp_if_destruct
+            · -- found: set to nil, return
+              (try wp_auto)
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
+              · iframe; ipureintro; constructor <;> word
+              (try wp_auto)
+              wp_for_post
+              iapply HΦ
+              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
+              iframe
+            · (try wp_auto)
+              wp_for_post
+              iframe
+              iexists n + W64 1, n
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by word, by word, fun j hj => ?_⟩
+              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
+              · exact Hn.2.2 j h
+              · subst h; rw [Hx]; intro h'; cases h'; contradiction
+          · -- the end: no place held `ws`
+            have Hc : ¬ sint.Z n < sint.Z s.len := by
+              first | assumption | (intro h; apply Hif; simp [h])
+            (try wp_auto)
+            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
+            (try wp_auto)
+            iapply HΦ
+            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
+            iframe
+        · (try wp_auto)
+          wp_apply wp_mapDelete $$ [$(frameH `Hmap)] as Hmap
+          (try wp_auto)
+          iapply HΦ
+          iframe
+    | ok e0 =>
+      (try wp_auto)
+      ihave #HErrU := HErr $$ %Broadcast.Unknown
+      wp_apply HErrU $$ [] as %err herr
+      cases err with
+      | nil =>
+        (try wp_auto)
+        icases typedPointsto_not_null_dup _ _ _ $$ «$v0» with ⟨Hh0, %Hhnn⟩
+        wp_apply wp_fork $$ [Hprod Hh0 «$a1»]
+        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$(frameH `Hws) $(frameH `Hprod) $(frameH `«$a1») $(frameH `Hh0)]
+          · iframe Hse
+            ipureintro
+            exact ⟨Hhnn, rfl, rfl, rfl, rfl⟩
+          itrivial
+        (try wp_auto)
+        wp_if_destruct
+        · rename_i ig
+          irename : (ig ↦ zero_val w64 : IProp GF) => gi
+          ihave %Hsll := ownSlice_len $$ Hs
+          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
+              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
+                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
+          · iexists W64 0, _
+            simp only [named]
+            iframe
+            ipureintro
+            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+          wp_for IH
+          (try wp_auto)
+          wp_if_destruct
+          · have Hc : sint.Z n < sint.Z s.len := by
+              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
+            have Hlt : sint.nat n < l.length := by word
+            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
+            rw [ite_eq_left Hbnd]
+            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+            · iframe; ipureintro; rw [← Hx]
+            (try wp_auto)
+            rw [ite_eq_left Hbnd]
+            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+            · iframe; ipureintro; rw [← Hx]
+            (try wp_auto)
+            wp_if_destruct
+            · -- found: set to nil, return
+              (try wp_auto)
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
+              · iframe; ipureintro; constructor <;> word
+              (try wp_auto)
+              wp_for_post
+              iapply HΦ
+              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
+              iframe
+            · (try wp_auto)
+              wp_for_post
+              iframe
+              iexists n + W64 1, n
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by word, by word, fun j hj => ?_⟩
+              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
+              · exact Hn.2.2 j h
+              · subst h; rw [Hx]; intro h'; cases h'; contradiction
+          · -- the end: no place held `ws`
+            have Hc : ¬ sint.Z n < sint.Z s.len := by
+              first | assumption | (intro h; apply Hif; simp [h])
+            (try wp_auto)
+            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
+            (try wp_auto)
+            iapply HΦ
+            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
+            iframe
+        · (try wp_auto)
+          wp_apply wp_mapDelete $$ [$(frameH `Hmap)] as Hmap
+          (try wp_auto)
+          iapply HΦ
+          iframe
+      | ok e1 =>
+        (try wp_auto)
+        wp_if_destruct
+        · (try wp_auto)
+          wp_if_destruct
+          · rename_i ig
+            irename : (ig ↦ zero_val w64 : IProp GF) => gi
+            ihave %Hsll := ownSlice_len $$ Hs
+            ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
+                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
+                  ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
+            · iexists W64 0, _
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+            wp_for IH
+            (try wp_auto)
+            wp_if_destruct
+            · have Hc : sint.Z n < sint.Z s.len := by
+                first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
+              have Hlt : sint.nat n < l.length := by word
+              obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+              · iframe; ipureintro; rw [← Hx]
+              (try wp_auto)
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+              · iframe; ipureintro; rw [← Hx]
+              (try wp_auto)
+              wp_if_destruct
+              · -- found: set to nil, return
+                (try wp_auto)
+                rw [ite_eq_left Hbnd]
+                wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
+                · iframe; ipureintro; constructor <;> word
+                (try wp_auto)
+                wp_for_post
+                iapply HΦ
+                rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
+                iframe
+              · (try wp_auto)
+                wp_for_post
+                iframe
+                iexists n + W64 1, n
+                simp only [named]
+                iframe
+                ipureintro
+                refine ⟨by word, by word, fun j hj => ?_⟩
+                rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
+                · exact Hn.2.2 j h
+                · subst h; rw [Hx]; intro h'; cases h'; contradiction
+            · -- the end: no place held `ws`
+              have Hc : ¬ sint.Z n < sint.Z s.len := by
+                first | assumption | (intro h; apply Hif; simp [h])
+              (try wp_auto)
+              (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
+              (try wp_auto)
+              iapply HΦ
+              rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
+              iframe
+          · (try wp_auto)
+            wp_apply wp_mapDelete $$ [$(frameH `Hmap)] as Hmap
+            (try wp_auto)
+            iapply HΦ
+            iframe
+        · iunfold outcProd at Hprod
+          icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
+          (try wp_auto)
+          wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$(frameH `Hspsc) $(frameH `Hprod)]
+          (try wp_auto)
+          wp_if_destruct
+          · rename_i ig
+            irename : (ig ↦ zero_val w64 : IProp GF) => gi
+            ihave %Hsll := ownSlice_len $$ Hs
+            ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
+                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
+                  ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
+            · iexists W64 0, _
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+            wp_for IH
+            (try wp_auto)
+            wp_if_destruct
+            · have Hc : sint.Z n < sint.Z s.len := by
+                first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
+              have Hlt : sint.nat n < l.length := by word
+              obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+              · iframe; ipureintro; rw [← Hx]
+              (try wp_auto)
+              rw [ite_eq_left Hbnd]
+              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+              · iframe; ipureintro; rw [← Hx]
+              (try wp_auto)
+              wp_if_destruct
+              · -- found: set to nil, return
+                (try wp_auto)
+                rw [ite_eq_left Hbnd]
+                wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
+                · iframe; ipureintro; constructor <;> word
+                (try wp_auto)
+                wp_for_post
+                iapply HΦ
+                rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
+                iframe
+              · (try wp_auto)
+                wp_for_post
+                iframe
+                iexists n + W64 1, n
+                simp only [named]
+                iframe
+                ipureintro
+                refine ⟨by word, by word, fun j hj => ?_⟩
+                rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
+                · exact Hn.2.2 j h
+                · subst h; rw [Hx]; intro h'; cases h'; contradiction
+            · -- the end: no place held `ws`
+              have Hc : ¬ sint.Z n < sint.Z s.len := by
+                first | assumption | (intro h; apply Hif; simp [h])
+              (try wp_auto)
+              (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
+              (try wp_auto)
+              iapply HΦ
+              rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
+              iframe
+          · (try wp_auto)
+            wp_apply wp_mapDelete $$ [$(frameH `Hmap)] as Hmap
+            (try wp_auto)
+            iapply HΦ
+            iframe
+  ))
+
 set_option maxHeartbeats 2000000 in
 theorem watchGRPCStream.closeSubstream.wp_proof
     (wp_sendCloseSubstream : watchGRPCStream.sendCloseSubstream.spec (GF := GF) (hG := hG)) :
@@ -75,361 +441,7 @@ theorem watchGRPCStream.closeSubstream.wp_proof
         iapply chan.nilClausePre_send (V := Loc) (t := go.GoType.ChannelType go.ChanDir.sendrecv go_etcd_io.etcd.client.v3.WatchResponse.ty) null P.outc _ rfl
       iapply BigAndL.bigAndL_nil.2
       itrivial
-    (try wp_auto)
-    cases e with
-    | nil =>
-      (try wp_auto)
-      wp_if_destruct
-      · (try wp_auto)
-        wp_if_destruct
-        · rename_i ig
-          irename : (ig ↦ zero_val w64 : IProp GF) => gi
-          ihave %Hsll := ownSlice_len $$ Hs
-          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-          · iexists W64 0, _
-            simp only [named]
-            iframe
-            ipureintro
-            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-          wp_for IH
-          (try wp_auto)
-          wp_if_destruct
-          · have Hc : sint.Z n < sint.Z s.len := by
-              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-            have Hlt : sint.nat n < l.length := by word
-            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            wp_if_destruct
-            · -- found: set to nil, return
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-              · iframe; ipureintro; constructor <;> word
-              (try wp_auto)
-              wp_for_post
-              iapply HΦ
-              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-              iframe
-            · (try wp_auto)
-              wp_for_post
-              iframe
-              iexists n + W64 1, n
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => ?_⟩
-              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-              · exact Hn.2.2 j h
-              · subst h; rw [Hx]; intro h'; cases h'; contradiction
-          · -- the end: no place held `ws`
-            have Hc : ¬ sint.Z n < sint.Z s.len := by
-              first | assumption | (intro h; apply Hif; simp [h])
-            (try wp_auto)
-            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-            (try wp_auto)
-            iapply HΦ
-            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-            iframe
-        · (try wp_auto)
-          wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-          (try wp_auto)
-          iapply HΦ
-          iframe
-      · iunfold outcProd at Hprod
-        icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
-        (try wp_auto)
-        wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
-        (try wp_auto)
-        wp_if_destruct
-        · rename_i ig
-          irename : (ig ↦ zero_val w64 : IProp GF) => gi
-          ihave %Hsll := ownSlice_len $$ Hs
-          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-          · iexists W64 0, _
-            simp only [named]
-            iframe
-            ipureintro
-            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-          wp_for IH
-          (try wp_auto)
-          wp_if_destruct
-          · have Hc : sint.Z n < sint.Z s.len := by
-              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-            have Hlt : sint.nat n < l.length := by word
-            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            wp_if_destruct
-            · -- found: set to nil, return
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-              · iframe; ipureintro; constructor <;> word
-              (try wp_auto)
-              wp_for_post
-              iapply HΦ
-              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-              iframe
-            · (try wp_auto)
-              wp_for_post
-              iframe
-              iexists n + W64 1, n
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => ?_⟩
-              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-              · exact Hn.2.2 j h
-              · subst h; rw [Hx]; intro h'; cases h'; contradiction
-          · -- the end: no place held `ws`
-            have Hc : ¬ sint.Z n < sint.Z s.len := by
-              first | assumption | (intro h; apply Hif; simp [h])
-            (try wp_auto)
-            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-            (try wp_auto)
-            iapply HΦ
-            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-            iframe
-        · (try wp_auto)
-          wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-          (try wp_auto)
-          iapply HΦ
-          iframe
-    | ok e0 =>
-      (try wp_auto)
-      ihave #HErrU := HErr $$ %Broadcast.Unknown
-      wp_apply HErrU $$ [] as %err herr
-      cases err with
-      | nil =>
-        (try wp_auto)
-        icases typedPointsto_not_null_dup _ _ _ $$ «$v0» with ⟨Hh0, %Hhnn⟩
-        wp_apply wp_fork $$ [Hprod Hh0 «$a1»]
-        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$Hws $Hprod $«$a1» $Hh0]
-          · iframe Hse
-            ipureintro
-            exact ⟨Hhnn, rfl, rfl, rfl, rfl⟩
-          itrivial
-        (try wp_auto)
-        wp_if_destruct
-        · rename_i ig
-          irename : (ig ↦ zero_val w64 : IProp GF) => gi
-          ihave %Hsll := ownSlice_len $$ Hs
-          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-          · iexists W64 0, _
-            simp only [named]
-            iframe
-            ipureintro
-            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-          wp_for IH
-          (try wp_auto)
-          wp_if_destruct
-          · have Hc : sint.Z n < sint.Z s.len := by
-              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-            have Hlt : sint.nat n < l.length := by word
-            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            wp_if_destruct
-            · -- found: set to nil, return
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-              · iframe; ipureintro; constructor <;> word
-              (try wp_auto)
-              wp_for_post
-              iapply HΦ
-              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-              iframe
-            · (try wp_auto)
-              wp_for_post
-              iframe
-              iexists n + W64 1, n
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => ?_⟩
-              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-              · exact Hn.2.2 j h
-              · subst h; rw [Hx]; intro h'; cases h'; contradiction
-          · -- the end: no place held `ws`
-            have Hc : ¬ sint.Z n < sint.Z s.len := by
-              first | assumption | (intro h; apply Hif; simp [h])
-            (try wp_auto)
-            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-            (try wp_auto)
-            iapply HΦ
-            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-            iframe
-        · (try wp_auto)
-          wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-          (try wp_auto)
-          iapply HΦ
-          iframe
-      | ok e1 =>
-        (try wp_auto)
-        wp_if_destruct
-        · (try wp_auto)
-          wp_if_destruct
-          · rename_i ig
-            irename : (ig ↦ zero_val w64 : IProp GF) => gi
-            ihave %Hsll := ownSlice_len $$ Hs
-            ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                  ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-            · iexists W64 0, _
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-            wp_for IH
-            (try wp_auto)
-            wp_if_destruct
-            · have Hc : sint.Z n < sint.Z s.len := by
-                first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-              have Hlt : sint.nat n < l.length := by word
-              obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              wp_if_destruct
-              · -- found: set to nil, return
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                · iframe; ipureintro; constructor <;> word
-                (try wp_auto)
-                wp_for_post
-                iapply HΦ
-                rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                iframe
-              · (try wp_auto)
-                wp_for_post
-                iframe
-                iexists n + W64 1, n
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => ?_⟩
-                rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                · exact Hn.2.2 j h
-                · subst h; rw [Hx]; intro h'; cases h'; contradiction
-            · -- the end: no place held `ws`
-              have Hc : ¬ sint.Z n < sint.Z s.len := by
-                first | assumption | (intro h; apply Hif; simp [h])
-              (try wp_auto)
-              (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-              (try wp_auto)
-              iapply HΦ
-              rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-              iframe
-          · (try wp_auto)
-            wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-            (try wp_auto)
-            iapply HΦ
-            iframe
-        · iunfold outcProd at Hprod
-          icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
-          (try wp_auto)
-          wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
-          (try wp_auto)
-          wp_if_destruct
-          · rename_i ig
-            irename : (ig ↦ zero_val w64 : IProp GF) => gi
-            ihave %Hsll := ownSlice_len $$ Hs
-            ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                  ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-            · iexists W64 0, _
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-            wp_for IH
-            (try wp_auto)
-            wp_if_destruct
-            · have Hc : sint.Z n < sint.Z s.len := by
-                first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-              have Hlt : sint.nat n < l.length := by word
-              obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              wp_if_destruct
-              · -- found: set to nil, return
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                · iframe; ipureintro; constructor <;> word
-                (try wp_auto)
-                wp_for_post
-                iapply HΦ
-                rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                iframe
-              · (try wp_auto)
-                wp_for_post
-                iframe
-                iexists n + W64 1, n
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => ?_⟩
-                rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                · exact Hn.2.2 j h
-                · subst h; rw [Hx]; intro h'; cases h'; contradiction
-            · -- the end: no place held `ws`
-              have Hc : ¬ sint.Z n < sint.Z s.len := by
-                first | assumption | (intro h; apply Hif; simp [h])
-              (try wp_auto)
-              (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-              (try wp_auto)
-              iapply HΦ
-              rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-              iframe
-          · (try wp_auto)
-            wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-            (try wp_auto)
-            iapply HΦ
-            iframe
+    close_rest
   · subst Hrc1
     wp_auto_lc 2
     wp_apply_core chan.wp_select_nonblocking
@@ -449,718 +461,10 @@ theorem watchGRPCStream.closeSubstream.wp_proof
           iexists P.γ
           iframe Hspsc Hres0
         inext
-        (try wp_auto)
-        cases e with
-        | nil =>
-          (try wp_auto)
-          wp_if_destruct
-          · (try wp_auto)
-            wp_if_destruct
-            · rename_i ig
-              irename : (ig ↦ zero_val w64 : IProp GF) => gi
-              ihave %Hsll := ownSlice_len $$ Hs
-              ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                  "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                    ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-              · iexists W64 0, _
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-              wp_for IH
-              (try wp_auto)
-              wp_if_destruct
-              · have Hc : sint.Z n < sint.Z s.len := by
-                  first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-                have Hlt : sint.nat n < l.length := by word
-                obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-                have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                · iframe; ipureintro; rw [← Hx]
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                · iframe; ipureintro; rw [← Hx]
-                (try wp_auto)
-                wp_if_destruct
-                · -- found: set to nil, return
-                  (try wp_auto)
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                  · iframe; ipureintro; constructor <;> word
-                  (try wp_auto)
-                  wp_for_post
-                  iapply HΦ
-                  rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                  iframe
-                · (try wp_auto)
-                  wp_for_post
-                  iframe
-                  iexists n + W64 1, n
-                  simp only [named]
-                  iframe
-                  ipureintro
-                  refine ⟨by word, by word, fun j hj => ?_⟩
-                  rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                  · exact Hn.2.2 j h
-                  · subst h; rw [Hx]; intro h'; cases h'; contradiction
-              · -- the end: no place held `ws`
-                have Hc : ¬ sint.Z n < sint.Z s.len := by
-                  first | assumption | (intro h; apply Hif; simp [h])
-                (try wp_auto)
-                (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-                (try wp_auto)
-                iapply HΦ
-                rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-                iframe
-            · (try wp_auto)
-              wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-              (try wp_auto)
-              iapply HΦ
-              iframe
-          · iunfold outcProd at Hprod
-            icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
-            (try wp_auto)
-            wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
-            (try wp_auto)
-            wp_if_destruct
-            · rename_i ig
-              irename : (ig ↦ zero_val w64 : IProp GF) => gi
-              ihave %Hsll := ownSlice_len $$ Hs
-              ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                  "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                    ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-              · iexists W64 0, _
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-              wp_for IH
-              (try wp_auto)
-              wp_if_destruct
-              · have Hc : sint.Z n < sint.Z s.len := by
-                  first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-                have Hlt : sint.nat n < l.length := by word
-                obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-                have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                · iframe; ipureintro; rw [← Hx]
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                · iframe; ipureintro; rw [← Hx]
-                (try wp_auto)
-                wp_if_destruct
-                · -- found: set to nil, return
-                  (try wp_auto)
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                  · iframe; ipureintro; constructor <;> word
-                  (try wp_auto)
-                  wp_for_post
-                  iapply HΦ
-                  rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                  iframe
-                · (try wp_auto)
-                  wp_for_post
-                  iframe
-                  iexists n + W64 1, n
-                  simp only [named]
-                  iframe
-                  ipureintro
-                  refine ⟨by word, by word, fun j hj => ?_⟩
-                  rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                  · exact Hn.2.2 j h
-                  · subst h; rw [Hx]; intro h'; cases h'; contradiction
-              · -- the end: no place held `ws`
-                have Hc : ¬ sint.Z n < sint.Z s.len := by
-                  first | assumption | (intro h; apply Hif; simp [h])
-                (try wp_auto)
-                (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-                (try wp_auto)
-                iapply HΦ
-                rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-                iframe
-            · (try wp_auto)
-              wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-              (try wp_auto)
-              iapply HΦ
-              iframe
-        | ok e0 =>
-          (try wp_auto)
-          ihave #HErrU := HErr $$ %Broadcast.Unknown
-          wp_apply HErrU $$ [] as %err herr
-          cases err with
-          | nil =>
-            (try wp_auto)
-            icases typedPointsto_not_null_dup _ _ _ $$ «$v0» with ⟨Hh0, %Hhnn⟩
-            wp_apply wp_fork $$ [Hprod Hh0 «$a1»]
-            · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$Hws $Hprod $«$a1» $Hh0]
-              · iframe Hse
-                ipureintro
-                exact ⟨Hhnn, rfl, rfl, rfl, rfl⟩
-              itrivial
-            (try wp_auto)
-            wp_if_destruct
-            · rename_i ig
-              irename : (ig ↦ zero_val w64 : IProp GF) => gi
-              ihave %Hsll := ownSlice_len $$ Hs
-              ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                  "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                    ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-              · iexists W64 0, _
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-              wp_for IH
-              (try wp_auto)
-              wp_if_destruct
-              · have Hc : sint.Z n < sint.Z s.len := by
-                  first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-                have Hlt : sint.nat n < l.length := by word
-                obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-                have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                · iframe; ipureintro; rw [← Hx]
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                · iframe; ipureintro; rw [← Hx]
-                (try wp_auto)
-                wp_if_destruct
-                · -- found: set to nil, return
-                  (try wp_auto)
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                  · iframe; ipureintro; constructor <;> word
-                  (try wp_auto)
-                  wp_for_post
-                  iapply HΦ
-                  rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                  iframe
-                · (try wp_auto)
-                  wp_for_post
-                  iframe
-                  iexists n + W64 1, n
-                  simp only [named]
-                  iframe
-                  ipureintro
-                  refine ⟨by word, by word, fun j hj => ?_⟩
-                  rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                  · exact Hn.2.2 j h
-                  · subst h; rw [Hx]; intro h'; cases h'; contradiction
-              · -- the end: no place held `ws`
-                have Hc : ¬ sint.Z n < sint.Z s.len := by
-                  first | assumption | (intro h; apply Hif; simp [h])
-                (try wp_auto)
-                (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-                (try wp_auto)
-                iapply HΦ
-                rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-                iframe
-            · (try wp_auto)
-              wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-              (try wp_auto)
-              iapply HΦ
-              iframe
-          | ok e1 =>
-            (try wp_auto)
-            wp_if_destruct
-            · (try wp_auto)
-              wp_if_destruct
-              · rename_i ig
-                irename : (ig ↦ zero_val w64 : IProp GF) => gi
-                ihave %Hsll := ownSlice_len $$ Hs
-                ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                    "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                      ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-                · iexists W64 0, _
-                  simp only [named]
-                  iframe
-                  ipureintro
-                  refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-                wp_for IH
-                (try wp_auto)
-                wp_if_destruct
-                · have Hc : sint.Z n < sint.Z s.len := by
-                    first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-                  have Hlt : sint.nat n < l.length := by word
-                  obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-                  have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                  · iframe; ipureintro; rw [← Hx]
-                  (try wp_auto)
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                  · iframe; ipureintro; rw [← Hx]
-                  (try wp_auto)
-                  wp_if_destruct
-                  · -- found: set to nil, return
-                    (try wp_auto)
-                    rw [ite_eq_left Hbnd]
-                    wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                    · iframe; ipureintro; constructor <;> word
-                    (try wp_auto)
-                    wp_for_post
-                    iapply HΦ
-                    rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                    iframe
-                  · (try wp_auto)
-                    wp_for_post
-                    iframe
-                    iexists n + W64 1, n
-                    simp only [named]
-                    iframe
-                    ipureintro
-                    refine ⟨by word, by word, fun j hj => ?_⟩
-                    rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                    · exact Hn.2.2 j h
-                    · subst h; rw [Hx]; intro h'; cases h'; contradiction
-                · -- the end: no place held `ws`
-                  have Hc : ¬ sint.Z n < sint.Z s.len := by
-                    first | assumption | (intro h; apply Hif; simp [h])
-                  (try wp_auto)
-                  (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-                  (try wp_auto)
-                  iapply HΦ
-                  rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-                  iframe
-              · (try wp_auto)
-                wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-                (try wp_auto)
-                iapply HΦ
-                iframe
-            · iunfold outcProd at Hprod
-              icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
-              (try wp_auto)
-              wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
-              (try wp_auto)
-              wp_if_destruct
-              · rename_i ig
-                irename : (ig ↦ zero_val w64 : IProp GF) => gi
-                ihave %Hsll := ownSlice_len $$ Hs
-                ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                    "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                      ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-                · iexists W64 0, _
-                  simp only [named]
-                  iframe
-                  ipureintro
-                  refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-                wp_for IH
-                (try wp_auto)
-                wp_if_destruct
-                · have Hc : sint.Z n < sint.Z s.len := by
-                    first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-                  have Hlt : sint.nat n < l.length := by word
-                  obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-                  have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                  · iframe; ipureintro; rw [← Hx]
-                  (try wp_auto)
-                  rw [ite_eq_left Hbnd]
-                  wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-                  · iframe; ipureintro; rw [← Hx]
-                  (try wp_auto)
-                  wp_if_destruct
-                  · -- found: set to nil, return
-                    (try wp_auto)
-                    rw [ite_eq_left Hbnd]
-                    wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                    · iframe; ipureintro; constructor <;> word
-                    (try wp_auto)
-                    wp_for_post
-                    iapply HΦ
-                    rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                    iframe
-                  · (try wp_auto)
-                    wp_for_post
-                    iframe
-                    iexists n + W64 1, n
-                    simp only [named]
-                    iframe
-                    ipureintro
-                    refine ⟨by word, by word, fun j hj => ?_⟩
-                    rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                    · exact Hn.2.2 j h
-                    · subst h; rw [Hx]; intro h'; cases h'; contradiction
-                · -- the end: no place held `ws`
-                  have Hc : ¬ sint.Z n < sint.Z s.len := by
-                    first | assumption | (intro h; apply Hif; simp [h])
-                  (try wp_auto)
-                  (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-                  (try wp_auto)
-                  iapply HΦ
-                  rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-                  iframe
-              · (try wp_auto)
-                wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-                (try wp_auto)
-                iapply HΦ
-                iframe
+        close_rest
       iapply BigAndL.bigAndL_nil.2
       itrivial
-    (try wp_auto)
-    cases e with
-    | nil =>
-      (try wp_auto)
-      wp_if_destruct
-      · (try wp_auto)
-        wp_if_destruct
-        · rename_i ig
-          irename : (ig ↦ zero_val w64 : IProp GF) => gi
-          ihave %Hsll := ownSlice_len $$ Hs
-          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-          · iexists W64 0, _
-            simp only [named]
-            iframe
-            ipureintro
-            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-          wp_for IH
-          (try wp_auto)
-          wp_if_destruct
-          · have Hc : sint.Z n < sint.Z s.len := by
-              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-            have Hlt : sint.nat n < l.length := by word
-            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            wp_if_destruct
-            · -- found: set to nil, return
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-              · iframe; ipureintro; constructor <;> word
-              (try wp_auto)
-              wp_for_post
-              iapply HΦ
-              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-              iframe
-            · (try wp_auto)
-              wp_for_post
-              iframe
-              iexists n + W64 1, n
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => ?_⟩
-              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-              · exact Hn.2.2 j h
-              · subst h; rw [Hx]; intro h'; cases h'; contradiction
-          · -- the end: no place held `ws`
-            have Hc : ¬ sint.Z n < sint.Z s.len := by
-              first | assumption | (intro h; apply Hif; simp [h])
-            (try wp_auto)
-            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-            (try wp_auto)
-            iapply HΦ
-            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-            iframe
-        · (try wp_auto)
-          wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-          (try wp_auto)
-          iapply HΦ
-          iframe
-      · iunfold outcProd at Hprod
-        icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
-        (try wp_auto)
-        wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
-        (try wp_auto)
-        wp_if_destruct
-        · rename_i ig
-          irename : (ig ↦ zero_val w64 : IProp GF) => gi
-          ihave %Hsll := ownSlice_len $$ Hs
-          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-          · iexists W64 0, _
-            simp only [named]
-            iframe
-            ipureintro
-            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-          wp_for IH
-          (try wp_auto)
-          wp_if_destruct
-          · have Hc : sint.Z n < sint.Z s.len := by
-              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-            have Hlt : sint.nat n < l.length := by word
-            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            wp_if_destruct
-            · -- found: set to nil, return
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-              · iframe; ipureintro; constructor <;> word
-              (try wp_auto)
-              wp_for_post
-              iapply HΦ
-              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-              iframe
-            · (try wp_auto)
-              wp_for_post
-              iframe
-              iexists n + W64 1, n
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => ?_⟩
-              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-              · exact Hn.2.2 j h
-              · subst h; rw [Hx]; intro h'; cases h'; contradiction
-          · -- the end: no place held `ws`
-            have Hc : ¬ sint.Z n < sint.Z s.len := by
-              first | assumption | (intro h; apply Hif; simp [h])
-            (try wp_auto)
-            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-            (try wp_auto)
-            iapply HΦ
-            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-            iframe
-        · (try wp_auto)
-          wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-          (try wp_auto)
-          iapply HΦ
-          iframe
-    | ok e0 =>
-      (try wp_auto)
-      ihave #HErrU := HErr $$ %Broadcast.Unknown
-      wp_apply HErrU $$ [] as %err herr
-      cases err with
-      | nil =>
-        (try wp_auto)
-        icases typedPointsto_not_null_dup _ _ _ $$ «$v0» with ⟨Hh0, %Hhnn⟩
-        wp_apply wp_fork $$ [Hprod Hh0 «$a1»]
-        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$Hws $Hprod $«$a1» $Hh0]
-          · iframe Hse
-            ipureintro
-            exact ⟨Hhnn, rfl, rfl, rfl, rfl⟩
-          itrivial
-        (try wp_auto)
-        wp_if_destruct
-        · rename_i ig
-          irename : (ig ↦ zero_val w64 : IProp GF) => gi
-          ihave %Hsll := ownSlice_len $$ Hs
-          ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-              "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-          · iexists W64 0, _
-            simp only [named]
-            iframe
-            ipureintro
-            refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-          wp_for IH
-          (try wp_auto)
-          wp_if_destruct
-          · have Hc : sint.Z n < sint.Z s.len := by
-              first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-            have Hlt : sint.nat n < l.length := by word
-            obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-            have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            rw [ite_eq_left Hbnd]
-            wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-            · iframe; ipureintro; rw [← Hx]
-            (try wp_auto)
-            wp_if_destruct
-            · -- found: set to nil, return
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-              · iframe; ipureintro; constructor <;> word
-              (try wp_auto)
-              wp_for_post
-              iapply HΦ
-              rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-              iframe
-            · (try wp_auto)
-              wp_for_post
-              iframe
-              iexists n + W64 1, n
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => ?_⟩
-              rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-              · exact Hn.2.2 j h
-              · subst h; rw [Hx]; intro h'; cases h'; contradiction
-          · -- the end: no place held `ws`
-            have Hc : ¬ sint.Z n < sint.Z s.len := by
-              first | assumption | (intro h; apply Hif; simp [h])
-            (try wp_auto)
-            (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-            (try wp_auto)
-            iapply HΦ
-            rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-            iframe
-        · (try wp_auto)
-          wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-          (try wp_auto)
-          iapply HΦ
-          iframe
-      | ok e1 =>
-        (try wp_auto)
-        wp_if_destruct
-        · (try wp_auto)
-          wp_if_destruct
-          · rename_i ig
-            irename : (ig ↦ zero_val w64 : IProp GF) => gi
-            ihave %Hsll := ownSlice_len $$ Hs
-            ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                  ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-            · iexists W64 0, _
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-            wp_for IH
-            (try wp_auto)
-            wp_if_destruct
-            · have Hc : sint.Z n < sint.Z s.len := by
-                first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-              have Hlt : sint.nat n < l.length := by word
-              obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              wp_if_destruct
-              · -- found: set to nil, return
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                · iframe; ipureintro; constructor <;> word
-                (try wp_auto)
-                wp_for_post
-                iapply HΦ
-                rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                iframe
-              · (try wp_auto)
-                wp_for_post
-                iframe
-                iexists n + W64 1, n
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => ?_⟩
-                rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                · exact Hn.2.2 j h
-                · subst h; rw [Hx]; intro h'; cases h'; contradiction
-            · -- the end: no place held `ws`
-              have Hc : ¬ sint.Z n < sint.Z s.len := by
-                first | assumption | (intro h; apply Hif; simp [h])
-              (try wp_auto)
-              (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-              (try wp_auto)
-              iapply HΦ
-              rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-              iframe
-          · (try wp_auto)
-            wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-            (try wp_auto)
-            iapply HΦ
-            iframe
-        · iunfold outcProd at Hprod
-          icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
-          (try wp_auto)
-          wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
-          (try wp_auto)
-          wp_if_destruct
-          · rename_i ig
-            irename : (ig ↦ zero_val w64 : IProp GF) => gi
-            ihave %Hsll := ownSlice_len $$ Hs
-            ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
-                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
-                  ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
-            · iexists W64 0, _
-              simp only [named]
-              iframe
-              ipureintro
-              refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
-            wp_for IH
-            (try wp_auto)
-            wp_if_destruct
-            · have Hc : sint.Z n < sint.Z s.len := by
-                first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
-              have Hlt : sint.nat n < l.length := by word
-              obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
-              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              rw [ite_eq_left Hbnd]
-              wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
-              · iframe; ipureintro; rw [← Hx]
-              (try wp_auto)
-              wp_if_destruct
-              · -- found: set to nil, return
-                (try wp_auto)
-                rw [ite_eq_left Hbnd]
-                wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
-                · iframe; ipureintro; constructor <;> word
-                (try wp_auto)
-                wp_for_post
-                iapply HΦ
-                rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
-                iframe
-              · (try wp_auto)
-                wp_for_post
-                iframe
-                iexists n + W64 1, n
-                simp only [named]
-                iframe
-                ipureintro
-                refine ⟨by word, by word, fun j hj => ?_⟩
-                rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
-                · exact Hn.2.2 j h
-                · subst h; rw [Hx]; intro h'; cases h'; contradiction
-            · -- the end: no place held `ws`
-              have Hc : ¬ sint.Z n < sint.Z s.len := by
-                first | assumption | (intro h; apply Hif; simp [h])
-              (try wp_auto)
-              (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
-              (try wp_auto)
-              iapply HΦ
-              rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
-              iframe
-          · (try wp_auto)
-            wp_apply wp_mapDelete $$ [$Hmap] as Hmap
-            (try wp_auto)
-            iapply HΦ
-            iframe
+    close_rest
 
 end proof
 

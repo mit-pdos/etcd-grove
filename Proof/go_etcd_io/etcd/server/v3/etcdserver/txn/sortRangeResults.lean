@@ -45,6 +45,67 @@ non-negative revisions and versions. -/
 def txn.sorterR (sl : GoSlice) (l : List (Loc × EtcdKv)) : IProp GF :=
   iprop(sl ↦* l.map Prod.fst ∗ txn.kvsAt l ∗ ⌜∀ x ∈ l, txn.kvOk x.2⌝)
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- A `kvSortBy*` sorter's `sorterSpec` from its `Len`, `Less` and `Swap` specs (`hLen`, `hLess`,
+`hSwap`), the same for the five orders but for `Less`'s premise: the indices alone (`Key`, `Value`)
+or with the `kvOk` of both key-values (`Version`, `CreateRevision`, `ModRevision`). -/
+local macro "sorter_proof" : tactic => `(tactic| (
+    iintro ⟨#Hpkg, #Hsp, #Hks⟩
+    unfold sorterSpec txn.sorterR
+    isplitr
+    · imodintro
+      iintro %l
+      wp_start as ⟨Hs, Hk, %Hok⟩
+      wp_auto
+      wp_apply (hLen ks sl (l.map Prod.fst) (DFrac.own 1)) $$ [$(frameH `Hks) $(frameH `Hs)] as Hs
+      rw [List.length_map]
+      iapply HΦ
+      iframe
+      ipureintro; exact Hok
+    isplitr
+    · imodintro
+      iintro %l %i %j %a %b %Hij
+      iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
+      obtain ⟨hi, hj, ha, hb⟩ := Hij
+      wp_apply (hLess sp ks sl l (DFrac.own 1) i j a b) $$ [$(frameH `Hsp) $(frameH `Hks) $(frameH `Hs) $(frameH `Hk)] as ⟨Hs, Hk⟩
+      · ipureintro
+        first
+          | exact ⟨hi, hj, ha, hb⟩
+          | exact ⟨hi, hj, ha, hb, Hok a (List.mem_of_getElem? ha), Hok b (List.mem_of_getElem? hb)⟩
+      iapply HΦ
+      iframe
+      ipureintro; exact Hok
+    imodintro
+    iintro %l %i %j %a %b %Hij
+    iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
+    obtain ⟨hi, hj, ha, hb⟩ := Hij
+    wp_method_call
+    wp_call
+    wp_auto
+    have hp : l.Perm ((l.set (sint.nat i) b).set (sint.nat j) a) := slices.swap_perm l (sint.nat j) (sint.nat i) b a hb ha
+    wp_apply (hSwap ks sl (l.map Prod.fst) i j a.1 b.1) $$ [$(frameH `Hks) $(frameH `Hs)] as Hs
+    · ipureintro
+      refine ⟨hi, hj, ?_, ?_⟩
+      · rw [List.getElem?_map, ha]; rfl
+      · rw [List.getElem?_map, hb]; rfl
+    iapply HΦ
+    rw [List.map_set, List.map_set]
+    iframe Hs
+    isplitl [Hk]
+    · unfold txn.kvsAt
+      iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun x => txn.kvAt x.1 x.2) hp).1
+      iexact Hk
+    ipureintro
+    intro x hx
+    exact Hok x (hp.symm.mem_iff.1 hx)
+  ))
+
 theorem txn.sorter_key
     (hLen : txn.kvSort.Len.spec (GF := GF) (hG := hG))
     (hSwap : txn.kvSort.Swap.spec (GF := GF) (hG := hG))
@@ -53,51 +114,7 @@ theorem txn.sorter_key
       sp.[kvSortByKey, go!"kvSort"] ↦□ ks ∗ ks.[kvSort, go!"kvs"] ↦□ sl ⊢
       sorterSpec (interface.mk (go.GoType.PointerType kvSortByKey.ty) #sp) (txn.sorterR sl)
         (fun a b => txn.kvLtBy (W64 0) a.2 b.2) := by
-  iintro ⟨#Hpkg, #Hsp, #Hks⟩
-  unfold sorterSpec txn.sorterR
-  isplitr
-  · imodintro
-    iintro %l
-    wp_start as ⟨Hs, Hk, %Hok⟩
-    wp_auto
-    wp_apply (hLen ks sl (l.map Prod.fst) (DFrac.own 1)) $$ [$Hks $Hs] as Hs
-    rw [List.length_map]
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    wp_apply (hLess sp ks sl l (DFrac.own 1) i j a b) $$ [$Hsp $Hks $Hs $Hk] as ⟨Hs, Hk⟩
-    · ipureintro; exact ⟨hi, hj, ha, hb⟩
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  wp_method_call
-  wp_call
-  wp_auto
-  have hp : l.Perm ((l.set (sint.nat i) b).set (sint.nat j) a) := slices.swap_perm l (sint.nat j) (sint.nat i) b a hb ha
-  wp_apply (hSwap ks sl (l.map Prod.fst) i j a.1 b.1) $$ [$Hks $Hs] as Hs
-  · ipureintro
-    refine ⟨hi, hj, ?_, ?_⟩
-    · rw [List.getElem?_map, ha]; rfl
-    · rw [List.getElem?_map, hb]; rfl
-  iapply HΦ
-  rw [List.map_set, List.map_set]
-  iframe Hs
-  isplitl [Hk]
-  · unfold txn.kvsAt
-    iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun x => txn.kvAt x.1 x.2) hp).1
-    iexact Hk
-  ipureintro
-  intro x hx
-  exact Hok x (hp.symm.mem_iff.1 hx)
+  sorter_proof
 
 theorem txn.sorter_version
     (hLen : txn.kvSort.Len.spec (GF := GF) (hG := hG))
@@ -107,52 +124,7 @@ theorem txn.sorter_version
       sp.[kvSortByVersion, go!"kvSort"] ↦□ ks ∗ ks.[kvSort, go!"kvs"] ↦□ sl ⊢
       sorterSpec (interface.mk (go.GoType.PointerType kvSortByVersion.ty) #sp) (txn.sorterR sl)
         (fun a b => txn.kvLtBy (W64 1) a.2 b.2) := by
-  iintro ⟨#Hpkg, #Hsp, #Hks⟩
-  unfold sorterSpec txn.sorterR
-  isplitr
-  · imodintro
-    iintro %l
-    wp_start as ⟨Hs, Hk, %Hok⟩
-    wp_auto
-    wp_apply (hLen ks sl (l.map Prod.fst) (DFrac.own 1)) $$ [$Hks $Hs] as Hs
-    rw [List.length_map]
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    wp_apply (hLess sp ks sl l (DFrac.own 1) i j a b) $$ [$Hsp $Hks $Hs $Hk] as ⟨Hs, Hk⟩
-    · ipureintro
-      exact ⟨hi, hj, ha, hb, Hok a (List.mem_of_getElem? ha), Hok b (List.mem_of_getElem? hb)⟩
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  wp_method_call
-  wp_call
-  wp_auto
-  have hp : l.Perm ((l.set (sint.nat i) b).set (sint.nat j) a) := slices.swap_perm l (sint.nat j) (sint.nat i) b a hb ha
-  wp_apply (hSwap ks sl (l.map Prod.fst) i j a.1 b.1) $$ [$Hks $Hs] as Hs
-  · ipureintro
-    refine ⟨hi, hj, ?_, ?_⟩
-    · rw [List.getElem?_map, ha]; rfl
-    · rw [List.getElem?_map, hb]; rfl
-  iapply HΦ
-  rw [List.map_set, List.map_set]
-  iframe Hs
-  isplitl [Hk]
-  · unfold txn.kvsAt
-    iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun x => txn.kvAt x.1 x.2) hp).1
-    iexact Hk
-  ipureintro
-  intro x hx
-  exact Hok x (hp.symm.mem_iff.1 hx)
+  sorter_proof
 
 theorem txn.sorter_create
     (hLen : txn.kvSort.Len.spec (GF := GF) (hG := hG))
@@ -162,52 +134,7 @@ theorem txn.sorter_create
       sp.[kvSortByCreate, go!"kvSort"] ↦□ ks ∗ ks.[kvSort, go!"kvs"] ↦□ sl ⊢
       sorterSpec (interface.mk (go.GoType.PointerType kvSortByCreate.ty) #sp) (txn.sorterR sl)
         (fun a b => txn.kvLtBy (W64 2) a.2 b.2) := by
-  iintro ⟨#Hpkg, #Hsp, #Hks⟩
-  unfold sorterSpec txn.sorterR
-  isplitr
-  · imodintro
-    iintro %l
-    wp_start as ⟨Hs, Hk, %Hok⟩
-    wp_auto
-    wp_apply (hLen ks sl (l.map Prod.fst) (DFrac.own 1)) $$ [$Hks $Hs] as Hs
-    rw [List.length_map]
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    wp_apply (hLess sp ks sl l (DFrac.own 1) i j a b) $$ [$Hsp $Hks $Hs $Hk] as ⟨Hs, Hk⟩
-    · ipureintro
-      exact ⟨hi, hj, ha, hb, Hok a (List.mem_of_getElem? ha), Hok b (List.mem_of_getElem? hb)⟩
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  wp_method_call
-  wp_call
-  wp_auto
-  have hp : l.Perm ((l.set (sint.nat i) b).set (sint.nat j) a) := slices.swap_perm l (sint.nat j) (sint.nat i) b a hb ha
-  wp_apply (hSwap ks sl (l.map Prod.fst) i j a.1 b.1) $$ [$Hks $Hs] as Hs
-  · ipureintro
-    refine ⟨hi, hj, ?_, ?_⟩
-    · rw [List.getElem?_map, ha]; rfl
-    · rw [List.getElem?_map, hb]; rfl
-  iapply HΦ
-  rw [List.map_set, List.map_set]
-  iframe Hs
-  isplitl [Hk]
-  · unfold txn.kvsAt
-    iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun x => txn.kvAt x.1 x.2) hp).1
-    iexact Hk
-  ipureintro
-  intro x hx
-  exact Hok x (hp.symm.mem_iff.1 hx)
+  sorter_proof
 
 theorem txn.sorter_mod
     (hLen : txn.kvSort.Len.spec (GF := GF) (hG := hG))
@@ -217,52 +144,7 @@ theorem txn.sorter_mod
       sp.[kvSortByMod, go!"kvSort"] ↦□ ks ∗ ks.[kvSort, go!"kvs"] ↦□ sl ⊢
       sorterSpec (interface.mk (go.GoType.PointerType kvSortByMod.ty) #sp) (txn.sorterR sl)
         (fun a b => txn.kvLtBy (W64 3) a.2 b.2) := by
-  iintro ⟨#Hpkg, #Hsp, #Hks⟩
-  unfold sorterSpec txn.sorterR
-  isplitr
-  · imodintro
-    iintro %l
-    wp_start as ⟨Hs, Hk, %Hok⟩
-    wp_auto
-    wp_apply (hLen ks sl (l.map Prod.fst) (DFrac.own 1)) $$ [$Hks $Hs] as Hs
-    rw [List.length_map]
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    wp_apply (hLess sp ks sl l (DFrac.own 1) i j a b) $$ [$Hsp $Hks $Hs $Hk] as ⟨Hs, Hk⟩
-    · ipureintro
-      exact ⟨hi, hj, ha, hb, Hok a (List.mem_of_getElem? ha), Hok b (List.mem_of_getElem? hb)⟩
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  wp_method_call
-  wp_call
-  wp_auto
-  have hp : l.Perm ((l.set (sint.nat i) b).set (sint.nat j) a) := slices.swap_perm l (sint.nat j) (sint.nat i) b a hb ha
-  wp_apply (hSwap ks sl (l.map Prod.fst) i j a.1 b.1) $$ [$Hks $Hs] as Hs
-  · ipureintro
-    refine ⟨hi, hj, ?_, ?_⟩
-    · rw [List.getElem?_map, ha]; rfl
-    · rw [List.getElem?_map, hb]; rfl
-  iapply HΦ
-  rw [List.map_set, List.map_set]
-  iframe Hs
-  isplitl [Hk]
-  · unfold txn.kvsAt
-    iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun x => txn.kvAt x.1 x.2) hp).1
-    iexact Hk
-  ipureintro
-  intro x hx
-  exact Hok x (hp.symm.mem_iff.1 hx)
+  sorter_proof
 
 theorem txn.sorter_value
     (hLen : txn.kvSort.Len.spec (GF := GF) (hG := hG))
@@ -272,51 +154,7 @@ theorem txn.sorter_value
       sp.[kvSortByValue, go!"kvSort"] ↦□ ks ∗ ks.[kvSort, go!"kvs"] ↦□ sl ⊢
       sorterSpec (interface.mk (go.GoType.PointerType kvSortByValue.ty) #sp) (txn.sorterR sl)
         (fun a b => txn.kvLtBy (W64 4) a.2 b.2) := by
-  iintro ⟨#Hpkg, #Hsp, #Hks⟩
-  unfold sorterSpec txn.sorterR
-  isplitr
-  · imodintro
-    iintro %l
-    wp_start as ⟨Hs, Hk, %Hok⟩
-    wp_auto
-    wp_apply (hLen ks sl (l.map Prod.fst) (DFrac.own 1)) $$ [$Hks $Hs] as Hs
-    rw [List.length_map]
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    wp_apply (hLess sp ks sl l (DFrac.own 1) i j a b) $$ [$Hsp $Hks $Hs $Hk] as ⟨Hs, Hk⟩
-    · ipureintro; exact ⟨hi, hj, ha, hb⟩
-    iapply HΦ
-    iframe
-    ipureintro; exact Hok
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ ⟨Hs, Hk, %Hok⟩ HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  wp_method_call
-  wp_call
-  wp_auto
-  have hp : l.Perm ((l.set (sint.nat i) b).set (sint.nat j) a) := slices.swap_perm l (sint.nat j) (sint.nat i) b a hb ha
-  wp_apply (hSwap ks sl (l.map Prod.fst) i j a.1 b.1) $$ [$Hks $Hs] as Hs
-  · ipureintro
-    refine ⟨hi, hj, ?_, ?_⟩
-    · rw [List.getElem?_map, ha]; rfl
-    · rw [List.getElem?_map, hb]; rfl
-  iapply HΦ
-  rw [List.map_set, List.map_set]
-  iframe Hs
-  isplitl [Hk]
-  · unfold txn.kvsAt
-    iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun x => txn.kvAt x.1 x.2) hp).1
-    iexact Hk
-  ipureintro
-  intro x hx
-  exact Hok x (hp.symm.mem_iff.1 hx)
+  sorter_proof
 
 theorem txn.w32_of_sint (x : w32) (k : Int) (h0 : -2 ^ 31 ≤ k) (h1 : k < 2 ^ 31)
     (h : sint.Z x = k) : x = W32 k := by
