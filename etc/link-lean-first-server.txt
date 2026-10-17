@@ -389,3 +389,11 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 StartNode: @
 newRaftNode:
 bootstrappedRaft__newRaftNode: StartNode newRaftNode
+# pkg/ioutil's exact reader (readcloser.go, with bodies) and snap.NewMessage (message.go), branch
+# pr-verify/etcd-21569 (etcd PR #21569, which drops the exact reader from NewMessage); the trust
+# boundary: proto.Size of a raft message (protobuf-go is names-only).
+proto_SizeMessage:
+ioutil_NewExactReadCloser:
+ioutil_exactReadCloser__Read:
+ioutil_exactReadCloser__Close:
+snap_NewMessage: ioutil_NewExactReadCloser proto_SizeMessage

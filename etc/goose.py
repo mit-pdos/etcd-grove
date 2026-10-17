@@ -204,6 +204,9 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/idutil",
             "go.etcd.io/etcd/pkg/v3/notify",
             "go.etcd.io/etcd/pkg/v3/pbutil",
+            # readcloser.go with bodies (pkg/v3/ioutil.toml): the exact-length reader of
+            # snap.NewMessage (branch pr-verify/etcd-21569)
+            "go.etcd.io/etcd/pkg/v3/ioutil",
             "go.etcd.io/etcd/pkg/v3/traceutil",
             # names only: the type of mvcc's store.fifoSched
             "go.etcd.io/etcd/pkg/v3/schedule",

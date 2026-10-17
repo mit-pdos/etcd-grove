@@ -1,0 +1,9 @@
+# readcloser.go's exact-length reader, with bodies (branch pr-verify/etcd-21569: etcd PR #21569
+# removes its one use, the wrapper snap.NewMessage puts around a snapshot's database stream);
+# the rest of the package (pagewriter.go, reader.go, util.go) names only.
+translate = ["!*", "ErrShortRead", "ErrExpectEOF", "NewExactReadCloser", "exactReadCloser",
+  "exactReadCloser.Read", "exactReadCloser.Close"]
+imports = ["!*", "fmt", "io"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

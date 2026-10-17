@@ -153,6 +153,9 @@ public import Proof.container.heap.Push
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
+public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.NewExactReadCloser
+public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser__Close
+public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.exactReadCloser__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
@@ -190,6 +193,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec_
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.Size
+public import Proof.google_golang_org.protobuf.proto.SizeMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
@@ -208,6 +212,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
@@ -673,6 +678,18 @@ theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
 
+theorem ioutil.wp_NewExactReadCloser :
+    ioutil.NewExactReadCloser.spec (GF := GF) (hG := hG) :=
+  ioutil.NewExactReadCloser.wp_proof
+
+theorem ioutil.exactReadCloser.wp_Close :
+    ioutil.exactReadCloser.Close.spec (GF := GF) (hG := hG) :=
+  ioutil.exactReadCloser.Close.wp_proof
+
+theorem ioutil.exactReadCloser.wp_Read :
+    ioutil.exactReadCloser.Read.spec (GF := GF) (hG := hG) :=
+  ioutil.exactReadCloser.Read.wp_proof
+
 theorem lease.LeaseQueue.wp_Len :
     lease.LeaseQueue.Len.spec (GF := GF) (hG := hG) :=
   lease.LeaseQueue.Len.wp_proof
@@ -760,6 +777,10 @@ theorem lease.lessor.wp_Promote :
 theorem lease.lessor.wp_SetRangeDeleter :
     lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG) :=
   lease.lessor.SetRangeDeleter.wp_proof
+
+theorem proto.wp_SizeMessage :
+    proto.SizeMessage.spec (GF := GF) (hG := hG) :=
+  proto.SizeMessage.wp_proof
 
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
@@ -1231,6 +1252,10 @@ theorem raftNode.wp_advanceTicks :
 theorem raftNode.wp_getLatestTickTs :
     raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
   raftNode.getLatestTickTs.wp_proof
+
+theorem snap.wp_NewMessage :
+    snap.NewMessage.spec (GF := GF) (hG := hG) :=
+  snap.NewMessage.wp_proof ioutil.wp_NewExactReadCloser proto.wp_SizeMessage
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

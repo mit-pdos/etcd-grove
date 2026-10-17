@@ -1,6 +1,9 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# Types and names only: function and method bodies are axiomatized, except, on branch
+# pr-verify/etcd-21569 (etcd PR #21569, the snapshot message's database stream), `NewMessage`
+# (message.go), with the packages it calls.
+translate = ["!*", "NewMessage"]
+imports = ["!*", "io", "google.golang.org/protobuf/proto", "go.etcd.io/raft/v3/raftpb",
+  "go.etcd.io/etcd/pkg/v3/ioutil"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
