@@ -6342,6 +6342,21 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     the last event received, the usual case) that says revision `p` has no event under the prefix,
     false when the cache just got one. Now `c = p ∨ EtcdStep c p pfx []`; the cache's proof needed
     the step only to extend its tail to `p`, trivial at `c = p` (`Cache__watchEvents.lean`).
+  - **K2e-7 (in progress): the client's second cursor.** `EtcdWatchNames` has a second position
+    list (`cur2`) and a flag (`cpl`); `rangeWatchElem`, unless `cpl` is false, carries the cache's
+    contract (`watchRespOk`) of the watch's prefix at the second positions (K2e-7a, scaffold,
+    `cpl = false` everywhere). Next: dispatch-side second positions per substream (like `γhi`),
+    the created, event and error cases at dispatch, the progress case, `serveSubstream` copying
+    them to `cur2`; `cpl := P.sr ∧ prefix watch`.
+    **Waiting on `sendLoop` (the user: don't modify its proof while another session splits it):**
+    the progress case needs, for a response `r` sent down at position `j`, that every earlier
+    response with events of each watcher it covers was sent down before it. `mvccOk` gives it for
+    `r`'s own watcher only, and only if `r` has events (`r.evs ≠ [] → sentEvsOf L r.w ++ [r] =
+    rs.filter evs≠[]`). The extension: drop the guard for `r`'s own watcher (`sentEvsOf L r.w ++
+    (if r.evs ≠ [] then [r] else []) = rs.filter …`), and for `r` of id `-1`, for each `w ∈ r.cov`,
+    `sentEvsOf L w = (pre.filter (·.w = w)).filter evs≠[]` (`pre`: `mvccCov`'s channel prefix
+    before `r`; the send loop forwards a live watcher's responses in channel order). Until then the
+    client's proof takes it as a premise of `run`.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
