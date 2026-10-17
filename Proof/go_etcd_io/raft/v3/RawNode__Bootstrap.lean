@@ -234,7 +234,9 @@ theorem RawNode.Bootstrap.wp_proof
     isplitl [Hents]
     · iExactEq Hents; rw [Hrep]
     · iExactEq Hlc; rw [Htake]
-  -- `rn.raft.raftLog.append(ents...)`: the boot entries join the (empty) log, unstable
+  -- `rn.raft.raftLog.append(rn.raft.Term, ents...)`: the boot entries join the (empty) log,
+  -- unstable, at the leader term `1` (raft#139)
+  wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
   icases ownRaftPhys_log_at ∅ _ id _ $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
   have Hidx1 : ∀ e0, bootLog[0]? = some e0 →
@@ -265,18 +267,27 @@ theorem RawNode.Bootstrap.wp_proof
     simp only [List.length_nil] at h2 ⊢
     omega
   have Hcont := logTruncateAppend_cont s.logst bootLog Hfirst
-  wp_apply wp_raftLog_append s1.log s1.logst bootLog ents (DFrac.own 1) (by rw [Hs1ls]; exact Hidx1)
+  have Hlt0 : uint.Z s.logst.leaderTerm ≤ uint.Z s1.term := by
+    have h := Hrel.2.2.2.1
+    rw [Ht0] at h; rw [Hs1t]; have : uint.Z (W64 1) = 1 := rfl; omega
+  have Hlastt : ∀ e, bootLog.getLast? = some e → uint.Z s1.logst.leaderTerm ≤ uint.Z s1.term →
+      uint.Z e.Term' ≤ uint.Z s1.term := by
+    intro e He _
+    obtain ⟨HeT, -⟩ := HbEnt _ _ (getLast?_some_getElem? _ _ He)
+    rw [HeT, Hs1t]; exact Int.le_refl _
+  wp_apply wp_raftLog_append s1.log s1.logst s1.term bootLog ents (DFrac.own 1)
+      (by rw [Hs1ls]; exact Hidx1) Hlastt
     $$ [$Hlog $Hes] as %li ⟨Hlog, Hes, %Hpost⟩
   · rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   ihave Hes : entsPts ents (DFrac.own 1) bootLog $$ [Hes]
   · iExactEq Hes; rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]
-  ihave Hlog : ownRaftLog s1.log (logAppend s.logst bootLog) $$ [Hlog]
-  · iExactEq Hlog; rw [Hs1ls, Hcont.1]
-  ihave Hphys := Hlogback $$ %(logAppend s.logst bootLog) Hlog
+  ihave Hlog : ownRaftLog s1.log (logAppendLT s.logst s1.term bootLog) $$ [Hlog]
+  · iExactEq Hlog; rw [Hs1ls, logAppendAt_cont _ _ _ Hlt0 Hcont.1]
+  ihave Hphys := Hlogback $$ %(logAppendLT s.logst s1.term bootLog) Hlog
     %(by intro h; rw [Hs1gh, Hgh] at h; cases h)
     %(by intro h; rw [Hs1r] at h; cases h)
-  generalize Hs2 : ({ s1 with logst := logAppend s.logst bootLog } : NState) = s2
-  have Hs2ls : s2.logst = logAppend s.logst bootLog := by rw [← Hs2]
+  generalize Hs2 : ({ s1 with logst := logAppendLT s.logst s1.term bootLog } : NState) = s2
+  have Hs2ls : s2.logst = logAppendLT s.logst s1.term bootLog := by rw [← Hs2]
   have Hs2lg : s2.log = s1.log := by rw [← Hs2]
   -- `rn.raft.raftLog.committed = uint64(len(ents))`: the raw store (D12), the entries committed
   -- although unstable
@@ -286,10 +297,11 @@ theorem RawNode.Bootstrap.wp_proof
   have Hlen' : uint.Z ents.len = (bootLog.length : Int) := by word
   have Hlenw : ents.len = W64 bootLog.length := by word
   wp_apply (ownRaftLog_setCommitted s2.log s2.logst ents.len
-      (by rw [Hs2ls]; simp only [logAppend, Hp]; word)
-      (by rw [Hs2ls]; simp only [logAppend, Hp, Hse, Hue, List.nil_append]; word)
-      (by rw [Hs2ls]; simp only [logAppend, Hapg0]; word)
-      (by rw [Hs2ls]; simp only [logAppend, Hcm0]; word))
+      (by rw [Hs2ls]; simp only [logAppendLT_prev, Hp]; word)
+      (by rw [Hs2ls]; simp only [logAppendLT_prev, logAppendLT_sents, logAppendLT_uents, Hp, Hse,
+            Hue, List.nil_append]; word)
+      (by rw [Hs2ls]; simp only [logAppendLT_applying, Hapg0]; word)
+      (by rw [Hs2ls]; simp only [logAppendLT_committed, Hcm0]; word))
     $$ [$Hlog] as Hlog
   ihave Hphys := Hlogback $$ %_ Hlog
     %(LogGhOk.of_fields Hgh1 rfl rfl rfl rfl rfl)
@@ -405,7 +417,7 @@ theorem RawNode.Bootstrap.wp_proof
   -- the state: a follower at term `1`, the boot log committed -- `bootPState bootLog`
   have HN : sk.term = W64 1 ∧ sk.vote = W64 0 ∧ sk.lead = W64 0 ∧ sk.role = .follower ∧
       sk.votes = ∅ ∧ sk.outbox = [] ∧
-      sk.logst = { logAppend s.logst bootLog with committed := ents.len } ∧ sk.gh = {} ∧
+      sk.logst = { logAppendLT s.logst s1.term bootLog with committed := ents.len } ∧ sk.gh = {} ∧
       sk.prevote = false ∧ sk.rd.states = [] ∧ sk.rd.pend = [] ∧
       sk.stepfn = stepFuncOf .follower ∧ sk.ticking = true := by
     rw [Hsk, ← Hs3, ← Hs2]

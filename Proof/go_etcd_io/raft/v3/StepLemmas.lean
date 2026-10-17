@@ -94,23 +94,27 @@ theorem nstateWf_voteRespResult (id : w64) (s : NState) (src : w64) (reject won 
   cases won <;> cases lost <;> simp only [Bool.false_eq_true, ↓reduceIte]
   all_goals first
     | exact Hsf
-    | exact nstateWf_becomeFollower _ _ _
+    | exact nstateWf_becomeFollower _ _ _ Hsf.2.2 (Int.le_refl _)
     | exact nstateWf_sendMsgs _ _ (nstateWf_becomeLeader _ _)
 
 theorem nstateWf_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
-    (cl : List w8 := []) :
+    (cl : List w8 := []) (H : LtInv s) (Ht : uint.Z s.term + 1 < 2 ^ 64) :
     NStateWf (campaignState id s pre peers cl) := by
-  unfold campaignState; cases pre <;> exact ⟨rfl, rfl⟩
+  unfold campaignState
+  cases pre
+  · exact nstateWf_becomeCandidate id s H Ht
+  · exact nstateWf_becomePrecandidate s H
 
 theorem nstateWf_prevoteRespResult (id : w64) (s : NState) (src : w64)
-    (reject won lost : Bool) (peers : List w64) (Hsf : NStateWf s) :
+    (reject won lost : Bool) (peers : List w64) (Hsf : NStateWf s)
+    (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
     NStateWf (prevoteRespResult id s src reject won lost peers) := by
   unfold prevoteRespResult
   cases won <;> cases lost <;> simp only [Bool.false_eq_true, ↓reduceIte]
   all_goals first
     | exact Hsf
-    | exact nstateWf_becomeFollower _ _ _
-    | exact nstateWf_campaignState _ _ _ _ _
+    | exact nstateWf_becomeFollower _ _ _ Hsf.2.2 (Int.le_refl _)
+    | exact nstateWf_campaignState _ _ _ _ _ Hsf.2.2 Hnw
 
 /-! ## Branch lemmas
 

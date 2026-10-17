@@ -154,7 +154,7 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
   by_cases Hp : s.role = .preCandidate
   · simp only [Hp, ↓reduceIte] at Hres
     obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
-    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
+    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf (Hnw Hp)), ?_,
       prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
       prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
     exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)

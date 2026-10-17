@@ -141,6 +141,8 @@ abbrev raft.switchToConfig.spec : Prop :=
   -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a
   -- fresh one is at `max(lastIndex, 1)` (`applyConfChange`, `PrKept`)
   (s.role = .leader → ∀ v p, pvs !! v = some p → PrOk s.logst p) →
+  -- (raft#139) a leader's log is at its term (`maybeCommit`'s; `NStateWf`'s `LtInv`)
+  (s.role = .leader → s.logst.leaderTerm = s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
@@ -168,6 +170,8 @@ abbrev raft.switchToConfig.specS : Prop :=
   (s.role = .leader → id ∈ cfg ∧ MatchKept s.prvals pvs) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ cfg) →
   (s.role = .leader → ∀ v p, pvs !! v = some p → PrOk s.logst p) →
+  -- (raft#139) a leader's log is at its term (`maybeCommit`'s; `NStateWf`'s `LtInv`)
+  (s.role = .leader → s.logst.leaderTerm = s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
@@ -190,12 +194,12 @@ open Iris.ProofMode in
 theorem raft.switchToConfig.spec_simple
     (H : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
+  intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok Hltl
   iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, %Hmi, Hnew⟩ HΦ
   ihave Hnew := ownConfigV_toC _ _ _ _ _ $$ Hnew
   iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv0 cfgv prsm prs pvs
       (fun hl => .inl (by rw [CfgM.voters_simple]; exact Hlead hl))
-      (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc) Hpok
+      (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc) Hpok Hltl
     $$ [$Hpkg $Htrkf Hback $Hvotes $Hnew]
   · isplitl [Hback]
     · iintro %tv' %prs' %pvs' Hf Ht %Hok
@@ -260,6 +264,7 @@ theorem raft.switchToConfig.spec_follower
       (fun h => absurd (Hrole.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
       (fun h => absurd (Hrole.symm.trans h) (by decide))
+      (fun h => absurd (Hrole.symm.trans h) (by decide))
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi
   inext
@@ -310,6 +315,7 @@ theorem raft.switchToConfig.spec_nonleader_open
   iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs
       (fun h => absurd (Hrole.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
+      (fun h => absurd (Hrole.symm.trans h) (by decide))
       (fun h => absurd (Hrole.symm.trans h) (by decide))
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi

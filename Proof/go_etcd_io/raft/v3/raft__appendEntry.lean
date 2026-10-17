@@ -110,18 +110,6 @@ private theorem stamped_mem (tm li : w64) (ents : List EntryM) (P : EntryM → P
   obtain ⟨i, hi, rfl⟩ := List.mem_mapIdx.1 He
   exact Hst _ _ (HP _ (List.getElem_mem hi))
 
-/-- (raft#139) `append(t, ents)` of a batch that continues the log, at a current leader term:
-`logAppendLT`. -/
-private theorem logAppendAt_cont (ls : LogState) (t : w64) (ents : List EntryM)
-    (Hge : uint.Z ls.leaderTerm ≤ uint.Z t)
-    (Htac : logTruncateAppend ls ents = logAppend ls ents) :
-    logAppendAt ls t ents = logAppendLT ls t ents := by
-  unfold logAppendAt
-  rw [if_neg (by omega)]
-  cases ents with
-  | nil => rfl
-  | cons e es => rw [logTruncateAppendAt_cons, Htac]; rfl
-
 private theorem logAppendLT_ents (ls : LogState) (t : w64) (ents : List EntryM) :
     (logAppendLT ls t ents).prev = (logAppend ls ents).prev ∧
     (logAppendLT ls t ents).sents = (logAppend ls ents).sents ∧

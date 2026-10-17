@@ -782,6 +782,20 @@ theorem logAppendLT_leaderTerm (ls : LogState) (t : w64) (ents : List EntryM) :
     (logAppendLT ls t ents).leaderTerm = (if ents = [] then ls.leaderTerm else t) := by
   cases ents <;> rfl
 
+theorem logAppendLT_prev (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).prev = ls.prev := by cases ents <;> rfl
+theorem logAppendLT_sents (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).sents = ls.sents := by cases ents <;> rfl
+theorem logAppendLT_uents (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).uents = ls.uents ++ ents := by
+  cases ents
+  · simp [logAppendLT]
+  · rfl
+theorem logAppendLT_committed (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).committed = ls.committed := by cases ents <;> rfl
+theorem logAppendLT_applying (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).applying = ls.applying := by cases ents <;> rfl
+
 /-- A snapshot's id, `(Metadata.Term, Metadata.Index)` -- what `raft.restore` builds as
 `id := entryID{term, index}`. -/
 def snapId (sv : SnapshotM) : entryID :=
@@ -1195,10 +1209,30 @@ def toPState (s : NState) : PState where
   -- (2026-10-12) a non-leader's read-only object is the fresh one `reset` installed
   rd := if s.role = .leader then s.rd else rdNL s.rd
 
+/-- (raft#139) The log's leader term is not above the node's term, and a leader's is its term:
+`becomeLeader` sets it, a leader's appends keep it, and the term moves only through
+`becomeX`. Not part of `ownRaftPhys`: inside `becomeLeader` (between the role store and the
+append) and `becomeFollower` (between `reset`'s term store and the role store) it does not
+hold; `Step` boundaries carry it (`NStateWf`). `raftLog.maybeCommit(r.Term, ...)` commits only
+under the second half; `handleAppendEntries` and `appendEntry` need the first
+(`notes/pr-verify/raft-139.md`). -/
+def LtInv (s : NState) : Prop :=
+  uint.Z s.logst.leaderTerm ≤ uint.Z s.term ∧ (s.role = .leader → s.logst.leaderTerm = s.term)
+
+theorem LtInv.of_fields {s s' : NState} (H : LtInv s) (ht : s'.term = s.term)
+    (hr : s'.role = s.role) (hl : s'.logst.leaderTerm = s.logst.leaderTerm) : LtInv s' := by
+  unfold LtInv at *; rw [ht, hr, hl]; exact H
+
+/-- A non-leader whose term rose (or stayed). -/
+theorem LtInv.follower {s s' : NState} (H : LtInv s) (ht : uint.Z s.term ≤ uint.Z s'.term)
+    (hr : s'.role ≠ .leader) (hl : s'.logst.leaderTerm = s.logst.leaderTerm) : LtInv s' :=
+  ⟨by rw [hl]; exact Int.le_trans H.1 ht, fun h => absurd h hr⟩
+
 /-- A physical state that can take a protocol step: `r.step` agrees with the role, and
-`r.tick` is set (2026-10-09).
+`r.tick` is set (2026-10-09), and (raft#139) `LtInv`.
 Every `becomeX` establishes it. -/
-def NStateWf (s : NState) : Prop := s.stepfn = stepFuncOf s.role ∧ s.ticking = true
+def NStateWf (s : NState) : Prop :=
+  s.stepfn = stepFuncOf s.role ∧ s.ticking = true ∧ LtInv s
 
 /-- `s` refines the protocol state `ps`. -/
 def NStateRel (s : NState) (ps : PState) : Prop := toPState s = ps ∧ NStateWf s
@@ -1259,7 +1293,7 @@ theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) 
   have Hw : toPState { becomeLeaderLog id s with prvals := pvs } =
       pwinState id (toPState s) (prvalsMatch pvs) := by
     simp only [becomeLeaderLog, becomeLeaderPre, resetTo, resetTo0, toPState, pwinState, pappend,
-      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true, rdNL_ite]
+      pbecomeLeader, logAppendLT, logAppend, leaderEntry_toPState, List.append_assoc, ite_true, rdNL_ite]
     rfl
   rw [← Hw]
   simp only [becomeLeader, pselfAck, sendMsgs, psendMsgs]
@@ -1307,17 +1341,23 @@ theorem followerVotesOk_phys (s : NState) (Hfv : FollowerVotesOk (toPState s))
 theorem toPState_vote (s : NState) (v : w64) :
     toPState { s with vote := v } = { toPState s with vote := v } := rfl
 
-theorem nstateWf_becomeFollower (s : NState) (term lead : w64) :
-    NStateWf (becomeFollower s term lead) := ⟨rfl, rfl⟩
+theorem nstateWf_becomeFollower (s : NState) (term lead : w64) (H : LtInv s)
+    (Ht : uint.Z s.term ≤ uint.Z term) :
+    NStateWf (becomeFollower s term lead) :=
+  ⟨rfl, rfl, H.follower Ht (by intro h; cases h) rfl⟩
 
-theorem nstateWf_becomeCandidate (id : w64) (s : NState) :
-    NStateWf (becomeCandidate id s) := ⟨rfl, rfl⟩
+theorem nstateWf_becomeCandidate (id : w64) (s : NState) (H : LtInv s)
+    (Ht : uint.Z s.term + 1 < 2 ^ 64) :
+    NStateWf (becomeCandidate id s) :=
+  ⟨rfl, rfl, H.follower (by show uint.Z s.term ≤ uint.Z (s.term + W64 1); word)
+    (by intro h; cases h) rfl⟩
 
 theorem nstateWf_becomeLeader (id : w64) (s : NState) : NStateWf (becomeLeader id s) :=
-  ⟨rfl, rfl⟩
+  ⟨rfl, rfl, ⟨Int.le_refl _, fun _ => rfl⟩⟩
 
-theorem nstateWf_becomePrecandidate (s : NState) : NStateWf (becomePrecandidate s) :=
-  ⟨rfl, rfl⟩
+theorem nstateWf_becomePrecandidate (s : NState) (H : LtInv s) :
+    NStateWf (becomePrecandidate s) :=
+  ⟨rfl, rfl, H.follower (Int.le_refl _) (by intro h; cases h) rfl⟩
 
 /-- A state with new `Progress` values is as well-formed as before: `r.step` and the
 role are untouched. -/

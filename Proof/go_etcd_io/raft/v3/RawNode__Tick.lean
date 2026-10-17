@@ -34,7 +34,7 @@ theorem RawNode.Tick.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto
-  wp_apply raft.wp_load_tickC cf rnv.raft' id s Hwf.2 $$ Hphys as %f ⟨Hphys, %Hf⟩
+  wp_apply raft.wp_load_tickC cf rnv.raft' id s Hwf.2.1 $$ Hphys as %f ⟨Hphys, %Hf⟩
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   rcases Hf with rfl | rfl
   all_goals first

@@ -82,7 +82,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
   unfold HandleAppResult at Hres
   simp only [Hb, Hl] at Hres
   rw [Hc] at Hres
-  rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', -, rfl⟩ |
+  rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, HltT, Hcm', -, rfl⟩ |
       ⟨Hle, Hnm, hint, hintterm, rfl⟩
   · -- stale
     refine stepCF_eq c id _ _ _ _
@@ -93,16 +93,31 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
     have Hm : PlogMatches ps.base ps.log (entryID.mk m.LogTerm' m.Index') := by
       refine Classical.byContradiction fun Hn => ?_
       simp [plogMaybeAppend, Hn] at Happ
-    refine stepCF_eq c id _ _ _ _
-      (StepCF.appAccept (absMsg .app m ents) ps lastnewi es' rfl Hto Hfid Hterm Hnl Hle Happ
-        (Hconf Hle Hm)) ?_
-    rw [toPState_sendMsgs']
+    -- (raft#139) the commit happens exactly at the log's new leader term, which is the
+    -- message's when anything was appended
     have Hs : toPState { t with logst := ls' } =
         { toPState t with base := ls'.prev, log := ls'.sents ++ ls'.uents,
                           commit := ls'.committed } := rfl
-    rw [Hs, Ht, Hprev', Hes, Hcm']
-    simp only [appResp, Htm, absMsg, absMsgFrom, padoptLeader]
-    rfl
+    by_cases hT : m.Term' = ls'.leaderTerm
+    · rw [if_pos hT] at Hcm'
+      refine stepCF_eq c id _ _ _ _
+        (StepCF.appAccept (absMsg .app m ents) ps lastnewi es' true rfl Hto Hfid Hterm Hnl Hle Happ
+          (Hconf Hle Hm) (fun h => absurd h (by decide))) ?_
+      rw [toPState_sendMsgs']
+      rw [Hs, Ht, Hprev', Hes, Hcm']
+      simp only [appResp, Htm, absMsg, absMsgFrom, padoptLeader, ↓reduceIte]
+      try rfl
+    · rw [if_neg hT] at Hcm'
+      refine stepCF_eq c id _ _ _ _
+        (StepCF.appAccept (absMsg .app m ents) ps lastnewi es' false rfl Hto Hfid Hterm Hnl Hle Happ
+          (Hconf Hle Hm) (fun _ => by
+            refine Classical.byContradiction fun hc => ?_
+            have hc' : plogFindConflict ps.base ps.log ents ≠ W64 0 := hc
+            rw [if_neg hc'] at HltT; exact hT HltT.symm)) ?_
+      rw [toPState_sendMsgs']
+      rw [Hs, Ht, Hprev', Hes, Hcm']
+      simp only [appResp, Htm, absMsg, absMsgFrom, padoptLeader, Bool.false_eq_true, ↓reduceIte]
+      try rfl
   · -- reject
     refine stepCF_eq c id _ _ _ _
       (StepCF.appReject (absMsg .app m ents) ps hint hintterm rfl Hto Hfid Hterm Hnl Hle Hnm) ?_
@@ -118,18 +133,36 @@ theorem step_handle_heartbeat (c : CfgM) (id : w64) (ps : PState) (t : NState)
     ps.role ≠ .leader →
     uint.Z m.Commit' ≤ plogLastIndexZ ps.base ps.log →
     m.From' ≠ id →
+    -- (raft#139) the log does not wrap (`ownRaftLog`'s, `ownRaftPhysC_prvals_ok`): `commitTo`'s
+    -- `min(tocommit, lastIndex())` is then `tocommit`
+    LogNoWrap t.logst →
     StepCF c id ps [absMsg .heartbeat m ents ctx] (toPState (heartbeatResult id t m ctx)) := by
-  intro Ht Hto Hterm Hnl Hcm Hfid
+  intro Ht Hto Hterm Hnl Hcm Hfid Hnw
   have Htm : t.term = ps.term := congrArg PState.term Ht
-  refine stepCF_eq c id _ _ _ _
-    (StepCF.heartbeat (absMsg .heartbeat m ents ctx) ps rfl Hto Hfid Hterm Hnl Hcm) ?_
+  have Hb : t.logst.prev = ps.base := congrArg PState.base Ht
+  have Hl : t.logst.sents ++ t.logst.uents = ps.log := congrArg PState.log Ht
+  have Hc : t.logst.committed = ps.commit := congrArg PState.commit Ht
+  have Hcm' : uint.Z m.Commit' ≤ plogLastIndexZ t.logst.prev (t.logst.sents ++ t.logst.uents) := by
+    rw [Hb, Hl]; exact Hcm
   unfold heartbeatResult
+  rw [logCommitTo_le_last _ _ _ Hnw Hcm']
   rw [toPState_sendMsgs']
-  have Hs : toPState { t with logst := { t.logst with
-        committed := plogCommitTo t.logst.committed m.Commit' } } =
-      { toPState t with commit := plogCommitTo (toPState t).commit m.Commit' } := rfl
-  rw [Hs, Ht]
-  simp only [Htm, absMsg, absMsgFrom, padoptLeader]
+  by_cases hT : m.Term' = t.logst.leaderTerm
+  · rw [if_pos hT]
+    refine stepCF_eq c id _ _ _ _
+      (StepCF.heartbeat (absMsg .heartbeat m ents ctx) ps true rfl Hto Hfid Hterm Hnl Hcm) ?_
+    have Hs : toPState { t with logst := { t.logst with
+          committed := plogCommitTo t.logst.committed m.Commit' } } =
+        { toPState t with commit := plogCommitTo (toPState t).commit m.Commit' } := rfl
+    rw [Hs, Ht]
+    simp only [Htm, absMsg, absMsgFrom, padoptLeader, ↓reduceIte]
+  · rw [if_neg hT]
+    refine stepCF_eq c id _ _ _ _
+      (StepCF.heartbeat (absMsg .heartbeat m ents ctx) ps false rfl Hto Hfid Hterm Hnl Hcm) ?_
+    have Hs : toPState { t with logst := { t.logst with committed := t.logst.committed } } =
+        toPState t := rfl
+    rw [Hs, Ht]
+    simp only [Htm, absMsg, absMsgFrom, padoptLeader, Bool.false_eq_true, ↓reduceIte]
 
 /-- The term preamble's step-down for a message only a leader sends. -/
 theorem step_higher_term_leader (c : CfgM) (id : w64) (ps : PState) (ty : MsgType)
@@ -175,12 +208,18 @@ theorem adopt_candidate (s : NState) (src : w64) (pvs : GMap w64 Progress)
 /-! ## Well-formedness is preserved by the handlers -/
 
 theorem nstateWf_handle_app (id : w64) (t : NState) (m : MessageM)
-    (ents : List EntryM) (s' : NState) :
+    (ents : List EntryM) (s' : NState) (Hterm : m.Term' = t.term) (Hnl : t.role ≠ .leader) :
     NStateWf t → HandleAppResult id t m ents s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, rfl⟩ <;>
-    exact Hwf
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, -, HltT, -, -, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  · exact Hwf
+  · refine ⟨Hwf.1, Hwf.2.1, ⟨?_, fun h => absurd h Hnl⟩⟩
+    show uint.Z ls'.leaderTerm ≤ uint.Z t.term
+    rw [HltT]; split
+    · exact Hwf.2.2.1
+    · rw [Hterm]; exact Int.le_refl _
+  · exact Hwf
 
 /-- `handleAppendEntries` keeps the term and `NetFrame`'s fields (2026-10-09). -/
 theorem frame_handle_app (id : w64) (t : NState) (m : MessageM)
@@ -188,7 +227,7 @@ theorem frame_handle_app (id : w64) (t : NState) (m : MessageM)
     HandleAppResult id t m ents s' → NetFrame t s' ∧ s'.term = t.term := by
   intro Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
   · obtain ⟨H1, H2, H3, H4, H5, H6⟩ := Hfr
     exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩, rfl⟩
@@ -199,7 +238,7 @@ theorem rframe_handle_app (id : w64) (t : NState) (m : MessageM)
     (ents : List EntryM) (s' : NState) (H : HandleAppResult id t m ents s') :
     RFrame t s' := by
   unfold HandleAppResult at H
-  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
   · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
@@ -333,20 +372,33 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
     simp only [appResp, Htm, Hc, absSnap, absSnapFrom]
   · -- fast-forward
     rw [Hc] at Hlt; rw [Hb, Hl] at Hm
-    refine step_eq c id _ _ _ _
-      (StepC.snapFastfwd (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
-    rw [toPState_sendMsgs']
-    have Hs : toPState { t with logst := { t.logst with committed := (snapId sv).index' } } =
-        { toPState t with commit := (snapId sv).index' } := rfl
-    rw [Hs, Ht]
-    simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
+    -- (raft#139) committed only at the log's leader term
+    by_cases hT : m.Term' = t.logst.leaderTerm
+    · refine step_eq c id _ _ _ _
+        (StepC.snapFastfwd (absSnap m sv voters) ps true rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
+      rw [toPState_sendMsgs']
+      simp only [if_pos hT]
+      have Hs : toPState { t with logst := { t.logst with committed := (snapId sv).index' } } =
+          { toPState t with commit := (snapId sv).index' } := rfl
+      rw [Hs, Ht]
+      simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId, ↓reduceIte]
+    · refine step_eq c id _ _ _ _
+        (StepC.snapFastfwd (absSnap m sv voters) ps false rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
+      rw [toPState_sendMsgs']
+      simp only [if_neg hT]
+      have Hs : toPState { t with logst := { t.logst with committed := t.logst.committed } } =
+          toPState t := rfl
+      rw [Hs, Ht]
+      simp only [appResp, Htm, Hc, absSnap, absSnapFrom, padoptLeader, snapId, Bool.false_eq_true,
+        ↓reduceIte]
   · -- restore
     rw [Hc] at Hlt; rw [Hb, Hl] at Hnm
     refine step_eq c id _ _ _ _
       (StepC.snapRestore (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hlt Hnm) ?_
     rw [toPState_sendMsgs']
     have Hs : toPState
-        { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapTrip sv voters),
+        { t with progress := prs, prvals := pvs,
+                 logst := { logRestore t.logst (snapTrip sv voters) with leaderTerm := m.Term' },
                  isLearner := il } =
         { toPState t with
             base := snapId sv
@@ -393,13 +445,25 @@ theorem stepCF_handle_snap_keep (c : CfgM) (id : w64) (ps : PState) (t : NState)
     simp only [appResp, Htm, Hc, absSnap, absSnapFrom]
   · -- fast-forward
     rw [Hc] at Hlt; rw [Hb, Hl] at Hm
-    refine stepCF_eq c id _ _ _ _
-      (StepCF.snapFastfwd (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
-    rw [toPState_sendMsgs']
-    have Hs : toPState { t with logst := { t.logst with committed := (snapId sv).index' } } =
-        { toPState t with commit := (snapId sv).index' } := rfl
-    rw [Hs, Ht]
-    simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
+    -- (raft#139) committed only at the log's leader term
+    by_cases hT : m.Term' = t.logst.leaderTerm
+    · refine stepCF_eq c id _ _ _ _
+        (StepCF.snapFastfwd (absSnap m sv voters) ps true rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
+      rw [toPState_sendMsgs']
+      simp only [if_pos hT]
+      have Hs : toPState { t with logst := { t.logst with committed := (snapId sv).index' } } =
+          { toPState t with commit := (snapId sv).index' } := rfl
+      rw [Hs, Ht]
+      simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId, ↓reduceIte]
+    · refine stepCF_eq c id _ _ _ _
+        (StepCF.snapFastfwd (absSnap m sv voters) ps false rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
+      rw [toPState_sendMsgs']
+      simp only [if_neg hT]
+      have Hs : toPState { t with logst := { t.logst with committed := t.logst.committed } } =
+          toPState t := rfl
+      rw [Hs, Ht]
+      simp only [appResp, Htm, Hc, absSnap, absSnapFrom, padoptLeader, snapId, Bool.false_eq_true,
+        ↓reduceIte]
   · exact absurd ⟨Hlt, Hnm⟩ Hnr
 
 section snapCDS
@@ -507,11 +571,16 @@ theorem snapCfgOk_cases {c : CfgM} {s : NState} {sv : SnapshotM} {scfg : CSLists
   · exact .inl h
 
 theorem nstateWf_handle_snap (id : w64) (t : NState) (m : MessageM)
-    (sv : SnapshotM) (s' : NState) {voters : CSLists} :
+    (sv : SnapshotM) (s' : NState) {voters : CSLists} (Hterm : m.Term' = t.term)
+    (Hnl : t.role ≠ .leader) :
     NStateWf t → HandleSnapResult id t m sv voters s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleSnapResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩ <;> exact Hwf
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩
+  · exact Hwf
+  · exact Hwf
+  · exact ⟨Hwf.1, Hwf.2.1, ⟨by show uint.Z m.Term' ≤ uint.Z t.term; rw [Hterm]; exact Int.le_refl _,
+      fun h => absurd h Hnl⟩⟩
 
 theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :

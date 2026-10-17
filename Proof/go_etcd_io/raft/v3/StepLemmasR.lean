@@ -91,7 +91,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
   | drain (s : PState) (o' : List Msg) :
       o'.Subperm s.outbox →
       StepCF s [] { s with outbox := o' }
-  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List EntryM) :
+  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List EntryM) (cm : Bool) :
       m.ty = .app →
       m.dst = id →
       m.src ≠ id →
@@ -102,12 +102,13 @@ inductive StepCF : PState → List Msg → PState → Prop where
         = some (lastnewi, es') →
       (plogFindConflict s.base s.log m.entries = W64 0 ∨
         uint.Z s.commit < uint.Z (plogFindConflict s.base s.log m.entries)) →
+      (cm = false → plogFindConflict s.base s.log m.entries = W64 0) →
       StepCF s [m]
         (psendMsgs
           { padoptLeader s m.src with
               log := es',
-              commit := plogCommitTo s.commit
-                          (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+              commit := if cm then plogCommitTo s.commit
+                          (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) else s.commit }
           [Msg.mk .appResp id m.src s.term false lastnewi (W64 0) (W64 0) (W64 0) []])
   | appStale (m : Msg) (s : PState) :
       m.ty = .app →
@@ -130,7 +131,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
       StepCF s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
-  | heartbeat (m : Msg) (s : PState) :
+  | heartbeat (m : Msg) (s : PState) (cm : Bool) :
       m.ty = .heartbeat →
       m.dst = id →
       m.src ≠ id →
@@ -139,7 +140,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
       uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
       StepCF s [m]
         (psendMsgs
-          { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
+          { padoptLeader s m.src with commit := if cm then plogCommitTo s.commit m.commit else s.commit }
           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
   | beat (s : PState) (ms : List Msg) :
       s.role = .leader →
@@ -176,7 +177,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
         (psendMsgs s
           [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
              m.rejecthint m.entries [] m.ctx])
-  | snapFastfwd (m : Msg) (s : PState) :
+  | snapFastfwd (m : Msg) (s : PState) (cm : Bool) :
       m.ty = .snap →
       m.dst = id →
       m.src ≠ id →
@@ -185,8 +186,9 @@ inductive StepCF : PState → List Msg → PState → Prop where
       uint.Z s.commit < uint.Z m.index →
       PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
       StepCF s [m]
-        (psendMsgs { padoptLeader s m.src with commit := m.index }
-          [Msg.mk .appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
+        (psendMsgs { padoptLeader s m.src with commit := if cm then m.index else s.commit }
+          [Msg.mk .appResp id m.src s.term false (if cm then m.index else s.commit)
+            (W64 0) (W64 0) (W64 0) []])
   | snapStale (m : Msg) (s : PState) :
       m.ty = .snap →
       m.dst = id →
@@ -388,9 +390,9 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
   | drain s o' h1 =>
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.drain r o' h1) (fun h => h) (fun h => h) hz
-  | appAccept m s lastnewi es' h1 h2 h3 h4 h5 h6 h7 h8 =>
+  | appAccept m s lastnewi es' cm h1 h2 h3 h4 h5 h6 h7 h8 h9 =>
     intro r hp _ hz; subst hp
-    exact StepR.pci_keep (.appAccept m r lastnewi es' h1 h2 h3 h4 h5 h6 h7 h8)
+    exact StepR.pci_keep (.appAccept m r lastnewi es' cm h1 h2 h3 h4 h5 h6 h7 h8 h9)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
   | appStale m s h1 h2 h3 h4 h5 h6 =>
     intro r hp _ hz; subst hp
@@ -400,9 +402,9 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
-  | heartbeat m s h1 h2 h3 h4 h5 h6 =>
+  | heartbeat m s cm h1 h2 h3 h4 h5 h6 =>
     intro r hp _ hz; subst hp
-    exact StepR.pci_keep (.heartbeat m r h1 h2 h3 h4 h5 h6)
+    exact StepR.pci_keep (.heartbeat m r cm h1 h2 h3 h4 h5 h6)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
   | beat s ms h1 h2 h3 =>
     intro r hp _ hz; subst hp
@@ -419,9 +421,9 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
   | propForward m s h1 h2 h3 =>
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.propForward m r h1 h2 h3) (fun h => h) (fun h => h) hz
-  | snapFastfwd m s h1 h2 h3 h4 h5 h6 h7 =>
+  | snapFastfwd m s cm h1 h2 h3 h4 h5 h6 h7 =>
     intro r hp _ hz; subst hp
-    exact StepR.pci_keep (.snapFastfwd m r h1 h2 h3 h4 h5 h6 h7)
+    exact StepR.pci_keep (.snapFastfwd m r cm h1 h2 h3 h4 h5 h6 h7)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
   | snapStale m s h1 h2 h3 h4 h5 h6 =>
     intro r hp _ hz; subst hp

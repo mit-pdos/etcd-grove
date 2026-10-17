@@ -212,7 +212,7 @@ theorem raftLog.maybeAppend.wp_proof
       wp_apply wp_min_u64
       wp_apply wp_raftLog_commitTo _ ls _ _ $$ [$Hlog] as Hlog
       have Hc := logCommitTo_le_last ls a.term'
-        (w64Min committed (W64 (uint.Z a.prev'.index' + (ents.length : Int)))) Hidx
+        (w64Min committed (W64 (uint.Z a.prev'.index' + (ents.length : Int)))) Hnwl
         (by simp only [plogLastIndexZ, List.length_append, w64Min]; push_cast; split <;> word)
       rw [Hc]
       iapply HΦ
@@ -346,7 +346,7 @@ theorem raftLog.maybeAppend.wp_proof
           List.length_cons, List.length_drop] at HL
         push_cast at *
         omega
-      icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx1, Hlog⟩
+      icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hidx1, Hlog⟩
       wp_apply wp_min_u64
       wp_apply wp_raftLog_commitTo _ ls1 _ _ $$ [$Hlog] as Hlog
       have Hc := logCommitTo_le_last ls1 a.term'

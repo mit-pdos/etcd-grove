@@ -148,6 +148,11 @@ abbrev newRaft.spec : Prop :=
   (¬ HsEmpty hs →
    uint.Z σ.prev.index' ≤ uint.Z hs.Commit' ∧
      uint.Z hs.Commit' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
+  -- (raft#139) the last stored entry's term is not above the persisted term (`newLogWithSize`
+  -- starts the log's leader term at it; `NStateWf`'s `LtInv`): true of any storage raft wrote,
+  -- which persists the `HardState` with the entries; false of a storage with entries and no
+  -- (or an older) `HardState`, on which the node's own appends as leader would be dropped
+  uint.Z (plogLast σ.prev σ.ents).term' ≤ uint.Z hs.Term' →
   (cv.Applied' = W64 0 ∨
    uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
      uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →

@@ -446,7 +446,7 @@ theorem raft.restore.wp_proof
     wp_apply wp_SnapshotMetadata_GetIndex_field pm pi _ _ Hpmn $$ [$HI $cI] as HI
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
-    icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx0, Hlog⟩
+    icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hidx0, Hlog⟩
     wp_apply wp_raftLog_commitTo _ _ lt sv.Metadata'.Index' $$ [$Hlog] as Hlog
     rw [logCommitTo_le_last s.logst lt sv.Metadata'.Index' Hidx0 Hle]
     ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
@@ -550,6 +550,7 @@ theorem raft.restore.wp_proof
     wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
+        (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
       $$ [$Htrkf $Hback2 $Hvotes $Hnew]
       as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw⟩

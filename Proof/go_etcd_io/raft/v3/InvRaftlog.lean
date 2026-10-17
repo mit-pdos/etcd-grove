@@ -879,17 +879,19 @@ log unchanged), and otherwise appends `ents` (if any) and sets `leaderTerm` to `
 /-- The commit index `commitTo(lt, c)` leaves. -/
 def logCommitTo (ls : LogState) (lt c : w64) : w64 :=
   if lt = ls.leaderTerm
-  then plogCommitTo ls.committed (w64Min c (plogLast ls.prev (ls.sents ++ ls.uents)).index')
+  then plogCommitTo ls.committed (w64Min c (logLast ls))
   else ls.committed
 
 omit [GoGlobalContext] in
 /-- At the log's leader term, with `c` within the log, `commitTo(lt, c)` is the old
 `commitTo(c)`. -/
 theorem logCommitTo_at_term (ls : LogState) (lt c : w64) (Heq : lt = ls.leaderTerm)
-    (Hwf : PlogWf ls.prev (ls.sents ++ ls.uents))
+    (Hnw : LogNoWrap ls)
     (Hle : uint.Z c ≤ plogLastIndexZ ls.prev (ls.sents ++ ls.uents)) :
     logCommitTo ls lt c = plogCommitTo ls.committed c := by
-  have Hl := plogLast_index _ _ Hwf
+  have Hl := Hnw.logLast_Z
+  simp only [plogLastIndexZ, List.length_append] at Hle
+  push_cast at Hle
   unfold logCommitTo
   rw [if_pos Heq]
   congr 1
@@ -910,7 +912,7 @@ log, at the log's leader term. -/
 theorem logCommitTo_cases (ls : LogState) (lt c : w64) :
     logCommitTo ls lt c = ls.committed ∨
     (lt = ls.leaderTerm ∧ ∃ c', uint.Z c' ≤ uint.Z c ∧
-       uint.Z c' ≤ uint.Z (plogLast ls.prev (ls.sents ++ ls.uents)).index' ∧
+       uint.Z c' ≤ uint.Z (logLast ls) ∧
        logCommitTo ls lt c = plogCommitTo ls.committed c') := by
   unfold logCommitTo
   split
@@ -922,7 +924,7 @@ omit [GoGlobalContext] in
 /-- `commitTo(lt, c)` for a `c` within the log: the old `commitTo(c)` at the log's leader
 term, nothing at another. -/
 theorem logCommitTo_le_last (ls : LogState) (lt c : w64)
-    (Hwf : PlogWf ls.prev (ls.sents ++ ls.uents))
+    (Hwf : LogNoWrap ls)
     (Hle : uint.Z c ≤ plogLastIndexZ ls.prev (ls.sents ++ ls.uents)) :
     logCommitTo ls lt c =
       if lt = ls.leaderTerm then plogCommitTo ls.committed c else ls.committed := by
@@ -952,6 +954,19 @@ theorem logTruncateAppendAt_cons (ls : LogState) (lt : w64) (e0 : EntryM) (ents'
 `logTruncateAppendAt`. -/
 def logAppendAt (ls : LogState) (lt : w64) (ents : List EntryM) : LogState :=
   if uint.Z lt < uint.Z ls.leaderTerm then ls else logTruncateAppendAt ls lt ents
+
+omit [GoGlobalContext] in
+/-- (raft#139) `append(t, ents)` of a batch that continues the log, at a current leader term:
+`logAppendLT`. -/
+theorem logAppendAt_cont (ls : LogState) (t : w64) (ents : List EntryM)
+    (Hge : uint.Z ls.leaderTerm ≤ uint.Z t)
+    (Htac : logTruncateAppend ls ents = logAppend ls ents) :
+    logAppendAt ls t ents = logAppendLT ls t ents := by
+  unfold logAppendAt
+  rw [if_neg (by omega)]
+  cases ents with
+  | nil => rfl
+  | cons e es => rw [logTruncateAppendAt_cons, Htac]; rfl
 
 /-- Whether `unstable.truncateAndAppend` takes its replace arm and adopts the caller's
 slice as `u.entries`: the batch starts at or below `u.offset` and does not simply

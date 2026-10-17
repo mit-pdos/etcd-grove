@@ -42,12 +42,11 @@ theorem raftLog.commitTo.wp_proof
   rw [decide_eq_true (show lt = lv0.leaderTerm' by rw [Hlt0]; exact Heq)]
   wp_auto
   ihave Hlog := Hback $$ Hl
-  icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+  icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
   wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-  have Hlast : (plogLast ls.prev (ls.sents ++ ls.uents)).index' = li := by
+  have Hlast : logLast ls = li := by
     apply uint_Z_inj.1
-    rw [plogLast_index _ _ Hidx, Hli]
-    simp only [plogLastIndexZ, List.length_append]; push_cast; omega
+    rw [LogNoWrap.logLast_Z Hnw, Hli]
   wp_apply wp_go_min_u64
   have Hc : logCommitTo ls lt tocommit = plogCommitTo ls.committed (w64Min tocommit li) := by
     unfold logCommitTo; rw [if_pos Heq, Hlast]

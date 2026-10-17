@@ -73,7 +73,7 @@ theorem raftLog.maybeCommit.wp_proof
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) aid := of_decide_eq_true Hb.symm
     have Hrange := plogTermAt_some_range _ _ _ _ Hm
     wp_auto
-    icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+    icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
     wp_apply wp_raftLog_commitTo _ ls lt aid.index' $$ [$Hlog] as Hlog
     iapply HΦ
     rw [logCommitTo_le_last _ _ _ Hidx Hrange.2]

@@ -133,7 +133,7 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si σ hs csm
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs HltT Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
   wp_auto
@@ -180,7 +180,7 @@ theorem newRaft.wp_proof
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
-    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ⟩
+    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ, (plogLast σ.prev σ.ents).term'⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval'⟩
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
@@ -242,7 +242,7 @@ theorem newRaft.wp_proof
   -- is done once, for both.
   let ls1 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, σ.prev.index', none, ip,
     σ.prev.index', [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si, initKsn σ⟩
+    interface.ok si, initKsn σ, (plogLast σ.prev σ.ents).term'⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet csm.Voters') «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hp ∗
@@ -293,7 +293,7 @@ theorem newRaft.wp_proof
   let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
   let ls2 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, ap, none, ip,
     w64Max σ.prev.index' ap, [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si, initKsn σ⟩
+    interface.ok si, initKsn σ, (plogLast σ.prev σ.ents).term'⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet csm.Voters') «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -391,7 +391,7 @@ theorem newRaft.wp_proof
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the
   -- vote: the state is the persisted `HardState`'s
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+  refine ⟨⟨rfl, rfl, ⟨HltT, fun h => by cases h⟩⟩, rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
     rfl, rfl, rfl, HpSDR, Hprs'⟩
   show (if s2.term = s2.term then s2.vote else W64 0) = hs.Vote'
   simp only [↓reduceIte]

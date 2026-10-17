@@ -102,7 +102,7 @@ theorem raft.hup.wp_proof
       iapply HΦ
       iframe Hphys
       ipureintro
-      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
+      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _ Hwf.2.2 Hnowrap),
         stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
         .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩
       unfold campaignState

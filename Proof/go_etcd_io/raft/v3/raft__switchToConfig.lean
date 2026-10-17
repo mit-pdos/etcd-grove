@@ -66,7 +66,7 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
+  intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok Hltl
   wp_start as H
   iNamed H
   wp_auto
@@ -180,7 +180,8 @@ theorem raft.switchToConfig.wp_proof
           by cases s1; simp [sendMsgs]⟩
       try wp_auto
       -- `if r.maybeCommit() { r.bcastAppend() } else { r.trk.Visit(...maybeSendAppend...) }`
-      wp_apply wp_raft_maybeCommit c r id s1 Hl1 $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
+      wp_apply wp_raft_maybeCommit c r id s1 Hl1
+        (by rw [← Hs1, ← Hs0]; exact Hltl Hl) $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
       -- after the broadcast, the state is `s2` with sends `ms` and values `pvs2`
       wp_join iprop(∃ (ms : List Msg) (pvs2 : GMap w64 Progress),
           "Hphys" ∷ ownRaftPhysCV c c.voters r id
