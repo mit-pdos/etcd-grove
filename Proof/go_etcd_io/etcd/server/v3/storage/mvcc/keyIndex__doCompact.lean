@@ -28,12 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.keyIndex.doCompact.wp_proof
     (h0 : mvcc.generation.walk.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG) := by
-  intro p gs ki dq atRev m A Hok
+  intro p gs ki lf dq atRev m A Hok
   wp_start as ⟨Hki, Hm⟩
   obtain ⟨Hne, Hnonlast⟩ := Hok
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   have Hpos := List.length_pos_iff.2 Hne
   have Hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z gs.len := by word
   wp_auto
@@ -63,14 +63,14 @@ theorem mvcc.keyIndex.doCompact.wp_proof
       simp [List.getD_eq_getElem?_getD, Hgm0]
     have Hrne : gm0.revs ≠ [] := by
       rw [← Hgd0]; exact Hnonlast _ (by omega)
-    icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z gi) gm0 Hgi.1 Hgm0 $$ Hgens
+    icases mvcc.ownGens_acc_z gs ki.gens _ dq (sint.Z gi) gm0 Hgi.1 Hgm0 $$ Hgens
       with ⟨%gv0, Hel, Hg, Hback⟩
     iunfold mvcc.ownGen at Hg
     icases Hg with ⟨%Hfields, Hrevs, Hcap⟩
     ihave %Hrlen := ownSlice_len _ _ _ $$ Hrevs
     rw [List.length_map] at Hrlen
     icases mvcc.gen_split _ _ _ $$ Hel with ⟨Hver, Hcreated, Hrevsf, %Hnn⟩
-    have Hlast := mvcc.revs_last gm0.revs gv0.revs'.len Hrne Hrlen.1
+    have Hlast := mvcc.revs_last lf gm0.revs gv0.revs'.len Hrne Hrlen.1
     have HbL : 0 ≤ sint.Z (gv0.revs'.len - W64 1) ∧
         sint.Z (gv0.revs'.len - W64 1) < sint.Z gv0.revs'.len := by
       have := List.length_pos_iff.2 Hrne; word
@@ -78,17 +78,17 @@ theorem mvcc.keyIndex.doCompact.wp_proof
     simp only [HbL, _root_.and_self, ↓reduceIte]
     icases ownSlice_elem_acc (sint.Z (gv0.revs'.len - W64 1)) _ gv0.revs' dq _ HbL.1 Hlast
       $$ Hrevs with ⟨Hlel, Hlback⟩
-    icases mvcc.rev_split _ _ _ $$ Hlel with ⟨HlMain, HlSub, %Hlnn⟩
+    icases mvcc.rlRev_split _ _ _ $$ Hlel with ⟨HlMain, HlSub, HlL, %Hlnn⟩
     wp_auto
-    ihave Hlel := mvcc.rev_combine (sliceIndexRef Revision (sint.Z (gv0.revs'.len - W64 1)) gv0.revs')
-      _ dq Hlnn $$ [HlMain HlSub]
-    · iframe HlMain HlSub
+    ihave Hlel := mvcc.rlRev_combine (sliceIndexRef revisionLease (sint.Z (gv0.revs'.len - W64 1)) gv0.revs')
+      _ dq Hlnn $$ [HlMain HlSub HlL]
+    · iframe HlMain HlSub HlL
     ispecialize Hlback $$ %_ Hlel
     rw [mvcc.set_same Hlast]
     ihave Hel := mvcc.gen_combine (sliceIndexRef generation (sint.Z gi) gs) gv0 dq Hnn
       $$ [Hver Hcreated Hrevsf]
     · iframe Hver Hcreated Hrevsf
-    ihave Hg : iprop(mvcc.ownGen gv0 gm0 dq) $$ [Hlback Hcap]
+    ihave Hg : iprop(mvcc.ownGen gv0 gm0 lf dq) $$ [Hlback Hcap]
     · iunfold mvcc.ownGen; iframe Hlback Hcap; ipureintro; exact Hfields
     ispecialize Hback $$ %gv0 %gm0 Hel Hg
     rw [mvcc.set_same Hgm0]
@@ -101,9 +101,9 @@ theorem mvcc.keyIndex.doCompact.wp_proof
           (Or.inr (by unfold mvcc.tombZ; rw [Hgd0]; omega))
       obtain ⟨gm, Hgm⟩ : ∃ gm, ki.gens[(sint.Z gi).toNat]? = some gm :=
         ⟨_, List.getElem?_eq_getElem (by omega)⟩
-      icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
+      icases mvcc.ownGens_acc_z gs ki.gens _ dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
         with ⟨%gv, Hel, Hg, Hback⟩
-      wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm dq _ (mvcc.pAbove atRev)
+      wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm lf dq _ (mvcc.pAbove atRev)
         iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) A ∗ atRev_ptr ↦ atRev)
         (fun r => iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) (GMap.insert (mvcc.revVal r) () A) ∗
           atRev_ptr ↦ atRev))) $$ [Hel Hg Hm available atRev] as ⟨Hel, Hg, Hpost⟩
@@ -174,9 +174,9 @@ theorem mvcc.keyIndex.doCompact.wp_proof
       mvcc.compactGenIdx_eq atRev ki.gens _ (by omega) Hgi.2.2 (Or.inl (by omega))
     obtain ⟨gm, Hgm⟩ : ∃ gm, ki.gens[(sint.Z gi).toNat]? = some gm :=
       ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
+    icases mvcc.ownGens_acc_z gs ki.gens _ dq (sint.Z gi) gm Hgi.1 Hgm $$ Hgens
       with ⟨%gv, Hel, Hg, Hback⟩
-    wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm dq _ (mvcc.pAbove atRev)
+    wp_apply (h0 (sliceIndexRef generation (sint.Z gi) gs) gv gm lf dq _ (mvcc.pAbove atRev)
       iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) A ∗ atRev_ptr ↦ atRev)
       (fun r => iprop(available_ptr ↦ m ∗ ownMap m (DFrac.own 1) (GMap.insert (mvcc.revVal r) () A) ∗
         atRev_ptr ↦ atRev))) $$ [Hel Hg Hm available atRev] as ⟨Hel, Hg, Hpost⟩

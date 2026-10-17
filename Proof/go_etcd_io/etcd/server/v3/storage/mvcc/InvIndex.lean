@@ -178,18 +178,33 @@ theorem map_revVal_inj : ∀ (l1 l2 : List Rev), l1.map revVal = l2.map revVal �
     simp only [List.map_cons, List.cons.injEq] at h
     rw [revVal_inj h.1, map_revVal_inj l1 l2 h.2]
 
-theorem ownGen_split (gv : generation) (gm : Gen) (dq1 dq2 : DFrac) :
-    ownGen (GF := GF) gv gm (dq1 • dq2) ⊢ ownGen gv gm dq1 ∗ ownGen gv gm dq2 := by
+theorem ownGen_split (gv : generation) (gm : Gen) (lf : Rev → w64) (dq1 dq2 : DFrac) :
+    ownGen (GF := GF) gv gm lf (dq1 • dq2) ⊢ ownGen gv gm lf dq1 ∗ ownGen gv gm lf dq2 := by
   unfold ownGen
   iintro ⟨%Hp, Hr, Hc⟩
   icases btree.slice_split dq1 dq2 _ _ $$ Hr with ⟨Hr1, Hr2⟩
-  icases btree.cap_split Revision dq1 dq2 _ $$ Hc with ⟨Hc1, Hc2⟩
+  icases btree.cap_split revisionLease dq1 dq2 _ $$ Hc with ⟨Hc1, Hc2⟩
   isplitl [Hr1 Hc1]
   · iframe; ipureintro; exact Hp
   · iframe; ipureintro; exact Hp
 
-theorem ownGen_combine (gv : generation) (gm1 gm2 : Gen) (dq1 dq2 : DFrac) :
-    ⊢ ownGen (GF := GF) gv gm1 dq1 -∗ ownGen gv gm2 dq2 -∗ ⌜gm1 = gm2⌝ ∗ ownGen gv gm1 (dq1 • dq2) := by
+/-- The revisions of a slice of `revisionLease`s determine the model's. -/
+theorem map_rlVal_revs {lf1 lf2 : Rev → w64} {l1 l2 : List Rev}
+    (h : l1.map (rlVal lf1) = l2.map (rlVal lf2)) : l1 = l2 := by
+  apply map_revVal_inj
+  have := congrArg (List.map revisionLease.revision') h
+  simpa [List.map_map, Function.comp_def] using this
+
+/-- Two lease functions that agree on the revisions give the same slice. -/
+theorem map_rlVal_congr {lf1 lf2 : Rev → w64} {l : List Rev} (h : ∀ r ∈ l, lf1 r = lf2 r) :
+    l.map (rlVal lf1) = l.map (rlVal lf2) :=
+  List.map_congr_left fun r hr => by simp only [rlVal, h r hr]
+
+/-- Two fractions of a generation agree on its model (their lease functions on its revisions);
+the whole holds at the first's leases. -/
+theorem ownGen_combine (gv : generation) (gm1 gm2 : Gen) (lf1 lf2 : Rev → w64) (dq1 dq2 : DFrac) :
+    ⊢ ownGen (GF := GF) gv gm1 lf1 dq1 -∗ ownGen gv gm2 lf2 dq2 -∗
+      ⌜gm1 = gm2⌝ ∗ ownGen gv gm1 lf1 (dq1 • dq2) := by
   unfold ownGen
   iintro ⟨%Hp1, Hr1, Hc1⟩ ⟨%Hp2, Hr2, Hc2⟩
   ihave %Hrevs := ownSlice_agree _ _ _ _ _ $$ Hr1 Hr2
@@ -198,39 +213,41 @@ theorem ownGen_combine (gv : generation) (gm1 gm2 : Gen) (dq1 dq2 : DFrac) :
     simp only at Hp1 Hp2 Hrevs
     obtain ⟨h1, h2⟩ := Hp1
     obtain ⟨h1', h2'⟩ := Hp2
-    have hrevs := map_revVal_inj _ _ Hrevs
+    have hrevs := map_rlVal_revs Hrevs
     simp only [Gen.mk.injEq]
     exact ⟨h1.symm.trans h1', revVal_inj (h2.symm.trans h2'), hrevs⟩
   subst hgm
+  rw [← Hrevs]
   isplitl []
   · ipureintro; rfl
   isplitl []
   · ipureintro; exact Hp1
   isplitl [Hr1 Hr2]
   · iapply btree.slice_combine dq1 dq2 _ _; iframe
-  iapply btree.cap_combine Revision dq1 dq2 _; iframe
+  iapply btree.cap_combine revisionLease dq1 dq2 _; iframe
 
-theorem ownGensL_split (dq1 dq2 : DFrac) : ∀ (gvs : List generation) (gens : List Gen),
-    ownGensL (GF := GF) (dq1 • dq2) gvs gens ⊢ ownGensL dq1 gvs gens ∗ ownGensL dq2 gvs gens
+theorem ownGensL_split (lf : Rev → w64) (dq1 dq2 : DFrac) : ∀ (gvs : List generation) (gens : List Gen),
+    ownGensL (GF := GF) lf (dq1 • dq2) gvs gens ⊢ ownGensL lf dq1 gvs gens ∗ ownGensL lf dq2 gvs gens
   | [], [] => by simp only [ownGensL]; iintro _; isplitl [] <;> itrivial
   | gv :: gvs, gm :: gens => by
     simp only [ownGensL]
     iintro ⟨H, Hs⟩
-    icases ownGen_split gv gm dq1 dq2 $$ H with ⟨H1, H2⟩
-    icases ownGensL_split dq1 dq2 gvs gens $$ Hs with ⟨Hs1, Hs2⟩
+    icases ownGen_split gv gm lf dq1 dq2 $$ H with ⟨H1, H2⟩
+    icases ownGensL_split lf dq1 dq2 gvs gens $$ Hs with ⟨Hs1, Hs2⟩
     isplitl [H1 Hs1] <;> iframe
   | [], _ :: _ => by simp only [ownGensL]; iintro %h; exact h.elim
   | _ :: _, [] => by simp only [ownGensL]; iintro %h; exact h.elim
 
-theorem ownGensL_combine (dq1 dq2 : DFrac) : ∀ (gvs : List generation) (gens1 gens2 : List Gen),
-    ⊢ ownGensL (GF := GF) dq1 gvs gens1 -∗ ownGensL dq2 gvs gens2 -∗
-      ⌜gens1 = gens2⌝ ∗ ownGensL (dq1 • dq2) gvs gens1
+theorem ownGensL_combine (lf1 lf2 : Rev → w64) (dq1 dq2 : DFrac) :
+    ∀ (gvs : List generation) (gens1 gens2 : List Gen),
+    ⊢ ownGensL (GF := GF) lf1 dq1 gvs gens1 -∗ ownGensL lf2 dq2 gvs gens2 -∗
+      ⌜gens1 = gens2⌝ ∗ ownGensL lf1 (dq1 • dq2) gvs gens1
   | [], [], [] => by simp only [ownGensL]; iintro _ _; isplitl [] <;> itrivial
   | gv :: gvs, gm1 :: gens1, gm2 :: gens2 => by
     simp only [ownGensL]
     iintro ⟨H1, Hs1⟩ ⟨H2, Hs2⟩
-    icases ownGen_combine gv gm1 gm2 dq1 dq2 $$ H1 H2 with ⟨%Hg, H⟩
-    icases ownGensL_combine dq1 dq2 gvs gens1 gens2 $$ Hs1 Hs2 with ⟨%Hgs, Hs⟩
+    icases ownGen_combine gv gm1 gm2 lf1 lf2 dq1 dq2 $$ H1 H2 with ⟨%Hg, H⟩
+    icases ownGensL_combine lf1 lf2 dq1 dq2 gvs gens1 gens2 $$ Hs1 Hs2 with ⟨%Hgs, Hs⟩
     subst Hg Hgs
     isplitl []
     · ipureintro; rfl
@@ -240,25 +257,26 @@ theorem ownGensL_combine (dq1 dq2 : DFrac) : ∀ (gvs : List generation) (gens1 
   | _ :: _, [], _ => by simp only [ownGensL]; iintro %h _; exact h.elim
   | _ :: _, _ :: _, [] => by simp only [ownGensL]; iintro _ %h; exact h.elim
 
-theorem ownGens_split (gs : GoSlice) (gens : List Gen) (dq1 dq2 : DFrac) :
-    ownGens (GF := GF) gs gens (dq1 • dq2) ⊢ ownGens gs gens dq1 ∗ ownGens gs gens dq2 := by
+theorem ownGens_split (gs : GoSlice) (gens : List Gen) (lf : Rev → w64) (dq1 dq2 : DFrac) :
+    ownGens (GF := GF) gs gens lf (dq1 • dq2) ⊢ ownGens gs gens lf dq1 ∗ ownGens gs gens lf dq2 := by
   unfold ownGens
   iintro ⟨%gvs, Hs, Hc, Hl⟩
   icases btree.slice_split dq1 dq2 _ _ $$ Hs with ⟨Hs1, Hs2⟩
   icases btree.cap_split generation dq1 dq2 _ $$ Hc with ⟨Hc1, Hc2⟩
-  icases ownGensL_split dq1 dq2 gvs gens $$ Hl with ⟨Hl1, Hl2⟩
+  icases ownGensL_split lf dq1 dq2 gvs gens $$ Hl with ⟨Hl1, Hl2⟩
   isplitl [Hs1 Hc1 Hl1]
   · iexists gvs; iframe
   · iexists gvs; iframe
 
-theorem ownGens_combine (gs : GoSlice) (gens1 gens2 : List Gen) (dq1 dq2 : DFrac) :
-    ⊢ ownGens (GF := GF) gs gens1 dq1 -∗ ownGens gs gens2 dq2 -∗
-      ⌜gens1 = gens2⌝ ∗ ownGens gs gens1 (dq1 • dq2) := by
+theorem ownGens_combine (gs : GoSlice) (gens1 gens2 : List Gen) (lf1 lf2 : Rev → w64)
+    (dq1 dq2 : DFrac) :
+    ⊢ ownGens (GF := GF) gs gens1 lf1 dq1 -∗ ownGens gs gens2 lf2 dq2 -∗
+      ⌜gens1 = gens2⌝ ∗ ownGens gs gens1 lf1 (dq1 • dq2) := by
   unfold ownGens
   iintro ⟨%gvs1, Hs1, Hc1, Hl1⟩ ⟨%gvs2, Hs2, Hc2, Hl2⟩
   ihave %Hgvs := ownSlice_agree _ _ _ _ _ $$ Hs1 Hs2
   subst Hgvs
-  icases ownGensL_combine dq1 dq2 gvs1 gens1 gens2 $$ Hl1 Hl2 with ⟨%Hg, Hl⟩
+  icases ownGensL_combine lf1 lf2 dq1 dq2 gvs1 gens1 gens2 $$ Hl1 Hl2 with ⟨%Hg, Hl⟩
   subst Hg
   isplitl []
   · ipureintro; rfl
@@ -268,25 +286,26 @@ theorem ownGens_combine (gs : GoSlice) (gens1 gens2 : List Gen) (dq1 dq2 : DFrac
   · iapply btree.slice_combine dq1 dq2 _ _; iframe
   iapply btree.cap_combine generation dq1 dq2 _; iframe
 
-theorem ownKi_split (p : Loc) (gs : GoSlice) (ki : KeyIndex) (dq1 dq2 : DFrac) :
-    ownKi (GF := GF) p gs ki (dq1 • dq2) ⊢ ownKi p gs ki dq1 ∗ ownKi p gs ki dq2 := by
+theorem ownKi_split (p : Loc) (gs : GoSlice) (ki : KeyIndex) (lf : Rev → w64) (dq1 dq2 : DFrac) :
+    ownKi (GF := GF) p gs ki lf (dq1 • dq2) ⊢ ownKi p gs ki lf dq1 ∗ ownKi p gs ki lf dq2 := by
   unfold ownKi
   iintro ⟨Hm, Hg, Hgs⟩
   icases btree.tp_split dq1 dq2 _ _ $$ Hm with ⟨Hm1, Hm2⟩
   icases btree.tp_split dq1 dq2 _ _ $$ Hg with ⟨Hg1, Hg2⟩
-  icases ownGens_split gs ki.gens dq1 dq2 $$ Hgs with ⟨Hgs1, Hgs2⟩
+  icases ownGens_split gs ki.gens lf dq1 dq2 $$ Hgs with ⟨Hgs1, Hgs2⟩
   isplitl [Hm1 Hg1 Hgs1] <;> iframe
 
 /-- Two fractions of a key index agree on its generations slice and its model. -/
-theorem ownKi_combine (p : Loc) (gs1 gs2 : GoSlice) (ki1 ki2 : KeyIndex) (dq1 dq2 : DFrac) :
-    ⊢ ownKi (GF := GF) p gs1 ki1 dq1 -∗ ownKi p gs2 ki2 dq2 -∗
-      ⌜gs1 = gs2 ∧ ki1 = ki2⌝ ∗ ownKi p gs1 ki1 (dq1 • dq2) := by
+theorem ownKi_combine (p : Loc) (gs1 gs2 : GoSlice) (ki1 ki2 : KeyIndex) (lf1 lf2 : Rev → w64)
+    (dq1 dq2 : DFrac) :
+    ⊢ ownKi (GF := GF) p gs1 ki1 lf1 dq1 -∗ ownKi p gs2 ki2 lf2 dq2 -∗
+      ⌜gs1 = gs2 ∧ ki1 = ki2⌝ ∗ ownKi p gs1 ki1 lf1 (dq1 • dq2) := by
   unfold ownKi
   iintro ⟨Hm1, Hg1, Hgs1⟩ ⟨Hm2, Hg2, Hgs2⟩
   icombine Hm1 Hm2 gives %Hm
   icombine Hg1 Hg2 gives %Hg
   subst Hg
-  icases ownGens_combine gs1 ki1.gens ki2.gens dq1 dq2 $$ Hgs1 Hgs2 with ⟨%Hgens, Hgs⟩
+  icases ownGens_combine gs1 ki1.gens ki2.gens lf1 lf2 dq1 dq2 $$ Hgs1 Hgs2 with ⟨%Hgens, Hgs⟩
   have hki : ki1 = ki2 := by
     cases ki1; cases ki2
     simp only at Hm Hgens
@@ -300,10 +319,10 @@ theorem ownKi_combine (p : Loc) (gs1 gs2 : GoSlice) (ki1 ki2 : KeyIndex) (dq1 dq
   · iapply btree.tp_combine dq1 dq2 _ _; iframe
   iapply btree.tp_combine dq1 dq2 _ _; iframe
 
-theorem ownKi_split_own (p : Loc) (gs : GoSlice) (ki : KeyIndex) (q1 q2 : Qp) :
-    ownKi (GF := GF) p gs ki (DFrac.own (q1 + q2)) ⊢
-      ownKi p gs ki (DFrac.own q1) ∗ ownKi p gs ki (DFrac.own q2) :=
-  ownKi_split p gs ki (DFrac.own q1) (DFrac.own q2)
+theorem ownKi_split_own (p : Loc) (gs : GoSlice) (ki : KeyIndex) (lf : Rev → w64) (q1 q2 : Qp) :
+    ownKi (GF := GF) p gs ki lf (DFrac.own (q1 + q2)) ⊢
+      ownKi p gs ki lf (DFrac.own q1) ∗ ownKi p gs ki lf (DFrac.own q2) :=
+  ownKi_split p gs ki lf (DFrac.own q1) (DFrac.own q2)
 
 theorem ownBTree_split_own {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
     (T : go.GoType) [IntoValTyped (GF := GF) T' T] {V : Type}
@@ -313,22 +332,61 @@ theorem ownBTree_split_own {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T'
       ownBTree T t isItem less items (DFrac.own q1) ∗ ownBTree T t isItem less items (DFrac.own q2) :=
   ownBTree_split' T t isItem less items (DFrac.own q1) (DFrac.own q2)
 
+/-! ### Changing the lease function where the revisions do not look -/
+
+theorem ownGen_congr (gv : generation) (gm : Gen) (lf lf' : Rev → w64) (dq : DFrac)
+    (h : ∀ r ∈ gm.revs, lf r = lf' r) :
+    ownGen (GF := GF) gv gm lf dq ⊢ ownGen gv gm lf' dq := by
+  unfold ownGen
+  rw [map_rlVal_congr h]
+
+theorem ownGensL_congr (lf lf' : Rev → w64) (dq : DFrac) : ∀ (gvs : List generation) (gens : List Gen),
+    (∀ gm ∈ gens, ∀ r ∈ gm.revs, lf r = lf' r) →
+    ownGensL (GF := GF) lf dq gvs gens ⊢ ownGensL lf' dq gvs gens
+  | [], [], _ => by simp only [ownGensL]; iintro _; itrivial
+  | gv :: gvs, gm :: gens, h => by
+    simp only [ownGensL]
+    iintro ⟨H, Hs⟩
+    isplitl [H]
+    · iapply ownGen_congr gv gm lf lf' dq (h gm (by simp)) $$ H
+    · iapply ownGensL_congr lf lf' dq gvs gens (fun g hg => h g (by simp [hg])) $$ Hs
+  | [], _ :: _, _ => by simp only [ownGensL]; iintro %h; exact h.elim
+  | _ :: _, [], _ => by simp only [ownGensL]; iintro %h; exact h.elim
+
+theorem ownGens_congr (gs : GoSlice) (gens : List Gen) (lf lf' : Rev → w64) (dq : DFrac)
+    (h : ∀ gm ∈ gens, ∀ r ∈ gm.revs, lf r = lf' r) :
+    ownGens (GF := GF) gs gens lf dq ⊢ ownGens gs gens lf' dq := by
+  unfold ownGens
+  iintro ⟨%gvs, Hs, Hc, Hl⟩
+  iexists gvs
+  iframe Hs Hc
+  iapply ownGensL_congr lf lf' dq gvs gens h $$ Hl
+
+/-- A key index's leases matter only at its revisions. -/
+theorem ownKi_congr (p : Loc) (gs : GoSlice) (ki : KeyIndex) (lf lf' : Rev → w64) (dq : DFrac)
+    (h : ∀ r ∈ kiRevs ki, lf r = lf' r) :
+    ownKi (GF := GF) p gs ki lf dq ⊢ ownKi p gs ki lf' dq := by
+  unfold ownKi
+  iintro ⟨Hm, Hg, Hgs⟩
+  iframe Hm Hg
+  iapply ownGens_congr gs ki.gens lf lf' dq (fun gm hg r hr => h r (kiRevs_mem hg hr)) $$ Hgs
+
 /-! ### The tree with its key indexes -/
 
 /-- An entry's key index: its pointer (not `nil`) and its mutable part, at fraction `q`. -/
-def ownEntry (z : IdxEntry) (q : Qp) : IProp GF :=
-  iprop(⌜z.1 ≠ null⌝ ∗ ∃ gs : GoSlice, ownKi z.1 gs z.2.2 (DFrac.own q))
+def ownEntry (z : IdxEntry) (lf : Rev → w64) (q : Qp) : IProp GF :=
+  iprop(⌜z.1 ≠ null⌝ ∗ ∃ gs : GoSlice, ownKi z.1 gs z.2.2 lf (DFrac.own q))
 
-/-- The tree at `t` and its key indexes hold the entries `L` (keys strictly increasing), at
-fraction `q`. -/
-def ownTree (t : Loc) (L : List IdxEntry) (q : Qp) : IProp GF :=
+/-- The tree at `t` and its key indexes hold the entries `L` (keys strictly increasing), their
+revisions with the leases `lf`, at fraction `q`. -/
+def ownTree (t : Loc) (L : List IdxEntry) (lf : Rev → w64) (q : Qp) : IProp GF :=
   iprop(⌜(itemsOfEntries L).Pairwise kiItemLess⌝ ∗
     ownBTree kiPtrT t kiItemIs kiItemLess (itemsOfEntries L) (DFrac.own q) ∗
-    [∗list] z ∈ L, ownEntry z q)
+    [∗list] z ∈ L, ownEntry z lf q)
 
-theorem bigSepL_ownKi_split (L : List IdxEntry) (q1 q2 : Qp) :
-    ([∗list] z ∈ L, ownEntry (GF := GF) z (q1 + q2)) ⊢
-      ([∗list] z ∈ L, ownEntry z q1) ∗ ([∗list] z ∈ L, ownEntry z q2) := by
+theorem bigSepL_ownKi_split (L : List IdxEntry) (lf : Rev → w64) (q1 q2 : Qp) :
+    ([∗list] z ∈ L, ownEntry (GF := GF) z lf (q1 + q2)) ⊢
+      ([∗list] z ∈ L, ownEntry z lf q1) ∗ ([∗list] z ∈ L, ownEntry z lf q2) := by
   induction L with
   | nil => iintro _; isplitl [] <;> (iapply BigSepL.bigSepL_nil_intro; iempintro)
   | cons z L ih =>
@@ -346,10 +404,10 @@ theorem bigSepL_ownKi_split (L : List IdxEntry) (q1 q2 : Qp) :
       · ipureintro; exact Hn
       iexists gs; iexact H2
 
-theorem bigSepL_ownKi_combine (L1 : List IdxEntry) (q1 q2 : Qp) :
+theorem bigSepL_ownKi_combine (L1 : List IdxEntry) (lf1 lf2 : Rev → w64) (q1 q2 : Qp) :
     ∀ (L2 : List IdxEntry), itemsOfEntries L1 = itemsOfEntries L2 →
-    ⊢ ([∗list] z ∈ L1, ownEntry (GF := GF) z q1) -∗ ([∗list] z ∈ L2, ownEntry z q2) -∗
-      ⌜L1 = L2⌝ ∗ [∗list] z ∈ L1, ownEntry z (q1 + q2) := by
+    ⊢ ([∗list] z ∈ L1, ownEntry (GF := GF) z lf1 q1) -∗ ([∗list] z ∈ L2, ownEntry z lf2 q2) -∗
+      ⌜L1 = L2⌝ ∗ [∗list] z ∈ L1, ownEntry z lf1 (q1 + q2) := by
   induction L1 with
   | nil =>
     intro L2 h
@@ -389,9 +447,9 @@ theorem bigSepL_ownKi_combine (L1 : List IdxEntry) (q1 q2 : Qp) :
       iexact H
 
 /-- Inserting an entry (by key) into the entries' resources. -/
-theorem bigSepL_ownEntry_insert (z0 : IdxEntry) (q : Qp) : ∀ (L : List IdxEntry),
-    ownEntry (GF := GF) z0 q ∗ ([∗list] z ∈ L, ownEntry z q) ⊢
-      [∗list] z ∈ btInsert entryLess z0 L, ownEntry z q
+theorem bigSepL_ownEntry_insert (z0 : IdxEntry) (lf : Rev → w64) (q : Qp) : ∀ (L : List IdxEntry),
+    ownEntry (GF := GF) z0 lf q ∗ ([∗list] z ∈ L, ownEntry z lf q) ⊢
+      [∗list] z ∈ btInsert entryLess z0 L, ownEntry z lf q
   | [] => by
     iintro ⟨H0, -⟩
     simp only [btInsert]
@@ -405,7 +463,7 @@ theorem bigSepL_ownEntry_insert (z0 : IdxEntry) (q : Qp) : ∀ (L : List IdxEntr
     split
     · iapply BigSepL.bigSepL_cons.2
       iframe Hw
-      iapply bigSepL_ownEntry_insert z0 q ws
+      iapply bigSepL_ownEntry_insert z0 lf q ws
       iframe
     · split
       · iapply BigSepL.bigSepL_cons.2
@@ -416,15 +474,16 @@ theorem bigSepL_ownEntry_insert (z0 : IdxEntry) (q : Qp) : ∀ (L : List IdxEntr
         iframe H0 Hs
 
 /-- Two fractions of the tree hold the same entries (the key indexes' models agree). -/
-theorem ownTree_combine (t : Loc) (L1 L2 : List IdxEntry) (q1 q2 : Qp) :
-    ⊢ ownTree (GF := GF) t L1 q1 -∗ ownTree t L2 q2 -∗ ⌜L1 = L2⌝ ∗ ownTree t L1 (q1 + q2) := by
+theorem ownTree_combine (t : Loc) (L1 L2 : List IdxEntry) (lf1 lf2 : Rev → w64) (q1 q2 : Qp) :
+    ⊢ ownTree (GF := GF) t L1 lf1 q1 -∗ ownTree t L2 lf2 q2 -∗
+      ⌜L1 = L2⌝ ∗ ownTree t L1 lf1 (q1 + q2) := by
   unfold ownTree
   iintro ⟨%Hs1, Ht1, Hk1⟩ ⟨-, Ht2, Hk2⟩
   ihave Hc := ownBTree_combine kiPtrT t kiItemIs kiItemLess (itemsOfEntries L1) (itemsOfEntries L2)
     (DFrac.own q1) (DFrac.own q2) kiItemIs_fun $$ [Ht1 Ht2]
   · iframe
   icases Hc with ⟨%Hitems, Ht⟩
-  icases bigSepL_ownKi_combine L1 q1 q2 L2 Hitems $$ Hk1 Hk2 with ⟨%HL, Hk⟩
+  icases bigSepL_ownKi_combine L1 lf1 lf2 q1 q2 L2 Hitems $$ Hk1 Hk2 with ⟨%HL, Hk⟩
   subst HL
   isplitl []
   · ipureintro; rfl
@@ -434,24 +493,53 @@ theorem ownTree_combine (t : Loc) (L1 L2 : List IdxEntry) (q1 q2 : Qp) :
   rw [show DFrac.own (q1 + q2) = DFrac.own q1 • DFrac.own q2 from rfl]
   iexact Ht
 
-instance ownTree_fractional (t : Loc) (L : List IdxEntry) :
-    Fractional (fun q => ownTree (GF := GF) t L q) where
+instance ownTree_fractional (t : Loc) (L : List IdxEntry) (lf : Rev → w64) :
+    Fractional (fun q => ownTree (GF := GF) t L lf q) where
   fractional q1 q2 := by
     refine ⟨?_, ?_⟩
     · unfold ownTree
       iintro ⟨%Hs, Ht, Hk⟩
       icases ownBTree_split_own kiPtrT t kiItemIs kiItemLess _ q1 q2 $$ Ht with ⟨Ht1, Ht2⟩
-      icases bigSepL_ownKi_split L q1 q2 $$ Hk with ⟨Hk1, Hk2⟩
+      icases bigSepL_ownKi_split L lf q1 q2 $$ Hk with ⟨Hk1, Hk2⟩
       isplitl [Ht1 Hk1]
       · iframe Ht1 Hk1; ipureintro; exact Hs
       · iframe Ht2 Hk2; ipureintro; exact Hs
     · iintro ⟨H1, H2⟩
-      icases ownTree_combine t L L q1 q2 $$ H1 H2 with ⟨-, H⟩
+      icases ownTree_combine t L L lf lf q1 q2 $$ H1 H2 with ⟨-, H⟩
       iexact H
 
+theorem bigSepL_ownEntry_congr (lf lf' : Rev → w64) (q : Qp) : ∀ (L : List IdxEntry),
+    (∀ z ∈ L, ∀ r ∈ kiRevs z.2.2, lf r = lf' r) →
+    ([∗list] z ∈ L, ownEntry (GF := GF) z lf q) ⊢ [∗list] z ∈ L, ownEntry z lf' q
+  | [], _ => by iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
+  | z :: L, h => by
+    iintro Hk
+    icases BigSepL.bigSepL_cons.1 $$ Hk with ⟨Hz, Hs⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hz]
+    · iunfold ownEntry at Hz
+      icases Hz with ⟨%Hn, %gs, H⟩
+      iunfold ownEntry
+      isplitl []
+      · ipureintro; exact Hn
+      iexists gs
+      iapply ownKi_congr _ _ _ lf lf' _ (h z (by simp)) $$ H
+    · iapply bigSepL_ownEntry_congr lf lf' q L (fun z' hz' => h z' (by simp [hz'])) $$ Hs
+
+/-- The tree's leases matter only at its key indexes' revisions. -/
+theorem ownTree_congr (t : Loc) (L : List IdxEntry) (lf lf' : Rev → w64) (q : Qp)
+    (h : ∀ z ∈ L, ∀ r ∈ kiRevs z.2.2, lf r = lf' r) :
+    ownTree (GF := GF) t L lf q ⊢ ownTree t L lf' q := by
+  unfold ownTree
+  iintro ⟨%Hs, Ht, Hk⟩
+  iframe Ht
+  isplitl []
+  · ipureintro; exact Hs
+  iapply bigSepL_ownEntry_congr lf lf' q L h $$ Hk
+
 /-- The tree's items are sorted by key. -/
-theorem ownTree_sorted (t : Loc) (L : List IdxEntry) (q : Qp) :
-    ownTree (GF := GF) t L q ⊢ ownTree t L q ∗ ⌜(itemsOfEntries L).Pairwise kiItemLess⌝ := by
+theorem ownTree_sorted (t : Loc) (L : List IdxEntry) (lf : Rev → w64) (q : Qp) :
+    ownTree (GF := GF) t L lf q ⊢ ownTree t L lf q ∗ ⌜(itemsOfEntries L).Pairwise kiItemLess⌝ := by
   unfold ownTree
   iintro ⟨%Hs, Ht, Hk⟩
   iframe Ht Hk
@@ -459,11 +547,12 @@ theorem ownTree_sorted (t : Loc) (L : List IdxEntry) (q : Qp) :
 
 /-- An entry of the tree: its pointer is not `nil`, and is a key index of the entry's key, for
 good. -/
-theorem ownTree_entry (t : Loc) (L : List IdxEntry) (q : Qp) (z : IdxEntry) (hz : z ∈ L) :
-    ownTree (GF := GF) t L q ⊢ ownTree t L q ∗ ⌜z.1 ≠ null⌝ ∗ kiKey z.1 z.2.1 := by
+theorem ownTree_entry (t : Loc) (L : List IdxEntry) (lf : Rev → w64) (q : Qp) (z : IdxEntry)
+    (hz : z ∈ L) :
+    ownTree (GF := GF) t L lf q ⊢ ownTree t L lf q ∗ ⌜z.1 ≠ null⌝ ∗ kiKey z.1 z.2.1 := by
   unfold ownTree
   iintro ⟨%Hs, Ht, Hk⟩
-  icases BigSepL.bigSepL_mem_acc (Φ := fun z => ownEntry (GF := GF) z q) hz $$ Hk with ⟨Hz, Hback⟩
+  icases BigSepL.bigSepL_mem_acc (Φ := fun z => ownEntry (GF := GF) z lf q) hz $$ Hk with ⟨Hz, Hback⟩
   iunfold ownEntry at Hz
   icases Hz with ⟨%Hn, Hz⟩
   ihave Hk := Hback $$ [Hz]
@@ -528,9 +617,10 @@ theorem idxOfEntries_eraseIdx (L : List IdxEntry) (j : Nat) :
     | succ j => simp only [List.eraseIdx_cons_succ, List.map_cons, ih]
 
 /-- The entry at `j` taken out of the entries' resources. -/
-theorem bigSepL_ownEntry_eraseIdx (q : Qp) : ∀ (L : List IdxEntry) (j : Nat) (z : IdxEntry),
-    L[j]? = some z →
-    ([∗list] y ∈ L, ownEntry (GF := GF) y q) ⊢ ownEntry z q ∗ [∗list] y ∈ L.eraseIdx j, ownEntry y q
+theorem bigSepL_ownEntry_eraseIdx (lf : Rev → w64) (q : Qp) :
+    ∀ (L : List IdxEntry) (j : Nat) (z : IdxEntry), L[j]? = some z →
+    ([∗list] y ∈ L, ownEntry (GF := GF) y lf q) ⊢
+      ownEntry z lf q ∗ [∗list] y ∈ L.eraseIdx j, ownEntry y lf q
   | [], _, _, h => by simp at h
   | w :: ws, 0, z, h => by
     simp only [List.getElem?_cons_zero, Option.some.injEq] at h
@@ -544,14 +634,14 @@ theorem bigSepL_ownEntry_eraseIdx (q : Qp) : ∀ (L : List IdxEntry) (j : Nat) (
     simp only [List.eraseIdx_cons_succ]
     iintro H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hw, Hs⟩
-    icases bigSepL_ownEntry_eraseIdx q ws j z h $$ Hs with ⟨Hz, Hs⟩
+    icases bigSepL_ownEntry_eraseIdx lf q ws j z h $$ Hs with ⟨Hz, Hs⟩
     iframe Hz
     iapply BigSepL.bigSepL_cons.2
     iframe Hw Hs
 
 /-- Every entry's pointer is a key index of the entry's key, for good. -/
-theorem ownTree_keys (t : Loc) (L : List IdxEntry) (q : Qp) :
-    ownTree (GF := GF) t L q ⊢ ownTree t L q ∗ □ (∀ z, ⌜z ∈ L⌝ -∗ kiKey z.1 z.2.1) := by
+theorem ownTree_keys (t : Loc) (L : List IdxEntry) (lf : Rev → w64) (q : Qp) :
+    ownTree (GF := GF) t L lf q ⊢ ownTree t L lf q ∗ □ (∀ z, ⌜z ∈ L⌝ -∗ kiKey z.1 z.2.1) := by
   unfold ownTree
   iintro ⟨%Hs, Ht, Hk⟩
   iunfold ownBTree at Ht
@@ -837,12 +927,12 @@ theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List
 events of `ilog ++ [pend]`, each key's index compacted at a level of its own, at most `cmax`, a
 lower bound of the compaction revision (`IdxCRep`, `Compact.lean`; the compaction job compacts
 key by key under the lock), below the length of a lower bound of the committed log (so below
-every writer's next revision). -/
+every writer's next revision); each revision with the lease of its event (`evLease`). -/
 def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
   iprop(∃ (ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int),
     "#Hhist" ∷ monoListLbOwn γ.hist (histShape ilog pend) ∗
     "Hnev" ∷ monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length ∗
-    "Htree" ∷ ownTree t L q ∗
+    "Htree" ∷ ownTree t L (evLease (evsOf (ilog ++ [pend]))) q ∗
     "#Hcrev" ∷ crevLb γ cmax ∗
     "#Hcl" ∷ (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜cmax < log₀.length⌝) ∗
     "%HL" ∷ ⌜IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
@@ -858,7 +948,7 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       unfold idxLockInv
       iNamed H
       icases (hnat _).1 $$ Hnev with ⟨Hn1, Hn2⟩
-      icases (ownTree_fractional t L).fractional q1 q2 |>.1 $$ Htree with ⟨Ht1, Ht2⟩
+      icases (ownTree_fractional t L _).fractional q1 q2 |>.1 $$ Htree with ⟨Ht1, Ht2⟩
       icases idxCmpOwn_split γ L cmax q1 q2 $$ Hcmp with ⟨Hc1, Hc2⟩
       isplitl [Hn1 Ht1 Hc1]
       · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn1 Ht1 Hc1; iframe #; ipureintro
@@ -876,7 +966,7 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       icases monoNatAuthOwn_agree γ.nev q1 q2 n1 n2 $$ Hnev1 Hnev2 with %Hn
       obtain ⟨-, Hn⟩ := Hn
       subst Hn
-      icases ownTree_combine t L1 L2 q1 q2 $$ Htree1 Htree2 with ⟨%HL, Htree⟩
+      icases ownTree_combine t L1 L2 _ _ q1 q2 $$ Htree1 Htree2 with ⟨%HL, Htree⟩
       subst HL
       iexists ilog1, pend1, L1, cmax1
       simp only [named]

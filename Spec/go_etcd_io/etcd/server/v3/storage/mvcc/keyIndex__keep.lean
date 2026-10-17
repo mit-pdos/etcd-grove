@@ -25,13 +25,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 revision `keep` keeps (`keepApply`: `doCompact`'s, but not a tombstone ending a generation that
 is not the last, `kiKeep`; nothing for an empty key index). -/
 abbrev mvcc.keyIndex.keep.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac) (atRev : w64) (m : GoMap)
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (dq : DFrac) (atRev : w64) (m : GoMap)
     (A : GMap Revision Unit),
   mvcc.gensOk ki →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) A }}
+      mvcc.ownKi p gs ki lf dq ∗ ownMap m (DFrac.own 1) A }}
     (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"keep")) (Val #atRev)) (Val #m))
-  {{ RET #(); mvcc.ownKi p gs ki dq ∗ ownMap m (DFrac.own 1) (mvcc.keepApply A atRev ki) }}
+  {{ RET #(); mvcc.ownKi p gs ki lf dq ∗ ownMap m (DFrac.own 1) (mvcc.keepApply A atRev ki) }}
 
 end spec
 

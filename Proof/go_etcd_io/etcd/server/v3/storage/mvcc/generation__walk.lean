@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG := hG) := by
-  intro g gv gm dq f p R Q
+  intro g gv gm lf dq f p R Q
   wp_start as ⟨Hgv, Hgm, #Hf, HR⟩
   iunfold mvcc.ownGen at Hgm
   icases Hgm with ⟨%Hfields, Hrevs, Hcap⟩
@@ -56,9 +56,9 @@ theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG
     simp only [Hbnd, and_self, ↓reduceIte]
     -- the range value (unused): the element at `n`
     obtain ⟨e, He⟩ : ∃ e, gm.revs[sint.nat n]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
-    have He' : (List.map mvcc.revVal gm.revs)[(sint.Z n).toNat]? = some (mvcc.revVal e) := by
+    have He' : (List.map (mvcc.rlVal lf) gm.revs)[(sint.Z n).toNat]? = some (mvcc.rlVal lf e) := by
       rw [List.getElem?_map]; show (gm.revs[sint.nat n]?).map _ = _; rw [He]; rfl
-    wp_apply wp_load_slice_index gv.revs' (sint.Z n) _ dq (mvcc.revVal e) Hn.1 $$ [Hrevs] as Hrevs
+    wp_apply wp_load_slice_index gv.revs' (sint.Z n) _ dq (mvcc.rlVal lf e) Hn.1 $$ [Hrevs] as Hrevs
     · iframe; ipureintro; exact He'
     -- `g.revs[l-i-1]`: the element at `len - n - 1`
     have Hj : sint.Z (gv.revs'.len - n - W64 1) = (gm.revs.length - sint.nat n - 1 : Nat) := by word
@@ -68,13 +68,21 @@ theorem mvcc.generation.walk.wp_proof : mvcc.generation.walk.spec (GF := GF) (hG
     have Hjlt : gm.revs.length - sint.nat n - 1 < gm.revs.length := by omega
     obtain ⟨e1, He1⟩ : ∃ e1, gm.revs[gm.revs.length - sint.nat n - 1]? = some e1 :=
       ⟨_, List.getElem?_eq_getElem Hjlt⟩
-    have He1' : (List.map mvcc.revVal gm.revs)[(sint.Z (gv.revs'.len - n - W64 1)).toNat]? =
-        some (mvcc.revVal e1) := by
+    have He1' : (List.map (mvcc.rlVal lf) gm.revs)[(sint.Z (gv.revs'.len - n - W64 1)).toNat]? =
+        some (mvcc.rlVal lf e1) := by
       rw [Hj, List.getElem?_map]; show (gm.revs[gm.revs.length - sint.nat n - 1]?).map _ = _
       rw [He1]; rfl
-    wp_apply wp_load_slice_index gv.revs' (sint.Z (gv.revs'.len - n - W64 1)) _ dq
-      (mvcc.revVal e1) Hbnd2.1 $$ [Hrevs] as Hrevs
-    · iframe; ipureintro; exact He1'
+    -- only its `revision` field is read
+    icases ownSlice_elem_acc (sint.Z (gv.revs'.len - n - W64 1)) _ gv.revs' dq _ Hbnd2.1 He1'
+      $$ Hrevs with ⟨Hel, Hback⟩
+    icases mvcc.rl_split _ _ _ $$ Hel with ⟨HelR, HelL, %Helnn⟩
+    wp_auto
+    ihave Hel := mvcc.rl_combine _ _ dq Helnn $$ [HelR HelL]
+    · iframe HelR HelL
+    ispecialize Hback $$ %_ Hel
+    rw [mvcc.set_same He1'] at *
+    irename Hback => Hrevs
+    try simp only [mvcc.rlVal_revision]
     iunfold mvcc.walkFnSpecR at Hf
     ihave #Hfr := Hf $$ %(mvcc.revVal e1)
     wp_apply Hfr $$ [$HR] as HR

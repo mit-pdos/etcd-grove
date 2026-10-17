@@ -28,7 +28,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     (hKeyIndex : mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG))
     (hGet : mvcc.keyIndex.get.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG) := by
-  intro ti t lg L q key k atRev e
+  intro ti t lg L lf q key k atRev e
   wp_start as ⟨#Htree, #Hlg, %Hlgnn, Htr, %Hne, #Hkey, #Herr⟩
   wp_auto
   iStructNamedPrefix «$r0» "K"
@@ -68,7 +68,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     -- the key index's key (`ki.get` reads it to log a panic)
     ihave Htr : iprop(mvcc.ownTree t L q) $$ [Ht Hkis]
     · iunfold mvcc.ownTree; iframe Ht Hkis; ipureintro; exact Hsorted
-    icases mvcc.ownTree_entry t L q z (List.mem_of_getElem? hi) $$ Htr with ⟨Htr, -, #HzKey⟩
+    icases mvcc.ownTree_entry t L _ q z (List.mem_of_getElem? hi) $$ Htr with ⟨Htr, -, #HzKey⟩
     iunfold mvcc.ownTree at Htr
     icases Htr with ⟨-, Ht, Hkis⟩
     icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z q) hi |>.1 $$ Hkis

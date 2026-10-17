@@ -28,11 +28,11 @@ abbrev mvcc.generation.isEmpty.spec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
       (App (Val (g @!! go.GoType.PointerType generation.ty @!! go!"isEmpty")) (Val #()))
     {{ RET #true; True }}) ∧
-  (∀ (g : Loc) (gv : generation) (gm : mvcc.Gen) (dq : DFrac),
+  (∀ (g : Loc) (gv : generation) (gm : mvcc.Gen) (lf : mvcc.Rev → w64) (dq : DFrac),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        ⌜g ≠ null⌝ ∗ g ↦{dq} gv ∗ mvcc.ownGen gv gm dq }}
+        ⌜g ≠ null⌝ ∗ g ↦{dq} gv ∗ mvcc.ownGen gv gm lf dq }}
       (App (Val (g @!! go.GoType.PointerType generation.ty @!! go!"isEmpty")) (Val #()))
-    {{ RET #(decide (gm.revs = [])); g ↦{dq} gv ∗ mvcc.ownGen gv gm dq }})
+    {{ RET #(decide (gm.revs = [])); g ↦{dq} gv ∗ mvcc.ownGen gv gm lf dq }})
 
 end spec
 

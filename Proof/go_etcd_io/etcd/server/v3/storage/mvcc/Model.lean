@@ -114,6 +114,12 @@ def Change.isDel : Change → Bool
   | .put .. => false
   | .del _ => true
 
+/-- The lease a change writes: a put's, `0` (`lease.NoLease`) for a delete (its tombstone's
+key-value has none). -/
+def Change.lease : Change → w64
+  | .put _ _ l => l
+  | .del _ => W64 0
+
 /-- One change of revision `r` applied to a state: a put is the client model's `putKv`, a
 delete removes the key. -/
 def applyChange (r : w64) (s : List EtcdKv) : Change → List EtcdKv
@@ -162,6 +168,11 @@ def evsOfRev (r : Nat) (cs : List Change) : List Ev :=
 /-- The events of the whole log, in order. -/
 def evsOf (log : Log) : List Ev :=
   (log.zipIdx.map fun p => evsOfRev p.2 p.1).flatten
+
+/-- The lease of the change at revision `r` among the events `evs` (`0` if there is none): what
+the key index records beside `r` (`revisionLease`, etcd-io/etcd#22550). -/
+def evLease (evs : List Ev) (r : Rev) : w64 :=
+  ((evs.find? fun e => decide (e.rev = r)).map fun e => e.change.lease).getD (W64 0)
 
 /-! ## The key index (`key_index.go`) -/
 

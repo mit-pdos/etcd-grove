@@ -23,11 +23,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `ki.isEmpty()`: one generation, with no revision (`kiIsEmpty`). A read, at any fraction. -/
 abbrev mvcc.keyIndex.isEmpty.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac),
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownKi p gs ki dq }}
+      mvcc.ownKi p gs ki lf dq }}
     (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"isEmpty")) (Val #()))
-  {{ RET #(mvcc.kiIsEmpty ki); mvcc.ownKi p gs ki dq }}
+  {{ RET #(mvcc.kiIsEmpty ki); mvcc.ownKi p gs ki lf dq }}
 
 end spec
 

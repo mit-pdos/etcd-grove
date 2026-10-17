@@ -26,14 +26,14 @@ empty one: `compact` would panic, `lg.Panic`) whose generations the walk can rea
 the key index compacted (`kiCompact`: `doCompact`'s generation cut at its revision, the earlier
 ones dropped; a new generations slice), and the revision it keeps added to `available`. -/
 abbrev mvcc.keyIndex.compact.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lg : Loc) (atRev : w64) (m : GoMap)
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (lg : Loc) (atRev : w64) (m : GoMap)
     (A : GMap Revision Unit),
   lg ≠ null → mvcc.gensOk ki → mvcc.kiIsEmpty ki = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownKi p gs ki (DFrac.own 1) ∗ ownMap m (DFrac.own 1) A }}
+      mvcc.ownKi p gs ki lf (DFrac.own 1) ∗ ownMap m (DFrac.own 1) A }}
     (App (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"compact")) (Val #lg))
       (Val #atRev)) (Val #m))
-  {{ RET #(); ∃ gs' : GoSlice, mvcc.ownKi p gs' (mvcc.kiCompact atRev ki) (DFrac.own 1) ∗
+  {{ RET #(); ∃ gs' : GoSlice, mvcc.ownKi p gs' (mvcc.kiCompact atRev ki) lf (DFrac.own 1) ∗
       ownMap m (DFrac.own 1) (mvcc.availAdd A (mvcc.kiAvail atRev ki)) }}
 
 end spec

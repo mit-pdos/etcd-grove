@@ -31,7 +31,7 @@ theorem mvcc.treeIndex.unsafeVisit.wp_proof
     mvcc.treeIndex.unsafeVisit.spec (GF := GF) (hG := hG) := by
   have wp_Asc : btree.BTree.AscendGreaterOrEqual.modelSpec (GF := GF) (hG := hG) :=
     btree.BTree.AscendGreaterOrEqual.modelSpec_of wp_Asc
-  intro ti t L q key endk k e f P Q
+  intro ti t L lf q key endk k e f P Q
   wp_start as ⟨#Htree, Htr, #Hkey, #Hend, HP, #Hf⟩
   iunfold mvcc.visitSpec at Hf
   iunfold mvcc.ownTree at Htr

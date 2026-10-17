@@ -33,10 +33,10 @@ theorem mvcc.keyIndex.keep.wp_proof
     (h1 : mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG))
     (h2 : mvcc.generation.isEmpty.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.keep.spec (GF := GF) (hG := hG) := by
-  intro p gs ki dq atRev m A Hok
+  intro p gs ki lf dq atRev m A Hok
   wp_start as ⟨Hki, Hm⟩
   wp_auto
-  wp_apply (h0 p gs ki dq) $$ [Hki] as Hki
+  wp_apply (h0 p gs ki lf dq) $$ [Hki] as Hki
   · iframe Hki
   cases Hemp : mvcc.kiIsEmpty ki
   rotate_left
@@ -47,12 +47,12 @@ theorem mvcc.keyIndex.keep.wp_proof
     iframe
   wp_pures
   wp_auto
-  wp_apply (h1 p gs ki dq atRev m A Hok) $$ [Hki Hm] as ⟨Hki, Hm⟩
+  wp_apply (h1 p gs ki lf dq atRev m A Hok) $$ [Hki Hm] as ⟨Hki, Hm⟩
   · iframe Hki Hm
   obtain ⟨Hgne, Hnonlast⟩ := Hok
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   have Hgilt := mvcc.compactGenIdx_lt atRev ki.gens Hgne
   obtain ⟨gi, Hgi⟩ : ∃ gi, mvcc.compactGenIdx atRev ki.gens = gi := ⟨_, rfl⟩
   rw [Hgi] at Hgilt ⊢
@@ -83,10 +83,10 @@ theorem mvcc.keyIndex.keep.wp_proof
   wp_auto
   simp only [Hb, _root_.and_self, ↓reduceIte]
   wp_auto
-  icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z (W64 (gi : Int))) gm Hb.1
+  icases mvcc.ownGens_acc_z gs ki.gens _ dq (sint.Z (W64 (gi : Int))) gm Hb.1
     (by rw [Hgiz]; exact Hgm) $$ Hgens with ⟨%gv, Hel, Hg, Hback⟩
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hel
-  wp_apply (h2.2 _ gv gm dq) $$ [Hel Hg] as ⟨Hel, Hg⟩
+  wp_apply (h2.2 _ gv gm lf dq) $$ [Hel Hg] as ⟨Hel, Hg⟩
   · iframe; ipureintro; exact Hnn
   rw [Hgiz, show ((gi : Int)).toNat = gi from rfl]
   rw [Hgiz] at Hnn
@@ -124,7 +124,7 @@ theorem mvcc.keyIndex.keep.wp_proof
         have hcond : (gm.revs ≠ [] ∧ ri = ((gm.revs.length - 1 : Nat) : Int) ∧
             gi ≠ ki.gens.length - 1) = False := eq_false (fun h => h.2.2 Hc2)
         simp only [Hri0, ↓reduceIte, mvcc.availAdd, hcond]
-        ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hrcap]
+        ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hrcap]
         · iunfold mvcc.ownGen; iframe Hrevs Hrcap; ipureintro; exact Hfields
         ispecialize Hback $$ %gv %gm Hel Hg
         rw [mvcc.set_same Hgm]
@@ -136,7 +136,8 @@ theorem mvcc.keyIndex.keep.wp_proof
         have Hc2 : gi ≠ ki.gens.length - 1 := by have h := Hif; intro h'; apply h; rw [h']; word
         obtain ⟨r, Hr⟩ : ∃ r, gm.revs[ri.toNat]? = some r :=
           ⟨_, List.getElem?_eq_getElem (by omega)⟩
-        have Hrv : (List.map mvcc.revVal gm.revs)[(sint.Z (W64 ri)).toNat]? = some (mvcc.revVal r) := by
+        have Hrv : (List.map (mvcc.rlVal lf) gm.revs)[(sint.Z (W64 ri)).toNat]? =
+            some (mvcc.rlVal lf r) := by
           rw [List.getElem?_map, show (sint.Z (W64 ri)).toNat = ri.toNat by word, Hr]; rfl
         have Hrd : gm.revs.getD ri.toNat mvcc.Rev.zero = r := by
           rw [List.getD_eq_getElem?_getD, Hr]; rfl
@@ -145,9 +146,16 @@ theorem mvcc.keyIndex.keep.wp_proof
         icases mvcc.gen_split _ _ _ $$ Hel with ⟨Hver, Hcreated, Hrevsf, -⟩
         wp_auto
         simp only [Hbr, _root_.and_self, ↓reduceIte]
-        wp_apply wp_load_slice_index gv.revs' (sint.Z (W64 ri)) _ dq (mvcc.revVal r) Hbr.1
-          $$ [Hrevs] as Hrevs
-        · iframe; ipureintro; exact Hrv
+        icases ownSlice_elem_acc (sint.Z (W64 ri)) _ gv.revs' dq _ Hbr.1 Hrv $$ Hrevs
+          with ⟨Hrl, Hrlback⟩
+        icases mvcc.rl_split _ _ _ $$ Hrl with ⟨HrlR, HrlL, %Hrlnn⟩
+        wp_auto
+        ihave Hrl := mvcc.rl_combine _ _ dq Hrlnn $$ [HrlR HrlL]
+        · iframe HrlR HrlL
+        ispecialize Hrlback $$ %_ Hrl
+        rw [mvcc.set_same Hrv] at *
+        irename Hrlback => Hrevs
+        try simp only [mvcc.rlVal_revision]
         wp_apply (wp_mapDelete m _ (mvcc.revVal r) Revision.ty (go.StructType [])) $$ [$Hm] as Hm
         ihave Hel := mvcc.gen_combine (sliceIndexRef generation (gi : Int) gs) gv dq Hnn
           $$ [Hver Hcreated Hrevsf]
@@ -155,7 +163,7 @@ theorem mvcc.keyIndex.keep.wp_proof
         have hcond : (gm.revs ≠ [] ∧ ri = ((gm.revs.length - 1 : Nat) : Int) ∧
             gi ≠ ki.gens.length - 1) = True := eq_true ⟨Hne', Hc1, Hc2⟩
         simp only [Hri0, ↓reduceIte, mvcc.availAdd, hcond, Hrd, reduceCtorEq]
-        ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hrcap]
+        ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hrcap]
         · iunfold mvcc.ownGen; iframe Hrevs Hrcap; ipureintro; exact Hfields
         ispecialize Hback $$ %gv %gm Hel Hg
         rw [mvcc.set_same Hgm]
@@ -168,7 +176,7 @@ theorem mvcc.keyIndex.keep.wp_proof
         have h := Hif; intro h'; apply h; rw [h', Hrl.1]; word
       by_cases Hri0 : ri = -1
       · simp only [Hri0, ↓reduceIte, mvcc.availAdd]
-        ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hrcap]
+        ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hrcap]
         · iunfold mvcc.ownGen; iframe Hrevs Hrcap; ipureintro; exact Hfields
         ispecialize Hback $$ %gv %gm Hel Hg
         rw [mvcc.set_same Hgm]
@@ -179,7 +187,7 @@ theorem mvcc.keyIndex.keep.wp_proof
       · have hcond : (gm.revs ≠ [] ∧ ri = ((gm.revs.length - 1 : Nat) : Int) ∧
             gi ≠ ki.gens.length - 1) = False := eq_false (fun h => Hc1 h.2.1)
         simp only [Hri0, ↓reduceIte, mvcc.availAdd, hcond]
-        ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hrcap]
+        ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hrcap]
         · iunfold mvcc.ownGen; iframe Hrevs Hrcap; ipureintro; exact Hfields
         ispecialize Hback $$ %gv %gm Hel Hg
         rw [mvcc.set_same Hgm]

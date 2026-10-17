@@ -25,11 +25,11 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 /-- `ti.keyIndex(keyi)` (under the lock, on the tree at any fraction): the key index of
 `keyi`'s key, or `nil`. -/
 abbrev mvcc.treeIndex.keyIndex.spec : Prop :=
-  ∀ (ti t : Loc) (L : List mvcc.IdxEntry) (q : Qp) (keyi : Loc) (k : GoString),
+  ∀ (ti t : Loc) (L : List mvcc.IdxEntry) (lf : mvcc.Rev → w64) (q : Qp) (keyi : Loc) (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ti.[treeIndex, go!"tree"] ↦□ t ∗ mvcc.ownTree t L q ∗ mvcc.kiItemIs keyi (keyi, k) }}
+      ti.[treeIndex, go!"tree"] ↦□ t ∗ mvcc.ownTree t L lf q ∗ mvcc.kiItemIs keyi (keyi, k) }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"keyIndex")) (Val #keyi))
-  {{ (p : Loc), RET #p; mvcc.ownTree t L q ∗
+  {{ (p : Loc), RET #p; mvcc.ownTree t L lf q ∗
       ⌜p = ((L.find? fun z => decide (z.2.1 = k)).map Prod.fst).getD null⌝ }}
 
 end spec

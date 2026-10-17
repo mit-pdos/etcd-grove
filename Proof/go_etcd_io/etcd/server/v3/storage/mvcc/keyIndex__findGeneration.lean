@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.keyIndex.findGeneration.wp_proof :
     mvcc.keyIndex.findGeneration.spec (GF := GF) (hG := hG) := by
-  intro p gs ki dq rev
+  intro p gs ki lf dq rev
   wp_start as Hki
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   wp_auto
   -- the scan from `cg` down: what is left to look at is `kiFindGenAux` with `cg + 1` generations
   ihave IH : iprop(∃ cg : w64,
@@ -51,7 +51,7 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
     simp only [Hb, and_self, ↓reduceIte]
     obtain ⟨gm, Hgm⟩ : ∃ gm, ki.gens[(sint.Z cg).toNat]? = some gm :=
       ⟨_, List.getElem?_eq_getElem Hcgn⟩
-    icases mvcc.ownGens_acc_z gs ki.gens dq (sint.Z cg) gm Hb.1 Hgm $$ Hgens
+    icases mvcc.ownGens_acc_z gs ki.gens lf dq (sint.Z cg) gm Hb.1 Hgm $$ Hgens
       with ⟨%gv, Hel, Hg, Hback⟩
     iunfold mvcc.ownGen at Hg
     icases Hg with ⟨%Hfields, Hrevs, Hcap⟩
@@ -70,7 +70,7 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
       ihave Hel := mvcc.gen_combine (sliceIndexRef generation (sint.Z cg) gs) gv dq Hnn
         $$ [Hver Hcreated Hrevsf]
       · iframe Hver Hcreated Hrevsf
-      ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hcap]
+      ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hcap]
       · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
       ispecialize Hback $$ %gv %gm Hel Hg
       rw [mvcc.set_same Hgm]
@@ -91,8 +91,8 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_auto
       -- the generation's first and last revisions
-      have Hfirst := mvcc.revs_first gm.revs hne
-      have Hlast := mvcc.revs_last gm.revs gv.revs'.len hne Hrlen.1
+      have Hfirst := mvcc.revs_first lf gm.revs hne
+      have Hlast := mvcc.revs_last lf gm.revs gv.revs'.len hne Hrlen.1
       have Hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z gv.revs'.len := by
         have := List.length_pos_iff.2 hne; word
       have HbL : 0 ≤ sint.Z (gv.revs'.len - W64 1) ∧
@@ -109,20 +109,20 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
         simp only [Hb0, _root_.and_self, ↓reduceIte]
         icases ownSlice_elem_acc (sint.Z (W64 0)) _ gv.revs' dq _ Hb0.1 Hfirst $$ Hrevs
           with ⟨Hfel, Hfback⟩
-        icases mvcc.rev_split _ _ _ $$ Hfel with ⟨HfMain, HfSub, %Hfnn⟩
+        icases mvcc.rlRev_split _ _ _ $$ Hfel with ⟨HfMain, HfSub, HfL, %Hfnn⟩
         wp_auto
-        ihave Hfel := mvcc.rev_combine (sliceIndexRef Revision (sint.Z (W64 0)) gv.revs') _ dq Hfnn
-          $$ [HfMain HfSub]
-        · iframe HfMain HfSub
+        ihave Hfel := mvcc.rlRev_combine (sliceIndexRef revisionLease (sint.Z (W64 0)) gv.revs') _ dq Hfnn
+          $$ [HfMain HfSub HfL]
+        · iframe HfMain HfSub HfL
         ispecialize Hfback $$ %_ Hfel
         rw [mvcc.set_same Hfirst]
         irename Hfback => Hrevs
-        (try simp only [mvcc.revVal_main])
+        (try simp only [mvcc.rlVal_revision, mvcc.revVal_main])
         wp_if_destruct
         · -- found: the generation at `cg`
           simp only [Hb, _root_.and_self, ↓reduceIte]
           wp_auto
-          ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hcap]
+          ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hcap]
           · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
           ispecialize Hback $$ %gv %gm Hel Hg
           rw [mvcc.set_same Hgm]
@@ -138,7 +138,7 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
           iunfold mvcc.ownKi
           iframe Hmod Hgs Hback
         · -- not yet created at `rev`: the previous generation
-          ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hcap]
+          ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hcap]
           · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
           ispecialize Hback $$ %gv %gm Hel Hg
           rw [mvcc.set_same Hgm]
@@ -157,18 +157,18 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
         simp only [HbL, _root_.and_self, ↓reduceIte]
         icases ownSlice_elem_acc (sint.Z (gv.revs'.len - W64 1)) _ gv.revs' dq _ HbL.1 Hlast $$ Hrevs
           with ⟨Hlel, Hlback⟩
-        icases mvcc.rev_split _ _ _ $$ Hlel with ⟨HlMain, HlSub, %Hlnn⟩
+        icases mvcc.rlRev_split _ _ _ $$ Hlel with ⟨HlMain, HlSub, HlL, %Hlnn⟩
         wp_auto
-        ihave Hlel := mvcc.rev_combine (sliceIndexRef Revision (sint.Z (gv.revs'.len - W64 1)) gv.revs')
-          _ dq Hlnn $$ [HlMain HlSub]
-        · iframe HlMain HlSub
+        ihave Hlel := mvcc.rlRev_combine (sliceIndexRef revisionLease (sint.Z (gv.revs'.len - W64 1)) gv.revs')
+          _ dq Hlnn $$ [HlMain HlSub HlL]
+        · iframe HlMain HlSub HlL
         ispecialize Hlback $$ %_ Hlel
         rw [mvcc.set_same Hlast]
         irename Hlback => Hrevs
-        (try simp only [mvcc.revVal_main])
+        (try simp only [mvcc.rlVal_revision, mvcc.revVal_main])
         wp_if_destruct
         · -- deleted at or before `rev`: the key is absent
-          ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hcap]
+          ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hcap]
           · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
           ispecialize Hback $$ %gv %gm Hel Hg
           rw [mvcc.set_same Hgm]
@@ -191,20 +191,20 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
           simp only [Hb0, _root_.and_self, ↓reduceIte]
           icases ownSlice_elem_acc (sint.Z (W64 0)) _ gv.revs' dq _ Hb0.1 Hfirst $$ Hrevs
             with ⟨Hfel, Hfback⟩
-          icases mvcc.rev_split _ _ _ $$ Hfel with ⟨HfMain, HfSub, %Hfnn⟩
+          icases mvcc.rlRev_split _ _ _ $$ Hfel with ⟨HfMain, HfSub, HfL, %Hfnn⟩
           wp_auto
-          ihave Hfel := mvcc.rev_combine (sliceIndexRef Revision (sint.Z (W64 0)) gv.revs') _ dq Hfnn
-            $$ [HfMain HfSub]
-          · iframe HfMain HfSub
+          ihave Hfel := mvcc.rlRev_combine (sliceIndexRef revisionLease (sint.Z (W64 0)) gv.revs') _ dq Hfnn
+            $$ [HfMain HfSub HfL]
+          · iframe HfMain HfSub HfL
           ispecialize Hfback $$ %_ Hfel
           rw [mvcc.set_same Hfirst]
           irename Hfback => Hrevs
-          (try simp only [mvcc.revVal_main])
+          (try simp only [mvcc.rlVal_revision, mvcc.revVal_main])
           wp_if_destruct
           · -- found: the generation at `cg`
             simp only [Hb, _root_.and_self, ↓reduceIte]
             wp_auto
-            ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hcap]
+            ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hcap]
             · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
             ispecialize Hback $$ %gv %gm Hel Hg
             rw [mvcc.set_same Hgm]
@@ -220,7 +220,7 @@ theorem mvcc.keyIndex.findGeneration.wp_proof :
             iunfold mvcc.ownKi
             iframe Hmod Hgs Hback
           · -- not yet created at `rev`: the previous generation
-            ihave Hg : iprop(mvcc.ownGen gv gm dq) $$ [Hrevs Hcap]
+            ihave Hg : iprop(mvcc.ownGen gv gm lf dq) $$ [Hrevs Hcap]
             · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
             ispecialize Hback $$ %gv %gm Hel Hg
             rw [mvcc.set_same Hgm]

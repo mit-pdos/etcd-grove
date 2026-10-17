@@ -27,12 +27,12 @@ of the last revision failing `p`, or `-1` (`genWalk`), and what the closure left
 A read of the generation, at any fraction. (`get`'s closure is pure: `walkFnSpecR_of_pure`;
 `doCompact`'s writes the `available` map.) -/
 abbrev mvcc.generation.walk.spec : Prop :=
-  ∀ (g : Loc) (gv : generation) (gm : mvcc.Gen) (dq : DFrac) (f : GoFunc) (p : mvcc.Rev → Bool)
+  ∀ (g : Loc) (gv : generation) (gm : mvcc.Gen) (lf : mvcc.Rev → w64) (dq : DFrac) (f : GoFunc) (p : mvcc.Rev → Bool)
     (R : IProp GF) (Q : mvcc.Rev → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      g ↦{dq} gv ∗ mvcc.ownGen gv gm dq ∗ mvcc.walkFnSpecR f p R Q ∗ R }}
+      g ↦{dq} gv ∗ mvcc.ownGen gv gm lf dq ∗ mvcc.walkFnSpecR f p R Q ∗ R }}
     (App (Val (g @!! go.GoType.PointerType generation.ty @!! go!"walk")) (Val #f))
-  {{ RET #(W64 (mvcc.genWalk gm.revs p)); g ↦{dq} gv ∗ mvcc.ownGen gv gm dq ∗
+  {{ RET #(W64 (mvcc.genWalk gm.revs p)); g ↦{dq} gv ∗ mvcc.ownGen gv gm lf dq ∗
       mvcc.walkPost gm.revs p R Q }}
 
 end spec

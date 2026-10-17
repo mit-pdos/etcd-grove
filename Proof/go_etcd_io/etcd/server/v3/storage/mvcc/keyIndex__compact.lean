@@ -31,14 +31,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- The generations after the first `i`, dropped. -/
-theorem mvcc.ownGensL_drop (dq : DFrac) : ∀ (i : Nat) (gvs : List generation) (gens : List mvcc.Gen),
-    mvcc.ownGensL (GF := GF) dq gvs gens ⊢ mvcc.ownGensL dq (gvs.drop i) (gens.drop i)
+theorem mvcc.ownGensL_drop (lf : mvcc.Rev → w64) (dq : DFrac) :
+    ∀ (i : Nat) (gvs : List generation) (gens : List mvcc.Gen),
+    mvcc.ownGensL (GF := GF) lf dq gvs gens ⊢ mvcc.ownGensL lf dq (gvs.drop i) (gens.drop i)
   | 0, gvs, gens => by simp only [List.drop_zero]; exact .rfl
   | _ + 1, [], [] => by simp only [List.drop_nil]; exact .rfl
   | i + 1, _ :: gvs, _ :: gens => by
     simp only [mvcc.ownGensL, List.drop_succ_cons]
     iintro ⟨-, H⟩
-    iapply mvcc.ownGensL_drop dq i gvs gens $$ H
+    iapply mvcc.ownGensL_drop lf dq i gvs gens $$ H
   | _ + 1, [], _ :: _ => by simp only [mvcc.ownGensL]; iintro %h; exact h.elim
   | _ + 1, _ :: _, [] => by simp only [mvcc.ownGensL]; iintro %h; exact h.elim
 
@@ -49,20 +50,20 @@ theorem mvcc.keyIndex.compact.wp_proof
     (h3 : mvcc.keyIndex.doCompact.spec (GF := GF) (hG := hG))
     (h4 : mvcc.generation.isEmpty.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.compact.spec (GF := GF) (hG := hG) := by
-  intro p gs ki lg atRev m A Hlg Hok Hne
+  intro p gs ki lf lg atRev m A Hlg Hok Hne
   wp_start as ⟨Hki, Hm⟩
   wp_auto
-  wp_apply (h0 p gs ki (DFrac.own 1)) $$ [Hki] as Hki
+  wp_apply (h0 p gs ki lf (DFrac.own 1)) $$ [Hki] as Hki
   · iframe Hki
   rw [Hne]
   wp_pures
   wp_auto
-  wp_apply (h3 p gs ki (DFrac.own 1) atRev m A Hok) $$ [Hki Hm] as ⟨Hki, Hm⟩
+  wp_apply (h3 p gs ki lf (DFrac.own 1) atRev m A Hok) $$ [Hki Hm] as ⟨Hki, Hm⟩
   · iframe Hki Hm
   obtain ⟨Hgne, Hnonlast⟩ := Hok
   iunfold mvcc.ownKi at Hki
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
-  ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
+  ihave %Hlen := mvcc.ownGens_len _ _ _ _ $$ Hgens
   have Hgilt := mvcc.compactGenIdx_lt atRev ki.gens Hgne
   obtain ⟨gi, Hgi⟩ : ∃ gi, mvcc.compactGenIdx atRev ki.gens = gi := ⟨_, rfl⟩
   rw [Hgi] at Hgilt ⊢
@@ -81,10 +82,10 @@ theorem mvcc.keyIndex.compact.wp_proof
   wp_auto
   simp only [Hb, _root_.and_self, ↓reduceIte]
   wp_auto
-  icases mvcc.ownGens_acc_z gs ki.gens (DFrac.own 1) (sint.Z (W64 (gi : Int))) gm Hb.1
+  icases mvcc.ownGens_acc_z gs ki.gens _ (DFrac.own 1) (sint.Z (W64 (gi : Int))) gm Hb.1
     (by rw [Hgiz]; exact Hgm) $$ Hgens with ⟨%gv, Hel, Hg, Hback⟩
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hel
-  wp_apply (h4.2 _ gv gm (DFrac.own 1)) $$ [Hel Hg] as ⟨Hel, Hg⟩
+  wp_apply (h4.2 _ gv gm lf (DFrac.own 1)) $$ [Hel Hg] as ⟨Hel, Hg⟩
   · iframe; ipureintro; exact Hnn
   rw [Hgiz, show ((gi : Int)).toNat = gi from rfl]
   wp_if_destruct
@@ -123,7 +124,7 @@ theorem mvcc.keyIndex.compact.wp_proof
       icases Hgens with ⟨%gvs, Hgvs, Hcap, Hall⟩
       ihave %Hgwf := ownSlice_wf _ _ _ $$ Hgvs
       ihave %Hgl := ownSlice_len _ _ _ $$ Hgvs
-      ihave %HlenL := mvcc.ownGensL_len _ _ _ $$ Hall
+      ihave %HlenL := mvcc.ownGensL_len _ _ _ _ $$ Hall
       have Hsb : 0 ≤ sint.Z (W64 (gi : Int)) ∧ sint.Z (W64 (gi : Int)) ≤ sint.Z gs.len ∧
           sint.Z gs.len ≤ sint.Z gs.cap := by
         rw [Hgiz]; refine ⟨by omega, ?_, Hgwf.2⟩; have := Hlen.1; word
@@ -131,7 +132,7 @@ theorem mvcc.keyIndex.compact.wp_proof
       wp_auto
       icases (ownSlice_split_all (W64 (gi : Int)) gs _ gvs ⟨Hsb.1, Hsb.2.1⟩).1 $$ Hgvs with ⟨-, Hgvs⟩
       ihave Hcap := (ownSliceCap_slice gs (W64 (gi : Int)) _ Hsb).1 $$ Hcap
-      ihave Hall := mvcc.ownGensL_drop (DFrac.own 1) gi _ _ $$ Hall
+      ihave Hall := mvcc.ownGensL_drop lf (DFrac.own 1) gi _ _ $$ Hall
       iapply HΦ
       iframe Hm
       iexists slice.slice gs generation (W64 (gi : Int)) gs.len
@@ -147,7 +148,7 @@ theorem mvcc.keyIndex.compact.wp_proof
       icases Hg with ⟨%Hfields, Hrevs, Hrcap⟩
       ihave %Hrl := ownSlice_len _ _ _ $$ Hrevs
       rw [List.length_map] at Hrl
-      ihave Hg : iprop(mvcc.ownGen gv gm (DFrac.own 1)) $$ [Hrevs Hrcap]
+      ihave Hg : iprop(mvcc.ownGen gv gm lf (DFrac.own 1)) $$ [Hrevs Hrcap]
       · iunfold mvcc.ownGen; iframe Hrevs Hrcap; ipureintro; exact Hfields
       have Hri0 : ri = -1 := by
         have Hrr := mvcc.genWalk_range gm.revs (mvcc.pAbove atRev)
@@ -165,7 +166,7 @@ theorem mvcc.keyIndex.compact.wp_proof
       icases Hgens with ⟨%gvs, Hgvs, Hcap, Hall⟩
       ihave %Hgwf := ownSlice_wf _ _ _ $$ Hgvs
       ihave %Hgl := ownSlice_len _ _ _ $$ Hgvs
-      ihave %HlenL := mvcc.ownGensL_len _ _ _ $$ Hall
+      ihave %HlenL := mvcc.ownGensL_len _ _ _ _ $$ Hall
       have Hsb : 0 ≤ sint.Z (W64 (gi : Int)) ∧ sint.Z (W64 (gi : Int)) ≤ sint.Z gs.len ∧
           sint.Z gs.len ≤ sint.Z gs.cap := by
         rw [Hgiz]; refine ⟨by omega, ?_, Hgwf.2⟩; have := Hlen.1; word
@@ -173,7 +174,7 @@ theorem mvcc.keyIndex.compact.wp_proof
       wp_auto
       icases (ownSlice_split_all (W64 (gi : Int)) gs _ gvs ⟨Hsb.1, Hsb.2.1⟩).1 $$ Hgvs with ⟨-, Hgvs⟩
       ihave Hcap := (ownSliceCap_slice gs (W64 (gi : Int)) _ Hsb).1 $$ Hcap
-      ihave Hall := mvcc.ownGensL_drop (DFrac.own 1) gi _ _ $$ Hall
+      ihave Hall := mvcc.ownGensL_drop lf (DFrac.own 1) gi _ _ $$ Hall
       iapply HΦ
       iframe Hm
       iexists slice.slice gs generation (W64 (gi : Int)) gs.len
@@ -197,7 +198,7 @@ theorem mvcc.keyIndex.compact.wp_proof
     icases Hgens with ⟨%gvs, Hgvs, Hcap, Hall⟩
     ihave %Hgwf := ownSlice_wf _ _ _ $$ Hgvs
     ihave %Hgl := ownSlice_len _ _ _ $$ Hgvs
-    ihave %HlenL := mvcc.ownGensL_len _ _ _ $$ Hall
+    ihave %HlenL := mvcc.ownGensL_len _ _ _ _ $$ Hall
     have Hsb : 0 ≤ sint.Z (W64 (gi : Int)) ∧ sint.Z (W64 (gi : Int)) ≤ sint.Z gs.len ∧
         sint.Z gs.len ≤ sint.Z gs.cap := by
       rw [Hgiz]; refine ⟨by omega, ?_, Hgwf.2⟩; have := Hlen.1; word
@@ -205,7 +206,7 @@ theorem mvcc.keyIndex.compact.wp_proof
     wp_auto
     icases (ownSlice_split_all (W64 (gi : Int)) gs _ gvs ⟨Hsb.1, Hsb.2.1⟩).1 $$ Hgvs with ⟨-, Hgvs⟩
     ihave Hcap := (ownSliceCap_slice gs (W64 (gi : Int)) _ Hsb).1 $$ Hcap
-    ihave Hall := mvcc.ownGensL_drop (DFrac.own 1) gi _ _ $$ Hall
+    ihave Hall := mvcc.ownGensL_drop lf (DFrac.own 1) gi _ _ $$ Hall
     iapply HΦ
     iframe Hm
     iexists slice.slice gs generation (W64 (gi : Int)) gs.len

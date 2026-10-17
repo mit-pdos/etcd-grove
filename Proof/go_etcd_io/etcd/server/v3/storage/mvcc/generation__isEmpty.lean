@@ -30,7 +30,7 @@ theorem mvcc.generation.isEmpty.wp_proof : mvcc.generation.isEmpty.spec (GF := G
     wp_start
     wp_auto
     wp_end
-  · intro g gv gm dq
+  · intro g gv gm lf dq
     wp_start as ⟨%Hg, Hgv, Hgm⟩
     wp_auto
     wp_if_destruct

@@ -24,11 +24,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `ki.findGeneration(rev)`: `nil`, or the address of the generation of the key at `rev`
 (`kiFindGen`), in the generations slice `gs`. A read, at any fraction. -/
 abbrev mvcc.keyIndex.findGeneration.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac) (rev : w64),
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (dq : DFrac) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownKi p gs ki dq }}
+      mvcc.ownKi p gs ki lf dq }}
     (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"findGeneration")) (Val #rev))
-  {{ RET #(mvcc.genPtr gs (mvcc.kiFindGen ki rev)); mvcc.ownKi p gs ki dq }}
+  {{ RET #(mvcc.genPtr gs (mvcc.kiFindGen ki rev)); mvcc.ownKi p gs ki lf dq }}
 
 end spec
 

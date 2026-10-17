@@ -28,7 +28,7 @@ theorem mvcc.treeIndex.keyIndex.wp_proof
     (wp_Get : btree.BTree.Get.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) := by
   have wp_Get : btree.BTree.Get.modelSpec (GF := GF) (hG := hG) := btree.BTree.Get.modelSpec_of wp_Get
-  intro ti t L q keyi k
+  intro ti t L lf q keyi k
   wp_start as ⟨#Htree, Htr, #Hkeyi⟩
   iunfold mvcc.ownTree at Htr
   icases Htr with ⟨%Hsorted, Ht, Hkis⟩
