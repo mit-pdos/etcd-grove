@@ -117,7 +117,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
+    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) Hwf Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
@@ -127,7 +127,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c scfg r id s ml m ents sn rs sv ctx
-        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (Hwf.2.2.1)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -142,9 +142,9 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
+    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) ?_ Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
-    · exact ⟨rfl, rfl⟩
+    · exact nstateWf_becomeFollower s s.term m.From' Hwf.2.2 (Int.le_refl _)
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
@@ -157,7 +157,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `handleSnapshot`
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c scfg r id s ml m ents sn rs sv ctx
-        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (Hwf.2.2.1)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -172,9 +172,9 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
+    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) ?_ Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
-    · exact ⟨rfl, rfl⟩
+    · exact nstateWf_becomeFollower s s.term m.From' Hwf.2.2 (Int.le_refl _)
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1

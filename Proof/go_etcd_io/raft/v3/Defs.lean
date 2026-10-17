@@ -1341,6 +1341,19 @@ theorem followerVotesOk_phys (s : NState) (Hfv : FollowerVotesOk (toPState s))
 theorem toPState_vote (s : NState) (v : w64) :
     toPState { s with vote := v } = { toPState s with vote := v } := rfl
 
+/-- (raft#139) `NStateWf` reads `r.step`, the role, `ticking`, the term and the log's leader
+term. -/
+theorem NStateWf.of_fields {s s' : NState} (H : NStateWf s) (hs : s'.stepfn = s.stepfn)
+    (hr : s'.role = s.role) (htk : s'.ticking = s.ticking) (ht : s'.term = s.term)
+    (hl : s'.logst.leaderTerm = s.logst.leaderTerm) : NStateWf s' := by
+  obtain ⟨H1, H2, H3⟩ := H
+  exact ⟨by rw [hs, hr]; exact H1, by rw [htk]; exact H2, H3.of_fields ht hr hl⟩
+
+/-- A state whose log changed but not its leader term. -/
+theorem NStateWf.of_logst {s : NState} {ls : LogState} (H : NStateWf s)
+    (hl : ls.leaderTerm = s.logst.leaderTerm) : NStateWf { s with logst := ls } :=
+  H.of_fields rfl rfl rfl rfl hl
+
 theorem nstateWf_becomeFollower (s : NState) (term lead : w64) (H : LtInv s)
     (Ht : uint.Z s.term ≤ uint.Z term) :
     NStateWf (becomeFollower s term lead) :=

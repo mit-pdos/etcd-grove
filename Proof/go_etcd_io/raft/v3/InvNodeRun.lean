@@ -830,7 +830,7 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
       s'.logst = { s.logst with committed := s'.logst.committed } ∧
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
   rcases applyCCOkC_step c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, -⟩
-  · exact ⟨⟨by rw [Hsf, Hr]; exact Hwf.1, by rw [Htk]; exact Hwf.2⟩, Ht, Hpv, Hg, Hl, Hc⟩
+  · exact ⟨Hwf.of_fields Hsf Hr Htk Ht (by rw [Hl]), Ht, Hpv, Hg, Hl, Hc⟩
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
     unfold SwitchOkC at Hsw
     rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
@@ -1042,8 +1042,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   have Hsnap' : s'.logst.snap = s.logst.snap := by rw [Hls]
   have Hstor' : s'.logst.storage = s.logst.storage := by rw [Hls]
   have Hwf' : NStateWf s' := by
-    obtain ⟨-, H1, H2⟩ := Hrel
-    exact ⟨by rw [Hsf, Hro]; exact H1, by rw [Htk]; exact H2⟩
+    exact Hrel.2.of_fields Hsf Hro Htk Htm (by rw [Hls])
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs Hlc
   rw [← Hrel.1] at *
   imod ownRaftGhost_step_0 γ id _ _ Hst $$ Hlc Hghost with Hghost

@@ -42,7 +42,9 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) :
+    (ents : List EntryM)
+    -- (raft#139) no entry of the batch above the message's term (`app_entries_term_le`)
+    (Hts : ∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term') :
     m.Type' = MsgApp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -104,7 +106,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, by rw [Hrole]; decide⟩)
+        (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, by rw [Hrole]; decide,
+          by show uint.Z s.logst.leaderTerm ≤ uint.Z m.Term'; rw [Hteq]; exact Hwf.2.2.1, Hts⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -119,7 +122,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_handle_app _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
@@ -128,7 +131,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
-        (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
+        (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (Hwf.2.2.1) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, Hts⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -136,7 +139,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
-        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := ⟨rfl, rfl⟩
+        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := nstateWf_becomeFollower s s.term m.From' Hwf.2.2 (Int.le_refl _)
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -144,7 +147,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_handle_app _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
@@ -181,7 +184,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
-        (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
+        (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (Hwf.2.2.1) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, Hts⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -189,7 +192,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf
-        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := ⟨rfl, rfl⟩
+        ({ becomeFollower s s.term m.From' with prvals := pvs } : NState) := nstateWf_becomeFollower s s.term m.From' Hwf.2.2 (Int.le_refl _)
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -197,7 +200,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_handle_app _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))

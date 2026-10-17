@@ -287,6 +287,9 @@ abbrev stepCandidate.spec : Prop :=
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
    m.Term' = s.term ∧ m.Term' ≠ W64 0) →
   s.role = .candidate ∨ s.role = .preCandidate →
+  -- (raft#139) the log's leader term is not above the node's (`NStateWf`'s `LtInv`): for
+  -- `becomeLeader` and `handleAppendEntries`
+  uint.Z s.logst.leaderTerm ≤ uint.Z s.term →
   (m.Type' = MsgApp →
      PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
      uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
@@ -297,7 +300,9 @@ abbrev stepCandidate.spec : Prop :=
       plogFindConflict ls.prev es ents = W64 0 ∨
       uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
      -- from another node (2026-10-10, `handleAppendEntries`'s premise)
-     m.From' ≠ id) →
+     m.From' ≠ id ∧
+     -- (raft#139) no entry of the batch is of a term above the message's
+     (∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term')) →
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →

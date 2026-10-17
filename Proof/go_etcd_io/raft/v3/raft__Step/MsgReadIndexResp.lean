@@ -196,7 +196,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by
               exfalso; rw [Hty] at Hc
               rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-            (.inl Hrole)
+            (.inl Hrole) (Hwf.2.2.1)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -256,7 +256,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
             (fun Hc => by
               exfalso; rw [Hty] at Hc
               rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-            (.inr Hrole)
+            (.inr Hrole) (Hwf.2.2.1)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

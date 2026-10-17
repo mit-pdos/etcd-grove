@@ -72,6 +72,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   wp_start as H
   iNamed H
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %HnwL, Hphys⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
@@ -117,11 +118,11 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_follower s m.From' Hrole Hvs) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid HnwL
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
-        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
+        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (Hwf.2.2.1)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hcommit, Hfid⟩)
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -136,13 +137,14 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩, ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_heartbeatResult _ _ _ _
+      (nstateWf_becomeFollower s s.term m.From' Hwf.2.2 (Int.le_refl _)), ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid HnwL
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
@@ -175,7 +177,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     -- the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
-        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
+        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (Hwf.2.2.1)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hcommit, Hfid⟩)
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -190,13 +192,14 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩, ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+    refine ⟨nstateWf_heartbeatResult _ _ _ _
+      (nstateWf_becomeFollower s s.term m.From' Hwf.2.2 (Int.le_refl _)), ⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid HnwL
 
 end StepProof
 

@@ -167,7 +167,8 @@ theorem nstateRel_ready (s : NState) (ps : PState) (ce : List EntryM) (sz : w64)
       { ps with outbox := [], rd := { ps.rd with states := [] } } := by
   intro ⟨Hps, Hwf⟩
   subst Hps
-  exact ⟨toPState_ready s ce sz, Hwf⟩
+  exact ⟨toPState_ready s ce sz, Hwf.of_fields rfl rfl rfl rfl
+    (by simp only [readyNstate, logAcceptApplying_leaderTerm, logAcceptUnstable_leaderTerm])⟩
 
 
 theorem RawNode.acceptReady.wp_proof
@@ -645,7 +646,9 @@ theorem RawNode.acceptReady.wp_proof
     (readyNstate s ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
-    Hwf Hin Hal Hasync Hdlen'
+    (Hwf.of_fields rfl rfl rfl rfl
+      (by simp only [readyNstate, logAcceptApplying_leaderTerm, logAcceptUnstable_leaderTerm]))
+    Hin Hal Hasync Hdlen'
     (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
     (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
     (by rw [Hlogst, Hlf.1]; exact Hrs_clb)

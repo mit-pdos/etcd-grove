@@ -171,7 +171,7 @@ local macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-          (.inl Hrole)
+          (.inl Hrole) (Hwf.2.2.1)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
@@ -225,7 +225,7 @@ local macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-          (.inr Hrole)
+          (.inr Hrole) (Hwf.2.2.1)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
@@ -377,7 +377,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h,
+  refine ⟨nstateWf_becomeFollower s m.Term' (W64 0) Hwf.2.2 (Int.le_of_lt Hgt), ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h,
     StepCD.frame ?_ (by rframe)⟩, rfl,
     ⟨fun h => by rcases h with h | h <;> rw [Hty] at h <;> exact absurd h (by w32_ne),
      fun _ => ⟨.inl (Int.le_max_right _ _), fun h => absurd h (by simp [becomeFollower])⟩⟩,

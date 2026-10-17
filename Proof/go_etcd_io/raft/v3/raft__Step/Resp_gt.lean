@@ -133,7 +133,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %({ becomeFollower s m.Term' (W64 0) with prvals := pvs })
     iframe Hphys
     ipureintro
-    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg ty m ents], fun _ Hin => List.mem_singleton.1 Hin, ?_⟩, rfl,
+    refine ⟨nstateWf_becomeFollower s m.Term' (W64 0) Hwf.2.2 (Int.le_of_lt Hgt), ⟨[absMsg ty m ents], fun _ Hin => List.mem_singleton.1 Hin, ?_⟩, rfl,
       stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
     refine StepCD.frame ?_ (by rframe)
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs

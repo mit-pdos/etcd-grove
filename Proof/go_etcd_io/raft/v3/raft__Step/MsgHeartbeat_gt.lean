@@ -71,6 +71,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   wp_start as H
   iNamed H
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %HnwL, Hphys⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
@@ -114,7 +115,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   ipureintro
   refine ⟨nstateWf_heartbeatResult _ _ _ _ ?_, ?_, rfl,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
-  · exact ⟨rfl, rfl⟩
+  · exact nstateWf_becomeFollower s m.Term' m.From' Hwf.2.2 (Int.le_of_lt Hgt)
   · refine ⟨[absMsg .heartbeat m ents ctx] ++ [absMsg .heartbeat m ents ctx], ?_, ?_⟩
     · intro m' Hm'
       simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
@@ -123,7 +124,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       refine .trans _ _ _ _ _
         (step_higher_term_leader c id (toPState s) .heartbeat m ents ctx rfl Hgt Hto Hfid) ?_
       exact step_handle_heartbeat c id _ _ m ents ctx
-        (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hcommit Hfid
+        (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hcommit Hfid HnwL
 
 end StepProof
 

@@ -242,7 +242,10 @@ abbrev stepFollower.spec : Prop :=
      m.From' ≠ id ∧
      -- (2026-10-16, stage R8a) not a leader (`handleAppendEntries`'s premise: a leader's log only
      -- grows); `Step` dispatches here at a follower
-     s.role ≠ .leader) →
+     s.role ≠ .leader ∧
+     -- (raft#139) `handleAppendEntries`'s: the log's leader term is not above the message's,
+     -- and the batch has no entry of a higher term
+     uint.Z s.logst.leaderTerm ≤ uint.Z m.Term' ∧ (∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term')) →
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →

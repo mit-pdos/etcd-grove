@@ -53,7 +53,9 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) :
+    (ents : List EntryM)
+    -- (raft#139) no entry of the batch above the message's term (`app_entries_term_le`)
+    (Hts : ∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term') :
     m.Type' = MsgApp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -93,13 +95,13 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
+  · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents Hts Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
       (Hconf (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · exact wp_Step_MsgApp_lt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
         Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgApp_eq _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
+      exact wp_Step_MsgApp_eq _P _Q c r id s ml m sn ctx rs ents Hts Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
         (Hconf (by omega)) Hteq Hvotes
 
 end StepProof

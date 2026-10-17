@@ -67,7 +67,7 @@ theorem stepCandidate.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetReject : raftpb.Message.GetReject.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
+  intro c scfg r id s ml m ents sn rs sv cl Hty Hterm Hrole HltS Happ Hhb Hpvnw Hsnap
   wp_start as H
   iNamed H
   -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
@@ -146,7 +146,7 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide)
-          (by exact Hterm' ▸ Hmnz) $$ [$Hphys]
+          (by exact Hterm' ▸ Hmnz) (by exact HltS) $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
@@ -219,7 +219,7 @@ theorem stepCandidate.wp_proof
       simp [Hty, MsgVoteResp, MsgProp]
     iexact ErrPropDropped
   · -- `MsgApp`: `becomeFollower(m.Term, m.From)`, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hconf, Hfid⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hconf, Hfid, Hts⟩ := Happ Hty
     have Hterm' := (Hterm (Or.inr (Or.inl Hty))).1
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgApp, MsgProp]]
@@ -231,7 +231,9 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml m ents sn cl rs Hwf Hnw Hconf Hfid Hty (fun h => by simp [becomeFollower] at h) $$ [$Hphys $Hm]
+      ml m ents sn cl rs Hwf Hnw Hconf Hfid Hty (fun h => by simp [becomeFollower] at h)
+      (by show uint.Z s.logst.leaderTerm ≤ uint.Z m.Term'; rw [Hterm']; exact HltS) Hts
+      $$ [$Hphys $Hm]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
@@ -245,7 +247,7 @@ theorem stepCandidate.wp_proof
     rw [← Hterm']
     exact Hres
   · -- `MsgHeartbeat`: `becomeFollower(m.Term, m.From)`, then `handleHeartbeat`
-    obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
+    obtain ⟨-, Hfrom⟩ := Hhb Hty
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inl Hty)))).1
     simp only [Hty, MsgHeartbeat]
     wp_auto
@@ -255,7 +257,7 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml _ _ _ m ents sn cl rs Hcommit Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+      ml _ _ _ m ents sn cl rs Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]

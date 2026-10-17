@@ -109,6 +109,8 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `maybeAppend`'s batch facts: carried by the message
   ihave %Hbatch := app_recv_wf γ id (toPState s) (absMsg .app m ents) rfl Hto $$ Hghost Hm
   obtain ⟨Hpwf, Hnw⟩ := Hbatch
+  -- (raft#139) the batch's terms are at most the message's
+  ihave %Hts := app_entries_term_le γ id (toPState s) (absMsg .app m ents) rfl $$ Hghost Hm
   -- the conflict fact: the protocol's, for a message no older than us
   have Hconf_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
       isMessage γ (absMsg .app m ents) -∗
@@ -132,7 +134,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `padoptLeader` agree
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgApp P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
+  wp_apply (wp_Step_MsgApp P Q c r id s ml m sn ctx rs ents Hts Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
       Hconf Hfv) $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

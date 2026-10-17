@@ -283,7 +283,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         ihave Hphys := Hback $$ Hlog
         wp_gets
         wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
-            (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
+            (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (Hwf.2.2.1)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hrole] at Hc; exact absurd Hc (by decide))
@@ -421,7 +421,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         simp only [stepFuncOf]
         wp_gets
         wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
-            (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
+            (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (Hwf.2.2.1)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

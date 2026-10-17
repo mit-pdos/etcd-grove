@@ -205,7 +205,7 @@ set_option hygiene false in
 local macro "local_candidate" : tactic => `(tactic| (
   wp_gets
   wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (by simp [Hty])
-      (by ty_other) (by simp [Hrole]) (by ty_other) (by ty_other)
+      (by ty_other) (by simp [Hrole]) (Hwf.2.2.1) (by ty_other) (by ty_other)
       (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (by ty_other)
     $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩

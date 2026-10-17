@@ -43,7 +43,9 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) :
+    (ents : List EntryM)
+    -- (raft#139) no entry of the batch above the message's term (`app_entries_term_le`)
+    (Hts : ∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term') :
     m.Type' = MsgApp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -105,7 +107,8 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' m.From' with prvals := pvs } ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inl Hty)))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, fun h => by simp [becomeFollower] at h⟩)
+      (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid, fun h => by simp [becomeFollower] at h,
+        by show uint.Z s.logst.leaderTerm ≤ uint.Z m.Term'; have := Hwf.2.2.1; omega, Hts⟩)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -114,7 +117,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨rfl, rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ _ Hty Hres
   have Hwf1 : NStateWf
       { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
-          lead := m.From' } := ⟨rfl, rfl⟩
+          lead := m.From' } := nstateWf_becomeFollower s m.Term' m.From' Hwf.2.2 (Int.le_of_lt Hgt)
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
@@ -122,7 +125,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys
   ipureintro
-  refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ?_, rfl,
+  refine ⟨nstateWf_handle_app _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) Hwf1 Happ, ?_, rfl,
     app_frame Hty Happ (NetFrame.refl _) (Int.le_of_lt Hgt) (Int.le_max_right _ _)⟩
   refine ⟨[absMsg .app m ents] ++ [absMsg .app m ents], ?_, ?_⟩
   · intro m' Hm'; simpa using Hm'

@@ -117,8 +117,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %interface.nil %s1 %c1
   iframe Hphys
   ipureintro
-  refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
-  · exact ⟨rfl, rfl⟩
+  refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ (by first | rfl | exact Hteq) (by intro h; simp [becomeFollower] at h; try simp [Hrole] at h) ?_ Hhs, ?_, rfl⟩
+  · exact nstateWf_becomeFollower s m.Term' m.From' Hwf.2.2 (Int.le_of_lt Hgt)
   refine ⟨[absSnap m sv scfg] ++ [absSnap m sv scfg], ?_, ?_⟩
   · intro m' Hm'
     simp only [List.mem_append, List.mem_singleton, or_self] at Hm'

@@ -135,7 +135,7 @@ theorem stepFollower.wp_proof
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp]
       exact Hlead
   · -- `MsgApp`: adopt the sender as leader, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hconf, Hfid, Hnl⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hconf, Hfid, Hnl, HltM, Hts⟩ := Happ Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgApp, MsgProp]]
     simp only [Hty, MsgApp]
@@ -144,7 +144,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
-        Hwf Hnw Hconf Hfid Hty Hnl $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
+        Hwf Hnw Hconf Hfid Hty Hnl HltM Hts $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -154,14 +154,14 @@ theorem stepFollower.wp_proof
       MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
     exact Hres
   · -- `MsgHeartbeat`: adopt the sender as leader, then `handleHeartbeat`
-    obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
+    obtain ⟨-, Hfrom⟩ := Hhb Hty
     simp only [Hty, MsgHeartbeat]
     wp_auto
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleHeartbeat c r id { s with lead := m.From' } ml _ _ _ m ents sn cl rs
-        Hcommit Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+        Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]

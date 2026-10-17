@@ -100,6 +100,18 @@ def logStableTo (ls : LogState) (id : entryID) : LogState :=
               inprogress := w64Max ls.inprogress (id.index' + W64 1) }
   else ls
 
+/-! (raft#139) None of these moves the log's leader term. -/
+theorem logAcceptUnstable_leaderTerm (ls : LogState) :
+    (logAcceptUnstable ls).leaderTerm = ls.leaderTerm := rfl
+theorem logAcceptApplying_leaderTerm (ls : LogState) (ce : List EntryM) (sz : w64) :
+    (logAcceptApplying ls ce sz).leaderTerm = ls.leaderTerm := by
+  unfold logAcceptApplying; split <;> rfl
+theorem logAppliedTo_leaderTerm (ls : LogState) (index size : w64) :
+    (logAppliedTo ls index size).leaderTerm = ls.leaderTerm := rfl
+theorem logStableTo_leaderTerm (ls : LogState) (id : entryID) :
+    (logStableTo ls id).leaderTerm = ls.leaderTerm := by
+  unfold logStableTo; split <;> rfl
+
 /-- What makes a `stableTo(id)` that hits correct: the entries it moves stable are
 persisted -- the application has appended what it was handed (`unpersisted = []`) and
 the storage then holds exactly the log up to `id` (`stored`, 2026-10-10) -- and no
