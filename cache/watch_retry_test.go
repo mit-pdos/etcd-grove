@@ -67,7 +67,9 @@ func TestCacheReadyAfterWatchRetry(t *testing.T) {
 					&clientv3.GetResponse{Header: &pb.ResponseHeader{Revision: tc.retryRev}},
 				),
 			}
-			c, err := newCache(fakeClient, "", defaultConfig(), newFakeClock())
+			// The upstream watch is retried after a timer of the cache's clock
+			// (InitialBackoff), so the clock must run.
+			c, err := newCache(fakeClient, "", defaultConfig(), realClock{})
 			require.NoError(t, err)
 			t.Cleanup(c.Close)
 
