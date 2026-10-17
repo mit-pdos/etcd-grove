@@ -110,8 +110,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   -- the stream's id map (the channel's) and the progress fact `Q`
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γi, Hids⟩
   imod (saved_prop_alloc (GF := GF) Q DFrac.discard DFrac.valid_discard) with ⟨%γp, #Hsp⟩
-  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp⟩
-  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg] with #Hinv
+  imod mono_list_own_alloc (GF := GF) ([] : List mvcc.RespM) with ⟨%γsl, Hsl, -⟩
+  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl⟩
+  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl] with #Hinv
   · inext
     iunfold mvcc.watchChanInv
     iexists ChanState.Buffered [], [], [], [], []
@@ -140,6 +141,8 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     isplitr
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitl [Hsl]
+    · iexact Hsl
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩

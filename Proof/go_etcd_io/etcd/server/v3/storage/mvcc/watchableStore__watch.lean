@@ -519,14 +519,14 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   imod ghostVar_update_halves (w :: L) γc.regl _ _ $$ Hregl0 Hregl with ⟨Hregl0, Hregl⟩
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
-  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2] with -
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2 Hsentl] with -
   · inext
     iunfold mvcc.watchChanInv
     iexists s0, sent, recv, vs, (w :: L)
     simp only [named]
     rw [Hopen]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe Hch Hrecv Hregl Hrf' Hpf
+    iframe Hch Hrecv Hregl Hrf' Hpf Hsentl
     iframe #
     isplitr
     · ipureintro; exact Hpre

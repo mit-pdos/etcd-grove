@@ -194,10 +194,10 @@ structure WatcherNames where
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
-      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.lo))
+      g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.lo))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j⟩, g⟩
-        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j'⟩, g'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k⟩, g⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k'⟩, g'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -569,7 +569,16 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
     "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
+    "Hsentl" ∷ monoListAuthOwn γc.sentl 1 sent ∗
     "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
+
+/-- **The channel had sent `l` (at least)** (persistent; unit W-K): a snapshot of the channel's
+sent list (`sentl`). -/
+def chanSentLb (γc : WatchChanNames) (l : List RespM) : IProp GF := monoListLbOwn γc.sentl l
+
+instance chanSentLb_persistent (γc : WatchChanNames) (l : List RespM) :
+    Persistent (chanSentLb (GF := GF) γc l) := by
+  unfold chanSentLb; infer_instance
 
 /-- The consumer's view: it has received `received`. -/
 def watchConsumer (γc : WatchChanNames) (received : List RespM) : IProp GF :=

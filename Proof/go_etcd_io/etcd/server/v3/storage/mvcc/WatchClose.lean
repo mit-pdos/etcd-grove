@@ -118,13 +118,13 @@ theorem wp_watch_close (s st : Loc) (γ : WsNames) (ch : Loc) (γc : WatchChanNa
     iintro Hch
     ihave Hws := chanWatchers_close γ γc _ sent L $$ [$Hws $HWC]
     imod Hmask with -
-    imod Hclose $$ [Hch Hrecv Hregl Hregl0 Hreg Hws] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hregl0 Hreg Hws Hsentl] with -
     · inext
       iexists _, sent, recv, vs, L
       simp only [named]
       iframe Hch
       simp only [chanIsClosed, ↓reduceIte]
-      iframe Hrecv Hregl Hregl0 Hreg Hws
+      iframe Hrecv Hregl Hregl0 Hreg Hws Hsentl
       iframe #
       ipureintro
       simp_all [chanInflight]
