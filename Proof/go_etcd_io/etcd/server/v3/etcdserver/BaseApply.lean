@@ -70,6 +70,16 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
+-- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17)
+namespace crypto.tls
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
+  build_get_is_pkg_init_wf
+
+end crypto.tls
+
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.xiang90.probing
 
@@ -16,25 +17,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.xiang90.probing
-
-namespace Prober
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.probing.Assumptions]
-
-instance Prober_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.Prober :=
-  sorry -- axiomatized type
-
-instance Prober_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.Prober github_com.xiang90.probing.Prober.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Prober
 
 namespace prober
 section def_
@@ -87,34 +69,53 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.probing.Assumptions]
 
 instance Health_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.Health :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.xiang90.probing.Health where
+  typedPointstoDef l v dq := iprop(
+    "OK" ∷ typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq ∗
+    "Now" ∷ typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Health_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.Health github_com.xiang90.probing.Health.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.Health github_com.xiang90.probing.Health.underlying := by
+  solve_into_val_typed_struct
+
+instance Health_access_load_OK (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Health_access_store_OK (l : Loc) (v : github_com.xiang90.probing.Health) (OK' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) OK' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OK' := OK' } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Health_access_load_Now (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Health_access_store_Now (l : Loc) (v : github_com.xiang90.probing.Health) (Now' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) Now' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := Now' } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Health
-
-namespace Status
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.probing.Assumptions]
-
-instance Status_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.Status :=
-  sorry -- axiomatized type
-
-instance Status_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.Status github_com.xiang90.probing.Status.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Status
 
 namespace status
 section def_

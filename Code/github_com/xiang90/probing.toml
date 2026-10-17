@@ -1,6 +1,6 @@
 # Types and names only (unit N4, 2026-10-17: rafthttp.Transport's probers).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

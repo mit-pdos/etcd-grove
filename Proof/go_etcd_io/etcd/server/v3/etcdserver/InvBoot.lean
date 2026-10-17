@@ -204,14 +204,6 @@ abbrev transportIface (t : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t
 
-/-- **The transport `t` owned** (opaque, exclusive; unit N4, 2026-10-17): the caller owns the
-`*rafthttp.Transport` struct at `t` whole, its `Logger` `lg`, `ServerStats` `ss`, `LeaderStats` `ls`
-(`NewServer`'s literal). Its relation to the struct's points-to `t ↦ tv` is not stated: that
-points-to is built from the field types' instances, four of them axiomatized types (`probing.Prober`,
-`transport.TLSInfo`, `types.URLs`, the `Raft` interface's) whose instances are `sorry`; it awaits
-their translation (`notes/STATUS.md`, "unit N4, continued"). -/
-opaque transportOwn (t lg ss ls : Loc) : IProp GF
-
 /-- **The transport `t` live** (opaque, exclusive; unit N4, 2026-10-17): started and not
 stopped. `Start` gives it; `AddRemote`/`AddPeer` take it and give it back (`AddPeer` panics after
 `Stop`); it is given up for `transportStarted` (whose `isRNTransport` has `Stop`). -/

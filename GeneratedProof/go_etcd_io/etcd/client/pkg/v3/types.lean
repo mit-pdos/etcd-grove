@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.net.url
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 
@@ -75,25 +76,6 @@ instance tsafeSet_into_val_typed :
 
 end def_
 end tsafeSet
-
-namespace URLs
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
-
-instance URLs_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.URLs :=
-  sorry -- axiomatized type
-
-instance URLs_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.URLs go_etcd_io.etcd.client.pkg.v3.types.URLs.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end URLs
 
 end go_etcd_io.etcd.client.pkg.v3.types
 end
