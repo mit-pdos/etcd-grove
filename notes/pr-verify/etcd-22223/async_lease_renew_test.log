@@ -1,0 +1,10 @@
+== REVIEW_ASYNC=false REVIEW_SLOW_LEADER_SAVE=50ms
+ok  	go.etcd.io/etcd/tests/v3/integration	8.042s
+== REVIEW_ASYNC=true REVIEW_SLOW_LEADER_SAVE=50ms
+--- FAIL: TestReviewAsyncLeaseRenewViaFollowerAfterGrant (0.48s)
+    review_lease_test.go:41: 20 of 20 keepalives right after a successful LeaseGrant (through follower m2) returned TTL 0 (lease not found on the leader)
+--- FAIL: TestReviewAsyncLeaseRenewViaFollowerAfterGrant (0.41s)
+    review_lease_test.go:41: 20 of 20 keepalives right after a successful LeaseGrant (through follower m2) returned TTL 0 (lease not found on the leader)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	0.920s
+FAIL

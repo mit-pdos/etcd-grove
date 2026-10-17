@@ -1,0 +1,33 @@
+--- /shared/etcd-grove-pr/etcd-22223-scratch/upstream-pr/server/etcdserver/raft.go	2026-10-17 06:06:40.879676018 -0400
++++ server/etcdserver/raft.go	2026-10-17 06:20:54.627151947 -0400
+@@ -19,6 +19,7 @@
+ 	"expvar"
+ 	"fmt"
+ 	"log"
++	"os"
+ 	"sync"
+ 	"time"
+ 
+@@ -612,6 +613,10 @@
+ 	raftSnap *raftpb.Snapshot,
+ 	snapshotPersistedC chan<- struct{},
+ ) {
++	// REVIEW INSTRUMENTATION (not part of the PR): a slow leader disk.
++	if d, err := time.ParseDuration(os.Getenv("REVIEW_SLOW_LEADER_SAVE")); err == nil && len(entries) > 0 && r.Node.Status().RaftState == raft.StateLeader {
++		time.Sleep(d)
++	}
+ 	// Must save the snapshot file and WAL snapshot entry before saving any other entries or hardstate to
+ 	// ensure that recovery after a snapshot restore is possible.
+ 	if !raft.IsEmptySnap(raftSnap) {
+--- /shared/etcd-grove-pr/etcd-22223-scratch/upstream-pr/tests/framework/integration/cluster.go	2026-10-17 06:06:40.928375619 -0400
++++ tests/framework/integration/cluster.go	2026-10-17 06:20:54.627523227 -0400
+@@ -736,6 +736,9 @@
+ 	m.Logger, m.LogObserver = memberLogger(t, mcfg.Name)
+ 	m.ServerFeatureGate = features.NewDefaultServerFeatureGate(m.Name, m.Logger)
+ 	featureGates := fmt.Sprintf("LeaseCheckpoint=%v,LeaseCheckpointPersist=%v", mcfg.EnableLeaseCheckpoint, mcfg.LeaseCheckpointPersist)
++	if v := os.Getenv("REVIEW_ASYNC"); v != "" { // REVIEW INSTRUMENTATION
++		featureGates += ",RaftAsyncStorageWrites=" + v
++	}
+ 	if err := m.ServerFeatureGate.(featuregate.MutableFeatureGate).Set(featureGates); err != nil {
+ 		t.Fatalf("Set FeatureGate FAILED: %v", err)
+ 	}

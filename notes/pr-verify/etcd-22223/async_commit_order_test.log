@@ -1,0 +1,12 @@
+=== RUN   TestReviewLegacyLeaderPublishesCommitBeforeBroadcast
+--- PASS: TestReviewLegacyLeaderPublishesCommitBeforeBroadcast (0.00s)
+=== RUN   TestReviewAsyncLeaderBroadcastsCommitBeforePublishingIt
+    review_async_test.go:146: async: MsgApp with commit 1 sent while etcd's committed index was 0
+--- FAIL: TestReviewAsyncLeaderBroadcastsCommitBeforePublishingIt (0.00s)
+=== RUN   TestReviewRaftAsyncLeaderCommitWithoutApply
+    review_async_test.go:271: commit before proposal 2; leader Ready after follower acks: raft commit 3, HardState commit in MsgStorageAppend 3, max commit sent to peers 3, MsgStorageApply present false, held leader appends 1
+    review_async_test.go:274: raft broadcast commit 3 to followers in a Ready with no MsgStorageApply: etcd's processAsyncReady never calls updateCommittedIndex(3) for it, so the leader's committed index lags what followers apply
+--- FAIL: TestReviewRaftAsyncLeaderCommitWithoutApply (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.020s
+FAIL

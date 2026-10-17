@@ -693,7 +693,8 @@ persisted and appended, is a broadcast channel the apply side may receive from (
 `applyCompletedC`, which the apply side closes once done, comes with the right to close it
 (`.Pending`; the loop keeps an `.Unknown` view to wait on it); `raftAdvancedC` a unit bag. No
 payload carries a proposition: the ordering the channels enforce (persist, then snapshot; apply,
-then a follower's send) is not modeled, only that the waits do not block forever. -/
+then a follower's send) is not modeled (as `notifyc` carried none before the PR), and the proofs,
+of partial correctness, say nothing about the waits terminating. -/
 def rnApChans (ap : toApply) : IProp GF :=
   iprop(⌜ap.waitForStorageBeforeApply' = false ∧ ap.onApplyCompleted' = func.nil⌝ ∗
     (∃ γc : ChanNames, ownBroadcastChan ap.raftStorageReadyC' γc iprop(True) .Unknown) ∗

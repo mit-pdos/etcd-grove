@@ -45,6 +45,22 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22223, raft asynchronous storage writes in the server (2026-10-17, branch `pr-verify/etcd-22223`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22223-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `etcdserver.toml` translates the PR's new functions
+(the append worker, `persistRaftData`, the storage responses, `raftNode.Step`). The Ready/Advance
+path (asynchronous storage writes off: `isRaftNode`'s new `"#Hasync"`, from the configuration
+`newRaftNode` is given) is re-proved: `raftNode.start` (persistence factored into
+`persistRaftData`, proved for no snapshot), `applyAll` (over the PR's channels: `taSyncOk`;
+`applyc`'s payload `rnApChans`), `run` (the merged snapshot a job of its own), the wrapper's
+construction (its storage-response context: `newRaftNode` takes `context.isClosedchanInit`), and
+raft's `newRaft`/`NewRawNode`/`setupNode`/`StartNode` now give the `Config` back (the PR reads
+`b.config` after `StartNode`). No new axiom or `sorry`. The asynchronous path is translated but not
+specified (raft's proofs cover synchronous writes only); a fresh review found a bug in it (the
+leader broadcasts a commit before raising etcd's committed index). Report:
+`notes/pr-verify/etcd-22223.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

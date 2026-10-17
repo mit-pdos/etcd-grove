@@ -1,0 +1,5 @@
+=== RUN   TestSaveCommitOnlyHardStateIsNotDurable
+    wal_commit_only_save_test.go:96: after Save(commit=1) returned, the durable commit is still 0
+--- PASS: TestSaveCommitOnlyHardStateIsNotDurable (0.14s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/wal	0.154s

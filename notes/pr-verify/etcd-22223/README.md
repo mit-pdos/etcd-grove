@@ -1,0 +1,17 @@
+# Files for `notes/pr-verify/etcd-22223.md`
+
+Revisions: PR head = etcd-io/etcd `3a64fae28a34524b0b159d46ae8820f9cc992da2` (merge base with
+`main` `9ff8b78179d51b7c4826b5fd3f80214efe80ca7a`); fork branch = `mit-pdos/etcd-grove` branch
+`pr-etcd-22223-goose-lean` (`800b6a697`: the fork's `goose-lean` `09669450f` plus the PR's non-test
+diff; `c16902af8`: the PR's `server/etcdserver` tests). Go toolchain `go1.27.1`. Every test below
+was run against a checkout of the PR head.
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `wal_commit_only_save_test.go` | `TestSaveCommitOnlyHardStateIsNotDurable` (passes, i.e. shows the behavior): after `WAL.Save` of a `HardState` that only advances `Commit` returns, a copy of the WAL directory (what a crash leaves) still holds the old commit. So the asynchronous path's apply barrier, closed when the append worker's `Save` returns, does not make the commit durable, contrary to the PR's comment on `waitForStorageBeforeApply` | PR head (the WAL code is the base's) | `cp wal_commit_only_save_test.go <checkout>/server/storage/wal/ && cd <checkout>/server && go test -count=1 -run TestSaveCommitOnlyHardStateIsNotDurable -v ./storage/wal/` |
+| `wal_commit_only_save_test.log` | its output | PR head | as above |
+| `async_commit_order_test.go` | (reviewer's) three tests in package `etcdserver`, using the PR's test helpers (`newAsyncReadyNode`, `nopTransporter`, `newTestRaftReadyHandler` in its `raft_test.go`/`server_test.go`): `TestReviewLegacyLeaderPublishesCommitBeforeBroadcast` passes (legacy path: the ready handler's committed index is raised before a `MsgApp` carrying the commit is sent); `TestReviewAsyncLeaderBroadcastsCommitBeforePublishingIt` **fails** (async path: the `MsgApp` with commit 1 is sent while etcd's committed index is 0); `TestReviewRaftAsyncLeaderCommitWithoutApply` **fails** (real raft `RawNode`s with `AsyncStorageWrites`: the leader commits index 3 and broadcasts it in a `Ready` with no `MsgStorageApply`, so `processAsyncReady` never raises etcd's committed index for it) | PR head | `cp async_commit_order_test.go <checkout>/server/etcdserver/ && cd <checkout>/server/etcdserver && go test -run TestReview -count=1 -v .` |
+| `async_commit_order_test.log` | its output (1 pass, 2 failures) | PR head | as above |
+| `async_lease_renew_test.go` | (reviewer's) integration test `TestReviewAsyncLeaseRenewViaFollowerAfterGrant`: a lease granted through a follower, then a keepalive: with the gate on and a slow leader disk every keepalive returns TTL 0 ("lease not found" on the leader), the error of the PR's failing CI test `TestV3LeaseRenewStress` | PR head plus `slow_leader_save_instrumentation.diff` | `cd <checkout> && git apply slow_leader_save_instrumentation.diff && cp async_lease_renew_test.go tests/integration/ && cd tests && REVIEW_ASYNC=<false or true> REVIEW_SLOW_LEADER_SAVE=50ms go test ./integration -run TestReviewAsyncLeaseRenewViaFollowerAfterGrant -count=2` |
+| `slow_leader_save_instrumentation.diff` | test-only instrumentation: `REVIEW_SLOW_LEADER_SAVE` sleeps before a leader's `persistRaftData` with entries (a slow leader disk), `REVIEW_ASYNC` sets the `RaftAsyncStorageWrites` gate in the integration framework | PR head | `git apply` |
+| `async_lease_renew_test.log` | its output: `REVIEW_ASYNC=false` ok; `REVIEW_ASYNC=true` 2/2 FAIL, 20 of 20 keepalives TTL 0 | PR head + instrumentation | as above |
