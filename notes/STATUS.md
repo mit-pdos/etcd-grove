@@ -4985,14 +4985,30 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     response (`src_fresh`, `pend_not_sent`: the indices sent and buffered are disjoint). K1b's
     server side is complete. Statements that changed form: `RespM`, `sentAuth`,
     `watchRecvResult`, `mvccOk`, `rcvOk`.
-  - **Next (K2)**: the client's argument for a broadcast `r` at down position `j` and a live
-    substream `X` (watcher `w`, `Created` at `jc < j` with `createdAfter`: `l0 <+: l`,
-    `streamRegAt γo w n`, `n ≤ l0.length`, every `-1` response of `l` among the downs before
-    `jc`): `r` is not in `l` (no earlier down came from it, `mvccOk`), so `pre.length ≥ l.length ≥
-    n` (both snapshots are prefixes of the sent list), so `w ∈ r.regs` (`regsAt`, a later credit),
-    so `w ∈ r.cov` (then `covFact`: `w`'s events before `r` cover `[lo, r.rev + 1)`) or `w` was
-    cancelled for its reason (`rsnW`: the client sent a cancel request for `X`, which a live
-    substream's client never did: a client-side ghost of the cancel requests sent).
+  - **K2a (server exports)**: an event-less response covers its watcher (`respCov`'s third part:
+    `watcher.send` takes it; moveVictims covers an empty batch's own watcher); `mvccCov` carries the
+    saved cancellation reason (`cancelQ` at `γo.rsn`); a `-1` response has no events and a revision
+    at least `1` (`respCompl`; `isStore` keeps the initial log's certificate `[[], []]`, so
+    `watchableStore.rev` returns a log of length at least 2), so the client broadcasts it.
+  - **K2b (the client sends progress requests and broadcasts; weak content)**: the model allows
+    progress requests and `-1` responses (`progress_ok`); `reqP` admits a `*progressRequest`;
+    `run`'s progress-request case sends it; a `-1` response is broadcast to every registered
+    substream (`bcast_pre`, `bcast_elem`; `MapSplit.lean`: `bigSepM_split_inj`/`join_inj` split
+    `run`'s substreams along `substreams`, `bigSepM_choice_inj` gives `dispatchEvent` its
+    functions); `dispatchEvent` returns `true` for a broadcast. The content is still the weak one
+    (no events, the cursor as it was).
+  - **Next (K2c–e), larger than planned**: `serveSubstream` moves the substream's resume revision
+    (`initReq.rev`) to a response's header revision + 1 (or the last event's + 1), and a resumed
+    substream re-creates its watcher from there on a new gRPC stream (new server stream, new
+    `γs`). The client contract today is sound, not complete (`rangeWatchRespOk`), so skipping is
+    harmless now; the cache's `watchChain` needs completeness, which must hold across resumes:
+    (c) the no-cancel invariant (a cancel for a registered id implies its substream stopped);
+    (d) `run` keeps `createdAfter`, the `ctrlWatcher` snapshot and `mvccCov` (it drops them now);
+    (e) the substream contract gains completeness (each response's events are the range's events
+    of the revisions after the cursor up to the next one, `watchEvents`, as `WatchContent.lean`
+    proves per stream) and progress (cursor to the header revision, `EtcdStep c p pfx []` from
+    `covFact`), carried across a resume by the resume revision. Then `isEtcdWatcher`,
+    `RequestProgress` (`isEtcdProgressNotifier`), K3.
 - **K2 (the client: progress requests, completeness).** `RequestProgress` specified; `run` sends
   progress requests and broadcasts id `-1` responses (W-C's invariant: every substream in
   `substreams` has an open `recvc`, by K0); `rangeWatchRespOk` gains completeness (the events
