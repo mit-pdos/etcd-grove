@@ -93,7 +93,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   subst Hold
   (try wp_auto)
   -- the replaced key index leaves the tree, `ki` takes its place
-  icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hi |>.1 $$ Hkis
+  icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z (mvcc.evLease (mvcc.evsOf (ilog' ++ [pend']))) 1) hi |>.1 $$ Hkis
     with ⟨Hz, Hback⟩
   iunfold mvcc.ownEntry at Hz
   icases Hz with ⟨%Hzn, %gs', Hzki⟩
@@ -135,6 +135,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
       isplitl []
       · ipureintro; exact Hn
       iexists gs
+      rw [hevs]
       iexact Hki
     isplitl []
     · iexact HcrevL
@@ -158,7 +159,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   · ipureintro; exact Hzn
   isplitl []
   · rw [← hk]; iexact Hkold
-  rw [← hz]
+  rw [← hz, ← hevs]
   iexact Hzki
 
 end proof
