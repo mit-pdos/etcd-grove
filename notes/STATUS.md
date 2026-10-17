@@ -6116,6 +6116,26 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     channel (`send` lent the lock's fraction of the notified log, `notifiedLent`). Item (c) below:
     the earlier progress revisions are done; the start revision remains (the cache's watch starts
     at a revision etcd had reached).
+  - **The start revision (2026-10-17)**: the cache's position before its first progress
+    notification is its watch's start minus one, read from etcd (`Get`), so it is at or below the
+    first progress revision only if the watch's server had reached it when the watch registered.
+    *Route 1* (is there a bug?): with a member that lags behind the one the cache read, yes, a
+    minor one: a fresh demux (`maxRev = 0`) accepts a progress below its start, and a cache watch
+    "from now" is then compacted (`issues/cache-stale-progress-compacts-newest-watch.md`,
+    reproduced at the demux level). The cache's contract is kept (`c ≤ p`), no fork change.
+    *Route 2* (the proof, one server): carry the start's reachedness from the cache to mvcc's
+    registration. Plan: (1) mvcc: `watch` takes an optional premise that the start revision is
+    reached (a log below the store's: `idxCert`, or the notified log's lower bound); at
+    registration (under `s.mu`, the committed log the notified one) the watcher's first revision
+    is then at most the notified log's length, recorded with a `notifiedLb`; `cov_one` (lent the
+    notified log, K2e-5) turns it into `lo ≤ p + 1`, so a covered watcher's `d = p + 1`. (2) The
+    server's "etcd reached `r`" (`srvReachedAt`, now a raft-side `certOk`, which runs ahead of
+    mvcc's commit) gains an mvcc-side lower bound: a KV reply's committed log (`idxCert`), a watch
+    event's log (sealed before the notified log reaches it: the notified log must then advance at
+    the seal, `End`, with a second log in the lock's state equal to the notified one when `s.mu`
+    is free), a progress response's notified log. (3) The client's `Watch` takes
+    `etcdReached (rev - 1)` and the watch request carries it through the stream to `v3rpc`'s
+    `recvLoop` and mvcc's `Watch`. (4) The client's second cursor starts at `rev - 1`.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
