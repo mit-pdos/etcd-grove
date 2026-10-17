@@ -55,6 +55,77 @@ theorem stLoaded_facts (γ : ApplyNames) (st : ApplyState) :
     split <;> rfl
   · exact ⟨rfl, rfl, rfl, rfl⟩
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- A conf change, after `applyConfChange` (`xj` unchanged: no KV effect): the KV model's step,
+the applied index (`setAppliedIndex`) and term (both conf-change branches: applied, or
+skipped by the consistent index). -/
+local macro "cc_kv_applied" : tactic => `(tactic| (
+    (try wp_auto)
+    wp_apply hGI $$ [He] as -
+    · iframe He
+    icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
+    ihave %Hlxj := idxCert_len E.γ.idx xj.log $$ Hcert
+    have hcc0 : kvEntry γr.kv.c0 xj.chain xj.log m = xj.log :=
+      kvEntry_nonwrite _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
+    imod kv_applied_step E γr (A ++ ms.take (sint.nat j)) m xj (by rw [hcc0]; exact Hlxj)
+      $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
+    ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
+      hcc0.symm Hpe.2.1 $$ Hka
+    imod applied_predeposit s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
+      $$ Hainv Hao Hlog HkL with Hpre
+    wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
+    · iframe #; iframe Hpre
+    (try wp_auto)
+    wp_apply hGT $$ [He] as -
+    · iframe He
+    wp_apply hSet2 $$ [$(frameH `Hat)]
+    (try wp_auto)
+  ))
+
+set_option hygiene false in
+/-- A conf change's response (both conf-change branches, either value of the loop's
+`shouldStop`): `GetId`, the cluster's members, the `Trigger` of the wait (no waiter), the next
+iteration up to its witnesses. -/
+local macro "cc_respond" : tactic => `(tactic| (
+    (try wp_auto)
+    wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
+      (by rw [hIdEq, ccIdOf_of_decode Hdec])) $$ [Hcc] as Hcc
+    · iframe Hcc
+    (try wp_auto)
+    wp_apply hMem sv.cluster $$ [] as %msl -
+    · iframe #
+    (try wp_auto)
+    wp_alloc rsp as Hrsp
+    (try wp_auto)
+    ihave #Hwok2 := Hwok
+    iunfold waitInv at Hwok2
+    icases Hwok2 with ⟨%RD0, Hwok2⟩
+    iunfold isWait at Hwok2
+    icases Hwok2 with ⟨%wi, %hw, -, #Htrig, -⟩
+    simp only [hw]
+    (try wp_auto)
+    wp_apply Htrig
+    · iright
+      iunfold waitTrig
+      iintro %Ψ HR
+      iexfalso
+      iapply Hccf $$ HR
+    (try wp_auto)
+    wp_apply hGI $$ [He] as -
+    · iframe He
+    wp_apply hGT $$ [He] as -
+    · iframe He
+    (try wp_auto)
+    wp_for_post
+    iframe
+  ))
+
 set_option maxHeartbeats 800000 in
 theorem EtcdServer.apply.wp_proof
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
@@ -434,58 +505,9 @@ theorem EtcdServer.apply.wp_proof
             rw [hrec]
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
-        (try wp_auto)
-        wp_apply hGI $$ [He] as -
-        · iframe He
-        icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
-        ihave %Hlxj := idxCert_len E.γ.idx xj.log $$ Hcert
-        have hcc0 : kvEntry γr.kv.c0 xj.chain xj.log m = xj.log :=
-          kvEntry_nonwrite _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
-        imod kv_applied_step E γr (A ++ ms.take (sint.nat j)) m xj (by rw [hcc0]; exact Hlxj)
-          $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
-        ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
-          hcc0.symm Hpe.2.1 $$ Hka
-        imod applied_predeposit s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
-          $$ Hainv Hao Hlog HkL with Hpre
-        wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
-        · iframe #; iframe Hpre
-        (try wp_auto)
-        wp_apply hGT $$ [He] as -
-        · iframe He
-        wp_apply hSet2 $$ [$Hat]
-        (try wp_auto)
+        cc_kv_applied
         rcases sb with _ | _ <;> (
-        (try wp_auto)
-        wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
-          (by rw [hIdEq, ccIdOf_of_decode Hdec])) $$ [Hcc] as Hcc
-        · iframe Hcc
-        (try wp_auto)
-        wp_apply hMem sv.cluster $$ [] as %msl -
-        · iframe #
-        (try wp_auto)
-        wp_alloc rsp as Hrsp
-        (try wp_auto)
-        ihave #Hwok2 := Hwok
-        iunfold waitInv at Hwok2
-        icases Hwok2 with ⟨%RD0, Hwok2⟩
-        iunfold isWait at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, -, #Htrig, -⟩
-        simp only [hw]
-        (try wp_auto)
-        wp_apply Htrig
-        · iright
-          iunfold waitTrig
-          iintro %Ψ HR
-          iexfalso
-          iapply Hccf $$ HR
-        (try wp_auto)
-        wp_apply hGI $$ [He] as -
-        · iframe He
-        wp_apply hGT $$ [He] as -
-        · iframe He
-        (try wp_auto)
-        wp_for_post
-        iframe
+        cc_respond
         iexists j + W64 1, ⟨m.index, m.index, eff', false⟩, m.index, m.term, cs', _,
           m.index, m.term, j, xj, m.index
         simp only [named]
@@ -617,58 +639,9 @@ theorem EtcdServer.apply.wp_proof
         · simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Hcif Hua Happlier Hcc Hcs
           isplit <;> ipureintro <;> trivial
-        (try wp_auto)
-        wp_apply hGI $$ [He] as -
-        · iframe He
-        icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
-        ihave %Hlxj := idxCert_len E.γ.idx xj.log $$ Hcert
-        have hcc0 : kvEntry γr.kv.c0 xj.chain xj.log m = xj.log :=
-          kvEntry_nonwrite _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
-        imod kv_applied_step E γr (A ++ ms.take (sint.nat j)) m xj (by rw [hcc0]; exact Hlxj)
-          $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
-        ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
-          hcc0.symm Hpe.2.1 $$ Hka
-        imod applied_predeposit s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
-          $$ Hainv Hao Hlog HkL with Hpre
-        wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
-        · iframe #; iframe Hpre
-        (try wp_auto)
-        wp_apply hGT $$ [He] as -
-        · iframe He
-        wp_apply hSet2 $$ [$Hat]
-        (try wp_auto)
+        cc_kv_applied
         rcases sb with _ | _ <;> (
-        (try wp_auto)
-        wp_apply (wp_ownCCV1_GetId hId cc_ptr (DFrac.own 1) cm' (ccIdOf m.data)
-          (by rw [hIdEq, ccIdOf_of_decode Hdec])) $$ [Hcc] as Hcc
-        · iframe Hcc
-        (try wp_auto)
-        wp_apply hMem sv.cluster $$ [] as %msl -
-        · iframe #
-        (try wp_auto)
-        wp_alloc rsp as Hrsp
-        (try wp_auto)
-        ihave #Hwok2 := Hwok
-        iunfold waitInv at Hwok2
-        icases Hwok2 with ⟨%RD0, Hwok2⟩
-        iunfold isWait at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, -, #Htrig, -⟩
-        simp only [hw]
-        (try wp_auto)
-        wp_apply Htrig
-        · iright
-          iunfold waitTrig
-          iintro %Ψ HR
-          iexfalso
-          iapply Hccf $$ HR
-        (try wp_auto)
-        wp_apply hGI $$ [He] as -
-        · iframe He
-        wp_apply hGT $$ [He] as -
-        · iframe He
-        (try wp_auto)
-        wp_for_post
-        iframe
+        cc_respond
         iexists j + W64 1, stLoaded γ st', a', t', cs', _, m.index, m.term, j, xj, m.index
         simp only [named]
         rw [htk2]

@@ -29,7 +29,67 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The local case (inlined twice, once per test that decides it): `r.readStates` through
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- The local case, after either test that decides it (`From == None`, `From == r.id`), with
+`Hlocal` the disjunction it gives. -/
+local macro "ri_local" : tactic => `(tactic| (
+    wp_auto
+    icases ownRaftPhysC_misc c r id s $$ Hphys with ⟨%rsl, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
+    iunfold ownRaftMisc at Hmisc
+    iNamed Hmisc
+    iunfold readStatesPts at HreadStates
+    icases HreadStates with ⟨%vs, #Hvs, #Hvb⟩
+    wp_auto
+    wp_apply wp_Message_GetEntries.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
+      $$ [$(frameH `Hreq)] as %esl %els ⟨#Hesl, #Hents, -, -⟩
+    ihave ⟨%l0, %Hl0, #He0⟩ := entsBig_lookup els (e :: es) 0 e rfl $$ Hents
+    ihave %Hlen := ownSlice_len $$ Hesl
+    ihave %Hbl := entsBig_length $$ Hents
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z esl.len by
+      obtain ⟨h1, h2⟩ := Hlen; simp only [List.length_cons] at Hbl; word)]
+    wp_apply wp_load_slice_index esl (sint.Z (W64 0)) els DFrac.discard l0 (by word) $$ [Hesl] with -
+    · iframe Hesl; ipureintro; exact Hl0
+    wp_apply wp_Entry_GetData.1 l0 DFrac.discard e $$ [$(frameH `He0)] as %ds ⟨#Hds, -⟩
+    wp_apply wp_slice_literal (V := ReadState) [ReadState.mk idx ds]
+    isplitr
+    · ipureintro; rfl
+    iintro %sl_ptr ⟨Hsl, -⟩
+    have Hsz : go.arrayLiteralSize [KeyedElement none (ElementExpression ReadState.ty
+        #(ReadState.mk idx ds))] = 1 := rfl
+    simp only [Hsz]
+    wp_apply wp_slice_append_persistent (V := ReadState) rsl vs _ [ReadState.mk idx ds] (DFrac.own 1)
+        $$ [$(frameH `Hvs) $(frameH `HreadStates_cap) $(frameH `Hsl)]
+      as %rs' ⟨Hvs', HreadStates_cap, -⟩
+    wp_alloc lresp as Hresp
+    imod msgOwn_zero lresp ⊤ $$ Hresp with Hresp
+    wp_auto
+    iapply HΦ
+    rw [ite_eq_left Hlocal]
+    ihave Hphys := Hback $$ %rs' %ro %pr
+      %({ s.rd with states := s.rd.states ++ [ReadStateM.mk idx e.Data'] }) Hrs Hro Hpr
+      [Hvs' HreadStates_cap Hro_obj Hpri Hpri_cap]
+    · unfold ownRaftMisc
+      simp only [named]
+      iframe HreadStates_cap Hro_obj Hpri Hpri_cap
+      iunfold readStatesPts
+      iexists vs ++ [ReadState.mk idx ds]
+      iframe Hvs'
+      iapply BigSepL2.bigSepL2_snoc.2
+      iframe Hvb Hds
+      ipureintro; rfl
+    ihave Hphys := ownRaftPhysC_eq c r id
+      { s with rd := { s.rd with states := s.rd.states ++ [ReadStateM.mk idx e.Data'] } }
+      (addReadState s idx e.Data') rfl $$ Hphys
+    iframe Hphys Hresp
+  ))
+
+/-- The local case (`ri_local`, once per test that decides it): `r.readStates` through
 `ownRaftPhysC_misc`, `req.GetEntries()[0].GetData()` through the frozen request's read-only
 entries, the `ReadState` appended (its `RequestCtx` the request's data slice, read-only), and a
 fresh `&pb.Message{}`.
@@ -53,54 +113,7 @@ theorem raft.responseToReadIndexReq.wp_proof
   by_cases H0 : m.From' = W64 0
   · have Hlocal : m.From' = W64 0 ∨ m.From' = id := .inl H0
     rw [decide_eq_true H0]
-    wp_auto
-    icases ownRaftPhysC_misc c r id s $$ Hphys with ⟨%rsl, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
-    iunfold ownRaftMisc at Hmisc
-    iNamed Hmisc
-    iunfold readStatesPts at HreadStates
-    icases HreadStates with ⟨%vs, #Hvs, #Hvb⟩
-    wp_auto
-    wp_apply wp_Message_GetEntries.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
-      $$ [$Hreq] as %esl %els ⟨#Hesl, #Hents, -, -⟩
-    ihave ⟨%l0, %Hl0, #He0⟩ := entsBig_lookup els (e :: es) 0 e rfl $$ Hents
-    ihave %Hlen := ownSlice_len $$ Hesl
-    ihave %Hbl := entsBig_length $$ Hents
-    rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z esl.len by
-      obtain ⟨h1, h2⟩ := Hlen; simp only [List.length_cons] at Hbl; word)]
-    wp_apply wp_load_slice_index esl (sint.Z (W64 0)) els DFrac.discard l0 (by word) $$ [Hesl] with -
-    · iframe Hesl; ipureintro; exact Hl0
-    wp_apply wp_Entry_GetData.1 l0 DFrac.discard e $$ [$He0] as %ds ⟨#Hds, -⟩
-    wp_apply wp_slice_literal (V := ReadState) [ReadState.mk idx ds]
-    isplitr
-    · ipureintro; rfl
-    iintro %sl_ptr ⟨Hsl, -⟩
-    have Hsz : go.arrayLiteralSize [KeyedElement none (ElementExpression ReadState.ty
-        #(ReadState.mk idx ds))] = 1 := rfl
-    simp only [Hsz]
-    wp_apply wp_slice_append_persistent (V := ReadState) rsl vs _ [ReadState.mk idx ds] (DFrac.own 1)
-        $$ [$Hvs $HreadStates_cap $Hsl]
-      as %rs' ⟨Hvs', HreadStates_cap, -⟩
-    wp_alloc lresp as Hresp
-    imod msgOwn_zero lresp ⊤ $$ Hresp with Hresp
-    wp_auto
-    iapply HΦ
-    rw [ite_eq_left Hlocal]
-    ihave Hphys := Hback $$ %rs' %ro %pr
-      %({ s.rd with states := s.rd.states ++ [ReadStateM.mk idx e.Data'] }) Hrs Hro Hpr
-      [Hvs' HreadStates_cap Hro_obj Hpri Hpri_cap]
-    · unfold ownRaftMisc
-      simp only [named]
-      iframe HreadStates_cap Hro_obj Hpri Hpri_cap
-      iunfold readStatesPts
-      iexists vs ++ [ReadState.mk idx ds]
-      iframe Hvs'
-      iapply BigSepL2.bigSepL2_snoc.2
-      iframe Hvb Hds
-      ipureintro; rfl
-    ihave Hphys := ownRaftPhysC_eq c r id
-      { s with rd := { s.rd with states := s.rd.states ++ [ReadStateM.mk idx e.Data'] } }
-      (addReadState s idx e.Data') rfl $$ Hphys
-    iframe Hphys Hresp
+    ri_local
   · rw [decide_eq_false H0]
     wp_auto
     wp_apply wp_Message_GetFrom.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
@@ -109,54 +122,7 @@ theorem raft.responseToReadIndexReq.wp_proof
     by_cases Hid : m.From' = id
     · have Hlocal : m.From' = W64 0 ∨ m.From' = id := .inr Hid
       rw [decide_eq_true Hid]
-      wp_auto
-      icases ownRaftPhysC_misc c r id s $$ Hphys with ⟨%rsl, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
-      iunfold ownRaftMisc at Hmisc
-      iNamed Hmisc
-      iunfold readStatesPts at HreadStates
-      icases HreadStates with ⟨%vs, #Hvs, #Hvb⟩
-      wp_auto
-      wp_apply wp_Message_GetEntries.1 req DFrac.discard DFrac.discard false ⟨m, e :: es, sn, ctx, rs⟩
-        $$ [$Hreq] as %esl %els ⟨#Hesl, #Hents, -, -⟩
-      ihave ⟨%l0, %Hl0, #He0⟩ := entsBig_lookup els (e :: es) 0 e rfl $$ Hents
-      ihave %Hlen := ownSlice_len $$ Hesl
-      ihave %Hbl := entsBig_length $$ Hents
-      rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z esl.len by
-        obtain ⟨h1, h2⟩ := Hlen; simp only [List.length_cons] at Hbl; word)]
-      wp_apply wp_load_slice_index esl (sint.Z (W64 0)) els DFrac.discard l0 (by word) $$ [Hesl] with -
-      · iframe Hesl; ipureintro; exact Hl0
-      wp_apply wp_Entry_GetData.1 l0 DFrac.discard e $$ [$He0] as %ds ⟨#Hds, -⟩
-      wp_apply wp_slice_literal (V := ReadState) [ReadState.mk idx ds]
-      isplitr
-      · ipureintro; rfl
-      iintro %sl_ptr ⟨Hsl, -⟩
-      have Hsz : go.arrayLiteralSize [KeyedElement none (ElementExpression ReadState.ty
-          #(ReadState.mk idx ds))] = 1 := rfl
-      simp only [Hsz]
-      wp_apply wp_slice_append_persistent (V := ReadState) rsl vs _ [ReadState.mk idx ds] (DFrac.own 1)
-          $$ [$Hvs $HreadStates_cap $Hsl]
-        as %rs' ⟨Hvs', HreadStates_cap, -⟩
-      wp_alloc lresp as Hresp
-      imod msgOwn_zero lresp ⊤ $$ Hresp with Hresp
-      wp_auto
-      iapply HΦ
-      rw [ite_eq_left Hlocal]
-      ihave Hphys := Hback $$ %rs' %ro %pr
-        %({ s.rd with states := s.rd.states ++ [ReadStateM.mk idx e.Data'] }) Hrs Hro Hpr
-        [Hvs' HreadStates_cap Hro_obj Hpri Hpri_cap]
-      · unfold ownRaftMisc
-        simp only [named]
-        iframe HreadStates_cap Hro_obj Hpri Hpri_cap
-        iunfold readStatesPts
-        iexists vs ++ [ReadState.mk idx ds]
-        iframe Hvs'
-        iapply BigSepL2.bigSepL2_snoc.2
-        iframe Hvb Hds
-        ipureintro; rfl
-      ihave Hphys := ownRaftPhysC_eq c r id
-        { s with rd := { s.rd with states := s.rd.states ++ [ReadStateM.mk idx e.Data'] } }
-        (addReadState s idx e.Data') rfl $$ Hphys
-      iframe Hphys Hresp
+      ri_local
     · rw [decide_eq_false Hid]
       wp_auto
       rw [show raftpb.MsgReadIndexResp = #((W32 16 : raftpb.MessageType)) from rfl]

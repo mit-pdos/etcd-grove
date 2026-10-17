@@ -26,6 +26,142 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
+open Lean in
+/-- `$H` (frame `H`) in an Iris spec pattern, for a tactic macro's quotation, where `$H` would
+parse as an antiquotation. -/
+private meta def frameH (n : Name) : TSyntax `frameIdent :=
+  ⟨Syntax.mkAntiquotNode `ident (mkIdent n)⟩
+
+set_option hygiene false in
+/-- The rest of `deleteRange` after `kvindex.Range(key, end, rrev, 0, false)`, in both branches of
+`rrev` (`tw.beginRev`, or one more when `tw.changes` is non-empty): the keys deleted one by one. -/
+local macro "del_range_tail" : tactic => `(tactic| (
+    ihave Hmu := Hmub $$ Hcu
+    rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer, hks']
+    (try wp_auto)
+    iunfold mvcc.ownKeys at Hkeys
+    icases Hkeys with ⟨%kss, Hkss, Hkscap, %Hklen, #Hkz⟩
+    ihave %Hkl := ownSlice_len keys (DFrac.own 1) kss $$ Hkss
+    have hkeyslen : keys.len = W64 (ks.length : Int) := by
+      rw [← Hklen, Hkl.1]; exact (mvcc.W64_sint_nat keys.len Hkl.2).symm
+    have hkslt : ks.length < 2 ^ 63 := by omega
+    have hksZ : sint.Z keys.len = ks.length := by
+      rw [hkeyslen]; unfold sint.Z W64
+      rw [BitVec.toInt_ofInt_eq_self (by decide)
+        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+    -- `if len(keys) == 0 { return 0 }`
+    wp_if_destruct
+    · -- no key
+      have hnil : ks = [] := by
+        apply List.length_eq_zero_iff.1
+        have h := congrArg sint.Z Hif
+        rw [hksZ] at h
+        simpa using h
+      have h0 : (W64 (ks.length : Int) : w64) = W64 0 := by rw [hnil]; rfl
+      rw [h0, hnil, List.map_nil, List.append_nil]
+      (try wp_auto)
+      iapply HΦ
+      iunfold mvcc.storeTxnWriteIs
+      iexists ti, bt, Locked, chs, ps, ntok
+      simp only [named]
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe #
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+    · -- the loop: `for _, key := range keys { tw.delete(key) }`
+      have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
+      have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
+      rw [hks] at hpres hnodup
+      ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
+      · iunfold mvcc.storeTxnWriteIs
+        iexists ti, bt, Locked, chs, ps, ntok
+        simp only [named]
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+        iframe #
+        ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+      (try wp_auto)
+      ihave IH : (∃ (j : Nat) (kv0 : GoSlice),
+          "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
+          "Hk" ∷ key_ptr ↦ kv0 ∗
+          "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
+          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del) crev Z) $$ [i key Htx]
+      · iexists 0, zero_val GoSlice
+        simp only [named, List.take_zero, List.map_nil, List.append_nil]
+        rw [show (W64 ((0 : Nat) : Int) : w64) = W64 0 from rfl]
+        iframe i key Htx
+        ipureintro; omega
+      wp_for IH
+      have hj : sint.Z (W64 (j : Int) : w64) = j := by
+        unfold sint.Z W64
+        rw [BitVec.toInt_ofInt_eq_self (by decide)
+          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
+          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
+      have hjN : (sint.Z (W64 (j : Int) : w64)).toNat = j := by rw [hj]; rfl
+      wp_if_destruct
+      · -- `i < len(keys)`: `tw.delete(keys[i])`
+        have hlt : sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
+          first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
+        have hjlt : j < ks.length := by rw [hj, hksZ] at hlt; omega
+        obtain ⟨kw, hkw⟩ : ∃ kw, kss[j]? = some kw := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        obtain ⟨kj, hkj⟩ : ∃ kj, ks[j]? = some kj := ⟨_, List.getElem?_eq_getElem hjlt⟩
+        have Hbnd : 0 ≤ sint.Z (W64 (j : Int) : w64) ∧ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
+          rw [hj]; constructor <;> omega
+        simp only [Hbnd, _root_.and_self, ite_true]
+        wp_apply wp_load_slice_index keys (sint.Z (W64 (j : Int) : w64)) kss (DFrac.own 1) kw Hbnd.1
+          $$ [$(frameH `Hkss)] as Hkss
+        · ipureintro; rw [hjN]; exact hkw
+        have hz : (kw, kj) ∈ kss.zip ks :=
+          List.mem_iff_getElem?.2 ⟨j, List.getElem?_zip_eq_some.2 ⟨hkw, hkj⟩⟩
+        icases BigSepL.bigSepL_mem_acc hz $$ Hkz with ⟨#Hkj, -⟩
+        (try wp_auto)
+        have hmem : kj ∈ ks := List.mem_of_getElem? hkj
+        have hnot : kj ∉ ks.take j := by
+          intro hin
+          obtain ⟨j', hj', hget⟩ := List.mem_iff_getElem.1 hin
+          rw [List.getElem_take] at hget
+          rw [List.length_take] at hj'
+          have h1 : ks[j']? = ks[j]? := by
+            rw [List.getElem?_eq_getElem (by omega), hget, hkj]
+          have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
+          omega
+        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj crev Z)
+          $$ [$(frameH `Htx) $(frameH `Hkj)] as Htx
+        · ipureintro
+          refine ⟨?_, by simp only [List.length_append, List.length_map, List.length_take]; omega⟩
+          rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
+              (pend ++ (ks.take j).map .del) =
+            mvcc.applyChanges (W64 (ilog.length : Int))
+              (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
+              ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
+          rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
+          exact hpres kj hmem
+        (try wp_auto)
+        wp_for_post
+        (try wp_auto)
+        (try simp only [named])
+        iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap
+        iexists (j + 1), kw
+        (try simp only [named])
+        rw [List.take_add_one, hkj, Option.toList_some, List.map_append, List.map_singleton,
+          ← List.append_assoc]
+        rw [show (W64 ((j + 1 : Nat) : Int) : w64) = W64 (j : Int) + W64 1 by
+          rw [← mvcc.W64_add_one]; simp]
+        iframe Hri Hk Htx
+        ipureintro; omega
+      · -- the loop is done: every key deleted
+        have hge : ¬ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
+          first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
+        have hjeq : j = ks.length := by rw [hj, hksZ] at hge; omega
+        subst hjeq
+        rw [List.take_length]
+        (try rw [decide_eq_false hge, if_pos (by simp)])
+        (try wp_auto)
+        rw [hkeyslen]
+        iapply HΦ
+        iexact Htx
+  ))
+
 theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hRange : mvcc.treeIndex.Range.spec (GF := GF) (hG := hG))
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
@@ -119,129 +255,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have h1 : sint.Z (W64 (ilog.length : Int) : w64) = ilog.length := by
         have := Hbudget; word
       exact ⟨⟨Hcrev.1, by have := Hcrev.2; omega⟩, hrr⟩
-    ihave Hmu := Hmub $$ Hcu
-    rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer, hks']
-    (try wp_auto)
-    iunfold mvcc.ownKeys at Hkeys
-    icases Hkeys with ⟨%kss, Hkss, Hkscap, %Hklen, #Hkz⟩
-    ihave %Hkl := ownSlice_len keys (DFrac.own 1) kss $$ Hkss
-    have hkeyslen : keys.len = W64 (ks.length : Int) := by
-      rw [← Hklen, Hkl.1]; exact (mvcc.W64_sint_nat keys.len Hkl.2).symm
-    have hkslt : ks.length < 2 ^ 63 := by omega
-    have hksZ : sint.Z keys.len = ks.length := by
-      rw [hkeyslen]; unfold sint.Z W64
-      rw [BitVec.toInt_ofInt_eq_self (by decide)
-        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
-        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
-    -- `if len(keys) == 0 { return 0 }`
-    wp_if_destruct
-    · -- no key
-      have hnil : ks = [] := by
-        apply List.length_eq_zero_iff.1
-        have h := congrArg sint.Z Hif
-        rw [hksZ] at h
-        simpa using h
-      have h0 : (W64 (ks.length : Int) : w64) = W64 0 := by rw [hnil]; rfl
-      rw [h0, hnil, List.map_nil, List.append_nil]
-      (try wp_auto)
-      iapply HΦ
-      iunfold mvcc.storeTxnWriteIs
-      iexists ti, bt, Locked, chs, ps, ntok
-      simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
-      iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
-    · -- the loop: `for _, key := range keys { tw.delete(key) }`
-      have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
-      have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
-      rw [hks] at hpres hnodup
-      ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
-      · iunfold mvcc.storeTxnWriteIs
-        iexists ti, bt, Locked, chs, ps, ntok
-        simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
-        iframe #
-        ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
-      (try wp_auto)
-      ihave IH : (∃ (j : Nat) (kv0 : GoSlice),
-          "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
-          "Hk" ∷ key_ptr ↦ kv0 ∗
-          "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
-          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del) crev Z) $$ [i key Htx]
-      · iexists 0, zero_val GoSlice
-        simp only [named, List.take_zero, List.map_nil, List.append_nil]
-        rw [show (W64 ((0 : Nat) : Int) : w64) = W64 0 from rfl]
-        iframe i key Htx
-        ipureintro; omega
-      wp_for IH
-      have hj : sint.Z (W64 (j : Int) : w64) = j := by
-        unfold sint.Z W64
-        rw [BitVec.toInt_ofInt_eq_self (by decide)
-          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
-          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
-      have hjN : (sint.Z (W64 (j : Int) : w64)).toNat = j := by rw [hj]; rfl
-      wp_if_destruct
-      · -- `i < len(keys)`: `tw.delete(keys[i])`
-        have hlt : sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
-          first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
-        have hjlt : j < ks.length := by rw [hj, hksZ] at hlt; omega
-        obtain ⟨kw, hkw⟩ : ∃ kw, kss[j]? = some kw := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-        obtain ⟨kj, hkj⟩ : ∃ kj, ks[j]? = some kj := ⟨_, List.getElem?_eq_getElem hjlt⟩
-        have Hbnd : 0 ≤ sint.Z (W64 (j : Int) : w64) ∧ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
-          rw [hj]; constructor <;> omega
-        simp only [Hbnd, _root_.and_self, ite_true]
-        wp_apply wp_load_slice_index keys (sint.Z (W64 (j : Int) : w64)) kss (DFrac.own 1) kw Hbnd.1
-          $$ [$Hkss] as Hkss
-        · ipureintro; rw [hjN]; exact hkw
-        have hz : (kw, kj) ∈ kss.zip ks :=
-          List.mem_iff_getElem?.2 ⟨j, List.getElem?_zip_eq_some.2 ⟨hkw, hkj⟩⟩
-        icases BigSepL.bigSepL_mem_acc hz $$ Hkz with ⟨#Hkj, -⟩
-        (try wp_auto)
-        have hmem : kj ∈ ks := List.mem_of_getElem? hkj
-        have hnot : kj ∉ ks.take j := by
-          intro hin
-          obtain ⟨j', hj', hget⟩ := List.mem_iff_getElem.1 hin
-          rw [List.getElem_take] at hget
-          rw [List.length_take] at hj'
-          have h1 : ks[j']? = ks[j]? := by
-            rw [List.getElem?_eq_getElem (by omega), hget, hkj]
-          have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
-          omega
-        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj crev Z) $$ [$Htx $Hkj] as Htx
-        · ipureintro
-          refine ⟨?_, by simp only [List.length_append, List.length_map, List.length_take]; omega⟩
-          rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
-              (pend ++ (ks.take j).map .del) =
-            mvcc.applyChanges (W64 (ilog.length : Int))
-              (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
-              ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
-          rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
-          exact hpres kj hmem
-        (try wp_auto)
-        wp_for_post
-        (try wp_auto)
-        (try simp only [named])
-        iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap
-        iexists (j + 1), kw
-        (try simp only [named])
-        rw [List.take_add_one, hkj, Option.toList_some, List.map_append, List.map_singleton,
-          ← List.append_assoc]
-        rw [show (W64 ((j + 1 : Nat) : Int) : w64) = W64 (j : Int) + W64 1 by
-          rw [← mvcc.W64_add_one]; simp]
-        iframe Hri Hk Htx
-        ipureintro; omega
-      · -- the loop is done: every key deleted
-        have hge : ¬ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
-          first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
-        have hjeq : j = ks.length := by rw [hj, hksZ] at hge; omega
-        subst hjeq
-        rw [List.take_length]
-        (try rw [decide_eq_false hge, if_pos (by simp)])
-        (try wp_auto)
-        rw [hkeyslen]
-        iapply HΦ
-        iexact Htx
+    del_range_tail
   · -- no change yet: the committed log's last revision
     have hpend : pend = [] := by
       rw [hcl] at Hif
@@ -282,129 +296,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have h1 : sint.Z (W64 ((ilog.length : Int) - 1) : w64) = ilog.length - 1 := by
         have := Hbudget; have := List.length_pos_iff.2 Hne; word
       exact ⟨⟨Hcrev.1, by have := Hcrev.2; omega⟩, hrr⟩
-    ihave Hmu := Hmub $$ Hcu
-    rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer, hks']
-    (try wp_auto)
-    iunfold mvcc.ownKeys at Hkeys
-    icases Hkeys with ⟨%kss, Hkss, Hkscap, %Hklen, #Hkz⟩
-    ihave %Hkl := ownSlice_len keys (DFrac.own 1) kss $$ Hkss
-    have hkeyslen : keys.len = W64 (ks.length : Int) := by
-      rw [← Hklen, Hkl.1]; exact (mvcc.W64_sint_nat keys.len Hkl.2).symm
-    have hkslt : ks.length < 2 ^ 63 := by omega
-    have hksZ : sint.Z keys.len = ks.length := by
-      rw [hkeyslen]; unfold sint.Z W64
-      rw [BitVec.toInt_ofInt_eq_self (by decide)
-        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
-        (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
-    -- `if len(keys) == 0 { return 0 }`
-    wp_if_destruct
-    · -- no key
-      have hnil : ks = [] := by
-        apply List.length_eq_zero_iff.1
-        have h := congrArg sint.Z Hif
-        rw [hksZ] at h
-        simpa using h
-      have h0 : (W64 (ks.length : Int) : w64) = W64 0 := by rw [hnil]; rfl
-      rw [h0, hnil, List.map_nil, List.append_nil]
-      (try wp_auto)
-      iapply HΦ
-      iunfold mvcc.storeTxnWriteIs
-      iexists ti, bt, Locked, chs, ps, ntok
-      simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
-      iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
-    · -- the loop: `for _, key := range keys { tw.delete(key) }`
-      have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
-      have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
-      rw [hks] at hpres hnodup
-      ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
-      · iunfold mvcc.storeTxnWriteIs
-        iexists ti, bt, Locked, chs, ps, ntok
-        simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
-        iframe #
-        ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
-      (try wp_auto)
-      ihave IH : (∃ (j : Nat) (kv0 : GoSlice),
-          "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
-          "Hk" ∷ key_ptr ↦ kv0 ∗
-          "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
-          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del) crev Z) $$ [i key Htx]
-      · iexists 0, zero_val GoSlice
-        simp only [named, List.take_zero, List.map_nil, List.append_nil]
-        rw [show (W64 ((0 : Nat) : Int) : w64) = W64 0 from rfl]
-        iframe i key Htx
-        ipureintro; omega
-      wp_for IH
-      have hj : sint.Z (W64 (j : Int) : w64) = j := by
-        unfold sint.Z W64
-        rw [BitVec.toInt_ofInt_eq_self (by decide)
-          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
-          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
-      have hjN : (sint.Z (W64 (j : Int) : w64)).toNat = j := by rw [hj]; rfl
-      wp_if_destruct
-      · -- `i < len(keys)`: `tw.delete(keys[i])`
-        have hlt : sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
-          first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
-        have hjlt : j < ks.length := by rw [hj, hksZ] at hlt; omega
-        obtain ⟨kw, hkw⟩ : ∃ kw, kss[j]? = some kw := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-        obtain ⟨kj, hkj⟩ : ∃ kj, ks[j]? = some kj := ⟨_, List.getElem?_eq_getElem hjlt⟩
-        have Hbnd : 0 ≤ sint.Z (W64 (j : Int) : w64) ∧ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
-          rw [hj]; constructor <;> omega
-        simp only [Hbnd, _root_.and_self, ite_true]
-        wp_apply wp_load_slice_index keys (sint.Z (W64 (j : Int) : w64)) kss (DFrac.own 1) kw Hbnd.1
-          $$ [$Hkss] as Hkss
-        · ipureintro; rw [hjN]; exact hkw
-        have hz : (kw, kj) ∈ kss.zip ks :=
-          List.mem_iff_getElem?.2 ⟨j, List.getElem?_zip_eq_some.2 ⟨hkw, hkj⟩⟩
-        icases BigSepL.bigSepL_mem_acc hz $$ Hkz with ⟨#Hkj, -⟩
-        (try wp_auto)
-        have hmem : kj ∈ ks := List.mem_of_getElem? hkj
-        have hnot : kj ∉ ks.take j := by
-          intro hin
-          obtain ⟨j', hj', hget⟩ := List.mem_iff_getElem.1 hin
-          rw [List.getElem_take] at hget
-          rw [List.length_take] at hj'
-          have h1 : ks[j']? = ks[j]? := by
-            rw [List.getElem?_eq_getElem (by omega), hget, hkj]
-          have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
-          omega
-        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj crev Z) $$ [$Htx $Hkj] as Htx
-        · ipureintro
-          refine ⟨?_, by simp only [List.length_append, List.length_map, List.length_take]; omega⟩
-          rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
-              (pend ++ (ks.take j).map .del) =
-            mvcc.applyChanges (W64 (ilog.length : Int))
-              (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) pend)
-              ((ks.take j).map .del) by unfold mvcc.applyChanges; rw [List.foldl_append]]
-          rw [mvcc.findKey_applyChanges_dels _ _ _ _ hnot]
-          exact hpres kj hmem
-        (try wp_auto)
-        wp_for_post
-        (try wp_auto)
-        (try simp only [named])
-        iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap
-        iexists (j + 1), kw
-        (try simp only [named])
-        rw [List.take_add_one, hkj, Option.toList_some, List.map_append, List.map_singleton,
-          ← List.append_assoc]
-        rw [show (W64 ((j + 1 : Nat) : Int) : w64) = W64 (j : Int) + W64 1 by
-          rw [← mvcc.W64_add_one]; simp]
-        iframe Hri Hk Htx
-        ipureintro; omega
-      · -- the loop is done: every key deleted
-        have hge : ¬ sint.Z (W64 (j : Int) : w64) < sint.Z keys.len := by
-          first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
-        have hjeq : j = ks.length := by rw [hj, hksZ] at hge; omega
-        subst hjeq
-        rw [List.take_length]
-        (try rw [decide_eq_false hge, if_pos (by simp)])
-        (try wp_auto)
-        rw [hkeyslen]
-        iapply HΦ
-        iexact Htx
+    del_range_tail
 
 end proof
 
