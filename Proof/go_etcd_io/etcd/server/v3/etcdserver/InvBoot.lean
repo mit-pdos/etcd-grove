@@ -151,6 +151,14 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
     "#Hrms" ∷ bc.remotes' ↦*□ rms ∗ "#Hrmsi" ∷ ([∗list] m ∈ rms, memberRO m) ∗
+    -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
+    -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
+    -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f)
+    "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
+    "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
+      backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+      apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f) ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
@@ -170,6 +178,9 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗
     "Hview" ∷ mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
     "Hwb" ∷ ownToks d.γB.wb (N + 7) ∗
+    -- within the backend's budget (`backend.New`'s `wbInit = 2 ^ 40 - 1` write-back tokens;
+    -- unit N4, 2026-10-17)
+    "%HN" ∷ ⌜N + 7 ≤ 2 ^ 40 - 1⌝ ∗
     "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
     "Hrts" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
       mvcc.bkRTx d.γB d.P d.be) ∗

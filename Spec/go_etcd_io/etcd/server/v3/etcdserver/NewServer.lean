@@ -64,6 +64,8 @@ abbrev NewServer.spec : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →
+  -- the compactor off (D14e: `v3compactor.New` and its goroutine not reached)
+  cfg.AutoCompactionRetention' = 0 →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -87,6 +89,9 @@ abbrev NewServer.spec : Prop :=
       "#Hwork" ∷ clusterWorkloadOk ρ E₀ (W64 0) bootKV ∗
       -- the lifetime bound (D14g): at most `N` entries ever applied, `bootstrap`'s budget
       "#Hlife" ∷ srvLifeBound ρ.raft N ∗
+      -- the named premises of the constructors' axioms (D14e, unit N4): the background
+      -- goroutines' effects and the auth store's record bound
+      "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗ "#Hrs" ∷ rnRaftStatusOk ∗

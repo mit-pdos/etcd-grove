@@ -52,6 +52,45 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.math.Ceil
 public import Spec.time.Duration__Seconds_ptr
+public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.bucket__ID
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRangeBucket
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__GetLease
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Attach
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Detach
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Grant
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Checkpoint
+public import Spec.go_etcd_io.etcd.server.v3.lease.Lease__TTL
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Promote
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Demote
+public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__ExpiredLeasesC
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ForceCommit
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__RLock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__RUnlock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Perennial.Proof.time
@@ -122,9 +161,44 @@ theorem NewServer.wp_proof
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h40 : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
-    (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG)) :
+    (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
+    (h43 : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (h44 : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (h45 : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (h48 : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (h49 : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
+    (h50 : lease.lessor.Attach.spec (GF := GF) (hG := hG))
+    (h51 : lease.lessor.Detach.spec (GF := GF) (hG := hG))
+    (h52 : lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG))
+    (h53 : lease.lessor.Lookup.spec (GF := GF) (hG := hG))
+    (h54 : lease.lessor.Grant.spec (GF := GF) (hG := hG))
+    (h55 : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
+    (h56 : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (h57 : lease.lessor.Promote.spec (GF := GF) (hG := hG))
+    (h58 : lease.lessor.Demote.spec (GF := GF) (hG := hG))
+    (h59 : lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG))
+    (h60 : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (h61 : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (h62 : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (h63 : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (h64 : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (h65 : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (h66 : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (h67 : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (h68 : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (h69 : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (h70 : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (h71 : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (h72 : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (h73 : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (h74 : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (h75 : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
