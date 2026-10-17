@@ -30,7 +30,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseCheckpoint.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%cms, #Hr, %Hlen1⟩, Hpre⟩
+  wp_start as ⟨#Hb, ⟨%cms, #Hr, %Hlen1⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
@@ -49,12 +49,14 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
   ihave IH : iprop(∃ (n : w64) (c0 : Loc),
       "i" ∷ i_ptr ↦ n ∗ "c" ∷ c_ptr ↦ c0 ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ps.length : Int)⌝ ∗
-      "Hst" ∷ ((⌜n = W64 0⌝ ∗ mvcc.csContract E.P E.f Pre Q Post) ∨
-        (⌜n ≠ W64 0⌝ ∗ (Post ∨ Pre)))) $$ [i c Hcs]
+      "Hst" ∷ ((⌜n = W64 0⌝ ∗ mvcc.csContract E.P E.f Pre Q Post ∗ mvcc.storeWT E.γ) ∨
+        (⌜n ≠ W64 0⌝ ∗ (Post ∨ Pre)))) $$ [i c Hcs Hwt]
   · iexists W64 0, _
     simp only [named]
-    iframe
-    ipureintro; constructor <;> word
+    iframe i c
+    isplitr
+    · ipureintro; constructor <;> word
+    ileft; iframe Hcs Hwt
   wp_for IH
   have Hslz : ((sint.nat sl.len : Nat) : Int) = sint.Z sl.len := Int.toNat_of_nonneg Hsll.2
   wp_if_destruct
@@ -63,7 +65,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       have := Hsll.1; have := Hn.1; omega
     have Hn0 : n = W64 0 := by word
     subst Hn0
-    icases Hst with (⟨-, Hcs⟩ | ⟨%Hne, -⟩)
+    icases Hst with (⟨-, Hcs, Hwt⟩ | ⟨%Hne, -⟩)
     rotate_left
     · exact absurd rfl Hne
     have Hlt : 0 < ps.length := by have := Hsll.1; omega
@@ -89,7 +91,9 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     wp_auto
     rw [Hli]
     wp_auto
-    wp_apply HCk $$ [$Hcs] as %err ⟨HPP, #HeI⟩
+    icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+    wp_apply HCk $$ [$Hcs $Hwt $Hrt] as %err ⟨HPP, Hrt, #HeI⟩
+    ihave Hrd := Hrdb $$ Hrt
     cases err with
     | nil =>
       wp_auto
@@ -118,7 +122,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       iframe
   · -- the loop is done
     ihave HPP : iprop(Post ∨ Pre) $$ [Hst]
-    · icases Hst with (⟨-, Hcs⟩ | ⟨-, HPP⟩)
+    · icases Hst with (⟨-, Hcs, -⟩ | ⟨-, HPP⟩)
       · iright; iapply apply.csContract_pre $$ Hcs
       · iexact HPP
     wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩

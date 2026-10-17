@@ -202,11 +202,11 @@ theorem apply.newQuotaApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       iunfold apply.mPre at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp $$ %_ %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
+      iapply HResp $$ %_ %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.respMethods]
       · iframe HR
         iunfold apply.mPre
@@ -231,10 +231,11 @@ theorem apply.newQuotaApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty)]
       wp_call
       wp_auto
+      icases Hpre with ⟨Hpre, Hwt⟩
       iunfold apply.mPre at Hpre
       icases Hpre with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
       · iunfold apply.mPre
@@ -276,11 +277,11 @@ theorem apply.newQuotaApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
         iunfold apply.mPreV

@@ -690,13 +690,13 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvPost E c (.ok ai) rq log (revokeOutcomeIs resp err) Pre Post }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ respMethods⌝ -∗
-      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post }}
+      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ resp0Methods⌝ -∗
       ⌜m = go!"AuthEnable" → E.authOn = true⌝ -∗
-      {{ mPre E c (.ok ai) log Pre Q Post }}
+      {{ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
@@ -707,7 +707,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvOwn E log ∗ chainRes c (.ok ai) ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post }}
+      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
       {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection
@@ -739,8 +739,8 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f E.RD E.authOn ∗
-    isAlarmStore opts.AlarmStore' E.P E.f ∗ isCluster opts.Cluster' E.P E.f ∗
+    isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn ∗
+    isAlarmStore opts.AlarmStore' E.γ E.P E.f ∗ isCluster opts.Cluster' E.γ E.P E.f ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' ∗
     isConsistentIndexer opts.ConsistentIndex')
 
@@ -785,7 +785,7 @@ store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
-      isAuthStore st E.P E.f E.RD E.authOn) ∗
+      isAuthStore st E.γ E.P E.f E.RD E.authOn) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
       isApplyLessor le E.s E.γ E.P E.f) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))

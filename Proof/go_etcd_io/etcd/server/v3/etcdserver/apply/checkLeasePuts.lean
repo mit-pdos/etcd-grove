@@ -49,7 +49,7 @@ theorem apply.checkLeasePuts.wp_proof
     icases Hl' with ⟨%Hln, -⟩
     simp only [Hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st P f RD on ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI, %Hoff⟩
+    wp_apply (hKeys st γ P f RD on ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI, %Hoff⟩
     iapply HΦ; iframe Hai Hrd HeI; ipureintro; exact Hoff
 
 end proof

@@ -72,7 +72,7 @@ theorem isApplyLessor_of_lessorInv
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
     (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
+      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f (mvcc.storeWT γ) (mvcc.storeRT γ) ∗
       □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
         {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
             lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
@@ -97,11 +97,12 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %Pre %Q %Post %Φ !> ⟨Hcs, Hown⟩ HΦ
-    iapply (hGrant lp γ.leases id ttl L P f Pre Q Post) $$ [Hcs Hown]
+  · iintro !> %id %ttl %L %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt⟩ HΦ
+    iapply (hGrant lp γ.leases id ttl L P f (mvcc.storeWT γ) (mvcc.storeRT γ) Pre Q Post) $$ [Hcs Hown Hwt Hrt]
     · iframe; iframe #
-    iintro !> %l %err (⟨%Hne, #Herr, Hown, HPre⟩ | ⟨%Hok, Hown, HPost, #HID, ⟨%t, #Ht⟩⟩)
+    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, HPre⟩ | ⟨%Hok, Hown, HPost, #HID, ⟨%t, #Ht⟩⟩)⟩
     · iapply HΦ
+      iframe Hrt
       isplitl [HPre]
       · iright; iexact HPre
       isplitl [Hown]
@@ -113,6 +114,7 @@ theorem isApplyLessor_of_lessorInv
     · obtain ⟨Herr, Hln, Hnin⟩ := Hok
       subst Herr
       iapply HΦ
+      iframe Hrt
       isplitl [HPost]
       · ileft; iexact HPost
       isplitl [Hown]
@@ -137,13 +139,13 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · iexact HRevoke
   isplitr
-  · iintro !> %id %rem %Pre %Q %Post %Φ !> Hcs HΦ
-    iapply (hCk lp γ.leases id rem P f Pre Q Post) $$ [Hcs]
+  · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt⟩ HΦ
+    iapply (hCk lp γ.leases id rem P f (mvcc.storeWT γ) (mvcc.storeRT γ) Pre Q Post) $$ [Hcs Hwt Hrt]
     · iframe; iframe #
-    iintro !> %err ⟨%He, HPP⟩
+    iintro !> %err ⟨Hrt, %He, HPP⟩
     subst He
     iapply HΦ
-    iframe HPP
+    iframe HPP Hrt
     iapply applyErrIs_nil
   · iexact HLookup
 

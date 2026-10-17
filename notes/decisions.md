@@ -7873,9 +7873,10 @@ constructor contracts false. D14 settles the three.
   for `mvcc.New`); N4b (D14b); N4c (D14c-e: `bootOk`, the contracts); N4d (`NewServer.wp_proof`,
   `srvBuildGap` without the KV rows).
 
-**Addendum (2026-10-17, unit N4 stopped at N4c; proposed, for the lead).**
+**Addendum (2026-10-17, unit N4 stopped at N4c; D14f adopted 2026-10-17, the user's choice A).**
 
-- **D14f: the write contracts of the names-only stores take the backend's write budget.** Making
+- **D14f (adopted 2026-10-17): the write contracts of the names-only stores take the backend's write
+  budget.** Making
   the constructors' contracts true (D14d) found that every apply-side clause that writes the backend
   under its batch lock without going through the store -- `isApplyLessor`'s `Grant`/`Checkpoint`
   (`lease.leaseBackend`), `isAlarmStore`'s `Activate`/`Deactivate`, `isAuthStore`'s enable/disable

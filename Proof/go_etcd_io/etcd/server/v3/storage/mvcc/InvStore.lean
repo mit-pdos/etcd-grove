@@ -2150,6 +2150,21 @@ theorem storeReader_toC (s : Loc) (γ : StoreNames) :
   iframe Hmu HrevMu Hti Hrt
   iframe #
 
+/-- **A reader lends its backend token** (`storeRT`: for the real backend a reader's slot and a
+share of it open; 2026-10-17, unit N4, D14f: what a write under the batch lock borrows). -/
+theorem storeReader_rt (s : Loc) (γ : StoreNames) :
+    storeReader (GF := GF) s γ ⊢ storeRT γ ∗ (storeRT γ -∗ storeReader s γ) := by
+  iintro H
+  iunfold storeReader at H
+  icases H with ⟨%ti, H⟩
+  iNamed H
+  iframe Hrt
+  iintro Hrt
+  iunfold storeReader
+  iexists ti
+  iframe Hmu HrevMu Hti Hrt
+  iframe #
+
 /-! ## The read transaction -/
 
 /-- The `storeTxnRead` of a read transaction at revision `rev` of the committed log `log`,

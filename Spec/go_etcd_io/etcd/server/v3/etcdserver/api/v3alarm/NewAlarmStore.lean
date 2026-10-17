@@ -36,7 +36,7 @@ abbrev v3alarm.NewAlarmStore.spec : Prop :=
       (Val #be))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err);
       ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil ∧ a ≠ null⌝ ∗ isAlarmStore a ∗
-        □ (∀ (P : IProp GF) (f : val), apply.isAlarmStore a P f) }}
+        □ (∀ (γ : mvcc.StoreNames) (P : IProp GF) (f : val), apply.isAlarmStore a γ P f) }}
 
 end spec
 

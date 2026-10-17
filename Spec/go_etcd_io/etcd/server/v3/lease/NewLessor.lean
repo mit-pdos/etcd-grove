@@ -36,7 +36,7 @@ abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (b cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
-      lease.leaseBackend b P f }}
+      lease.leaseBackend b P f iprop(True) iprop(True) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg)) (Val #b))
       (Val #cl)) (Val #cfg))
   {{ (l : GoInterface), RET #l; lessorOk l ∗ lessorCkptOk l ∗

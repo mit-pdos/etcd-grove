@@ -30,7 +30,7 @@ theorem apply.uberApplier.Alarm.wp_proof
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Alarm.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r am log Pre Q Post
-  wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre⟩
+  wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre, Hwt⟩
   ihave #Hs' := Hs
   iunfold apply.applierSpec at Hs'
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
@@ -41,10 +41,10 @@ theorem apply.uberApplier.Alarm.wp_proof
   iunfold apply.alarmRequestIs at Hr'
   icases Hr' with ⟨%Hrnn, #Hact, -, -⟩
   wp_auto
-  wp_apply HResp $$ %go!"Alarm" %r %log %Pre %Q %Post [] [Hpre] as %resp %err ⟨Hpost, #HeI⟩
+  wp_apply HResp $$ %go!"Alarm" %r %log %Pre %Q %Post [] [Hpre Hwt] as %resp %err ⟨Hpost, #HeI⟩
   · ipureintro; simp [apply.respMethods]
   · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    iframe Hpre
+    iframe Hpre Hwt
     iexists am
     iexact Hr
   wp_if_destruct

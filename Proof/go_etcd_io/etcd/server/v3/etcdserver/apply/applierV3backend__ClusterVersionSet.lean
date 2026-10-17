@@ -39,9 +39,12 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.ClusterVersionSet.spec (GF := GF) (hG := hG) := by
   intro E p r v3 log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%ver, #Hr, %Hvalid⟩, Hpre⟩
+  wp_start as ⟨#Hb, ⟨%ver, #Hr, %Hvalid⟩, Hpre, Hwt⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  iunfold apply.kvOwn at Hkv
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -61,8 +64,11 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     · exact h
     · exact absurd Hvalid Hn
   wp_auto
-  wp_apply HSV $$ [$Hcs] as HPP
+  wp_apply HSV $$ [$Hcs $Hwt $Hrt] as ⟨HPP, Hrt⟩
   · ipureintro; exact Hnv
+  ihave Hrd := Hrdb $$ Hrt
+  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+  · iunfold apply.kvOwn; iframe
   wp_if_destruct
   · -- no previous version
     iapply HΦ

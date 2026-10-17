@@ -131,26 +131,26 @@ theorem apply.newAuthApplierV3.wp_proof
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl
     case inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       simp [apply.reqFacts]
-      iapply (hUG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm] HΦ'
-      iframe HR Hm
+      iapply (hUG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
+      iframe HR Hm Hwt
       iframe #
     case inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       simp [apply.reqFacts]
-      iapply (hRG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm] HΦ'
-      iframe HR Hm
+      iapply (hRG E c (.ok bi) p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
+      iframe HR Hm Hwt
       iframe #
     all_goals
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       iunfold apply.mPre at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp $$ %_ %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
+      iapply HResp $$ %_ %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.respMethods]
       · iframe HR
         iunfold apply.mPre
@@ -175,10 +175,11 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
+      icases Hpre with ⟨Hpre, Hwt⟩
       iunfold apply.mPre at Hpre
       icases Hpre with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
       · iunfold apply.mPre
@@ -220,11 +221,11 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm⟩
+      icases Hpre with ⟨HR, Hm, Hwt⟩
       iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
         iunfold apply.mPreV

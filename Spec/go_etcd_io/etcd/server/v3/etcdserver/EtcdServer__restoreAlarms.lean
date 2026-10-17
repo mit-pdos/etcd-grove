@@ -36,7 +36,7 @@ abbrev EtcdServer.restoreAlarms.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err ≠ GoInterface.nil⌝ ∗ srvAlarmStoreAddr s ↦ a0) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ a : Loc, ⌜a ≠ null⌝ ∗ srvAlarmStoreAddr s ↦ a ∗
-        isAlarmStore a ∗ □ (∀ (P : IProp GF) (f : val), apply.isAlarmStore a P f)) }}
+        isAlarmStore a ∗ □ (∀ (γ : mvcc.StoreNames) (P : IProp GF) (f : val), apply.isAlarmStore a γ P f)) }}
 
 end spec
 

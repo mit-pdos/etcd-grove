@@ -220,7 +220,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .clusterVersionSet := by simp [dispatchKind, hs]
     have hsv : semverValid x := by
       have := Hok.1; simp only [rqOk, hk] at this; exact this x hs
-    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post [] [Hkv Hres Hc] as Hpost
+    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as Hpost
     · ipureintro; simp [apply.clusterMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPreV
@@ -240,7 +240,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCM.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCM
     have hk : dispatchKind rq = .clusterMemberAttrSet := by simp [dispatchKind, zClusterVersionSet, hs]
-    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post [] [Hkv Hres Hc] as Hpost
+    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as Hpost
     · ipureintro; simp [apply.clusterMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPreV
@@ -260,7 +260,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nDI.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HDI
     have hk : dispatchKind rq = .downgradeInfoSet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, hs]
-    wp_apply HCluster $$ %go!"DowngradeInfoSet" %lDI %v3 %log %Pre %Q %Post [] [Hkv Hres Hc] as Hpost
+    wp_apply HCluster $$ %go!"DowngradeInfoSet" %lDI %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as Hpost
     · ipureintro; simp [apply.clusterMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPreV
@@ -434,7 +434,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseGrant := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"LeaseGrant" %lLG %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"LeaseGrant" %lLG %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -475,7 +475,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseCheckpoint := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"LeaseCheckpoint" %lLC %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"LeaseCheckpoint" %lLC %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -492,7 +492,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAl.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAl
     have hk : dispatchKind rq = .alarm := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, hs]
-    wp_apply hAlarm $$ %E %p %opts %c %(GoInterface.ok ai) %lAl %x %log %Pre %Q %Post [Ha Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI, %a', %c', Ha', #Hs', %hc'⟩
+    wp_apply hAlarm $$ %E %p %opts %c %(GoInterface.ok ai) %lAl %x %log %Pre %Q %Post [Ha Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI, %a', %c', Ha', #Hs', %hc'⟩
     · iframe HR Hu Hs Ha
       iunfold apply.mPre
       iframe
@@ -532,7 +532,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"Authenticate" %lAu %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"Authenticate" %lAu %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -551,7 +551,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       · exact absurd (nAE.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authEnable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, hs]
-    wp_apply HResp0 $$ %go!"AuthEnable" %log %Pre %Q %Post [] [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp0 $$ %go!"AuthEnable" %log %Pre %Q %Post [] [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.resp0Methods]
     · ipureintro; intro _; exact Hok.2.2.2 hk
     · iunfold apply.mPre
@@ -570,7 +570,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       · exact absurd (nAD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authDisable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, hs]
-    wp_apply HResp0 $$ %go!"AuthDisable" %log %Pre %Q %Post [] [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp0 $$ %go!"AuthDisable" %log %Pre %Q %Post [] [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.resp0Methods]
     · ipureintro; intro h; exact absurd h (by decide)
     · iunfold apply.mPre
@@ -607,7 +607,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserAdd" %lUA %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserAdd" %lUA %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -628,7 +628,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserDelete" %lUD %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserDelete" %lUD %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -649,7 +649,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserChangePassword" %lUC %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserChangePassword" %lUC %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -670,7 +670,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserGrantRole" %lUGR %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserGrantRole" %lUGR %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -689,7 +689,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserGet" %lUG %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserGet" %lUG %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -710,7 +710,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserRevokeRole" %lURR %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserRevokeRole" %lURR %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -731,7 +731,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleAdd" %lRA %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"RoleAdd" %lRA %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -752,7 +752,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleGrantPermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleGrantPermission" %lRGP %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"RoleGrantPermission" %lRGP %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -771,7 +771,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleGet" %lRG %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"RoleGet" %lRG %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -792,7 +792,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleRevokePermission" %lRRP %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"RoleRevokePermission" %lRRP %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -813,7 +813,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleDelete" %lRD %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"RoleDelete" %lRD %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -834,7 +834,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserList" %lUL %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"UserList" %lUL %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre
@@ -855,7 +855,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleList" %lRL %log %Pre %Q %Post [] [Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI⟩
+    wp_apply HResp $$ %go!"RoleList" %lRL %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
     · ipureintro; simp [apply.respMethods]
     · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
       iunfold apply.mPre

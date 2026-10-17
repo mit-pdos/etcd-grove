@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3Corrupt.LeaseGrant.wp_proof :
     apply.applierV3Corrupt.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post
-  wp_start as ⟨-, -, Hpre⟩
+  wp_start as ⟨-, -, Hpre, -⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, #Hev⟩

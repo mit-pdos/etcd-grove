@@ -1085,7 +1085,8 @@ clauses, from their proofs; its `Revoke` and `Lookup` clauses are the premises
 (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
+      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
+      lease.lessorBackend lp P f (mvcc.storeWT γ) (mvcc.storeRT γ) ∗
       □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
         {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
             lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗

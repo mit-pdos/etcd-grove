@@ -33,9 +33,12 @@ theorem apply.applierV3backend.Authenticate.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Authenticate.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%am, #Hr⟩, Hpre⟩
+  wp_start as ⟨#Hb, ⟨%am, #Hr⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  iunfold apply.kvOwn at Hkv
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -61,9 +64,8 @@ theorem apply.applierV3backend.Authenticate.wp_proof
       ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty, _⟩ _) as %c2 ⟨-, -⟩
   · ipureintro; exact Or.inr (Or.inl rfl)
   rw [Hai]
-  wp_apply HM $$ %c2 %am.name %am.password %Pre %Q %Post [$Hcs] as %resp %err ⟨HPP, Hhdr, #HeI⟩
-  iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  wp_apply HM $$ %c2 %am.name %am.password %Pre %Q %Post [$Hcs $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI⟩
+  ihave Hrd := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response
     iapply HΦ

@@ -35,7 +35,7 @@ abbrev auth.NewAuthStore.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
       (Val #ab)) (Val #tp)) (Val #cost))
   {{ (st : GoInterface), RET #st; ∃ RD : IProp GF, RD ∗ isReqAuth st RD ∗
-      □ (∀ (P : IProp GF) (f : val), apply.isAuthStore st P f RD false) }}
+      □ (∀ (γ : mvcc.StoreNames) (P : IProp GF) (f : val), apply.isAuthStore st γ P f RD false) }}
 
 end spec
 
