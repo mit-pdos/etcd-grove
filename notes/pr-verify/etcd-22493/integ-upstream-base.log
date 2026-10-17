@@ -1,0 +1,10 @@
+=== RUN   TestV3AuthLeaseExpiryVerifyOnlyJWT
+    logger.go:146: 2026-10-17T01:55:48.263-0400	ERROR	m0	failed to assign token for lease revoking	{"member": "m0", "error": "auth: token signing attempted with verify-only key"}
+    logger.go:146: 2026-10-17T01:55:48.263-0400	WARN	m0	failed to revoke lease	{"member": "m0", "lease-id": "10b8a1486e39e203", "error": "auth: user name is empty"}
+    logger.go:146: 2026-10-17T01:55:53.763-0400	ERROR	m0	failed to assign token for lease revoking	{"member": "m0", "error": "auth: token signing attempted with verify-only key"}
+    logger.go:146: 2026-10-17T01:55:53.763-0400	WARN	m0	failed to revoke lease	{"member": "m0", "lease-id": "10b8a1486e39e203", "error": "auth: user name is empty"}
+    v3_auth_verify_only_lease_test.go:61: lease 10b8a1486e39e203 expired 8s ago and its key is still there
+--- FAIL: TestV3AuthLeaseExpiryVerifyOnlyJWT (10.19s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	10.233s
+FAIL

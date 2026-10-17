@@ -48,6 +48,7 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
+axiom auth.authStore.WithRoot.wp_proof
 axiom auth.hasRootRole.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
@@ -99,9 +100,11 @@ axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom context.ErrDone.wp_proof
+axiom context.ValueInternalRoot.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.WithValueInternalRoot.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof

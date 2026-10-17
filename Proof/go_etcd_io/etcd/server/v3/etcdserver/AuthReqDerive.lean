@@ -2,8 +2,8 @@
 The server's auth-store request-side contract (`isReqAuth`) of the real auth store, from the auth
 store's proofs (2026-10-14, unit P2; restated for the server's contract in unit A2; since
 etcd-io/etcd#22493, `pr-verify/etcd-22493`, with the context's root value from
-`context.ValueInternalRoot.spec`). Lean-first (no Rocq counterpart); see `Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` and
-`apply/AuthDerive.lean`.
+`context.ValueInternalRoot.spec`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/auth/InvAuth.lean` and `apply/AuthDerive.lean`.
 
 `isReqAuth st RD`'s `AuthInfoFromCtx` clause takes the caller's reader resource `RD`: the real
 method calls `IsAuthEnabled`, which read-locks `enabledMu` (a reader slot: Perennial bounds an

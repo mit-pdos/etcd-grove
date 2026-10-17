@@ -1,0 +1,13 @@
+# server/auth unit tests at the fork branch pr-etcd-22493-goose-lean (419e2eef3) with the PR's store_test.go
+--- PASS: TestWithRootInternal
+--- PASS: TestWithRootInternalPreservesTokenRevisionSemantics
+--- PASS: TestWithRootInternalFallsBackForOtherStores
+--- PASS: TestWithRootInternalOverridesIncomingToken
+--- PASS: TestWithRootInternalDoesNotCrossAuthStores
+--- PASS: TestWithRootInternalVerifyOnlyJWT
+ok  	go.etcd.io/etcd/server/v3/auth
+# tests/integration at the PR head fb1d045e8
+--- PASS: TestV3AuthWithLeaseRevokeWithRoot (3.20s)
+--- PASS: TestV3AuthWithLeaseRevokeWithRootJWT (3.23s)
+--- PASS: TestV3AuthWithRootInternalRPCIsolationJWT (2.74s)
+ok  	go.etcd.io/etcd/tests/v3/integration	9.247s

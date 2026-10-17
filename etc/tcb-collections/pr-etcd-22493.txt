@@ -1,0 +1,16 @@
+# etcd-io/etcd#22493 (pr-verify/etcd-22493): the process-local root identity: auth's
+# `WithRootInternal` and `authStore.AuthInfoFromCtx`, and the server's `AuthInfoFromCtx` over it.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22493.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots WithRootInternal
+roots authStore__AuthInfoFromCtx
+roots EtcdServer__AuthInfoFromCtx
+axiom auth.authStore.WithRoot.wp_proof
+axiom auth.redactToken.wp_proof
+axiom context.WithValueInternalRoot.wp_proof
+axiom metadata.FromIncomingContext.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof

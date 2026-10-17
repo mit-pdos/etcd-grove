@@ -45,6 +45,33 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## etcd-io/etcd#22493: the process-local root identity (2026-10-17, branch `pr-verify/etcd-22493`)
+
+Verification of an open PR, not for merging into `lean`: the translation is of the fork branch
+`pr-etcd-22493-goose-lean` (`etc/goose.py --check` fails here by design). Report:
+`notes/pr-verify/etcd-22493.md`.
+- `auth.toml` translates `WithRootInternal`, its context key and value types, and `rootUser`.
+  `RootCtx.lean` defines what a context carries at the key (`ctxRootIs`).
+- `authStore.AuthInfoFromCtx`'s spec now takes a context that is not nil, with its root value,
+  and promises root for a value of its own store (`rootInfoIf`). `spec_implies_old` derives the
+  old spec for a context that is not nil. `AuthReqDerive.lean` goes through it.
+- `WithRootInternal` is proved over the real store.
+- There are three new trust-boundary axioms: `authStore.WithRoot` (names only),
+  `context.ValueInternalRoot` (every context's `Value` at the key is fixed) and
+  `context.WithValueInternalRoot`.
+- `tokenProviderOk` gains `⌜ti.v.isPanic = false⌝`. A type assertion that binds an interface's
+  dynamic value of unknown shape needs it to step: a Perennial limitation, since no fact says an
+  interface's value is not a panic value. Proposed as a Perennial change: the typed points-to of
+  an interface could carry it.
+- The root value is not yet shown to survive the wrappers between `WithRootInternal` and
+  `AuthInfoFromCtx` (`WithTimeout`, the tracer's `Start`, `EnsureTrace`): see the report.
+- A spec bug found on the way: `metadata.FromIncomingContext`'s trust-boundary spec is stated for
+  a nil context too, on which grpc panics (`ctx.Value`). It was harmless, since every caller
+  passes a non-nil context, and the new `AuthInfoFromCtx` spec requires one.
+- No `sorry`. The `server` collection gains the three axioms (they are linked results of the
+  server's `Link`).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
