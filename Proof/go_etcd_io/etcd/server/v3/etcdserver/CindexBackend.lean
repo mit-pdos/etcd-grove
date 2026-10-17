@@ -17,8 +17,8 @@ backend's (`InvBackend.lean`), for a run of the pre-commit hook:
   (`hookPre`: the hook's window, room for two puts, and every write-buffer bucket empty or with an
   empty read-buffer bucket), with the client's half, and the puts made so far (one token each,
   `γi` for the index, `γt` for the term: at most two puts, `P.hookMax ≥ 2`). A put may repeat a
-  key of an earlier commit's hook (the backend's relaxed premise, `wbDupOk`), never one of this
-  run.
+  key of an earlier commit's hook, never one of this run (until etcd#22298 the backend's
+  `UnsafePut` needed that: its relaxed premise `wbDupOk`; it now takes any key).
 - **The reads** of the batch transaction (the `verify` check's `UnsafeReadConsistentIndex`)
   read the writer's contents; their slices are bbolt's, readable while the lock is held in the
   same bbolt transaction (`metaValsA` with `Acc := hookTM`).
@@ -123,28 +123,6 @@ theorem hookStep_of_run {P : BParams} (hP : ciKeys P) {st0 st : BSess} {ui ut : 
   refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
-
-/-- A put of one of the consistent index's keys, not put before in this run, may repeat a key
-of the write buffer only where the backend allows it. -/
-theorem hookRun_dup {P : BParams} {st0 st : BSess} {ui ut : Bool} {kb : GoString}
-    (hpre : hookPre P st0) (h : hookRun P st0 st ui ut)
-    (hk : (kb = schema.ciKeyBytes ∧ ui = false) ∨ (kb = schema.termKeyBytes ∧ ut = false)) :
-    kb ∉ (bkOf st.W.bks mvcc.metaBI.id).map Prod.fst ∨ wbDupOk st mvcc.metaBI.id := by
-  obtain ⟨-, hR, -, -, -, -, -, hc, hlast⟩ := h
-  rcases hlast with h0 | hall
-  · right; right
-    refine ⟨?_, by rw [hR]; exact h0⟩
-    rw [hc]; exact hpre.1
-  · left
-    intro hm
-    obtain ⟨e, he, hek⟩ := List.mem_map.1 hm
-    rcases hall e he with ⟨h1, h2⟩ | ⟨h1, h2⟩
-    · rcases hk with ⟨h3, h4⟩ | ⟨h3, h4⟩
-      · rw [h4] at h2; cases h2
-      · rw [← hek, h1] at h3; exact ci_ne_term h3
-    · rcases hk with ⟨h3, h4⟩ | ⟨h3, h4⟩
-      · rw [← hek, h1] at h3; exact ci_ne_term h3.symm
-      · rw [h4] at h2; cases h2
 
 /-- A put of one of the consistent index's keys, not put before in this run, continues it. -/
 theorem hookRun_put {P : BParams} (hPw : P.Wf) (hP : ciKeys P) {st0 st : BSess} {ui ut : Bool}
@@ -321,7 +299,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk : P.hk mvcc.metaBI.name schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) (hookRun_dup hpre hr (Or.inl ⟨rfl, rfl⟩)) hpend hSB)
+      (by decide) (by decide) hpend hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk⟩
   · iframe #
     rw [hkPut_hk hhk]
@@ -383,7 +361,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk : P.hk mvcc.metaBI.name schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) (hookRun_dup hpre hr (Or.inr ⟨rfl, rfl⟩)) hpend hSB)
+      (by decide) (by decide) hpend hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk⟩
   · iframe #
     rw [hkPut_hk hhk]
@@ -682,26 +660,17 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   iframe #
 
 /-- A run of the consistent index's hook leaves what the server's hook's `confState` put needs
-(`storage.hookSaveStep`): a third put's room (`hookMax ≥ 3`), and the `confState` key absent
-from the write buffer's `Meta` bucket or that bucket free to repeat a key. -/
+(`storage.hookSaveStep`): a third put's room (`hookMax ≥ 3`). (Until etcd#22298 also the
+`confState` key absent from the write buffer's `Meta` bucket or that bucket free to repeat a
+key.) -/
 theorem hookSaveStep_of_run {P : BParams} (hH : storage.hooksParams P) {st0 st : BSess}
     {ui ut : Bool} (hpre : hookPre P st0) (h : hookRun P st0 st ui ut) :
     storage.hookSaveStep P st0 st := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc, hlast⟩ := h
+  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc, -⟩ := h
   have h3 := hH.2.2.2
-  refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc, ?_⟩
+  refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
-  · rcases hlast with h0 | hall
-    · right; right
-      refine ⟨?_, by rw [hR]; exact h0⟩
-      rw [hc]; exact hpre.1
-    · left
-      intro hm
-      obtain ⟨e, he, hek⟩ := List.mem_map.1 hm
-      rcases hall e he with ⟨h1, -⟩ | ⟨h1, -⟩
-      · rw [h1] at hek; exact absurd hek (by decide)
-      · rw [h1] at hek; exact absurd hek (by decide)
 
 /-- **The consistent index's save is the server's hook's indexer save** (`storage.saveSpec`):
 over the real backend, the server's batch-lock resource the hooks' resource, for parameters

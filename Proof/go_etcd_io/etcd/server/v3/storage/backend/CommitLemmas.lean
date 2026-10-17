@@ -177,19 +177,6 @@ theorem RBuf.reset_lookup_none {R : RBuf} {i : w64} (h : bkOf R.bks i = []) :
   | none => rfl
   | some es => rw [hl] at h; simp at h; subst h; rfl
 
-/-- After the commit's reset of the read buffer, out of the hook's window, a write-buffer bucket
-may still repeat a key only where the read buffer has none. -/
-theorem wfR_reset {W : WBuf} {st : BSess} (h : W.WfR (wbDupOk st)) (cnt' : BCnt) :
-    W.WfR (wbDupOk { st with R := st.R.reset, cnt := cnt' }) := by
-  apply h.mono
-  intro i hi
-  left
-  show st.R.reset.bks.lookup i = none
-  rcases hi with hi | ⟨-, hi⟩
-  · have : bkOf st.R.bks i = [] := by unfold bkOf; rw [hi]; rfl
-    exact RBuf.reset_lookup_none this
-  · exact RBuf.reset_lookup_none hi
-
 theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
     idsOk P (bksReset B) := by
   intro i es hi
@@ -227,13 +214,9 @@ theorem setHw_tx : (st.setHw x).tx = st.tx := rfl
 theorem setHw_hw : (st.setHw x).cnt.hw = x := rfl
 end setHw_proj
 
-/-- Opening the hook's window keeps the state's facts (it only allows more). -/
+/-- Opening the hook's window keeps the state's facts (none of them mentions it). -/
 theorem sessWf_setHw {P : BParams} {st : BSess} (h : sessWf P st) : sessWf P (st.setHw true) := by
-  obtain ⟨hWf, rest⟩ := h
-  refine ⟨hWf.mono (fun i hi => ?_), rest⟩
-  rcases hi with hi | ⟨-, hi⟩
-  · exact Or.inl hi
-  · exact Or.inr ⟨rfl, hi⟩
+  exact h
 
 theorem bgOk_setHw {P : BParams} {st : BSess} {free : Bool} {n w u : Nat} (x : Bool)
     (h : bgOk P st free n w u) : bgOk P (st.setHw x) free n w u := h
@@ -325,7 +308,7 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
         rcases hC' with rfl | ⟨_, rfl⟩
         · exact ⟨vc, hc⟩
         · exact (hsf'.2 n i hn hsb).2 kc vc hc
-    refine ⟨wfR_reset h1 cnt', RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
+    refine ⟨h1, RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
       by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_, hsafe⟩
     show agreeOff P.HB (dget st'.S) (ovB P.BT st'.W.bks (ovB P.BT (bksReset st'.R.bks) (dget C')))
     rw [ovB_empty P.BT _ _ (bkOf_bksResetC st'.R.bks)]

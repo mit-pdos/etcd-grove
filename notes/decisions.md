@@ -5304,6 +5304,10 @@ The consistent index's pre-commit hook (`UnsafeSave` → `schema.UnsafeUpdateCon
 was proved against an abstract batch transaction (`metaWriter`); `CindexBackend.lean` derives
 that contract from the real backend's, and proves the hook in `hookFnSpec`'s shape.
 
+- *(Superseded on branch `pr-verify/etcd-22298`, which verifies etcd#22298: `writeback`
+  deduplicates a `put` bucket in both branches, so `writeback`'s premise is `WfR (fun _ => True)`,
+  `sessWf` has the same, `wbDupOk`/`csDupOk` are gone and `UnsafePut` takes any key;
+  `notes/pr-verify/etcd-22298.md`.)*
 - **Duplicates allowed where the code tolerates them** (`WBuf.WfR`, `wbDupOk`): a bucket written
   by `put` may repeat a key if the read buffer has no such bucket (`writeback`'s `!ok` branch
   calls `dedupe`), or, in the pre-commit hook's window, if its read-buffer bucket is empty (the

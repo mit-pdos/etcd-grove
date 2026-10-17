@@ -138,7 +138,7 @@ theorem safeSt_S_nonSB {P : BParams} {st st' : BSess} {name : GoString}
 theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoString} {seq : Bool}
     (hP : P.Wf) (hst : sessWf P st) (hb : P.has bi)
     (hW : if seq then ∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb
-      else kb ∉ (bkOf st.W.bks bi.id).map Prod.fst ∨ wbDupOk st bi.id)
+      else True)
     (hp : sint.Z st.pend + 1 < 2 ^ 58)
     (hSB : P.SB bi.name = true → ∀ kc vc, (bktOf st.S bi.name).lookup kc = some vc → strLt kc kb) :
     sessWf P (st.put bi kb vb seq) := by
@@ -148,9 +148,9 @@ theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoStrin
     cases seq <;> rfl
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   refine ⟨?_, hRf, ?_, hRi, ?_, ?_, hn0, ?_, ?_, ?_, safeSt_put hP hb hsf hSB⟩
-  · show (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).WfR (wbDupOk st)
+  · show (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).WfR (fun _ => True)
     cases seq
-    · exact WBuf.WfR.put hWf (by simpa using hW)
+    · exact WBuf.WfR.put hWf (Or.inr trivial)
     · exact WBuf.WfR.putSeq hWf (by simpa using hW)
   · show idsOk P (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).bks
     rw [hWbks]

@@ -45,6 +45,16 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22298, `writeback` dedupes on both paths (2026-10-17, branch `pr-verify/etcd-22298`)
+
+The PR translated (fork `pr-etcd-22298-goose-lean` `01a459f07`, not pushed; the pin is unchanged, so
+`etc/goose.py --check` fails on this branch). `txWriteBuffer.writeback`'s premise weakened to any
+keys in a `put` bucket (`WBuf.WfR (fun _ => True)`, compatible: `writeback.spec_implies_old`), and
+followed up: `sessWf` without `wbDupOk`, `UnsafePut` without its distinct-key premise, the server's
+hooks without `csDupOk`; full build, no new axiom or `sorry`. It fixes
+`issues/etcd-backend-duplicate-put-stale-read.md`. Report `notes/pr-verify/etcd-22298.md`. Not for
+`lean`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

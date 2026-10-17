@@ -1,0 +1,46 @@
+# etcd#22298 (writeback dedupes in both branches): the changed function and the callers its
+# spec change was followed to (notes/pr-verify/etcd-22298.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22298.txt [--check [--update]]
+roots txWriteBuffer__writeback
+roots batchTxBuffered__Unlock
+roots batchTxBuffered__UnsafePut
+roots BackendHooks__OnPreCommitUnsafe
+axiom backend.isDB
+axiom backend.isDB_persistent
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.ownWTx_fill
+axiom backend.ownWTx_live
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxSnap_persistent
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txDB_persistent
+axiom backend.txDone
+axiom backend.txDone_persistent
+axiom backend.txLive
+axiom backend.txLive_fractional
+axiom backend.txLive_nonnull
+axiom backend.txLive_timeless
+axiom backend.wBkt
+axiom backend.wBkt_persistent
+axiom backend.wrTok
+axiom bbolt.Bucket.Put_kv.wp_proof
+axiom bbolt.DB.Begin_kv.wp_proof
+axiom bbolt.DB.Info_kv.wp_proof
+axiom bbolt.DB.Stats_kv.wp_proof
+axiom bbolt.Tx.Bucket_kvw.wp_proof
+axiom bbolt.Tx.Commit_kv.wp_proof
+axiom bbolt.Tx.DB_kv.wp_proof
+axiom bbolt.Tx.Rollback_kv.wp_proof
+axiom bbolt.Tx.Size_kv.wp_proof
+axiom bbolt.Tx.Stats_kv.wp_proof
+axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom sort.Stable.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Fatal.wp_proof
+axiom zap.Stack.wp_proof
+axiom zap.Stringer.wp_proof

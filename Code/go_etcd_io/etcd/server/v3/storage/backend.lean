@@ -2537,10 +2537,9 @@ noncomputable def txWriteBuffer.writeback.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "seq" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "seq"))) (Val #false)) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "wb")))) (Val #(W64 1)))) (Val #false))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "seq"))) (Val #false))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType bucketBuffer.ty) _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "wb")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bucketBuffer.ty) go!"dedupe"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "wb"))) (Val #())))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -2588,7 +2587,7 @@ noncomputable def txWriteBuffer.writeback.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bucketBuffer.ty)))) (Pair (Var "wb") (Var "$value"))))))))))))))))))
 
-/-- go: tx_buffer.go:125:26 -/
+/-- go: tx_buffer.go:128:26 -/
 noncomputable def txReadBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "txr"
   (Lam "bucket"
@@ -2621,7 +2620,7 @@ noncomputable def txReadBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bucketBuffer.ty)))) (Pair (Var "b") (Var "$r0")))))))))))))))))))
 
-/-- go: tx_buffer.go:132:26 -/
+/-- go: tx_buffer.go:135:26 -/
 noncomputable def txReadBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "txr"
   (Lam "bucket"
@@ -2647,7 +2646,7 @@ noncomputable def txReadBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val 
 
 /-- unsafeCopy returns a copy of txReadBuffer, caller should acquire backend.readTx.RLock()
 
-    go: tx_buffer.go:140:26 -/
+    go: tx_buffer.go:143:26 -/
 noncomputable def txReadBuffer.unsafeCopy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "txr"
   (Lam BAnon
@@ -2681,7 +2680,7 @@ noncomputable def txReadBuffer.unsafeCopy.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore txReadBuffer.ty))) (Pair (Var "txrCopy") (Var "$r0")))))))))))
 
-/-- go: tx_buffer.go:165:6 -/
+/-- go: tx_buffer.go:168:6 -/
 noncomputable def newBucketBuffer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -2690,7 +2689,7 @@ noncomputable def newBucketBuffer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (Val #(W64 0))
   (App (Val (GoInstruction (CompositeLiteral bucketBuffer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"buf")) (ElementExpression (go.GoType.SliceType kv.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"used")) (ElementExpression go.int (Var "$v1")))]))))))))
 
-/-- go: tx_buffer.go:169:25 -/
+/-- go: tx_buffer.go:172:25 -/
 noncomputable def bucketBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "key"
@@ -2796,7 +2795,7 @@ noncomputable def bucketBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.bool]))))) (Pair (Var "f") (Var "$r0"))))))))))))))))))
 
-/-- go: tx_buffer.go:195:25 -/
+/-- go: tx_buffer.go:198:25 -/
 noncomputable def bucketBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "visitor"
@@ -2829,7 +2828,7 @@ noncomputable def bucketBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))
 
-/-- go: tx_buffer.go:204:25 -/
+/-- go: tx_buffer.go:207:25 -/
 noncomputable def bucketBuffer.add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "k"
@@ -2875,7 +2874,7 @@ noncomputable def bucketBuffer.add.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- merge merges data from bbsrc into bb.
 
-    go: tx_buffer.go:215:25 -/
+    go: tx_buffer.go:218:25 -/
 noncomputable def bucketBuffer.merge.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "bbsrc"
@@ -2919,7 +2918,7 @@ noncomputable def bucketBuffer.merge.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- dedupe removes duplicates, using only newest update
 
-    go: tx_buffer.go:229:25 -/
+    go: tx_buffer.go:232:25 -/
 noncomputable def bucketBuffer.dedupe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam BAnon
@@ -2969,7 +2968,7 @@ noncomputable def bucketBuffer.dedupe.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: tx_buffer.go:244:25 -/
+/-- go: tx_buffer.go:247:25 -/
 noncomputable def bucketBuffer.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam BAnon
@@ -2978,7 +2977,7 @@ noncomputable def bucketBuffer.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))))))))
 
-/-- go: tx_buffer.go:245:25 -/
+/-- go: tx_buffer.go:248:25 -/
 noncomputable def bucketBuffer.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "i"
@@ -2992,7 +2991,7 @@ noncomputable def bucketBuffer.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef kv.ty go!"key"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
-/-- go: tx_buffer.go:248:25 -/
+/-- go: tx_buffer.go:251:25 -/
 noncomputable def bucketBuffer.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "i"
@@ -3014,7 +3013,7 @@ noncomputable def bucketBuffer.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore kv.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
-/-- go: tx_buffer.go:250:25 -/
+/-- go: tx_buffer.go:253:25 -/
 noncomputable def bucketBuffer.CopyUsed.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam BAnon

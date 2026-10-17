@@ -101,6 +101,12 @@ links:
   consistent-index hook's re-puts at every commit are proved harmless
   (`Proof/go_etcd_io/etcd/server/v3/etcdserver/CindexBackend.lean`); a client's duplicate put
   into a bucket the read buffer has is still excluded, as the reproduction shows it must be.
+- **The fix of etcd#22298, verified** (branch `pr-verify/etcd-22298`, report
+  `notes/pr-verify/etcd-22298.md`): with `wb.dedupe()` in both branches, `writeback`'s spec takes
+  any keys in a bucket written by `put` (`WBuf.WfR (fun _ => True)`), and the premise above is
+  gone from `UnsafePut`, the backend's session invariant (`wbDupOk` deleted) and the server's
+  hooks (`csDupOk`); every backend and server result rebuilds over it. The reproduction above
+  passes at the PR.
 - **Possible fixes**: in `writeback`, deduplicate a non-sequential bucket's buffer on both
   branches (`wb.dedupe()` in place of `sort.Sort(wb)`; `dedupe` sorts stably and keeps the
   newest); or make `merge` deduplicate whenever the source is not known to be duplicate-free.
