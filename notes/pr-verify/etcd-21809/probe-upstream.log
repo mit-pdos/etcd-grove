@@ -1,0 +1,22 @@
+== up-base (23db69a42)
+    ctx_client_call_opts_test.go:85: Get of a 5 MiB value: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (5242899 vs. 4194304)
+--- FAIL: TestCtxClientLargeResponse (0.03s)
+--- PASS: TestCtxClientLargeRequest (0.04s)
+--- PASS: TestCtxClientLargeRequestDialLimit (0.02s)
+    ctx_client_call_opts_test.go:135: Put: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: closed" after 0s
+--- PASS: TestCtxClientUnreachableFailsFast (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.130s
+FAIL
+== up-head (e00972631)
+--- PASS: TestCtxClientLargeResponse (0.06s)
+    ctx_client_call_opts_test.go:95: Put of a 3 MiB value: rpc error: code = ResourceExhausted desc = trying to send message larger than max (3145736 vs. 2097152) (code ResourceExhausted)
+--- FAIL: TestCtxClientLargeRequest (0.03s)
+    ctx_client_call_opts_test.go:108: Put of a 3 MiB value over a connection allowing 64 MiB: rpc error: code = ResourceExhausted desc = trying to send message larger than max (3145736 vs. 2097152)
+--- FAIL: TestCtxClientLargeRequestDialLimit (0.02s)
+    ctx_client_call_opts_test.go:135: Put: context deadline exceeded after 2s
+    ctx_client_call_opts_test.go:137: Put to an unreachable server: got code Unknown, want Unavailable (fail fast)
+--- FAIL: TestCtxClientUnreachableFailsFast (2.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	2.136s
+FAIL

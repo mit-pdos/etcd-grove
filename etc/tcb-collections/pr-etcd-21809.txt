@@ -1,0 +1,18 @@
+# PR etcd-io/etcd#21809 (branch pr-verify/etcd-21809 only): `NewCtxClient` with the default call
+# options, the option `WithZapLogger`, and `NewKVFromKVClient` (Proof/go_etcd_io/etcd/client/v3/
+# Link.lean's `v3.wp_NewCtxClient`, `v3.wp_WithZapLogger`, `v3.wp_NewKVFromKVClient`).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-21809.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots NewCtxClient
+roots WithZapLogger
+roots NewKVFromKVClient
+axiom zap.NewNop.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.v3.Config.Config_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.v3.Config.Config_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.client.v3.Maintenance.Maintenance_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.v3.Maintenance.Maintenance_typed_pointsto
+sorry Perennial.google_golang_org.grpc.credentials.TransportCredentials.TransportCredentials_into_val_typed
+sorry Perennial.google_golang_org.grpc.credentials.TransportCredentials.TransportCredentials_typed_pointsto

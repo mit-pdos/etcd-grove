@@ -159,3 +159,10 @@ watcher__Watch: OpWatch streamKeyFromCtx watcher__newWatcherGRPCStream
 NewWatchFromWatchClient: Client__GetLogger
 NewWatcher: NewWatchClient NewWatchFromWatchClient
 watcher__Close: watchGRPCStream__close errors_IsStatusErr
+# PR etcd-io/etcd#21809 (this verification branch only): `NewCtxClient`, which now gives the client
+# the default call options, and the option its in-tree caller passes, `WithZapLogger`
+# (`InvCtxClient.lean`); `zap.NewNop()` is an axiom, as in the v3rpc Link.
+zap_NewNop:
+WithZapLogger:
+NewCtxClient: zap_NewNop
+NewKVFromKVClient:

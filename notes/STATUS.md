@@ -45,6 +45,25 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#21809: `NewCtxClient` gets the default call options (2026-10-17, branch `pr-verify/etcd-21809`)
+
+Verification of an open PR, not for merging into `lean`: the translation is of the fork branch
+`pr-etcd-21809-goose-lean` (`etc/goose.py --check` fails here by design). Report:
+`notes/pr-verify/etcd-21809.md`.
+- `client/v3.toml` translates `NewCtxClient`, `WithZapLogger` and `NewKVFromKVClient` with bodies.
+- All three are proved, with no `sorry` of their own and no new axiom (`InvCtxClient.lean`): the client
+  `NewCtxClient` returns has `callOpts` = the package's `defaultCallOpts` (`callOptsAt`, what
+  the KV path's proofs need of a client's call options), a non-nil owned logger, a child context
+  and nil service interfaces; `WithZapLogger`'s option writes only the logger; a `KV` built over
+  the client passes the client's call options. Two premises, not axioms: the package variable
+  `defaultCallOpts` holds the three default options, never written (`defaultCallOptsVar`, the
+  package's initialization is axiomatized), and a `NewCtxClient` option writes only the logger
+  (`ctxClientOptOk`).
+- `NewCtxClient`'s result reaches `sorryAx` through the generated instances of three axiomatized
+  types (`clientv3.Config`, `clientv3.Maintenance`, grpc's `credentials.TransportCredentials`):
+  allocating a `Client` needs the struct's typed points-to, built from every field's. It is the
+  first linked result to allocate a `Client`; translating those types would remove it.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

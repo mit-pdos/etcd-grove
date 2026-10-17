@@ -1,0 +1,28 @@
+== up-base
+=== RUN   TestReviewDialRecvLimit
+--- PASS: TestReviewDialRecvLimit (0.05s)
+=== RUN   TestReviewDialRecvLimitLowered
+    review_ctx_client_test.go:65: Get 5MiB with dial recv limit 1MiB: err=rpc error: code = ResourceExhausted desc = grpc: received message larger than max (5242897 vs. 1048576)
+--- PASS: TestReviewDialRecvLimitLowered (0.01s)
+=== RUN   TestReviewDialFailFast
+    review_ctx_client_test.go:91: Put: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: closed" after 0s
+--- PASS: TestReviewDialFailFast (0.00s)
+=== RUN   TestReviewInterceptorSendLimit
+--- PASS: TestReviewInterceptorSendLimit (0.03s)
+ok  	go.etcd.io/etcd/client/v3	0.122s
+== up-head
+=== RUN   TestReviewDialRecvLimit
+--- PASS: TestReviewDialRecvLimit (0.06s)
+=== RUN   TestReviewDialRecvLimitLowered
+    review_ctx_client_test.go:65: Get 5MiB with dial recv limit 1MiB: err=<nil>
+    review_ctx_client_test.go:67: caller's 1 MiB receive limit was overridden
+--- FAIL: TestReviewDialRecvLimitLowered (0.04s)
+=== RUN   TestReviewDialFailFast
+    review_ctx_client_test.go:91: Put: context deadline exceeded after 1s
+    review_ctx_client_test.go:93: dial-level WaitForReady(false) ignored: blocked 1.0016576s
+--- FAIL: TestReviewDialFailFast (1.00s)
+=== RUN   TestReviewInterceptorSendLimit
+--- PASS: TestReviewInterceptorSendLimit (0.03s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	1.148s
+FAIL

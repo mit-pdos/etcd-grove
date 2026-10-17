@@ -20,7 +20,9 @@ public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
 public import Proof.go_etcd_io.etcd.client.v3.ContextError
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.NewCtxClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
+public import Proof.go_etcd_io.etcd.client.v3.NewKVFromKVClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.NewWatchFromWatchClient
@@ -38,6 +40,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevis
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.WithZapLogger
 public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.WithCancelValCtx
@@ -133,6 +136,7 @@ public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
 
@@ -236,6 +240,10 @@ theorem v3.wp_IsOptsWithFromKey :
 theorem v3.wp_IsOptsWithPrefix :
     EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
+
+theorem zap.wp_NewNop :
+    EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.NewNop.wp_proof
 
 theorem v3.Op.wp_applyOpts :
     EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
@@ -376,9 +384,17 @@ theorem v3.wp_ContextError :
     EtcdGrove.ContextError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ContextError.wp_proof rpctypes.wp_Error status.wp_FromError
 
+theorem v3.wp_NewCtxClient :
+    EtcdGrove.NewCtxClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewCtxClient.wp_proof zap.wp_NewNop
+
 theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKVClient.wp_proof
+
+theorem v3.wp_NewKVFromKVClient :
+    EtcdGrove.NewKVFromKVClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewKVFromKVClient.wp_proof
 
 theorem wp_NewWatchClient :
     EtcdGrove.NewWatchClient.spec (GF := GF) (hG := hG) :=
@@ -411,6 +427,10 @@ theorem v3.Op.wp_toRequestOp :
 theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryKVClient.wp_proof wp_NewKVClient
+
+theorem v3.wp_WithZapLogger :
+    EtcdGrove.WithZapLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithZapLogger.wp_proof
 
 theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=

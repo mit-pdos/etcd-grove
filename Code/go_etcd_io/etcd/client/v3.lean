@@ -1178,6 +1178,83 @@ noncomputable def blockLogger.recordWait.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef blockLogger.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType blockLogger.ty)))) (Var "l")))) (Val #())))))))))))
 
+/-- NewCtxClient creates a client with a context but no underlying grpc
+    connection. This is useful for embedded cases that override the
+    service interface implementations and do not need connection management.
+
+    go: client.go:97:6 -/
+noncomputable def NewCtxClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "ctx"
+  (Lam "opts"
+  (App (Val exceptionDo)
+  (Let "opts" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Option.ty)))) (Var "opts"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "cctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Client.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "cctx"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.RWMutex.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.RWMutex.ty))) (Val #())))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (GlobalVarAddr defaultCallOpts))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral Client.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ctx")) (ElementExpression _root_.Perennial.context.Context.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"cancel")) (ElementExpression _root_.Perennial.context.CancelFunc.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"epMu")) (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"callOpts")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty) (Var "$v3")))])))))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Client.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Load"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Option.ty)))) (Var "opts"))
+  (Let "opt" (App (Val (GoInstruction (GoAlloc Option.ty))) (App (Val (GoInstruction (GoZeroVal Option.ty))) (Val #())))
+  (App (App (Val (slice.forRange Option.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val (GoInstruction (GoLoad Option.ty))) (Var "opt")) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Option.ty))) (Pair (Var "opt") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Client.ty)))) (Pair (Var "c") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "cctx") (Var "$r0")))))))))))))))))
+
+/-- WithZapLogger is a NewCtxClient option that overrides the logger
+
+    go: client.go:123:6 -/
+noncomputable def WithZapLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val doReturn)
+  (Lam "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.sync.atomic.Pointer.ty _root_.Perennial.go_uber_org.zap.Logger.ty)) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Var "$a0"))))))))))))
+
 /-- GetLogger gets the logger.
     NOTE: This method is for internal use of etcd-client library and should not be used as general-purpose logger.
 
@@ -1792,6 +1869,29 @@ noncomputable def NewKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType kv.ty)))) (Pair (Var "api") (Var "$r0"))))))))))
+
+/-- go: kv.go:151:6 -/
+noncomputable def NewKVFromKVClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "remote"
+  (Lam "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (Let "remote" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVClient.ty))) (Var "remote"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc kv.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVClient.ty))) (Var "remote"))
+  (App (Val (GoInstruction (CompositeLiteral kv.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVClient.ty (Var "$v0")))]))))
+  (Let "api" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType kv.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType kv.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType kv.ty) KV.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kv.ty)))) (Var "api"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Client.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Client.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef kv.ty go!"callOpts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kv.ty)))) (Var "api"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType kv.ty)))) (Pair (Var "api") (Var "$r0"))))))))))))
 
 /-- go: kv.go:159:15 -/
 noncomputable def kv.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -10067,6 +10167,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   watcherStream_instance : watcherStream.TypeAssumptions
   valCtx_instance : valCtx.TypeAssumptions
   newBlockLogger_unfold : FuncUnfold newBlockLogger [] newBlockLogger.impl
+  NewCtxClient_unfold : FuncUnfold NewCtxClient [] NewCtxClient.impl
+  WithZapLogger_unfold : FuncUnfold WithZapLogger [] WithZapLogger.impl
   isHaltErr_unfold : FuncUnfold isHaltErr [] isHaltErr.impl
   isUnavailableErr_unfold : FuncUnfold isUnavailableErr [] isUnavailableErr.impl
   ContextError_unfold : FuncUnfold ContextError [] ContextError.impl
@@ -10080,6 +10182,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   mustInt64orLeaseID_unfold : FuncUnfold mustInt64orLeaseID [] mustInt64orLeaseID.impl
   cloneCompare_unfold : FuncUnfold cloneCompare [] cloneCompare.impl
   NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
+  NewKVFromKVClient_unfold : FuncUnfold NewKVFromKVClient [] NewKVFromKVClient.impl
   NewOp_unfold : FuncUnfold NewOp [] NewOp.impl
   OpGet_unfold : FuncUnfold OpGet [] OpGet.impl
   OpDelete_unfold : FuncUnfold OpDelete [] OpDelete.impl
@@ -10252,6 +10355,8 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.watcherStream_instance
   Assumptions.valCtx_instance
   Assumptions.newBlockLogger_unfold
+  Assumptions.NewCtxClient_unfold
+  Assumptions.WithZapLogger_unfold
   Assumptions.isHaltErr_unfold
   Assumptions.isUnavailableErr_unfold
   Assumptions.ContextError_unfold
@@ -10265,6 +10370,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.mustInt64orLeaseID_unfold
   Assumptions.cloneCompare_unfold
   Assumptions.NewKV_unfold
+  Assumptions.NewKVFromKVClient_unfold
   Assumptions.NewOp_unfold
   Assumptions.OpGet_unfold
   Assumptions.OpDelete_unfold
