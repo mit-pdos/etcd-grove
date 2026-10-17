@@ -30,12 +30,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 premise. (Generalized 2026-10-12 from `[AddNode id]` on a voters-only tracker; that case
 is `Simple_votersOnly` in `Proof/.../confchange/Restore.lean`.) (2026-10-15, raft v3.7 retarget,
 stage R2: `ccs` a slice of `*pb.ConfChangeSingle` pointers `ls`, each `ccsRO` of its change in
-`l`; was a slice of the struct values `l`.) -/
+`l`; was a slice of the struct values `l`.) (raft#168: no `AddWitness` change, as for
+`apply`; on a witness-free tracker, `ownTrackerCC`.) -/
 abbrev confchange.Changer.Simple.spec : Prop :=
   ∀ (p : Loc) (chg : confchange.Changer) (c : CfgM) (prs : GMap w64 Loc)
     (pvs : GMap w64 tracker.Progress) (ccs : GoSlice) (ls : List Loc) (l : List ConfChangeSingleM)
     (dq dqs dqc dqm dqp : DFrac),
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  (∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗
       ([∗list] q;c ∈ ls;l, ccsRO q c) ∗ ownTrackerCC chg.Tracker' dqc dqm dqp c prs pvs }}
     (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #ccs))

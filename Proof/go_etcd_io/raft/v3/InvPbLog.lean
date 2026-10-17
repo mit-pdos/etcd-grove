@@ -331,12 +331,14 @@ theorem csPts_persist (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HN with #HN
   imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hn with #Hn
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HA with #HA
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HW with #HW
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HWO with #HWO
   imodintro
   iunfold csPts
-  iexists sv, sl, so, sn, pa
+  iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
   · ipureintro; exact Hnn
-  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
   ipureintro; exact Hal
 
 theorem csOpt_persist (p : Loc) (dq : DFrac) (c : ConfStateM) :

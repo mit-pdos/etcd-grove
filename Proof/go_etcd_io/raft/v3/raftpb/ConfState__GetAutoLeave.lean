@@ -47,11 +47,11 @@ theorem raftpb.ConfState.GetAutoLeave.wp_proof :
       iright
       simp only [ownCSM]
       iunfold csPts
-      iexists sv, sl, so, sn, null
+      iexists sv, sl, so, sn, null, pw, pwo
       isplitr
       · ipureintro; exact Hnn
       iframe
-      iframe cA Hpb
+      iframe cA cW cWO Hpb
       ipureintro; exact Hal
     · wp_if_destruct
       · exact absurd rfl Hqn
@@ -60,11 +60,11 @@ theorem raftpb.ConfState.GetAutoLeave.wp_proof :
         iright
         simp only [ownCSM]
         iunfold csPts
-        iexists sv, sl, so, sn, pa
+        iexists sv, sl, so, sn, pa, pw, pwo
         isplitr
         · ipureintro; exact Hnn
         iframe
-        iframe cA Hpb
+        iframe cA cW cWO Hpb
         ipureintro; exact Hal
 
 end proof

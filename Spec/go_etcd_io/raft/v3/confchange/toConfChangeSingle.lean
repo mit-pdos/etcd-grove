@@ -33,9 +33,15 @@ stage B8) from the non-joint case (empty `VotersOutgoing` and `LearnersNext`).
 which holds every slice's points-to, so the old `ownIdList` of the three lists other than the
 voters goes) instead of a `ConfState` value with four fractions; the results are slices of
 fresh `*pb.ConfChangeSingle` pointers `lo`, `li`, each `ccsRO` of its change, instead of slices
-of the change values.) -/
+of the change values.)
+
+raft#168: a voter equal to `cs.GetWitness()` (an outgoing voter equal to
+`cs.GetWitnessOutgoing()`) becomes an `AddWitness` change. The conf states here have no witness
+(`csPts`: both `0`), and the premise rules out a voter `0` (which `Changer.apply` never adds:
+it skips `NodeId == 0`), so every voter is an `AddNode` as before. -/
 abbrev confchange.toConfChangeSingle.spec : Prop :=
   ∀ (cs : Loc) (c : ConfStateM) (dq : DFrac),
+  W64 0 ∉ c.VotersOutgoing' → W64 0 ∉ c.Voters' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ownCSM cs dq c }}
     (App (Val #(functions confchange.toConfChangeSingle [])) (Val #cs))
   {{ (o s : GoSlice) (lo li : List Loc), RET (PairV #o #s);

@@ -20,6 +20,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+omit package_sem in
+/-- `array_acc`, putting back the same element. -/
+private theorem array_acc_same' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
+    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
+    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
+    typedPointsto (GF := GF) p a dq ⊢
+      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
+        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
+  have hset : a.arr.set i.toNat v = a.arr := by
+    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
+    exact List.set_getElem_self h
+  iintro Ha
+  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
+  iframe Hv
+  iintro Hv
+  ihave Ha := Ha $$ %v Hv
+  rw [hset]
+  iexact Ha
+
 /-- The four `Slice` calls, each on its id set (`ownIdsetOpt`, i.e. `ownIdsetQ` read whole):
 the two halves of `p.Voters` through the array field, then `p.Learners` and
 `p.LearnersNext`. -/
@@ -33,7 +52,7 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   iunfold ownTrackerC at Hown
   iNamed Hown
   simp only at Hinv Hdom Hflags Hsize
-  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   have Hsz : ∀ s : GSet w64, s ⊆ c.ids → (GMap.size s : Int) ≤ 2 ^ 62 := by
     intro s hs
     have := size_le_of_sub_dom s prs (by rw [Hdom]; exact hs)
@@ -106,25 +125,43 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
       $$ [Hlno]
   · unfold ownIdsetQ; iunfold ownIdsetOpt at Hlno; iexact Hlno
   ihave Hln := ownIdsetC_join _ _ _ Hlnc $$ Hlnq
-  ihave Hcfg := ownCfgCC_intro tv.Config' (DFrac.own 1) c vin vout Harr Hal $$ Hin Hout Hl Hln
+  ihave Hcfg := ownCfgCC_intro tv.Config' (DFrac.own 1) c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
   -- raft v3.7: `&pb.ConfState{..., AutoLeave: new(p.AutoLeave)}`; the `AutoLeave` cell is
-  -- allocated (`«$v4»`), the struct in `return:` position is allocated here
-  wp_apply wp_alloc as %csl Hcs
+  -- allocated (`«$v4»`), and the struct (`«$r0»`, raft#168: into the local `cs`)
+  -- raft#168: `if p.Witnesses[0] != 0 {...}`, `if p.Witnesses[1] != 0 {...}`: both `0`, the
+  -- fields stay `nil` (`notes/pr-verify/raft-168.md`)
+  icases (Access.access
+      (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
+        tv.Config'.Witnesses')
+      (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
+        tv.Config'.Witnesses')
+      (P := trk ↦ tv)) $$ Htrk with ⟨HW, Htrkback⟩
+  icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    $$ HW with ⟨Hw0, Hwback⟩
+  wp_auto
+  ihave HW := Hwback $$ Hw0
+  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    $$ HW with ⟨Hw1, Hwback⟩
+  wp_auto
+  ihave HW := Hwback $$ Hw1
+  ihave Htrk := Htrkback $$ HW
   rw [← Hal]
   -- the fresh struct (hidden fields zero) into its ownership predicate (InvPb, stage R1)
   ihave %Hpn := typedPointsto_not_null $$ «$v4»
   imod cellRO_alloc _ _ $$ «$v4» with #cA
-  imod csPts_of_struct csl
+  imod csPts_of_struct «$r0_ptr»
     { state' := zeroValDef, Voters' := sl0, Learners' := sl2, VotersOutgoing' := sl1,
-      LearnersNext' := sl3, AutoLeave' := «$v4_ptr», unknownFields' := slice.nil, sizeCache' := 0 }
+      LearnersNext' := sl3, AutoLeave' := «$v4_ptr», Witness' := null, WitnessOutgoing' := null,
+      unknownFields' := slice.nil, sizeCache' := 0 }
     (ConfStateM.mk xs0 xs2 xs1 xs3 tv.Config'.AutoLeave') ⊤ rfl
-    $$ [Hcs Hsl0 Hsl2 Hsl1 Hsl3 cA] with Hcs
+    $$ [«$r0» Hsl0 Hsl2 Hsl1 Hsl3 cA] with «$r0»
   · iframe
     iframe cA
+    isplitl <;> (simp only; unfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
   rw [show decide (_ ≠ null) = true from decide_eq_true Hpn]
   imodintro
   iapply HΦ
-  iframe Htrk Hcs
+  iframe Htrk «$r0»
   isplitl [Hvotes Hprogs Hcfg]
   · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
       $$ Hvotes Hprs Hprogs Hcfg

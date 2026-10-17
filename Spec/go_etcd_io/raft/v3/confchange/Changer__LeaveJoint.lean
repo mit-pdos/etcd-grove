@@ -23,10 +23,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `LeaveJoint()`: `leaveJointM` on the tracker's state. No `Progress` is allocated, so
-no `MaxInflight` bound. -/
+no `MaxInflight` bound.
+
+raft#168: an outgoing voter that is the incoming witness (`cfg.Witnesses[0] == id`) keeps
+its `Progress`. On a witness-free configuration `Witnesses[0]` is `0`, which no id `apply`
+adds is (it skips `NodeId == 0`): the premise `0 ∉ c.outgoing` makes the check false, and the
+old statement holds. (Without it an outgoing voter `0` would now be kept: the one place the
+witness-free behaviour differs, unreachable through `confchange`.) -/
 abbrev confchange.Changer.LeaveJoint.spec : Prop :=
   ∀ (p : Loc) (chg : confchange.Changer) (c : CfgM) (prs : GMap w64 Loc)
     (pvs : GMap w64 tracker.Progress) (dq dqc dqm dqp : DFrac),
+  W64 0 ∉ c.outgoing →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownTrackerCC chg.Tracker' dqc dqm dqp c prs pvs }}
     (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"LeaveJoint")) (Val #()))
   {{ (cfg : tracker.Config) (trk : Loc) (err : GoInterface),

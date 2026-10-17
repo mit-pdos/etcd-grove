@@ -22,18 +22,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `initProgress(cfg, trk, id, isLearner)` on an untracked id: `initProgressM` (an
+/-- `initProgress(cfg, trk, id, isLearner, isWitness)` on an untracked id: `initProgressM` (an
 incoming voter, or a learner via `nilAwareAdd`), with a fresh `Progress` (`FreshPr`, its
 `NewInflights(MaxInflight, MaxInflightBytes)` owned). The `MaxInflight` bound is
-`NewInflights`'s premise. (Generalized 2026-10-12 from `isLearner = false`.) -/
+`NewInflights`'s premise. (Generalized 2026-10-12 from `isLearner = false`.)
+
+raft#168 added `isWitness` (a witness voter: `cfg.Witnesses[0] = id`, `IsWitness` set); only
+`makeWitness` passes `true`. This is the statement at `isWitness = false`, the old one: the
+specs of `confchange` are of witness-free configurations (`notes/pr-verify/raft-168.md`). -/
 abbrev confchange.Changer.initProgress.spec : Prop :=
   ∀ (p cfgp trk : Loc) (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
-    (s : CCState) (id : w64) (b : Bool) (dq : DFrac),
+    (s : CCState) (id : w64) (b w : Bool) (dq : DFrac),
   id ∉ s.prs →
+  w = false →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownWork chg base cfgp trk s }}
-    (App (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"initProgress"))
-      (Val #cfgp)) (Val #trk)) (Val #id)) (Val #b))
+    (App (App (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"initProgress"))
+      (Val #cfgp)) (Val #trk)) (Val #id)) (Val #b)) (Val #w))
   {{ RET #(); p ↦{dq} chg ∗ ownWork chg base cfgp trk (initProgressM id b s) }}
 
 end spec

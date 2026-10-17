@@ -41,11 +41,11 @@ theorem csPts_voters (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
   iframe HV Hv HO Ho
   iintro HV Hv HO Ho
   iunfold csPts
-  iexists sv, sl, so, sn, pa
+  iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
   · ipureintro; exact Hnn
   iframe
-  iframe cA Hpb
+  iframe cA cW cWO Hpb
   ipureintro; exact Hal
 
 /-- One of the two voter slices (`for _, sl := range [][]uint64{cs.Voters, cs.VotersOutgoing}`),

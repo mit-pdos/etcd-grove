@@ -49,7 +49,7 @@ theorem confchange.Changer.makeVoter.wp_proof
       rw [← Hflags, flagsOf_mem]
       intro h; rw [← Hdom, Hlk] at h; cases h
     ihave Hw := ownWork_intro chg base cfgp trk s cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew
-    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id false _ Hid Hmi
+    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id false false _ Hid rfl Hmi
       $$ [$c $Hw] as ⟨c, Hw⟩
     iapply HΦ
     iframe Hp
@@ -61,11 +61,14 @@ theorem confchange.Changer.makeVoter.wp_proof
       Option.isSome_iff_exists.1 ((Hdom id).1 (by rw [Hlk]; rfl))
     have Hmem : id ∈ s.prs := by
       rw [← Hflags, flagsOf_mem, Hpv]; rfl
-    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, Hback⟩
+    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, %Hpvw, Hback⟩
     icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
     wp_if_destruct
     · exact absurd rfl Hprnn
-    icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+    -- `if pr.IsWitness`: not on a witness-free configuration
+    rw [show (#pv.IsWitness' : val) = #false by rw [Hpvw]]
+    wp_auto
+    icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
     icases typedPointsto_not_null_dup _ _ _ $$ Hcfgp with ⟨Hcfgp, %Hcnn⟩
     iStructNamed Hcfgp
     icases Hback $$ %false Hpr with ⟨Hprs, Hnew⟩
@@ -76,14 +79,14 @@ theorem confchange.Changer.makeVoter.wp_proof
     wp_apply wp_confchange_incoming _ vin vout Harr
     wp_apply wp_mapInsert $$ Hin as Hin
     ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)) $$
-        [Voters AutoLeave Learners LearnersNext]
+        [Voters AutoLeave Learners LearnersNext Witnesses]
     · iapply typedPointsto_combine _ _ _ Hcnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
     ihave Hc : ownCfgCC ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
         (DFrac.own 1) (makeVoterM id s).cfg $$ [Hin Hout Hl Hln]
     · iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-        (DFrac.own 1) (makeVoterM id s).cfg vin vout Harr (by simp [makeVoterM, Hmem, Hal])
+        (DFrac.own 1) (makeVoterM id s).cfg vin vout Harr (by simp [makeVoterM, Hmem, Hal]) Hwit
         $$ [Hin] [Hout] [Hl] [Hln]
       all_goals simp only [makeVoterM, ite_eq_left Hmem]
       · iexact Hin

@@ -169,16 +169,16 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     · ipureintro; omega
     -- the sorted clone, closed for `GetAutoLeave`
     ihave Hc' : csOpt (GF := GF) pc (DFrac.own 1) (ConfStateM.mk xs1 xs2 xs3 xs4 cc.AutoLeave')
-        $$ [HV Hv HL Hl HO Ho HN Hn HA]
+        $$ [HV Hv HL Hl HO Ho HN Hn HA HW HWO]
     · iunfold csOpt
       iright
       simp only [ownCSM]
       iunfold csPts
-      iexists sv, sl, so, sn, pa
+      iexists sv, sl, so, sn, pa, pw, pwo
       isplitr
       · ipureintro; exact Hnn
       iframe
-      iframe cA Hpb
+      iframe cA cW cWO Hpb
       ipureintro; exact Hal
     wp_apply wp_ConfState_GetAutoLeave pc (DFrac.own 1) _ $$ [$Hc'] as Hc'
     iunfold csOpt at Hc'
@@ -191,15 +191,15 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     imod cellRO_alloc _ _ $$ autoLeave with #cq
     imodintro
     wp_for_post
-    ihave Hd := Hback $$ [HV' Hv' HL' Hl' HO' Ho' HN' Hn' HA']
+    ihave Hd := Hback $$ [HV' Hv' HL' Hl' HO' Ho' HN' Hn' HA' HW' HWO']
     · iexists (ConfStateM.mk xs1 xs2 xs3 xs4 cc.AutoLeave')
       isplitl
       · iunfold csPts
-        iexists sv, sl, so, sn, autoLeave_ptr
+        iexists sv, sl, so, sn, autoLeave_ptr, pw, pwo
         isplitr
         · ipureintro; exact Hnn
         iframe
-        iframe cq Hpb'
+        iframe cq cW' cWO' Hpb'
         ipureintro; intro _; exact Hqn
       · ipureintro; exact ⟨⟨Hp1, Hp2, Hp3, Hp4⟩, Hs1, Hs2, Hs3, Hs4, rfl⟩
     icases Hd with ⟨S1, S2⟩

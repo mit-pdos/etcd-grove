@@ -48,22 +48,22 @@ theorem raftpb.EnsureConfState.wp_proof : raftpb.EnsureConfState.spec (GF := GF)
         imodintro
         iapply HΦ
         iunfold csPts
-        iexists sv, sl, so, sn, «$r0_ptr»
+        iexists sv, sl, so, sn, «$r0_ptr», pw, pwo
         isplitr
         · ipureintro; exact Hnn
         iframe
         rw [show c.AutoLeave' = false from Hv]
-        iframe cq Hpb
+        iframe cq cW cWO Hpb
         ipureintro; intro _; exact Hqn
       · exact absurd rfl Hpn
     · imodintro
       iapply HΦ
       iunfold csPts
-      iexists sv, sl, so, sn, pa
+      iexists sv, sl, so, sn, pa, pw, pwo
       isplitr
       · ipureintro; exact Hnn
       iframe
-      iframe cA Hpb
+      iframe cA cW cWO Hpb
       ipureintro; intro _; exact Hif
   · wp_start
     iapply wp_fupd
@@ -86,6 +86,7 @@ theorem raftpb.EnsureConfState.wp_proof : raftpb.EnsureConfState.spec (GF := GF)
     · dsimp only
       iframe
       iframe cq
+      isplitl <;> (unfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     rw [show decide (_ ≠ null) = true from decide_eq_true Hqn]
     imodintro
     iapply HΦ

@@ -205,12 +205,13 @@ instance pbMsg_persistent (T : Type) (l : Loc) (uf : List w8) :
 
 /-- A `*pb.Entry` at `l` holding `e`, its fields at `dq` (see the file header). -/
 def entPts (l : Loc) (dq : DFrac) (e : EntryM) : IProp GF :=
-  iprop(∃ (pt pi pty : Loc) (ds : GoSlice) (uf : List w8),
+  iprop(∃ (pt pi pty : Loc) (ds : GoSlice) (uf : List w8) (ps : Loc) (sub : w64),
     "%Hnn" ∷ ⌜l ≠ null⌝ ∗
     "HT" ∷ l.[raftpb.Entry, go!"Term"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt e.Term' ∗
     "HI" ∷ l.[raftpb.Entry, go!"Index"] ↦{dq} pi ∗ "#cI" ∷ cellRO pi e.Index' ∗
     "HY" ∷ l.[raftpb.Entry, go!"Type"] ↦{dq} pty ∗ "#cY" ∷ cellRO pty e.Type' ∗
     "HD" ∷ l.[raftpb.Entry, go!"Data"] ↦{dq} ds ∗ "#Hd" ∷ ds ↦*□ e.Data' ∗
+    "HS" ∷ l.[raftpb.Entry, go!"Subterm"] ↦{dq} ps ∗ "#cS" ∷ cellRO ps sub ∗
     "#Hpb" ∷ pbMsg raftpb.Entry l uf)
 
 /-- A log entry: read-only for good (D2). -/
@@ -219,6 +220,7 @@ abbrev entRO (l : Loc) (e : EntryM) : IProp GF := entPts l DFrac.discard e
 /-- A fresh entry, owned (`appendEntry`'s clone, before it is stamped and appended). -/
 abbrev entOwn (l : Loc) (e : EntryM) : IProp GF := entPts l (DFrac.own 1) e
 
+set_option synthInstance.maxSize 512 in
 instance entRO_persistent (l : Loc) (e : EntryM) : Persistent (entRO (GF := GF) l e) := by
   unfold entRO entPts; infer_instance
 
@@ -228,7 +230,7 @@ instance entRO_persistent (l : Loc) (e : EntryM) : Persistent (entRO (GF := GF) 
 `AutoLeave` a cell (`al`: the pointer is set, as `Equivalent` makes it before `proto.Equal`), no
 unknown fields (`proto.Equal` compares them; see the file header). -/
 def csPts (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) : IProp GF :=
-  iprop(∃ (sv sl so sn : GoSlice) (pa : Loc),
+  iprop(∃ (sv sl so sn : GoSlice) (pa pw pwo : Loc),
     "%Hnn" ∷ ⌜p ≠ null⌝ ∗
     "HV" ∷ p.[raftpb.ConfState, go!"Voters"] ↦{dq} sv ∗ "Hv" ∷ sv ↦*{dq} c.Voters' ∗
     "HL" ∷ p.[raftpb.ConfState, go!"Learners"] ↦{dq} sl ∗ "Hl" ∷ sl ↦*{dq} c.Learners' ∗
@@ -238,6 +240,8 @@ def csPts (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) : IProp GF :=
       "Hn" ∷ sn ↦*{dq} c.LearnersNext' ∗
     "HA" ∷ p.[raftpb.ConfState, go!"AutoLeave"] ↦{dq} pa ∗ "#cA" ∷ cellRO pa c.AutoLeave' ∗
       "%Hal" ∷ ⌜al = true → pa ≠ null⌝ ∗
+    "HW" ∷ p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw ∗ "#cW" ∷ cellRO pw (W64 0) ∗
+    "HWO" ∷ p.[raftpb.ConfState, go!"WitnessOutgoing"] ↦{dq} pwo ∗ "#cWO" ∷ cellRO pwo (W64 0) ∗
     "#Hpb" ∷ pbMsg raftpb.ConfState p [])
 
 /-- A `*pb.ConfState`, owned at `dq`. -/
@@ -487,13 +491,14 @@ theorem entOwn_freeze (l : Loc) (e : EntryM) : entOwn (GF := GF) l e ⊢ |==> en
   imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
   imod (typedPointsto_dfractional (GF := GF) _ pty).dfractional_persist _ $$ HY with #HY
   imod (typedPointsto_dfractional (GF := GF) _ ds).dfractional_persist _ $$ HD with #HD
+  imod (typedPointsto_dfractional (GF := GF) _ ps).dfractional_persist _ $$ HS with #HS
   imodintro
   simp only [entRO]
   iunfold entPts
-  iexists pt, pi, pty, ds, uf
+  iexists pt, pi, pty, ds, uf, ps, sub
   isplitr
   · ipureintro; exact Hnn
-  iframe HT cT HI cI HY cY HD Hd Hpb
+  iframe HT cT HI cI HY cY HD Hd HS cS Hpb
 
 /-- A freshly allocated `*pb.Entry` (its hidden fields zero), its pointer fields set to cells
 holding `e`'s scalars and its `Data` to a slice holding `e.Data'` read-only, is an owned entry
@@ -501,12 +506,13 @@ holding `e`. -/
 theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
     (Hu : v.unknownFields' = slice.nil) :
     (l ↦ v ∗ cellRO v.Term' e.Term' ∗ cellRO v.Index' e.Index' ∗ cellRO v.Type' e.Type' ∗
-      v.Data' ↦*□ e.Data' : IProp GF) ⊢ |={E}=> entOwn l e := by
-  iintro ⟨Hl, #cT, #cI, #cY, #Hd⟩
+      v.Data' ↦*□ e.Data' ∗ (∃ sub : w64, cellRO v.Subterm' sub) : IProp GF) ⊢
+      |={E}=> entOwn l e := by
+  iintro ⟨Hl, #cT, #cI, #cY, #Hd, ⟨%sub, #cS⟩⟩
   ihave %Hnn := typedPointsto_not_null $$ Hl
   icases typedPointsto_split _ _ _ $$ Hl with Hl
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hl with ⟨state, Term, Index, Ty, Data, unknownFields, sizeCache, -⟩
+  icases Hl with ⟨state, Term, Index, Ty, Data, Subterm, unknownFields, sizeCache, -⟩
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -515,11 +521,11 @@ theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
   imodintro
   simp only [entOwn]
   iunfold entPts
-  iexists v.Term', v.Index', v.Type', v.Data', []
+  iexists v.Term', v.Index', v.Type', v.Data', [], v.Subterm', sub
   isplitr
   · ipureintro; exact Hnn
   iframe
-  iframe cT cI cY Hd Hpb
+  iframe cT cI cY Hd cS Hpb
 
 /-! ### Conf states, snapshots, hard states -/
 
@@ -529,10 +535,10 @@ theorem csPts_weaken (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
   iNamed H
   simp only [ownCSM]
   iunfold csPts
-  iexists sv, sl, so, sn, pa
+  iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
   · ipureintro; exact Hnn
-  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
   ipureintro; intro h; cases h
 
 /-- A freshly allocated `*pb.ConfState` (hidden fields zero), its slices holding `c`'s lists
@@ -542,13 +548,14 @@ theorem csPts_of_struct (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : C
     (Hu : v.unknownFields' = slice.nil) :
     (p ↦ v ∗ v.Voters' ↦* c.Voters' ∗ v.Learners' ↦* c.Learners' ∗
       v.VotersOutgoing' ↦* c.VotersOutgoing' ∗ v.LearnersNext' ↦* c.LearnersNext' ∗
-      cellRO v.AutoLeave' c.AutoLeave' : IProp GF) ⊢
+      cellRO v.AutoLeave' c.AutoLeave' ∗ cellRO v.Witness' (W64 0) ∗
+      cellRO v.WitnessOutgoing' (W64 0) : IProp GF) ⊢
       |={E}=> csPts p (DFrac.own 1) c (decide (v.AutoLeave' ≠ null)) := by
-  iintro ⟨Hp, Hv, Hl, Ho, Hn, #cA⟩
+  iintro ⟨Hp, Hv, Hl, Ho, Hn, #cA, #cW, #cWO⟩
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, unknownFields, sizeCache, -⟩
+  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, Witness, WitnessOutgoing, unknownFields, sizeCache, -⟩
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -556,11 +563,12 @@ theorem csPts_of_struct (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : C
   · iframe
   imodintro
   iunfold csPts
-  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave'
+  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave', v.Witness',
+    v.WitnessOutgoing'
   isplitr
   · ipureintro; exact Hnn
   iframe
-  iframe cA Hpb
+  iframe cA cW cWO Hpb
   ipureintro; intro h; simpa using h
 
 /-- `csPts_of_struct` at read-only slices, the conf state frozen read-only for good: a conf state
@@ -571,13 +579,14 @@ theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E 
     (Hu : v.unknownFields' = slice.nil) :
     (p ↦ v ∗ v.Voters' ↦*□ c.Voters' ∗ v.Learners' ↦*□ c.Learners' ∗
       v.VotersOutgoing' ↦*□ c.VotersOutgoing' ∗ v.LearnersNext' ↦*□ c.LearnersNext' ∗
-      cellRO v.AutoLeave' c.AutoLeave' : IProp GF) ⊢
+      cellRO v.AutoLeave' c.AutoLeave' ∗ cellRO v.Witness' (W64 0) ∗
+      cellRO v.WitnessOutgoing' (W64 0) : IProp GF) ⊢
       |={E}=> csPts p DFrac.discard c (decide (v.AutoLeave' ≠ null)) := by
-  iintro ⟨Hp, #Hv, #Hl, #Ho, #Hn, #cA⟩
+  iintro ⟨Hp, #Hv, #Hl, #Ho, #Hn, #cA, #cW, #cWO⟩
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, unknownFields, sizeCache, -⟩
+  icases Hp with ⟨state, Voters, Learners, VotersOutgoing, LearnersNext, AutoLeave, Witness, WitnessOutgoing, unknownFields, sizeCache, -⟩
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -588,12 +597,16 @@ theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E 
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ VotersOutgoing with #VotersOutgoing
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ LearnersNext with #LearnersNext
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ AutoLeave with #AutoLeave
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Witness with #Witness
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ WitnessOutgoing with #WitnessOutgoing
   imodintro
   iunfold csPts
-  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave'
+  iexists v.Voters', v.Learners', v.VotersOutgoing', v.LearnersNext', v.AutoLeave', v.Witness',
+    v.WitnessOutgoing'
   isplitr
   · ipureintro; exact Hnn
-  iframe Voters Hv Learners Hl VotersOutgoing Ho LearnersNext Hn AutoLeave cA Hpb
+  iframe Voters Hv Learners Hl VotersOutgoing Ho LearnersNext Hn AutoLeave cA Witness cW
+    WitnessOutgoing cWO Hpb
   ipureintro; intro h; simpa using h
 
 /-- A message's pointer is not `nil` (kept). -/
@@ -632,10 +645,10 @@ theorem csPts_nn (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
   iNamed H
   isplitl
   · iunfold csPts
-    iexists sv, sl, so, sn, pa
+    iexists sv, sl, so, sn, pa, pw, pwo
     isplitr
     · ipureintro; exact Hnn
-    iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+    iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
     ipureintro; exact Hal
   · ipureintro; exact Hnn
 
@@ -832,20 +845,22 @@ theorem csPts_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al : Bool) :
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HN with ⟨HN1, HN2⟩
   icases (ownSlice_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ Hn with ⟨Hn1, Hn2⟩
   icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HA with ⟨HA1, HA2⟩
-  isplitl [HV1 Hv1 HL1 Hl1 HO1 Ho1 HN1 Hn1 HA1]
+  icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HW with ⟨HW1, HW2⟩
+  icases (typedPointsto_dfractional (GF := GF) _ _).dfractional dq1 dq2 |>.1 $$ HWO with ⟨HWO1, HWO2⟩
+  isplitl [HV1 Hv1 HL1 Hl1 HO1 Ho1 HN1 Hn1 HA1 HW1 HWO1]
   · iunfold csPts
-    iexists sv, sl, so, sn, pa
+    iexists sv, sl, so, sn, pa, pw, pwo
     isplitr
     · ipureintro; exact Hnn
     iframe
-    iframe cA Hpb
+    iframe cA cW cWO Hpb
     ipureintro; exact Hal
   · iunfold csPts
-    iexists sv, sl, so, sn, pa
+    iexists sv, sl, so, sn, pa, pw, pwo
     isplitr
     · ipureintro; exact Hnn
     iframe
-    iframe cA Hpb
+    iframe cA cW cWO Hpb
     ipureintro; exact Hal
 
 theorem csOpt_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :

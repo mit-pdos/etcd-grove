@@ -42,7 +42,7 @@ theorem csPts_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bo
   icombine HA HA2 gives %E5
   subst E1 E2 E3 E4 E5
   iunfold csPts
-  iexists sv, sl, so, sn, pa
+  iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
   · ipureintro; exact Hnn
   isplitl [HV HV2]
@@ -63,7 +63,7 @@ theorem csPts_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2 : Bo
   · iapply ((ownSlice_dfractional (GF := GF) sn _).dfractional dq1 dq2).2; iframe
   isplitl [HA HA2]
   · iapply ((typedPointsto_dfractional (GF := GF) _ pa).dfractional dq1 dq2).2; iframe
-  iframe cA Hpb
+  iframe cA cW cWO Hpb
   ipureintro; exact Hal
 
 /-! ### A snapshot whose metadata is set, its conf state apart -/

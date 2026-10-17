@@ -262,6 +262,11 @@ abbrev addNodeCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
 abbrev addLearnerCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 3, NodeId' := id }
 
+/-- No `Progress` of the map is a witness's (raft#168's `IsWitness`): the confchange specs are
+of witness-free configurations (`notes/pr-verify/raft-168.md`). -/
+def NoWit [FfiSyntax] (pvs : GMap w64 tracker.Progress) : Prop :=
+  ∀ k pv, pvs !! k = some pv → pv.IsWitness' = false
+
 /-- The model of a progress map's values: each id's `IsLearner`. -/
 def flagsOf [FfiSyntax] (pvs : GMap w64 tracker.Progress) : GMap w64 Bool :=
   GMap.fmap (fun pv => pv.IsLearner') pvs
@@ -272,7 +277,7 @@ recently active, `StateProbe` and the other fields zero; its `Inflights` fresh, 
 def FreshPr [FfiSyntax] (chg : confchange.Changer) (pv : tracker.Progress) : Prop :=
   pv.Match' = W64 0 ∧ uint.Z pv.Next' = max (uint.Z chg.LastIndex') 1 ∧
   pv.sentCommit' = W64 0 ∧ pv.State' = W64 0 ∧ pv.PendingSnapshot' = W64 0 ∧
-  pv.RecentActive' = true ∧ pv.MsgAppFlowPaused' = false
+  pv.RecentActive' = true ∧ pv.MsgAppFlowPaused' = false ∧ pv.IsWitness' = false
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -317,22 +322,26 @@ def ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
     "Hout" ∷ ownIdsetC vout dq c.outgoing ∗
     "Hl" ∷ ownIdsetC cfg.Learners' dq c.learners ∗
     "Hln" ∷ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
-    "%Hal" ∷ ⌜cfg.AutoLeave' = c.autoLeave⌝)
+    "%Hal" ∷ ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗
+    -- no witness (raft#168, `notes/pr-verify/raft-168.md`): these specs are of witness-free
+    -- configurations
+    "%Hwit" ∷ ⌜cfg.Witnesses'.arr = [W64 0, W64 0]⌝)
 
 theorem ownCfgCC_elim (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
     ownCfgCC (GF := GF) cfg dq c ⊢ ∃ (vin vout : Loc),
       ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗ vin ↦${dq} c.incoming ∗ ownIdsetC vout dq c.outgoing ∗
       ownIdsetC cfg.Learners' dq c.learners ∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
-      ⌜cfg.AutoLeave' = c.autoLeave⌝ := by
+      ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗ ⌜cfg.Witnesses'.arr = [W64 0, W64 0]⌝ := by
   unfold ownCfgCC
   iintro H
   iNamed H
   iexists vin, vout
   iframe
-  ipureintro; exact ⟨Harr, Hal⟩
+  ipureintro; exact ⟨Harr, Hal, Hwit⟩
 
 theorem ownCfgCC_intro (cfg : tracker.Config) (dq : DFrac) (c : CfgM) (vin vout : Loc)
-    (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave) :
+    (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
+    (Hwit : cfg.Witnesses'.arr = [W64 0, W64 0]) :
     ⊢ (vin ↦${dq} c.incoming : IProp GF) -∗ ownIdsetC vout dq c.outgoing -∗
       ownIdsetC cfg.Learners' dq c.learners -∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext -∗
       ownCfgCC cfg dq c := by
@@ -341,7 +350,7 @@ theorem ownCfgCC_intro (cfg : tracker.Config) (dq : DFrac) (c : CfgM) (vin vout 
   iexists vin, vout
   simp only [named]
   iframe
-  ipureintro; exact ⟨Harr, Hal⟩
+  ipureintro; exact ⟨Harr, Hal, Hwit⟩
 
 /-- The tracker a `Changer` starts from: its configuration, its progress map (at `dqm`)
 and the `Progress` objects (at `dqp`), whose values are `pvs`. `confchange` only reads
@@ -349,7 +358,7 @@ them (`checkAndCopy` copies them), so any fractions do. -/
 def ownTrackerCC (tv : tracker.ProgressTracker) (dqc dqm dqp : DFrac) (c : CfgM)
     (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress) : IProp GF :=
   iprop(ownCfgCC tv.Config' dqc c ∗ tv.Progress' ↦${dqm} prs ∗
-    ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv))
+    ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗ ⌜NoWit pvs⌝)
 
 /-- A `Progress` of a `Changer`'s result, at id `id`: a copy of the tracker's (`base`, the
 values the `Changer` started from) with only `IsLearner` changed, or a fresh one
@@ -357,10 +366,11 @@ values the `Changer` started from) with only `IsLearner` changed, or a fresh one
 pointer (`checkAndCopy`'s `ppr := *pr`), so its ring is whatever owns the original's. -/
 def ownNewPr (chg : confchange.Changer) (base : GMap w64 tracker.Progress) (id : w64)
     (pv : tracker.Progress) : IProp GF :=
-  iprop(⌜∃ pv0, base !! id = some pv0 ∧ pv = { pv0 with IsLearner' := pv.IsLearner' }⌝ ∨
+  iprop(⌜pv.IsWitness' = false⌝ ∗
+    (⌜∃ pv0, base !! id = some pv0 ∧ pv = { pv0 with IsLearner' := pv.IsLearner' }⌝ ∨
     (⌜FreshPr chg pv⌝ ∗
       ownInflights pv.Inflights' (inflightsNew chg.Tracker'.MaxInflight'
-        chg.Tracker'.MaxInflightBytes')))
+        chg.Tracker'.MaxInflightBytes'))))
 
 /-- A progress map a `Changer` builds, in state `p` (each id's `IsLearner`): the map, the
 `Progress` objects it points at (owned), and what each is (`ownNewPr`). -/
@@ -460,15 +470,54 @@ theorem ownNewPr_set_learner (chg : confchange.Changer) (base : GMap w64 tracker
     (id : w64) (pv : tracker.Progress) (b : Bool) :
     ownNewPr (GF := GF) chg base id pv ⊢ ownNewPr chg base id { pv with IsLearner' := b } := by
   unfold ownNewPr
-  iintro (%H | ⟨%Hf, Hinfl⟩)
-  · ileft; ipureintro
+  iintro ⟨%Hw, (%H | ⟨%Hf, Hinfl⟩)⟩
+  · isplitr
+    · ipureintro; exact Hw
+    ileft; ipureintro
     obtain ⟨pv0, h0, h1⟩ := H
     refine ⟨pv0, h0, ?_⟩
     rw [h1]
-  · iright
+  · isplitr
+    · ipureintro; exact Hw
+    iright
     iframe Hinfl
     ipureintro
-    exact Hf
+    exact ⟨Hf.1, Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, Hf.2.2.2.2.2.1, Hf.2.2.2.2.2.2.1, Hw⟩
+
+/-- The tracker a `Changer` reads is witness-free (its `NoWit`, read out). -/
+theorem ownTrackerCC_nowit (tv : tracker.ProgressTracker) (dqc dqm dqp : DFrac) (c : CfgM)
+    (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress) :
+    ownTrackerCC (GF := GF) tv dqc dqm dqp c prs pvs ⊢
+      ownTrackerCC tv dqc dqm dqp c prs pvs ∗ ⌜NoWit pvs⌝ := by
+  unfold ownTrackerCC
+  iintro ⟨H1, H2, H3, %Hnw⟩
+  iframe H1 H2 H3
+  isplitr <;> ipureintro <;> exact Hnw
+
+/-- A result's `Progress` is no witness's. -/
+theorem ownNewPr_wit (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
+    (id : w64) (pv : tracker.Progress) :
+    ownNewPr (GF := GF) chg base id pv ⊢ ownNewPr chg base id pv ∗ ⌜pv.IsWitness' = false⌝ := by
+  unfold ownNewPr
+  iintro ⟨%Hw, H⟩
+  iframe H
+  isplitr <;> ipureintro <;> exact Hw
+
+/-- A result's `Progress` objects are no witness's. -/
+theorem ownNewPrs_nowit (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
+    (pvs : GMap w64 tracker.Progress) :
+    ([∗map] k ↦ pv ∈ pvs, ownNewPr (GF := GF) chg base k pv) ⊢
+      ([∗map] k ↦ pv ∈ pvs, ownNewPr chg base k pv) ∗ ⌜NoWit pvs⌝ := by
+  iintro H
+  ihave H := BigSepM.bigSepM_mono
+    (Ψ := fun k pv => iprop(ownNewPr (GF := GF) chg base k pv ∗ ⌜pv.IsWitness' = false⌝))
+    (fun _ => ownNewPr_wit _ _ _ _) $$ H
+  rw [BigSepM.bigSepM_sep_eq]
+  icases H with ⟨H, Hp⟩
+  ihave %Hp := BigSepM.bigSepM_pure_intro $$ Hp
+  iframe H
+  ipureintro
+  intro k pv h; exact Hp k pv h
 
 /-- Borrow the `Progress` of a tracked id from a progress map, to read it or to set its
 `IsLearner`. -/
@@ -476,7 +525,7 @@ theorem ownPrs_borrow (chg : confchange.Changer) (base : GMap w64 tracker.Progre
     (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress) (id : w64) (pr : Loc)
     (pv : tracker.Progress) (hpr : prs !! id = some pr) (hpv : pvs !! id = some pv) :
     ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦ pv) ∗ ([∗map] k ↦ pv ∈ pvs, ownNewPr chg base k pv) ⊢
-      (pr ↦ pv : IProp GF) ∗ (∀ b : Bool, pr ↦ { pv with IsLearner' := b } -∗
+      (pr ↦ pv : IProp GF) ∗ ⌜pv.IsWitness' = false⌝ ∗ (∀ b : Bool, pr ↦ { pv with IsLearner' := b } -∗
         ([∗map] _k ↦ pr;pv ∈ prs;(<[id := { pv with IsLearner' := b }]> pvs), pr ↦ pv) ∗
         ([∗map] k ↦ pv ∈ (<[id := { pv with IsLearner' := b }]> pvs), ownNewPr chg base k pv)) := by
   iintro ⟨Hprs, Hnew⟩
@@ -484,6 +533,9 @@ theorem ownPrs_borrow (chg : confchange.Changer) (base : GMap w64 tracker.Progre
   icases (BigSepM.bigSepM_delete (Φ := fun k pv => ownNewPr (GF := GF) chg base k pv) hpv).1 $$
     Hnew with ⟨Hn, Hnew⟩
   iframe Hpr
+  icases ownNewPr_wit _ _ _ _ $$ Hn with ⟨Hn, %Hw⟩
+  isplitr
+  · ipureintro; exact Hw
   iintro %b Hpr
   have e1 : <[id := pr]> (GMap.delete id prs) = prs := by
     rw [GMap.insert_delete_eq, GMap.insert_id _ _ _ hpr]
@@ -534,11 +586,14 @@ theorem ownPrs_delete (chg : confchange.Changer) (base : GMap w64 tracker.Progre
     iframe
 
 /-- `checkAndCopy`'s copies, as a `Changer`'s result: each a copy of the tracker's. -/
-theorem ownNewPr_copies (chg : confchange.Changer) (pvs : GMap w64 tracker.Progress) :
+theorem ownNewPr_copies (chg : confchange.Changer) (pvs : GMap w64 tracker.Progress)
+    (Hnw : NoWit pvs) :
     ⊢ ([∗map] k ↦ pv ∈ pvs, ownNewPr (GF := GF) chg pvs k pv) := by
   refine BigSepM.bigSepM_intro (P := iprop(emp)) (fun {k v} h => ?_)
   unfold ownNewPr
   iintro -
+  isplitr
+  · ipureintro; exact Hnw k v h
   ileft
   ipureintro
   exact ⟨v, h, rfl⟩
@@ -549,7 +604,7 @@ theorem ownNewPr_elim (chg : confchange.Changer) (base : GMap w64 tracker.Progre
       ⌜∃ pv0, base !! k = some pv0 ∧ pv = { pv0 with IsLearner' := pv.IsLearner' }⌝ ∨
       (⌜FreshPr chg pv⌝ ∗ ownInflights pv.Inflights' (inflightsNew chg.Tracker'.MaxInflight'
         chg.Tracker'.MaxInflightBytes')) := by
-  unfold ownNewPr; iintro H; iexact H
+  unfold ownNewPr; iintro ⟨-, H⟩; iexact H
 
 /-- What a `Changer`'s result's `Progress` objects are, given what the tracker's were: a
 resource `R` held for each of the tracker's values `base` (say, its inflight ring) goes to

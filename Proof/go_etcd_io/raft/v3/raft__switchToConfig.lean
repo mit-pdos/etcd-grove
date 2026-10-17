@@ -156,9 +156,9 @@ theorem raft.switchToConfig.wp_proof
       ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true
         $$ [HV Hv HL Hl HO Ho HN Hn HA]
       · iunfold csPts
-        iexists sv, sl, so, sn, pa
+        iexists sv, sl, so, sn, pa, pw, pwo
         iframe
-        iframe cA Hpb
+        iframe cA cW cWO Hpb
         ipureintro; exact ⟨Hnn, Hal⟩
       -- `len(cs.Voters) == 0` (no incoming voter): nothing more
       wp_if_destruct

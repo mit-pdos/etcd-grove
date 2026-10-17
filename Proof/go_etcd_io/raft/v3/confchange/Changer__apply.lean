@@ -82,7 +82,7 @@ theorem confchange.Changer.apply.wp_proof
     (wp_ConfChangeSingle_GetNodeId : raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetType : raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk chg base s ccs ls l dq dqs Hmi
+  intro p cfgp trk chg base s ccs ls l dq dqs Hmi Hnow
   wp_start as ⟨Hp, Hccs, #Hcl, Hw⟩
   wp_auto
   wp_method_call
@@ -180,6 +180,11 @@ theorem confchange.Changer.apply.wp_proof
       ipureintro
       refine ⟨by word, by word, ?_⟩
       rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_left Hif]
+    have H4 := Hif
+    wp_if_destruct
+    · -- raft#168's `AddWitness`: excluded by the premise
+      exfalso
+      exact Hnow cc (List.mem_of_getElem? Hcc) H0 (by simpa using Hif)
     · -- any other type: "unexpected conf type %d"
       wp_apply wp_ConfChangeSingle_GetType.1 q DFrac.discard cc $$ [Hcq] as -
       · iexact Hcq
@@ -197,7 +202,7 @@ theorem confchange.Changer.apply.wp_proof
       iapply HΦ
       iframe
       have Hnone : applyOne cc s' = none := by
-        simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_right Hif]
+        simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_right H4]
       have Hall : applyAll l s = none := by
         have hl : l = l.take (sint.nat (n + W64 1)) ++ l.drop (sint.nat (n + W64 1)) :=
           (List.take_append_drop _ _).symm
@@ -210,11 +215,11 @@ theorem confchange.Changer.apply.wp_proof
     rw [Hall] at Hn
     icases ownWork_elim _ _ _ _ _ $$ Hw with
       ⟨%cfg, %prs, %pvs, Hcfgp, Hc, Htrk, Hprs, %Hflags, Hnew⟩
-    icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+    icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
     wp_auto
     wp_apply wp_confchange_incoming _ vin vout Harr
     wp_apply wp_map_len_lt $$ Hin as ⟨Hin, %Hlt⟩
-    ihave Hc := ownCfgCC_intro cfg (DFrac.own 1) s'.cfg vin vout Harr Hal $$ Hin Hout Hl Hln
+    ihave Hc := ownCfgCC_intro cfg (DFrac.own 1) s'.cfg vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
     ihave Hw := ownWork_intro chg base cfgp trk s' cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew
     wp_if_destruct
     · -- "removed all voters"

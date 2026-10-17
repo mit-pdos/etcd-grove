@@ -55,6 +55,10 @@ abbrev confchange.Restore.spec : Prop :=
     (s' : CCState),
   restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' = some s' →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  -- raft#168 (`notes/pr-verify/raft-168.md`): no voter `0` (`toConfChangeSingle`), and no
+  -- witness in the empty configuration either
+  W64 0 ∉ c.VotersOutgoing' → W64 0 ∉ c.Voters' →
+  chg.Tracker'.Config'.Witnesses'.arr = [W64 0, W64 0] →
   -- the empty configuration
   chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
@@ -111,6 +115,8 @@ abbrev confchange.Restore.specE : Prop :=
   c.Learners' = [] →
   c.LearnersNext' = [] →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  -- raft#168: no witness
+  chg.Tracker'.Config'.Witnesses'.arr = [W64 0, W64 0] →
   -- the empty configuration
   chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
@@ -131,12 +137,13 @@ abbrev confchange.Restore.specE : Prop :=
 /-- The empty conf state's statement from the general one: no op, so `spec`'s first arm. -/
 theorem confchange.Restore.spec_empty (H : confchange.Restore.spec (GF := GF) (hG := hG)) :
     confchange.Restore.specE (GF := GF) (hG := hG) := by
-  intro chg cs c dq v0 Hv Hvo Hl Hln Hmi Harr Hlm Hlnm Hal
+  intro chg cs c dq v0 Hv Hvo Hl Hln Hmi Hwit Harr Hlm Hlnm Hal
   iintro %Φ ⟨#Hpkg, Hcs, Hv0, #Hpm⟩ HΦ
   have Hm : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
       some (cfgState ∅ ∅) := by
     rw [Hvo, Hv, Hl, Hln]; rfl
-  iapply H chg cs c dq v0 _ Hm Hmi Harr Hlm Hlnm Hal $$ [$Hpkg $Hcs $Hv0 $Hpm]
+  iapply H chg cs c dq v0 _ Hm Hmi (by rw [Hvo]; simp) (by rw [Hv]; simp) Hwit Harr Hlm Hlnm Hal
+    $$ [$Hpkg $Hcs $Hv0 $Hpm]
   inext
   iintro %cfgv %prsm %prs ⟨Hcs, Hv0, -, (⟨-, %Hc1, %Hc2, -⟩ | ⟨%Hops, -⟩)⟩
   · iapply HΦ
@@ -197,6 +204,8 @@ abbrev confchange.Restore.specS : Prop :=
   c.VotersOutgoing' = [] →
   c.LearnersNext' = [] →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  -- raft#168: no witness
+  chg.Tracker'.Config'.Witnesses'.arr = [W64 0, W64 0] →
   -- the empty configuration
   chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
@@ -215,7 +224,7 @@ abbrev confchange.Restore.specS : Prop :=
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
       ⌜cfgv.Voters'.arr = [vref, map.nil] ∧
         cfgv.LearnersNext' = map.nil ∧
-        cfgv.AutoLeave' = false⌝ ∗
+        cfgv.AutoLeave' = false ∧ cfgv.Witnesses'.arr = [W64 0, W64 0]⌝ ∗
       ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet c.Learners') ∗
       vref ↦$ vm ∗ ⌜domSet vm = GMap.listToSet c.Voters'⌝ ∗
       prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet c.Voters' ∪ GMap.listToSet c.Learners'⌝ ∗
@@ -226,7 +235,7 @@ abbrev confchange.Restore.specS : Prop :=
 the model's answer is the voters and the learners (`simpleFold_restoreIn`). -/
 theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (hG := hG)) :
     confchange.Restore.specS (GF := GF) (hG := hG) := by
-  intro chg cs c dq v0 Hvne Hv0n Hl0n Hdis Hcvo Hcln Hmi Harr Hl Hln Hal
+  intro chg cs c dq v0 Hvne Hv0n Hl0n Hdis Hcvo Hcln Hmi Hwit Harr Hl Hln Hal
   iintro %Φ ⟨#Hpkg, Hcs, Hv0, #Hpm⟩ HΦ
   have Hm : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
       some (cfgState (GMap.listToSet c.Voters') (GMap.listToSet c.Learners')) := by
@@ -236,17 +245,18 @@ theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (
     exact simpleFold_restoreIn c.Voters' c.Learners' Hvne
       (fun x hx => hx.elim (fun h e => Hv0n (e ▸ h)) (fun h e => Hl0n (e ▸ h)))
       (fun x hx => Hdis x hx)
-  iapply H chg cs c dq v0 _ Hm Hmi Harr Hl Hln Hal $$ [$Hpkg $Hcs $Hv0 $Hpm]
+  iapply H chg cs c dq v0 _ Hm Hmi (by rw [Hcvo]; simp) Hv0n Hwit Harr Hl Hln Hal
+    $$ [$Hpkg $Hcs $Hv0 $Hpm]
   inext
   iintro %cfgv %prsm %prs ⟨Hcs, Hv0, -, (⟨%Hops, -⟩ | ⟨-, Hc, Hprsm, %Hdom, Hprogs⟩)⟩
   · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
-  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr1, Hin, Hout, Hl1, Hln1, %Hal1⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr1, Hin, Hout, Hl1, Hln1, %Hal1, %Hwit1⟩
   icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.outgoing rfl $$ Hout with %Hvout
   icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.learnersNext rfl $$ Hln1 with %Hln1'
   iapply HΦ
   iframe Hcs Hv0 Hpm Hprsm
   isplitr
-  · ipureintro; exact ⟨by rw [Harr1, Hvout], Hln1', Hal1⟩
+  · ipureintro; exact ⟨by rw [Harr1, Hvout], Hln1', Hal1, Hwit1⟩
   ihave Hl1 := (show ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1)
     (cfgState (GMap.listToSet c.Voters') (GMap.listToSet c.Learners')).cfg.learners ⊢
     ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet c.Learners') from .rfl) $$ Hl1

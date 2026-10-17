@@ -29,11 +29,12 @@ theorem confchange.Changer.initProgress.wp_proof
     (wp_tracker_NewInflights : tracker.NewInflights.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG)) :
     confchange.Changer.initProgress.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk chg base s id b dq Hid Hmi
+  intro p cfgp trk chg base s id b w dq Hid Hw Hmi
+  subst Hw
   wp_start as ⟨Hp, Hw⟩
   unfold ownWork ownCfgAt ownPrsW
   icases Hw with ⟨⟨%cfg, Hcfgp, Hc⟩, ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩⟩
-  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hpvnone : pvs !! id = none := by
     have h : ¬ (flagsOf pvs !! id).isSome := by rw [Hflags]; exact Hid
@@ -71,7 +72,7 @@ theorem confchange.Changer.initProgress.wp_proof
       · iexists cfg
         iframe Hcfgp
         iapply ownCfgCC_intro cfg (DFrac.own 1)
-          { s.cfg with incoming := <[id := ()]> s.cfg.incoming } vin vout Harr Hal
+          { s.cfg with incoming := <[id := ()]> s.cfg.incoming } vin vout Harr Hal Hwit
           $$ Hin Hout Hl Hln
       iexists _, _
       iframe Htrk
@@ -89,10 +90,12 @@ theorem confchange.Changer.initProgress.wp_proof
       iapply (BigSepM.bigSepM_insert Hpvnone).2
       iframe Hnew
       unfold ownNewPr
+      isplitr
+      · ipureintro; rfl
       iright
       iframe Hinfl
       ipureintro
-      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl⟩
       word
   · -- a learner: `nilAwareAdd(&cfg.Learners, id)`
     wp_auto
@@ -101,7 +104,7 @@ theorem confchange.Changer.initProgress.wp_proof
     ihave Hl := ownIdsetC_Q _ _ _ $$ Hl
     wp_apply wp_confchange_nilAwareAdd $$ [$Learners $Hl] as %m' ⟨Learners, Hl⟩
     ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := m' } : tracker.Config)) $$
-        [Voters AutoLeave Learners LearnersNext]
+        [Voters AutoLeave Learners LearnersNext Witnesses]
     · iapply typedPointsto_combine _ _ _ Hcnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -119,7 +122,7 @@ theorem confchange.Changer.initProgress.wp_proof
       · iexists ({ cfg with Learners' := m' } : tracker.Config)
         iframe Hcfgp
         iapply ownCfgCC_intro ({ cfg with Learners' := m' } : tracker.Config) (DFrac.own 1)
-          { s.cfg with learners := <[id := ()]> s.cfg.learners } vin vout Harr Hal
+          { s.cfg with learners := <[id := ()]> s.cfg.learners } vin vout Harr Hal Hwit
           $$ Hin Hout Hl Hln
       iexists _, _
       iframe Htrk
@@ -137,10 +140,12 @@ theorem confchange.Changer.initProgress.wp_proof
       iapply (BigSepM.bigSepM_insert Hpvnone).2
       iframe Hnew
       unfold ownNewPr
+      isplitr
+      · ipureintro; rfl
       iright
       iframe Hinfl
       ipureintro
-      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+      refine ⟨rfl, ?_, rfl, rfl, rfl, rfl, rfl, rfl⟩
       word
 
 end proof

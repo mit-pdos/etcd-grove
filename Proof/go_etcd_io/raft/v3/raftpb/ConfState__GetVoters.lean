@@ -48,11 +48,11 @@ theorem raftpb.ConfState.GetVoters.wp_proof :
       iright
       simp only [ownCSM]
       iunfold csPts
-      iexists sv, sl, so, sn, pa
+      iexists sv, sl, so, sn, pa, pw, pwo
       isplitr
       · ipureintro; exact Hnn
       iframe
-      iframe cA Hpb
+      iframe cA cW cWO Hpb
       ipureintro; exact Hal
 
 end proof
