@@ -17,7 +17,6 @@ axiom http.bodyClosed
 axiom http.bodyR
 axiom http.maxBytesError_asTarget
 axiom http.maxBytesR
-axiom http.maxBytesR_persistent
 axiom http.reqHdrGet
 axiom http.reqHdrGet_persistent
 axiom http.respHdr
@@ -29,6 +28,7 @@ axiom json.UnmarshalHashKVRequest.wp_proof
 axiom json.hashKVReqOf
 axiom json.hashKVRespJSON
 axiom types.ID.String.wp_proof
+axiom types.idStr
 axiom zap.Error.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Warn.wp_proof

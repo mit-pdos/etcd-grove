@@ -10,14 +10,21 @@ premises; their operations are the postulates `Spec/net/http/*`, `Spec/io/ReadAl
 * `http.respLog w evs`: the response writer `w`'s state, the list `evs` of what the handler
   asked of it (`RespEv`: a header set, an `http.Error`, a body write), in order. Owned by the
   goroutine serving the request (net/http's contract: a `ResponseWriter` is not used after
-  `ServeHTTP` returns, nor concurrently).
+  `ServeHTTP` returns, nor concurrently). It records only what the handler asks for: when a
+  `MaxBytesReader` hits its limit, net/http's own `requestTooLarge` also marks the connection to
+  be closed after the reply (`Connection: close`), which is not modelled.
 * `http.respHdr w hm` (persistent): `hm` is `w`'s header map (`w.Header()`'s result).
 * `http.reqHdrGet hp k v` (persistent): the request's header map at `hp` (`&r.Header`) maps
   `k` (canonically) to the first value `v` (`Get` returns `v`; `""` if none).
 * `http.bodyR body c`: the request body `body` has `c` left to read (`BodyContent`: the bytes
-  `c.data` the client sends, then end of stream or a read error); owned by the serving goroutine.
-* `http.bodyClosed body c`: `body` is closed with `c` left unread.
-* `http.maxBytesR lr body n` (persistent): `lr` is `http.MaxBytesReader(w, body, n)`'s reader.
+  `c.data` the client sends, then end of stream, `c.err = none`, or a read error
+  `c.err = some e`, never `io.EOF`: an `EOF` is the end of the stream); owned by the serving
+  goroutine.
+* `http.bodyClosed body c`: `body` is closed with `c` left unread by the handler. (net/http's
+  server-side `body.Close` may still read and discard up to 256 KiB more of the connection to
+  reuse it; that is not the handler's reading and is not modelled.)
+* `http.maxBytesR lr body n` (owned, consumed by `io.ReadAllMaxBytes`): `lr` is a fresh
+  `http.MaxBytesReader(w, body, n)` (its whole budget `n` left, no error yet).
 * `json.hashKVReqOf bs` (an uninterpreted function): the revision `json.Unmarshal(bs, req)`
   decodes into a zero `HashKVRequest`, or `none` if it fails.
 * `json.hashKVRespJSON hrev h crev hashRev` (an uninterpreted function): what `json.Marshal`
@@ -104,10 +111,8 @@ axiom http.bodyClosed {GF : BundledGFunctors} [FfiSyntax] (body : GoInterface)
   (c : http.BodyContent) : IProp GF
 axiom http.maxBytesR {GF : BundledGFunctors} [FfiSyntax] (lr body : GoInterface) (n : w64) :
   IProp GF
-axiom http.maxBytesR_persistent {GF : BundledGFunctors} [FfiSyntax] (lr body : GoInterface)
-  (n : w64) : Persistent (http.maxBytesR (GF := GF) lr body n)
 
-attribute [instance] http.respHdr_persistent http.reqHdrGet_persistent http.maxBytesR_persistent
+attribute [instance] http.respHdr_persistent http.reqHdrGet_persistent
 
 /-- `*http.MaxBytesError` implements `error` (its method `Error() string`), so it can be the
 target type of `errors.As`. Method sets are uninterpreted in the semantics: an assumption about
@@ -136,8 +141,10 @@ def hkvResp [FfiSyntax] (p : Loc) (h : w32) (crev hashRev : w64) : etcdserverpb.
 /-! ### The handler's outcomes -/
 
 /-- The handler's response once it reads the body `c` (of a `GET` of the right path with an
-acceptable cluster id), given the store's hash relation `R`. -/
-def hashKVBodyServed [FfiSyntax] (c : http.BodyContent) (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop)
+acceptable cluster id), given the store's hash relation `R` and the server's cluster id string
+`sid` (the response's `X-Etcd-Cluster-ID`). -/
+def hashKVBodyServed [FfiSyntax] (c : http.BodyContent)
+    (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop) (sid : GoString)
     (evs : List http.RespEv) : Prop :=
   -- the body is longer than the bound: 413, nothing decoded, no hash computed
   (maxHashKVBody < c.data.length ∧
@@ -154,7 +161,7 @@ def hashKVBodyServed [FfiSyntax] (c : http.BodyContent) (R : w64 → go_etcd_io.
       (∃ msg, evs = [.error (W64 400) msg]) ∨
       ∃ (kvh : go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash) (crev : w64), R rev kvh crev ∧
         ((∃ msg, evs = [.error (W64 500) msg]) ∨
-         ∃ sid, evs = [.header go!"X-Etcd-Cluster-ID" sid,
+         evs = [.header go!"X-Etcd-Cluster-ID" sid,
                        .header go!"Content-Type" go!"application/json",
                        .write (json.hashKVRespJSON crev kvh.Hash' kvh.CompactRevision'
                          kvh.Revision')]))
@@ -192,6 +199,19 @@ def http.bodyOk (body : GoInterface) : IProp GF :=
       {{ http.bodyR body c }}
         (App (Val #(methods ii.ty go!"Close" ii.v)) (Val #()))
       {{ (e : GoError), RET #e; http.bodyClosed body c }})
+
+/-- **The body's read error** (persistent), if any, has an error tree whose methods `errors.As`
+calls return (`errors.isErrorTree`, for the handler's target `*http.MaxBytesError`). -/
+def http.bodyErrOk (c : http.BodyContent) : IProp GF :=
+  match c.err with
+  | none => iprop(True)
+  | some e => iprop(∃ S : GoError → Prop, ⌜S (GoInterface.ok e)⌝ ∗
+      _root_.Perennial.errors.isErrorTree (GF := GF) S Loc
+        (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty))
+
+instance http.bodyErrOk_persistent (c : http.BodyContent) :
+    Persistent (http.bodyErrOk (GF := GF) c) := by
+  unfold http.bodyErrOk; split <;> infer_instance
 
 instance http.bodyOk_persistent (body : GoInterface) :
     Persistent (http.bodyOk (GF := GF) body) := by
@@ -239,17 +259,29 @@ instance hashKVOk_persistent (kv : GoInterface) (R : w64 → go_etcd_io.etcd.ser
 /-- **The handler `h`** (persistent): its logger `lg` (not nil) and server `s`; of the server,
 the cluster `cl` (its id `cid`), the KV `kv` (its hash storage, with `R`), and `rafthttp`'s
 `ErrClusterIDMismatch` (an error whose `Error()` returns). -/
-def hashKVHandlerOk (h : Loc) (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop) : IProp GF :=
-  iprop(∃ (lg s cl : Loc) (cid : w64) (kv : GoInterface) (em : GoInterfaceOk),
+def hashKVHandlerOk (h : Loc) (cid : w64)
+    (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop) : IProp GF :=
+  iprop(∃ (lg s cl : Loc) (kv : GoInterface) (em : GoInterfaceOk),
     hkvLgAddr h ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ hkvServerAddr h ↦□ s ∗
     srvClusterAddr s ↦□ cl ∗ membership.clusterCid cl cid ∗
     srvKVAddr s ↦□ kv ∗ hashKVOk kv R ∗
     globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ErrClusterIDMismatch ↦□
       GoInterface.ok em ∗ errorStringSpec em)
 
-instance hashKVHandlerOk_persistent (h : Loc) (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop) :
-    Persistent (hashKVHandlerOk (GF := GF) h R) := by
+instance hashKVHandlerOk_persistent (h : Loc) (cid : w64)
+    (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop) :
+    Persistent (hashKVHandlerOk (GF := GF) h cid R) := by
   unfold hashKVHandlerOk; infer_instance
+
+/-- The body's read error `e`'s tree. -/
+theorem http.bodyErrOk_some (c : http.BodyContent) (e : GoInterfaceOk) (h : c.err = some e) :
+    http.bodyErrOk (GF := GF) c ⊢ ∃ S : GoError → Prop, ⌜S (GoInterface.ok e)⌝ ∗
+      _root_.Perennial.errors.isErrorTree (GF := GF) S Loc
+        (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty) := by
+  obtain ⟨d, er⟩ := c
+  simp only at h
+  subst h
+  exact .rfl
 
 end defs
 

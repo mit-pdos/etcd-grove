@@ -15,7 +15,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
   go_etcd_io.etcd.cache.v3
-  go_etcd_io.etcd.cache.v3
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

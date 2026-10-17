@@ -134,7 +134,6 @@ axiom http.bodyClosed
 axiom http.bodyR
 axiom http.maxBytesError_asTarget
 axiom http.maxBytesR
-axiom http.maxBytesR_persistent
 axiom http.reqHdrGet
 axiom http.reqHdrGet_persistent
 axiom http.respHdr
@@ -219,6 +218,7 @@ axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.ID.String.wp_proof
+axiom types.idStr
 axiom utf8.ValidString.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v3rpc.isClientCtxErr.wp_proof

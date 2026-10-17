@@ -8,6 +8,7 @@ decoded. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvHashKV
+public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 
 @[expose] public section
 
@@ -27,21 +28,23 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The peer hashKV handler** `h.ServeHTTP(w, r)`, for a request `q` with body content `c`,
-the server's store hashing per `R`; the response `w` had `evs` before. It returns, having
-appended `evs'` to the response, and either
+the server's cluster id `cid` and its store hashing per `R`; the response `w` had `evs` before.
+It returns, having appended `evs'` to the response, and either
 * rejects the request before reading its body (the body untouched): a method other than `GET`
-  (`Allow: GET`, 405), another path (400), a cluster id header that is not empty and differs
-  from the server's (412; the server's id is `types.ID.String`'s, unspecified here, so the spec
-  says only that the header is not empty);
-* or reads the body, consuming at most `maxHashKVBody + 1` bytes of it (`bodyClosed` with
-  `c.drop k`, `k ≤ maxHashKVBody + 1`), closes it, and responds as `hashKVBodyServed` says:
-  413 for a body over the bound, without decoding it or hashing. -/
+  (`Allow: GET`, 405), another path (400), a cluster id header that is neither empty nor the
+  server's id string (`types.idStr cid`; 412);
+* or reads the body, reading at most `maxHashKVBody + 1` bytes of it (`bodyClosed` with
+  `c.drop k` left, `k ≤ maxHashKVBody + 1`), closes it, and responds as `hashKVBodyServed` says.
+  For a body over the bound the response is exactly the 413 error (that the body is not decoded
+  nor a hash computed is not stated: decoding and `HashByRev` leave no trace here, but the code
+  does neither). -/
 abbrev hashKVHandler.ServeHTTP.spec : Prop :=
-  ∀ (h r : Loc) (w : GoInterface) (q : http.Req) (c : http.BodyContent)
-    (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop) (evs : List http.RespEv),
+  ∀ (h r : Loc) (w : GoInterface) (q : http.Req) (c : http.BodyContent) (cid : w64)
+    (R : w64 → go_etcd_io.etcd.server.v3.storage.mvcc.KeyValueHash → w64 → Prop)
+    (evs : List http.RespEv),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      hashKVHandlerOk h R ∗ http.respWriterOk w ∗ http.respLog w evs ∗
-      http.reqIs r q ∗ http.bodyOk q.body ∗ http.bodyR q.body c }}
+      hashKVHandlerOk h cid R ∗ http.respWriterOk w ∗ http.respLog w evs ∗
+      http.reqIs r q ∗ http.bodyOk q.body ∗ http.bodyR q.body c ∗ http.bodyErrOk c }}
     (App (App (Val (h @!! go.GoType.PointerType hashKVHandler.ty @!! go!"ServeHTTP")) (Val #w))
       (Val #r))
   {{ RET #(); ∃ evs' : List http.RespEv, http.respLog w (evs ++ evs') ∗
@@ -51,8 +54,11 @@ abbrev hashKVHandler.ServeHTTP.spec : Prop :=
        (⌜q.method = go!"GET" ∧ q.path ≠ go!"/members/hashkv" ∧
           evs' = [.error (W64 400) go!"bad path"]⌝ ∗ http.bodyR q.body c) ∨
        (⌜q.method = go!"GET" ∧ q.path = go!"/members/hashkv" ∧ q.clusterHdr ≠ go!"" ∧
-          ∃ msg, evs' = [.error (W64 412) msg]⌝ ∗ http.bodyR q.body c) ∨
-       (⌜q.method = go!"GET" ∧ q.path = go!"/members/hashkv" ∧ hashKVBodyServed c R evs'⌝ ∗
+          q.clusterHdr ≠ types.idStr cid ∧ ∃ msg, evs' = [.error (W64 412) msg]⌝ ∗
+          http.bodyR q.body c) ∨
+       (⌜q.method = go!"GET" ∧ q.path = go!"/members/hashkv" ∧
+          (q.clusterHdr = go!"" ∨ q.clusterHdr = types.idStr cid) ∧
+          hashKVBodyServed c R (types.idStr cid) evs'⌝ ∗
           http.bodyClosed q.body (c.drop (min c.data.length (maxHashKVBody + 1))))) }}
 
 end spec

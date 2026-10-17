@@ -7,7 +7,9 @@ What the two do together (Go 1.27, `net/http/request.go`'s `maxBytesReader.Read`
 asks the body for at most the bytes left plus one; once the body yields more than `n` bytes in
 all, the reader returns `n` of them and `&MaxBytesError{n}` from then on, reading nothing more; a
 body error before that is returned as it is. So `ReadAll` consumes `min(len data, n + 1)` bytes of
-the body, whatever the body holds.
+the body, whatever the body holds. The reader is consumed (`maxBytesR` is owned): a second
+`ReadAll` of it would read nothing more. `MaxBytesReader` clamps a negative `n` to 0; the premise
+`0 ≤ n` leaves that case out.
 -/
 module
 
@@ -22,7 +24,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
   go_etcd_io.etcd.cache.v3
-  go_etcd_io.etcd.cache.v3
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -34,11 +35,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `io.ReadAll(lr)`, `lr` a `MaxBytesReader(_, body, n)` with `c` left in `body`, consumes
 `min(len c.data, n + 1)` bytes of the body and returns
 * if the body has more than `n` bytes: its first `n` and a `*http.MaxBytesError` `m`;
-* else, if it fails with `e`: its bytes and `e` (with `e`'s error tree, for `errors.As`);
+* else, if it fails with `e`: its bytes and `e`;
 * else: its bytes and `nil`. -/
 abbrev io.ReadAllMaxBytes.spec : Prop :=
   ∀ (lr body : GoInterface) (n : w64) (c : http.BodyContent),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ http.maxBytesR lr body n ∗ http.bodyR body c }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ ⌜0 ≤ sint.Z n⌝ ∗ http.maxBytesR lr body n ∗
+      http.bodyR body c }}
     (App (Val (@! _root_.Perennial.io.ReadAll))
       (Val #(lr : GoInterface)))
   {{ (sl : GoSlice) (err : GoError), RET (PairV #sl #err);
@@ -47,10 +49,7 @@ abbrev io.ReadAllMaxBytes.spec : Prop :=
           ∃ m : Loc, ⌜err = interface.mkOk
             (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty) #m⌝) ∨
        (⌜c.data.length ≤ uint.nat n⌝ ∗ sl ↦* c.data ∗
-          ∃ e, ⌜c.err = some e ∧ err = GoInterface.ok e⌝ ∗
-            ∃ S : GoError → Prop, ⌜S err⌝ ∗
-              _root_.Perennial.errors.isErrorTree (GF := GF) S Loc
-                (go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty)) ∨
+          ∃ e, ⌜c.err = some e ∧ err = GoInterface.ok e⌝) ∨
        (⌜c.data.length ≤ uint.nat n ∧ c.err = none ∧ err = interface.nil⌝ ∗ sl ↦* c.data)) }}
 
 end spec

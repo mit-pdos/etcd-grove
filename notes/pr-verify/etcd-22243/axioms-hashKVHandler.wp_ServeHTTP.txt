@@ -2,7 +2,6 @@ Perennial.EtcdGrove.http.bodyClosed
 Perennial.EtcdGrove.http.bodyR
 Perennial.EtcdGrove.http.maxBytesError_asTarget
 Perennial.EtcdGrove.http.maxBytesR
-Perennial.EtcdGrove.http.maxBytesR_persistent
 Perennial.EtcdGrove.http.reqHdrGet
 Perennial.EtcdGrove.http.reqHdrGet_persistent
 Perennial.EtcdGrove.http.respHdr
@@ -10,6 +9,7 @@ Perennial.EtcdGrove.http.respHdr_persistent
 Perennial.EtcdGrove.http.respLog
 Perennial.EtcdGrove.json.hashKVReqOf
 Perennial.EtcdGrove.json.hashKVRespJSON
+Perennial.EtcdGrove.types.idStr
 Perennial.errors.As.wp_proof
 Perennial.EtcdGrove.errors.AsExact.wp_proof
 Perennial.EtcdGrove.http.Error.wp_proof

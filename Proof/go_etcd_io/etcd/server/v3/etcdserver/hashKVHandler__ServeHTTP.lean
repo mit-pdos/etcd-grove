@@ -93,7 +93,7 @@ theorem hashKVHandler.ServeHTTP.wp_proof
     (hM : json.MarshalHashKVResponse.spec (GF := GF) (hG := hG))
     (hAs : errors.AsExact.spec (GF := GF) (hG := hG)) :
     hashKVHandler.ServeHTTP.spec (GF := GF) (hG := hG) := by
-  intro h r w q c R evs
+  intro h r w q c cid R evs
   haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
   -- `r`'s fields through `net/http`'s type assumption (`Request.TypeAssumptions`), not the
   -- generated instance of the axiomatized `http.Request` (a `sorry`), which instance search
@@ -106,9 +106,9 @@ theorem hashKVHandler.ServeHTTP.wp_proof
   haveI : TypeRepr _root_.Perennial.net.http.Request.underlying
       _root_.Perennial.net.http.Request :=
     go.type_repr_underlying (u := _root_.Perennial.net.http.Request.underlying)
-  wp_start as ⟨#Hh, #Hw, Hlog, #Hr, #Hb, HB⟩
+  wp_start as ⟨#Hh, #Hw, Hlog, #Hr, #Hb, HB, #Hbe⟩
   iunfold hashKVHandlerOk at Hh
-  icases Hh with ⟨%lg, %s, %cl, %cid, %kv, %em, #Hlg, %Hlgn, #Hs, #Hcl, #Hcid, #Hkv, #Hkvok,
+  icases Hh with ⟨%lg, %s, %cl, %kv, %em, #Hlg, %Hlgn, #Hs, #Hcl, #Hcid, #Hkv, #Hkvok,
     #Hem, #Hems⟩
   iunfold http.respWriterOk at Hw
   icases Hw with ⟨%wi, %Hwi, #HwH, #HwW⟩
@@ -161,21 +161,30 @@ theorem hashKVHandler.ServeHTTP.wp_proof
   wp_apply hGet $$ [] as -
   · iframe #
   -- `gcid != "" && gcid != h.server.cluster.ID().String()`
-  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ ⌜b = true → q.clusterHdr ≠ []⌝ ∗
+  wp_join (Q := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗
+      ⌜(b = true → q.clusterHdr ≠ [] ∧ q.clusterHdr ≠ types.idStr cid) ∧
+        (b = false → q.clusterHdr = [] ∨ q.clusterHdr = types.idStr cid)⌝ ∗
       h_ptr ↦ h ∗ gcid_ptr ↦ q.clusterHdr)) at (If _ _ (Val #false)) with [h gcid]
   · wp_if_destruct
     · iexists false
       iframe
       ipureintro
-      exact ⟨rfl, by simp⟩
+      exact ⟨rfl, by simp, fun _ => Or.inl Hif⟩
     try wp_auto
     wp_apply hRCID $$ [] as -
     · iframe #
-    wp_apply hIDS as %sid -
+    wp_apply hIDS as %sid %Hsid
+    subst Hsid
     iexists _
     iframe
     ipureintro
-    refine ⟨rfl, fun _ => Hif⟩
+    refine ⟨rfl, ?_, ?_⟩
+    · intro hb
+      refine ⟨Hif, ?_⟩
+      simp_all
+    · intro hb
+      right
+      simp_all
   iintro ⟨%b, %Hv, %Hb, h, gcid⟩
   subst Hv
   cases b
@@ -197,17 +206,19 @@ theorem hashKVHandler.ServeHTTP.wp_proof
     iright; iright; ileft
     iframe
     ipureintro
-    exact ⟨Hget, Hpath, Hb rfl, str, rfl⟩
+    exact ⟨Hget, Hpath, (Hb.1 rfl).1, (Hb.1 rfl).2, str, rfl⟩
   wp_auto
   rw [Hbi]
   wp_auto
   -- the body, through `http.MaxBytesReader(w, r.Body, maxHashKVHTTPRequestSize)`
-  wp_apply hMBR as %lr #Hlr
-  wp_apply hRA $$ [HB] as %sl %err ⟨HB, Hres⟩
-  · iframe #; iexact HB
+  have Hcl := Hb.2 rfl
+  wp_apply hMBR as %lr Hlr
+  wp_apply hRA $$ [HB Hlr] as %sl %err ⟨HB, Hres⟩
+  · iframe
+    try (ipureintro; word)
   have Hn : uint.nat (W64 65536) = maxHashKVBody := by word
   rw [Hn]
-  icases Hres with (⟨%Hlen, Hsl, %m, %Herr⟩ | ⟨%Hlen, Hsl, %e, %He, %S, %HS, #Htree⟩ | ⟨%Hok, Hsl⟩)
+  icases Hres with (⟨%Hlen, Hsl, %m, %Herr⟩ | ⟨%Hlen, Hsl, %e, %He⟩ | ⟨%Hok, Hsl⟩)
   · -- longer than the bound: 413
     subst Herr
     wp_auto
@@ -228,9 +239,11 @@ theorem hashKVHandler.ServeHTTP.wp_proof
     iright; iright; iright
     iframe
     ipureintro
-    exact ⟨Hget, Hpath, Or.inl ⟨Hlen, rfl⟩⟩
+    exact ⟨Hget, Hpath, Hcl, Or.inl ⟨Hlen, rfl⟩⟩
   · -- a read error within the bound: 413 if `errors.As` finds a `MaxBytesError`, else 400
     obtain ⟨Hce, rfl⟩ := He
+    ihave Htree := http.bodyErrOk_some c e Hce $$ Hbe
+    icases Htree with ⟨%S, %HS, #Htree⟩
     wp_auto
     wp_apply _root_.Perennial.errors.wp_As S (GoInterface.ok e) maxBytesErr_ptr
       (T := go.GoType.PointerType _root_.Perennial.net.http.MaxBytesError.ty) (null : Loc)
@@ -253,7 +266,7 @@ theorem hashKVHandler.ServeHTTP.wp_proof
       iright; iright; iright
       iframe
       ipureintro
-      exact ⟨Hget, Hpath, Or.inr (Or.inl ⟨Hlen, by simp [Hce], Or.inr rfl⟩)⟩
+      exact ⟨Hget, Hpath, Hcl, Or.inr (Or.inl ⟨Hlen, by simp [Hce], Or.inr rfl⟩)⟩
     · try wp_auto
       wp_apply hErr $$ [Hlog] as Hlog
       · iexact Hlog
@@ -270,7 +283,7 @@ theorem hashKVHandler.ServeHTTP.wp_proof
       iright; iright; iright
       iframe
       ipureintro
-      exact ⟨Hget, Hpath, Or.inr (Or.inl ⟨Hlen, by simp [Hce], Or.inl rfl⟩)⟩
+      exact ⟨Hget, Hpath, Hcl, Or.inr (Or.inl ⟨Hlen, by simp [Hce], Or.inl rfl⟩)⟩
   · -- the body, whole
     obtain ⟨Hlen, Hce, rfl⟩ := Hok
     wp_auto
@@ -285,7 +298,7 @@ theorem hashKVHandler.ServeHTTP.wp_proof
       wp_apply hZE as %f -
       warn
       err_close [.error (W64 400) go!"error unmarshalling request"],
-        ⟨Hget, Hpath, Or.inr (Or.inr ⟨Hlen, Hce, by rw [Hj]⟩)⟩
+        ⟨Hget, Hpath, Hcl, Or.inr (Or.inr ⟨Hlen, Hce, by rw [Hj]⟩)⟩
     · -- the request's revision `rev`: `h.server.KV().HashStorage().HashByRev(rev)`
       obtain ⟨rfl, Hrev⟩ := Hdec
       wp_auto
@@ -321,7 +334,7 @@ theorem hashKVHandler.ServeHTTP.wp_proof
         iintro !> %str
         wp_auto
         err_close [.error (W64 400) str],
-          ⟨Hget, Hpath, Or.inr (Or.inr ⟨Hlen, Hce, by rw [Hj]; exact Or.inl ⟨str, rfl⟩⟩)⟩
+          ⟨Hget, Hpath, Hcl, Or.inr (Or.inr ⟨Hlen, Hce, by rw [Hj]; exact Or.inl ⟨str, rfl⟩⟩)⟩
       have HR' := HR rfl
       rw [Hrev] at HR'
       wp_auto
@@ -341,7 +354,7 @@ theorem hashKVHandler.ServeHTTP.wp_proof
         iintro !> %str
         wp_auto
         err_close [.error (W64 500) str],
-          ⟨Hget, Hpath, Or.inr (Or.inr ⟨Hlen, Hce, by
+          ⟨Hget, Hpath, Hcl, Or.inr (Or.inr ⟨Hlen, Hce, by
             rw [Hj]; exact Or.inr ⟨kvh, crev, HR', Or.inl ⟨str, rfl⟩⟩⟩)⟩
       ihave Hjs := Hjs $$ %rfl
       wp_auto
@@ -350,7 +363,8 @@ theorem hashKVHandler.ServeHTTP.wp_proof
       · iframe #
       wp_apply hRCID $$ [] as -
       · iframe #
-      wp_apply hIDS as %sid -
+      wp_apply hIDS as %sid %Hsid
+      subst Hsid
       wp_bind (App (Val #(methods wi.ty _ wi.v)) (Val #()))
       iapply HwH $$ %_ [Hlog]
       · iexact Hlog
@@ -378,15 +392,15 @@ theorem hashKVHandler.ServeHTTP.wp_proof
       iintro !> %e0 HB
       wp_auto
       iapply HΦ
-      iexists [.header go!"X-Etcd-Cluster-ID" sid, .header go!"Content-Type" go!"application/json",
+      iexists [.header go!"X-Etcd-Cluster-ID" (types.idStr cid), .header go!"Content-Type" go!"application/json",
         .write (json.hashKVRespJSON crev kvh.Hash' kvh.CompactRevision' kvh.Revision')]
       simp only [List.append_assoc, List.cons_append, List.nil_append]
       iframe
       iright; iright; iright
       iframe
       ipureintro
-      exact ⟨Hget, Hpath, Or.inr (Or.inr ⟨Hlen, Hce, by
-        rw [Hj]; exact Or.inr ⟨kvh, crev, HR', Or.inr ⟨sid, rfl⟩⟩⟩)⟩
+      exact ⟨Hget, Hpath, Hcl, Or.inr (Or.inr ⟨Hlen, Hce, by
+        rw [Hj]; exact Or.inr ⟨kvh, crev, HR', Or.inr rfl⟩⟩)⟩
 
 end proof
 

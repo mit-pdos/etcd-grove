@@ -14,6 +14,10 @@ namespace EtcdGrove
 
 open Iris Iris.BI 
 
+/-- `id.String()`'s result, `strconv.FormatUint(uint64(id), 16)`: an uninterpreted function
+(2026-10-17, PR etcd#22243: the peer hashKV handler compares a header with it). -/
+axiom types.idStr [FfiSyntax] : w64 → GoString
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -25,7 +29,7 @@ abbrev types.ID.String.spec : Prop :=
   ∀ (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types }}
     (App (Val (id @!! go_etcd_io.etcd.client.pkg.v3.types.ID.ty @!! go!"String")) (Val #()))
-  {{ (s : GoString), RET #s; True }}
+  {{ (s : GoString), RET #s; ⌜s = types.idStr id⌝ }}
 
 end spec
 
