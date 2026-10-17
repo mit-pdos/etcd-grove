@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.concurrency.Mutex__Lock
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Mutex__tryAcquire
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Mutex__Unlock
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.waitDeletes
+public import Spec.errors.IsAnyErr
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Session__Client
 public import Spec.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
@@ -44,7 +45,8 @@ theorem Mutex.Lock.wp_proof
     (wp_Client : Session.Client.spec (GF := GF) (hG := hG))
     (wp_waitDeletes : waitDeletes.spec (GF := GF) (hG := hG))
     (wp_Ctx : Client.Ctx.spec (GF := GF) (hG := hG))
-    (wp_Unlock : Mutex.Unlock.spec (GF := GF) (hG := hG)) :
+    (wp_Unlock : Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_IsAnyErr : errors.IsAnyErr.spec (GF := GF) (hG := hG)) :
     Mutex.Lock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
   wp_start as ⟨#Hm, Hst, #Hctx, #Hcc, #Hlo⟩
@@ -137,13 +139,55 @@ theorem Mutex.Lock.wp_proof
   have Hpos := (Hrevs ow How).1
   have Hrev1 : 0 < sint.Z (rev - W64 1) := by word
   wp_apply wp_Client s γ client id $$ [$Hsess]
-  wp_apply wp_waitDeletes ctx cs client pfx (rev - W64 1) r $$ [$Hcl $Hctx $Hcc $Hr]
+  wp_apply wp_waitDeletes ctx cs client pfx key (rev - W64 1) r $$ [$Hcl $Hctx $Hcc $Hr]
     as %werr Hwd
-  · ipureintro; exact ⟨Hpfx, Int.le_of_lt Hrev1⟩
+  · ipureintro; exact ⟨Hpfx, Int.le_of_lt Hrev1, Hp.1⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
   icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, #Hkvf, -, #Hctxf, #Hcctx, #HKV, -, -, -⟩
-  icases Hwd with (%Hwne | ⟨%Hwnil, %R0, %sw, #HR0, #Hsw, %Hw⟩)
+  -- etcd#22387: `errors.Is(werr, errWaitKeyDeleted)` returns `ErrSessionExpired`
+  ihave Hci : (concurrencyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨-, ⟨%eSE, #HeSE⟩, -, -, -, -, ⟨%eWK, #HeWK, %HWKp⟩⟩
+  ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_IsAnyErr werr eWK HWKp $$ [$Herrs] as %b -
+  cases b
+  rotate_left
+  · -- `true`: `ErrSessionExpired`, with `myKey` absent if the wait said so
+    wp_auto
+    iapply HΦ
+    icases Hwd with (⟨%Hwnil, -⟩ | ⟨-, %Ra, #HRa, #Habs, %Hra⟩ | -)
+    · iright; iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iexists ⟨key, rev, st.hdr⟩
+      unfold mutexState; iframe
+    · iright; ileft
+      isplitr
+      · unfold isPkgErr
+        iframe HeSE
+        ipureintro; intro h; cases h
+      iexists ⟨key, rev, st.hdr⟩, Ra
+      isplitl [HmyKey HmyRev Hmhdr]
+      · unfold mutexState; iframe
+      iframe HRa Habs
+      ipureintro; exact ⟨Hp.1, by have := Hp.2.1; omega⟩
+    · iright; iright
+      isplitr
+      · ipureintro; intro h; cases h
+      iexists ⟨key, rev, st.hdr⟩
+      unfold mutexState; iframe
+  wp_auto
+  ihave Hwd' : iprop(⌜werr ≠ GoInterface.nil⌝ ∨ ⌜werr = GoInterface.nil⌝ ∗ ∃ (R0 : w64) (sw : List EtcdKv),
+      etcdReached R0 ∗ □ etcdState R0 pfx sw ∗ ⌜sint.Z r ≤ sint.Z R0 ∧
+        ∀ v ∈ sw, sint.Z (rev - W64 1) < sint.Z v.createRev⌝) $$ [Hwd]
+  · icases Hwd with (H | ⟨#Hwk, -⟩ | %H)
+    · iright; iexact H
+    · ileft; iunfold isPkgErr at Hwk; icases Hwk with ⟨-, %H⟩; ipureintro; exact H
+    · ileft; ipureintro; exact H
+  icases Hwd' with (%Hwne | ⟨%Hwnil, %R0, %sw, #HR0, #Hsw, %Hw⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, werr = GoInterface.ok e := by
       cases werr with
       | nil => exact absurd rfl Hwne
@@ -211,10 +255,7 @@ theorem Mutex.Lock.wp_proof
     have Hnil : gkvs = [] := by
       apply List.eq_nil_of_length_eq_zero
       rw [← Hgl, Hgsl.1, Hif]; rfl
-    ihave Hci : (concurrencyInit : IProp GF) $$ []
-    · iapply isPkgInit_access $$ Hpkg
-    icases Hci with ⟨-, ⟨%eSE, #HeSE⟩, -⟩
-    wp_auto
+    (try wp_auto)
     iapply HΦ
     iright; ileft
     isplitr
