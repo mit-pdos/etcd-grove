@@ -24,16 +24,26 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `kiGetVal` is a 4-tuple of typed values (two revisions, a version and an error): the
-components are `#x`, so the pure steps of a function returning them (each a `let` of a value
+/-- `kiGetVal` is a 5-tuple of typed values (two revisions, a version, a lease and an error):
+the components are `#x`, so the pure steps of a function returning them (each a `let` of a value
 that is not a panic) go through. -/
-theorem kiGetVal_pairs (ki : mvcc.KeyIndex) (atRev : w64) (e : GoInterface) :
-    ∃ (m c : Revision) (v : w64) (i : GoInterface),
-      mvcc.kiGetVal ki atRev e = PairV (PairV (PairV #m #c) #v) #i := by
+theorem kiGetVal_pairs (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (atRev : w64) (e : GoInterface) :
+    ∃ (m c : Revision) (v l : w64) (i : GoInterface),
+      mvcc.kiGetVal ki lf atRev e = PairV (PairV (PairV (PairV #m #c) #v) #l) #i := by
   unfold mvcc.kiGetVal
   cases mvcc.kiGet ki atRev with
-  | none => exact ⟨_, _, _, _, rfl⟩
-  | some r => obtain ⟨m, c, v⟩ := r; exact ⟨_, _, _, _, rfl⟩
+  | none => exact ⟨_, _, _, _, _, rfl⟩
+  | some r => obtain ⟨m, c, v⟩ := r; exact ⟨_, _, _, _, _, rfl⟩
+
+/-- `kiGetVal` without its lease is `kiGetVal4`. -/
+theorem kiGetVal_pairs4 (ki : mvcc.KeyIndex) (lf : mvcc.Rev → w64) (atRev : w64) (e : GoInterface) :
+    ∃ (m c : Revision) (v l : w64) (i : GoInterface),
+      mvcc.kiGetVal ki lf atRev e = PairV (PairV (PairV (PairV #m #c) #v) #l) #i ∧
+      mvcc.kiGetVal4 ki atRev e = PairV (PairV (PairV #m #c) #v) #i := by
+  unfold mvcc.kiGetVal mvcc.kiGetVal4
+  cases mvcc.kiGet ki atRev with
+  | none => exact ⟨_, _, _, _, _, rfl, rfl⟩
+  | some r => obtain ⟨m, c, v⟩ := r; exact ⟨_, _, _, _, _, rfl, rfl⟩
 
 /-- Every key index of the tree (the index of some events) has a revision. -/
 theorem entries_not_empty (L : List mvcc.IdxEntry) (evs : List mvcc.Ev)

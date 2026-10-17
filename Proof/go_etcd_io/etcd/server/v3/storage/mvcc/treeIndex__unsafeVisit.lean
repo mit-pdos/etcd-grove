@@ -62,8 +62,8 @@ theorem mvcc.treeIndex.unsafeVisit.wp_proof
   wp_apply (wp_Asc mvcc.kiPtrT t mvcc.kiItemIs mvcc.kiItemLess _ (DFrac.own q) «$r0_ptr» («$r0_ptr», k) _
     (fun i => iprop(⌜i ≤ (mvcc.fromKey L k).length ∧
         ∀ j (h : j < (mvcc.fromKey L k).length), j < i → mvcc.belowEnd e (mvcc.fromKey L k)[j] = true⌝ ∗
-      P i ∗ f_ptr ↦ f ∗ [∗list] z ∈ L, mvcc.ownEntry z q))
-    iprop((Q ∨ P (mvcc.rangeEntries L k e).length) ∗ f_ptr ↦ f ∗ [∗list] z ∈ L, mvcc.ownEntry z q))
+      P i ∗ f_ptr ↦ f ∗ [∗list] z ∈ L, mvcc.ownEntry z lf q))
+    iprop((Q ∨ P (mvcc.rangeEntries L k e).length) ∗ f_ptr ↦ f ∗ [∗list] z ∈ L, mvcc.ownEntry z lf q))
     $$ [$Ht $Hitem HP f Hkis] as ⟨Ht, Hpost⟩
   · isplitr
     · ipureintro; exact mvcc.kiItemLess_swo

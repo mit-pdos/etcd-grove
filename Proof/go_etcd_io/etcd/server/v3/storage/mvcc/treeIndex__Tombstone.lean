@@ -77,6 +77,18 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     rw [mvcc.evsOfHist_histShape, mvcc.evsOfHist_histShape] at this
     exact this
   rw [hevs] at HLL
+  -- the tree's leases are the new log's at its revisions
+  have hlf : ∀ z ∈ L, ∀ r ∈ mvcc.kiRevs z.2.2,
+      mvcc.evLease (mvcc.evsOf (ilog' ++ [pend'])) r =
+        mvcc.evLease (mvcc.evsOf (ilog ++ [pend ++ [.del k]])) r := by
+    rw [hevs]; exact HLL.1.evLease_next _
+  have Hlfnew : mvcc.evLease (mvcc.evsOf (ilog ++ [pend ++ [.del k]]))
+      ⟨rev.Main', rev.Sub'⟩ = W64 0 := by
+    rw [show rev.Main' = W64 ilog.length from congrArg mvcc.Rev.main Hrev,
+      show rev.Sub' = W64 pend.length from congrArg mvcc.Rev.sub Hrev]
+    exact mvcc.evLease_next ilog pend _ (by omega) (by omega)
+  ihave HtreeL := mvcc.ownTree_congr t L _ _ _ hlf $$ HtreeL
+  generalize hlf' : mvcc.evLease (mvcc.evsOf (ilog ++ [pend ++ [.del k]])) = lf' at Hlfnew ⊢
   iunfold mvcc.ownTree at HtreeL
   icases HtreeL with ⟨%Hsorted, Ht, Hkis⟩
   wp_apply (wp_Get mvcc.kiPtrT t mvcc.kiItemIs mvcc.kiItemLess _ _ «$r0_ptr» («$r0_ptr», k))
@@ -133,7 +145,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     $$ HnevL with ⟨HnevL, #Hnlb'⟩
   (try wp_auto)
   -- `ki.tombstone(ti.lg, rev.Main, rev.Sub)` on the key's index, borrowed from the tree
-  icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hi |>.1 $$ Hkis
+  icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z lf' 1) hi |>.1 $$ Hkis
     with ⟨Hz, Hback⟩
   iunfold mvcc.ownEntry at Hz
   icases Hz with ⟨%Hzn, %gs, Hki⟩
@@ -143,7 +155,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     rw [hrevm, hrevs, hz, mvcc.kiCompact_modified, mvcc.kiOfKey_eq_kiFold]
     exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
       (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
-  wp_apply (hTomb z.1 gs z.2.2 z.2.1 lg rev.Main' rev.Sub' _) $$ [$HzKey $Hki $Herr] as %err Hpost
+  wp_apply (hTomb z.1 gs z.2.2 lf' z.2.1 lg rev.Main' rev.Sub' _ Hlfnew) $$ [$HzKey $Hki $Herr] as %err Hpost
   · ipureintro; exact ⟨Hlgnn, hne.2⟩
   rw [hne.1, hlast]
   simp only [Hlt, Bool.false_eq_true, ↓reduceIte]
@@ -171,6 +183,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     · iexact Hlb'
     isplitl [Ht Hback Hki]
     · iunfold mvcc.ownTree
+      rw [hlf']
       rw [hset]
       isplitl []
       · ipureintro; exact Hsorted

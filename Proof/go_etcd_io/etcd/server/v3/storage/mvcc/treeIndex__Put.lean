@@ -86,6 +86,18 @@ theorem mvcc.treeIndex.Put.wp_proof
   ihave %Hcnt := monoNatLbOwn_valid γ.nev 1 _ _ $$ HnevL Hwlb
   have hevs := writer_events ilog ilog' pend pend' Hpre.2 Hcnt.2
   rw [hevs] at HLL
+  -- the tree's leases are the new log's at its revisions
+  have hlf : ∀ z ∈ L, ∀ r ∈ mvcc.kiRevs z.2.2,
+      mvcc.evLease (mvcc.evsOf (ilog' ++ [pend'])) r =
+        mvcc.evLease (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]])) r := by
+    rw [hevs]; exact HLL.1.evLease_next _
+  have Hlfnew : mvcc.evLease (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]]))
+      ⟨rev.Main', rev.Sub'⟩ = l := by
+    rw [show rev.Main' = W64 ilog.length from congrArg mvcc.Rev.main Hrev,
+      show rev.Sub' = W64 pend.length from congrArg mvcc.Rev.sub Hrev]
+    exact mvcc.evLease_next ilog pend _ (by omega) (by omega)
+  ihave HtreeL := mvcc.ownTree_congr t L _ _ _ hlf $$ HtreeL
+  generalize hlf' : mvcc.evLease (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]])) = lf' at Hlfnew ⊢
   iunfold mvcc.ownTree at HtreeL
   icases HtreeL with ⟨%Hsorted, Ht, Hkis⟩
   wp_apply (wp_Get mvcc.kiPtrT t mvcc.kiItemIs mvcc.kiItemLess _ _ «$r0_ptr» («$r0_ptr», k))
@@ -125,7 +137,8 @@ theorem mvcc.treeIndex.Put.wp_proof
     simp only [Option.map_none] at Hidx
     (try wp_auto)
     -- `keyi.put(ti.lg, rev.Main, rev.Sub)` on the fresh key index
-    ihave Hki : mvcc.ownKi (GF := GF) «$r0_ptr» slice.nil mvcc.KeyIndex.fresh (DFrac.own 1)
+    ihave Hki : mvcc.ownKi (GF := GF) «$r0_ptr» slice.nil mvcc.KeyIndex.fresh
+        lf' (DFrac.own 1)
         $$ [Kmodified Kgenerations]
     · iunfold mvcc.ownKi
       iframe Kgenerations
@@ -142,7 +155,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       itrivial
     have Hlt : mvcc.Rev.lt mvcc.Rev.zero ⟨rev.Main', rev.Sub'⟩ := by
       rw [hrevm, hrevs]; exact mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega)
-    wp_apply (hPut «$r0_ptr» slice.nil mvcc.KeyIndex.fresh lg rev.Main' rev.Sub') $$ [$Hki]
+    wp_apply (hPut «$r0_ptr» slice.nil mvcc.KeyIndex.fresh _ lg rev.Main' rev.Sub' l Hlfnew) $$ [$Hki]
       as %r Hr
     · ipureintro; exact Hlgnn
     simp only [Hlt, ↓reduceIte]
@@ -174,6 +187,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       · iexact Hlb'
       isplitl [Ht Hkis Hki]
       · iunfold mvcc.ownTree
+        rw [hlf']
         rw [mvcc.itemsOfEntries_btInsert]
         isplitl []
         · ipureintro; exact btInsert_sorted mvcc.kiItemLess_swo Hsorted
@@ -219,7 +233,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     obtain ⟨cz, -, -, hz, -⟩ := mvcc.IdxCRep.get_some HLL.1 Hidx
     (try wp_auto)
     -- `okeyi.put(ti.lg, rev.Main, rev.Sub)` on the key's index, borrowed from the tree
-    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hi |>.1 $$ Hkis
+    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z lf' 1) hi |>.1 $$ Hkis
       with ⟨Hz, Hback⟩
     iunfold mvcc.ownEntry at Hz
     icases Hz with ⟨%Hzn, %gs, Hki⟩
@@ -229,7 +243,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       rw [hrevm, hrevs, hz, mvcc.kiCompact_modified, mvcc.kiOfKey_eq_kiFold]
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
-    wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
+    wp_apply (hPut z.1 gs z.2.2 _ lg rev.Main' rev.Sub' l Hlfnew) $$ [$Hki] as %r Hr
     · ipureintro; exact Hlgnn
     simp only [Hlt, ↓reduceIte]
     icases Hr with ⟨%Hr, %gs', Hki⟩
@@ -256,6 +270,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       · iexact Hlb'
       isplitl [Ht Hback Hki]
       · iunfold mvcc.ownTree
+        rw [hlf']
         rw [hset]
         isplitl []
         · ipureintro; exact Hsorted

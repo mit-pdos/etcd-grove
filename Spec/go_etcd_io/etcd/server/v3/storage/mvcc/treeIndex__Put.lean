@@ -22,10 +22,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `ti.Put(key, rev)` by the writer, for the next change of the pending revision (a put of
-`key`, with any value and lease, keeping the log well formed): the key's index gets the
-revision (a fresh index if it has none), and the writer's log has the change. The key's bytes
-are read-only for good (the index keeps them). -/
+/-- `ti.Put(key, leaseID, rev)` by the writer, for the next change of the pending revision (a
+put of `key`, with any value and the lease `leaseID`, keeping the log well formed): the key's
+index gets the revision with its lease (a fresh index if it has none), and the writer's log has
+the change. The key's bytes are read-only for good (the index keeps them). -/
 abbrev mvcc.treeIndex.Put.spec : Prop :=
   ∀ (ti : Loc) (γ : mvcc.IdxNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (key : GoSlice)
     (k : GoString) (rev : Revision) (v : GoString) (l : w64),
@@ -33,7 +33,8 @@ abbrev mvcc.treeIndex.Put.spec : Prop :=
       mvcc.isTreeIndex ti γ ∗ mvcc.idxWriter γ ilog pend ∗ key ↦*□ k ∗
       ⌜mvcc.revOf rev = ⟨W64 ilog.length, W64 pend.length⟩ ∧ 1 ≤ ilog.length ∧
         pend.length + 1 < 2 ^ 63 ∧ mvcc.LogWf' (ilog ++ [pend ++ [.put k v l]])⌝ }}
-    (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Put")) (Val #key)) (Val #rev))
+    (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Put")) (Val #key))
+      (Val #l)) (Val #rev))
   {{ RET #(); mvcc.idxWriter γ ilog (pend ++ [.put k v l]) }}
 
 end spec
