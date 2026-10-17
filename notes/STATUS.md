@@ -45,6 +45,30 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## pr-verify etcd#22066: the snapshot stream's send loop, modelled (2026-10-17, branch `pr-verify/etcd-22066`)
+
+The PR changes `maintenanceServer.Snapshot`'s `RemainingBytes` and loop bound
+(`notes/pr-verify/etcd-22066.md`). The function stays names only on this branch. Goose translates
+its body (`maintenanceServer.Snapshot`, `snapshotSendBufferSize` in `v3rpc.toml`, the imports
+`crypto/sha256`, `github.com/dustin/go-humanize`, `storage/backend`, `storage/schema`), but the
+translation imports `Perennial.Code.crypto.sha256` and names `Perennial.hash.Hash`, neither of
+which Perennial has, so the module would not build. **Perennial limitation**: no `crypto/sha256`
+or `hash`. The local workaround, a names-only translation of both packages under the empty root
+(`-lean-root crypto/sha256= -lean-root hash=` in `etc/goose.py`, `Code/crypto/sha256.toml`,
+`Code/hash.toml` importing `io` so that `Hash` is an interface), is the one the etcd#22125 run
+tried (uncommitted when this run looked). The general fix is Perennial models of the two
+packages. Here the send loop is a pure model instead
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SnapshotLoopModel.lean`, no axioms beyond
+Lean's): with the PR the loop never ends (`pr_spins`); at the base, a snapshot shorter than its
+size spins too (`base_spins_on_writeTo_error`, `issues/etcd-snapshot-writeto-error-spin.md`) and
+`RemainingBytes` leaves out the digest (`base_not_remainingOk`,
+`issues/etcd-snapshot-remainingbytes-sha.md`); the PR with the bound restored meets
+`remaining_bytes`'s documentation (`fixed_remainingOk`). A Hoare triple of `Snapshot` would not
+have caught the PR's bug by itself: partial correctness holds of a loop that never ends, and
+every response the spinning loop sends has `RemainingBytes = total + 32 - sent` correctly. Only a
+bound on the number of `Send`s (a ghost token per response) or a termination argument excludes
+it.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

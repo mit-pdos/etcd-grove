@@ -1,0 +1,13 @@
+diff --git a/server/etcdserver/api/v3rpc/maintenance.go b/server/etcdserver/api/v3rpc/maintenance.go
+index 249f66717..266dee957 100644
+--- a/server/etcdserver/api/v3rpc/maintenance.go
++++ b/server/etcdserver/api/v3rpc/maintenance.go
+@@ -166,7 +166,7 @@ func (ms *maintenanceServer) Snapshot(sr *pb.SnapshotRequest, srv pb.Maintenance
+ 		zap.String("database-size", size),
+ 		zap.String("storage-version", storageVersion),
+ 	)
+-	for totalByteToSend-sent > 0 {
++	for total-sent > 0 {
+ 		// buffer just holds read bytes from stream
+ 		// response size is multiple of OS page size, fetched in boltdb
+ 		// e.g. 4*1024

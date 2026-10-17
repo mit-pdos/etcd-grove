@@ -1,0 +1,7 @@
+# ab1d5ade8 Fix the calculation of remaining bytes while sending snapshot to client.
+#  server/etcdserver/api/v3rpc/maintenance.go | 2 +-
+#  1 file changed, 1 insertion(+), 1 deletion(-)
+=== RUN   TestMaintenanceSnapshotStreamTerminates
+--- PASS: TestMaintenanceSnapshotStreamTerminates (0.07s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3	0.098s
