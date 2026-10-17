@@ -201,7 +201,7 @@ server's chains and its registered methods (`handleStream`: the method of the ca
 axiom grpc.start (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
     (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) :
   grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
-    |==> grpcServerAt addr ics regs ∗ grpcStreamServerAt addr sics sregs ∗ grpcServeTok gs lis
+    |={⊤}=> grpcServerAt addr ics regs ∗ grpcStreamServerAt addr sics sregs ∗ grpcServeTok gs lis
 
 end defs
 
