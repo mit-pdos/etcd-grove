@@ -1,0 +1,56 @@
+# PR head ab44f11fd test files + pr-test-fixes.patch, with the base ee043b39e's non-test mvcc code: go test -tags integration ./common -run '^TestKVGet$' (tests/)
+--- FAIL: TestKVGet
+    --- FAIL: TestKVGet/NoTLS
+        --- FAIL: TestKVGet/NoTLS/blank_key_with_--prefix_option_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/NoTLS/blank_key_with_--from-key_option_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/NoTLS/Range_covering_all_keys_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/NoTLS/--from-key_of_'foo'_->_<end>_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_kvs_ordered_by_mod_revision_ascending_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_ordered_by_version_ascending_--keys-only
+        --- FAIL: TestKVGet/NoTLS/range_[b,_z)_ordered_by_key_descending,_limit_2_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_ordered_by_create_revision,_unspecified_sort_order_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_ordered_by_create_revision_descending_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_ordered_by_key_descending_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_descending_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_with_mininum_mod_revision_sorted_by_mod_revision_--keys-only
+        --- FAIL: TestKVGet/NoTLS/all_KVs_with_minimum_create_revision,_sorted_by_version,_descending_--keys-only
+        --- FAIL: TestKVGet/NoTLS/Get_(a)_at_the_current_rev,_expect_lease_--keys-only
+        --- FAIL: TestKVGet/NoTLS/Get_key_with_lease_at_the_current_rev,_expect_new_lease_--keys-only
+        --- FAIL: TestKVGet/NoTLS/Get_key_with_lease_before_the_update,_expect_the_original_lease_--keys-only
+    --- FAIL: TestKVGet/PeerTLS_and_ClientTLS
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/blank_key_with_--prefix_option_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/blank_key_with_--from-key_option_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/Range_covering_all_keys_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/--from-key_of_'foo'_->_<end>_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_kvs_ordered_by_mod_revision_ascending_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_ordered_by_version_ascending_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/range_[b,_z)_ordered_by_key_descending,_limit_2_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_ordered_by_create_revision,_unspecified_sort_order_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_ordered_by_create_revision_descending_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_ordered_by_key_descending_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_descending_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_with_mininum_mod_revision_sorted_by_mod_revision_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/all_KVs_with_minimum_create_revision,_sorted_by_version,_descending_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/Get_(a)_at_the_current_rev,_expect_lease_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/Get_key_with_lease_at_the_current_rev,_expect_new_lease_--keys-only
+        --- FAIL: TestKVGet/PeerTLS_and_ClientTLS/Get_key_with_lease_before_the_update,_expect_the_original_lease_--keys-only
+    --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/blank_key_with_--prefix_option_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/blank_key_with_--from-key_option_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/Range_covering_all_keys_->_all_KVs_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/--from-key_of_'foo'_->_<end>_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_kvs_ordered_by_mod_revision_ascending_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_ordered_by_version_ascending_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/range_[b,_z)_ordered_by_key_descending,_limit_2_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_ordered_by_create_revision,_unspecified_sort_order_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_ordered_by_create_revision_descending_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_ordered_by_key_descending_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_descending_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_with_mininum_mod_revision_sorted_by_mod_revision_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/all_KVs_with_minimum_create_revision,_sorted_by_version,_descending_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/Get_(a)_at_the_current_rev,_expect_lease_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/Get_key_with_lease_at_the_current_rev,_expect_new_lease_--keys-only
+        --- FAIL: TestKVGet/PeerAutoTLS_and_ClientAutoTLS/Get_key_with_lease_before_the_update,_expect_the_original_lease_--keys-only
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/common	2.231s
+FAIL

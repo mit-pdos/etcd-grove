@@ -46,6 +46,14 @@ system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean
 module system").
 
 
+## etcd-io/etcd#22245 verified (2026-10-17, branch `pr-verify/etcd-22245`, not merged)
+
+The same non-test code as etcd#22550 (by the same author; only import grouping differs), so this
+branch is `pr-verify/etcd-22550`'s commits cherry-picked onto `lean` and re-translated from the fork's
+`pr-etcd-22245-goose-lean` (the translation differs only in import and init order): every proof
+rebuilds unchanged, no axiom or `sorry` added. The PR's own new tests are wrong (fail on the PR
+head, full reads included). Report: `notes/pr-verify/etcd-22245.md`.
+
 ## etcd-io/etcd#22550 verified (2026-10-17, branch `pr-verify/etcd-22550`, not merged)
 
 The PR (the key index records leases, keys-only ranges return them) verified over the fork's

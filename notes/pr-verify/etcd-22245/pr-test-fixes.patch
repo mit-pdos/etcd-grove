@@ -1,0 +1,31 @@
+diff --git a/server/storage/mvcc/key_index_test.go b/server/storage/mvcc/key_index_test.go
+index 062ba0f1b..f4f74978d 100644
+--- a/server/storage/mvcc/key_index_test.go
++++ b/server/storage/mvcc/key_index_test.go
+@@ -205,7 +205,7 @@ func TestKeyIndexPut(t *testing.T) {
+ 	wki = &keyIndex{
+ 		key:         []byte("foo"),
+ 		modified:    Revision{Main: 7},
+-		generations: []generation{{created: Revision{Main: 5}, ver: 2, revs: []revisionLease{{revision: Revision{Main: 5}, leaseID: lease.LeaseID(1)}, {revision: Revision{Main: 7}, leaseID: lease.LeaseID(1)}}}},
++		generations: []generation{{created: Revision{Main: 5}, ver: 2, revs: []revisionLease{{revision: Revision{Main: 5}, leaseID: lease.NoLease}, {revision: Revision{Main: 7}, leaseID: lease.LeaseID(1)}}}},
+ 	}
+ 	if !reflect.DeepEqual(ki, wki) {
+ 		t.Errorf("ki = %+v, want %+v", ki, wki)
+diff --git a/tests/common/kv_test.go b/tests/common/kv_test.go
+index b9effd4e6..e5ebfde9d 100644
+--- a/tests/common/kv_test.go
++++ b/tests/common/kv_test.go
+@@ -190,12 +190,11 @@ func testKVGet(t *testing.T, stream bool) {
+ 				newLease, err := cc.Grant(ctx, 110)
+ 				require.NoError(t, err)
+ 				kvAWithLease := createKV("a", "aa1", firstRev+1, firstRev+9, 2, int64(newLease.ID))
+-				kvWithLease.ModRevision, kvWithLease.Lease = firstRev+10, int64(newLease.ID)
+ 				kvWithLeaseUpdated := createKV("fop", "s", firstRev+8, firstRev+10, 2, int64(newLease.ID))
+ 
+ 				updates := []*mvccpb.KeyValue{kvAWithLease, kvWithLeaseUpdated}
+ 				for i := range updates {
+-					_, putError := cc.Put(ctx, string(updates[i].Key), string(inputs[i].Value), config.PutOptions{LeaseID: clientv3.LeaseID(inputs[i].Lease)})
++					_, putError := cc.Put(ctx, string(updates[i].Key), string(updates[i].Value), config.PutOptions{LeaseID: clientv3.LeaseID(updates[i].Lease)})
+ 					require.NoErrorf(t, putError, "count not put key value %q", updates[i])
+ 				}
+ 

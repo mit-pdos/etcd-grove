@@ -1,0 +1,7 @@
+# go test ./storage/mvcc/ -run '^TestKeyIndexPut$' at the PR head ab44f11fd (its own test), in server/
+--- FAIL: TestKeyIndexPut (0.00s)
+    key_index_test.go:211: ki = g: created[{5 0}] ver[2], revs []mvcc.revisionLease{mvcc.revisionLease{revision:mvcc.Revision{Main:5, Sub:0}, leaseID:0}, mvcc.revisionLease{revision:mvcc.Revision{Main:7, Sub:0}, leaseID:1}}
+        , want g: created[{5 0}] ver[2], revs []mvcc.revisionLease{mvcc.revisionLease{revision:mvcc.Revision{Main:5, Sub:0}, leaseID:1}, mvcc.revisionLease{revision:mvcc.Revision{Main:7, Sub:0}, leaseID:1}}
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.043s
+FAIL

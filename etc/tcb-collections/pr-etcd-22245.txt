@@ -1,0 +1,19 @@
+# The functions etcd-io/etcd#22245 changes (the key index records leases; fast keys-only ranges
+# return them; the same code as etcd#22550) and the callers checked: notes/pr-verify/etcd-22245.md.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22245.txt [--check [--update]]
+roots ^Spec/go_etcd_io/etcd/server/v3/storage/mvcc/(generation__walk|keyIndex__(put|get|tombstone|keep|doCompact|findGeneration)|treeIndex__(Put|Get|unsafeGet|Range|Revisions|CountRevisions)|storeTxnCommon__rangeKeys|storeTxnWrite__(put|deleteRange))\.lean$
+roots ^Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/(executeRange|Range)\.lean$
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom context.WithValue.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof

@@ -1,0 +1,6 @@
+# PR head ab44f11fd + pr-test-fixes.patch: go test ./storage/mvcc/ (server/) and go test -tags integration ./common -run '^TestKVGet' (tests/)
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	18.381s
+--- PASS: TestKVGet (2.29s)
+--- PASS: TestKVGetStream (2.03s)
+--- PASS: TestKVGetNoQuorum (1.52s)
+ok  	go.etcd.io/etcd/tests/v3/common	5.933s
