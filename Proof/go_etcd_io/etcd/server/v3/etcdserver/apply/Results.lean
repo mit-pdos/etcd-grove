@@ -580,6 +580,12 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
 #print axioms Perennial.EtcdGrove.apply.apply_rejected_no_write
 #print axioms Perennial.EtcdGrove.apply.apply_no_v3_no_write
 
+/-! ## `applierV3backend.Compaction` (etcd-io/etcd#22476, `notes/pr-verify/etcd-22476.md`)
+
+Outside the chain's model (`dispatchOk`): its own spec, over `store.Compact`'s premises. -/
+
+#print axioms Perennial.EtcdGrove.apply.applierV3backend.wp_Compaction
+
 /-! ## Unit 0: the trust boundary and the callees linked elsewhere -/
 
 #print axioms Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage

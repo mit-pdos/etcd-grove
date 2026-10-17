@@ -1,0 +1,14 @@
+== up-head
+--- FAIL: TestMonitorDowngradeNegativeInterval (0.05s)
+    monitor_interval_test.go:49: monitorDowngrade panicked: non-positive interval for NewTicker
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.072s
+FAIL
+--- FAIL: TestRunMonitorNegativeInterval (0.05s)
+    userspace_monitor_test.go:36: runMonitor panicked: non-positive interval for NewTicker
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/proxy/tcpproxy	0.064s
+FAIL
+== up-base
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.070s
+ok  	go.etcd.io/etcd/server/v3/proxy/tcpproxy	0.065s

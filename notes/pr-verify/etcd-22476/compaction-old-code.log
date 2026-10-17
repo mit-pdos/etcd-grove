@@ -1,0 +1,9 @@
+# The spec of applierV3backend.Compaction, proved of the code before the PR (etcd-grove `lean`
+# 51547df02, whose Code/.../apply.lean has no `rerr` check), with the same proof file:
+$ git -C /shared/etcd-grove worktree add --detach ../etcd-grove-pr/etcd-22476-old lean
+$ cp {Spec,Proof}/go_etcd_io/etcd/server/v3/etcdserver/apply/applierV3backend__Compaction.lean <old>/...
+$ grep -c '"rerr"' <old>/Code/go_etcd_io/etcd/server/v3/etcdserver/apply.lean
+0
+$ LAKE_ARTIFACT_CACHE=true LAKE_RESTORE_ARTIFACTS=true lake build Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Compaction
+...
+Build completed successfully (1354 jobs).

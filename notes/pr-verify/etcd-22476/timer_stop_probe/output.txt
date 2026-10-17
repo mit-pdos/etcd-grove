@@ -1,0 +1,3 @@
+Stop() == false: 0 of 100000
+after 1ms, Stop(): true
+no value after Stop: a bare <-t.C would block forever
