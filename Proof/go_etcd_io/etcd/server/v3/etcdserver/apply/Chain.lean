@@ -284,10 +284,11 @@ def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
   iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L)
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
-the sole writer of `log`, every lease of its state live, and the auth store's reader resource
+the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
+half of its notified log; unit N4), every lease of its state live, and the auth store's reader resource
 (`E.RD`, 2026-10-14, unit A2). -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
-  iprop(mvcc.storeReader E.s E.γ ∗ txn.soleWriter E.γ log ∗
+  iprop(mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗
     leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD)
 
 open Iris.ProofMode in
@@ -306,7 +307,7 @@ theorem kvOwn_cert (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ kvOwn E log ∗ mvcc.idxCert E.γ.idx log := by
   unfold kvOwn
   iintro ⟨Hrd, Hsw, Hll⟩
-  ihave ⟨Hsw, #Hc⟩ := txn.soleWriter_cert E.γ log $$ Hsw
+  ihave ⟨Hsw, #Hc⟩ := txn.kvWriter_cert E.s E.γ log $$ Hsw
   iframe Hrd Hsw Hll Hc
 
 /-- **The thread-owned resources of the chain `c`'s methods** at its value `a`: the auth layers'
@@ -738,7 +739,7 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f E.RD E.authOn ∗
+    isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f E.RD E.authOn ∗
     isAlarmStore opts.AlarmStore' E.P E.f ∗ isCluster opts.Cluster' E.P E.f ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' ∗
     isConsistentIndexer opts.ConsistentIndex')
@@ -786,7 +787,7 @@ def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
       isAuthStore st E.P E.f E.RD E.authOn) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
-      isApplyLessor le E.γ E.P E.f) ∗
+      isApplyLessor le E.s E.γ E.P E.f) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :

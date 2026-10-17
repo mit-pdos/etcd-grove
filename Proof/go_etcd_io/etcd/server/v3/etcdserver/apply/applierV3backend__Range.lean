@@ -37,6 +37,8 @@ theorem apply.applierV3backend.Range.wp_proof
   iunfold apply.rangePre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres⟩
+  iunfold txn.kvWriter at Hsw
+  icases Hsw with ⟨Hsw, Hwl⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -75,6 +77,8 @@ theorem apply.applierV3backend.Range.wp_proof
   isplitr
   · ipureintro; exact Hnd rfl
   iunfold apply.kvOwn
+  iframe
+  iunfold txn.kvWriter
   iframe
 
 end proof

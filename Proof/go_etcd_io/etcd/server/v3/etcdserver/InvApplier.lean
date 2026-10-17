@@ -530,6 +530,8 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
     icases H with ⟨%p, -, -, Hk⟩
     iunfold apply.kvOwn at Hk
     icases Hk with ⟨-, Hsw, -⟩
+    iunfold txn.kvWriter at Hsw
+    icases Hsw with ⟨Hsw, -⟩
     iunfold txn.soleWriter at Hsw
     icases Hsw with ⟨#Hc, -, -⟩
     iexact Hc

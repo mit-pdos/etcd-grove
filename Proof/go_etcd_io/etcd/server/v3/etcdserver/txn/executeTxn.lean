@@ -535,11 +535,12 @@ theorem txn.executeTxn.wp_proof
       obtain ⟨puts, deletes, putSize, rfl⟩ := hkis
       iunfold txnViewIs at Hv
       simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Hv with ⟨%mw, %Htw', Htx⟩
+      icases Hv with ⟨%mw, %tyX', %vX', %Htw', #Hwr, Htx⟩
       cases twi with
       | mk tyX vX =>
-      simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at Htw'
-      obtain ⟨rfl, rfl⟩ := Htw'
+      simp only [interface.mkOk, GoInterface.ok.injEq] at Htw'
+      injection Htw' with htw1 htw2
+      subst htw1 htw2
       have hps : pendState ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) = stn := by
         rw [pendState_append, hr, hst, hstn]
       have hdel1 := srvOp_delete s0 r stn o
@@ -549,8 +550,8 @@ theorem txn.executeTxn.wp_proof
           puts deletes putSize $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       wp_auto
-      wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o)
-        $$ [$Hctx $Htx $Hdr] as %dresp %derr Hout
+      wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o _ _)
+        $$ [$Hctx $Htx $Hwr $Hdr] as %dresp %derr Hout
       · isplitl []
         · simp only [↓reduceIte]; iexact Hnd
         ipureintro
@@ -580,7 +581,8 @@ theorem txn.executeTxn.wp_proof
           (.write ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1 ++ delChanges stn o)
             puts deletes' putSize)
         · rw [List.append_assoc]; exact ⟨puts, deletes', putSize, rfl⟩
-        iapply (txnViewIs_mw mw s γ _).2
+        icases txnViewIs_wrap _ _ mw s γ (.write _ _ _ _ _) $$ Hwr with ⟨-, Hb⟩
+        iapply Hb
         simp only [mvcc.isTxn]
         iexact Htx
       isplitl []
@@ -766,14 +768,15 @@ theorem txn.executeTxn.wp_proof
       obtain ⟨puts, deletes, putSize, rfl⟩ := hkis
       iunfold txnViewIs at Hv
       simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Hv with ⟨%mw, %Htw', Htx⟩
+      icases Hv with ⟨%mw, %tyX', %vX', %Htw', #Hwr, Htx⟩
       cases twi with
       | mk tyX vX =>
-      simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at Htw'
-      obtain ⟨rfl, rfl⟩ := Htw'
+      simp only [interface.mkOk, GoInterface.ok.injEq] at Htw'
+      injection Htw' with htw1 htw2
+      subst htw1 htw2
       have hps : pendState ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) = stn := by
         rw [pendState_append, hr, hst, hstn]
-      wp_apply (hPrev trace mw s γ _ pr o) $$ [$Htx $Hpr] as %pv ⟨Htx, Hpv⟩
+      wp_apply (hPrev trace mw s γ _ pr o _ _) $$ [$Htx $Hwr $Hpr] as %pv ⟨Htx, Hpv⟩
       · ipureintro; exact Htrace
       rw [hkst, hps]
       have hput1 := srvOp_putTxnOp s0 r stn o
@@ -788,8 +791,8 @@ theorem txn.executeTxn.wp_proof
         iapply leasesOk_sub L _ _ (opsLeases_mem s0 ops _ hmem) $$ Hleases
       icases Hown with (%Hro | Hown)
       · cases Hro
-      wp_apply (hPut trace ctx cd mw s γ ilog _ puts deletes putSize pr o pv L)
-        $$ [$Hctx $Hct $Htx $Hpr Hpv Hown] as %presp ⟨⟨%puts', %putSize', Htx⟩, #Hpresp, -, Hown⟩
+      wp_apply (hPut trace ctx cd mw s γ ilog _ puts deletes putSize pr o pv L _ _)
+        $$ [$Hctx $Hct $Htx $Hwr $Hpr Hpv Hown] as %presp ⟨⟨%puts', %putSize', Htx⟩, #Hpresp, -, Hown⟩
       · rw [hps]
         iframe Hpv Hlo Hown
         ipureintro
@@ -817,7 +820,8 @@ theorem txn.executeTxn.wp_proof
           (.write ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1 ++
             [putChangeOf o (mvcc.findKey o.key stn)]) puts' deletes putSize')
         · rw [List.append_assoc]; exact ⟨puts', deletes, putSize', rfl⟩
-        iapply (txnViewIs_mw mw s γ _).2
+        icases txnViewIs_wrap _ _ mw s γ (.write _ _ _ _ _) $$ Hwr with ⟨-, Hb⟩
+        iapply Hb
         simp only [mvcc.isTxn]
         iexact Htx
       isplitl []

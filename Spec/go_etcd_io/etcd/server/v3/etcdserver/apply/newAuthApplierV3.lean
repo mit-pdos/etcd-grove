@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`newAuthApplierV3(as, base, lessor)`**: the auth applier over `base` (an applier of the chain `c`), the auth store `as` and the lessor `lessor` with their contracts: a pointer whose interface value is an applier of the chain `auth c` (its mutex made, with its `authInfo` and the reader resource `E.RD`, the admin check's). -/
 abbrev apply.newAuthApplierV3.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (st base le : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st E.P E.f E.RD E.authOn ∗ apply.isApplyLessor le E.γ E.P E.f ∗ E.RD ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st E.P E.f E.RD E.authOn ∗ apply.isApplyLessor le E.s E.γ E.P E.f ∗ E.RD ∗
       apply.applierSpec E c base }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3))
       (Val #st)) (Val #base)) (Val #le))

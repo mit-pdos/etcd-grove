@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -38,19 +39,17 @@ theorem txn.Range.wp_proof
     (hExec : txn.executeRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Range.spec (GF := GF) (hG := hG) := by
-  have hRead := mvcc.store.Read.spec_frozen hRead
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd nd lg kv s γ r o withTotal m log₀ ot te
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, #Hsort⟩
-  iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
-  subst Hkv
+  ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
+  obtain ⟨kty, kvv, rfl⟩ := Hkvok
   wp_apply wp_with_defer as %defer defer
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply time.wp_Now as %now -
-  wp_apply (hRead s γ _ trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, #Hrok, %Hpin⟩
+  wp_apply (txn.kv_Read hRead kty kvv s γ _ trace m log₀ false) $$ [$Hkv $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, #Hrok, %Hpin⟩
   · ipureintro; exact Ht
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩

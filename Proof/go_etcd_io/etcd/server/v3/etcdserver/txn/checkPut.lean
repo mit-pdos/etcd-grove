@@ -38,7 +38,8 @@ theorem txn.checkPut.wp_proof
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   · subst Herr
     (try wp_auto)
-    wp_apply (hCheck trace mw s γ kind p o) $$ [$Htx $Hp] as %r %err2 ⟨Htx, Hout⟩
+    ihave #Hwrap := mvcc.twWrap_metrics (GF := GF) mw
+    wp_apply (hCheck trace mw s γ kind p o _ _) $$ [$Htx $Hwrap $Hp] as %r %err2 ⟨Htx, Hout⟩
     · ipureintro; exact Htr
     (try wp_auto)
     iapply HΦ

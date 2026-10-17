@@ -61,7 +61,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 /-! ## The transaction -/
 
 /-- **The transaction `tw`** (an `mvcc.TxnWrite` or `mvcc.ReadView`): a transaction of `kind`
-behind a `*metricsTxnWrite`, or (`ro`) the read-only wrapper of a read transaction of `kind`. -/
+behind a `*metricsTxnWrite` `mw` (`tw` is `mw` or, for a watchable store's write transaction, its
+wrapper over `mw`: `twWrap`, unit N4), or (`ro`) the read-only wrapper of a read transaction of
+`kind`. -/
 def txnViewIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (kind : mvcc.TxnKind)
     (ro : Bool) :
     IProp GF :=
@@ -70,8 +72,8 @@ def txnViewIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) 
       ⌜tw = interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw ∧ kind = .read log rev⌝ ∗
       mvcc.isRoTxnWrite trw s γ trace log rev)
   else
-    iprop(∃ mw : Loc, ⌜tw = interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw⌝ ∗
-      mvcc.isTxn mw s γ trace kind)
+    iprop(∃ (mw : Loc) (tyX : go.GoType) (vX : val), ⌜tw = interface.mkOk tyX vX⌝ ∗
+      mvcc.twWrap tyX vX mw ∗ mvcc.isTxn mw s γ trace kind)
 
 /-- The kind of `executeTxn`'s transaction: a write transaction of `ilog` with `pend` pending,
 or (`ro`) a read transaction of `ilog` (nothing pending). -/
@@ -305,13 +307,41 @@ theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) :
   unfold txnViewIs
   simp only [Bool.false_eq_true, ↓reduceIte]
   constructor
-  · iintro ⟨%mw', %h, H⟩
-    have := mvcc.mkOk_loc_inj _ h
-    subst this
+  · iintro ⟨%mw', %tyX, %vX, %h, #Hw, H⟩
+    simp only [interface.mkOk, GoInterface.ok.injEq] at h
+    injection h with h1 h2
+    subst h1 h2
+    ihave #Hm := mvcc.twWrap_metrics (GF := GF) mw
+    ihave %He := mvcc.twWrap_agree _ _ mw mw' $$ [$Hm $Hw]
+    subst He
     iexact H
   · iintro H
-    iexists mw
+    iexists mw, _, _
     iframe H
+    isplitl []
+    · ipureintro; rfl
+    iapply mvcc.twWrap_metrics
+
+/-- **A write transaction over `mw`** (the store's, or a watchable store's wrapper:
+`twWrap`, unit N4). -/
+theorem txnViewIs_wrap (tyX : go.GoType) (vX : val) (mw s : Loc) (γ : mvcc.StoreNames)
+    (kind : mvcc.TxnKind) :
+    mvcc.twWrap (GF := GF) tyX vX mw ⊢
+      (txnViewIs (interface.mkOk tyX vX) s γ trace kind false ∗-∗ mvcc.isTxn mw s γ trace kind) := by
+  iintro #Hw
+  unfold txnViewIs
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  isplit
+  · iintro ⟨%mw', %tyX', %vX', %h, #Hw', H⟩
+    simp only [interface.mkOk, GoInterface.ok.injEq] at h
+    injection h with h1 h2
+    subst h1 h2
+    ihave %He := mvcc.twWrap_agree _ _ mw mw' $$ [$Hw $Hw']
+    subst He
+    iexact H
+  · iintro H
+    iexists mw, tyX, vX
+    iframe H Hw
     ipureintro; rfl
 
 /-- The read-only wrapper of a read transaction. -/
@@ -465,11 +495,12 @@ theorem txnViewIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) 
   unfold txnViewIs
   cases ro
   · simp only [Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨%mw, %h, H⟩
+    iintro ⟨%mw, %tyX, %vX, %h, #Hw, H⟩
     icases mvcc.isTxn_trace_acc mw s γ trace kind $$ H with ⟨Ht, Hb⟩
     iframe Ht
     iintro Ht
-    iexists mw
+    iexists mw, tyX, vX
+    iframe Hw
     isplitr
     · ipureintro; exact h
     iapply Hb $$ Ht

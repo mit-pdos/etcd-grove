@@ -426,6 +426,7 @@ theorem mvcc.NewStore.wp_proof
     simp only [named]
     iframe ReadView WriteView
     iframe #
+    iunfold mvcc.kvOver; ileft; ipureintro; rfl
   isplitl [Hmus Hrevs Hird Hrts]
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
     iframe Hmus Hrevs Hird Hrts

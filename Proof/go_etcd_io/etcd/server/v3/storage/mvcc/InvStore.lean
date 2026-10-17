@@ -2203,10 +2203,22 @@ theorem isTxnRead_frozen (mw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log
     iframe #
   ipureintro; exact Hc
 
-/-- The store's `readView` (`kv_view.go`): its `kv` is the store `s`. -/
+/-- **The `mvcc.KV` `kv` over the store `s`** (persistent; unit N4, D14a): the store itself, or a
+watchable store `ws` whose embedded `store` is `s` (whose `Read`, promoted, is `s`'s:
+`KVView.lean`). -/
+def kvOver (kv : GoInterface) (s : Loc) : IProp GF :=
+  iprop(⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∨
+    ∃ ws : Loc, ⌜kv = interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws⌝ ∗
+      ws.[watchableStore, go!"store"] ↦□ s)
+
+instance kvOver_persistent (kv : GoInterface) (s : Loc) : Persistent (kvOver (GF := GF) kv s) := by
+  unfold kvOver; infer_instance
+
+/-- The store's `readView` (`kv_view.go`): its `kv` is a KV over the store `s` (`kvOver`: the
+store itself, as `NewStore` makes it, or the watchable store `newWatchableStore` points it at;
+unit N4, D14a: it was the store only). -/
 def isReadView (rv s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop("#Hkv" ∷ rv.[readView, go!"kv"] ↦□
-      (interface.mkOk (go.GoType.PointerType store.ty) #s : GoInterface) ∗
+  iprop(∃ kv : GoInterface, "#Hkv" ∷ rv.[readView, go!"kv"] ↦□ kv ∗ "#Hkvo" ∷ kvOver kv s ∗
     "#Hs" ∷ isStore s γ)
 
 instance isReadView_persistent (rv s : Loc) (γ : StoreNames) :

@@ -125,10 +125,6 @@ theorem wp_NewKVServer :
     EtcdGrove.v3rpc.NewKVServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewKVServer.wp_proof wp_newHeader
 
-theorem storage.wp_NewBackendQuota :
-    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.NewBackendQuota.wp_proof
-
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
@@ -315,6 +311,10 @@ theorem wp_GetProgressReportInterval :
 theorem wp_IsCreateEvent :
     EtcdGrove.v3rpc.IsCreateEvent.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.IsCreateEvent.wp_proof
+
+theorem storage.wp_NewBackendQuota :
+    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewBackendQuota.wp_proof
 
 theorem wp_newBackendQuota :
     EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=

@@ -811,7 +811,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
   iframe Hhk' Hrds Hcl Hcok
   isplitr
-  · iunfold txn.isKV; iframe Hst; isplitr; · ipureintro; rfl
+  · iunfold txn.isKV; ileft; iframe Hst; isplitr; · ipureintro; rfl
     ipureintro; exact Hγ.2.2.2
   isplitl [Htoks]
   · iapply txn.soleWriter_of_NewStore γ; iframe Htoks Hc
@@ -981,11 +981,11 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 `lease.lessorBackend`) meets `apply.isApplyLessor`'s `isTxnLessor`, `Grant` and `Checkpoint`
 clauses, from their proofs; its `Revoke` and `Lookup` clauses are the premises
 (`apply.isApplyLessor_of_lessorInv`). -/
-theorem lessor_apply_contract (lp : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
       □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
-        {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
+        {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
             lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
             (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
               mvcc.certOkNext γ log pend) }}
@@ -993,17 +993,17 @@ theorem lessor_apply_contract (lp : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (
             go!"Revoke")) (Val #id))
         {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
             (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
-              txn.soleWriter γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
+              txn.kvWriter s γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
               txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
             applyErrIs err }}) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ EtcdGrove.apply.leaseIs l id }}) ⊢
-      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ P f :=
+      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) s γ P f :=
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
-    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp γ P f
+    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp s γ P f
 
 end backend
 

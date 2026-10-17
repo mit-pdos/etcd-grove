@@ -38,13 +38,17 @@ the range read's context error (`ctx` done): nothing deleted, the token back. Th
 canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply package's backend).
 2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
 (`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
-2026-10-14 (unit T1): the caller certifies the log the delete commits (`certOkNext`). -/
+2026-10-14 (unit T1): the caller certifies the log the delete commits (`certOkNext`). 2026-10-17 (unit N4, D14a): `kv` the plain store or a watchable store over it (`isKV`); for a
+watchable store the caller is the sole writer of the notified log `Lw` (`wlogOwn`), and gets the
+writer's part back at the log it leaves. -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool),
+    (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool) (Lw : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
-      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
+      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
+      txn.wlogOwn s γ Lw ∗ ⌜γ.watchQ = true → m + 1 = txn.soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63⌝ ∗
+      txn.deleteRangeRequestIs dr o ∗
       mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog →
         (rangeIn (mvcc.stateAfter ilog) o).length < mvcc.putMax γ⌝ ∗
@@ -64,9 +68,10 @@ abbrev txn.DeleteRange.spec : Prop :=
               (if o.base.prevKV then rangeIn (mvcc.stateAfter ilog) o else []) ∗
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
             mvcc.idxCert γ.idx (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
-            (if txn.delChanges (mvcc.stateAfter ilog) o = [] then mvcc.revToken γ else True)) ∨
+            (if txn.delChanges (mvcc.stateAfter ilog) o = [] then mvcc.revToken γ else True) ∗
+            txn.wlogOwn s γ (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o))) ∨
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog)) }}
+            mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog ∗ txn.wlogOwn s γ ilog)) }}
 
 end spec
 

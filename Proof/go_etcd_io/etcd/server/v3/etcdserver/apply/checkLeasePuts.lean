@@ -31,6 +31,8 @@ theorem apply.checkLeasePuts.wp_proof
   intro st le γ P f RD on ai info dq id
   wp_start as ⟨#Hst, #Hle, Hai, Hrd⟩
   ihave #Hle' := Hle
+  iunfold apply.isApplyLessorAny at Hle'
+  icases Hle' with ⟨%sk, Hle'⟩
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨-, %li, %Hli, -, -, -, #HLookup⟩
   subst Hli

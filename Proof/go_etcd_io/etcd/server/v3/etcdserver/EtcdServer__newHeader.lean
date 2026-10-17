@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -48,8 +49,11 @@ theorem EtcdServer.newHeader.wp_proof
   icases Hrd with ⟨%v, #Hf⟩
   iunfold srvReadFieldsAt at Hf
   icases Hf with ⟨-, -, #HkvA, #Hkv, #HrvA, #Hrv, -, -, -, -, -, -, -, #Hterm, -, -⟩
-  iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hwq⟩
+  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
+  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
+  ihave ⟨#Hko0, #Hs⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
+  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
+  · rw [← Hkveq]; iexact Hko0
   ihave #Hmem : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -62,10 +66,13 @@ theorem EtcdServer.newHeader.wp_proof
   · iframe #
   wp_apply hKV s v.kv $$ []
   · iframe #
-  rw [Hkv]
+  rw [Hkveq]
   wp_auto
   imod ownToks_0 (GF := GF) E.γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #Hc0
+  wp_bind (App (Val #(methods kty _ kvv)) _)
+  iapply mvcc.kvOver_rev_wp kty kvv E.s
+  iframe Hko
   wp_apply hRev E.s v.rv E.γ 0 [] $$ [Hsr Hnone] as %rev ⟨Hsr, -, %log, #Hc, %Hl⟩
   · iframe #; iframe
   wp_apply hTerm s $$ [] as %t -

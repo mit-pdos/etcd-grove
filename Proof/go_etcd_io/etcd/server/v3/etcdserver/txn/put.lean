@@ -33,8 +33,8 @@ theorem txn.put.wp_proof
     (hPutM : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
-  intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L
-  wp_start as ⟨#Hctx, #Hct, Htx, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hpl⟩
+  intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L tyX vX
+  wp_start as ⟨#Hctx, #Hct, Htx, #Hwrap, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hpl⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -70,6 +70,9 @@ theorem txn.put.wp_proof
       icases Hprev with %Hpn
       wp_auto
       ihave #HVS := Hvs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -119,6 +122,9 @@ theorem txn.put.wp_proof
       rw [hl, decide_eq_true (rfl : (W64 0 : w64) = W64 0)]
       (try wp_auto)
       ihave #HVS := Hvs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -161,6 +167,9 @@ theorem txn.put.wp_proof
       icases Hprev with %Hpn
       wp_auto
       ihave #HVS := Hvs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -226,6 +235,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -291,6 +303,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -361,6 +376,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -426,6 +444,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -496,6 +517,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -566,6 +590,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩
@@ -641,6 +668,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
+      wp_bind (App (App (App (Val #(methods tyX _ vX)) _) _) _)
+      iapply mvcc.tw_wp3 tyX vX mw go!"Put" (by unfold mvcc.twMethod; simp)
+      iframe Hwrap
       wp_apply (hPutM trace mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease L)
         $$ [$Htx $Hks $HVS $Hlok $Hown]
         as ⟨Htx, Hown⟩

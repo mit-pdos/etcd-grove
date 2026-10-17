@@ -53,7 +53,8 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.leaseRevokeIs at Hr'
   icases Hr' with ⟨%Hrn, #HID⟩
   wp_auto
-  wp_apply (hLP st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -⟩
+  ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ $$ Hle
+  wp_apply (hLP st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) id) $$ [$Hst $HleA $Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>

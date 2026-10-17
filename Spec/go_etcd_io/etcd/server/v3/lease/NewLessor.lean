@@ -41,7 +41,7 @@ abbrev lease.NewLessor.spec : Prop :=
       (Val #cl)) (Val #cfg))
   {{ (l : GoInterface), RET #l; lessorOk l ∗ lessorCkptOk l ∗
       ∃ γl : GName, mvcc.isLessor l γl ∗ lease.lessorRdOf γl ∗ lease.leaseOwn γl [] ∗
-        □ (∀ γ : mvcc.StoreNames, ⌜γ.leases = γl⌝ -∗ apply.isApplyLessor l γ P f) }}
+        □ (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.leases = γl⌝ -∗ apply.isApplyLessor l s γ P f) }}
 
 end spec
 

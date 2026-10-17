@@ -35,8 +35,8 @@ theorem txn.getPrevKV.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     txn.getPrevKV.spec (GF := GF) (hG := hG) := by
   have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
-  intro trace mw s γ kind p o
-  wp_start as ⟨%Htr, Htx, #Hp⟩
+  intro trace mw s γ kind p o tyX vX
+  wp_start as ⟨%Htr, Htx, #Hwrap, #Hp⟩
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
     #Hpk, #Hiv, #Hil, -, %Ho, -⟩
@@ -70,8 +70,7 @@ theorem txn.getPrevKV.wp_proof
       wp_apply (hStep trace te _ _ slice.nil
           (iprop(∃ rr : Loc, prevKV_ptr ↦ rr ∗ err_ptr ↦ (GoInterface.nil : GoInterface) ∗
             p_ptr ↦ p ∗
-            txnWrite_ptr ↦ (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw :
-              GoInterface) ∗
+            txnWrite_ptr ↦ (interface.mkOk tyX vX : GoInterface) ∗
             ((∃ te' : Bool, traceutil.ownTrace trace te') -∗ mvcc.isTxn mw s γ trace kind) ∗
             txn.prevKvIs rr (txn.kindState kind) k)))
         $$ [Htrc Hback err prevKV p txnWrite] as ⟨⟨%rr, prevKV, err, p, txnWrite, Hback, Hprev⟩, Htrc⟩
@@ -86,6 +85,9 @@ theorem txn.getPrevKV.wp_proof
         wp_apply hTODO
         ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
         · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
+        wp_bind (App (App (App (App (Val #(methods tyX _ vX)) _) _) _) _)
+        iapply mvcc.tw_wp4 tyX vX mw go!"Range" (by unfold mvcc.twMethod; simp)
+        iframe Hwrap
         wp_apply (hRange trace mw s γ kind todoCtxVal txn.todoCd true ksl slice.nil k []
             (zero_val RangeOptions)) $$ [$Htx $Hctx $Hks $Hnil] as %r %rerr ⟨%Hrn, Htx, Hout⟩
         ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ kind $$ Htx

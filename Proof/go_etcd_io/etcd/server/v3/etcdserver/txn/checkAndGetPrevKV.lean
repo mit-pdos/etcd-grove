@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.checkAndGetPrevKV.wp_proof
     (hGet : txn.getPrevKV.spec (GF := GF) (hG := hG)) :
     txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind p o
-  wp_start as ⟨%Htr, Htx, #Hp⟩
+  intro trace mw s γ kind p o tyX vX
+  wp_start as ⟨%Htr, Htx, #Hwrap, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hti with ⟨-, ⟨%eK, #HeK⟩, -⟩
   wp_auto
-  wp_apply (hGet trace mw s γ kind p o) $$ [$Htx $Hp] as %r ⟨Htx, Hr⟩
+  wp_apply (hGet trace mw s γ kind p o tyX vX) $$ [$Htx $Hwrap $Hp] as %r ⟨Htx, Hr⟩
   · ipureintro; exact Htr
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,

@@ -48,7 +48,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriter
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Writer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
@@ -69,7 +69,7 @@ open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
@@ -240,14 +240,15 @@ same lock (`lessor.Revoke`: `le.rd()` is the store's `Write`, which spends a wri
 The live set (2026-10-13, unit 8 of the backend: the lessor's `GetLease`, `Attach`, `Detach`,
 `Lookup` and `SetRangeDeleter` are proved, `isTxnLessor` derived): `Grant` and `Revoke` take the
 lease owner's half (`lease.leaseOwn γ.leases L`); a grant only adds to the live set (a granted
-lease in it), a revocation removes the lease and, deleting its keys (`l.Keys()`, the lease's item
+lease in it), a revocation (at the KV's writer, `txn.kvWriter s γ`: unit N4, its range deleter writes through
+the KV over the store `s`) removes the lease and, deleting its keys (`l.Keys()`, the lease's item
 set, which the store's puts and deletes keep through `Attach`/`Detach`), keeps every lease of the
 state live (`txn.leasesKnown`). Still assumed (the lessor's other methods are not proved).
 2026-10-13, unit 9: `Grant` and `Checkpoint` are proved (`lease.lessor.Grant.spec`,
 `lease.lessor.Checkpoint.spec`) and their clauses derived of the real lessor
 (`lease.isApplyLessor_of_lessorInv`, with this contract's `Revoke` and `Lookup` clauses as its
 premises); a granted lease is `leaseTTLIs` (no `Keys()`). -/
-def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (Pre Q Post : IProp GF),
@@ -259,14 +260,14 @@ def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : 
               (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗
     □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
+      {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
           lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
           (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
             mvcc.certOkNext γ log pend) }}
         (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
           (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
-            txn.soleWriter γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
+            txn.kvWriter s γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
             txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
           applyErrIs err }}) ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),
@@ -277,9 +278,23 @@ def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : 
       {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
       {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}))
 
-instance isApplyLessor_persistent (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
-    (f : val) : Persistent (isApplyLessor le γ P f) := by
+instance isApplyLessor_persistent (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames)
+    (P : IProp GF) (f : val) : Persistent (isApplyLessor le s γ P f) := by
   unfold isApplyLessor; infer_instance
+
+/-- The lessor's contract over some store (what the permission checks take: they call only
+`Lookup`; unit N4: `isApplyLessor`'s `Revoke` clause names the KV's store `s`). -/
+def isApplyLessorAny (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+    IProp GF :=
+  iprop(∃ s : Loc, isApplyLessor le s γ P f)
+
+instance isApplyLessorAny_persistent (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
+    (f : val) : Persistent (isApplyLessorAny le γ P f) := by
+  unfold isApplyLessorAny; infer_instance
+
+theorem isApplyLessorAny_of (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
+    (f : val) : isApplyLessor (GF := GF) le s γ P f ⊢ isApplyLessorAny le γ P f := by
+  unfold isApplyLessorAny; iintro H; iexists s; iexact H
 
 /-! ## The alarm store, the cluster, the raft status, the snapshot server -/
 

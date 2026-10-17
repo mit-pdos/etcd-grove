@@ -316,12 +316,12 @@ theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro 
     obtain ⟨puts, deletes, putSize, rfl⟩ := Hk
     unfold txnViewIs
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hv with ⟨%mw, %h, Htx⟩
+    icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
     icases isTxn_kindOk mw s γ _ $$ Htx with ⟨%Hok, Htx⟩
     simp only [mvcc.isTxn]
     icases isTxnWrite_facts mw s γ ilog pend puts deletes putSize $$ Htx with ⟨%Hf, Htx⟩
     isplitl
-    · iexists mw; iframe Htx; ipureintro; exact h
+    · iexists mw, tyX, vX; iframe Htx Hw; ipureintro; exact h
     ipureintro
     exact ⟨⟨puts, deletes, putSize, rfl⟩, Hok, kindState_write ilog pend puts deletes putSize Hf.1 Hf.2,
       Hf.1, by have := Hf.2; omega⟩
@@ -411,7 +411,7 @@ theorem txnWriteIs_ok (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : 
   iintro ⟨%kind, H, -⟩
   cases ro
   · simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%mw, %h, -⟩
+    icases H with ⟨%mw, %tyX, %vX, %h, -⟩
     ipureintro; exact ⟨_, h⟩
   · simp only [↓reduceIte]
     icases H with ⟨%trw, %log, %rev, %h, -⟩
@@ -435,11 +435,13 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     obtain ⟨puts, deletes, putSize, rfl⟩ := Hk
     iunfold txnViewIs at Hv
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hv with ⟨%mw, %h, Htx⟩
+    icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
     cases twi with
     | mk ty v =>
     simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
+    iapply mvcc.tw_wp1 ty v mw go!"Rev" (by unfold mvcc.twMethod; simp)
+    iframe Hw
     iapply (hRev trace mw s γ (.write ilog pend puts deletes putSize)) $$ [Htx]
     · iframe Htx Hpkg
     inext
@@ -449,7 +451,8 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     iunfold txnWriteIs
     iexists _
     isplitl
-    · iapply (txnViewIs_mw mw s γ _).2 $$ Htx
+    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) $$ Hw with ⟨-, Hb⟩
+      iapply Hb $$ Htx
     · ipureintro; exact ⟨puts, deletes, putSize, rfl⟩
   · unfold KindIs at Hk
     simp only [↓reduceIte] at Hk
@@ -494,11 +497,13 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     obtain ⟨puts, deletes, putSize, rfl⟩ := Hk
     iunfold txnViewIs at Hv
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases Hv with ⟨%mw, %h, Htx⟩
+    icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
     cases twi with
     | mk ty v =>
     simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
+    iapply mvcc.tw_wp1 ty v mw go!"Changes" (by unfold mvcc.twMethod; simp)
+    iframe Hw
     iapply (hCh trace mw s γ ilog pend puts deletes putSize) $$ [Htx]
     · simp only [mvcc.isTxn] at *; iframe Htx Hpkg
     inext
@@ -511,7 +516,8 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     iunfold txnWriteIs
     iexists _
     isplitl
-    · iapply (txnViewIs_mw mw s γ (.write ilog pend puts deletes putSize)).2
+    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) $$ Hw with ⟨-, Hb⟩
+      iapply Hb
       simp only [mvcc.isTxn]; iexact Htx
     · ipureintro; exact ⟨puts, deletes, putSize, rfl⟩
   · unfold KindIs at Hk

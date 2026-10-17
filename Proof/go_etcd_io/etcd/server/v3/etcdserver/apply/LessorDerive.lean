@@ -70,25 +70,25 @@ theorem isApplyLessor_of_lessorInv
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
-    (lp : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+    (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
       □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
-        {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
+        {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
             lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
             (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
               mvcc.certOkNext γ log pend) }}
           (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Revoke")) (Val #id))
         {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
             (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
-              txn.soleWriter γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
+              txn.kvWriter s γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
               txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
             applyErrIs err }}) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
           (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}) ⊢
-      isApplyLessor (lease.lessorIface lp) γ P f := by
+      isApplyLessor (lease.lessorIface lp) s γ P f := by
   iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hbe, #HRevoke, #HLookup⟩
   iunfold isApplyLessor
   isplitl []

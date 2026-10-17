@@ -186,6 +186,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   wp_start as ⟨Hw, #Hhook, HPh, #HokN⟩
   iunfold mvcc.isWatchTxnWrite at Hw
   iNamed Hw
+  iStructNamed Htw
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Changes")]; wp_call
   (try wp_auto)
