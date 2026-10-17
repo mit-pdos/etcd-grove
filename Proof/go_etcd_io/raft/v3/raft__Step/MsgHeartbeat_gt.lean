@@ -50,8 +50,8 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    -- protocol fact (`heartbeat_commit_le_last`)
-    uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
+    -- (until raft#140, the protocol fact `heartbeat_commit_le_last`: `m.Commit ≤ lastIndex()`;
+    -- `handleHeartbeat` no longer needs it)
     -- this file: the incoming term is higher: `becomeFollower(m.Term, m.From)`, then
     -- `stepFollower`
     uint.Z s.term < uint.Z m.Term' →
@@ -67,7 +67,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hgt
   wp_start as H
   iNamed H
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -99,7 +99,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hcommit, Hfid⟩)
+      (fun _ => Hfid)
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -123,7 +123,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       refine .trans _ _ _ _ _
         (step_higher_term_leader c id (toPState s) .heartbeat m ents ctx rfl Hgt Hto Hfid) ?_
       exact step_handle_heartbeat c id _ _ m ents ctx
-        (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hcommit Hfid
+        (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hfid
 
 end StepProof
 

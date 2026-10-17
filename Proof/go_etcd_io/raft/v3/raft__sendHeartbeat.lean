@@ -28,9 +28,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The lookup hits (`to ∈ domSet s.progress`; same steps as `maybeSendAppend`). `pr.Match` is read
-with `pr` borrowed by its key (`ownRaftPhysC_pr`), `r.raftLog.committed` through the
-log's record (`ownRaftLog_struct`), `min` by `wp_min2_uint64`. `send` changes only the
+/-- The lookup hits (`to ∈ domSet s.progress`; same steps as `maybeSendAppend`).
+`r.raftLog.committed` is read through the log's record (`ownRaftLog_struct`); raft#140 drops
+the `pr.Match` read and the `min`. `send` changes only the
 outbox, so `pr` is still at `p` for `SentCommit`, which writes only `sentCommit`
 (`prvalsMatch_insert_same`). -/
 theorem raft.sendHeartbeat.wp_proof
@@ -51,23 +51,14 @@ theorem raft.sendHeartbeat.wp_proof
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 $$ Hprs as -
   rw [Hlk, Option.getD_some]
-  -- `pr.Match`, then `r.raftLog.committed`
-  icases ownRaftPhysC_pr _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
-  iNamed Hpa
-  obtain ⟨-, -, Hm, -⟩ := (progressAbs_Some _ _ _).1 Habs
-  wp_auto
-  rw [Hm]
-  ihave Hphys := Hpback $$ [Hpv Hinfl]
-  · iapply ownProgress_intro $$ Hpv Hinfl
-    ipureintro; exact Habs
+  -- `r.raftLog.committed` (raft#140: no longer `min(pr.Match, ...)`)
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
-  wp_apply wp_min2_uint64
-  let cm := w64Min p.matched lv.committed'
+  let cm := lv.committed'
   rw [show raftpb.MsgHeartbeat = #((W32 8 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 8)
@@ -92,13 +83,9 @@ theorem raft.sendHeartbeat.wp_proof
   iapply HΦ $$ %cm %_
   iframe Hphys
   obtain ⟨Hlv1, -⟩ := Hlv
-  have Hmin : uint.Z cm = min (uint.Z p.matched) (uint.Z lv.committed') := w64Min_spec _ _
   ipureintro
-  refine ⟨?_, ?_, ?_⟩
-  · rw [← Hlv1]; omega
-  · simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some,
-      Option.getD_some]
-    omega
+  refine ⟨?_, ?_⟩
+  · exact Hlv1
   · exact prvalsMatch_insert_same _ _ p _ Hpvs rfl
 
 end proof

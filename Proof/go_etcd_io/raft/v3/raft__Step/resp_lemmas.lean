@@ -379,7 +379,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
         .beat _ hb Hpr1
           (fun m' h => by
             have := (Hhb m' h).1
-            unfold HeartbeatOk matchOf at this ⊢
+            unfold HeartbeatOk at this ⊢
             simpa [ps3, ps2, toPState, Hr] using this)
           (fun m' h => by
             obtain ⟨k, -, -, Hk⟩ := (Hhb m' h).2

@@ -83,8 +83,8 @@ Each proves `Step`'s spec for one message type from its branch lemma. The branch
 lemmas' statements are their own (2026-10-02). `MsgApp` and `MsgHeartbeat` also take
 `FollowerVotesOk` (`Protocol/Model.lean`), and one guard each (marked GUARD, also in the
 branch statements): the protocol fact behind the conflict premise
-(`app_no_conflict_below_commit`) and the commit premise (`heartbeat_commit_le_last`)
-holds only for a message no older than the receiver's term -- a stale `MsgApp` from a
+(`app_no_conflict_below_commit`) (and, until raft#140, the commit premise
+`heartbeat_commit_le_last`) holds only for a message no older than the receiver's term -- a stale `MsgApp` from a
 deposed leader can conflict below the commit index -- and a stale message never reaches
 `maybeAppend`/`commitTo` (`Step`'s preamble drops it), so the branch lemma needs the
 premise only under `uint.Z s.term ≤ uint.Z m.Term`. -/
@@ -191,26 +191,9 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest Hmsg #Hmc HΦ
-  have Hcl_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗
-      isMessage γ (absMsg .heartbeat m ents ctx) -∗
-      ⌜uint.Z s.term ≤ uint.Z m.Term' →
-       uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ := by
-    iintro Hg #Hm
-    by_cases Hle : uint.Z s.term ≤ uint.Z m.Term'
-    · -- a leader receiving a heartbeat of its own term: the sender is a second leader
-      -- of the term, which `isLeader_unique` excludes
-      ihave #Hl2 := isMessage_heartbeat_isLeader γ m ents ctx $$ Hm
-      ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hg Hl2
-      ihave %Hc := heartbeat_commit_le_last γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl
-        Hto Hle (fun Heq Hr => Hnl Heq ((proleRole_leader _).1 Hr)) $$ Hg Hm
-      ipureintro
-      exact fun _ => Hc
-    · ipureintro
-      exact fun h => absurd h Hle
-  ihave %Hcl := Hcl_lem $$ Hghost Hmc
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgHeartbeat P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hcl Hfv)
+  wp_apply (wp_Step_MsgHeartbeat P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hfv)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

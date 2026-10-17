@@ -494,16 +494,17 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
-  | heartbeat (m : Msg) (s : PState) :
+  | heartbeat (m : Msg) (s : PState) (cm : w64) :
       m.ty = .heartbeat →
       m.dst = id →
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
+      uint.Z cm ≤ uint.Z m.commit →
+      uint.Z cm ≤ plogLastIndexZ s.base s.log →
       StepC s [m]
         (psendMsgs
-          { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
+          { padoptLeader s m.src with commit := plogCommitTo s.commit cm }
           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
   | beat (s : PState) (ms : List Msg) :
       s.role = .leader →

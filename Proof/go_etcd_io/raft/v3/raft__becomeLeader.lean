@@ -74,14 +74,16 @@ theorem raft.becomeLeader.wp_proof
   wp_apply raft.wp_store_tickC (Hf := .inr rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
+  -- (raft#140) `r.logSynced := true`
+  wp_apply raft.wp_store_logSyncedC $$ Hphys as Hphys
   -- the state, named, so that the progress premise is stated at it
   ihave Hphys : ownRaftPhysCV c c.voters r id
       { resetTo { s with stepfn := functions stepLeader [] } s.term with
-          prvals := pvs, ticking := true, lead := id } $$ [Hphys]
+          prvals := pvs, ticking := true, lead := id, logSynced := true } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
   wp_apply wp_store_state_leader c r id
       { resetTo { s with stepfn := functions stepLeader [] } s.term with
-          prvals := pvs, ticking := true, lead := id }
+          prvals := pvs, ticking := true, lead := id, logSynced := true }
       Hcfg (fun v p hv => (Hrp v p hv).prOk Hnw) $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhysCV c c.voters r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]

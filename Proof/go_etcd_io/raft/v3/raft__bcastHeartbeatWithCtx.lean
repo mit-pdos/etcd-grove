@@ -28,16 +28,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The heartbeat `sendHeartbeat` sends is `HeartbeatOk` at the protocol reading of a
-leader's state, given its two bounds against that state's `committed` and `Match`. -/
+leader's state, given its bound against that state's `committed` (raft#140: no longer
+against `Match`). -/
 private theorem heartbeatOk_intro (id : w64) (s : NState) (to c : w64) (cl : List w8)
     (Hl : s.role = .leader) (Hto : to ≠ id)
-    (Hc : uint.Z c ≤ uint.Z s.logst.committed)
-    (Hm : uint.Z c ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) :
+    (Hc : uint.Z c ≤ uint.Z s.logst.committed) :
     HeartbeatOk id (toPState s)
       (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) [] [] cl) := by
-  unfold HeartbeatOk matchOf toPState
-  simp only [Hl, ↓reduceIte]
-  exact ⟨trivial, trivial, trivial, Hto, Hc, Hm⟩
+  unfold HeartbeatOk toPState
+  exact ⟨rfl, rfl, rfl, Hto, Hc⟩
 
 /-- `ownTracker` at two indices that are equal (by computation: a state reached by
 record updates). -/
@@ -127,7 +126,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       rw [decide_eq_false Hii]
       wp_auto
       wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
-        as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
+        as %cm %pvs' ⟨Hphys, %Hc1, %Hmm'⟩
       · iexact Hctx
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
@@ -147,10 +146,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         · exact Hms m Hm
         · rw [List.mem_singleton] at Hm
           subst Hm
-          refine ⟨heartbeatOk_intro id s i cm cl Hlead Hii Hc1 ?_, rfl⟩
-          simp only at Hc2
-          rw [Hmi] at Hc2
-          exact Hc2
+          exact ⟨heartbeatOk_intro id s i cm cl Hlead Hii (Int.le_of_eq (congrArg _ Hc1)), rfl⟩
       isplitr
       · ipureintro; simp only at Hmm'; rw [Hmm', Hmi]
       isplitr

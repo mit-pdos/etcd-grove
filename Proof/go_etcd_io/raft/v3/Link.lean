@@ -1086,7 +1086,7 @@ theorem raftpb.Message.wp_GetContext :
 
 theorem raft.wp_handleHeartbeat [StorageModel GF] :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) :=
-  raft.handleHeartbeat.wp_proof raftLog.wp_commitTo raft.wp_send raftpb.Message.wp_GetCommit raftpb.Message.wp_GetContext raftpb.MessageType.wp_Enum
+  raft.handleHeartbeat.wp_proof raftLog.wp_commitTo raftLog.wp_lastIndex raft.wp_send raftpb.Message.wp_GetCommit raftpb.Message.wp_GetContext raftpb.MessageType.wp_Enum
 
 theorem unstable.wp_restore [StorageModel GF] :
     unstable.restore.spec (GF := GF) (hG := hG) :=

@@ -614,6 +614,14 @@ theorem LogNoWrap.logLast_Z {ls : LogState} (H : LogNoWrap ls) :
 theorem LogNoWrap.logLast {ls : LogState} (H : LogNoWrap ls) : uint.Z (logLast ls) + 1 < 2^64 := by
   rw [H.logLast_Z]; exact H
 
+/-- `logLast` is at most the last index as an integer, wrapped or not (raft#140:
+`handleHeartbeat`'s `min(m.Commit, lastIndex())` is within the log). -/
+theorem logLast_le_Z (ls : LogState) :
+    uint.Z (logLast ls) ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) := by
+  unfold logLast
+  have h0 := uint_Z_nonneg ls.prev.index'
+  word
+
 /-- `lastIndex()`'s result (an `Int` equation, as the `raftLog` specs state it) is `logLast`. -/
 theorem logLast_eq_of_Z (ls : LogState) (i : w64)
     (H : uint.Z i = uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int)) :
@@ -898,6 +906,11 @@ structure NState [FfiSyntax] where
   demoted leader steps down in `switchToConfig` exactly when it is set. Never written after
   `newRaft` (`Config.StepDownOnRemoval`). Invisible to the protocol (`toPState`). -/
   sdr : Bool := false
+  /-- `r.logSynced` (raft#140, not upstream): the follower's belief that its log is a prefix of
+  the leader's at this term, which licenses `handleHeartbeat` to commit up to
+  `min(m.Commit, lastIndex())`. `reset` clears it, `becomeLeader` sets it, an accepted
+  `MsgApp` (`handleAppendEntries`) sets it. Invisible to the protocol (`toPState`). -/
+  logSynced : Bool := false
 
 /-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
 node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`
@@ -1033,7 +1046,7 @@ def sendMsgs (s : NState) (ms : List Msg) : NState :=
 `lead` and the tally. -/
 def resetTo0 (s : NState) (term : w64) : NState :=
   { s with term := term, vote := if term = s.term then s.vote else W64 0, lead := W64 0,
-           votes := ∅, lt := W64 0 }
+           votes := ∅, lt := W64 0, logSynced := false }
 
 /-- (2026-10-12) and the fresh `readOnly` object `reset` installs last; (2026-10-13) and
 `pendingConfIndex` cleared. -/
@@ -1082,8 +1095,8 @@ def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
 /-- `becomeLeader` up to its `appendEntry`: what `reset`, the `lead` and `state` writes
 and `r.step` leave. -/
 def becomeLeaderPre (id : w64) (s : NState) : NState :=
-  { resetTo s s.term with lead := id, role := .leader, stepfn := stepFuncOf .leader,
-                          ticking := true }
+  { resetTo s s.term with lead := id, logSynced := true, role := .leader,
+                          stepfn := stepFuncOf .leader, ticking := true }
 
 /-- The empty entry a new leader appends (`pb.Entry{Data: nil}`, the zero `Entry`),
 stamped at the leader's term and the log's next index. -/

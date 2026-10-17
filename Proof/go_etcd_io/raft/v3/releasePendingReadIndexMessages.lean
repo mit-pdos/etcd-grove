@@ -76,7 +76,7 @@ theorem heartbeatOk_transfer (id : w64) (s t : NState) (m : Msg)
     (Hterm : t.term = s.term) (Hcm : t.logst.committed = s.logst.committed)
     (Hrole : t.role = s.role) (Hmm : prvalsMatch t.prvals = prvalsMatch s.prvals)
     (H : HeartbeatOk id (toPState t) m) : HeartbeatOk id (toPState s) m := by
-  unfold HeartbeatOk matchOf at *
+  unfold HeartbeatOk at *
   simp only [toPState, Hterm, Hcm, Hrole, Hmm] at *
   exact H
 

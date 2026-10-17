@@ -56,6 +56,7 @@ local macro "ty_ne " k:num : tactic =>
   `(tactic| (wp_gets; rw [decide_eq_false (show m.Type' ≠ W32 $k by rw [Hty]; w32_ne)]))
 
 set_option maxHeartbeats 2000000 in
+set_option maxRecDepth 4096 in
 /-- `MsgVote` with `m.Term > r.Term`: step down to follower first, then grant or decline
 in the new term. -/
 theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
@@ -250,7 +251,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       refine ⟨nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
         rfl, stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
       · intro m' Hm'; simpa using Hm'
-      · refine StepCD.frame ?_ (by subst Hs1; rframe)
+      · refine StepCD.frame ?_ (by subst Hs1; exact ⟨rfl, rfl, fun h => by simp [sendMsgs, becomeFollower] at h⟩)
         wp_gets
         rw [toPState_sendMsgs, Hps1, Ht1]
         exact stepCF_stepdown_then_reject c id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0

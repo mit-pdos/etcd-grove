@@ -18,8 +18,8 @@ body takes them:
    and `MsgAppResp{To: m.From, Index: m.Index, Reject: true, RejectHint: hintIndex,
    LogTerm: hintTerm}`.
 
-No exit writes a raft field: the struct changes only through the log (`maybeAppend`)
-and the outbox (`send`).
+Only the accepting exit writes a raft field, `r.logSynced = true` (raft#140); otherwise the
+struct changes only through the log (`maybeAppend`) and the outbox (`send`).
 
 **The messages, as `send` queues them** (`SendOk`'s `MsgAppResp` clause (d),
 `Spec/raft__send.lean`): `From` stamped `id`, `Term` stamped `s.term`, `Entries` nil
@@ -70,7 +70,7 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
 - accept: the log is `maybeAppend`'s new log -- `prev` and `applied` unchanged, the
   entries `plogMaybeAppend`'s, `committed` raised to `min(m.Commit, lastnewi)`
   (`plogCommitTo`), `applying`, the pending snapshot and `unpersisted` unchanged
-  (2026-10-09) -- and the reply carries `lastnewi`. `ls'` is existential because
+  (2026-10-09), `logSynced` set (raft#140) -- and the reply carries `lastnewi`. `ls'` is existential because
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
@@ -95,7 +95,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
          (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi) ∧
      (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted ∧
       ls'.prev = ls.prev ∧ ls'.stored = ls.stored ∧ ls'.storage = ls.storage) ∧
-     s' = sendMsgs { s with logst := ls' }
+     s' = sendMsgs { s with logst := ls', logSynced := true }
             [appResp id s dst false lastnewi (W64 0) (W64 0)])
   ∨
   (uint.Z ls.committed ≤ uint.Z m.Index' ∧

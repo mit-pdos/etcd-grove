@@ -175,8 +175,9 @@ theorem raft.reset.wp_proof
     iframe r term
     iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     rw [ite_eq_right (Ne.symm Hif)]
-  -- `lead := None`, `electionElapsed := 0`, `heartbeatElapsed := 0`
+  -- `lead := None`, (raft#140) `logSynced := false`, `electionElapsed := 0`, `heartbeatElapsed := 0`
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
+  wp_apply raft.wp_store_logSyncedC $$ Hphys as Hphys
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
   wp_apply raft.wp_store_heartbeatElapsedC $$ Hphys as Hphys
   wp_apply wp_raft_resetRandomizedElectionTimeout $$ [$Hphys] as Hphys

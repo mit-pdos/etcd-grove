@@ -1,0 +1,25 @@
+# etcd-io/raft#140 (heartbeats carry the leader's commit index; logSynced): the changed
+# functions and the callers whose specs or proofs changed with them, up to raft.Step
+# (notes/pr-verify/raft-140.md, branch pr-verify/raft-140).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-140.txt [--check [--update]]
+roots raft__handleHeartbeat
+roots raft__sendHeartbeat
+roots raft__handleAppendEntries
+roots raft__reset
+roots raft__becomeLeader
+roots raft__bcastHeartbeatWithCtx
+roots stepFollower
+roots stepCandidate
+roots raft__Step
+axiom DescribeConfChange.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+sorry heartbeat_commit_acked

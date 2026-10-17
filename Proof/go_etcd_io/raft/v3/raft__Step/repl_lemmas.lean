@@ -97,7 +97,8 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
       (StepCF.appAccept (absMsg .app m ents) ps lastnewi es' rfl Hto Hfid Hterm Hnl Hle Happ
         (Hconf Hle Hm)) ?_
     rw [toPState_sendMsgs']
-    have Hs : toPState { t with logst := ls' } =
+    -- (raft#140) `logSynced` is invisible to the protocol
+    have Hs : toPState { t with logst := ls', logSynced := true } =
         { toPState t with base := ls'.prev, log := ls'.sents ++ ls'.uents,
                           commit := ls'.committed } := rfl
     rw [Hs, Ht, Hprev', Hes, Hcm']
@@ -109,25 +110,49 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
     rw [toPState_sendMsgs', Ht]
     simp only [appResp, Htm, absMsg, absMsgFrom]
 
-/-- `heartbeatResult` refines `StepC.heartbeat` at `ps`. -/
+/-- `heartbeatResult` refines `StepC.heartbeat` at `ps` (raft#140): at `cm = min(m.Commit,
+lastIndex())` when `logSynced`, at `cm = 0` (no commit) otherwise. -/
 theorem step_handle_heartbeat (c : CfgM) (id : w64) (ps : PState) (t : NState)
     (m : MessageM) (ents : List EntryM) (ctx : List w8) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
     ps.role ≠ .leader →
-    uint.Z m.Commit' ≤ plogLastIndexZ ps.base ps.log →
     m.From' ≠ id →
     StepCF c id ps [absMsg .heartbeat m ents ctx] (toPState (heartbeatResult id t m ctx)) := by
-  intro Ht Hto Hterm Hnl Hcm Hfid
+  intro Ht Hto Hterm Hnl Hfid
   have Htm : t.term = ps.term := congrArg PState.term Ht
+  have Hb : t.logst.prev = ps.base := congrArg PState.base Ht
+  have Hl : t.logst.sents ++ t.logst.uents = ps.log := congrArg PState.log Ht
+  let cm : w64 := if t.logSynced then w64Min m.Commit' (logLast t.logst) else W64 0
+  have Hmin := w64Min_spec m.Commit' (logLast t.logst)
+  have Hlast := logLast_le_Z t.logst
+  have Hcm1 : uint.Z cm ≤ uint.Z m.Commit' := by
+    simp only [cm]; split
+    · omega
+    · have := uint_Z_nonneg m.Commit'; simp only [show uint.Z (W64 0) = 0 from rfl]; omega
+  have Hcm2 : uint.Z cm ≤ plogLastIndexZ ps.base ps.log := by
+    rw [← Hb, ← Hl]; unfold plogLastIndexZ; rw [List.length_append]; push_cast
+    simp only [cm]; split
+    · omega
+    · have := uint_Z_nonneg t.logst.prev.index'; simp only [show uint.Z (W64 0) = 0 from rfl]; omega
   refine stepCF_eq c id _ _ _ _
-    (StepCF.heartbeat (absMsg .heartbeat m ents ctx) ps rfl Hto Hfid Hterm Hnl Hcm) ?_
+    (StepCF.heartbeat (absMsg .heartbeat m ents ctx) ps cm rfl Hto Hfid Hterm Hnl Hcm1 Hcm2) ?_
   unfold heartbeatResult
   rw [toPState_sendMsgs']
   have Hs : toPState { t with logst := { t.logst with
-        committed := plogCommitTo t.logst.committed m.Commit' } } =
-      { toPState t with commit := plogCommitTo (toPState t).commit m.Commit' } := rfl
+        committed := if t.logSynced then plogCommitTo t.logst.committed
+          (w64Min m.Commit' (logLast t.logst)) else t.logst.committed } } =
+      { toPState t with commit := plogCommitTo (toPState t).commit cm } := by
+    simp only [cm]
+    split
+    · rfl
+    · have H0 : plogCommitTo t.logst.committed (W64 0) = t.logst.committed := by
+        unfold plogCommitTo
+        rw [if_neg (by have := uint_Z_nonneg t.logst.committed; simp only [show uint.Z (W64 0) = 0 from rfl]; omega)]
+      show toPState { t with logst := { t.logst with committed := t.logst.committed } } =
+        { toPState t with commit := plogCommitTo t.logst.committed (W64 0) }
+      rw [H0]; rfl
   rw [Hs, Ht]
   simp only [Htm, absMsg, absMsgFrom, padoptLeader]
 

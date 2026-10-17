@@ -169,6 +169,9 @@ theorem raft.handleAppendEntries.wp_proof
       rw [Hpm] at Hma
       obtain ⟨rfl, rfl, Hprev, Hes', Happ, Hcm', Ha', Hsn', Hu', Hst'⟩ := Hma
       wp_auto
+      -- (raft#140) `r.logSynced = true`
+      wp_apply raft.wp_store_logSyncedC $$ Hphys as Hphys
+      try wp_auto
       reply_head
       imod cellRO_alloc $$ «$v2» with #cIx
       imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, 0, 0, false, 0⟩ ⊤

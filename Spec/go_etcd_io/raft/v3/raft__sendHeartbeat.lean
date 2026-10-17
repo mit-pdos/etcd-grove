@@ -33,18 +33,20 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `r.sendHeartbeat(to, ctx)` (`raft.sendHeartbeat.impl`; `raft.go:692`):
 
     pr := r.trk.Progress[to]
-    commit := min(pr.Match, r.raftLog.committed)
+    commit := r.raftLog.committed
     r.send(pb.Message{To: to, Type: pb.MsgHeartbeat, Commit: commit, Context: ctx})
     pr.SentCommit(commit)
+
+(**etcd-io/raft#140**; before it, `commit := min(pr.Match, r.raftLog.committed)`, and the
+spec gave the two bounds `cm ≤ committed` and `cm ≤ Match of to`, which the model's
+`HeartbeatOk` asked for. Now `cm` is exactly `committed`: the `Match` bound is gone.)
 
 `to ∈ domSet s.progress` (a voter or a learner; `to ∈ cfg` until 2026-10-13) makes the
 lookup hit (otherwise `pr` is nil and `pr.Match` faults);
 `to ≠ id` rules out `send`'s self-addressed `Panicf`.
 
-The outbox grows by one `heartbeat` to `to` at the current term whose `Commit` is
-`min(Match of to, committed)`; the two bounds the model's `heartbeat_ok` asks for are
-exposed as pure facts, against `prvalsMatch` (what `toPstate`'s `matched` is for a
-leader) and the log's `committed`. `ctx` is not owned: it is only copied into
+The outbox grows by one `heartbeat` to `to` at the current term whose `Commit` is the log's
+`committed`. `ctx` is not owned: it is only copied into
 `Context`; the abstract message carries the list it holds (`cl`, read-only; since
 2026-10-12, when `Msg` gained `ctx`). `SentCommit` writes `sentCommit` and nothing
 else, so `Match` is untouched. -/
@@ -62,8 +64,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
       ownRaftPhysCV c c.voters r id
         { sendMsgs s [Msg.mkV .heartbeat id to s.term false
                         (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
-      ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
-      ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
+      ⌜cm = s.logst.committed⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
@@ -82,8 +83,7 @@ abbrev raft.sendHeartbeat.specS : Prop :=
       ownRaftPhys cfg r id
         { sendMsgs s [Msg.mkV .heartbeat id to s.term false
                         (W64 0) (W64 0) c (W64 0) [] [] cl] with prvals := pvs } ∗
-      ⌜uint.Z c ≤ uint.Z s.logst.committed⌝ ∗
-      ⌜uint.Z c ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
+      ⌜c = s.logst.committed⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 open Iris.ProofMode in
@@ -95,11 +95,11 @@ theorem raft.sendHeartbeat.spec_simple
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   iapply H _ r id s to ctx cl Hto Hdom $$ [$Hpkg $Hphys $Hctx]
   inext
-  iintro %c %pvs ⟨Hphys, %H1, %H2, %H3⟩
+  iintro %c %pvs ⟨Hphys, %H1, %H3⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   iapply HΦ
   iframe Hphys
-  ipureintro; exact ⟨H1, H2, H3⟩
+  ipureintro; exact ⟨H1, H3⟩
 
 end spec
 

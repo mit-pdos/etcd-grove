@@ -228,8 +228,9 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       iprop(isLeader γ m.src m.term ∗
       (∃ Fl, leadFull γ m.term Fl ∗ commitIn γ Fl m.commit m.term ∗
          isCommitted γ (Fl.take (uint.Z m.commit).toNat)) ∗
-      -- `Commit ≤ pr.Match`, which the receiver acknowledged
-      (∃ i, ⌜uint.Z m.commit ≤ uint.Z i⌝ ∗ isAcked γ m.dst m.term i) ∗
+      -- (until etcd-io/raft#140: `Commit ≤ pr.Match`, which the receiver acknowledged,
+      -- `∃ i, ⌜uint.Z m.commit ≤ uint.Z i⌝ ∗ isAcked γ m.dst m.term i`; the leader now sends
+      -- its whole commit index, which it cannot pin to the receiver's acknowledgements)
       ⌜m.src ≠ W64 0⌝ ∗
       -- (2026-10-12) a read-index position: the leader's registry up to it
       (⌜m.ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),

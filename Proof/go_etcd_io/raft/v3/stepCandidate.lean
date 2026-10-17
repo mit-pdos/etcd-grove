@@ -245,7 +245,7 @@ theorem stepCandidate.wp_proof
     rw [← Hterm']
     exact Hres
   · -- `MsgHeartbeat`: `becomeFollower(m.Term, m.From)`, then `handleHeartbeat`
-    obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
+    have Hfrom := Hhb Hty
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inl Hty)))).1
     simp only [Hty, MsgHeartbeat]
     wp_auto
@@ -255,7 +255,7 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-      ml _ _ _ m ents sn cl rs Hcommit Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+      ml _ _ _ m ents sn cl rs Hfrom $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]

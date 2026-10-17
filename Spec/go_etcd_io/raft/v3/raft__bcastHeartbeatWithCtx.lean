@@ -37,12 +37,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
     })
 
 One heartbeat per peer other than the leader itself, each with
-`Commit = min(Match, committed)` (`Spec/raft__sendHeartbeat.lean`). The postcondition
+`Commit = committed` (raft#140; before it `min(Match, committed)`,
+`Spec/raft__sendHeartbeat.lean`). The postcondition
 is what the model's `Step.beat` asks of the broadcast: every message sent is one
 `HeartbeatOk` allows at the protocol reading of the state the call started in.
-`HeartbeatOk` bounds `Commit` by `matchOf`, i.e. by `toPState`'s `matched`, which is
-the `Progress` `Match` values only for a leader -- hence the premise
-`s.role = .leader`. That the list has exactly one heartbeat per peer is true but not
+(Before raft#140 `HeartbeatOk` also bounded `Commit` by `matchOf`, i.e. by `toPState`'s
+`matched`, which is the `Progress` `Match` values only for a leader -- hence the premise
+`s.role = .leader`, kept.) That the list has exactly one heartbeat per peer is true but not
 stated: the model does not need it. `SentCommit` moves no `Match`. Each carries the
 context's list `cl` (2026-10-12). -/
 abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=

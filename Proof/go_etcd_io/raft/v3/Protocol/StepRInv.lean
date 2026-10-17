@@ -952,7 +952,7 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
   | win r mt ms h1 _ h3 _ _ _ => exact RInv_win id mt _ H h1 h3
   | appAccept m r lastnewi es' h1 _ _ _ _ _ h7 h8 =>
     exact RInv_appAccept m lastnewi es' _ H h7 h8 (hK r m List.mem_cons_self h1 H)
-  | heartbeat m r _ _ _ _ _ h6 => exact RInv_heartbeat m.src m.commit _ H h6
+  | heartbeat m r cm _ _ _ _ _ _ h7 => exact RInv_heartbeat m.src cm _ H h7
   | commit r n h1 h2 h3 _ _ => exact RInv_commit n H h1 h2 h3
   | propose m r cs _ h2 h3 h4 => exact RInv_propose id m cs _ H h2 h3 h4
   | propDrop m r cs _ h2 h3 h4 => exact RInv_propDrop m cs H h2 h3 h4

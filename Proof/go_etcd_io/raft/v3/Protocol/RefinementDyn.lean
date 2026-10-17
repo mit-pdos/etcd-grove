@@ -522,19 +522,19 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
       | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
-  | heartbeat m r h1 h2 h3 h4 h5 h6 =>
+  | heartbeat m r cm h1 h2 h3 h4 h5 h6 h7 =>
     iintro Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
-    imod ownRaftGhost_step_heartbeat γ id r.p m h1 h2 h4 h3 h5 h6 $$ Hm Hg with Hg
+    imod ownRaftGhost_step_heartbeat γ id r.p m cm h1 h2 h4 h3 h5 h6 h7 $$ Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.heartbeat m r h1 h2 h3 h4 h5 h6) (noApp1 (by rw [h1]; decide)) HI)
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.heartbeat m r cm h1 h2 h3 h4 h5 h6 h7) (noApp1 (by rw [h1]; decide)) HI)
     iintro %h
     exfalso
     revert h

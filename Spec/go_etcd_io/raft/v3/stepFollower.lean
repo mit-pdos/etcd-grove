@@ -197,9 +197,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   forwarding arm;
 - `MsgApp`: `handleAppendEntries`'s premises, at `s` (`lead` does not enter them),
   `m.From ≠ id` among them since 2026-10-10 (and `handleSnapshot`'s for a `MsgSnap`);
-- `MsgHeartbeat`: `handleHeartbeat`'s two -- `m.Commit` within the log (`commitTo`'s
-  `Panicf`; the protocol fact `heartbeat_commit_le_last`) and `m.From ≠ id` (`send`'s
-  self-addressed `Panicf`);
+- `MsgHeartbeat`: `handleHeartbeat`'s one, `m.From ≠ id` (`send`'s self-addressed `Panicf`);
+  until raft#140 also `m.Commit` within the log (`commitTo`'s `Panicf`; the protocol fact
+  `heartbeat_commit_le_last`);
 - `Hents`: the `Entries` slice for the two types that use it -- read-only for
   `send`/`maybeAppend`, with its capacity for `maybeAppend` (it may adopt the slice).
   For `MsgVoteResp` the wand is discharged by the type. 
@@ -243,9 +243,8 @@ abbrev stepFollower.spec : Prop :=
      -- (2026-10-16, stage R8a) not a leader (`handleAppendEntries`'s premise: a leader's log only
      -- grows); `Step` dispatches here at a follower
      s.role ≠ .leader) →
-  (m.Type' = MsgHeartbeat →
-     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
-     m.From' ≠ id) →
+  -- (raft#140) no commit premise: `handleHeartbeat` commits at most `lastIndex()`
+  (m.Type' = MsgHeartbeat → m.From' ≠ id) →
   -- (2026-10-13) a leader-transfer request is forwarded only unstamped (`send` panics on
   -- a stamped one; a stamped request reaches a follower of its term only without a leader:
   -- `raft.Step`'s premise), to another node; `MsgTimeoutNow` campaigns: the term does not

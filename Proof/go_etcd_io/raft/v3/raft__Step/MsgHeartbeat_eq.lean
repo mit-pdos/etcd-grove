@@ -49,8 +49,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    -- protocol fact (`heartbeat_commit_le_last`)
-    uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
+    -- (until raft#140, the protocol fact `heartbeat_commit_le_last`: `m.Commit ≤ lastIndex()`;
+    -- `handleHeartbeat` no longer needs it)
     -- this file: the current term: `r.step(m)`, by role
     m.Term' = s.term →
     -- a follower's vote tally is empty (`padoptLeader` clears it, and `NStateWf` does
@@ -68,7 +68,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hteq Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hteq Hvotes
   wp_start as H
   iNamed H
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -98,7 +98,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hcommit, Hfid⟩)
+        (fun _ => Hfid)
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -117,13 +117,13 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_follower s m.From' Hrole Hvs) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+        (by simp [toPState, Hrole, proleRole]) Hfid
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hcommit, Hfid⟩)
+        (fun _ => Hfid)
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -142,7 +142,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+        (by simp [toPState, Hrole, proleRole]) Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
@@ -177,7 +177,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hcommit, Hfid⟩)
+        (fun _ => Hfid)
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -196,7 +196,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       exact List.mem_singleton.mp Hm'
     · refine StepCD.frame ?_ (by rframe)
       exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+        (by simp [toPState, Hrole, proleRole]) Hfid
 
 end StepProof
 

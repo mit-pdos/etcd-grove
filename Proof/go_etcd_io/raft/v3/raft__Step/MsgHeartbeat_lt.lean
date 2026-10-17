@@ -49,8 +49,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    -- protocol fact (`heartbeat_commit_le_last`)
-    -- (no commit premise: a stale heartbeat never reaches `commitTo`)
+    -- (no commit premise)
     -- this file: the incoming term is stale: logged and dropped
     uint.Z m.Term' < uint.Z s.term →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

@@ -11,7 +11,7 @@ Lean notes:
 * Names: `init_pstate` → `initPState` (as in the old `Protocol.lean`), `ents_rec` →
   `entsRec`; lemmas `own_raft_ghost_*` → `ownRaftGhost_*`, `own_log_ghost_within` →
   `ownLogGhost_within`, `commit_in_leader` → `commitIn_leader`; the rest keep their Rocq
-  names (`heartbeat_commit_le_last`, `log_matching`, `state_machine_safety`,
+  names (`log_matching`, `state_machine_safety`,
   `leader_completeness`, `register_props`, `prop_collect`, `alloc_maps`, ...). Rocq
   `Local Lemma`s are public.
 * `[∗ list] e;Q ∈ ents;Qs, P` is `[∗list] e;Q ∈ ents;Qs, P` (`bigSepL2`).
@@ -56,48 +56,11 @@ is dropped by the preamble and needs none of them, except `app_recv_wf`, which h
 any `app` (`isMessage` carries it). All four are proved (the last two since 2026-10-02,
 from the acknowledgement invariant `acksOk` and from arithmetic). -/
 
-/-- `handleHeartbeat`'s `commitTo(m.Commit)` panics if `lastIndex() < m.Commit`. It does
-not: the leader sends `Commit ≤ pr.Match`, and `isMessage` carries the receiver's
-acknowledgement of `pr.Match` in `m.term`. The receiver acknowledges only at its own term
-(`AcksTerm`), so for a message of a higher term `pr.Match` is `0`; at its own term (where
-it is not leader -- the role premise) the acknowledgement is at most the commit index or
-justified by its log (`acksOk`, `ackAgree`), and either way within it (`LogOk`). `Step`
-holds the ghost state before its term preamble: hence `≤`. -/
-theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
-    m.ty = .heartbeat →
-    m.dst = id →
-    uint.Z ps.term ≤ uint.Z m.term →
-    (m.term = ps.term → ps.role ≠ .leader) →
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
-      ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
-  intro Hty Hto Hle Hrole
-  simp only [isMessage, Hty]
-  unfold ownRaftGhost ownLogGhost isAcked
-  iintro ⟨%γv, %voted, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  obtain ⟨-, -, Hcl⟩ := Hlog_ok
-  have := plogLastIndexZ_nonneg ps.base ps.log
-  icases Hack with (%H0 | ⟨⟨%γa', %Hγa', Hfrag⟩, -⟩)
-  · ipureintro; omega
-  rw [Hto, Haname] at Hγa'
-  cases Hγa'
-  icases ghost_map_lookup $$ Hacks Hfrag with %Hk
-  have Hkt : uint.Z m.term ≤ uint.Z ps.term := Hacks_term _ (by rw [Hk]; rfl)
-  have Heq : m.term = ps.term := by word
-  have Hr := Hrole Heq
-  unfold acksOk
-  rcases Hr' : ps.role
-  rotate_left 2
-  · exact absurd Hr' Hr
-  all_goals
-    ihave #Hk' := BigSepM.bigSepM_lookup (Φ := fun k _ => ackOk (GF := GF) γ ps k) Hk $$ Hacks_ok
-    by_cases Hlt : uint.Z ps.commit < uint.Z i
-    · unfold ackOk ackAgree
-      ihave ⟨%Hil, -⟩ := Hk' $$ %(⟨Heq, Hlt⟩ : (m.term, i).1 = ps.term ∧ uint.Z ps.commit < uint.Z (m.term, i).2)
-      ipureintro; simp only at Hil; omega
-    · ipureintro; omega
+/- (etcd-io/raft#140) `heartbeat_commit_le_last` -- `handleHeartbeat`'s `commitTo(m.Commit)`
+does not panic because the leader sent `Commit ≤ pr.Match`, which the receiver acknowledged --
+is gone with that bound: the leader now sends its whole commit index, and `handleHeartbeat`
+commits at most `lastIndex()` (`Spec/go_etcd_io/raft/v3/raft__handleHeartbeat.lean`), so the
+`Panicf` is dead without a protocol fact. -/
 
 /-- What `raftLog.maybeAppend` needs of a received `app`'s batch: carried by the message
 (`AppPayloadOk`). No premise on the terms: it is a fact of the message alone (until

@@ -1521,12 +1521,13 @@ def SnapOk (s : PState) (m : Msg) : Prop :=
 peer needs) a `snap`. -/
 def ReplOk (s : PState) (m : Msg) : Prop := AppOk id s m ∨ SnapOk id s m
 
-/-- `sendHeartbeat`: `Commit: min(pr.Match, committed)`. -/
+/-- `sendHeartbeat`: `Commit: committed` (etcd-io/raft#140; before it `min(pr.Match,
+committed)`, and this had the conjunct `uint.Z m.commit ≤ uint.Z (matchOf s m.dst)`, which
+`isMessage` turned into the receiver's acknowledgement of `Commit`). -/
 def HeartbeatOk (s : PState) (m : Msg) : Prop :=
   m.ty = .heartbeat ∧ m.src = id ∧ m.term = s.term ∧
   m.dst ≠ id ∧
-  uint.Z m.commit ≤ uint.Z s.commit ∧
-  uint.Z m.commit ≤ uint.Z (matchOf s m.dst)
+  uint.Z m.commit ≤ uint.Z s.commit
 
 /-! ## The transition relation
 
@@ -1742,19 +1743,24 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
-  /-- `handleHeartbeat`: `commitTo(m.Commit)`, whose `Panicf` the premise rules out
-  (`heartbeat_commit_le_last`). The response echoes the heartbeat's context (2026-10-12):
-  a read-index position, which the leader counts as an acknowledgement. -/
-  | heartbeat (m : Msg) (s : PState) :
+  /-- `handleHeartbeat` (etcd-io/raft#140): `commitTo(cm)` for some `cm` at most the
+  heartbeat's `Commit` and within the log -- the code's `min(m.Commit, lastIndex())` when
+  `logSynced`, and no commit (`cm = 0`) otherwise; the model does not track `logSynced`.
+  (Before #140: `commitTo(m.Commit)`, with the premise `m.Commit ≤ lastIndex`, the protocol
+  fact `heartbeat_commit_le_last`, from the acknowledgement the heartbeat carried.) The
+  response echoes the heartbeat's context (2026-10-12): a read-index position, which the
+  leader counts as an acknowledgement. -/
+  | heartbeat (m : Msg) (s : PState) (cm : w64) :
       m.ty = .heartbeat →
       m.dst = id →
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
+      uint.Z cm ≤ uint.Z m.commit →
+      uint.Z cm ≤ plogLastIndexZ s.base s.log →
       Step s [m]
         (psendMsgs
-          { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
+          { padoptLeader s m.src with commit := plogCommitTo s.commit cm }
           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
   /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows, with the read-only
   object's context (2026-10-13). -/

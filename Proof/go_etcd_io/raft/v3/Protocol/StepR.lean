@@ -220,16 +220,17 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [m] { r with
         p := psendMsgs (padoptLeader r.p m.src)
           [Msg.mk .appResp id m.src r.p.term true m.index hintterm (W64 0) hint []] }
-  | heartbeat (m : Msg) (r : RState) :
+  | heartbeat (m : Msg) (r : RState) (cm : w64) :
       m.ty = .heartbeat →
       m.dst = id →
       m.src ≠ id →
       m.term = r.p.term →
       r.p.role ≠ .leader →
-      uint.Z m.commit ≤ plogLastIndexZ r.p.base r.p.log →
+      uint.Z cm ≤ uint.Z m.commit →
+      uint.Z cm ≤ plogLastIndexZ r.p.base r.p.log →
       StepR r [m] { r with
         p := psendMsgs
-          { padoptLeader r.p m.src with commit := plogCommitTo r.p.commit m.commit }
+          { padoptLeader r.p m.src with commit := plogCommitTo r.p.commit cm }
           [{ Msg.plain .heartbeatResp id m.src r.p.term false with ctx := m.ctx }] }
   | beat (r : RState) (ms : List Msg) :
       r.p.role = .leader →

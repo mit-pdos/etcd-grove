@@ -268,7 +268,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         .beat _ ms Hpr
           (fun m' h => by
             have := (Hms m' h).1
-            unfold HeartbeatOk matchOf at this ⊢
+            unfold HeartbeatOk at this ⊢
             simpa [ps1] using this)
           (fun m' h => by
             rw [(Hms m' h).2, Hps1ro]

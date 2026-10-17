@@ -55,3 +55,4 @@ sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
 sorry Perennial.time.initialize'.wp_proof
+sorry heartbeat_commit_acked

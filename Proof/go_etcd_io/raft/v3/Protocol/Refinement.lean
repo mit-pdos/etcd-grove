@@ -251,7 +251,6 @@ private theorem isMessage_heartbeat_inv (γ : RaftNames) (m : Msg) :
       isLeader γ m.src m.term ∗
       (∃ Fl, leadFull γ m.term Fl ∗ commitIn γ Fl m.commit m.term ∗
          isCommitted γ (Fl.take (uint.Z m.commit).toNat)) ∗
-      (∃ i, ⌜uint.Z m.commit ≤ uint.Z i⌝ ∗ isAcked γ m.dst m.term i) ∗
       ⌜m.src ≠ W64 0⌝ ∗
       (⌜m.ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
          ⌜m.ctx = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ m.src m.term recs ∗
@@ -286,7 +285,7 @@ private theorem isMessage_leader (γ : RaftNames) (m : Msg) :
     isplitr
     · iexact Hl
     · ipureintro; exact Hnz
-  · icases isMessage_heartbeat_inv γ m Hty $$ Hm with ⟨#Hl, -, -, %Hnz, -⟩
+  · icases isMessage_heartbeat_inv γ m Hty $$ Hm with ⟨#Hl, -, %Hnz, -⟩
     isplitr
     · iexact Hl
     · ipureintro; exact Hnz
@@ -1039,8 +1038,8 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
   · lcm_mono
   · iexact Hrd
 
-/-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
-the `Match` it is bounded by. -/
+/-- `Step.beat`: a heartbeat carries the leadership and a commit index the leader has (until
+etcd-io/raft#140 also the `Match` it was bounded by, as the receiver's acknowledgement). -/
 theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : List Msg) :
     s.role = .leader →
     (∀ m ∈ ms, HeartbeatOk id s m) →
@@ -1072,7 +1071,7 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
     iapply outbox_app $$ Hout
     iapply BigSepL.bigSepL_forall_elim
     iintro %k %m %Hk
-    obtain ⟨Hty, Hfrom, Hterm, -, Hcm, Hmatch⟩ := Hms m (List.mem_of_getElem? Hk)
+    obtain ⟨Hty, Hfrom, Hterm, -, Hcm⟩ := Hms m (List.mem_of_getElem? Hk)
     simp only [isMessage, Hty, Hfrom, Hterm]
     isplitr
     · iexact Hl
@@ -1084,21 +1083,6 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
       · iapply commitIn_le γ _ s.commit m.commit s.term HwF.1 Hcm $$ HrF Hc
       · iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.commit).toNat) (cprefix fp s)
           (take_prefix_le _ _ _ (by omega)) $$ Hcmt
-    isplitr
-    · unfold matchOf at Hmatch
-      cases Hx : s.matched !! m.dst with
-      | some x =>
-        rw [Hx] at Hmatch
-        iexists x
-        isplitr
-        · ipureintro; exact Hmatch
-        · unfold matchedOk; rw [Hrole]
-          iapply BigSepM.bigSepM_lookup Hx $$ Hmatched
-      | none =>
-        iexists (W64 0)
-        isplitr
-        · ipureintro; rw [Hx] at Hmatch; exact Hmatch
-        · unfold isAcked; ileft; ipureintro; rfl
     isplitr
     · ipureintro; exact Hidnz
     · iapply hbCtx_isMessage γ id s.term s.rd.ro m.ctx recsH (Hctx m (List.mem_of_getElem? Hk))
@@ -1588,10 +1572,11 @@ theorem ownLogGhost_hbResp (γ : RaftNames) (v : w64) (s : PState) (kl : Option 
     iframe Hlb
     ipureintro; exact ⟨Hq.1, Hack⟩
 
-/-- `Step.heartbeat`: back to follower of `m.src`; the new commit index is the old one or
-the heartbeat's, which carries `isCommittedIdx` and which the rule's premise puts within
-the log. -/
-theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
+/-- `Step.heartbeat`'s core, at a heartbeat whose `Commit` the receiver has acknowledged in its
+term (`Hack`; what `isMessage` carried until etcd-io/raft#140): back to follower of `m.src`; the
+new commit index is the old one or the heartbeat's, which carries `isCommittedIdx` and which the
+rule's premise puts within the log. -/
+private theorem ownRaftGhost_step_heartbeat_acked (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .heartbeat →
     m.dst = id →
     m.term = s.term →
@@ -1599,18 +1584,19 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
     s.role ≠ .leader →
     uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
     ⊢ isMessage (GF := GF) γ m -∗
+      (∃ i, ⌜uint.Z m.commit ≤ uint.Z i⌝ ∗ isAcked γ m.dst m.term i) -∗
       ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
            [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) md := by
   intro Hty Hto Hterm Hfid Hrole Hcm
-  iintro #Hm Hown
+  iintro #Hm ⟨%i, %Hi, #Hack⟩ Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   icases isMessage_heartbeat_inv γ m Hty $$ Hm with
-    ⟨-, ⟨%Fl, #Hfl, #Hmc, #Hmcm⟩, ⟨%i, %Hi, #Hack⟩, %Hfnz, #Hctx⟩
+    ⟨-, ⟨%Fl, #Hfl, #Hmc, #Hmcm⟩, %Hfnz, #Hctx⟩
   rw [Hto, Hterm] at *
   ihave #Hagree := ownLogGhost_ack_agree γ id s kl i $$ Hlg Hack
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
@@ -1730,6 +1716,104 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
   · lcm_mono
   · rd_mono
+
+/-- A heartbeat's `isMessage` holds at any lower `Commit` (etcd-io/raft#140): the commit
+witnesses go down (`commitIn_le`, `isCommitted_mono`); nothing else mentions `Commit`. -/
+private theorem isMessage_heartbeat_lower (γ : RaftNames) (m : Msg) (cm : w64) :
+    m.ty = .heartbeat →
+    uint.Z cm ≤ uint.Z m.commit →
+    ⊢ isMessage (GF := GF) γ m -∗ isMessage γ { m with commit := cm } := by
+  intro Hty Hle
+  iintro #Hm
+  icases isMessage_heartbeat_inv γ m Hty $$ Hm with
+    ⟨#Hl, ⟨%Fl, #Hfl, #Hmc, #Hmcm⟩, %Hfnz, #Hctx⟩
+  icases leadFull_wf γ m.term Fl $$ Hfl with ⟨%HwFl, #HrFl⟩
+  unfold isMessage
+  simp only [Hty]
+  iframe Hl Hctx
+  isplitr
+  · iexists Fl
+    iframe Hfl
+    isplitr
+    · iapply commitIn_le γ Fl m.commit cm m.term HwFl.1 Hle $$ HrFl Hmc
+    · iapply isCommitted_mono γ (Fl.take (uint.Z cm).toNat) (Fl.take (uint.Z m.commit).toNat)
+        (take_prefix_le _ _ _ (by have := uint_Z_nonneg cm; omega)) $$ Hmcm
+  · ipureintro; exact Hfnz
+
+/-- **etcd-io/raft#140's safety claim, not proved: a `sorry`.** A follower that advances its
+commit index on a heartbeat, to some `cm` at most the heartbeat's `Commit` and within its log,
+has acknowledged an index at least `cm` in the heartbeat's term -- so that its log agrees with
+the leader's up to `cm` (`ownLogGhost_ack_agree`).
+
+Before #140 the heartbeat carried that acknowledgement (`Commit ≤ pr.Match`). After it, the
+code commits up to `min(m.Commit, lastIndex())` once `logSynced`, i.e. once some `MsgApp` of
+the term was accepted, whose acknowledgement is only of that `MsgApp`'s last index: the
+follower's log past it may be an uncommitted tail of an older term that the accepted batch did
+not conflict with (`maybeAppend` truncates only at a conflict). **This is false, of the model
+and of the code.** Of the model: its `AppOk` lets a leader send any slice of its log. Of the
+code: a leader whose `Next` for the follower was reset to 1 by the reply to one of its own
+stale-term `MsgApp`s (`issues/raft-stale-term-appresp-ack.md`) sends batches, cut by
+`MaxSizePerMsg`, that end below the divergence point; the follower accepts one, keeps the
+tail, sets `logSynced`, and a heartbeat then commits a stale entry
+(`notes/pr-verify/raft-140.md`, `TestLogSyncedBogusAckStaleTail`). It is a `sorry` so that the
+rest of the proof could be rebuilt around the PR; the results that reach it are not evidence
+that #140's heartbeat commit is safe -- it is not. With the fix the report proposes (commit at
+most `min(m.Commit, syncedIndex)`, `syncedIndex` the highest index the follower acknowledged in
+the term), the statement would be: `cm` at most an index the follower itself acknowledged in
+`m.term`, which this file's acknowledgement invariant gives. -/
+theorem heartbeat_commit_acked (γ : RaftNames) (id : w64) (s : PState) (m : Msg) (cm : w64) :
+    m.ty = .heartbeat →
+    m.dst = id →
+    m.term = s.term →
+    s.role ≠ .leader →
+    uint.Z s.commit < uint.Z cm →
+    uint.Z cm ≤ uint.Z m.commit →
+    uint.Z cm ≤ plogLastIndexZ s.base s.log →
+    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md -∗
+      ownRaftGhost γ id s md ∗ ∃ i, ⌜uint.Z cm ≤ uint.Z i⌝ ∗ isAcked γ id m.term i := by
+  sorry
+
+/-- `Step.heartbeat` (etcd-io/raft#140): back to follower of `m.src`, the commit index moved
+to `cm` if that is higher. Where it moves, from the heartbeat's acknowledgement
+(`heartbeat_commit_acked`, a `sorry`) and the core lemma at `Commit := cm`; where it does not,
+from the core lemma at `Commit := 0`, which needs no acknowledgement. -/
+theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m : Msg) (cm : w64) :
+    m.ty = .heartbeat →
+    m.dst = id →
+    m.term = s.term →
+    m.src ≠ id →
+    s.role ≠ .leader →
+    uint.Z cm ≤ uint.Z m.commit →
+    uint.Z cm ≤ plogLastIndexZ s.base s.log →
+    ⊢ isMessage (GF := GF) γ m -∗
+      ownRaftGhost γ id s md ==∗
+      ownRaftGhost γ id
+        (psendMsgs
+           { padoptLeader s m.src with commit := plogCommitTo s.commit cm }
+           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) md := by
+  intro Hty Hto Hterm Hfid Hrole Hcm1 Hcm2
+  iintro #Hm Hown
+  by_cases Hadv : uint.Z s.commit < uint.Z cm
+  · icases heartbeat_commit_acked γ id s m cm Hty Hto Hterm Hrole Hadv Hcm1 Hcm2 $$ Hm Hown with
+      ⟨Hown, %i, %Hi, #Hack⟩
+    ihave #Hm' := isMessage_heartbeat_lower γ m cm Hty Hcm1 $$ Hm
+    iapply ownRaftGhost_step_heartbeat_acked γ id s { m with commit := cm } Hty Hto Hterm Hfid
+      Hrole Hcm2 $$ Hm' [] Hown
+    iexists i
+    rw [Hto]
+    iframe Hack
+    ipureintro; exact Hi
+  · have H0 : plogCommitTo s.commit cm = plogCommitTo s.commit (W64 0) := by
+      unfold plogCommitTo
+      rw [if_neg Hadv, if_neg (by have := uint_Z_nonneg s.commit; simp)]
+    rw [H0]
+    ihave #Hm' := isMessage_heartbeat_lower γ m (W64 0) Hty (by have := uint_Z_nonneg m.commit; simp) $$ Hm
+    iapply ownRaftGhost_step_heartbeat_acked γ id s { m with commit := W64 0 } Hty Hto Hterm Hfid
+      Hrole (by have := plogLastIndexZ_nonneg s.base s.log; simp only [show uint.Z (W64 0) = 0 from rfl]; omega) $$ Hm' [] Hown
+    iexists (W64 0)
+    isplitr
+    · ipureintro; simp
+    · unfold isAcked; ileft; ipureintro; rfl
 
 /-- `Step.appAccept`. The new log is the old one cut at the first conflict, if any, and
 the batch appended (`plogMaybeAppend_inv`); the batch is the leader's (`isMessage`'s
@@ -4311,10 +4395,10 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_reject γ id s m hint hintterm Hty Hfid Hrole $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
-  | heartbeat m s Hty Hto Hfid Hterm Hrole Hcm =>
+  | heartbeat m s cm Hty Hto Hfid Hterm Hrole Hcm1 Hcm2 =>
     iintro Hregs Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_heartbeat γ id s m Hty Hto Hterm Hfid Hrole Hcm $$ Hm Hown with Hown
+    imod ownRaftGhost_step_heartbeat γ id s m cm Hty Hto Hterm Hfid Hrole Hcm1 Hcm2 $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
   | beat s ms Hrole Hms Hctx =>
     iintro Hregs _ - Hown

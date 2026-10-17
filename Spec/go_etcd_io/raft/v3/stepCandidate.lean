@@ -298,9 +298,8 @@ abbrev stepCandidate.spec : Prop :=
       uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
      -- from another node (2026-10-10, `handleAppendEntries`'s premise)
      m.From' ≠ id) →
-  (m.Type' = MsgHeartbeat →
-     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
-     m.From' ≠ id) →
+  -- (raft#140) no commit premise: `handleHeartbeat` commits at most `lastIndex()`
+  (m.Type' = MsgHeartbeat → m.From' ≠ id) →
   (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
    uint.Z s.term + 1 < 2 ^ 64) →
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
