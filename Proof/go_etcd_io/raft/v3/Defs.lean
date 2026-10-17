@@ -1050,32 +1050,50 @@ the lower 16 bits: `((t & 0xffff_ffff_ffff_0000) >> 16 + 1) << 16 | (x & 0xffff)
 def nextTermOf (t x : w64) : w64 :=
   ((t &&& W64 18446744073709486080) >>> W64 16 + W64 1) <<< W64 16 ||| x &&& W64 65535
 
-theorem nextTermOf_eq (t x : w64) : nextTermOf t x =
-    (((t &&& 0xffffffffffff0000#64) >>> 16) + 1) <<< 16 ||| (x &&& 0xffff#64) := by
-  unfold nextTermOf; simp only [W64]; bv_decide
-
-theorem nextTermOf_bv (t x : w64) (H : t < 0xffffffffffff0000#64) :
-    t < nextTermOf t x ∧ nextTermOf t x - t < 0x20000#64 := by
-  rw [nextTermOf_eq]; bv_decide
+/-- `nextTermOf` on the naturals: the next epoch (mod `2^48`) times `2^16`, plus the draw's low
+16 bits. -/
+theorem nextTermOf_toNat (t x : w64) : (nextTermOf t x).toNat =
+    ((t.toNat / 2 ^ 16 + 1) % 2 ^ 48) * 2 ^ 16 + x.toNat % 2 ^ 16 := by
+  unfold nextTermOf
+  have hlo : (x &&& W64 65535).toNat = x.toNat % 2 ^ 16 := by
+    rw [BitVec.toNat_and]
+    rw [show (W64 65535).toNat = 2 ^ 16 - 1 from rfl, Nat.and_two_pow_sub_one_eq_mod]
+  have hhi : ((t &&& W64 18446744073709486080) >>> W64 16).toNat = t.toNat / 2 ^ 16 := by
+    rw [BitVec.ushiftRight_eq', BitVec.toNat_ushiftRight, BitVec.toNat_and]
+    rw [show (W64 16).toNat = 16 from rfl, Nat.shiftRight_and_distrib,
+      show (W64 18446744073709486080).toNat >>> 16 = 2 ^ 48 - 1 from rfl,
+      Nat.and_two_pow_sub_one_eq_mod, Nat.shiftRight_eq_div_pow]
+    have := t.isLt
+    apply Nat.mod_eq_of_lt
+    omega
+  rw [BitVec.toNat_or, hlo, BitVec.shiftLeft_eq', BitVec.toNat_shiftLeft, BitVec.toNat_add, hhi]
+  rw [show (W64 16).toNat = 16 from rfl, show (W64 1).toNat = 1 from rfl]
+  have ha : t.toNat / 2 ^ 16 < 2 ^ 48 := by have := t.isLt; omega
+  rw [Nat.mod_eq_of_lt (show t.toNat / 2 ^ 16 + 1 < 2 ^ 64 by omega), Nat.shiftLeft_eq,
+    show (2 : Nat) ^ 64 = 2 ^ 48 * 2 ^ 16 from rfl, Nat.mul_mod_mul_right, Nat.mul_comm,
+    ← Nat.two_pow_add_eq_or_of_lt (Nat.mod_lt _ (by decide))]
 
 /-- Below the last epoch, `nextTerm` moves the term forward, by less than `2^17`. -/
 theorem nextTermOf_bounds (t x : w64) (H : uint.Z t + 2 ^ 16 < 2 ^ 64) :
     uint.Z t < uint.Z (nextTermOf t x) ∧ uint.Z (nextTermOf t x) < uint.Z t + 2 ^ 17 := by
-  have h : t < 0xffffffffffff0000#64 := by
-    rw [BitVec.lt_def]; simp only [uint.Z] at H; simp; omega
-  obtain ⟨h1, h2⟩ := nextTermOf_bv t x h
-  rw [BitVec.lt_def] at h1 h2
-  rw [BitVec.toNat_sub_of_le (BitVec.le_of_lt h1)] at h2
-  simp only [uint.Z]
-  simp at h2
+  simp only [uint.Z] at H ⊢
+  rw [nextTermOf_toNat]
+  have h1 : t.toNat / 2 ^ 16 + 1 < 2 ^ 48 := by omega
+  rw [Nat.mod_eq_of_lt h1]
+  have := Nat.mod_lt x.toNat (show 2 ^ 16 > 0 by decide)
   omega
 
 /-- In the last epoch (`t ≥ 2^64 - 2^16`), `nextTerm` wraps: the epoch becomes `0` and the
-term is the draw alone, **below** `t` (PR raft#86's term overflow; the old `r.Term + 1`
-wrapped only at `t = 2^64 - 1`). -/
-theorem nextTermOf_wraps (t x : w64) (H : 0xffffffffffff0000#64 ≤ t) :
-    nextTermOf t x = (x &&& 0xffff#64) ∧ nextTermOf t x < t := by
-  rw [nextTermOf_eq]; bv_decide
+term is the draw's low 16 bits alone, **below** `t` (PR raft#86's term overflow; the old
+`r.Term + 1` wrapped only at `t = 2^64 - 1`). -/
+theorem nextTermOf_wraps (t x : w64) (H : 2 ^ 64 - 2 ^ 16 ≤ uint.Z t) :
+    uint.Z (nextTermOf t x) = uint.Z x % 2 ^ 16 ∧ uint.Z (nextTermOf t x) < uint.Z t := by
+  simp only [uint.Z] at H ⊢
+  rw [nextTermOf_toNat]
+  have h1 : t.toNat / 2 ^ 16 + 1 = 2 ^ 48 := by have := t.isLt; omega
+  rw [h1, Nat.mod_self]
+  have := Nat.mod_lt x.toNat (show 2 ^ 16 > 0 by decide)
+  omega
 
 /-- (PR raft#86) `becomeCandidate` at the term `T` it moves to: `r.nextTerm()`'s, which
 `raft.becomeCandidate.spec` gives as `nextTermOf s.term x` for some draw `x`. -/
@@ -1098,8 +1116,9 @@ def prevoteReq (id dst term : w64) (last : entryID) : Msg :=
 /-- What `campaign(t)` leaves, with `pre` whether `t` is `campaignPreElection`: the role
 transition, then the self-addressed response and one request per peer in `peers`,
 each carrying the log's last entry id. An election is `becomeCandidate` and `MsgVote`s
-at the new term; a pre-election is `becomePrecandidate` and `MsgPreVote`s at `Term + 1`
-(the term itself does not move). The requests of an election carry the `Context` `cl`
+at the new term; a pre-election is `becomePrecandidate` and `MsgPreVote`s at `T`
+(the term itself does not move). `T` is `nextTerm()`'s (PR raft#86; until then `Term + 1`),
+the pre-vote's and the election's from separate draws. The requests of an election carry the `Context` `cl`
 (2026-10-13): `transferCtx t`, the marker for a leader transfer's campaign. -/
 def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) (T : w64)
     (cl : List w8 := []) : NState :=

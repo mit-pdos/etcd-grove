@@ -4,12 +4,12 @@
 
 `Campaign()` is `rn.raft.Step(pb.Message{Type: MsgHup})`: the node starts an election
 (or a pre-election, with `Config.PreVote`), unless it is a leader or cannot be one. The
-client sees only the term, which moves up by at most one (`TermStep`); the committed log
+client sees only the term, which moves up by at most `2^17` (`TermStep`; PR raft#86, one before); the committed log
 handed out, the entries to persist and the queue `Advance` steps are kept, so a campaign
 may come between `Ready` and `Advance`.
 
 Go panics when the campaign wraps the term (`send` refuses a vote request of term `0`),
-hence `rs.term + 1 < 2^64`.
+hence `rs.term + 2^16 < 2^64` (PR raft#86: not the last epoch; `+ 1` before).
 
 Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` and has
 `[AllG GF]`.

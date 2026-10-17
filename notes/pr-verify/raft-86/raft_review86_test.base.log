@@ -1,0 +1,7 @@
+=== RUN   TestReview86RaceDeposesNewLeader
+    review86_test.go:97: of 200 races: leader deposed 0 times, kept 200 times
+--- PASS: TestReview86RaceDeposesNewLeader (0.11s)
+=== RUN   TestReview86PreVoteGrantedVoteIgnored
+    review86_test.go:133: 0 of 0 granted pre-votes led to an ignored election
+--- PASS: TestReview86PreVoteGrantedVoteIgnored (0.10s)
+ok  	go.etcd.io/raft/v3	0.220s

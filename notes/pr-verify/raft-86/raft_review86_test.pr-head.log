@@ -1,0 +1,14 @@
+=== RUN   TestReview86RaceDeposesNewLeader
+    review86_test.go:91: leader at 98298 deposed by losing candidate at 122547
+    review86_test.go:91: leader at 65878 deposed by losing candidate at 70359
+    review86_test.go:97: of 200 races: leader deposed 107 times, kept 93 times
+    review86_test.go:99: a freshly elected leader was deposed by the concurrent (losing) candidate in 107/200 runs
+--- FAIL: TestReview86RaceDeposesNewLeader (0.19s)
+=== RUN   TestReview86PreVoteGrantedVoteIgnored
+    review86_test.go:129: pre-vote at 105572 granted by node at 98304; vote at 86631 ignored
+    review86_test.go:133: 89 of 196 granted pre-votes led to an ignored election
+    review86_test.go:135: granted pre-vote, ignored vote: 89/196
+--- FAIL: TestReview86PreVoteGrantedVoteIgnored (0.14s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.349s
+FAIL

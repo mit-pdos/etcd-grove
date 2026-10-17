@@ -55,7 +55,7 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
 `MsgTimeoutNow`): `r.step` agrees with the role, a protocol step that receives nothing,
-the log untouched, the term up by at most one, `r.preVote` and the ghost bounds kept. -/
+the log untouched, the term up by less than `2^17` (PR raft#86; one before), `r.preVote` and the ghost bounds kept. -/
 def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
   NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧

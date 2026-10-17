@@ -1,0 +1,29 @@
+# PR etcd-io/raft#86 (randomized low term bits, `raft.nextTerm`): the functions it changes and
+# the callers whose specs changed with them (notes/pr-verify/raft-86.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-86.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots raft__nextTerm
+roots raft__becomeCandidate
+roots raft__campaign
+roots raft__hup
+roots raft__tickElection
+roots stepCandidate
+roots raft__Step\.lean
+roots RawNode__(Tick|Campaign|Step|Advance)
+roots node__(run|Tick)
+roots StartNode
+roots RestartNode
+axiom DescribeConfChange.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom nextTermOf_bv._native.bv_decide.ax_1_5
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof

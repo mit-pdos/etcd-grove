@@ -1,0 +1,9 @@
+=== RUN   TestNextTermWrapsInLastEpoch
+    raft_nextterm_test.go:23: becomeCandidate at term 18446744073709550615 moved to term 1076
+--- PASS: TestNextTermWrapsInLastEpoch (0.00s)
+=== RUN   TestNextTermBounds
+--- PASS: TestNextTermBounds (0.03s)
+=== RUN   TestPreVoteTermDiffersFromElectionTerm
+    raft_nextterm_test.go:65: of 200 pre-elections: election term != pre-vote term 200 times, lower 90 times
+--- PASS: TestPreVoteTermDiffersFromElectionTerm (0.01s)
+ok  	go.etcd.io/raft/v3	(cached)

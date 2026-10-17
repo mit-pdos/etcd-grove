@@ -4,10 +4,10 @@
 
 `Tick()` is `rn.raft.tick()`: a tick of the logical clock -- `r.tickElection` (a
 non-leader may campaign) or `r.tickHeartbeat` (a leader may send heartbeats). The client
-sees only the term, which moves up by at most one; the committed log handed out, the
+sees only the term, which moves up by at most `2^17` (PR raft#86's `nextTerm()`; one before); the committed log handed out, the
 entries to persist and the queue `Advance` steps are kept, so a tick may come between
 `Ready` and `Advance`. Go panics when a campaign wraps the term, hence
-`rs.term + 1 < 2^64`.
+`rs.term + 2^16 < 2^64` (not the last epoch; `rs.term + 1 < 2^64` before PR raft#86).
 
 Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` and has
 `[AllG GF]`.
