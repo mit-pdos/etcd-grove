@@ -1,10 +1,12 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__serveWatchClient.lean`. Lean-first (no
+Proof of `Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__recvLoop.lean`. Lean-first (no
 Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__serveWatchClient
+public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__recvLoop
+public import Spec.go_uber_org.zap.Logger__Debug
+public import Spec.go_uber_org.zap.Error
 
 @[expose] public section
 
@@ -27,13 +29,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem watchGRPCStream.serveWatchClient.wp_proof :
-    watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) := by
+theorem watchGRPCStream.recvLoop.wp_proof
+    (wp_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
+    (wp_zapError : zap.Error.spec (GF := GF) (hG := hG)) :
+    watchGRPCStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro V G callSl wc γs Dn cd' γr
   wp_start as ⟨#Hwgs, #Hcs, Htok, #Hspsc, Hprod⟩
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
-  icases Hwgs' with ⟨%Hwnn, -, #Hfacts, -, -, -, -, -, -, -, -, #Frespc, #Fdonec, #Ferrc, -, -,
+  icases Hwgs' with ⟨%Hwnn, -, #Hfacts, %Hlg, -, -, -, -, -, -, -, #Frespc, #Fdonec, #Ferrc, -, #Flg,
     -, -, -, #Herr, -, #Hdone⟩
   iunfold watchSrvFacts at Hfacts
   icases Hfacts with ⟨-, #Hfacts⟩
@@ -111,6 +115,15 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
     | ok ei =>
     iunfold eofOk at Heof
     ihave ⟨%Hok, #Hst⟩ := Heof $$ %(GoInterface.ok ei) Heofe
+    wp_auto
+    wp_apply wp_zapError as %f1 -
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    wp_auto
+    wp_apply +noauto wp_Debug V.lg _ _ $$ []
+    · iframe #; ipureintro; exact Hlg
     wp_auto_lc 2
     wp_apply_core chan.wp_select_blocking
     iapply BigAndL.bigAndL_cons.2
@@ -156,6 +169,15 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
     cases err with
     | nil => exact absurd rfl Hok.1
     | ok ei =>
+    wp_auto
+    wp_apply wp_zapError as %f1 -
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    wp_auto
+    wp_apply +noauto wp_Debug V.lg _ _ $$ []
+    · iframe #; ipureintro; exact Hlg
     wp_auto_lc 2
     wp_apply_core chan.wp_select_blocking
     iapply BigAndL.bigAndL_cons.2

@@ -1,5 +1,5 @@
 /-
-`(*clientv3.watchGRPCStream).serveWatchClient(wc)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
+`(*clientv3.watchGRPCStream).recvLoop(wc)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -26,11 +26,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `w.serveWatchClient(wc)` on the client end of a gRPC watch stream with its receiver's token:
+/-- `w.recvLoop(wc)` (the PR's rename of `serveWatchClient`, which also logs the receive's error) on the client end of a gRPC watch stream with its receiver's token:
 forwards every response it receives, in order, on `respc` (the producer's side: the `k`th
 element is the stream's `k`th response, `respcElem`), until the receive fails (its error to
 `errc`) or the stream is done (`donec`). -/
-abbrev watchGRPCStream.serveWatchClient.spec : Prop :=
+abbrev watchGRPCStream.recvLoop.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (wc : GoInterface) (γs : StreamNames)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
     (γr : SpscNames),
@@ -39,7 +39,7 @@ abbrev watchGRPCStream.serveWatchClient.spec : Prop :=
       cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
       isSpsc γr G.respc (respcElem γs Dn) (fun _ => iprop(False)) ∗
       spscProducer γr ([] : List Loc) }}
-    (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"serveWatchClient")) (Val #wc))
+    (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"recvLoop")) (Val #wc))
   {{ RET #(); True }}
 
 end spec

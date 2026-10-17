@@ -62,8 +62,6 @@ theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG
   iexists ksl, esl, flt
   simp only [createOf]
   iframe #
-  rw [show (W64 0 : w64) = 0 from rfl]
-  iexact WatchId
 
 end proof
 

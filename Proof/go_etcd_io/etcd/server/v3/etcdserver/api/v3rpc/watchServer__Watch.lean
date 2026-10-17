@@ -87,7 +87,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   -- the run's answer tokens, and the stream's auxiliary name (the watch slice's unit W-C)
   imod v3rpc.ansPool_alloc (GF := GF) with ⟨%γa, HPool⟩
   imod v3rpc.streamAux_set γs (v3rpc.auxOf γo γa) $$ HAux with #HauxIs
-  wp_apply chan.wp_make2 (V := Loc) (W64 16) as %ctrl %γch ⟨#Hctrl, %Hcap, Hoc⟩
+  wp_apply chan.wp_make2 (V := Loc) (W64 128) as %ctrl %γch ⟨#Hctrl, %Hcap, Hoc⟩
   · ipureintro; decide
   wp_apply (wp_map_make1 (K := w64) (V := Bool) go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
     as %pm Hpm
