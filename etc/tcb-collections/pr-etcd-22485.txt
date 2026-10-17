@@ -1,0 +1,15 @@
+# etcd-io/etcd#22485 (processMessages keeps the Ready's order): the linked results of
+# `(*raftNode).processMessages` and its caller `(*raftNode).start`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22485.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots raftNode__processMessages
+roots raftNode__start
+axiom proto.Clone.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Fatal.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof

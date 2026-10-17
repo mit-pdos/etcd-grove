@@ -393,7 +393,7 @@ theorem raftNode.start.wp_proof
         wp_auto
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
         wp_join with [rh rd r islead]
-        · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
+        · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok, -⟩
           wp_apply HSend $$ [$Hout $Houtok]
           wp_join_done
         -- `if !raft.IsEmptySnap(raftSnap)`: the snapshot is nil
@@ -475,7 +475,7 @@ theorem raftNode.start.wp_proof
         · -- a follower: `msgs := r.processMessages(rd.Messages)`, `notifyc <- `, then (on a conf
           -- change) a second `notifyc` send or `<-r.stopped`, `r.transport.Send(msgs)`
           wp_auto
-          wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
+          wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok, -⟩
           wp_apply wp_bag_send γnc nc () (fun _ => iprop(True)) $$ [$Hncb]
           cases cc
           · wp_auto

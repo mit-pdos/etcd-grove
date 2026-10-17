@@ -1,0 +1,22 @@
+--- FAIL: TestProcessMessagesKeepsReadyOrder (0.00s)
+    --- FAIL: TestProcessMessagesKeepsReadyOrder/MsgApp (0.00s)
+        raft_order_test.go:123: 
+            	Error Trace:	<checkout>/server/etcdserver/raft_order_test.go:123
+            	Error:      	Not same: 
+            	Test:       	TestProcessMessagesKeepsReadyOrder/MsgApp
+            	Messages:   	got[0] is not the Ready pointer
+    --- FAIL: TestProcessMessagesKeepsReadyOrder/MsgAppResp (0.00s)
+        raft_order_test.go:123: 
+            	Error Trace:	<checkout>/server/etcdserver/raft_order_test.go:123
+            	Error:      	Not same: 
+            	Test:       	TestProcessMessagesKeepsReadyOrder/MsgAppResp
+            	Messages:   	got[0] is not the Ready pointer
+    --- FAIL: TestProcessMessagesKeepsReadyOrder/mixed (0.00s)
+        raft_order_test.go:123: 
+            	Error Trace:	<checkout>/server/etcdserver/raft_order_test.go:123
+            	Error:      	Not same: 
+            	Test:       	TestProcessMessagesKeepsReadyOrder/mixed
+            	Messages:   	got[0] is not the Ready pointer
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.036s
+FAIL

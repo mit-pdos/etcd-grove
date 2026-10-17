@@ -45,6 +45,28 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/etcd#22485: `processMessages` in the `Ready`'s order (2026-10-17, branch `pr-verify/etcd-22485`)
+
+Not for `lean`: the translation is of the unmerged PR (fork branch `pr-etcd-22485-goose-lean`,
+`etc/goose.py --check` fails here). Report: `notes/pr-verify/etcd-22485.md`.
+
+- **Spec** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__processMessages.lean`): the
+  result is exactly `rnKept msL tys rm`, the messages `rnKeepAt` keeps, in the `Ready`'s order,
+  for some per-index answers `rm` of `isIDRemoved` (not to a removed member, not a `MsgSnap`,
+  and of the `MsgAppResp`s only the last one to a member not removed). On `lean` it said only
+  that the result's messages are valid ones, so the reverse order of the pinned code went
+  through (`issues/etcd-processmessages-reverse-order.md`).
+- **Proved** of the PR's code, no `sorry`, no new axiom; `spec_implies_old` (the new spec implies
+  `lean`'s), `rnKept_sublist` (the order). `raftNode.start` only drops the new facts.
+- **A proof-side gap found on the way** (pre-existing, not the PR's): the trust-boundary axiom
+  `EtcdServer.createMergedSnapshotMessage.wp_proof` has precondition `True`, but the Go function
+  writes `m.Snapshot` (`snapshot_merge.go:51`), and its caller holds only `rnMsgOk`'s discarded
+  (read-only) fraction of the `MsgSnap` received from `msgSnapC`. The axiom claims a heap write
+  without ownership; it should require `m`'s points-to (or its `Snapshot` field). The Go code is
+  fine: raft keeps nothing of a handed-out `MsgSnap` (`issues/raft-ready-messages-read-after-handout.md`,
+  "every other message goes out whole"); the fix is to carry the message's full ownership
+  through `msgSnapC` for `MsgSnap`s.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
