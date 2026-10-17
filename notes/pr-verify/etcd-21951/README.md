@@ -1,0 +1,11 @@
+# etcd-io/etcd#21951: tests, probes and logs
+
+Revisions: the PR head is `6a7dbdf3f8f4d5f583a7fae36b53d7c6a161d8e9` (upstream base `e9b62f804`); the fork
+commit is `mit-pdos/etcd-grove` branch `pr-etcd-21951-goose-lean` (`6a2a90505`, the PR on the fork's
+`goose-lean` `09669450f`, which already has upstream's non-blocking defrag).
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `gofail-build.sh`, `gofail-build.pr.log` | Building `server/storage/mvcc` with failpoints enabled fails at the PR head: the PR declares five failpoints a second time in `kvstore_compaction.go`. The base builds. | PR head (fails), base `e9b62f804` (builds) | `GOTOOLCHAIN=go1.26.4 sh gofail-build.sh <etcd checkout>` |
+| `kvstore_index_driven_probe_test.go`, `probe.log` | `TestProbeDefaultPathBuildsDeleteSet`: with the gate off, `treeIndex.Compact` still builds the delete set (999 entries for 1000 revisions of a key). `TestProbeIndexDrivenStoresNoHash`: with the gate on, no compaction hash is stored. `TestProbeDeletePutAtCompactRev`: on the delete-then-put-in-one-revision shape (#22376) the two modes leave different key buckets (the index-driven one keeps the live row). `TestProbeIndexDrivenMatchesStandard`: 780 random histories over three keys, compacted once or twice, give the same bucket in both modes, and reads at or above the compaction revision answer as before, also after reopening the store. All pass. | PR head | `cp kvstore_index_driven_probe_test.go <etcd>/server/storage/mvcc/ && cd <etcd>/server && TMPDIR=<dir with space> GOTOOLCHAIN=go1.26.4 go test ./storage/mvcc -run TestProbe -v` |
+| `kvstore_compaction_review_test.go`, `review-test.fork.log` (reviewer's) | `TestReviewIndexDrivenSkipsSafeRangeDeleteLock` fails: the range-scan pass takes `LockForSafeRangeDelete` once, the index-driven pass never does. `TestReviewDeleteThenPutModes` passes: on the #22376 shape the gate-off read panics (`range failed to find revision pair`), the gate-on read returns the live value. | fork branch `pr-etcd-21951-goose-lean` (has the defrag lock) | `cp kvstore_compaction_review_test.go <fork>/server/storage/mvcc/ && cd <fork>/server && GOTOOLCHAIN=go1.27.1 go test ./storage/mvcc -run TestReview -v` |

@@ -145,7 +145,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   wp_apply time.wp_Now as %t0 -
   (try wp_auto)
-  wp_apply h0 ti γ.idx rev log c' $$ [$Htok] as %keep ⟨Htok, %A, Hkeep, %HA⟩
+  wp_apply h0 ti γ.idx rev log c' $$ [$Htok] as %keep %md ⟨Htok, ⟨%A, Hkeep, %HA⟩, -⟩
   · iframe #; ipureintro; exact ⟨hc', Hrev.1, Hrev.2⟩
   (try wp_auto)
   iunfold histSpec at HIdx HPause HTot

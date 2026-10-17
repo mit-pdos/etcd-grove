@@ -23,6 +23,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -818,6 +819,7 @@ instance StoreConfig_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "CompactionBatchLimit" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"CompactionBatchLimit" l) v.CompactionBatchLimit' dq ∗
     "CompactionSleepInterval" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"CompactionSleepInterval" l) v.CompactionSleepInterval' dq ∗
+    "IndexDrivenCompaction" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"IndexDrivenCompaction" l) v.IndexDrivenCompaction' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -856,6 +858,22 @@ instance StoreConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"CompactionSleepInterval" l) v.CompactionSleepInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"CompactionSleepInterval" l) CompactionSleepInterval' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactionSleepInterval' := CompactionSleepInterval' } : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance StoreConfig_access_load_IndexDrivenCompaction (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"IndexDrivenCompaction" l) v.IndexDrivenCompaction' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"IndexDrivenCompaction" l) v.IndexDrivenCompaction' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance StoreConfig_access_store_IndexDrivenCompaction (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (IndexDrivenCompaction' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"IndexDrivenCompaction" l) v.IndexDrivenCompaction' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"IndexDrivenCompaction" l) IndexDrivenCompaction' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IndexDrivenCompaction' := IndexDrivenCompaction' } : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

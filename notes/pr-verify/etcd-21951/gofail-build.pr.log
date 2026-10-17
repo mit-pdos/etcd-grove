@@ -1,0 +1,15 @@
+# go.etcd.io/etcd/server/v3/storage/mvcc
+storage/mvcc/kvstore_compaction.go:153: label __badTypecompactAfterAcquiredBatchTxLock already defined at storage/mvcc/kvstore_compaction.go:128:289
+storage/mvcc/kvstore_compaction.go:153: label __nomockcompactAfterAcquiredBatchTxLock already defined at storage/mvcc/kvstore_compaction.go:128:423
+storage/mvcc/kvstore_compaction.fail.go:12:5: __fp_compactAfterAcquiredBatchTxLock redeclared in this block
+	storage/mvcc/kvstore_compaction.fail.go:7:5: other declaration of __fp_compactAfterAcquiredBatchTxLock
+storage/mvcc/kvstore_compaction.fail.go:13:5: __fp_compactBeforeCommitBatch redeclared in this block
+	storage/mvcc/kvstore_compaction.fail.go:10:5: other declaration of __fp_compactBeforeCommitBatch
+storage/mvcc/kvstore_compaction.fail.go:14:5: __fp_compactAfterCommitBatch redeclared in this block
+	storage/mvcc/kvstore_compaction.fail.go:11:5: other declaration of __fp_compactAfterCommitBatch
+storage/mvcc/kvstore_compaction.fail.go:15:5: __fp_compactAfterAcquiredBatchTxLock redeclared in this block
+	storage/mvcc/kvstore_compaction.fail.go:7:5: other declaration of __fp_compactAfterAcquiredBatchTxLock
+storage/mvcc/kvstore_compaction.fail.go:16:5: __fp_compactBeforeSetFinishedCompact redeclared in this block
+	storage/mvcc/kvstore_compaction.fail.go:8:5: other declaration of __fp_compactBeforeSetFinishedCompact
+storage/mvcc/kvstore_compaction.fail.go:17:5: __fp_compactAfterSetFinishedCompact redeclared in this block
+	storage/mvcc/kvstore_compaction.fail.go:9:5: other declaration of __fp_compactAfterSetFinishedCompact

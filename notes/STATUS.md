@@ -45,6 +45,22 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+
+## PR verification etcd-io/etcd#21951: index-driven compaction (2026-10-17, branch `pr-verify/etcd-21951`)
+
+The PR's gated compaction pass is translated and proved (`notes/pr-verify/etcd-21951.md`):
+- the model of the delete set is `CompactDel.lean` (`kiDel`, `kiRevs_kiDel`, `kiDel_ok`), and its map
+  is in `InvCompactDel.lean`;
+- `keyIndex.compact` and `treeIndex.Compact` have new specs (the `del` map);
+- `store.scheduleCompactionIndexDriven` is new and proved;
+- `store.compact` and `store.scheduleCompaction` are re-proved, with their specs unchanged;
+- the new axiom is `sort.Slice` (`Spec/sort/Slice.lean`), Go's reflective sort, which Perennial does not
+  translate. Its spec promises only a permutation.
+
+Model gap found: the backend's `LockForSafeRangeDelete` protects nothing in this repository's model, so a
+compaction pass that deletes without it (the PR's) still proves. A model in which defrag's copy needs that
+lock for every key-bucket delete would catch it. Open.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

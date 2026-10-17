@@ -1,5 +1,5 @@
 /-
-Proof of the spec of the same name: pending (the mvcc store's compaction, units 5b/5c; `sorry`).
+Proof of the spec of the same name (the mvcc store's compaction; etcd-io/etcd#21951: the gate picks the pass).
 The hypotheses are the callees' specs, in the order of `etc/link-lean-first-mvcc.txt`.
 -/
 module
@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Spec.context.Err
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompactionIndexDriven
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store
@@ -54,7 +55,8 @@ theorem mvcc.store.compact.wp_proof
     (h6 : mvcc.hashStorage.Store.spec (GF := GF) (hG := hG))
     (h7 : zap.Logger.Info.spec (GF := GF) (hG := hG))
     (h8 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
-    (h9 : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
+    (h9 : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
+    (h10 : mvcc.store.scheduleCompactionIndexDriven.spec (GF := GF) (hG := hG)) :
     mvcc.store.compact.spec (GF := GF) (hG := hG) := by
   intro s γ trace rev prev pcc te Htr
   wp_start as ⟨#Hjob, Hq, Htrc⟩
@@ -111,8 +113,24 @@ theorem mvcc.store.compact.wp_proof
     wp_auto
     ihave Htok := Hw $$ [HQ HR]
     · iframe HQ HR
-    wp_apply (h3 s γ rev prev) $$ [$Htok] as %h %err ⟨Hidx, Hres⟩
-    · iframe #
+    ihave #HcfgS := Hcfg
+    iStructNamedSuffix HcfgS "C"
+    (try wp_auto)
+    generalize Hgate : scfg.IndexDrivenCompaction' = gate
+    -- the gate: the index-driven pass or the range-scanning one (the same postcondition)
+    wp_join iprop(∃ (h : KeyValueHash) (err : GoInterface), hash_ptr ↦ h ∗ err_ptr ↦ err ∗
+        mvcc.idxCompactor γ.idx (sint.Z rev) ∗
+        ((⌜err = GoInterface.nil⌝ ∗ mvcc.compactedAt γ (sint.Z rev)) ∨
+          (mvcc.errorfIs err ∗ mvcc.storeStopped s)))
+      with [Htok hash err] as ⟨%h, %err, hash, err, Hidx, Hres⟩
+    · wp_apply (h3 s γ rev prev) $$ [$Htok] as %h %err ⟨Hidx, Hres⟩
+      · iframe #
+      (try wp_auto)
+      wp_join_done
+    · wp_apply (h10 s γ rev prev) $$ [$Htok] as %err ⟨Hidx, Hres⟩
+      · iframe #
+      (try wp_auto)
+      wp_join_done
     ihave Htok : mvcc.compactTok γ (sint.Z rev) $$ [Hidx]
     · iunfold mvcc.compactTok; iexists (sint.Z rev); iframe Hidx; ipureintro; exact Int.le_refl _
     icases Hres with (⟨%Herr, #Hdone⟩ | ⟨Herr, #Hstopped⟩)
@@ -126,8 +144,14 @@ theorem mvcc.store.compact.wp_proof
         · iframe #; ipureintro; exact Hlgnn
         wp_join_done
       · (try wp_auto)
-        wp_apply (h6 shs h)
-        wp_join_done
+        wp_if_destruct
+        · (try wp_auto)
+          wp_apply (h6 shs h)
+          wp_join_done
+        · (try wp_auto)
+          wp_apply (h7 lg) $$ []
+          · iframe #; ipureintro; exact Hlgnn
+          wp_join_done
       iunfold mvcc.compactCloser at Hcl
       icases Hcl with ⟨%γc', Hcl⟩
       wp_apply wp_broadcast_chan_close $$ [$Hcl] as -

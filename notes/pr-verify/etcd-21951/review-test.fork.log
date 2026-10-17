@@ -1,0 +1,10 @@
+    kvstore_compaction_review_test.go:42: IndexDrivenCompaction=false: LockForSafeRangeDelete calls = 1
+    kvstore_compaction_review_test.go:42: IndexDrivenCompaction=true: LockForSafeRangeDelete calls = 0
+    kvstore_compaction_review_test.go:44: index-driven compaction deleted keys without LockForSafeRangeDelete
+--- FAIL: TestReviewIndexDrivenSkipsSafeRangeDeleteLock (0.03s)
+    kvstore_compaction_review_test.go:71: IndexDrivenCompaction=false: read after compaction panicked: range failed to find revision pair
+    kvstore_compaction_review_test.go:75: IndexDrivenCompaction=true: read after compaction: [key:"foo" create_revision:3 mod_revision:3 version:1 value:"v2"] <nil>
+--- PASS: TestReviewDeleteThenPutModes (0.02s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.071s
+FAIL

@@ -1,0 +1,6 @@
+--- PASS: TestProbeDefaultPathBuildsDeleteSet (0.00s)
+--- PASS: TestProbeIndexDrivenStoresNoHash (0.04s)
+    kvstore_index_driven_probe_test.go:84: standard: 1 rows, index-driven: 2 rows
+--- PASS: TestProbeDeletePutAtCompactRev (0.03s)
+--- PASS: TestProbeIndexDrivenMatchesStandard (76.26s)
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	76.369s

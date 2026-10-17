@@ -79,6 +79,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__String
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit
+public import Proof.sort.Slice
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev
@@ -104,6 +105,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompactionIndexDriven
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Proof.time.NewTicker
 public import Proof.time.Since
@@ -338,7 +340,7 @@ theorem mvcc.keyIndex.wp_doCompact :
 
 theorem mvcc.keyIndex.wp_compact :
     mvcc.keyIndex.compact.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.compact.wp_proof mvcc.keyIndex.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty
+  mvcc.keyIndex.compact.wp_proof mvcc.keyIndex.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_doCompact mvcc.generation.wp_isEmpty mvcc.wp_newBucketKey
 
 theorem mvcc.keyIndex.wp_findGeneration :
     mvcc.keyIndex.findGeneration.spec (GF := GF) (hG := hG) :=
@@ -507,6 +509,10 @@ theorem schema.bucket.wp_Name :
 theorem schema.bucket.wp_String :
     schema.bucket.String.spec (GF := GF) (hG := hG) :=
   schema.bucket.String.wp_proof schema.bucket.wp_Name
+
+theorem sort.wp_Slice :
+    sort.Slice.spec (GF := GF) (hG := hG) :=
+  sort.Slice.wp_proof
 
 theorem mvcc.store.wp_checkPrevCompactionCompleted :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=
@@ -779,9 +785,13 @@ theorem mvcc.store.wp_scheduleCompaction [go_etcd_io.etcd.cache.v3.Assumptions] 
     mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) :=
   mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
 
+theorem mvcc.store.wp_scheduleCompactionIndexDriven [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.store.scheduleCompactionIndexDriven.spec (GF := GF) (hG := hG) :=
+  mvcc.store.scheduleCompactionIndexDriven.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since sort.wp_Slice mvcc.Revision.wp_GreaterThan mvcc.wp_NewRevBytes mvcc.wp_BucketKeyToBytes mvcc.wp_UnsafeSetFinishedCompact zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info time.Time.wp_Unix
+
 theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.compact.spec (GF := GF) (hG := hG) :=
-  mvcc.store.compact.wp_proof schedule.wp_NewJob context.wp_Err mvcc.store.wp_compactBarrier mvcc.store.wp_scheduleCompaction zap.wp_Error zap.Logger.wp_Warn mvcc.hashStorage.wp_Store zap.Logger.wp_Info schedule.Scheduler.wp_Schedule traceutil.Trace.wp_Step
+  mvcc.store.compact.wp_proof schedule.wp_NewJob context.wp_Err mvcc.store.wp_compactBarrier mvcc.store.wp_scheduleCompaction zap.wp_Error zap.Logger.wp_Warn mvcc.hashStorage.wp_Store zap.Logger.wp_Info schedule.Scheduler.wp_Schedule traceutil.Trace.wp_Step mvcc.store.wp_scheduleCompactionIndexDriven
 
 theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=

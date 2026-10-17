@@ -72,6 +72,19 @@ theorem mvcc.nodup_drop_ne (L : List mvcc.IdxEntry) (hnd : (L.map Prod.fst).Nodu
   apply this
   rw [h]
 
+/-- `delAdd`'s effect on a lookup: the old entries and the added bucket keys. -/
+theorem mvcc.delAdd_lookup : ∀ (L : List (mvcc.Rev × Bool)) (D : GMap BucketKey Unit) (bk : BucketKey),
+    ((mvcc.delAdd D L).lookup bk).isSome ↔
+      (D.lookup bk).isSome ∨ ∃ p ∈ L, mvcc.bkVal p.1 p.2 = bk
+  | [], D, bk => by simp [mvcc.delAdd]
+  | p :: L, D, bk => by
+    have ih := mvcc.delAdd_lookup L (GMap.insert (mvcc.bkVal p.1 p.2) () D) bk
+    simp only [mvcc.delAdd, List.foldl_cons] at ih ⊢
+    rw [ih, GMap.lookup_insert_eq_iff]
+    by_cases h : mvcc.bkVal p.1 p.2 = bk
+    · subst h; simp
+    · simp [h]
+
 theorem mvcc.treeIndex.Compact.wp_proof
     (h0 : zap.Int64.spec (GF := GF) (hG := hG))
     (h1 : zap.Logger.Info.spec (GF := GF) (hG := hG))
@@ -92,6 +105,8 @@ theorem mvcc.treeIndex.Compact.wp_proof
   iNamed Hti
   wp_auto
   wp_apply (wp_map_make1 (K := Revision) (V := Unit)) as %m Hm
+  (try wp_auto)
+  wp_apply (wp_map_make1 (K := BucketKey) (V := Unit)) as %md Hmd
   (try wp_auto)
   wp_apply h0 _ _ as %f1 -
   (try wp_auto)
@@ -175,19 +190,22 @@ theorem mvcc.treeIndex.Compact.wp_proof
   (try wp_auto)
   -- the iteration over the clone: each key index compacted under the lock
   wp_apply (h3 mvcc.kiPtrT t2 mvcc.kiItemIs mvcc.kiItemLess (mvcc.itemsOfEntries L0) (DFrac.own 1) _
-    (fun i => iprop(ti_ptr ↦ ti ∗ rev_ptr ↦ rev ∗ available_ptr ↦ m ∗
+    (fun i => iprop(ti_ptr ↦ ti ∗ rev_ptr ↦ rev ∗ available_ptr ↦ m ∗ del_ptr ↦ md ∗
       ghostVar γ.cmp (1 : Qp).half (sint.Z rev, (L0.drop i).map Prod.fst) ∗
+      (∃ D : GMap BucketKey Unit, ownMap md (DFrac.own 1) D ∗ ⌜mvcc.delSetOk D log (sint.Z rev)⌝) ∗
       ∃ A : GMap Revision Unit, ownMap m (DFrac.own 1) A ∗
         ⌜∀ r, (A.lookup (mvcc.revVal r)).isSome ↔
           ∃ z ∈ L0.take i, mvcc.kiAvail (W64 (sint.Z rev)) (mvcc.kiOfKey (mvcc.evsOf log) z.2.1) = some r⌝))
     iprop(False))
-    $$ [Ht2 ti rev available Hcmp Hm] as ⟨Ht2, Hpost⟩
+    $$ [Ht2 ti rev available del Hcmp Hm Hmd] as ⟨Ht2, Hpost⟩
   · isplitr
     · ipureintro; exact mvcc.kiItemLess_swo
-    iframe Ht2 ti rev available
-    isplitl [Hcmp Hm]
+    iframe Ht2 ti rev available del
+    isplitl [Hcmp Hm Hmd]
     · rw [List.drop_zero]
       iframe Hcmp
+      isplitl [Hmd]
+      · iexists ∅; iframe Hmd; ipureintro; intro bk hbk; simp at hbk
       iexists ∅
       iframe Hm
       ipureintro
@@ -195,7 +213,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
       simp
     unfold btIterSpec
     iintro %i %p %v %Hv
-    wp_start_folded as ⟨⟨Hti, Hrev, Hav, Hcmp, %A, Hm, %HA⟩, #Hitv⟩
+    wp_start_folded as ⟨⟨Hti, Hrev, Hav, Hdel, Hcmp, ⟨%D, Hmd, %HD⟩, %A, Hm, %HA⟩, #Hitv⟩
     -- the item: the clone's `i`-th entry
     unfold mvcc.itemsOfEntries at Hv
     rw [List.getElem?_map] at Hv
@@ -247,14 +265,14 @@ theorem mvcc.treeIndex.Compact.wp_proof
     have HcmL : cmax ≤ sint.Z rev := Hcc.1
     have HcmB : cmax < 2 ^ 63 := by omega
     have Hok : mvcc.gensOk z.2.2 := mvcc.IdxCRep.gensOk HbL HLL.1 HcmB Hget
-    obtain ⟨cz, -, -, -, Hzne⟩ := mvcc.IdxCRep.get_some HLL.1 Hget
+    obtain ⟨cz, Hcz0, Hcz1, Hzki, Hzne⟩ := mvcc.IdxCRep.get_some HLL.1 Hget
     -- borrow the entry
     icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hj |>.1 $$ HkisL
       with ⟨Hz, Hback⟩
     iunfold mvcc.ownEntry at Hz
     icases Hz with ⟨-, %gs, Hzki⟩
-    wp_apply (h4 z.1 gs z.2.2 lg rev m A Hlgnn Hok Hzne) $$ [Hzki Hm] as ⟨%gs', Hzki, Hm⟩
-    · iframe Hzki Hm
+    wp_apply (h4 z.1 gs z.2.2 lg rev m A md D Hlgnn Hok Hzne) $$ [Hzki Hm Hmd] as ⟨%gs', Hzki, Hm, Hmd⟩
+    · iframe Hzki Hm Hmd
     wp_apply (h5 z.1 gs' (mvcc.kiCompact rev z.2.2) (DFrac.own 1)) $$ [Hzki] as Hzki
     · iframe Hzki
     ispecialize Hback $$ %(z.1, z.2.1, mvcc.kiCompact rev z.2.2) [Hzki]
@@ -289,6 +307,16 @@ theorem mvcc.treeIndex.Compact.wp_proof
       · rintro ⟨z', (hz' | rfl), h⟩
         · exact Or.inl ⟨z', hz', h⟩
         · exact Or.inr h
+    have HD' : mvcc.delSetOk (mvcc.delAdd D (mvcc.kiDel rev z.2.2)) log (sint.Z rev) := by
+      intro bk hbk
+      rcases (mvcc.delAdd_lookup _ D bk).1 hbk with h | ⟨q, hq, hqb⟩
+      · exact HD bk h
+      · subst hqb
+        have hq' : (q.1, q.2) ∈ mvcc.kiDel rev
+            (mvcc.kiCompact (W64 cz) (mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) z.2.1)) := by
+          rw [← Hzki]; exact hq
+        have := mvcc.kiDel_ok log ilog pend Hcmpf Hcntf HbL HbLog z.2.1 cz Hcz0 rev (by omega) Hrl hq'
+        simpa [mvcc.bkVal] using this
     have Hptr : ∀ p ∈ (L0.drop (i + 1)).map Prod.fst, p ∈ L.map Prod.fst ∧ p ≠ z.1 := by
       intro p hp
       refine ⟨Hcc.2.1 p ?_, ?_⟩
@@ -336,7 +364,9 @@ theorem mvcc.treeIndex.Compact.wp_proof
       (try wp_auto)
       iapply HΦ
       simp only [↓reduceIte]
-      iframe Hti Hrev Hav Hcmp
+      iframe Hti Hrev Hav Hdel Hcmp
+      isplitl [Hmd]
+      · iexists _; iframe Hmd; ipureintro; exact HD'
       iexists _
       iframe Hm
       ipureintro; exact HA'
@@ -407,18 +437,20 @@ theorem mvcc.treeIndex.Compact.wp_proof
       (try wp_auto)
       iapply HΦ
       simp only [↓reduceIte]
-      iframe Hti Hrev Hav Hcmp
+      iframe Hti Hrev Hav Hdel Hcmp
+      isplitl [Hmd]
+      · iexists _; iframe Hmd; ipureintro; exact HD'
       iexists _
       iframe Hm
       ipureintro; exact HA'
-  icases Hpost with (%Hf | ⟨Hti, Hrev, Hav, Hcmp, %A, Hm, %HA⟩)
+  icases Hpost with (%Hf | ⟨Hti, Hrev, Hav, Hdel, Hcmp, Hdm, %A, Hm, %HA⟩)
   · exact Hf.elim
   have Hlen : (mvcc.itemsOfEntries L0).length = L0.length := by unfold mvcc.itemsOfEntries; simp
   simp only [Hlen, List.drop_length, List.take_length, List.map_nil] at HA ⊢
   wp_auto
   iapply HΦ
   iunfold mvcc.idxCompactor
-  iframe Hcmp
+  iframe Hcmp Hdm
   iexists A
   iframe Hm
   ipureintro

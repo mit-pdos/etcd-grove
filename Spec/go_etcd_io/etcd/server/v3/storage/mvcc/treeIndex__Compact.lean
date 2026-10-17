@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompactDel
 
 @[expose] public section
 
@@ -33,15 +33,19 @@ most `rev`), and the map of the revisions compaction keeps (`keepSetIs`: every k
 it, `reader_avail`, `kiAvail_kiCompact`; a key put after the clone has none, `keepAt_keys`).
 The compactor's token is what makes the clone's key indexes stay in the tree until visited (the
 lock's `idxCmpOwn`): two concurrent passes could each delete a key index the other then
-compacts, or delete a key put again in between. -/
+compacts, or delete a key put again in between.
+And (etcd-io/etcd#21951) the map of the revisions compaction drops from the index (`delSetOk`:
+each a revision of the log at or below `rev` that compaction at `rev` does not keep, as its bucket
+key, marked a tombstone exactly when it is one, `kiDel_ok`). -/
 abbrev mvcc.treeIndex.Compact.spec : Prop :=
   ∀ (ti : Loc) (γ : mvcc.IdxNames) (rev : w64) (log : mvcc.Log) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTreeIndex ti γ ∗ mvcc.crevLb γ (sint.Z rev) ∗ mvcc.idxCert γ log ∗
       mvcc.idxCompactor γ c ∗ ⌜c ≤ sint.Z rev ∧ 0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝ }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Compact")) (Val #rev))
-  {{ (m : GoMap), RET #m; mvcc.idxCompactor γ (sint.Z rev) ∗
-      ∃ A : GMap Revision Unit, ownMap m (DFrac.own 1) A ∗ ⌜mvcc.keepSetIs A log (sint.Z rev)⌝ }}
+  {{ (m md : GoMap), RET (PairV #m #md); mvcc.idxCompactor γ (sint.Z rev) ∗
+      (∃ A : GMap Revision Unit, ownMap m (DFrac.own 1) A ∗ ⌜mvcc.keepSetIs A log (sint.Z rev)⌝) ∗
+      ∃ D : GMap BucketKey Unit, ownMap md (DFrac.own 1) D ∗ ⌜mvcc.delSetOk D log (sint.Z rev)⌝ }}
 
 end spec
 
