@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22499, the snap directory synced after adopting a snapshot db, as #22518 (2026-10-17, branch `pr-verify/etcd-22499`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22499-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. #22499 makes #22518's fix with the sync helper a package
+variable (`var syncSnapDir = func(...)`), so the branch carries #22518's specs and proofs
+(cherry-picked) and adds `server/v3/storage`'s package fact: the variable holds, read-only, its
+function literal (`storage/Fs.lean`, `storageInit`, now `storage`'s `isPkgInit`, `True` before;
+the literal checked against the translated initializer by `rfl`, its spec proved in
+`storage/syncSnapDirLit.lean`). The durability vocabulary the fact needs moved from
+`InvSnapshotBackend.lean` to `Fs.lean`. No axiom or `sorry` beyond #22518's. Report:
+`notes/pr-verify/etcd-22499.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

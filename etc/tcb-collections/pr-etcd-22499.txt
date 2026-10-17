@@ -1,0 +1,24 @@
+# etcd PR #22499 (branch pr-verify/etcd-22499 only): `storage.OpenSnapshotBackend` syncing the
+# snap directory after adopting a snapshot database, through the package variable `syncSnapDir`
+# (notes/pr-verify/etcd-22499.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22499.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots OpenSnapshotBackend
+axiom config.ServerConfig.BackendPath.wp_proof
+axiom config.ServerConfig.SnapDir.wp_proof
+axiom fileutil.Fsync.wp_proof
+axiom fileutil.OpenDir.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom os.File.Close.wp_proof
+axiom os.Rename.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom storage.OpenBackend.wp_proof
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.TLSInfo_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_into_val_typed
+sorry Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.URLs_typed_pointsto
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_into_val_typed
+sorry Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig.DiscoveryConfig_typed_pointsto

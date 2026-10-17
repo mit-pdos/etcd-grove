@@ -1,0 +1,4 @@
+--- PASS: TestOpenSnapshotBackendSyncsSnapDir (0.00s)
+--- PASS: TestOpenSnapshotBackendSyncError (0.00s)
+--- PASS: TestOpenSnapshotBackendMissingSnapshot (0.00s)
+ok  	go.etcd.io/etcd/server/v3/storage	1.092s

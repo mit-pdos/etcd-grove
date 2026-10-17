@@ -127,7 +127,9 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
+public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
+public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__SnapDir
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
@@ -143,6 +145,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
@@ -184,6 +188,8 @@ public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
+public import Proof.os.File__Close
+public import Proof.os.Rename
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
@@ -208,9 +214,12 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__DBFilePath
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
+public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Proof.strconv.FormatBool
 public import Proof.time.Duration__Seconds
 public import Proof.time.Time__After
@@ -249,6 +258,7 @@ public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.context.Link
+public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Link
@@ -645,6 +655,14 @@ theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
 
+theorem config.ServerConfig.wp_BackendPath :
+    config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.BackendPath.wp_proof
+
+theorem config.ServerConfig.wp_SnapDir :
+    config.ServerConfig.SnapDir.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.SnapDir.wp_proof
+
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
@@ -660,6 +678,14 @@ theorem schema.wp_UnsafeUpdateConsistentIndex :
 theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+
+theorem fileutil.wp_Fsync :
+    fileutil.Fsync.spec (GF := GF) (hG := hG) :=
+  fileutil.Fsync.wp_proof
+
+theorem fileutil.wp_OpenDir :
+    fileutil.OpenDir.spec (GF := GF) (hG := hG) :=
+  fileutil.OpenDir.wp_proof
 
 theorem heap.wp_Fix :
     heap.Fix.spec (GF := GF) (hG := hG) :=
@@ -761,6 +787,14 @@ theorem lease.lessor.wp_SetRangeDeleter :
     lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG) :=
   lease.lessor.SetRangeDeleter.wp_proof
 
+theorem os.File.wp_Close :
+    os.File.Close.spec (GF := GF) (hG := hG) :=
+  os.File.Close.wp_proof
+
+theorem os.wp_Rename :
+    os.Rename.spec (GF := GF) (hG := hG) :=
+  os.Rename.wp_proof
+
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafeSaveConfStateToBackend.wp_proof
@@ -769,6 +803,10 @@ theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
 
+theorem snap.Snapshotter.wp_DBFilePath :
+    snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=
+  snap.Snapshotter.DBFilePath.wp_proof
+
 theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
     storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
   storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
@@ -776,6 +814,14 @@ theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
   storage.NewBackendHooks.wp_proof
+
+theorem storage.wp_OpenBackend :
+    storage.OpenBackend.spec (GF := GF) (hG := hG) :=
+  storage.OpenBackend.wp_proof
+
+theorem storage.wp_OpenSnapshotBackend :
+    storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) :=
+  storage.OpenSnapshotBackend.wp_proof raftpb.SnapshotMetadata.wp_GetIndex snap.Snapshotter.wp_DBFilePath fmt.wp_Errorf config.ServerConfig.wp_BackendPath os.wp_Rename config.ServerConfig.wp_SnapDir fileutil.wp_OpenDir fileutil.wp_Fsync os.File.wp_Close storage.wp_OpenBackend
 
 end links
 
