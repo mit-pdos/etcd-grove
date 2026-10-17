@@ -31,7 +31,7 @@ theorem backend.newBucketBuffer.wp_proof : backend.newBucketBuffer.spec (GF := G
   wp_alloc bb as Hbb
   wp_auto
   ihave #Hro := slotsRO_replicate_zero (GF := GF) 512
-  ihave #Hin := entsIn_nil_r (GF := GF) (List.replicate 512 (zero_val kv))
+  ihave #Hin := entsIn_nil (GF := GF) (List.replicate 512 (zero_val kv))
   iapply HΦ
   iunfold ownBB
   iexists { buf := sl, kvs := List.replicate 512 (zero_val kv) }

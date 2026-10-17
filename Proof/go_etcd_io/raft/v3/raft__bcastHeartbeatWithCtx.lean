@@ -39,11 +39,6 @@ private theorem heartbeatOk_intro (id : w64) (s : NState) (to c : w64) (cl : Lis
   simp only [Hl, ↓reduceIte]
   exact ⟨trivial, trivial, trivial, Hto, Hc, Hm⟩
 
-/-- `ownTracker` at two indices that are equal (by computation: a state reached by
-record updates). -/
-private theorem ownTracker_cast (c : CfgM) (tv : tracker.ProgressTracker) (t t' : Trk)
-    (h : t = t') : ownTrackerC (GF := GF) c tv t ⊢ ownTrackerC c tv t' := h ▸ .rfl
-
 /-- The same proof as `bcastAppend`'s (`proof_raft__bcastAppend.v`): the caller
 invariant of `Visit` is the raft struct with a tracker-shaped hole (the wand of
 `ownRaftPhysC_tracker_prvals`), quantified over the `Progress` values; `ms`
@@ -104,7 +99,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       rw [decide_eq_true Hii]
       wp_auto
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
-      ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
+      ihave Htrk := ownTrackerC_cast c tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv1, _
@@ -120,7 +115,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hok
       iintro %tvx %pvsx Hf Ht %Hok'
       ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %Hok'
-      · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
+      · iapply ownTrackerC_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
     · -- a peer: one heartbeat
@@ -132,7 +127,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
-      ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
+      ihave Htrk := ownTrackerC_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv1, _
@@ -157,13 +152,13 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       · ipureintro; exact Hok'.of_fields rfl rfl rfl
       iintro %tvx %pvsx Hf Ht %Hok''
       ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
-      · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
+      · iapply ownTrackerC_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
   iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩
   iNamed HI
   ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf [Htrk] %Hok
-  · iapply ownTracker_cast c tvfin _ _ ?_ $$ Htrk
+  · iapply ownTrackerC_cast c tvfin _ _ ?_ $$ Htrk
     rfl
   wp_auto
   iapply HΦ $$ %ms %pvsfin

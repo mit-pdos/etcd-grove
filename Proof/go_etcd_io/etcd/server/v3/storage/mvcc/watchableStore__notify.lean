@@ -420,20 +420,6 @@ def notifyState (σ : WsState) (N : Nat) (STi : GMap Loc WatcherSt) (Wsi : GMap 
     vbs := if GMap.size Bv = 0 then σ.vbs else σ.vbs ++ [vm],
     VB := if GMap.size Bv = 0 then σ.VB else σ.VB ++ [Bv] }
 
-theorem findSome_isSome_of_mem {B : GMap Loc EventBatch} {l : List (GMap Loc EventBatch)} {w : Loc}
-    (hB : B ∈ l) (hw : (B !! w).isSome) : (l.findSome? (· !! w)).isSome := by
-  induction l with
-  | nil => cases hB
-  | cons x xs ih =>
-    rw [List.findSome?_cons]
-    rcases List.mem_cons.1 hB with rfl | h
-    · cases h' : B !! w with
-      | none => rw [h'] at hw; cases hw
-      | some _ => simp
-    · cases h' : x !! w with
-      | none => exact ih h
-      | some _ => simp
-
 /-- After `notify` (unit W-K): every synced watcher is delivered at most up to `N + 1` (or its
 first revision), every victim's `minRev` at most `N + 1` (the new ones' is `N + 1`). -/
 theorem notify_settled (σ : WsState) (N : Nat) (hok : WsOk σ) (hvb : σ.vicBelow N)
@@ -681,20 +667,6 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
       omega
   · intro w γw ed hw hM hed
     exact hd w γw ed hw hM hed
-
-theorem popFacts_synced (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
-    (st : WatcherSt) (evsw : List EvM) (d : Nat) (h : (σ.Ws !! k).isSome) :
-    popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r lo evsw d) := by
-  unfold popFacts; rw [if_pos h]
-
-theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange) (lo : Nat)
-    (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
-    (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
-    popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
-        evsWf γ r lo (evsw ++ B.evs) d) := by
-  unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
 
 /-- The lock's resources of a watcher after `notify`. -/
 theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List Change) (N : Nat)

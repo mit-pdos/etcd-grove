@@ -13,12 +13,12 @@ Lean notes:
 * Rocq's `Local Ltac recv_elem` (`∀ m' ∈ recv, m' = a` for the concrete `recv` lists
   `[]`, `[a]`, `[a] ++ [a]`, by rewriting the membership away rather than `set_solver`,
   which took 150s and more there) is not ported.
-* Rocq's `Local Ltac vote_grant_tail` and `vote_reject_tail` are the local macros
-  `vote_grant_tail` and `vote_reject_tail` (taking no arguments: they refer to the
+* Rocq's `Local Ltac vote_grant_tail` and `vote_reject_tail` are the macros
+  `vote_grant_tail` and `vote_reject_tail` of `ElectionLemmas.lean` (taking no arguments: they refer to the
   proof's hypothesis names `Hty`, `Hto`, `Hterm`, `Hfnz`, `Heq0`, `Hwf`, and the grant
   tail to `Hcan`/`Hutd`). The `send` premise of both is the helper `sendOk_voteResp`;
   `send`'s precondition is framed with `$$ [Hphys]` then `iframe Hphys`, since `[$Hphys]`
-  would be an antiquotation inside the macro. The `MsgPreVote` type test is the local
+  would be an antiquotation inside the macro. The `MsgPreVote` type test is the
   macro `ty_ne`. `Step`'s
   `MsgVote` decision has exactly two tails -- grant the vote or decline it -- and the
   code reaches each of them by several routes through the `canVote` computation
@@ -56,130 +56,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
-
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
-/-- `send`'s premise for the vote response the `MsgVote` tails build (`Term: term`,
-`Reject: rej`). -/
-private theorem sendOk_voteResp (id : w64) (s : NState) (to term : w64) (rej : Bool)
-    (Ht : term ≠ W64 0) (Hle : uint.Z term ≤ uint.Z s.term) :
-    SendOk id s
-      ⟨MsgVoteResp, to, W64 0, term, W64 0, W64 0, W64 0, W64 0, rej, W64 0⟩
-      [] [] [Msg.plain .voteResp id to term rej] :=
-  Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Ht,
-    fun Hc => by
-      exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
-      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-    fun _ => ⟨rfl, rfl, Int.le_trans Hle (by split <;> omega)⟩, fun _ => ⟨Hle, by simp [MsgVoteResp, MsgPreVoteResp]⟩, rfl⟩
-
-set_option hygiene false in
-/-- `m.Type' = W32 k` is false: `m` is a `MsgVote` (`Hty`). -/
-local macro "ty_ne " k:num : tactic =>
-  `(tactic| (wp_gets; rw [decide_eq_false (show m.Type' ≠ W32 $k by rw [Hty]; w32_ne)]))
-
-set_option hygiene false in
-/-- Rocq `vote_grant_tail`: log, `send` the response, record `r.Vote := m.From`
-(`StepC.grantVote`). Needs `Hcan : PCanVote (toPState s) m.From'` and
-`Hutd : true = plogUpToDate …` in scope, and `Heq0 : m.Term' = s.term`. -/
-local macro "vote_grant_tail" : tactic => `(tactic| (
-  try wp_auto
-  wp_gets
-  wp_apply raft.wp_load_idC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_VoteC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-  wp_gets
-  wp_raft_logC
-  -- the response `&pb.Message{To: m.From, Term: m.Term, Type: ..}`: the request's cells
-  icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
-  wp_load
-  ihave Hm := HmB $$ HFr
-  try wp_auto
-  icases msgPtsC_Term_acc _ _ _ _ _ $$ Hm with ⟨%pte, HTe, #cTe, HmB⟩
-  wp_load
-  ihave Hm := HmB $$ HTe
-  try wp_auto
-  wp_gets
-  wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
-  try wp_auto
-  wp_apply PB.Enum MsgVoteResp
-  iintro %pty Hpty
-  wp_auto
-  imod cellRO_alloc _ _ $$ Hpty with #cTy
-  ihave #cRj : cellRO (GF := GF) null false $$ []
-  · iapply (show ⊢ cellRO (GF := GF) null false from cellRO_null (V := Bool))
-  imod msgOwn_of_resp _ _ _ _ _ MsgVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
-  · iframe «$a0» cTy cFr cTe cRj
-  wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (.inl rfl)
-      (sendOk_voteResp id s m.From' m.Term' false Hterm
-        (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Heq0)))
-      (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [Hphys Hresp] as Hphys
-  · iframe
-  wp_gets
-  rw [Hty]
-  try wp_auto
-  -- `r.electionElapsed = 0; r.Vote = m.From`
-  wp_gets
-  wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_store_VoteC $$ Hphys as Hphys
-  iapply HΦ $$ %interface.nil %_
-  iframe Hphys
-  ipureintro
-  refine ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl,
-    keep_frame rfl rfl rfl rfl rfl⟩
-  refine StepCD.frame ?_ (by rframe)
-  have H : StepCF c id (toPState s) [absMsg .vote m ents]
-      (psendMsgs { toPState s with vote := m.From' }
-        [Msg.plain .voteResp id m.From' s.term false]) :=
-    StepCF.grantVote (absMsg .vote m ents) (toPState s) rfl Hto Hfnz Heq0 Hcan Hutd.symm
-  rw [← Heq0] at H
-  exact H))
-
-set_option hygiene false in
-/-- Rocq `vote_reject_tail`: log, then `send` a rejection carrying `r.Term`
-(`StepC.rejectVote`). Always legal. -/
-local macro "vote_reject_tail" : tactic => `(tactic| (
-  try wp_auto
-  wp_gets
-  wp_apply raft.wp_load_idC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_VoteC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-  wp_gets
-  wp_raft_logC
-  -- the response `&pb.Message{To: m.From, Term: new(r.Term), Type: .., Reject: new(true)}`
-  icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
-  wp_load
-  ihave Hm := HmB $$ HFr
-  try wp_auto
-  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-  try wp_auto
-  wp_gets
-  wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
-  try wp_auto
-  wp_apply PB.Enum MsgVoteResp
-  iintro %pty Hpty
-  wp_auto
-  imod cellRO_alloc _ _ $$ Hpty with #cTy
-  imod cellRO_alloc _ _ $$ «$v1» with #cTe
-  imod cellRO_alloc _ _ $$ «$v3» with #cRj
-  imod msgOwn_of_resp _ _ _ _ _ MsgVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
-  · iframe «$a0» cTy cFr cTe cRj
-  -- the response carries `s.term`, so `send`'s `m.Term ≠ 0` premise is the incoming
-  -- message's, transported along `m.Term = s.term`
-  wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (.inl rfl)
-      (sendOk_voteResp id s m.From' s.term true (Heq0 ▸ Hterm)
-        (Int.le_refl _))
-      (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [Hphys Hresp] as Hphys
-  · iframe
-  iapply HΦ $$ %interface.nil %_
-  iframe Hphys
-  ipureintro
-  exact ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm',
-    StepCD.frame (StepCF.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto) (by rframe)⟩, rfl,
-    keep_frame rfl rfl rfl rfl rfl⟩))
 
 /-! `MsgVote`: step down if the term is higher, then grant or decline.
 

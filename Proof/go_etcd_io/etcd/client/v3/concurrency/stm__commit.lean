@@ -17,9 +17,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -66,7 +63,7 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) (by simp [TxnBuild.empty, TxnModel.empty]) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) (by simp [TxnBuild.empty, TxnModel.empty]) $$ HB
   ihave #Hfacts := readsAt_readFacts pfx rsMap st.reads $$ Hreads
   ihave %Hru := readFacts_under pfx st.reads $$ Hfacts
   ihave %Hwu := writesAt_under pfx wsMap st.writes $$ Hwrites

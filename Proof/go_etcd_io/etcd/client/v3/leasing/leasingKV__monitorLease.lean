@@ -21,15 +21,6 @@ namespace leasing
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
-/-- `Watch(key, WithRev(rev))` is a single-key watch from `rev` that does not panic. -/
-theorem monitorLease_watch_opts (key : GoString) (rev : w64) :
-    (opWatchModel key [withRevM rev]).isRangeWatch rev = true ∧
-      ¬ opWatchPanics key [withRevM rev] ∧ (opWatchModel key [withRevM rev]).key = key ∧
-      (opWatchModel key [withRevM rev]).base.rangeEnd = [] := by
-  refine ⟨?_, ?_, ?_, ?_⟩ <;>
-  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-    OpModel.zero, withRevM, OpFull.isRangeWatch]
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -202,7 +193,7 @@ theorem leasingKV.monitorLease.wp_proof
           PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF))
       %(pfx ++ key) %optsSl %([withRevM (r + W64 1)] : List (OpFull → OpFull)) %(r + W64 1)
     wp_auto
-    obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := monitorLease_watch_opts (pfx ++ key) (r + W64 1)
+    obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatch_opts (pfx ++ key) (r + W64 1)
     wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
     · iframe Hcctx Hopts
       ipureintro
@@ -349,7 +340,7 @@ theorem leasingKV.monitorLease.wp_proof
           PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF))
       %(pfx ++ key) %optsSl %([withRevM (r + W64 1)] : List (OpFull → OpFull)) %(r + W64 1)
     wp_auto
-    obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := monitorLease_watch_opts (pfx ++ key) (r + W64 1)
+    obtain ⟨Hw1, Hw2, Hw3, Hw4⟩ := keyWatch_opts (pfx ++ key) (r + W64 1)
     wp_apply HWa $$ [] as %wch %γw ⟨#Hwch, Hcons, -⟩
     · iframe Hcctx Hopts
       ipureintro

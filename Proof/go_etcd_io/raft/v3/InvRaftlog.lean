@@ -191,6 +191,10 @@ def isLoggerVal (x : GoInterface) : IProp GF :=
 instance isLoggerVal_pers (x : GoInterface) : Persistent (isLoggerVal (GF := GF) x) := by
   unfold isLoggerVal; infer_instance
 
+theorem isLoggerVal_open (x : GoInterface) :
+    isLoggerVal (GF := GF) x ⊢ ∃ lg, ⌜x = interface.ok lg⌝ ∗ isLogger lg := by
+  unfold isLoggerVal; exact .rfl
+
 /-! Besides the struct itself, `ownRaftLog l ls` (below) owns the `Storage` behind the
 log, at a state `σ : StorState` it keeps existential, and the unstable entries. (Until
 2026-10-09 these were a separate `ownRaftLogCore lv snap prev sents uents pend`, with

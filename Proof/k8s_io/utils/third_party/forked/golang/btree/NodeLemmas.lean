@@ -212,6 +212,36 @@ theorem ownedNodeHole_fill (n : Loc) (is : List (V × K)) (cs : List (Tree (V ×
   iapply ownNodes_fill o c f less _ ps cs i p t hi hl' $$ [Hc Hns]
   iframe
 
+/-- The `less` field of a context (for `n.cow.less`). -/
+theorem isCow_less (cw : Loc) :
+    isCow o cw f less ⊢
+      structFieldRef (copyOnWriteContext V) go!"less" cw ↦□ less := by
+  unfold isCow
+  iintro ⟨Hc, _, _⟩
+  iStructNamed Hc
+  iexact less
+
+theorem isCow_isLess (cw : Loc) : isCow o cw f less ⊢ isLess o less := by
+  unfold isCow
+  iintro ⟨_, _, H⟩
+  iexact H
+
+theorem allItems_mono {l1 l2 : List (V × K)} (h : ∀ e ∈ l1, e ∈ l2) :
+    allItems o l2 ⊢ allItems o l1 := by
+  unfold allItems
+  iintro #H
+  imodintro
+  iintro %e %he
+  iapply H
+  ipureintro; exact h e he
+
+theorem allItems_elem {l : List (V × K)} {e : V × K} (h : e ∈ l) :
+    allItems o l ⊢ o.item e.1 e.2 := by
+  unfold allItems
+  iintro #H
+  iapply H
+  ipureintro; exact h
+
 end lemmas
 
 end btree

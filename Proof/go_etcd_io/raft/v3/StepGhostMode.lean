@@ -88,16 +88,13 @@ def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (s s' : NSta
 As `Step.commit_mono` (`Protocol/Facts.lean`): what the `RawNode` predicate needs to carry a
 queued `MsgStorageApplyResp`'s "its entries are committed" across steps. -/
 
-private theorem plogCommitTo_ge' (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
-  unfold plogCommitTo; split <;> omega
-
 theorem StepC.commit_mono {c : CfgM} {id : w64} {ps : PState} {recv : List Msg} {ps' : PState}
     (H : StepC c id ps recv ps') : uint.Z ps.commit ≤ uint.Z ps'.commit := by
   induction H with
   | refl => exact Int.le_refl _
   | trans _ _ _ _ _ _ _ ih1 ih2 => omega
-  | appAccept => exact plogCommitTo_ge' _ _
-  | heartbeat => exact plogCommitTo_ge' _ _
+  | appAccept => exact plogCommitTo_ge _ _
+  | heartbeat => exact plogCommitTo_ge _ _
   | commit _ _ _ h => exact Int.le_of_lt h
   | snapRestore _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
   | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
@@ -123,8 +120,8 @@ theorem StepR.commit_mono {Adm : List EntryM → CCState → Prop} {dec : CCDec}
   induction H with
   | refl => exact Int.le_refl _
   | trans _ _ _ _ _ _ _ ih1 ih2 => omega
-  | appAccept => exact plogCommitTo_ge' _ _
-  | heartbeat => exact plogCommitTo_ge' _ _
+  | appAccept => exact plogCommitTo_ge _ _
+  | heartbeat => exact plogCommitTo_ge _ _
   | commit _ _ _ h => exact Int.le_of_lt h
   | snapRestore _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
   | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega

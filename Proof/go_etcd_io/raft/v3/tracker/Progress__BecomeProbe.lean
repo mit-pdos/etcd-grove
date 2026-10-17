@@ -1,8 +1,8 @@
 /-
 Port of election_proof/proof_Progress__BecomeProbe.v.
 
-Lean notes: the framework's Rocq `wp_max2_uint64` has no Lean counterpart; it is the
-private `wp_max2_uint64` below (the mirror of `wp_min2_uint64`, `InvTracker.lean`).
+Lean notes: the framework's Rocq `wp_max2_uint64` has no Lean counterpart; it is
+`InvTracker.lean`'s `wp_max2_uint64` (beside `wp_min2_uint64`).
 -/
 module
 
@@ -24,20 +24,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-/-- `max` on `uint64` (Rocq: the framework's `wp_max2_uint64`). -/
-private theorem wp_max2_uint64 (x y : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.max [go.uint64, go.uint64])) (Val #x)) (Val #y))
-    {{ RET #(w64Max x y); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Max x y = x by unfold w64Max; simp_all]
-    iapply HΦ; itrivial
-  · rw [show w64Max x y = y by unfold w64Max; rw [ite_eq_right (by omega)]]
-    iapply HΦ; itrivial
-
 /-- Both arms call `ResetState(StateProbe)` (exact spec), then write `Next`; the shared
-tail writes `sentCommit`. `max`/`min` are stepped with `wp_max2_uint64` (above) and
+tail writes `sentCommit`. `max`/`min` are stepped with `wp_max2_uint64` and
 `wp_min2_uint64` (`InvTracker.lean`), whose results are `w64Max`/`w64Min` by
 definition. -/
 theorem tracker.Progress.BecomeProbe.wp_proof

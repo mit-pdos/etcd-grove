@@ -113,9 +113,6 @@ theorem sorted_mid {lt : K → K → Prop} {A B : List (V × K)} {x : V × K}
   rw [List.pairwise_append, List.pairwise_cons] at hs
   exact ⟨fun a ha => hs.2.2 a ha x (by simp), hs.2.1.1⟩
 
-theorem sorted_sublist {lt : K → K → Prop} {l l' : List (V × K)} (h : l.Sublist l')
-    (hs : Sorted lt l') : Sorted lt l := List.Pairwise.sublist h hs
-
 theorem sorted_getElem {lt : K → K → Prop} {l : List (V × K)} (hs : Sorted lt l)
     {i j : Nat} {a b : V × K} (hij : i < j) (ha : l[i]? = some a) (hb : l[j]? = some b) :
     lt a.2 b.2 := by
@@ -345,7 +342,7 @@ theorem descend_child (ho : StrictOrder lt) (is : List (V × K)) (cs : List (Tre
       rcases List.mem_cons.1 hx with rfl | hx
       · exact hbk
       · exact ho.trans _ _ _ hbk ((sorted_mid hs').2 x hx)
-  refine ⟨sorted_sublist ((List.sublist_append_right L _).trans
+  refine ⟨Sorted.sublist ((List.sublist_append_right L _).trans
       (List.sublist_append_left _ R)) hs, fun x hx => by rw [he]; simp [hx], ?_, ?_⟩
   · rw [he, lookup_app_right _ _ _ (fun b hb => (ho.ins_ne (hRk b hb)).symm),
       lookup_app_left _ _ _ (fun a ha => ho.ins_ne (hLk a ha))]
@@ -540,14 +537,6 @@ end insert
 section shape
 variable {E : Type}
 
-theorem shape_zero (d : Nat) (is : List E) (cs : List (Tree E)) :
-    Shape d 0 (.node is cs) ↔ cs = [] := by rw [Shape]
-
-theorem shape_succ (d h : Nat) (is : List E) (cs : List (Tree E)) :
-    Shape d (h + 1) (.node is cs) ↔ cs.length = is.length + 1 ∧
-      ∀ c ∈ cs, (d - 1 ≤ c.items.length ∧ c.items.length ≤ 2 * d - 1) ∧ Shape d h c := by
-  rw [Shape]
-
 theorem shape_children (d h : Nat) (is : List E) (cs : List (Tree E))
     (hs : Shape d h (.node is cs)) : cs = [] ∨ cs.length = is.length + 1 := by
   cases h with
@@ -619,26 +608,6 @@ theorem shape_splitChild (d h : Nat) (is : List E) (cs : List (Tree E)) (i m : N
   · exact hs.2 c (List.mem_of_mem_drop hc)
 
 end shape
-
-section iris
-open Iris Iris.BI Iris.ProofMode
-variable {GF : BundledGFunctors} {V K : Type}
-
-theorem allItems_mono (o : ItemOrder GF V K) (l l' : List (V × K)) (h : ∀ x ∈ l, x ∈ l') :
-    allItems o l' ⊢ allItems o l := by
-  unfold allItems
-  iintro #H
-  imodintro
-  iintro %e %he
-  iapply H $$ %e %(h e he)
-
-theorem allItems_mem (o : ItemOrder GF V K) (l : List (V × K)) (x : V × K) (h : x ∈ l) :
-    allItems o l ⊢ o.item x.1 x.2 := by
-  unfold allItems
-  iintro #H
-  iapply H $$ %x %h
-
-end iris
 
 section iris2
 open Iris Iris.BI Iris.ProofMode

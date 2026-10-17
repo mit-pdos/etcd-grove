@@ -72,19 +72,6 @@ theorem fresh_next_idx {V : Type} (M : GMap (w64 × Nat) V) (v : w64) (i : Nat)
     · simp only at h1; omega
     · simp only at h2; omega
 
-theorem idsOk_writebackR {P : BParams} {W : WBuf} {R : RBuf} (hW : idsOk P W.bks)
-    (hR : idsOk P R.bks) : idsOk P (writebackR W R).bks := by
-  intro i es h
-  simp only [writebackR, wbMerge] at h
-  change ((gmapImap _ W.bks).lookup i).or (R.bks.lookup i) = some es at h
-  cases hw : W.bks.lookup i with
-  | some es' => exact hW i es' hw
-  | none =>
-    have : (gmapImap (fun id es => canon (bkOf R.bks id ++ es)) W.bks).lookup i = none := by
-      show (W.bks.lookup i).map _ = none; rw [hw]; rfl
-    rw [this, Option.none_or] at h
-    exact hR i es h
-
 theorem idsOk_reset {P : BParams} {R : RBuf} (hR : idsOk P R.bks) : idsOk P R.reset.bks := by
   intro i es h
   simp only [RBuf.reset, bksReset] at h

@@ -270,17 +270,6 @@ theorem ptsto_split_half (l : Loc) (v : w64) :
   rw [Qp.half_add_half] at h
   exact h.1
 
-/-- A wholly owned `int64` cell has no other points-to. -/
-theorem w64_ptsto_excl' (l : Loc) (v1 v2 : w64) (dq : DFrac) :
-    (l ↦{DFrac.own 1} v1 : IProp GF) ∗ l ↦{dq} v2 ⊢ False := by
-  rw [typedPointsto_unseal]; unfold typedPointstoWrap
-  rw [typedPointstoDef_heap, typedPointstoDef_heap]
-  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
-  icombine H1 H2 gives %Hv
-  exfalso
-  have := DFrac.valid_own_op Hv.1
-  simp at this
-
 /-- A fresh substream (its id field owned) is none of those `run` made. -/
 theorem wsElems_fresh (V : WEnv GF) (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) (ws : Loc)
     (v : w64) :
@@ -295,7 +284,7 @@ theorem wsElems_fresh (V : WEnv GF) (γs : StreamNames) (S : RunSt) (U : GMap Lo
     icases Hw with ⟨%P, %ph, ⟨%HP, -⟩, -, Hid2, -⟩
     subst HP
     iexfalso
-    iapply w64_ptsto_excl' $$ [$Hid $Hid2]
+    iapply w64_ptsto_excl $$ [$Hid $Hid2]
 
 theorem prefix_snoc_eq {α : Type} {D L : List α} {m : α}
     (h : D <+: L ++ [m] ∨ L ++ [m] <+: D) (hl : L.length = D.length) : L = D := by

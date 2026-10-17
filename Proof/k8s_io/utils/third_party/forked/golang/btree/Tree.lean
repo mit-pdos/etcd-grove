@@ -90,6 +90,20 @@ def RootBounds (d h : Nat) (t : Tree E) : Prop :=
 
 end Tree
 
+section shape
+variable {E : Type}
+
+theorem shape_zero (d : Nat) (is : List E) (cs : List (Tree E)) :
+    Tree.Shape d 0 (.node is cs) ↔ cs = [] := by
+  rw [Tree.Shape]
+
+theorem shape_succ (d h : Nat) (is : List E) (cs : List (Tree E)) :
+    Tree.Shape d (h + 1) (.node is cs) ↔ cs.length = is.length + 1 ∧
+      ∀ c ∈ cs, (d - 1 ≤ c.items.length ∧ c.items.length ≤ 2 * d - 1) ∧ Tree.Shape d h c := by
+  rw [Tree.Shape]
+
+end shape
+
 /-! ## Sorted lists of entries -/
 
 section sorted
@@ -98,6 +112,9 @@ variable {V K : Type}
 /-- Strictly increasing keys. -/
 def Sorted (lt : K → K → Prop) (l : List (V × K)) : Prop :=
   l.Pairwise (fun a b => lt a.2 b.2)
+
+theorem Sorted.sublist {lt : K → K → Prop} {l1 l2 : List (V × K)} (h : l1.Sublist l2)
+    (hs : Sorted lt l2) : Sorted lt l1 := List.Pairwise.sublist h hs
 
 end sorted
 

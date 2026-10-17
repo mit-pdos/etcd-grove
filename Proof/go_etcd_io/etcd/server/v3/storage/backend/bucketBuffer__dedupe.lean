@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.bucketBuffer__Swap
 public import Spec.sort.Stable
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.MergeLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Sorter
 
 @[expose] public section
 
@@ -40,33 +41,6 @@ theorem backend.entsSorted_short (es : List Ent) (h : es.length ≤ 1) : entsSor
   match es, h with
   | [], _ => exact List.Pairwise.nil
   | [_], _ => exact List.pairwise_singleton _ _
-
-/-- A bucket buffer is a `sort.Interface` over its entries, ordered by key. -/
-theorem backend.bb_sorter
-    (hLen : backend.bucketBuffer.Len.spec (GF := GF) (hG := hG))
-    (hLess : backend.bucketBuffer.Less.spec (GF := GF) (hG := hG))
-    (hSwap : backend.bucketBuffer.Swap.spec (GF := GF) (hG := hG)) (bb : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ⊢
-      sorterSpec (interface.mk (go.GoType.PointerType bucketBuffer.ty) #bb) (ownBB bb)
-        (fun a b : Ent => decide (strLt a.1 b.1)) := by
-  iintro #Hpkg
-  unfold sorterSpec
-  isplitr
-  · imodintro
-    iintro %l
-    iintro !> %Φ Hl HΦ
-    iapply (hLen bb l) $$ [$Hpkg $Hl] HΦ
-  isplitr
-  · imodintro
-    iintro %l %i %j %a %b %Hij
-    iintro !> %Φ Hl HΦ
-    obtain ⟨hi, hj, ha, hb⟩ := Hij
-    iapply (hLess bb l i j a b hi hj ha hb) $$ [$Hpkg $Hl] HΦ
-  imodintro
-  iintro %l %i %j %a %b %Hij
-  iintro !> %Φ Hl HΦ
-  obtain ⟨hi, hj, ha, hb⟩ := Hij
-  iapply (hSwap bb l i j a b hi hj ha hb) $$ [$Hpkg $Hl] HΦ
 
 theorem backend.bucketBuffer.dedupe.wp_proof
     (hStable : sort.Stable.spec (GF := GF) (hG := hG))
@@ -148,10 +122,10 @@ theorem backend.bucketBuffer.dedupe.wp_proof
     rw [← hD] at hD1 hD2 hD3
     have hw : sint.nat w = D.length - 1 := by omega
     list_elem ks (sint.nat w) as xw
-    ihave #Hxr := entsIn_slot (ks.drop (sint.nat r)) (L.drop (sint.nat r)) 0 xr b
+    ihave #Hxr := entsIn_lookup (ks.drop (sint.nat r)) (L.drop (sint.nat r)) 0 xr b
       (by rw [List.getElem?_drop, Nat.add_zero]; exact Hxr_lookup)
       (by rw [List.getElem?_drop, Nat.add_zero]; exact Hb_lookup) $$ Htail
-    ihave #Hxw := entsIn_slot ks D (sint.nat w) xw a Hxw_lookup (by rw [hw]; exact hD3) $$ HD
+    ihave #Hxw := entsIn_lookup ks D (sint.nat w) xw a Hxw_lookup (by rw [hw]; exact hD3) $$ HD
     icases Hxr with ⟨#Hxrk, #Hxrv⟩
     icases Hxw with ⟨#Hxwk, #Hxwv⟩
     icases ownSlice_elem_acc (sint.Z r) xr q.buf _ ks (by word) Hxr_lookup $$ Hbuf with ⟨Hel, Hback⟩

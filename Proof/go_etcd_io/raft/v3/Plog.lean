@@ -130,6 +130,9 @@ def plogMaybeAppend (b : entryID) (es : List EntryM) (prev : entryID)
 def plogCommitTo (committed tocommit : w64) : w64 :=
   if uint.Z committed < uint.Z tocommit then tocommit else committed
 
+theorem plogCommitTo_ge (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
+  unfold plogCommitTo; split <;> omega
+
 /-- `isUpToDate(their)`: `their` is at least as recent as our last entry. -/
 def plogUpToDate (b : entryID) (es : List EntryM) (their : entryID) : Bool :=
   let l := plogLast b es

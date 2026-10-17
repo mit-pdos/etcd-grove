@@ -54,9 +54,6 @@ private theorem seqNum_next (kp : GoString) (sg : List EtcdKv) (n : w64) (h : Se
 private def seqBuild (kp key val : GoString) (g : w64) : TxnBuild :=
   { model := seqTxn kp key val g, cif := true, cthen := true, celse := false }
 
-private theorem B_conv' {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
 theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (hG := hG))
     (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG := hG))
     (hCmp : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
@@ -304,7 +301,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv' B _ (seqBuild kp key val g) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ (seqBuild kp key val g) (by rfl) $$ HB
   wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
   · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
         (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩

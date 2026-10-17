@@ -26,11 +26,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `isLoggerVal`, opened (as in `Proof/raftLog__restore.lean`). -/
-private theorem isLoggerVal_open (x : GoInterface) :
-    isLoggerVal (GF := GF) x ⊢ ∃ lg, ⌜x = interface.ok lg⌝ ∗ isLogger lg := by
-  unfold isLoggerVal; exact .rfl
-
 /-- The loop invariant: the prefix scanned so far matched, so the answer is
 `plogFindConflict` of what is left (`Hfc`). The `for range` allocates its own counter
 besides the Go-level `i` (notes/gotchas.md), so both are in the invariant. -/

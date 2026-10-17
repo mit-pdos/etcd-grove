@@ -210,13 +210,6 @@ theorem txnStates_wrote (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
   iintro ⟨#H1, #H2⟩
   iframe #
 
-theorem txnStates_read (pfx : GoString) (r : w64) (s s' : List EtcdKv) :
-    txnStates (GF := GF) pfx r s s' false ⊢ □ etcdState r pfx s := by
-  unfold txnStates
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro #H
-  iexact H
-
 /-- Owned responses of two operations. -/
 theorem txnOpsRespOwn_two (p0 p1 : Loc) (a b : TxnOp) (x y : TxnOpResult) :
     txnOpsRespOwn (GF := GF) [p0, p1] [a, b] [x, y] ⊢ txnOpRespOwn p0 a x ∗ txnOpRespOwn p1 b y := by

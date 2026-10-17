@@ -27,30 +27,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem B_conv {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' : TxnBuild)
-    (h : b = b') : B b ⊢ B b' := h ▸ .rfl
-
-/-- A failed guard `CreateRevision(key) = rev` on a sorted state: `key` is not there with create
-revision `rev`. -/
-theorem createGuard_false (pfx key : GoString) (rev : w64) (s : List EtcdKv)
-    (hwf : EtcdStateWf pfx s) (h : cmpHolds s (createGuard key rev) = false) :
-    ¬ HasKeyAt key rev s := by
-  rintro ⟨w, hw, hk, hc⟩
-  have hf := filter_key_single s hwf.1 key (fun v => inRange key [] v.key)
-    (fun v => by simp [inRange]) w hw hk
-  simp [cmpHolds, createGuard, compareM, cmpKeyM, hf, cmpKv, int64Cmp, cmpSign, CmpOp.holds,
-    hc] at h
-
-/-- `OpPut(key, val, WithLease(id))` in a transaction. -/
-theorem putValOp_txnOpOf (key val : GoString) (id : w64) :
-    txnOpOf (opPutModel key val [withLeaseM id]) = some (.put key val id) := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero, txnOpOf]
-
-theorem putValOp_not_panics (key val : GoString) (id : w64) :
-    ¬ (opPutModel key val [withLeaseM id]).putPanics := by
-  simp [opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero,
-    OpFull.putPanics]
-
 theorem proclaimTxn_under (pfx key : GoString) (rev : w64) (val : GoString) (id : w64)
     (hk : pfx <+: key) : (proclaimTxn key rev val id).Under pfx := by
   refine ⟨?_, ?_, ?_⟩
@@ -180,7 +156,7 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hf Hg; subst Hf Hg; iexact Hf0
     · simp at Hf
   wp_apply hPut key val _ [withLeaseM id] $$ [$Hcv $Hopts] as %opPut #HopPut
-  · ipureintro; exact putValOp_not_panics key val id
+  · ipureintro; exact putLeaseOp_not_panics key val id
   (try wp_auto)
   wp_apply wp_slice_literal (l := [opPut])
   isplitr
@@ -202,11 +178,11 @@ theorem Election.Proclaim.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       · simp at Hv
     · ipureintro
       refine ⟨?_, rfl, rfl⟩
-      simp only [List.map_cons, List.map_nil, putValOp_txnOpOf]
+      simp only [List.map_cons, List.map_nil, putLeaseOp_txnOpOf]
   inext
   iintro HB
   (try wp_auto)
-  ihave HB := B_conv B _ ({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
+  ihave HB := txnBuild_conv B _ ({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   by_cases Hk : pfx <+: key
   · wp_apply HCommit $$ %({ model := proclaimTxn key rev val id, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
     · ipureintro; exact proclaimTxn_under pfx key rev val id Hk

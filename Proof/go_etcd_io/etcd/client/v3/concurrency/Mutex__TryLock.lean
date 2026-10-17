@@ -19,13 +19,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-private theorem len_eq_sint (n : Nat) (x : w64) (h : n = sint.nat x ∧ 0 ≤ sint.Z x) :
-    (n : Int) = sint.Z x := by
-  obtain ⟨h1, h2⟩ := h
-  subst h1
-  simp only [sint.nat, sint.Z] at *
-  omega
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

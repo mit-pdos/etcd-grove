@@ -486,7 +486,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   ihave %HL := ghostVar_agree _ _ _ _ _ $$ Hregl0 Hregl
   subst HL
   ihave %Hopen : ⌜chanIsClosed s0 = false⌝ $$ [Hcl Hregl0 Hregl]
-  · cases hcl : mvcc.chanIsClosed s0
+  · cases hcl : EtcdGrove.chanIsClosed s0
     · ipureintro; rfl
     simp only [hcl, ↓reduceIte]
     icombine Hregl0 Hregl as H2

@@ -256,24 +256,6 @@ theorem wp_load_slot_val (sl : GoSlice) (i : Int) (kvs : List kv) (dq : DFrac) (
 
 /-! ## The slots of a buffer -/
 
-/-- The slot of the `n`-th entry holds its key and value. -/
-theorem entsIn_lookup (kvs : List kv) (es : List Ent) (n : Nat) (x : kv) (e : Ent)
-    (hx : kvs[n]? = some x) (he : es[n]? = some e) :
-    entsIn (GF := GF) kvs es ⊢ x.key' ↦*□ e.1 ∗ x.val' ↦*□ e.2 := by
-  unfold entsIn
-  iintro ⟨_, H⟩
-  have hz : (kvs.zip es)[n]? = some (x, e) := List.getElem?_zip_eq_some.2 ⟨hx, he⟩
-  iapply (BigSepL.bigSepL_lookup (Φ := fun _ (y : kv × Ent) =>
-    iprop(y.1.key' ↦*□ y.2.1 ∗ y.1.val' ↦*□ y.2.2)) hz) $$ H
-
-/-- Every slot's key and value slices are read-only. -/
-theorem slotsRO_lookup (kvs : List kv) (n : Nat) (x : kv) (hx : kvs[n]? = some x) :
-    slotsRO (GF := GF) kvs ⊢ ∃ (b1 b2 : GoString), x.key' ↦*□ b1 ∗ x.val' ↦*□ b2 := by
-  unfold slotsRO
-  iintro H
-  iapply (BigSepL.bigSepL_lookup (Φ := fun _ (y : kv) =>
-    iprop(∃ (b1 b2 : GoString), y.key' ↦*□ b1 ∗ y.val' ↦*□ b2)) hx) $$ H
-
 /-- Fresh slots (zero values: nil slices) are read-only. -/
 theorem slotsRO_replicate_zero (n : Nat) :
     ⊢ slotsRO (GF := GF) (List.replicate n (zero_val kv)) := by
@@ -293,26 +275,6 @@ theorem slotsRO_replicate_zero (n : Nat) :
   ihave #H := ownSlice_nil (GF := GF) (V := w8) DFrac.discard
   iapply (BigSepL.bigSepL_intro hall)
   imodintro; iexact H
-
-/-- No entries are in any slots. -/
-theorem entsIn_nil_r (kvs : List kv) : ⊢ entsIn (GF := GF) kvs [] := by
-  unfold entsIn
-  simp only [List.zip_nil_right]
-  iintro
-  isplitr
-  · ipureintro; exact Nat.zero_le _
-  iapply BigSepL.bigSepL_nil.2; iempintro
-
-/-- A list's big separating conjunction of a persistent predicate holds of any list whose
-elements are all elements of it. -/
-theorem bigSepL_of_lookups {A : Type} (Φ : A → IProp GF) [∀ x, Persistent (Φ x)]
-    (l l' : List A) (hl : ∀ (k : Nat) (x : A), l'[k]? = some x → ∃ k' : Nat, l[k']? = some x) :
-    ([∗list] x ∈ l, Φ x) ⊢ [∗list] x ∈ l', Φ x := by
-  refine (BigSepL.bigSepL_forall_eqv (Φ := fun _ x => Φ x)).1.trans ?_
-  refine BIBase.Entails.trans ?_ (BigSepL.bigSepL_forall_eqv (Φ := fun _ x => Φ x)).2
-  iintro #H %k %x %hk
-  obtain ⟨k', hk'⟩ := hl k x hk
-  iapply H $$ %k' %x %hk'
 
 /-- `slotsRO` after a swap of two slots (as `Swap` stores them: `i` first). -/
 theorem slotsRO_swap (kvs : List kv) (i j : Nat) (x y : kv)

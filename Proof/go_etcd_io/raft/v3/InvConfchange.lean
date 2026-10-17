@@ -82,6 +82,12 @@ def CfgInv (s : CCState) : Prop :=
 /-- `checkAndReturn`: the state if `checkInvariants` accepts it. -/
 def checkedM (s : CCState) : Option CCState := if CfgInv s then some s else none
 
+theorem checkedM_some {s s' : CCState} (h : checkedM s = some s') : s' = s ∧ CfgInv s := by
+  unfold checkedM at h
+  split at h
+  · rename_i hc; cases h; exact ⟨rfl, hc⟩
+  · cases h
+
 /-- What `checkAndCopy` copies: `Config.Clone` does not copy `AutoLeave`. -/
 def clearAutoLeave (s : CCState) : CCState :=
   { cfg := { s.cfg with autoLeave := false }, prs := s.prs }

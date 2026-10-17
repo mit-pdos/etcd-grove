@@ -204,8 +204,8 @@ theorem BTree.deleteItem.wp_proof
             exact ⟨hs', ⟨by have := Hrb.1; simp at hl1 ⊢; omega, fun _ => hne⟩, he'⟩
       obtain ⟨hS, hRB, hE⟩ := Hpure
       have hsub := removeOp_sublist tgt s
-      have hsorted' : Sorted o.lt (removeOp tgt s).1 := sorted_sublist hsub Hsorted
-      ihave #Hitems' := allItems_mono_rm o (l1 := (removeOp tgt s).1) (l2 := s)
+      have hsorted' : Sorted o.lt (removeOp tgt s).1 := Sorted.sublist hsub Hsorted
+      ihave #Hitems' := allItems_mono o (l1 := (removeOp tgt s).1) (l2 := s)
         (fun e he => hsub.subset he) $$ Hitems
       subst hout hfnd
       cases hc : (removeOp tgt s).snd.isSome with

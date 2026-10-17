@@ -81,25 +81,6 @@ theorem txn.responseOpIs_put_et (skip : Bool) (p w r : Loc) (o : OpFull) :
     iexists rev, prev
     iexact Hr
 
-/-- A suffix of a persistent slice. -/
-theorem txn.slice_from_et (pl : GoSlice) (L : List Bool) (k : w64)
-    (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z pl.len) :
-    pl ↦*□ L ⊢ (slice.slice pl Bool k pl.len ↦*□ L.drop (sint.nat k) : IProp GF) := by
-  iintro #H
-  ihave %Hl := ownSlice_len _ _ _ $$ H
-  icases (ownSlice_slice k pl.len pl DFrac.discard L ⟨hk.1, hk.2, Int.le_refl _⟩).1 $$ H with ⟨-, Hm, -⟩
-  have h : subslice (sint.nat k) (sint.nat pl.len) L = L.drop (sint.nat k) := by
-    unfold subslice; rw [← Hl.1, List.take_length]
-  rw [h]
-  iexact Hm
-
-theorem txn.drop_last_et (R : List Bool) :
-    ∀ (a : Bool) (P : List Bool), ∃ y, (a :: (P ++ R)).drop P.length = y :: R
-  | a, [] => ⟨a, rfl⟩
-  | a, b :: P => by
-    obtain ⟨y, hy⟩ := txn.drop_last_et R b P
-    exact ⟨y, by simpa using hy⟩
-
 theorem txn.opsSkel_match_et (s0 : List EtcdKv) (ps : List Loc) (ts es : List TxnOp) (b : Bool) :
     (match b with
       | true => txn.opsSkel (GF := GF) s0 ps ts
@@ -628,7 +609,7 @@ theorem txn.executeTxn.wp_proof
         simp only [List.length_cons, List.length_append] at Hpll; word
       simp only [show (0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z plv.len ∧
         sint.Z plv.len ≤ sint.Z plv.cap) from ⟨by decide, hlen1, Hplw.2⟩, _root_.and_self, ite_true]
-      ihave #Hsub := txn.slice_from_et plv _ (W64 1) ⟨by decide, hlen1⟩ $$ Hplv
+      ihave #Hsub := txn.slice_from plv _ (W64 1) ⟨by decide, hlen1⟩ $$ Hplv
       rw [hdropo, show sint.nat (W64 1) = 1 from rfl, List.drop_one, List.tail_cons, List.append_assoc]
       wp_auto
       ihave Hrsk := txn.respsSkel_et s0 r0 cs ts es sl0 ps0 $$ [Hsk0]
@@ -673,8 +654,8 @@ theorem txn.executeTxn.wp_proof
         rw [hz]; have := Hpll.2; word
       simp only [show (0 ≤ sint.Z (W64 (nc : Int) + W64 1) ∧ sint.Z (W64 (nc : Int) + W64 1) ≤ sint.Z plv.len ∧
         sint.Z plv.len ≤ sint.Z plv.cap) from ⟨by omega, hle, Hplw.2⟩, _root_.and_self, ite_true]
-      ihave #Hnew := txn.slice_from_et plv _ (W64 (nc : Int) + W64 1) ⟨by omega, hle⟩ $$ Hplv
-      obtain ⟨y, hy⟩ := txn.drop_last_et (opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) x
+      ihave #Hnew := txn.slice_from plv _ (W64 (nc : Int) + W64 1) ⟨by omega, hle⟩ $$ Hplv
+      obtain ⟨y, hy⟩ := txn.drop_last (opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) x
         (txnPath s0 { cmps := cs, thenOps := ts, elseOps := es })
       rw [hTl] at hy
       rw [hzn, hy]

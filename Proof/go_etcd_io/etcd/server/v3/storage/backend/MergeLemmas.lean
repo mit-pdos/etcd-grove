@@ -186,35 +186,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-! ## The slots of a buffer -/
 
-/-- The slot of the `n`-th entry holds its key and value. -/
-theorem entsIn_slot (kvs : List kv) (es : List Ent) (n : Nat) (x : kv) (e : Ent)
-    (hx : kvs[n]? = some x) (he : es[n]? = some e) :
-    entsIn (GF := GF) kvs es ⊢ x.key' ↦*□ e.1 ∗ x.val' ↦*□ e.2 := by
-  unfold entsIn
-  iintro ⟨_, H⟩
-  have hz : (kvs.zip es)[n]? = some (x, e) := List.getElem?_zip_eq_some.2 ⟨hx, he⟩
-  iapply (BigSepL.bigSepL_lookup (Φ := fun _ (y : kv × Ent) =>
-    iprop(y.1.key' ↦*□ y.2.1 ∗ y.1.val' ↦*□ y.2.2)) hz) $$ H
-
-/-- Every slot's key and value slices are read-only. -/
-theorem slotsRO_slot (kvs : List kv) (n : Nat) (x : kv) (hx : kvs[n]? = some x) :
-    slotsRO (GF := GF) kvs ⊢ ∃ (b1 b2 : GoString), x.key' ↦*□ b1 ∗ x.val' ↦*□ b2 := by
-  unfold slotsRO
-  iintro H
-  iapply (BigSepL.bigSepL_lookup (Φ := fun _ (y : kv) =>
-    iprop(∃ (b1 b2 : GoString), y.key' ↦*□ b1 ∗ y.val' ↦*□ b2)) hx) $$ H
-
-/-- A big separating conjunction of a persistent predicate holds of a list whose elements are
-all elements of the first. -/
-theorem bigSepL_of_lookups' {A : Type} (Φ : A → IProp GF) [∀ x, Persistent (Φ x)]
-    (l l' : List A) (hl : ∀ (k : Nat) (x : A), l'[k]? = some x → ∃ k' : Nat, l[k']? = some x) :
-    ([∗list] x ∈ l, Φ x) ⊢ [∗list] x ∈ l', Φ x := by
-  refine (BigSepL.bigSepL_forall_eqv (Φ := fun _ x => Φ x)).1.trans ?_
-  refine BIBase.Entails.trans ?_ (BigSepL.bigSepL_forall_eqv (Φ := fun _ x => Φ x)).2
-  iintro #H %k %x %hk
-  obtain ⟨k', hk'⟩ := hl k x hk
-  iapply H $$ %k' %x %hk'
-
 /-- The slots from `n` on hold the entries from `n` on. -/
 theorem entsIn_drop (kvs : List kv) (es : List Ent) (n : Nat) :
     entsIn (GF := GF) kvs es ⊢ entsIn (kvs.drop n) (es.drop n) := by
@@ -222,7 +193,7 @@ theorem entsIn_drop (kvs : List kv) (es : List Ent) (n : Nat) :
   iintro ⟨%Hle, H⟩
   isplitr
   · ipureintro; simp only [List.length_drop]; omega
-  iapply (bigSepL_of_lookups' (fun (z : kv × Ent) =>
+  iapply (bigSepL_of_lookups (fun (z : kv × Ent) =>
     iprop(z.1.key' ↦*□ z.2.1 ∗ z.1.val' ↦*□ z.2.2)) _ _ ?_) $$ H
   intro k z hk
   refine ⟨n + k, ?_⟩
@@ -237,7 +208,7 @@ theorem entsIn_take_es (kvs : List kv) (es : List Ent) (n : Nat) :
   iintro ⟨%Hle, H⟩
   isplitr
   · ipureintro; simp only [List.length_take]; omega
-  iapply (bigSepL_of_lookups' (fun (z : kv × Ent) =>
+  iapply (bigSepL_of_lookups (fun (z : kv × Ent) =>
     iprop(z.1.key' ↦*□ z.2.1 ∗ z.1.val' ↦*□ z.2.2)) _ _ ?_) $$ H
   intro k z hk
   refine ⟨k, ?_⟩
@@ -254,7 +225,7 @@ theorem entsIn_append_slots (kvs more : List kv) (es : List Ent) :
   iintro ⟨%Hle, H⟩
   isplitr
   · ipureintro; simp only [List.length_append]; omega
-  iapply (bigSepL_of_lookups' (fun (z : kv × Ent) =>
+  iapply (bigSepL_of_lookups (fun (z : kv × Ent) =>
     iprop(z.1.key' ↦*□ z.2.1 ∗ z.1.val' ↦*□ z.2.2)) _ _ ?_) $$ H
   intro k z hk
   refine ⟨k, ?_⟩

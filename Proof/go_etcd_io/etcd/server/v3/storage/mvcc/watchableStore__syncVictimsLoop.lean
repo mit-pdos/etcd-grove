@@ -24,48 +24,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-theorem mvcc.wsWg_mask_victims : (↑mvcc.wsWgWGN : CoPset) ⊆ ⊤ \ ↑mvcc.wsWgN := by
-  unfold mvcc.wsWgWGN mvcc.wsWgN
-  exact sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)
-
-/-- `s.wg.Done()` with a done token. -/
-theorem mvcc.wp_wsDone_victims (s : Loc) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ mvcc.wsDone s }}
-      (App (Val (mvcc.wsWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
-    {{ RET #(); True }} := by
-  iintro %Φ ⟨#Hsync, Hd⟩ HΦ
-  iunfold mvcc.wsDone at Hd
-  icases Hd with ⟨%γwg, %γd, #Hwg, #Hinv, Htok⟩
-  iapply sync.WaitGroup.wp_Done (mvcc.wsWgAddr s) γwg mvcc.wsWgWGN $$ [] [Htok HΦ]
-  · iframe #
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro mvcc.wsWg_mask_victims
-  iintro Hmask
-  inext
-  iunfold mvcc.wsWgInv at Hi
-  icases Hi with ⟨%ctr, %n, Hwgo, Hauth, %Hctr⟩
-  icombine Hauth Htok gives %Hle
-  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-  have hlt : sint.Z ctr < 2 ^ 31 := by word
-  iexists ctr
-  iframe Hwgo
-  isplitr
-  · ipureintro; omega
-  iintro Hwgo
-  imod Hmask with -
-  imod ownTokAuth_delete_S γd n' $$ Hauth Htok with Hauth
-  imod Hclose $$ [Hwgo Hauth] with -
-  · inext
-    iunfold mvcc.wsWgInv
-    iexists ctr - W32 1, n'
-    iframe
-    ipureintro
-    have : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
-    omega
-  imodintro
-  iapply HΦ
-  itrivial
-
 theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
     (hMove : mvcc.watchableStore.moveVictims.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG) := by
@@ -174,7 +132,7 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
     iintro -
     wp_auto
     wp_for_post
-    wp_apply mvcc.wp_wsDone_victims s $$ [$Hsync $Hdone]
+    wp_apply mvcc.wp_wsDone s $$ [$Hsync $Hdone]
     iapply HΦ
     itrivial
   iapply BigAndL.bigAndL_nil.2

@@ -142,6 +142,50 @@ def wsCloser (s st : Loc) : IProp GF :=
   iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s ∗
     storeCloser st)
 
+theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
+  sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)
+
+theorem wsWg_maskN : (↑wsWgN : CoPset) ⊆ ⊤ \ ↑wsWgWGN :=
+  sync.wg_mask_ndot_ne nroot "mvccWgCounter" "mvccWaitGroup" (by decide)
+
+/-- `s.wg.Done()` with a done token. -/
+theorem wp_wsDone (s : Loc) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ wsDone s }}
+      (App (Val (wsWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hsync, Hd⟩ HΦ
+  iunfold wsDone at Hd
+  icases Hd with ⟨%γwg, %γd, #Hwg, #Hinv, Htok⟩
+  iapply sync.WaitGroup.wp_Done (wsWgAddr s) γwg wsWgWGN $$ [] [Htok HΦ]
+  · iframe #
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro wsWg_maskW
+  iintro Hmask
+  inext
+  iunfold wsWgInv at Hi
+  icases Hi with ⟨%ctr, %n, Hwgo, Hauth, %Hctr⟩
+  icombine Hauth Htok gives %Hle
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  have hlt : sint.Z ctr < 2 ^ 31 := by word
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; omega
+  iintro Hwgo
+  imod Hmask with -
+  imod ownTokAuth_delete_S γd n' $$ Hauth Htok with Hauth
+  imod Hclose $$ [Hwgo Hauth] with -
+  · inext
+    iunfold wsWgInv
+    iexists ctr - W32 1, n'
+    iframe
+    ipureintro
+    have : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by word
+    omega
+  imodintro
+  iapply HΦ
+  itrivial
+
 end reprs
 
 end mvcc

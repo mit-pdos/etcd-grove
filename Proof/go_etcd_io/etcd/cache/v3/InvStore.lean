@@ -226,6 +226,17 @@ the history's revisions increase). -/
 def EvRevSorted (evs : List EvModel) : Prop :=
   evs.Pairwise (fun a b => sint.Z a.rev ≤ sint.Z b.rev)
 
+/-- In a sorted list of events, a later one has a revision at least an earlier one's. -/
+theorem EvRevSorted.rev_le {xs : List EvModel} (hs : EvRevSorted xs) {i j : Nat} {a b : EvModel}
+    (ha : xs[i]? = some a) (hb : xs[j]? = some b) (hij : i ≤ j) : sint.Z a.rev ≤ sint.Z b.rev := by
+  rcases Nat.lt_or_eq_of_le hij with h | rfl
+  · unfold EvRevSorted at hs
+    rw [List.pairwise_iff_getElem] at hs
+    obtain ⟨hi, rfl⟩ := List.getElem?_eq_some_iff.1 ha
+    obtain ⟨hj, rfl⟩ := List.getElem?_eq_some_iff.1 hb
+    exact hs i j hi hj h
+  · rw [ha] at hb; cases hb; exact Int.le_refl _
+
 /-- One event applied to a map (the `switch` in `applyEventsLocked`): a delete of a
 missing key fails (`none`); a type other than put or delete changes nothing. -/
 def applyEv (m : KvMap) (e : EvModel) : Option KvMap :=

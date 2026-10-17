@@ -299,16 +299,6 @@ theorem memberRes_cancel_intro (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) 
   iframe #
   ipureintro; exact hm
 
-theorem memberRes_congr (γ : WsNames) (q : Qp) (σ σ' : WsState) (w : Loc) (st : WatcherSt)
-    (hM : σ'.M = σ.M) (hWs : (σ'.Ws !! w).isSome = (σ.Ws !! w).isSome)
-    (hWu : (σ'.Wu !! w).isSome = (σ.Wu !! w).isSome) (hV : σ'.victimOf w = σ.victimOf w)
-    (hE : σ'.E !! w = σ.E !! w) :
-    memberRes (GF := GF) γ q σ w st ⊢ memberRes γ q σ' w st := by
-  have hl : σ'.live w = σ.live w := by unfold WsState.live; rw [hWs, hWu, hV]
-  unfold memberRes popFacts
-  simp only [hM, hl, hWs, hWu, hV, hE]
-  exact .rfl
-
 theorem state_acc (σ : WsState) (wa : Loc) (st0 : WatcherSt) (qf : Qp)
     (h : (σ.ST !! wa = some st0 ∧ qf = 1) ∨ (σ.Wo !! wa = some st0 ∧ qf = (1 : Qp).half)) :
     ([∗map] w ↦ st ∈ σ.ST, watcherOwn (GF := GF) w st) ∗

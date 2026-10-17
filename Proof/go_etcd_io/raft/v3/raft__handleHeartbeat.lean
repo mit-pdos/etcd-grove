@@ -50,7 +50,7 @@ theorem raft.handleHeartbeat.wp_proof
   ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   try wp_auto
-  icases msgPtsC_From_lend _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
+  icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
   wp_auto
   ihave Hm := HmB $$ HFr
   rw [show raftpb.MsgHeartbeatResp = #((W32 9 : raftpb.MessageType)) from rfl]

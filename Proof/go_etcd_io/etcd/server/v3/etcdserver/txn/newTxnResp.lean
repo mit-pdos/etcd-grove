@@ -23,38 +23,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-theorem txn.newTxnResp_opsIs_length :
-    ∀ (ps : List Loc) (ops : List TxnOp),
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
-  | [], [] => by iintro -; ipureintro; rfl
-  | p :: ps, op :: ops => by
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    ihave %h := txn.newTxnResp_opsIs_length ps ops $$ H
-    ipureintro; simp [h]
-  | [], _ :: _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | _ :: _, [] => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-
-theorem txn.newTxnResp_opsIs_lookup :
-    ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc), ps[i]? = some p →
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ txn.requestOpIs p op
-  | [], _, _, _, h => by simp at h
-  | _ :: _, [], _, _, _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | q :: ps, op :: ops, 0, p, h => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    unfold txn.requestOpsIs
-    iintro ⟨H, -⟩
-    iexists op
-    iframe H
-    ipureintro; rfl
-  | q :: ps, op :: ops, i + 1, p, h => by
-    simp only [List.getElem?_cons_succ] at h
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    simp only [List.getElem?_cons_succ]
-    iapply txn.newTxnResp_opsIs_lookup ps ops i p h $$ H
-
 theorem txn.newTxnResp_opsSkel_snoc (s0 : List EtcdKv) (p : Loc) (op : TxnOp) :
     ∀ (done : List Loc) (ops1 : List TxnOp),
       txn.opsSkel (GF := GF) s0 done ops1 ∗ txn.opSkel s0 p op ⊢
@@ -89,47 +57,6 @@ theorem txn.newTxnResp_path_drop (s0 : List EtcdKv) (ops : List TxnOp) (i : Nat)
   rw [txn.opsPath_drop s0 ops i op h, txn.opsPath_take_succ s0 ops i op h, txn.opPath_nontxn s0 op hn]
   simp
 
-/-- A suffix of a persistent slice. -/
-theorem txn.newTxnResp_slice_from (pl : GoSlice) (L : List Bool) (k : w64)
-    (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z pl.len) :
-    pl ↦*□ L ⊢ (slice.slice pl Bool k pl.len ↦*□ L.drop (sint.nat k) : IProp GF) := by
-  iintro #H
-  ihave %Hl := ownSlice_len _ _ _ $$ H
-  icases (ownSlice_slice k pl.len pl DFrac.discard L ⟨hk.1, hk.2, Int.le_refl _⟩).1 $$ H with ⟨-, Hm, -⟩
-  have h : subslice (sint.nat k) (sint.nat pl.len) L = L.drop (sint.nat k) := by
-    unfold subslice; rw [← Hl.1, List.take_length]
-  rw [h]
-  iexact Hm
-
-theorem txn.newTxnResp_drop_last (R : List Bool) :
-    ∀ (a : Bool) (P : List Bool), ∃ y, (a :: (P ++ R)).drop P.length = y :: R
-  | a, [] => ⟨a, rfl⟩
-  | a, b :: P => by
-    obtain ⟨y, hy⟩ := txn.newTxnResp_drop_last R b P
-    exact ⟨y, by simpa using hy⟩
-
-/-- A nested transaction's `requestOpIs` gives its `txnRequestIs`. -/
-theorem txn.newTxnResp_requestOpIs_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOp) :
-    txn.requestOpIs (GF := GF) p (.txn cs ts es) ⊢
-      ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
-        structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
-          (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
-            GoInterface) ∗
-        structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
-        txn.txnRequestIs r { cmps := cs, thenOps := ts, elseOps := es } := by
-  unfold txn.requestOpIs
-  iintro #⟨%Hpn, %w, %r, #Hreq, #Hw, %Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #H1, #H2, #H3, #H4, #H5,
-    #H6, #H7, #H8, #H9⟩
-  isplitl []
-  · ipureintro; exact Hpn
-  iexists w, r
-  iframe Hreq Hw
-  unfold txn.txnRequestIs txn.txnFieldsIs
-  isplitl []
-  · ipureintro; exact Hrn
-  iexists csl, ssl, fsl, cps, sps, fps
-  iframe #
-
 theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := by
   intro rt t s0 pl rest
   iloeb as IH generalizing %rt %t %pl %rest
@@ -163,7 +90,7 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
   simp only [txn.txnPath, txn.nestedCount, List.cons_append]
   generalize t.branch (txn.txnOk s0 t) = ops
   generalize txn.txnOk s0 t = ok
-  ihave %Hops_len := txn.newTxnResp_opsIs_length ops_ps ops $$ Hops
+  ihave %Hops_len := txn.requestOpsIs_length ops_ps ops $$ Hops
   ihave %Hosl_len := ownSlice_len _ _ _ $$ Hosl
   wp_apply wp_slice_make2 (V := Loc) osl.len as %rsl ⟨Hrsl, Hrcap⟩
   · ipureintro; exact Hosl_len.2
@@ -208,13 +135,13 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
   · obtain ⟨hn0, hnl, hdl⟩ := Hn
     have hlt : sint.nat n < ops_ps.length := by have := Hosl_len.1; word
     list_elem ops_ps (sint.nat n) as p
-    ihave ⟨%op, %Hop, #Hp⟩ := txn.newTxnResp_opsIs_lookup ops_ps ops (sint.nat n) p Hp_lookup $$ Hops
+    ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem ops_ps ops (sint.nat n) p Hp_lookup $$ Hops
     simp only [show (0 ≤ sint.Z n ∧ sint.Z n < sint.Z osl.len) from ⟨hn0, Hif⟩, _root_.and_self, ite_true]
     wp_apply wp_load_slice_index osl (sint.Z n) ops_ps DFrac.discard p hn0 $$ [Hosl] as -
     · iframe Hosl; ipureintro; exact Hp_lookup
     cases op
     case txn cs ts es =>
-      ihave ⟨%Hpn, %w, %r, #Hreq, #Hw, #Hrt⟩ := txn.newTxnResp_requestOpIs_txn p cs ts es $$ Hp
+      ihave ⟨%Hpn, %w, %r, #Hreq, #Hw, #Hrt⟩ := txn.requestOpIs_txn p cs ts es $$ Hp
       wp_auto
       have hpath := txn.opsPath_drop s0 ops (sint.nat n) _ Hop
       rw [txn.opPath_txn] at hpath
@@ -227,7 +154,7 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
         simp only [List.length_cons, List.length_append] at Hpl'l; word
       simp only [show (0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z pl'.len ∧
         sint.Z pl'.len ≤ sint.Z pl'.cap) from ⟨by decide, hlen1, Hpl'w.2⟩, _root_.and_self, ite_true]
-      ihave #Hsub := txn.newTxnResp_slice_from pl' _ (W64 1) ⟨by decide, hlen1⟩ $$ «Hpl'»
+      ihave #Hsub := txn.slice_from pl' _ (W64 1) ⟨by decide, hlen1⟩ $$ «Hpl'»
       rw [hpath, show sint.nat (W64 1) = 1 from rfl, List.drop_one, List.tail_cons, List.append_assoc]
       rw [txn.txnPath, List.cons_append]
       wp_apply IH $$ %r %T %(slice.slice pl' Bool (W64 1) pl'.len)
@@ -267,8 +194,8 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
       simp only [show (0 ≤ sint.Z (W64 1 + W64 (nc : Int)) ∧ sint.Z (W64 1 + W64 (nc : Int)) ≤ sint.Z pl'.len ∧
         sint.Z pl'.len ≤ sint.Z pl'.cap) from ⟨by omega, hle, Hpl'w.2⟩,
         _root_.and_self, ite_true]
-      ihave #Hnew := txn.newTxnResp_slice_from pl' _ (W64 1 + W64 (nc : Int)) ⟨by omega, hle⟩ $$ «Hpl'»
-      obtain ⟨y, hy⟩ := txn.newTxnResp_drop_last (txn.opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest)
+      ihave #Hnew := txn.slice_from pl' _ (W64 1 + W64 (nc : Int)) ⟨by omega, hle⟩ $$ «Hpl'»
+      obtain ⟨y, hy⟩ := txn.drop_last (txn.opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest)
         (txn.txnOk s0 T) (txn.opsPath s0 (T.branch (txn.txnOk s0 T)))
       rw [hnc] at hy
       rw [hzn, List.drop_succ_cons, hy]

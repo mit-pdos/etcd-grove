@@ -47,18 +47,6 @@ theorem demuxUSL_subslice_head {α : Type} {evs : List α} {j k : Nat} {e0 : α}
   simp only [List.getElem_take]
   exact (List.getElem?_eq_some_iff.1 he0).2
 
-theorem demuxUSL_sorted_le {evs : List EvModel} (h : EvRevSorted evs) {a b : Nat}
-    {x y : EvModel} (hab : a ≤ b) (hx : evs[a]? = some x) (hy : evs[b]? = some y) :
-    sint.Z x.rev ≤ sint.Z y.rev := by
-  rcases Nat.lt_or_ge a b with hlt | hge
-  · unfold EvRevSorted at h
-    rw [List.pairwise_iff_getElem] at h
-    obtain ⟨ha, rfl⟩ := List.getElem?_eq_some_iff.1 hx
-    obtain ⟨hb, rfl⟩ := List.getElem?_eq_some_iff.1 hy
-    exact h a b ha hb hlt
-  · have : a = b := by omega
-    subst this; rw [hx] at hy; cases hy; exact Int.le_refl _
-
 /-- A run `[j, k)` of revision `e0.rev` starting at a boundary: one more batch. -/
 theorem demuxUSL_split_step {evs : List EvModel} {j k : Nat} {e0 : EvModel} (hjk : j < k)
     (he0 : evs[j]? = some e0)
@@ -77,17 +65,6 @@ theorem demuxUSL_split_step {evs : List EvModel} {j k : Nat} {e0 : EvModel} (hjk
   rw [splitBatches_append _ _ (fun x y hx hy => by
     rw [hhead] at hy; simp at hy; subst hy; exact hbd x hx)]
   rw [splitBatches_run _ (by rw [hhead]; simp) e0.rev hall]
-
-theorem demuxUSL_ringAppend_mem {V : Type} {cap : Nat} {items : List V} {v x : V}
-    (h : x ∈ ringAppend cap items v) : x = v ∨ x ∈ items := by
-  unfold ringAppend at h
-  split at h
-  · rcases List.mem_append.1 h with h | h
-    · exact Or.inr h
-    · exact Or.inl (List.mem_singleton.1 h)
-  · rcases List.mem_append.1 h with h | h
-    · exact Or.inr (List.mem_of_mem_tail h)
-    · exact Or.inl (List.mem_singleton.1 h)
 
 theorem demuxUSL_ringAppend_full {V : Type} {cap : Nat} {items : List V} (v : V)
     (hc : 0 < cap) (h : items.length = cap) : (ringAppend cap items v).length = cap := by
@@ -152,7 +129,7 @@ theorem demuxUSL_run_new {cap : Nat} {c : DemuxCore} {evs : List EvModel} {j k :
   obtain ⟨h1, h2, h3⟩ := hrun e0 he0
   obtain ⟨hsp, hok, hbr⟩ := demuxUSL_split_step hjk he0 h1 h2
   have hlt : sint.Z e0.rev < sint.Z e1.rev :=
-    demuxUSL_rev_lt (demuxUSL_sorted_le hsorted (Nat.le_of_lt hjk) he0 he1) hr
+    demuxUSL_rev_lt (EvRevSorted.rev_le hsorted he0 he1 (Nat.le_of_lt hjk)) hr
   have happ : appendAll cap c.history (splitBatches (evs.take k)) =
       ringAppend cap (appendAll cap c.history (splitBatches (evs.take j))) (subslice j k evs) := by
     rw [hsp, demuxUSL_appendAll_snoc]
@@ -167,7 +144,7 @@ theorem demuxUSL_run_new {cap : Nat} {c : DemuxCore} {evs : List EvModel} {j k :
     have := h1 (k - 1) x (by omega) (by omega) hx
     rw [this]; exact fun h => hr h.symm
   · rw [happ] at hx
-    rcases demuxUSL_ringAppend_mem hx with rfl | hx
+    rcases ringAppend_mem hx with rfl | hx
     · rw [hbr]; exact hlt
     · have := h3 x hx; omega
 

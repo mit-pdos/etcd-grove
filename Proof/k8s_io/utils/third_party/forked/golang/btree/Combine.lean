@@ -86,13 +86,6 @@ theorem cap_combine (A : Type) [ZeroVal A] [TypedPointsto (GF := GF) A] (dq1 dq2
 def KeysOfItems (o : ItemOrder GF V K) : Prop :=
   ∀ (v : V) (k1 k2 : K), ⊢ o.item v k1 -∗ o.item v k2 -∗ (⌜k1 = k2⌝ : IProp GF)
 
-theorem allItems_elem' {l : List (V × K)} {e : V × K} (h : e ∈ l) :
-    allItems o l ⊢ o.item e.1 e.2 := by
-  unfold allItems
-  iintro #H
-  iapply H
-  ipureintro; exact h
-
 /-- Item lists with the same Go items, whose keys `allItems o S` determines, are equal. -/
 theorem items_agree (hkey : KeysOfItems o) (S : List (V × K)) :
     ∀ (is1 is2 : List (V × K)), is1.map Prod.fst = is2.map Prod.fst →
@@ -104,8 +97,8 @@ theorem items_agree (hkey : KeysOfItems o) (S : List (V × K)) :
     simp only [List.map_cons, List.cons.injEq] at h
     obtain ⟨rfl, h⟩ := h
     iintro #H
-    ihave #Hk := allItems_elem' o (h1 _ List.mem_cons_self) $$ H
-    ihave #Hk' := allItems_elem' o (h2 _ List.mem_cons_self) $$ H
+    ihave #Hk := allItems_elem o (h1 _ List.mem_cons_self) $$ H
+    ihave #Hk' := allItems_elem o (h2 _ List.mem_cons_self) $$ H
     ihave %hkk := hkey v k k' $$ Hk Hk'
     ihave %ht := items_agree hkey S t1 t2 h (fun e he => h1 e (List.mem_cons_of_mem _ he))
       (fun e he => h2 e (List.mem_cons_of_mem _ he)) $$ H

@@ -62,7 +62,7 @@ theorem backend.bucketBuffer.merge.wp_proof
     simp only [hbi, _root_.and_self, ite_true]
     list_elem es2 (sint.nat i) as e
     list_elem p2.kvs (sint.nat i) as x
-    ihave #Hx := entsIn_slot p2.kvs es2 (sint.nat i) x e Hx_lookup He_lookup $$ Hents2
+    ihave #Hx := entsIn_lookup p2.kvs es2 (sint.nat i) x e Hx_lookup He_lookup $$ Hents2
     icases Hx with ⟨#Hxk, #Hxv⟩
     icases ownSlice_elem_acc (sint.Z i) x p2.buf _ p2.kvs (by word) Hx_lookup $$ Hbuf2
       with ⟨Hel, Hback⟩
@@ -127,20 +127,20 @@ theorem backend.bucketBuffer.merge.wp_proof
       list_elem p.kvs (sint.nat j) as x
       have ha' : (es ++ es2)[sint.nat j]? = some a := by
         rw [List.getElem?_append_left (by omega), hjn]; exact Ha_lookup
-      ihave #Hx := entsIn_slot p.kvs (es ++ es2) (sint.nat j) x a Hx_lookup ha' $$ Hents
+      ihave #Hx := entsIn_lookup p.kvs (es ++ es2) (sint.nat j) x a Hx_lookup ha' $$ Hents
       icases Hx with ⟨#Hxk, -⟩
       list_elem p2.kvs 0 as x0
       ihave #Hk0 : (∃ k0 : GoString, x0.key' ↦*□ k0 ∗ ⌜∀ e, es2[0]? = some e → k0 = e.1⌝) $$ []
       · cases h : es2[0]? with
         | some e =>
           iexists e.1
-          ihave #H := entsIn_slot p2.kvs es2 0 x0 e Hx0_lookup h $$ Hents2
+          ihave #H := entsIn_lookup p2.kvs es2 0 x0 e Hx0_lookup h $$ Hents2
           icases H with ⟨#Hk, -⟩
           iframe Hk
           ipureintro
           intro e' he'; cases he'; rfl
         | none =>
-          ihave #H := slotsRO_slot p2.kvs 0 x0 Hx0_lookup $$ Hro2
+          ihave #H := slotsRO_lookup p2.kvs 0 x0 Hx0_lookup $$ Hro2
           icases H with ⟨%b1, %b2, #Hk, -⟩
           iexists b1
           iframe Hk

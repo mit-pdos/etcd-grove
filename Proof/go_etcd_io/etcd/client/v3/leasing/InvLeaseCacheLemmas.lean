@@ -314,22 +314,11 @@ theorem headerOk_of_hdrFull (h : Loc) (m : HdrM) : hdrFull (GF := GF) h m ⊢ he
 theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ ⌜φ⌝ ∗ P :=
   (and_intro h .rfl).trans persistent_and_sep.1
 
-/-- A wholly owned `int64` cell has no other points-to. -/
-theorem w64_ptsto_excl (l : Loc) (v1 v2 : w64) (dq : DFrac) :
-    (l ↦{DFrac.own 1} v1 : IProp GF) ∗ l ↦{dq} v2 ⊢ False := by
-  rw [typedPointsto_unseal]; unfold typedPointstoWrap
-  rw [typedPointstoDef_heap, typedPointstoDef_heap]
-  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
-  icombine H1 H2 gives %Hv
-  exfalso
-  have := DFrac.valid_own_op Hv.1
-  simp at this
-
 /-- A freshly allocated `*leaseKey` (its `rev` field, owned) is no entry's. -/
 theorem entries_fresh (m : GMap GoString LeaseEntry) (li : Loc) (v : w64) :
     ([∗map] _k ↦ e ∈ m, entryOwn (GF := GF) e (DFrac.own 1)) ∗
       structFieldRef leaseKey go!"rev" li ↦ v ⊢ ⌜∀ k e, m !! k = some e → e.li ≠ li⌝ := by
-  refine leasing_pure_forall_intro fun k => leasing_pure_forall_intro fun e => ?_
+  refine pure_forall_intro fun k => pure_forall_intro fun e => ?_
   by_cases hk : m !! k = some e
   · by_cases heq : e.li = li
     · iintro ⟨Hm, Hl⟩
@@ -346,7 +335,7 @@ theorem entries_fresh (m : GMap GoString LeaseEntry) (li : Loc) (v : w64) :
 theorem frozen_fresh (l : List (GoString × LeaseEntry)) (li : Loc) (v : w64) :
     ([∗list] f ∈ l, entryOwn (GF := GF) f.2 DFrac.discard) ∗
       structFieldRef leaseKey go!"rev" li ↦ v ⊢ ⌜∀ f ∈ l, f.2.li ≠ li⌝ := by
-  refine leasing_pure_forall_intro fun f => ?_
+  refine pure_forall_intro fun f => ?_
   by_cases hf : f ∈ l
   · by_cases heq : f.2.li = li
     · iintro ⟨Hl, Hr⟩

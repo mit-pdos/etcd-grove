@@ -24,38 +24,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-theorem txn.IsTxnReadonly_opsIs_length :
-    ∀ (ps : List Loc) (ops : List TxnOp),
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
-  | [], [] => by iintro -; ipureintro; rfl
-  | p :: ps, op :: ops => by
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    ihave %h := txn.IsTxnReadonly_opsIs_length ps ops $$ H
-    ipureintro; simp [h]
-  | [], _ :: _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | _ :: _, [] => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-
-theorem txn.IsTxnReadonly_opsIs_lookup :
-    ∀ (ps : List Loc) (ops : List TxnOp) (i : Nat) (p : Loc), ps[i]? = some p →
-      txn.requestOpsIs (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ txn.requestOpIs p op
-  | [], _, _, _, h => by simp at h
-  | _ :: _, [], _, _, _ => by unfold txn.requestOpsIs; iintro H; iexfalso; iexact H
-  | q :: ps, op :: ops, 0, p, h => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    unfold txn.requestOpsIs
-    iintro ⟨H, -⟩
-    iexists op
-    iframe H
-    ipureintro; rfl
-  | q :: ps, op :: ops, i + 1, p, h => by
-    simp only [List.getElem?_cons_succ] at h
-    unfold txn.requestOpsIs
-    iintro ⟨-, H⟩
-    simp only [List.getElem?_cons_succ]
-    iapply txn.IsTxnReadonly_opsIs_lookup ps ops i p h $$ H
-
 theorem txn.IsTxnReadonly_false (t : TxnModel) (op : TxnOp) (h : op ∈ t.thenOps ++ t.elseOps)
     (hg : txn.opIsGet op = false) : txn.txnReadonly t = false := by
   unfold txn.txnReadonly
@@ -87,8 +55,8 @@ theorem txn.IsTxnReadonly.wp_proof
   icases Ht with ⟨%Hnn, Hf⟩
   iunfold txn.txnFieldsIs at Hf
   icases Hf with ⟨%csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hfl, #Hfs, #Hfm⟩
-  ihave %Hsl := txn.IsTxnReadonly_opsIs_length sps t.thenOps $$ Hsm
-  ihave %Hfll := txn.IsTxnReadonly_opsIs_length fps t.elseOps $$ Hfm
+  ihave %Hsl := txn.requestOpsIs_length sps t.thenOps $$ Hsm
+  ihave %Hfll := txn.requestOpsIs_length fps t.elseOps $$ Hfm
   ihave %Hslen := ownSlice_len _ _ _ $$ Hss
   ihave %Hflen := ownSlice_len _ _ _ $$ Hfs
   wp_auto
@@ -106,7 +74,7 @@ theorem txn.IsTxnReadonly.wp_proof
     simp only [show (0 ≤ sint.Z n ∧ sint.Z n < sint.Z ssl.len) from ⟨hn0, Hif⟩, _root_.and_self, ite_true]
     wp_apply wp_load_slice_index ssl (sint.Z n) sps DFrac.discard p hn0 $$ [Hss] as -
     · iframe Hss; ipureintro; exact Hp_lookup
-    ihave ⟨%op, %Hop, #Hp⟩ := txn.IsTxnReadonly_opsIs_lookup sps t.thenOps (sint.nat n) p Hp_lookup $$ Hsm
+    ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem sps t.thenOps (sint.nat n) p Hp_lookup $$ Hsm
     wp_apply (hGet p op) $$ [$Hp] as %rr Hrr
     cases hg : txn.opIsGet op
     · cases op
@@ -154,7 +122,7 @@ theorem txn.IsTxnReadonly.wp_proof
     simp only [show (0 ≤ sint.Z n ∧ sint.Z n < sint.Z fsl.len) from ⟨hn0, Hif⟩, _root_.and_self, ite_true]
     wp_apply wp_load_slice_index fsl (sint.Z n) fps DFrac.discard p hn0 $$ [Hfs] as -
     · iframe Hfs; ipureintro; exact Hp_lookup
-    ihave ⟨%op, %Hop, #Hp⟩ := txn.IsTxnReadonly_opsIs_lookup fps t.elseOps (sint.nat n) p Hp_lookup $$ Hfm
+    ihave ⟨%op, %Hop, #Hp⟩ := txn.requestOpsIs_elem fps t.elseOps (sint.nat n) p Hp_lookup $$ Hfm
     wp_apply (hGet p op) $$ [$Hp] as %rr Hrr
     cases hg : txn.opIsGet op
     · cases op
