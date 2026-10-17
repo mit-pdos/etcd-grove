@@ -324,9 +324,9 @@ instance watchSrvFacts_persistent (V : WEnv GF) : Persistent (watchSrvFacts V) :
 /-- The create request `toPB` builds from a watch request's fields: the key and range end, the
 start revision, the progress flag, no filter, no previous key-values, the automatic id, no
 fragments. -/
-def createOf (key ed : GoString) (rv : w64) (pn : Bool) : v3rpc.CreateReqM :=
+def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.CreateReqM :=
   { key := key, rangeEnd := ed, startRev := rv, progressNotify := pn, filters := [],
-    prevKv := false, watchId := W64 0, fragment := false }
+    prevKv := false, watchId := W64 0, fragment := false, sr := sr }
 
 /-! ## One watch: its request and its substream -/
 
@@ -360,6 +360,9 @@ structure WsPrm (GF : BundledGFunctors) where
   /-- the substream's goroutine has stopped for good (a one-shot flag: `false`, owned by the
   goroutine while it runs; `true`, read-only, published by its `donec`) -/
   γx : GName
+  /-- (K2e-6) the watch's start revision was read from the server's store (`mvcc.startRead`):
+  its create request says so (`CreateReqM.sr`) -/
+  sr : Bool
 
 /-- **The request is one of the contract's** (pure): a range watch under `pfx` from `rev ≥ 0`
 (`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's. -/
@@ -433,7 +436,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Unknown ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P⌝)
+    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P⌝ ∗ mvcc.startRead V.R.γ P.sr P.rev)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
@@ -483,7 +486,7 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
     context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜wsReqOk V.pfx P⌝) ∨
+    ⌜wsReqOk V.pfx P⌝ ∗ mvcc.startRead V.R.γ P.sr P.rev) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
 

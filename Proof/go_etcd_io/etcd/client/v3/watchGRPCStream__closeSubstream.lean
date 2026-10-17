@@ -419,7 +419,7 @@ theorem watchGRPCStream.closeSubstream.wp_proof
   subst HPws
   ihave #Hws' := Hws
   iunfold wsIs at Hws'
-  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, #Hbag, %Hok⟩
+  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, #Hbag, %Hok, -⟩
   iunfold wrRO at Hro
   icases Hro with ⟨#Hctxf, -⟩
   ihave #Hctx1 := Hctx

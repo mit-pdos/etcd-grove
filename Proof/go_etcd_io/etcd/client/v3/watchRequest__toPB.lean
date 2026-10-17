@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem watchRequest.toPB.wp_proof : watchRequest.toPB.spec (GF := GF) (hG := hG) := by
-  intro wr key ed rv pn flt dq
+  intro wr key ed rv pn flt dq sr
   wp_start as ⟨#Hk, #He, Hrv, #Hpn, #Hflt, #Hfs, #Hpkv, #Hfr⟩
   iapply wp_fupd
   wp_auto
