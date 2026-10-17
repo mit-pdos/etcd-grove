@@ -33,7 +33,7 @@ theorem confchange.Changer.remove.wp_proof
   wp_start as ⟨Hp, Hw, Htrk⟩
   unfold ownCfgAt
   icases Hw with ⟨%cfg, Hcfgp, Hc⟩
-  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   wp_auto
   wp_method_call
   wp_call
@@ -51,52 +51,69 @@ theorem confchange.Changer.remove.wp_proof
     wp_apply wp_confchange_nilAwareDelete $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
     ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
     wp_apply wp_confchange_nilAwareDelete $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
-    wp_apply wp_confchange_outgoing _ vin vout Harr
-    icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
-    wp_apply wp_idset_lookup2 $$ Hout as Hout
-    ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
-    ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)) $$
-        [Voters AutoLeave Learners LearnersNext]
-    · iapply typedPointsto_combine _ _ _ Hcnn
-      simp only [TypedPointsto.typedPointstoDef]
-      iframe
-    wp_if_destruct
-    · -- an outgoing voter: its `Progress` stays
-      iapply HΦ
-      iframe Hp
-      have Hout' : id ∈ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
-      rw [ite_eq_right (fun h => h.2 Hout')]
-      iframe Htrk
-      simp only [removeM, ite_eq_left Hmem]
-      iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-      iframe Hcfgp
-      iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-        (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal $$ [Hin] [Hout] [Hl] [Hln]
-      all_goals simp only [removeCfg.proj_incoming, removeCfg.proj_outgoing,
-        removeCfg.proj_learners, removeCfg.proj_learnersNext]
-      · iexact Hin
-      · iexact Hout
-      · iexact Hl
-      · iexact Hln
-    · -- not an outgoing voter: untracked
-      wp_apply wp_mapDelete_named tracker.ProgressMap.ty go.uint64
-        (go.GoType.PointerType tracker.Progress.ty) $$ Htrk as Htrk
-      iapply HΦ
-      iframe Hp
-      have Hout' : id ∉ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
-      rw [ite_eq_left ⟨Hmem, Hout'⟩]
-      iframe Htrk
-      simp only [removeM, ite_eq_left Hmem]
-      iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-      iframe Hcfgp
-      iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-        (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal $$ [Hin] [Hout] [Hl] [Hln]
-      all_goals simp only [removeCfg.proj_incoming, removeCfg.proj_outgoing,
-        removeCfg.proj_learners, removeCfg.proj_learnersNext]
-      · iexact Hin
-      · iexact Hout
-      · iexact Hl
-      · iexact Hln
+    -- raft#168: `if id == cfg.Witnesses[0] { cfg.Witnesses[0] = 0 }`, a no-op here
+    icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+      $$ Witnesses with ⟨Hw0, Hwback⟩
+    wp_auto
+    have Hset : (array.mk 2 (cfg.Witnesses'.arr.set (sint.Z (W64 0)).toNat (W64 0)) :
+        GoArray w64 2) = cfg.Witnesses' := by
+      rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some (W64 0) by
+        rw [Hwit]; rfl)]
+    by_cases Hid0 : id = W64 0
+    all_goals first
+      | rw [decide_eq_true (by assumption : id = W64 0)]
+      | rw [decide_eq_false (by assumption : ¬ id = W64 0)]
+    all_goals
+      wp_auto
+      ihave Witnesses := Hwback $$ Hw0
+      rw [Hset]
+    all_goals
+      wp_apply wp_confchange_outgoing _ vin vout Harr
+      icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
+      wp_apply wp_idset_lookup2 $$ Hout as Hout
+      ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
+      ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)) $$
+          [Voters AutoLeave Learners LearnersNext Witnesses]
+      · iapply typedPointsto_combine _ _ _ Hcnn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      wp_if_destruct
+      · -- an outgoing voter: its `Progress` stays
+        iapply HΦ
+        iframe Hp
+        have Hout' : id ∈ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
+        rw [ite_eq_right (fun h => h.2 Hout')]
+        iframe Htrk
+        simp only [removeM, ite_eq_left Hmem]
+        iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+        iframe Hcfgp
+        iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+          (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal Hwit $$ [Hin] [Hout] [Hl] [Hln]
+        all_goals simp only [removeCfg.proj_incoming, removeCfg.proj_outgoing,
+          removeCfg.proj_learners, removeCfg.proj_learnersNext]
+        · iexact Hin
+        · iexact Hout
+        · iexact Hl
+        · iexact Hln
+      · -- not an outgoing voter: untracked
+        wp_apply wp_mapDelete_named tracker.ProgressMap.ty go.uint64
+          (go.GoType.PointerType tracker.Progress.ty) $$ Htrk as Htrk
+        iapply HΦ
+        iframe Hp
+        have Hout' : id ∉ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
+        rw [ite_eq_left ⟨Hmem, Hout'⟩]
+        iframe Htrk
+        simp only [removeM, ite_eq_left Hmem]
+        iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+        iframe Hcfgp
+        iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+          (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal Hwit $$ [Hin] [Hout] [Hl] [Hln]
+        all_goals simp only [removeCfg.proj_incoming, removeCfg.proj_outgoing,
+          removeCfg.proj_learners, removeCfg.proj_learnersNext]
+        · iexact Hin
+        · iexact Hout
+        · iexact Hl
+        · iexact Hln
   · -- untracked: nothing
     have Hmem : id ∉ s.prs := fun h => Hif (by
       have := (GMap.mem_iff prs id).1 ((mem_of_domSet_eq Hdomeq id).2 h); simpa using this)
@@ -107,7 +124,7 @@ theorem confchange.Changer.remove.wp_proof
     simp only [removeM, ite_eq_right Hmem]
     iexists cfg
     iframe Hcfgp
-    iapply ownCfgCC_intro cfg (DFrac.own 1) s.cfg vin vout Harr Hal $$ Hin Hout Hl Hln
+    iapply ownCfgCC_intro cfg (DFrac.own 1) s.cfg vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
 
 end proof
 

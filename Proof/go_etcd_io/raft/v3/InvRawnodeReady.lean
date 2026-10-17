@@ -131,11 +131,11 @@ theorem csPts_combine_open (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2
   scomb Ho Ho'
   scomb Hn Hn'
   iunfold csPts
-  iexists sv, sl, so, sn, pa
+  iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
   · ipureintro; exact Hnn
   simp only [named]
-  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
   ipureintro; intro h; cases h
 
 theorem csOptA_combine (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :

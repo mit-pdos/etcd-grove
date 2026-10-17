@@ -39,8 +39,9 @@ theorem confchange.Changer.EnterJoint.wp_proof
     (wp_Changer_apply : confchange.Changer.apply.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG) := by
-  intro p chg c prs pvs autoLeave ccs ls l dq dqs dqc dqm dqp Hmi
+  intro p chg c prs pvs autoLeave ccs ls l dq dqs dqc dqm dqp Hmi Hnow
   wp_start as ⟨Hp, Hccs, #Hcl, Htc⟩
+  icases ownTrackerCC_nowit _ _ _ _ _ _ _ $$ Htc with ⟨Htc, %Hnw⟩
   wp_auto
   wp_method_call
   wp_call
@@ -61,7 +62,7 @@ theorem confchange.Changer.EnterJoint.wp_proof
   subst Herr
   wp_auto
   have Hs0 : ¬ ¬ CfgInv (clearAutoLeave { cfg := c, prs := flagsOf pvs }) := fun h => h Hinv
-  icases ownCfgCC_elim _ _ _ $$ Hc' with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc' with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
   wp_apply wp_confchange_joint _ vin vout _ _ Harr $$ [$Hout] as Hout
   wp_if_destruct
@@ -175,9 +176,27 @@ theorem confchange.Changer.EnterJoint.wp_proof
     rw [Hkset, GMap.elem_of_dom] at this
     rcases h1 : mv !! k with _ | ⟨⟩ <;> rcases h2 : c.incoming !! k with _ | ⟨⟩ <;> simp_all
   subst Hmv'
+  -- raft#168: `cfg.Witnesses[1] = cfg.Witnesses[0]`, `0` into a `0`
+  have Hset : ∀ j : Int, 0 ≤ j → j < 2 → (array.mk 2 (cfg'.Witnesses'.arr.set j.toNat (W64 0)) :
+      GoArray w64 2) = cfg'.Witnesses' := by
+    intro j h0 h1
+    have : cfg'.Witnesses'.arr.set j.toNat (W64 0) = cfg'.Witnesses'.arr := by
+      rw [Hwit]; rcases (show j.toNat = 0 ∨ j.toNat = 1 by omega) with h | h <;> rw [h] <;> rfl
+    rw [this]
+  wp_auto
+  icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    $$ Witnesses with ⟨Hw0, Hwback⟩
+  wp_auto
+  ihave Witnesses := Hwback $$ Hw0
+  rw [Hset _ (by decide) (by decide)]
+  icases array_acc _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    $$ Witnesses with ⟨Hw1, Hwback⟩
+  wp_auto
+  ihave Witnesses := Hwback $$ Hw1
+  rw [Hset _ (by decide) (by decide)]
   -- the configuration: the outgoing voters a copy of the incoming ones
   ihave Hcfgp : (cfg_ptr ↦ ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
-      tracker.Config)) $$ [Voters AutoLeave Learners LearnersNext]
+      tracker.Config)) $$ [Voters AutoLeave Learners LearnersNext Witnesses]
   · iapply typedPointsto_combine _ _ _ Hcnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
@@ -186,15 +205,14 @@ theorem confchange.Changer.EnterJoint.wp_proof
     $$ [Hin Hmout Hl Hln]
   · iapply ownCfgCC_intro ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
       tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM)
-      vin mout Harr2 (by simpa using Hal) $$ Hin [Hmout] Hl Hln
+      vin mout Harr2 (by simpa using Hal) Hwit $$ Hin [Hmout] Hl Hln
     unfold ownIdsetC; iright; iframe Hmout; ipureintro; exact Hi0
-  ihave Hnew := ownNewPr_copies (GF := GF) chg pvs
+  ihave Hnew := ownNewPr_copies (GF := GF) chg pvs Hnw
   ihave Hw := ownWork_intro chg pvs cfg_ptr trk
     (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState)
     _ prs' pvs rfl $$ Hcfgp Hc0 Htrk Hcopies Hnew
   -- `c.apply(&cfg, trk, ccs...)`
-  wp_auto
-  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi $$ [$c $Hccs $Hcl $Hw]
+  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi Hnow $$ [$c $Hccs $Hcl $Hw]
     as %err2 ⟨c, Hccs, Hres⟩
   have Hej : enterJointM autoLeave l { cfg := c, prs := flagsOf pvs } =
       match (applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState)) with
@@ -220,9 +238,9 @@ theorem confchange.Changer.EnterJoint.wp_proof
     ⟨%cfg1, %prs1, %pvs1, Hcfgp, Hc1, Htrk, Hprs1, %Hflags1, Hnew1⟩
   -- `cfg.AutoLeave = autoLeave`
   wp_auto
-  icases ownCfgCC_elim _ _ _ $$ Hc1 with ⟨%vin1, %vout1, %Harr1, Hin1, Hout1, Hl1, Hln1, %Hal1⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc1 with ⟨%vin1, %vout1, %Harr1, Hin1, Hout1, Hl1, Hln1, %Hal1, %Hwit1⟩
   ihave Hc1 := ownCfgCC_intro ({ cfg1 with AutoLeave' := autoLeave } : tracker.Config) (DFrac.own 1)
-    { s1.cfg with autoLeave := autoLeave } vin1 vout1 Harr1 rfl $$ Hin1 Hout1 Hl1 Hln1
+    { s1.cfg with autoLeave := autoLeave } vin1 vout1 Harr1 rfl Hwit1 $$ Hin1 Hout1 Hl1 Hln1
   -- `checkAndReturn(cfg, trk)`
   wp_apply wp_confchange_checkAndReturn _ _ _ _ _ _ _ _ $$ [$Hc1 $Htrk $Hprs1]
     as %cfg2 %trk2 %err3 ⟨Hc1, Htrk, Hprs1, %Hres3⟩

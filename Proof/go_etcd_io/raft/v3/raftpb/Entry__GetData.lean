@@ -34,10 +34,10 @@ theorem raftpb.Entry.GetData.wp_proof :
       iframe Hd
       iunfold entPts
       iframe
-      iexists uf
+      iexists uf, sub
       isplitr
       · ipureintro; exact Hnn
-      iframe cT cI cY Hd Hpb
+      iframe cT cI cY Hd cS Hpb
   · wp_start
     wp_auto
     iapply HΦ; ipureintro; trivial

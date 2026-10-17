@@ -300,7 +300,7 @@ theorem ownTracker_toC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk)
     (learnerFlagsC_simple voters t.prs t.peers Hd Hfl) Hcfg_size HmaxInfl
     $$ Hvotes Hprs Hprogs [Hvoters Hlearners HlearnersNext]
   iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (CfgM.simple voters (domSet t.prs \ voters))
-    voters_ref map.nil Hvoters_arr Hautoleave $$ [Hvoters] [] [Hlearners] [HlearnersNext]
+    voters_ref map.nil Hvoters_arr Hautoleave Hwit $$ [Hvoters] [] [Hlearners] [HlearnersNext]
   · simp only [CfgM.simple]; iexact Hvoters
   · simp only [CfgM.simple]; iapply ownIdsetC_nil
   · simp only [CfgM.simple]; iexact Hlearners
@@ -320,7 +320,7 @@ theorem ownTrackerC_toSimple (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
   obtain ⟨Hfl, Hl⟩ := learnerFlags_of_C c t.prs t.peers Hd Hinv Hdom Hflags ho
   have Hln : c.learnersNext = ∅ := (Hinv.2.2.2 ho).1
   have Hal : c.autoLeave = false := (Hinv.2.2.2 ho).2
-  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl', Hln', %Hal'⟩
+  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl', Hln', %Hal', %Hwit⟩
   ihave %Hvout := ownIdsetC_nil_of _ _ _ ho $$ Hout
   subst Hvout
   isplitl
@@ -330,7 +330,7 @@ theorem ownTrackerC_toSimple (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
       exact GMap.elem_of_union_l _ (GMap.elem_of_union_l _ hk)
     iapply ownTracker_intro c.incoming tv t.votes t.prs t.peers vin c.incoming c.learners
       c.learnersNext Hsub Harr (Hal'.trans Hal) (domSet_gset _)
-      ⟨by rw [domSet_gset]; exact Hl, Hln, Hfl⟩ Hsize HmaxInfl
+      ⟨by rw [domSet_gset]; exact Hl, Hln, Hfl⟩ Hsize HmaxInfl Hwit
       $$ Hvotes Hprs Hprogs Hin Hl' Hln'
   · ipureintro; exact Hl
 
@@ -364,12 +364,12 @@ theorem ownTrackerC_autoleave (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk
   iintro Hown
   iunfold ownTrackerC at Hown
   iNamed Hown
-  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   isplitr
   · ipureintro; exact Hal
   iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
     $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln]
-  iapply ownCfgCC_intro _ _ c vin vout Harr Hal $$ Hin Hout Hl Hln
+  iapply ownCfgCC_intro _ _ c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
 
 /-- The voters of either half number at most `2^62` (they are tracked). -/
 theorem ownTrackerC_voters_size (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
@@ -428,7 +428,7 @@ theorem ownCfgCC_voters (cfg : tracker.Config) (c : CfgM) :
       (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownIdsetQ vout (DFrac.own 1) c.outgoing -∗
         ownCfgCC cfg (DFrac.own 1) c) := by
   iintro Hc
-  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   ihave %Hnn := ownMap_not_nil _ _ _ $$ Hin
   icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcan⟩
   iexists vin, vout
@@ -439,7 +439,7 @@ theorem ownCfgCC_voters (cfg : tracker.Config) (c : CfgM) :
   iintro Hin Hout
   ihave Hin := ownIdsetQ_not_nil _ _ _ Hnn $$ Hin
   ihave Hout := ownIdsetC_join _ _ _ Hcan $$ Hout
-  iapply ownCfgCC_intro cfg (DFrac.own 1) c vin vout Harr Hal $$ Hin Hout Hl Hln
+  iapply ownCfgCC_intro cfg (DFrac.own 1) c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
 
 /-- One peer's `Progress`, borrowed out of `ownTrackerC` by its key, given back at any record
 with the same `IsLearner` (as `ownTracker_lookup`). -/
@@ -646,7 +646,7 @@ theorem ownConfigV_toC (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
   iframe Hprsm Hprogs
   isplitl [Hvref Hcfgl]
   · iapply ownCfgCC_intro cfgv (DFrac.own 1) (CfgM.simple vm (domSet prs \ vm))
-      vref map.nil Hcfgarr Hcfgal $$ [Hvref] [] [Hcfgl] []
+      vref map.nil Hcfgarr Hcfgal Hcfgwit $$ [Hvref] [] [Hcfgl] []
     · simp only [CfgM.simple]; iexact Hvref
     · simp only [CfgM.simple]; iapply ownIdsetC_nil
     · simp only [CfgM.simple]; iexact Hcfgl

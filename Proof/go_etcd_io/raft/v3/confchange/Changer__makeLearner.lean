@@ -55,7 +55,7 @@ theorem confchange.Changer.makeLearner.wp_proof
       · rfl
       · exact absurd (by rw [GMap.mem_iff, h]; rfl) Hid
     ihave Hw := ownWork_intro chg base cfgp trk s cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew
-    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id true _ Hid Hmi
+    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id true false _ Hid rfl Hmi
       $$ [$c $Hw] as ⟨c, Hw⟩
     iapply HΦ
     iframe Hp
@@ -66,14 +66,16 @@ theorem confchange.Changer.makeLearner.wp_proof
       Option.isSome_iff_exists.1 ((Hdom id).1 (by rw [Hlk]; rfl))
     have Hsl : s.prs !! id = some pv.IsLearner' := by rw [← Hflags]; exact flagsOf_lookup pvs id pv Hpv
     have Hmem : id ∈ s.prs := by rw [GMap.mem_iff, Hsl]; rfl
-    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, Hback⟩
+    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, %Hpvw, Hback⟩
     icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
     wp_if_destruct
     · exact absurd rfl Hprnn
     have Hpv_eq : ∀ b, pv.IsLearner' = b → ({ pv with IsLearner' := b } : tracker.Progress) = pv := by
       intro b hb; rw [← hb]
     cases hl : pv.IsLearner'
-    · -- not a learner: removed, its `Progress` kept, then staged or made a learner
+    · -- not a learner (nor a witness): removed, its `Progress` kept, then staged or made a learner
+      wp_auto
+      rw [show (#pv.IsWitness' : val) = #false by rw [Hpvw]]
       wp_auto
       have Hdomeq : domSet prs = domSet s.prs := by
         apply GMap.set_eq; intro k
@@ -92,7 +94,7 @@ theorem confchange.Changer.makeLearner.wp_proof
       rw [Hprs']
       unfold ownCfgAt
       icases Hcw with ⟨%cfg1, Hcfgp, Hc⟩
-      icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+      icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
       simp only [removeM, ite_eq_left Hmem, removeCfg.proj_incoming, removeCfg.proj_outgoing,
         removeCfg.proj_learners, removeCfg.proj_learnersNext, removeCfg.proj_autoLeave] at Hal ⊢
       wp_auto
@@ -108,7 +110,7 @@ theorem confchange.Changer.makeLearner.wp_proof
         ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
         wp_apply wp_confchange_nilAwareAdd $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
         ihave Hcfgp : (cfgp ↦ ({ cfg1 with LearnersNext' := mln } : tracker.Config)) $$
-            [Voters AutoLeave Learners LearnersNext]
+            [Voters AutoLeave Learners LearnersNext Witnesses]
         · iapply typedPointsto_combine _ _ _ Hcnn
           simp only [TypedPointsto.typedPointstoDef]
           iframe
@@ -130,7 +132,7 @@ theorem confchange.Changer.makeLearner.wp_proof
         iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs pvs
           (by rw [Hst]; exact Hflags) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
         iapply ownCfgCC_intro ({ cfg1 with LearnersNext' := mln } : tracker.Config) (DFrac.own 1)
-          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) $$ [Hin] [Hout] [Hl] [Hln]
+          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) Hwit $$ [Hin] [Hout] [Hl] [Hln]
         all_goals rw [Hst]
         · iexact Hin
         · iexact Hout
@@ -141,11 +143,16 @@ theorem confchange.Changer.makeLearner.wp_proof
         ihave Hl := ownIdsetC_Q _ _ _ $$ Hl
         wp_apply wp_confchange_nilAwareAdd $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
         ihave Hcfgp : (cfgp ↦ ({ cfg1 with Learners' := ml } : tracker.Config)) $$
-            [Voters AutoLeave Learners LearnersNext]
+            [Voters AutoLeave Learners LearnersNext Witnesses]
         · iapply typedPointsto_combine _ _ _ Hcnn
           simp only [TypedPointsto.typedPointstoDef]
           iframe
         ihave Hl := ownIdsetC_insert _ _ _ _ $$ Hl
+        -- raft#168's `pr.IsWitness = false`: it already is
+        have Hweq : ({ ({ pv with IsLearner' := true } : tracker.Progress) with IsWitness' := false } :
+            tracker.Progress) = { pv with IsLearner' := true } := by
+          rw [← Hpvw]
+        rw [Hweq]
         icases Hback $$ %true Hpr with ⟨Hprs, Hnew⟩
         iapply HΦ
         iframe Hp
@@ -157,7 +164,7 @@ theorem confchange.Changer.makeLearner.wp_proof
         iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs _
           (by rw [Hst]; simp only [flagsOf_insert, Hflags]) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
         iapply ownCfgCC_intro ({ cfg1 with Learners' := ml } : tracker.Config) (DFrac.own 1)
-          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) $$ [Hin] [Hout] [Hl] [Hln]
+          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) Hwit $$ [Hin] [Hout] [Hl] [Hln]
         all_goals rw [Hst]
         · iexact Hin
         · iexact Hout

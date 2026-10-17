@@ -226,6 +226,21 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   wp_apply (wp_cloneMap f hf.symm) $$ Hln as %mln ⟨Hln, Hmln⟩
   ihave Hln := ownIdsetC_join _ _ _ Hcln $$ Hln
   icases clonedMap_C _ _ _ _ $$ Hln Hmln with ⟨Hln, Hmln⟩
+  -- raft#168: `Witnesses: [2]uint64{c.Witnesses[0], c.Witnesses[1]}`, both `0` here
+  icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    $$ Witnesses with ⟨Hw0, Hwback⟩
+  wp_auto
+  ihave Witnesses := Hwback $$ Hw0
+  rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some (W64 0) by
+    rw [Hwit]; rfl)]
+  rw [show (array.mk 2 cfg.Witnesses'.arr).arr = cfg.Witnesses'.arr from rfl]
+  icases array_acc _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    $$ Witnesses with ⟨Hw1, Hwback⟩
+  wp_auto
+  ihave Witnesses := Hwback $$ Hw1
+  rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 1)).toNat]? = some (W64 0) by
+    rw [Hwit]; rfl)]
+  rw [show (array.mk 2 cfg.Witnesses'.arr) = cfg.Witnesses' from rfl]
   iapply HΦ
   ihave Voters := Hvback $$ Hv1
   rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 0)).toNat]? = some vin by
@@ -233,7 +248,7 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   rw [show (array.mk 2 cfg.Voters'.arr).arr = cfg.Voters'.arr from rfl]
   rw [list_set_lookup_self _ _ _ (show cfg.Voters'.arr[(sint.Z (W64 1)).toNat]? = some vout by
     rw [Harr]; rfl)]
-  isplitl [AutoLeave Learners LearnersNext Voters]
+  isplitl [AutoLeave Learners LearnersNext Voters Witnesses]
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
@@ -244,7 +259,7 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
     icases Hin with (%H | Hin)
     · exact absurd H.1 Hinnn
     iframe Hin Hout Hl Hln
-    ipureintro; exact ⟨Harr, Hal⟩
+    ipureintro; exact ⟨Harr, Hal, Hwit⟩
   iexists m0, m1
   simp only [named]
   unfold clonedMap
@@ -253,7 +268,7 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   iframe Hm0 Hm1 Hml Hmln
   ipureintro
   simp only [List.set, List.replicate]
-  rfl
+  exact ⟨rfl, trivial, trivial⟩
 
 end proof
 

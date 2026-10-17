@@ -7,6 +7,8 @@ module
 
 public import Spec.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetWitness
+public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetWitnessOutgoing
 
 @[expose] public section
 
@@ -25,13 +27,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem confchange.toConfChangeSingle.wp_proof
-    (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
+    (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG))
+    (wp_ConfState_GetWitness : raftpb.ConfState.GetWitness.spec (GF := GF) (hG := hG))
+    (wp_ConfState_GetWitnessOutgoing :
+      raftpb.ConfState.GetWitnessOutgoing.spec (GF := GF) (hG := hG)) :
     confchange.toConfChangeSingle.spec (GF := GF) (hG := hG) := by
   -- `int32` (`ConfChangeType`'s underlying type) is not an interface: Perennial states
   -- `NotInterface` per type constructor, and `go.int32` is a non-reducible definition
   -- (as in `raftpb/ConfChange__AsV2.lean`).
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro cs c dq
+  intro cs c dq Hvo0 Hv0
   wp_start as Hcs
   iNamed Hcs
   -- `in` is a Lean keyword: name its cell by hand before `wp_auto` names the others
@@ -68,6 +73,13 @@ theorem confchange.toConfChangeSingle.wp_proof
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index so (sint.Z n) _ _ x Hn.1 $$ [Ho] with Ho
     · iframe Ho; ipureintro; exact Hx
+    -- raft#168: `if id == cs.GetWitnessOutgoing()`: no, `0` is no outgoing voter
+    wp_apply wp_ConfState_GetWitnessOutgoing cs pwo dq Hnn $$ [$HWO $cWO] as HWO
+    have Hx0 : x ≠ W64 0 := fun h => Hvo0 (h ▸ List.mem_of_getElem? Hx)
+    first
+      | rw [decide_eq_false (show ¬ (x = W64 0) from Hx0)]
+      | rw [decide_eq_false (show ¬ (W64 0 = x) from fun h => Hx0 h.symm)]
+    wp_auto
     rw [show raftpb.ConfChangeAddNode = #(W32 0) from rfl]
     wp_apply wp_ConfChangeType_Enum (W32 0)
     iintro %pty Hpt
@@ -191,6 +203,13 @@ theorem confchange.toConfChangeSingle.wp_proof
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index sv (sint.Z n) _ _ x Hn.1 $$ [Hv] with Hv
     · iframe Hv; ipureintro; exact Hx
+    -- raft#168: `if id == cs.GetWitness()`: no, `0` is no voter
+    wp_apply wp_ConfState_GetWitness cs pw dq Hnn $$ [$HW $cW] as HW
+    have Hx0 : x ≠ W64 0 := fun h => Hv0 (h ▸ List.mem_of_getElem? Hx)
+    first
+      | rw [decide_eq_false (show ¬ (x = W64 0) from Hx0)]
+      | rw [decide_eq_false (show ¬ (W64 0 = x) from fun h => Hx0 h.symm)]
+    wp_auto
     rw [show raftpb.ConfChangeAddNode = #(W32 0) from rfl]
     wp_apply wp_ConfChangeType_Enum (W32 0)
     iintro %pty Hpt
@@ -346,10 +365,10 @@ theorem confchange.toConfChangeSingle.wp_proof
   iframe Hos Hoc Hs Hc Hcap
   simp only [ownCSM]
   iunfold csPts
-  iexists sv, sl, so, sn, pa
+  iexists sv, sl, so, sn, pa, pw, pwo
   isplitr
   · ipureintro; exact Hnn
-  iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+  iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
   ipureintro; exact Hal
 
 end proof

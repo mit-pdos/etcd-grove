@@ -70,7 +70,7 @@ theorem csPts_not_null (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
   icases H with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, H⟩
   isplitl
   · iunfold csPts
-    iexists sv, sl, so, sn, pa
+    iexists sv, sl, so, sn, pa, pw, pwo
     isplitr
     · ipureintro; exact Hnn
     iexact H

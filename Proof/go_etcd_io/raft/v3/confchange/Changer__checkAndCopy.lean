@@ -30,7 +30,7 @@ theorem confchange.Changer.checkAndCopy.wp_proof
   intro p chg c prs pvs dq dqc dqm dqp
   wp_start as ⟨Hp, Htc⟩
   unfold ownTrackerCC
-  icases Htc with ⟨Hc, Hpm, Hprs⟩
+  icases Htc with ⟨Hc, Hpm, Hprs, %Hnw⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   wp_auto
@@ -137,6 +137,8 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     as %cfg'' %trk'' %err ⟨Hc', Htrk, Hcopies, %Hres⟩
   iapply HΦ
   iframe Hp Hc Hpm Hprs
+  isplitr
+  · ipureintro; exact Hnw
   rcases Hres with ⟨Hinv, Herr, rfl, rfl⟩ | ⟨Hinv, Herr⟩
   · iright
     iframe Hc'

@@ -37,8 +37,9 @@ theorem confchange.Changer.Simple.wp_proof
     (wp_confchange_symdiff : confchange.symdiff.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) := by
-  intro p chg c prs pvs ccs ls l dq dqs dqc dqm dqp Hmi
+  intro p chg c prs pvs ccs ls l dq dqs dqc dqm dqp Hmi Hnow
   wp_start as ⟨Hp, Hccs, #Hcl, Htc⟩
+  icases ownTrackerCC_nowit _ _ _ _ _ _ _ $$ Htc with ⟨Htc, %Hnw⟩
   wp_auto
   wp_method_call
   wp_call
@@ -60,7 +61,7 @@ theorem confchange.Changer.Simple.wp_proof
   subst Herr
   wp_auto
   have Hs0 : ¬ ¬ CfgInv (clearAutoLeave { cfg := c, prs := flagsOf pvs }) := fun h => h Hinv
-  icases ownCfgCC_elim _ _ _ $$ Hc' with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc' with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
   wp_apply wp_confchange_joint _ vin vout _ _ Harr $$ [$Hout] as Hout
   wp_if_destruct
@@ -82,16 +83,16 @@ theorem confchange.Changer.Simple.wp_proof
   ihave Hc' : ownCfgCC cfg' (DFrac.own 1) (clearAutoLeave { cfg := c, prs := flagsOf pvs }).cfg
     $$ [Hin Hout Hl Hln]
   · iapply ownCfgCC_intro cfg' (DFrac.own 1) (clearAutoLeave { cfg := c, prs := flagsOf pvs }).cfg
-      vin vout Harr (by simpa using Hal) $$ [Hin] [Hout] [Hl] [Hln]
+      vin vout Harr (by simpa using Hal) Hwit $$ [Hin] [Hout] [Hl] [Hln]
     all_goals simp only [clearAutoLeave.proj_cfg]
     · iexact Hin
     · iexact Hout
     · iexact Hl
     · iexact Hln
-  ihave Hnew := ownNewPr_copies (GF := GF) chg pvs
+  ihave Hnew := ownNewPr_copies (GF := GF) chg pvs Hnw
   ihave Hw := ownWork_intro chg pvs cfg_ptr trk (clearAutoLeave { cfg := c, prs := flagsOf pvs })
     cfg' prs' pvs rfl $$ cfg Hc' Htrk Hcopies Hnew
-  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi $$ [$c $Hccs $Hcl $Hw]
+  wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi Hnow $$ [$c $Hccs $Hcl $Hw]
     as %err2 ⟨c, Hccs, Hres⟩
   rcases Happ : applyM l (clearAutoLeave { cfg := c, prs := flagsOf pvs }) with _ | s1
   · -- `apply` fails
@@ -110,16 +111,19 @@ theorem confchange.Changer.Simple.wp_proof
   wp_auto
   -- `symdiff(incoming(c.Tracker.Voters), incoming(cfg.Voters))`
   unfold ownTrackerCC
-  icases Htc with ⟨Htcc, Hpm, Hprs⟩
-  icases ownCfgCC_elim _ _ _ $$ Htcc with ⟨%vin0, %vout0, %Harr0, Hin0, Hout0, Hl0, Hln0, %Hal0⟩
+  icases Htc with ⟨Htcc, Hpm, Hprs, -⟩
+  icases ownCfgCC_elim _ _ _ $$ Htcc with ⟨%vin0, %vout0, %Harr0, Hin0, Hout0, Hl0, Hln0, %Hal0, %Hwit0⟩
   icases ownWork_elim _ _ _ _ _ $$ Hw with
     ⟨%cfg1, %prs1, %pvs1, Hcfgp, Hc1, Htrk, Hprs1, %Hflags1, Hnew1⟩
-  icases ownCfgCC_elim _ _ _ $$ Hc1 with ⟨%vin1, %vout1, %Harr1, Hin1, Hout1, Hl1, Hln1, %Hal1⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc1 with ⟨%vin1, %vout1, %Harr1, Hin1, Hout1, Hl1, Hln1, %Hal1, %Hwit1⟩
   wp_apply wp_confchange_incoming _ vin0 vout0 Harr0
   wp_apply wp_confchange_incoming _ vin1 vout1 Harr1
   wp_apply wp_confchange_symdiff $$ [$Hin0 $Hin1] as ⟨Hin0, Hin1⟩
-  ihave Htcc := ownCfgCC_intro _ dqc c vin0 vout0 Harr0 Hal0 $$ Hin0 Hout0 Hl0 Hln0
-  ihave Hc1 := ownCfgCC_intro cfg1 (DFrac.own 1) s1.cfg vin1 vout1 Harr1 Hal1 $$ Hin1 Hout1 Hl1 Hln1
+  ihave Htcc := ownCfgCC_intro _ dqc c vin0 vout0 Harr0 Hal0 Hwit0 $$ Hin0 Hout0 Hl0 Hln0
+  ihave Hc1 := ownCfgCC_intro cfg1 (DFrac.own 1) s1.cfg vin1 vout1 Harr1 Hal1 Hwit1 $$ Hin1 Hout1 Hl1 Hln1
+  ihave Htc : iprop(ownCfgCC chg.Tracker'.Config' dqc c ∗ chg.Tracker'.Progress' ↦${dqm} prs ∗
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗ ⌜NoWit pvs⌝) $$ [Htcc Hpm Hprs]
+  · iframe Htcc Hpm Hprs; ipureintro; exact Hnw
   wp_if_destruct
   · -- "more than one voter changed without entering joint config"
     wp_apply errors.wp_New as %e #He

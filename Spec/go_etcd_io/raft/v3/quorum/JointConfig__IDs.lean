@@ -92,7 +92,7 @@ theorem quorum.JointConfig.IDs.spec_tracker
   iframe Htrk Hidm
   isplitl [Hvotes Hprogs Hvoters Hlearners HlearnersNext]
   · iapply ownTracker_intro cfg tv votes prs pvs voters_ref voters learners learnersNext
-      Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
+      Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl Hwit
       $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
   ipureintro
   rw [GMap.map_union_empty, Hvoters_dom]

@@ -92,6 +92,7 @@ theorem ci_err {P : Prop} (e : GoInterfaceOk) (H : ¬ P) :
 /-- Close the configuration's representation from its pieces. -/
 theorem ci_close (cfg : tracker.Config) (c : CfgM) (vin vout : Loc) (dqc : DFrac)
     (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
+    (Hwit : cfg.Witnesses'.arr = [W64 0, W64 0])
     (Hinnn : vin ≠ map.nil) (Hcout : vout = map.nil ∨ c.outgoing ≠ ∅)
     (Hcln : cfg.LearnersNext' = map.nil ∨ c.learnersNext ≠ ∅)
     (Hcl : cfg.Learners' = map.nil ∨ c.learners ≠ ∅) :
@@ -103,7 +104,46 @@ theorem ci_close (cfg : tracker.Config) (c : CfgM) (vin vout : Loc) (dqc : DFrac
   ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
   ihave Hln := ownIdsetC_join _ _ _ Hcln $$ Hln
   ihave Hl := ownIdsetC_join _ _ _ Hcl $$ Hl
-  iapply ownCfgCC_intro cfg dqc c vin vout Harr Hal $$ Hin Hout Hl Hln
+  iapply ownCfgCC_intro cfg dqc c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
+
+set_option hygiene false in
+/-- raft#168's witness check at the end of `checkInvariants`,
+`for id, voters := range cfg.Voters { w := cfg.Witnesses[id]; if w > 0 {...} }`: on a
+witness-free configuration (`Witnesses = [0, 0]`, `Hwit`) a two-iteration loop that checks
+nothing. (A macro: the loop's locals are the proof's own names.) -/
+local macro "ci_wit_loop" : tactic => `(tactic| (
+  -- raft#168: `for id, voters := range cfg.Voters { w := cfg.Witnesses[id]; if w > 0 {...} }`,
+  -- with no witness (`Witnesses = [0, 0]`) a loop that checks nothing
+  icases (Access.access (A := iprop(cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses'))
+    (A' := iprop(cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses'))
+    (P := iprop(cfg_ptr ↦ cfg))) $$ cfg with ⟨HW, -⟩
+  ihave WIH : iprop(∃ (n : w64) (vv : GoMap) (idv : w64),
+      "i" ∷ i_ptr ↦ n ∗ "voters" ∷ voters_ptr ↦ vv ∗ "id" ∷ id_ptr ↦ idv ∗
+      "HW" ∷ cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses' ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝) $$ [i voters id HW]
+  · iexists W64 0, _, _; iframe; ipureintro; decide
+  wp_for WIH
+  wp_if_destruct
+  · have Hn2 : sint.Z n < 2 := by word
+    have Hn01 : (sint.Z n).toNat = 0 ∨ (sint.Z n).toNat = 1 := by omega
+    obtain ⟨v, Hv⟩ : ∃ v, cfg.Voters'.arr[sint.nat n]? = some v :=
+      ⟨_, List.getElem?_eq_getElem (by rw [Harr]; simp only [List.length_cons, List.length_nil]; word)⟩
+    rw [Hv]
+    wp_auto
+    rw [ite_eq_left Hn2]
+    icases array_acc _ (sint.Z n) _ _ _ (W64 0) Hn.1
+        (by rcases Hn01 with h | h <;> rw [Hwit, h] <;> rfl) $$ HW with ⟨Hw0, Hwback⟩
+    wp_auto
+    ihave HW := Hwback $$ Hw0
+    have Hset : cfg.Witnesses'.arr.set (sint.Z n).toNat (W64 0) = cfg.Witnesses'.arr := by
+      rcases Hn01 with h | h <;> rw [h, Hwit] <;> rfl
+    rw [Hset, show (array.mk 2 cfg.Witnesses'.arr : GoArray w64 2) = cfg.Witnesses' from rfl]
+    wp_for_post
+    iframe
+    iexists n + W64 1, _, _
+    iframe
+    ipureintro; word
+))
 
 theorem confchange.checkInvariants.wp_proof
     (wp_JointConfig_IDs : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
@@ -113,7 +153,7 @@ theorem confchange.checkInvariants.wp_proof
     confchange.checkInvariants.spec (GF := GF) (hG := hG) := by
   intro cfg trk c prs pvs dqc dqm dqp
   wp_start as ⟨Hc, Htrk, Hprs⟩
-  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   wp_auto
@@ -255,7 +295,7 @@ theorem confchange.checkInvariants.wp_proof
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
-        · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+        · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
         ipureintro
         refine ci_err e (fun Hinv => ?_)
         have Hk := Hinv.1 key (ciSets_member c _ S key HS (by rw [Hvv]; rfl))
@@ -327,7 +367,7 @@ theorem confchange.checkInvariants.wp_proof
       iStructNamed Hpr
       wp_auto
       ihave Hpr : (pr ↦{dqp} pv) $$ [Match Next sentCommit State PendingSnapshot RecentActive
-          MsgAppFlowPaused Inflights IsLearner]
+          MsgAppFlowPaused Inflights IsLearner IsWitness]
       · iapply typedPointsto_combine _ _ _ Hprnn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -353,7 +393,7 @@ theorem confchange.checkInvariants.wp_proof
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
-        · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+        · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
         ipureintro
         refine ci_err e (fun Hinv => ?_)
         have h := (Hinv.2.1 key HkLN).2
@@ -395,7 +435,7 @@ theorem confchange.checkInvariants.wp_proof
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]
-      · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+      · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
       ipureintro
       refine ci_err e (fun Hinv => ?_)
       have h := (Hinv.2.1 key HkLN).1
@@ -460,7 +500,7 @@ theorem confchange.checkInvariants.wp_proof
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]
-      · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+      · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
       ipureintro
       refine ci_err e (fun Hinv => ?_)
       have h := (Hinv.2.2.1 key HkL).1
@@ -487,7 +527,7 @@ theorem confchange.checkInvariants.wp_proof
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]
-      · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+      · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
       ipureintro
       refine ci_err e (fun Hinv => ?_)
       have h := (Hinv.2.2.1 key HkL).2.1
@@ -502,7 +542,7 @@ theorem confchange.checkInvariants.wp_proof
     iStructNamed Hpr
     wp_auto
     ihave Hpr : (pr ↦{dqp} pv) $$ [Match Next sentCommit State PendingSnapshot RecentActive
-        MsgAppFlowPaused Inflights IsLearner]
+        MsgAppFlowPaused Inflights IsLearner IsWitness]
     · iapply typedPointsto_combine _ _ _ Hprnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -546,7 +586,7 @@ theorem confchange.checkInvariants.wp_proof
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]
-      · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+      · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
       ipureintro
       refine ci_err e (fun Hinv => ?_)
       have h := (Hinv.2.2.1 key HkL).2.2
@@ -568,14 +608,16 @@ theorem confchange.checkInvariants.wp_proof
   wp_apply wp_confchange_joint cfg vin vout c.outgoing dqc Harr $$ [$Hout] as Hout
   wp_if_destruct
   · -- joint: nothing more to check
+    have Hjoint := Hif
+    ci_wit_loop
     iapply HΦ
     iframe Htrk Hprs
     isplitl [Hin Hout Hl Hln]
-    · iapply ci_close cfg c vin vout dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+    · iapply ci_close cfg c vin vout dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
     ipureintro
     refine ⟨fun _ => ⟨fun k hk => Hmem k hk, HLN, HL, fun h => ?_⟩, fun _ => rfl⟩
-    rw [h, GMap.map_size_empty] at Hif
-    exact absurd Hif (by decide)
+    rw [h, GMap.map_size_empty] at Hjoint
+    exact absurd Hjoint (by decide)
   · -- not joint: the outgoing config is empty, so `nil`
     have Hout0 : c.outgoing = ∅ := GMap.map_size_empty_inv _ (by omega)
     have Hvout : vout = map.nil := by
@@ -592,10 +634,11 @@ theorem confchange.checkInvariants.wp_proof
       rw [Hal]
       cases hal : c.autoLeave
       · wp_auto
+        ci_wit_loop
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
-        · iapply ci_close cfg c vin _ dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+        · iapply ci_close cfg c vin _ dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
         ipureintro
         exact ⟨fun _ => ⟨fun k hk => Hmem k hk, HLN, HL, fun _ => ⟨Hln0, hal⟩⟩, fun _ => rfl⟩
       · -- "AutoLeave must be false when not joint"
@@ -607,7 +650,7 @@ theorem confchange.checkInvariants.wp_proof
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
-        · iapply ci_close cfg c vin _ dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+        · iapply ci_close cfg c vin _ dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
         ipureintro
         refine ci_err e (fun Hinv => ?_)
         have := (Hinv.2.2.2 Hout0).2
@@ -620,7 +663,7 @@ theorem confchange.checkInvariants.wp_proof
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]
-      · iapply ci_close cfg c vin _ dqc Harr Hal Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
+      · iapply ci_close cfg c vin _ dqc Harr Hal Hwit Hinnn Hcout Hcln Hcl $$ Hin Hout Hl Hln
       ipureintro
       refine ci_err e (fun Hinv => ?_)
       have := (Hinv.2.2.2 Hout0).1
