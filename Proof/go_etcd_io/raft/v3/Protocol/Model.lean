@@ -11,7 +11,9 @@ defines the abstract state machine that a single raft node is supposed to implem
 `isMessage` attached to a message that has legitimately been put on the network, and
 the single fancy-update lemma connecting them are in the ghost part.)
 
-Scope. Everything here (and the proofs in `Link.lean`) assumes:
+Scope. Everything here (and the proofs in `Link.lean`) assumed, when this was written (the
+list is the Rocq port's; since then pre-vote (2026-10-04), read-index, reconfiguration, snapshots
+and (2026-10-17, `Step.stepDown`) check-quorum are in):
 * no pre-vote            (`r.preVote = false`),
 * no check-quorum        (`r.checkQuorum = false`),
 * no read-only requests  (no `MsgReadIndex` is ever stepped),
@@ -1974,6 +1976,15 @@ inductive Step : PState → List Msg → PState → Prop where
       s.role = .leader →
       (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
       Step s [] { s with matched := mt }
+  /-- (2026-10-17, `CheckQuorum` on) A leader steps down at its own term, with no leader known:
+  `stepLeader`'s `MsgCheckQuorum` arm when the voters it heard from recently are no quorum
+  (`becomeFollower(r.Term, None)`), and `switchToConfig` with `StepDownOnRemoval` (`StepR`'s
+  rule of the same name). The leader voted for itself at its term, so it cannot vote again
+  there, and a campaign takes it to a later one: nothing the protocol knows of the term is
+  lost (`ownRaftGhost_step_stepDown`). -/
+  | stepDown (s : PState) :
+      s.role = .leader →
+      Step s [] (pbecomeFollower s s.term (W64 0))
 
 end model
 

@@ -234,7 +234,7 @@ theorem followerStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : Lis
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem followerStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
@@ -247,7 +247,7 @@ theorem followerStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
@@ -262,7 +262,7 @@ theorem candidateStepResult_app (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : Li
   refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
@@ -276,7 +276,7 @@ theorem candidateStepResult_heartbeat (c : CfgM) {scfg : CSLists} {c' : CfgM} (i
   refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, W32] using H
 
 /-- A leader ignores a `MsgApp` or `MsgHeartbeat` of its own term. -/
 theorem leaderStepResult_app_hb (c : CfgM) {ctx : List w8} (id : w64) (s : NState)
@@ -291,7 +291,9 @@ theorem leaderStepResult_app_hb (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResultC at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩
+  rotate_right
+  · exfalso; first | (rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne)) | (rcases Hty with h' | h' <;> rw [h'] at Hc7 <;> exact absurd Hc7 (by w32_ne)) | exact absurd Hc7 (by w32_ne)
   rotate_right
   · exfalso
     rcases Hty with h' | h' <;> rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;>
@@ -527,7 +529,7 @@ theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : Li
   unfold FollowerStepResultC at H
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
@@ -546,7 +548,7 @@ theorem candidateStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : L
   unfold CandidateStepResultC at H
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, W32] using H
 
 end StepProof
 

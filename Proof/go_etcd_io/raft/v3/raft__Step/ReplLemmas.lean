@@ -190,5 +190,15 @@ elab "wp_drive " q:ident : tactic => do
   StepProof.evalTacticString
     ("repeat (first " ++ String.intercalate " " (alts.map ("| " ++ ·)) ++ ")")
 
+set_option hygiene false in
+/-- (2026-10-17, `CheckQuorum` on) after `wp_drive` has loaded `r.checkQuorum` in `Step`'s
+stale-term arm (`r.checkQuorum || r.preVote`): split on it (`Hcq`) and, where it is off, load
+and split on `r.preVote`; each goal driven on (`wp_drive`). -/
+macro "cq_split " q:ident : tactic => `(tactic| (
+  cases Hcq : s.cq <;> (try wp_auto) <;> (try wp_drive $q)
+  all_goals try (
+    have _ : s.cq = false := Hcq
+    cases s.prevote <;> (try wp_auto) <;> wp_drive $q)))
+
 end EtcdGrove
 end Perennial

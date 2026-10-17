@@ -72,7 +72,6 @@ abbrev StartNode.spec : Prop :=
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
   cv.ReadOnlyOption' = W64 0 →
   cv.DisableConfChangeValidation' = false →

@@ -636,6 +636,10 @@ inductive StepC : PState → List Msg → PState → Prop where
       s.role = .leader →
       (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
       StepC s [] { s with matched := mt }
+  /-- (2026-10-17, `CheckQuorum` on) `Step.stepDown`: a leader becomes a follower at its term. -/
+  | stepDown (s : PState) :
+      s.role = .leader →
+      StepC s [] (pbecomeFollower s s.term (W64 0))
 
 end model
 
@@ -688,6 +692,7 @@ theorem stepC_of_step (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
     | (apply StepC.abandon <;> assumption)
     | (apply StepC.zeroAck <;> assumption)
     | (apply StepC.reMatch <;> assumption)
+    | (apply StepC.stepDown <;> assumption)
 
 /-- `StepC` at a non-joint configuration is `Step` at its voters. -/
 theorem step_of_stepC (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
@@ -735,6 +740,7 @@ theorem step_of_stepC (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
     | (apply Step.abandon <;> assumption)
     | (apply Step.zeroAck <;> assumption)
     | (apply Step.reMatch <;> assumption)
+    | (apply Step.stepDown <;> assumption)
 
 /-- The two step relations agree at a non-joint configuration with voters `cfg ≠ ∅`,
 whatever its learners: `Step cfg` is `StepC (CfgM.simple cfg lrn)`. -/

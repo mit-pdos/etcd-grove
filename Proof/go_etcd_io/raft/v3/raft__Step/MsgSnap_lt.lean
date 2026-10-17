@@ -75,13 +75,13 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_drive _Q
   rw [decide_eq_true Hlt]
   wp_auto
-  -- (checkQuorum || preVote) && (MsgHeartbeat || MsgApp): `checkQuorum` is off; with
-  -- pre-vote on, the type test is false
+  -- (checkQuorum || preVote) && (MsgHeartbeat || MsgApp): with either on, the type test is
+  -- false
   wp_drive _Q
   -- not MsgPreVote, not MsgStorageAppendResp: only the log line
-  cases s.prevote
+  cq_split _Q
   all_goals
-    wp_auto
+    try wp_auto
     wp_drive _Q
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s

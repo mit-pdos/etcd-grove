@@ -178,8 +178,8 @@ theorem srvRaftLogInv_of_boot (γs : ServerRaftNames) (bootLog : List EntryM)
 /-- **The composition's statement** (see the file header), a proposition over the registry's name
 `reg` (the `MemoryStorage` instance's), so that `Results.lean` instantiates it with the linked
 results: for the cluster's ghost names `γ`, the budget `bud`, the storage's names `γs`, the receiver
-`b` and the config `cv` with `StartNode.spec`'s premises on it (**`CheckQuorum` and `PreVote` off:
-not etcd's own configuration**), the peers and the bootstrap log, and the server's names
+`b` and the config `cv` with `StartNode.spec`'s premises on it (**`PreVote` off: not etcd's own
+configuration**; `CheckQuorum` either way since 2026-10-17), the peers and the bootstrap log, and the server's names
 (`E.γr.raft = ⟨γ, [], 0⟩`, the policy `srvCCPolicy`): `bootstrappedRaft.newRaftNode` over raft's
 `StartNode`, with what the allocation, the server and the trust boundary provide, yields the
 wrapper's struct value, the tokens, `srvRaftLogInv`, and the installer of `isRaftNode` at the
@@ -190,10 +190,10 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM),
     -- `newRaftNode`'s premises
     bv.lg' ≠ null → bv.heartbeat' ≠ W64 0 →
-    -- `NewRawNode`'s premises on `b.config` (**`CheckQuorum` and `PreVote` off**)
+    -- `NewRawNode`'s premises on `b.config` (**`PreVote` off**; `CheckQuorum` either way)
     ConfigValid cv → cv.Logger' = interface.ok lok →
     cv.Storage' = memStorIface bv.storage' →
-    sint.Z cv.MaxInflightMsgs' < 2 ^ 62 → cv.CheckQuorum' = false →
+    sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
     cv.DisableProposalForwarding' = false → cv.ReadOnlyOption' = W64 0 →
     cv.DisableConfChangeValidation' = false →
     (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
@@ -284,12 +284,12 @@ theorem raftNode_of_StartNode (reg : GName)
     NodeStartSpec (GF := GF) reg := by
   letI : MemStorReg GF := ⟨reg⟩
   intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
-    Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
+    Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
     HbootOk HEγ HEpre HEai Hpol
   iintro %Φ Hpre HΦ
   iNamed Hpre
   wp_apply (wp_bnr E γ bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
-    Hstor Hinfl Hcq Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
+    Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
     Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost]
     as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers⟩
   · iframe #; iframe Hb Hc Hsto Hpeers Hghost

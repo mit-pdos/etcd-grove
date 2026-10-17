@@ -474,7 +474,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     · rcases Hty with h | h | h | h <;> rw [h] <;> simp [netStepTypes]
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
-        simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgTransferLeader,
+        simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndexResp, MsgTransferLeader,
           MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>

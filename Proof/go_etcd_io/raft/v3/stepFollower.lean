@@ -92,7 +92,7 @@ theorem stepFollower.wp_proof
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-      MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+      MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
   · -- `MsgProp`
     obtain ⟨Hfrom0, Hterm0, Hlid⟩ := Hprop Hty
     simp only [Hty, MsgProp]
@@ -151,7 +151,7 @@ theorem stepFollower.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-      MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+      MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
     exact Hres
   · -- `MsgHeartbeat`: adopt the sender as leader, then `handleHeartbeat`
     obtain ⟨Hcommit, Hfrom⟩ := Hhb Hty
@@ -168,17 +168,17 @@ theorem stepFollower.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-      MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+      MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
   · -- `MsgBeat`, `MsgAppResp`, `MsgHeartbeatResp`: no arm
-    rcases Hty with Hty' | Hty' | Hty' <;>
-      simp only [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp] <;> wp_auto
+    rcases Hty with Hty' | Hty' | Hty' | Hty' <;>
+      simp only [Hty', MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum] <;> wp_auto
     all_goals
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro
       simp [FollowerStepResultC, MsgSnap, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
     obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsnap Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
@@ -197,7 +197,7 @@ theorem stepFollower.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-      MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+      MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
     exact ⟨Hc', Hres⟩
   · -- `MsgPreVoteResp` (2026-10-04): no arm
     simp only [Hty, MsgPreVoteResp]
@@ -207,7 +207,7 @@ theorem stepFollower.wp_proof
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-      MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+      MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
   · -- `MsgReadIndex` (2026-10-12): forwarded to the leader, if any
     obtain ⟨Hterm0, Hlid⟩ := Hri Hty
     simp only [Hty, MsgReadIndex]
@@ -226,7 +226,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, Hlead, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
-        MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex]
+        MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex]
     · -- forwarded to the leader
       rw [decide_eq_false Hlead]
       wp_auto
@@ -248,7 +248,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex]
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex]
       exact fun h => absurd h Hlead
   · -- `MsgReadIndexResp` (2026-10-12): one entry becomes a `ReadState`
     simp only [Hty, MsgReadIndexResp]
@@ -309,7 +309,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         addReadState]
     · -- not one entry: logged and ignored
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -326,10 +326,10 @@ theorem stepFollower.wp_proof
       match ents, Hne with
       | [], _ =>
         simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+          MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
       | _ :: _ :: _, _ =>
         simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+          MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
       | [_], h => exact absurd rfl h
   · -- `MsgForgetLeader` (2026-10-13): the read-only option is `Safe` (not `LeaseBased`),
     -- then a leader, if any, is forgotten
@@ -354,7 +354,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
       exact Hs
     · rw [decide_eq_false Hlead]
@@ -370,7 +370,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
   · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
     -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
@@ -392,7 +392,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
     · rw [decide_eq_false Hlead]
       wp_auto
@@ -415,7 +415,7 @@ theorem stepFollower.wp_proof
       ipureintro
       refine ⟨?_, trivial⟩
       simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
   · -- `MsgTimeoutNow` (2026-10-13): `hup(campaignTransfer)`, an ordinary campaign
     obtain ⟨-, Htn⟩ := Hrest (Or.inr Hty)
@@ -435,7 +435,7 @@ theorem stepFollower.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     simp only [FollowerStepResultC, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32]
     simp
     exact Hok
@@ -448,7 +448,7 @@ theorem stepFollower.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
   · -- `MsgSnapStatus` (2026-10-13): no arm
     simp only [Hty, MsgSnapStatus]
@@ -459,7 +459,7 @@ theorem stepFollower.wp_proof
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
 
 end proof

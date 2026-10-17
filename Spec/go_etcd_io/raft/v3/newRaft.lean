@@ -21,10 +21,11 @@ are, in order:
   `MaxInflightMsgs ≥ 2^62`** (found writing this spec, 2026-09-24). Not a bug a real run
   can hit -- the buffer only grows to `2^62` with that many messages in flight -- but a
   gap between what raft accepts and what the proof covers.
-- the development's scope: `CheckQuorum = false`, and `DisableProposalForwarding =
+- the development's scope: `DisableProposalForwarding =
   false` (a follower forwards proposals; since 2026-10-02, for `stepFollower`'s
   forwarding arm). `PreVote` is either value since 2026-10-04: the state records it
-  (`NState.prevote`).
+  (`NState.prevote`); so is `CheckQuorum` since 2026-10-17 (`NState.cq`; until then it was
+  required `false`).
 - the storage's contents (`ownStorage (interface.ok si) prev ents ss`): contiguous
   indices, and a snapshot `ss` that is empty or the compaction boundary (since
   2026-10-03; `Spec/newLogWithSize.lean` says why). (Until 2026-10-13 also no
@@ -125,7 +126,6 @@ abbrev newRaft.spec : Prop :=
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
   -- `ReadOnlySafe` (2026-10-12): lease-based reads need bounded clock drift
   cv.ReadOnlyOption' = W64 0 →

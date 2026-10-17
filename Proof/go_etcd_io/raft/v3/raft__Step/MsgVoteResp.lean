@@ -201,12 +201,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rw [decide_eq_true Hlt]
       wp_auto
       wp_gets
-      wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-      wp_gets
-      wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
-      cases s.prevote
+      wp_cq_pv
       all_goals
-        wp_auto
+        try wp_auto
         repeat (wp_gets; rw [Hty]; try wp_auto)
         wp_gets
         wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -403,8 +400,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         obtain ⟨rfl, Hres⟩ := Hres
         unfold LeaderNonpropResultC at Hres
         have Heq : s1 = s := by
-          rcases Hres with ⟨-, h⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ <;>
-            first | exact h | (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne))
+          rcases Hres with ⟨-, h⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩ <;>
+            first | exact h | (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)) | (exfalso; rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne))
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn

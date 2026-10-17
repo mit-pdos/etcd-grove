@@ -410,11 +410,12 @@ inductive StepR : RState → List Msg → RState → Prop where
       ccStepB op r.cfg = some cs' →
       Adm (r.full.take (k + 1)) cs' →
       StepR r [] { r with cidx := k + 1, cfg := cs' }
-  /-- `switchToConfig` with `StepDownOnRemoval`: a leader outside the voters steps down at its
-  term. -/
+  /-- A leader steps down at its term: `switchToConfig` with `StepDownOnRemoval` (a leader outside
+  the voters), or (2026-10-17, `CheckQuorum` on; until then the rule required the leader outside
+  its configuration's voters) `stepLeader`'s `MsgCheckQuorum` arm when the voters it heard from
+  are no quorum. -/
   | stepDown (r : RState) :
       r.p.role = .leader →
-      id ∉ r.cfg.cfg.voters →
       StepR r [] { r with p := pbecomeFollower r.p r.p.term (W64 0), pci := W64 0 }
 
 end model
@@ -482,7 +483,8 @@ With the voters fixed at `V` (`StaticAdm V`: every configuration a node takes on
 learners free), a `StepR` derivation from a state at `V` whose non-follower is a voter
 (`RoleVoter`, the code's `Hvoter`) is a `StepC (CfgM.simple V ∅)` derivation of its protocol
 states: the new rules are stuttering steps (`advance`, `applySnap`, `applyConf`, `propDrop`
-change no `PState`), `stepDown` cannot fire (a leader is a voter), and the guards and the
+change no `PState`), `stepDown` is `StepC.stepDown` (2026-10-17; until then it could not fire, a
+leader being a voter), and the guards and the
 exact proposal loop only strengthen `StepC`'s premises (`propConf_repl`). -/
 
 section static
@@ -565,8 +567,8 @@ theorem stepR_static {V : GSet w64} {dec : CCDec} {id : w64} {r : RState} {ms : 
   | advance => exact ⟨.refl _, hs, hv⟩
   | applySnap => exact ⟨.refl _, hs, hv⟩
   | applyConf r k e op cs' _ _ _ _ _ _ _ _ h9 => exact ⟨.refl _, h9, hv⟩
-  | stepDown r h1 h2 =>
-    exact absurd (by rw [hs.voters]; exact hv (by rw [h1]; intro h; cases h)) h2
+  | stepDown r h1 =>
+    exact ⟨.stepDown r.p h1, hs, fun h => absurd rfl h⟩
   | _ =>
     refine ⟨?_, hs, ?_⟩
     · first

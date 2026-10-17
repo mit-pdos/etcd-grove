@@ -4368,6 +4368,8 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     exact regs_frame γ (ownRaftGhost_step_abandon γ id s Hrole)
   | zeroAck s dst =>
     exact regs_frame γ (ownRaftGhost_step_zeroAck γ id s dst)
+  | stepDown s Hrole =>
+    exact regs_frame γ (ownRaftGhost_step_stepDown γ id s Hrole)
   | readFwd m s Hty Hrole Hlead =>
     iintro Hregs Hrecv Hcr Hown
     ihave #Hm := recv_one $$ Hrecv

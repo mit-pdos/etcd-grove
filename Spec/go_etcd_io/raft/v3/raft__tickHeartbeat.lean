@@ -2,8 +2,9 @@
 
 ## `raft.tickHeartbeat` (raft.go), a leader's `r.tick`
 
-`heartbeatElapsed++`, `electionElapsed++`; past the election timeout the counter is reset
-(`checkQuorum` and leader transfer are off: `ownRaftPhys`); a leader past the heartbeat
+`heartbeatElapsed++`, `electionElapsed++`; past the election timeout the counter is reset,
+(2026-10-17) with `checkQuorum` on a `MsgCheckQuorum` is stepped (a leader may step down at its
+term), and a leader's transfer in progress is aborted; a leader past the heartbeat
 timeout resets that counter and steps a `MsgBeat` from itself: heartbeats to the
 followers. Specified like `raft.tickElection`; in any role (a non-leader returns early).
 The term does not move.

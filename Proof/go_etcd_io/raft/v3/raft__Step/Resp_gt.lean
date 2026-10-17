@@ -68,10 +68,11 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hto Hterm Hgt Hwf
   have Hfl : fromLeader ty = false := by
     rcases Hty with ⟨_, rfl⟩ | ⟨_, rfl⟩ <;> rfl
-  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp := by
+  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum := by
     rcases Hty with ⟨Ht, _⟩ | ⟨Ht, _⟩
     · exact .inr (.inl Ht)
-    · exact .inr (.inr Ht)
+    · exact .inr (.inr (.inl Ht))
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩

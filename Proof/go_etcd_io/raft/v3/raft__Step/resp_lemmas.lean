@@ -36,27 +36,29 @@ namespace StepProof
 /-- `MsgBeat`, `MsgAppResp` and `MsgHeartbeatResp` reach no arm of `stepFollower`. -/
 theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
-    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
+    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c = c' ∧ dropped = false ∧ s' = s := by
   unfold FollowerStepResultC at H
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
-  rcases Hty with h | h | h <;>
+  rcases Hty with h | h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-      MsgHeartbeatResp, W32] at H <;> exact H
+      MsgHeartbeatResp, MsgCheckQuorum, W32] at H <;> exact H
 
 /-- Nor of `stepCandidate`. -/
 theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
     (s' : NState)
-    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
+    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum)
     (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c = c' ∧ dropped = false ∧ s' = s := by
   unfold CandidateStepResultC at H
   refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
-  rcases Hty with h | h | h <;>
+  rcases Hty with h | h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
-      MsgHeartbeatResp, W32] at H <;> exact H
+      MsgHeartbeatResp, MsgCheckQuorum, W32] at H <;> exact H
 
 theorem toPState_rd_leader (s : NState) (Hr : s.role = .leader) : (toPState s).rd = s.rd := by
   simp [toPState, Hr]
@@ -178,7 +180,9 @@ theorem leader_beat_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m :
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResultC at Hres
-  rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩
+  rotate_right
+  · exfalso; first | (rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne)) | (rcases Hty with h' | h' <;> rw [h'] at Hc7 <;> exact absurd Hc7 (by w32_ne)) | exact absurd Hc7 (by w32_ne)
   rotate_right
   · exfalso
     rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
@@ -208,7 +212,9 @@ theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResultC at Hres
-  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, ms, pvs, Hok, Hpm, Hrd⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, ms, pvs, Hok, Hpm, Hrd⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩
+  rotate_right
+  · exfalso; first | (rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne)) | (rcases Hty with h' | h' <;> rw [h'] at Hc7 <;> exact absurd Hc7 (by w32_ne)) | exact absurd Hc7 (by w32_ne)
   rotate_right
   · exfalso
     rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
@@ -271,7 +277,9 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResultC at Hres
-  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hres⟩ | ⟨Hc6, -⟩
+  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hres⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩
+  rotate_right
+  · exfalso; first | (rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne)) | (rcases Hty with h' | h' <;> rw [h'] at Hc7 <;> exact absurd Hc7 (by w32_ne)) | exact absurd Hc7 (by w32_ne)
   rotate_right
   · exfalso
     rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)

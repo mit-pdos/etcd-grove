@@ -15,7 +15,12 @@ type switches with a progress-map lookup in between:
     }                               // MsgTransferLeader
     return nil
 
-This spec covers the seven types `Step` dispatches to it.
+This spec covers the types `Step` dispatches to it.
+
+- `MsgCheckQuorum` (2026-10-17, `CheckQuorum` on): `QuorumActive()` (the voters whose
+  `Progress.RecentActive` is set, a joint quorum or not); if not, `becomeFollower(r.Term,
+  None)` -- the model's `Step.stepDown`; then `Visit` clears every other peer's
+  `RecentActive`, which no `Progress` record holds.
 
 - `MsgVoteResp`, `MsgApp`, `MsgHeartbeat`, and (since 2026-10-04) `MsgPreVoteResp` -- a
   late pre-vote response, granted at the leader's own term or a higher one -- are in
@@ -113,7 +118,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `releasePendingReadIndexMessages`' heartbeats at `s` (2026-10-12): `HeartbeatOk`, each
 with the position after one of the released requests. -/
@@ -261,7 +266,15 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
    ∃ (lt' : w64) (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs { s with lt := lt' } ms with prvals := pvs } ∧
      ReplSends id s ms ∧
-     prvalsMatch pvs = prvalsMatch s.prvals)
+     prvalsMatch pvs = prvalsMatch s.prvals) ∨
+  -- (2026-10-17, `CheckQuorum` on) the quorum check: the leader stays, or steps down at its
+  -- term with no leader known (`becomeFollower(r.Term, None)`, when the voters it heard from
+  -- recently are no quorum); then every other peer's `RecentActive` is cleared, which no record
+  -- holds
+  (m.Type' = MsgCheckQuorum ∧
+   ∃ pvs : GMap w64 Progress,
+     (prvalsMatch pvs = prvalsMatch s.prvals ∧ s' = { s with prvals := pvs }) ∨
+     s' = { becomeFollower s s.term (W64 0) with prvals := pvs })
 
 /-- What `stepLeader` does with `m` at the configuration `c`, by type. `dropped` is whether it
 returned `ErrProposalDropped` (as in `FollowerStepResult`, `Spec/stepFollower.lean`); only a
@@ -321,7 +334,8 @@ abbrev stepLeader.spec : Prop :=
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
    m.Type' = MsgReadIndex ∨
    (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
-    m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)) →
+    m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgCheckQuorum)) →
   s.role = .leader →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
   (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →

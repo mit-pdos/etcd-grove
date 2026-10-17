@@ -70,7 +70,8 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- the type switch: none of its four cases, so `r.step(m)`
   wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
-  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp :=
+  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum :=
     .inl Hty
   rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by

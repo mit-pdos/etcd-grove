@@ -5,10 +5,10 @@
 
 **The premises.**
 * `bootstrap`'s contract (`bootstrapContract`, `InvBoot.lean`; D13b): a premise, not an axiom.
-* **`CheckQuorum` and `PreVote` off** (D15, temporary): the raft start result covers only them
-  off; etcd's own `raftConfig` sets `CheckQuorum: true`, the patched fork takes it from the field
-  `cfg.DisableCheckQuorum` it adds (off by default), so the configuration must set it, and leave
-  `cfg.PreVote` unset (etcd's embed sets it by default). Not etcd's default configuration.
+* **`PreVote` off, and the patched fork's `cfg.DisableCheckQuorum` set** (D15, temporary): the
+  raft start result still needs `PreVote` off (etcd's embed sets it by default; leave
+  `cfg.PreVote` unset). `CheckQuorum` is covered since 2026-10-17 (branch `raft-checkquorum`), so
+  the `DisableCheckQuorum` premise is no longer needed and goes with D15's revert.
 * The cluster's ghost state, as `NodeStartSpec`'s: raft's names `γ` with this node's ghost state
   at the bootstrap log's state, the committed bootstrap log, raft's commit invariant, the budget;
   and the outputs of `allocClientBoot`'s continuation for this server (the client's half of the
