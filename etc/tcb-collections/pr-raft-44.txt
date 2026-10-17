@@ -1,0 +1,11 @@
+# etcd-io/raft#44 (branch pr-verify/raft-44): the results the PR changes and the callers
+# re-checked. No baseline yet: `--check --update` needs a full `lake build` of this branch; the
+# report (notes/pr-verify/raft-44.md) compares `#print axioms` of these against `lean` instead.
+roots wp_stepLeader$
+roots raft\.wp_Step$
+roots node\.wp_ProposeConfChange$
+roots node\.wp_stepWait$
+roots node\.wp_stepWithWaitOption$
+roots node\.wp_Propose$
+roots node\.wp_run$
+roots Register\.wp_RemoveMember$

@@ -1,0 +1,16 @@
+=== RUN   TestConfChangeDroppedBySizeLeavesPendingConfIndex
+    pending_conf_index_test.go:53: after the size drop: lastIndex 2, pendingConfIndex 3
+    pending_conf_index_test.go:55: pendingConfIndex 3 > lastIndex 2: it names an index with no conf change
+    pending_conf_index_test.go:63: retry 1 (log applied to 2 = lastIndex 2): err raft proposal dropped, appended 0 entries
+    pending_conf_index_test.go:63: retry 2 (log applied to 2 = lastIndex 2): err raft proposal dropped, appended 0 entries
+    pending_conf_index_test.go:63: retry 3 (log applied to 2 = lastIndex 2): err raft proposal dropped, appended 0 entries
+    pending_conf_index_test.go:69: no retry of the conf change on a fully applied, idle leader was appended
+--- FAIL: TestConfChangeDroppedBySizeLeavesPendingConfIndex (0.00s)
+=== RUN   TestStepRefusedConfChangeInBatch
+    pending_conf_index_test.go:86: batch: err raft proposal dropped, lastIndex 1 -> 1, pendingConfIndex 2
+    pending_conf_index_test.go:88: pendingConfIndex 2 > lastIndex 1
+    pending_conf_index_test.go:92: single conf change on a fully applied log: err raft proposal dropped
+--- FAIL: TestStepRefusedConfChangeInBatch (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.012s
+FAIL

@@ -76,8 +76,10 @@ theorem node.Propose.wp_proof
     isplitl []; · iempintro
     isplitl []; · ipureintro; trivial
     iapply ownSlice_nil
-  wp_apply wp_node_stepWait γ id n «$a1_ptr» data ctx cd $$ [$Hnode $Hctx Hm $Hent]
-  · simp only [msgIn, show needsCap propMsgM = false from rfl]
+  wp_apply wp_node_stepWait γ id n «$a1_ptr» data ctx cd $$ [$Hnode $Hctx Hm]
+  · ileft
+    iframe Hent
+    simp only [msgIn, show needsCap propMsgM = false from rfl]
     iexact Hm
   iintro %err #Herr
   wp_auto

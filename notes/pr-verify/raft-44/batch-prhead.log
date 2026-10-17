@@ -1,0 +1,7 @@
+=== RUN   TestStepRefusedConfChangeInBatchLeavesPendingConfIndex
+    batch_confchange_test.go:41: after the dropped batch: lastIndex 1, applied 1, pendingConfIndex 2
+    batch_confchange_test.go:47: single conf change on an applied log: err = raft proposal dropped, want nil (pendingConfIndex 2 > lastIndex 1)
+--- FAIL: TestStepRefusedConfChangeInBatchLeavesPendingConfIndex (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.018s
+FAIL

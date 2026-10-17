@@ -1,0 +1,12 @@
+=== RUN   TestConfChangeDroppedBySizeLeavesPendingConfIndex
+    pending_conf_index_test.go:53: after the size drop: lastIndex 2, pendingConfIndex 3
+    pending_conf_index_test.go:55: pendingConfIndex 3 > lastIndex 2: it names an index with no conf change
+    pending_conf_index_test.go:63: retry 1 (log applied to 2 = lastIndex 2): err <nil>, appended 1 entries
+    pending_conf_index_test.go:63: retry 2 (log applied to 3 = lastIndex 3): err <nil>, appended 1 entries
+--- FAIL: TestConfChangeDroppedBySizeLeavesPendingConfIndex (0.00s)
+=== RUN   TestStepRefusedConfChangeInBatch
+    pending_conf_index_test.go:86: batch: err <nil>, lastIndex 1 -> 3, pendingConfIndex 2
+--- PASS: TestStepRefusedConfChangeInBatch (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.026s
+FAIL

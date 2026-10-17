@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## etcd-io/raft#44 verified on this branch (2026-10-16, branch `pr-verify/raft-44`, not for `lean`)
+
+The PR (a refused conf change returns `ErrProposalDropped`; `node.ProposeConfChange` waits for
+the result through `stepWait`) applied to the fork (`pr-raft-44-goose-lean`, `c87ad2502`, not
+pushed) and translated from it (`etc/goose.py --check` fails here by design). Proved, no new
+axiom or `sorry`: `stepLeader` against a changed `LeaderProposeResult` (not dropped: no conf
+change refused; dropped: `pendingConfIndex` as the loop over a prefix left it), `raft.Step`
+unchanged over it (`StepR.propDrop` of the prefix), the node layer with a third kind of proposal
+on `propc` (`propP`: a `fwdP` proposal with a result channel; `stepArg`, `stepWait`), and
+`node.ProposeConfChange`'s error `propErr`. Report: `notes/pr-verify/raft-44.md`; the bug it
+found in the pinned code: `issues/raft-pendingconfindex-dangling-after-drop.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -1,0 +1,16 @@
+--- FAIL: TestRawNodeProposeAddDuplicateNode (0.00s)
+    rawnode_test.go:587: entries[0].Data = [], want [8 0 16 0 24 1]
+--- FAIL: TestInteraction (0.10s)
+    --- FAIL: TestInteraction/confchange_v2_add_single_explicit (0.00s)
+        interaction_test.go:31: 
+            testdata/confchange_v2_add_single_explicit.txt:112:
+             v3 v4 v5
+            expected:
+            INFO 1 ignoring conf change {ConfChangeTransitionAuto [{ConfChangeAddNode 3} {ConfChangeAddNode 4} {ConfChangeAddNode 5}] []} at config voters=(1 2)&&(1): must transition out of joint config first
+            
+            found:
+            INFO 1 ignoring conf change {ConfChangeTransitionAuto [{ConfChangeAddNode 3} {ConfChangeAddNode 4} {ConfChangeAddNode 5}] []} at config voters=(1 2)&&(1): must transition out of joint config first
+            raft proposal dropped
+FAIL
+FAIL	go.etcd.io/raft/v3	0.124s
+FAIL

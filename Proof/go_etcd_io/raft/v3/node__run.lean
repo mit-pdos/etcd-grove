@@ -236,7 +236,7 @@ theorem node.run.wp_proof
     inext
     iintro %pm HP
     iunfold propP at HP
-    icases HP with (⟨%d, %γr, Hm, #Hent, #Hho, Hprod⟩ | ⟨%Hres, Hfwd⟩)
+    icases HP with (⟨%d, %γr, Hm, #Hent, #Hho, Hprod⟩ | ⟨%Hres, Hfwd⟩ | ⟨%γr, Hfwd, #Hho, Hprod⟩)
     · -- `m := pm.m; m.From = new(r.id)`
       icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
@@ -289,6 +289,41 @@ theorem node.run.wp_proof
       wp_if_destruct
       rotate_left
       · exact absurd rfl Hif
+      wp_for_post
+      iframe HΦ n r
+      iexists nv.propc', rc', ac, rdv', ld'
+      iframe propc readyc advancec rd lead
+      isplitr
+      · ipureintro; right; rfl
+      unfold runHead
+      iexists rs
+      iframe Hrn Hrest
+    · -- (etcd-io/raft#44) a conf change proposal (`ProposeConfChange`), with a result channel
+      iunfold fwdP at Hfwd
+      icases Hfwd with ⟨%st, Hm, %Hty, #Hm0⟩
+      icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
+      wp_auto_lc 1
+      imod cellRO_alloc $$ «$r0» with #c0
+      ihave Hm := Hback $$ %_ %id Hpf c0
+      ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+      iunfold runHead at Hhead
+      icases Hhead with ⟨%rs, Hrn, Hrest⟩
+      ihave #Hm1 := isMessage_propose_from γ.raft st.msg st.ents id $$ Hm0
+      wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
+        { st with msg := { st.msg with From' := id } } Hty rfl
+        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, #Hstep⟩
+      ihave %Hrnn := isChan_not_null $$ [Hho]
+      · unfold isHandoff
+        icases Hho with ⟨$, -⟩
+      wp_if_destruct
+      · exact absurd Hif Hrnn
+      wp_apply wp_handoff_send (t := go.error) γr pm.result' stepErr
+        iprop(True) iprop(True) err $$ [$Hho $Hprod] as Hprod
+      · iframe Hstep
+      wp_apply wp_handoff_close (t := go.error) γr pm.result' stepErr
+        iprop(True) iprop(True) true $$ [$Hho $Hprod]
+      · simp only [↓reduceIte]
+        itrivial
       wp_for_post
       iframe HΦ n r
       iexists nv.propc', rc', ac, rdv', ld'

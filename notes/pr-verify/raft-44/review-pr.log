@@ -1,0 +1,16 @@
+=== RUN   TestReviewJointLeaveStallsAfterRefusedBatch
+    review_raft44_test.go:54: batch [leave, add 3]: err raft proposal dropped, lastIndex 1, pendingConfIndex 2
+    review_raft44_test.go:59: leave retry 1 (applied 1 = lastIndex 1): err raft proposal dropped, lastIndex now 1
+    review_raft44_test.go:59: leave retry 2 (applied 1 = lastIndex 1): err raft proposal dropped, lastIndex now 1
+    review_raft44_test.go:59: leave retry 3 (applied 1 = lastIndex 1): err raft proposal dropped, lastIndex now 1
+    review_raft44_test.go:64: leader cannot leave the joint configuration on an idle, fully applied log
+--- FAIL: TestReviewJointLeaveStallsAfterRefusedBatch (0.00s)
+=== RUN   TestReviewForwardedBatchNormalEntryLost
+    review_raft44_test.go:80: leader: applied 0, pendingConfIndex 2, lastIndex 2
+    review_raft44_test.go:85: follower Step of [normal, cc]: err <nil>
+    review_raft44_test.go:95: leader lastIndex 2 -> 2, normal entry in log: false
+    review_raft44_test.go:97: follower's Step returned nil but its normal entry was dropped by the leader
+--- FAIL: TestReviewForwardedBatchNormalEntryLost (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.008s
+FAIL

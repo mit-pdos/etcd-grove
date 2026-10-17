@@ -1,0 +1,14 @@
+# etcd-io/raft#44: tests and logs
+
+The files the report (`notes/pr-verify/raft-44.md`) relies on.
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `pending_conf_index_test.go` | `TestConfChangeDroppedBySizeLeavesPendingConfIndex`: a conf change dropped by the uncommitted-size limit leaves `pendingConfIndex` past `lastIndex`; then the next conf change is refused. `TestStepRefusedConfChangeInBatch`: a batch `[cc, cc]` whose second is refused is dropped with `pendingConfIndex` moved (PR only). | the fork: `509271dac` (pinned base, `raft37-goose-lean`) and `pr-raft-44-goose-lean` (`c87ad2502`, the PR applied) | `cp pending_conf_index_test.go <checkout>/ && GOTOOLCHAIN=go1.27.1 go test -run 'TestConfChangeDroppedBySizeLeavesPendingConfIndex\|TestStepRefusedConfChangeInBatch' -v .` |
+| `base.log` | output of the above at `509271dac`: size drop leaves `pendingConfIndex 3 > lastIndex 2`; the first retry is silently turned into an empty entry (`err <nil>`), the second is appended; the batch test passes (both appended) | `509271dac` | as above |
+| `pr.log` | output at `c87ad2502`: every retry is `raft proposal dropped`, nothing appended; the batch is dropped with `pendingConfIndex 2 > lastIndex 1` and a later single conf change is refused | `c87ad2502` | as above |
+| `batch_confchange_test.go` | `TestStepRefusedConfChangeInBatchLeavesPendingConfIndex`, the batch case in the PR's own (gogoproto) style | upstream PR head `551232a5a` (etcd-io/raft) | `cp batch_confchange_test.go <checkout>/ && GOTOOLCHAIN=go1.27.1 go test -run TestStepRefusedConfChangeInBatchLeavesPendingConfIndex -v .` |
+| `batch-prhead.log` | its output at the PR head: fails (`pendingConfIndex 2 > lastIndex 1`, the next conf change dropped) | `551232a5a` | as above |
+| `prhead-own-tests.log` | the PR at its head fails two of raft's own tests, which still expect a refused conf change to be appended as an empty entry (`TestRawNodeProposeAddDuplicateNode`, `TestInteraction/confchange_v2_add_single_explicit`); the fork commit updates both | upstream PR head `551232a5a` | `GOTOOLCHAIN=go1.27.1 go test -run 'TestRawNodeProposeAddDuplicateNode\|TestInteraction' .` |
+| `review_raft44_test.go` (the reviewer's) | `TestReviewJointLeaveStallsAfterRefusedBatch`: in an explicit joint configuration, a batch `[leave-joint, add 3]` is dropped with `pendingConfIndex` moved, and every later leave-joint retry is dropped (the leader cannot leave the joint configuration on an idle log). `TestReviewForwardedBatchNormalEntryLost`: a follower's `Step` of `[normal, cc]` returns nil, and the leader (with a conf change pending) drops the whole batch, the normal entry included | the fork: `509271dac` and `c87ad2502` | `cp review_raft44_test.go <checkout>/ && GOTOOLCHAIN=go1.27.1 go test -run 'TestReview' -v .` |
+| `review-base.log`, `review-pr.log` | its output: both pass at `509271dac`, both fail at `c87ad2502` | as named | as above |

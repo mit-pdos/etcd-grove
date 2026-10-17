@@ -1611,13 +1611,9 @@ theorem node.wp_Propose [StorageModel GF] :
     node.Propose.spec (GF := GF) (hG := hG) :=
   node.Propose.wp_proof node.wp_stepWait raftpb.MessageType.wp_Enum
 
-theorem node.wp_Step [StorageModel GF] :
-    node.Step.spec (GF := GF) (hG := hG) :=
-  node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom
-
 theorem node.wp_ProposeConfChange [StorageModel GF] :
     node.ProposeConfChange.spec (GF := GF) (hG := hG) :=
-  node.ProposeConfChange.wp_proof wp_confChangeToMsg node.wp_Step
+  node.ProposeConfChange.wp_proof wp_confChangeToMsg node.wp_stepWait
 
 theorem node.wp_ReadIndex [StorageModel GF] :
     node.ReadIndex.spec (GF := GF) (hG := hG) :=
@@ -1634,6 +1630,10 @@ theorem node.wp_ReportSnapshot [StorageModel GF] :
 theorem node.wp_ReportUnreachable [StorageModel GF] :
     node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
   node.ReportUnreachable.wp_proof raftpb.MessageType.wp_Enum
+
+theorem node.wp_Step [StorageModel GF] :
+    node.Step.spec (GF := GF) (hG := hG) :=
+  node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom
 
 theorem node.wp_Tick [StorageModel GF] :
     node.Tick.spec (GF := GF) (hG := hG) :=

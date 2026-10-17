@@ -420,14 +420,19 @@ which `run` is the producer (a `Handoff`: `run` sends the error, `stepErr`, and 
 (2026-10-10) a proposal forwarded by a peer (`Node.Step`), with no result channel.
 (2026-10-16, stage R5: the message at `pm.m'`, owned (`msgIn`), holding `propMsgM` and the one
 entry `propEntryM d`, D6: the data's bytes `d`. Stage R7c: the result channel's value is
-`stepErr`; until then nothing was promised of it.) -/
+`stepErr`; until then nothing was promised of it.) (etcd-io/raft#44, 2026-10-16) Or a proposal
+that waits for its result as a forwarded one is stepped (`fwdP`): `ProposeConfChange`'s, which
+`stepWait` now sends with a result channel. -/
 def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
   iprop((∃ (d : List w8) (γr : HandoffNames),
     msgIn pm.m' (DFrac.own 1) ⟨propMsgM, [propEntryM d], none, [], []⟩ ∗
     entData γ.raft (propEntryM d) ∗
     isHandoff γr pm.result' stepErr iprop(True) iprop(True) ∗
     handoffProducer γr false) ∨
-    (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m'))
+    (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m') ∨
+    (∃ γr : HandoffNames, fwdP γ pm.m' ∗
+      isHandoff γr pm.result' stepErr iprop(True) iprop(True) ∗
+      handoffProducer γr false))
 
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
 (`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent;

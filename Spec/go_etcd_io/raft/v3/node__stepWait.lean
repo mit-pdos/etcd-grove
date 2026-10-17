@@ -7,6 +7,8 @@
 R5: the message
 at `ml`, owned, `msgIn ml 1` of `propMsgM` with the entry `propEntryM data` (D6: its bytes); until
 then the Goose value `propMsg esl` with the entries' slice, its capacity and the data slice.)
+(etcd-io/raft#44, 2026-10-16) Also for `ProposeConfChange`'s message, which since the PR waits
+for its result too: any proposal message (`fwdP`, `InvNode.lean`).
 -/
 module
 
@@ -35,8 +37,10 @@ abbrev node.stepWait.spec : Prop :=
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       nodeCtx ctx cd ∗
-      msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
-      entData γ.raft (propEntryM data) }}
+      ((msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
+        entData γ.raft (propEntryM data)) ∨
+       -- (etcd-io/raft#44) `ProposeConfChange`'s message (`data` unused)
+       fwdP γ ml) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWait"))
       (Val #(interface.ok ctx))) (Val #ml))
   {{ (err : GoInterface), RET #err; propErr cd err }}

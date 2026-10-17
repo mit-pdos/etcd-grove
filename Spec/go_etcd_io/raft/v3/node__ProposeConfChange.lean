@@ -13,6 +13,13 @@ Partial correctness: whether the change is appended or refused is not visible.
 raft v3.7 (2026-10-16, stage R5, D6): the entry holds the conf change's bytes, so no recording
 (`isPropData`) is needed: the proposal is `fwdP` from `confChangeToMsg`'s owned message
 (`msgIn ml 1`), `entData_cc`, `ccEntsOk_cc`.
+
+etcd-io/raft#44 (2026-10-16): `return n.stepWait(ctx, msg)` instead of `n.Step(ctx, msg)`: the
+proposal goes on `propc` with a result channel, and the call waits for `raft.Step`'s error for
+it, as `Propose` does. The error is `propErr cd err` (`InvNodeCtx.lean`): `nodeErr cd err` as
+before, or the proposal's result (`stepErr`: `nil` or `ErrProposalDropped`, which, since the PR,
+a leader returns for a refused conf change, `Spec/go_etcd_io/raft/v3/stepLeader.lean`). Before
+the PR: `nodeErr cd err` (the proposal's result never reached the caller).
 -/
 module
 
@@ -47,7 +54,7 @@ abbrev node.ProposeConfChange.spec : Prop :=
       ownCCI c dq (some o) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
-  {{ (err : GoInterface), RET #err; ownCCI c dq (some o) ∗ nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; ownCCI c dq (some o) ∗ propErr cd err }}
 
 end spec
 

@@ -322,7 +322,7 @@ node__Propose: node__stepWait raftpb_MessageType__Enum
 node__Step: IsLocalMsg IsLocalMsgTarget node__step raftpb_Message__GetType raftpb_Message__GetFrom
 node__ReadIndex: node__step raftpb_MessageType__Enum
 RawNode__readyWithoutAccept: raftLog__nextUnstableEnts raftLog__nextCommittedEnts SoftState__equal isHardStateEqual raftLog__hasNextUnstableSnapshot MustSync raftpb_Message__GetTo
-node__ProposeConfChange: confChangeToMsg node__Step
+node__ProposeConfChange: confChangeToMsg node__stepWait
 node__ApplyConfChange: raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2
 RestartNode: NewRawNode newNode node__run
 # Stage R8b (D12): the new cluster's start -- Bootstrap (proto.Marshal at the boot changes is the

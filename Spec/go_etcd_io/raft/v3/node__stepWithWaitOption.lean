@@ -10,7 +10,8 @@ the result), anything else on `recvc`. Until stage R7a specified for `context.Ba
 token is dropped). The error is `nodeErr cd err` (`nil`, `ErrStopped`, the context's), or, with
 `wait`, the proposal's result from `run` too (`propErr`). Specified for the two uses `Propose` and
 `Step` make of it: `Propose`'s message (`propMsg`, with `wait`), and a message from the network
-(`netP`).
+(`netP`). (etcd-io/raft#44) Also `ProposeConfChange`'s, through `stepWait`: a proposal message
+(`fwdP`) with `wait`.
 
 raft v3.7 (2026-10-16, stage R5): `m` is a `*pb.Message` (`ml`), handed to `run` for good.
 `Propose`'s message is `msgIn ml 1` of `propMsgM` with the one entry `propEntryM data` (D6: the
@@ -47,7 +48,10 @@ def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
       msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
       entData γ.raft (propEntryM data)) ∨
     -- a proposal forwarded by a peer (2026-10-10)
-    (⌜wait = false⌝ ∗ fwdP γ ml))
+    (⌜wait = false⌝ ∗ fwdP γ ml) ∨
+    -- (etcd-io/raft#44) a conf change proposal (`ProposeConfChange`, through `stepWait`),
+    -- which waits for its result
+    (⌜wait = true⌝ ∗ fwdP γ ml))
 
 /-- See the file header. -/
 abbrev node.stepWithWaitOption.spec : Prop :=

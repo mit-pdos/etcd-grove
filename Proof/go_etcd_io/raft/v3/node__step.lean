@@ -36,7 +36,7 @@ theorem node.step.wp_proof
     wp_apply wp_node_stepWithWaitOption γ id n m false ctx cd $$ [Hfwd]
     · iframe Hnode Hctx
       unfold stepArg
-      iright; iright
+      iright; iright; ileft
       iframe Hfwd
       ipureintro; rfl
     iintro %err #Herr

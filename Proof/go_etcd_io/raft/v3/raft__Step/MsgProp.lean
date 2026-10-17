@@ -290,7 +290,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     cases dropped
     · -- appended and broadcast
       simp only [Bool.false_eq_true, ↓reduceIte] at Hres ⊢
-      obtain ⟨ms, pvs, rfl, Hms, Hpvs⟩ := Hres
+      obtain ⟨-, ms, pvs, rfl, Hms, Hpvs⟩ := Hres
       icases Herrn with %Herrn
       subst Herrn
       wp_auto
@@ -379,7 +379,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
       -- `pendingConfIndex` moved, 2026-10-13)
       simp only [↓reduceIte] at Hres ⊢
-      rcases Hres with rfl | rfl
+      -- (etcd-io/raft#44) `pendingConfIndex` as the loop over a prefix left it
+      rcases Hres with rfl | ⟨k, Hk, rfl⟩
       all_goals cases err
       all_goals
         wp_auto
@@ -394,7 +395,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           exact ⟨[], by simp, by
             first
             | exact StepCD.frame (.refl _) (RFrame.refl _)
-            | exact stepCD_propDrop c id m s ents cs' ctx Hty Hrole Hct Hlen⟩
+            | exact stepCD_propDrop c id m s (ents.take k) (cs'.take k) ctx Hty Hrole
+                (cctypes_take Hct k) (by rw [List.length_take]; omega)⟩
         iright; iexact Herrn
   · -- PreCandidate (2026-10-04), as a candidate: drop
     simp only [stepFuncOf]

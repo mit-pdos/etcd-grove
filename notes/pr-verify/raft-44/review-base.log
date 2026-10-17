@@ -1,0 +1,11 @@
+=== RUN   TestReviewJointLeaveStallsAfterRefusedBatch
+    review_raft44_test.go:54: batch [leave, add 3]: err <nil>, lastIndex 3, pendingConfIndex 2
+    review_raft44_test.go:59: leave retry 1 (applied 3 = lastIndex 3): err <nil>, lastIndex now 4
+--- PASS: TestReviewJointLeaveStallsAfterRefusedBatch (0.00s)
+=== RUN   TestReviewForwardedBatchNormalEntryLost
+    review_raft44_test.go:80: leader: applied 0, pendingConfIndex 2, lastIndex 2
+    review_raft44_test.go:85: follower Step of [normal, cc]: err <nil>
+    review_raft44_test.go:95: leader lastIndex 2 -> 4, normal entry in log: true
+--- PASS: TestReviewForwardedBatchNormalEntryLost (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.014s

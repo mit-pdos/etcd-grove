@@ -190,14 +190,16 @@ theorem wp_stepLeader_prop
       "#Hents" ∷ ([∗list] p;e ∈ els;((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)), entRO p e) ∗
       "HEs" ∷ ml.[raftpb.Message, go!"Entries"] ↦ es0 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes HEs Hphys]
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝ ∗
+      -- (etcd-io/raft#44) no conf change refused so far: a refusal returns
+      "%Htk" ∷ ⌜(lpc (sint.nat n)).1 = ents.take (sint.nat n)⌝) $$ [i Hgi Hes HEs Hphys]
   · iexists W64 0, zero_val w64, els0
     simp only [lpc, show sint.nat (W64 0) = 0 from rfl, propConf_take_zero, List.nil_append,
-      List.drop_zero]
+      List.drop_zero, List.take_zero]
     iframe
     iframe Hents
     ipureintro
-    word
+    exact ⟨by word, trivial⟩
   wp_for IH
   ihave %Hl' := ownSlice_len _ _ _ $$ Hes
   ihave %Hlen' := BigSepL2.bigSepL2_length $$ Hents
@@ -241,6 +243,13 @@ theorem wp_stepLeader_prop
       simp only [lpc, Hnext, Hstep] at Hp ⊢
       rw [Hp, list_drop_S ents _ e He_lookup]
       simp
+    have HtkS : ∀ p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
+        ((lpc (sint.nat n)).1 ++ [e], p') →
+        (lpc (sint.nat (n + W64 1))).1 = ents.take (sint.nat (n + W64 1)) := by
+      intro p' Hp
+      have h1 : (lpc (sint.nat (n + W64 1))).1 = (lpc (sint.nat n)).1 ++ [e] := by
+        simp only [lpc, Hnext, Hstep] at Hp ⊢; rw [Hp]
+      rw [h1, Htk, Hnext, List.take_add_one, He_lookup]; rfl
     have Hzero : ∀ p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
         ((lpc (sint.nat n)).1 ++ [zero_val EntryM], p') →
         (lpc (sint.nat (n + W64 1))).1 ++ ents.drop (sint.nat (n + W64 1)) =
@@ -277,10 +286,11 @@ theorem wp_stepLeader_prop
       have Hpci' : (lpc (sint.nat (n + W64 1))).2 = (lpc (sint.nat n)).2 := by
         simp only [lpc, Hnext, Hstep, propConfStep]
       rw [Hpci']
+      have Htk' := HtkS _ rfl
       iframe
       iframe Hents
       ipureintro
-      word
+      exact ⟨by word, Htk'⟩
     · -- a `ConfChange`
       iunfold ccEntOk at Heo
       icases Heo with ⟨%H1, %Hdec⟩
@@ -382,25 +392,19 @@ theorem wp_stepLeader_prop
         ihave Htrkf := Htrkfback $$ Hcf
         ihave Hphys := Hback $$ %tv2 Htrkf Htrk
         wp_raft_logC
-        rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
-        haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-        wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-        imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
-        · iframe
-        wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
-        rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
-        wp_apply wp_store_slice_index es0 (sint.Z n) els _ $$ [$Hes] as Hes
-        · ipureintro; refine ⟨Hn.1, ?_⟩; rw [Hlen', Hcurlen]; word
-        icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRO (GF := GF) p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
-        ihave Hents' := Hset $$ %_ %(zero_val EntryM) Hnew
-        obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+        -- (etcd-io/raft#44) refused: `return ErrProposalDropped`, `pendingConfIndex` as the
+        -- loop over the first `n` entries left it
+        try wp_auto
         wp_for_post
-        iframe
-        iexists n + W64 1, n, _
-        rw [Hcur', Hpci']
-        iframe
-        iframe Hents'
-        ipureintro; word
+        iapply HΦ $$ %errPropDropped %_ %true
+        iframe Hphys
+        isplitr
+        · ipureintro
+          refine ⟨cs, Hct, ?_⟩
+          simp only [↓reduceIte]
+          exact Or.inr ⟨sint.nat n, by word, by first | rfl | simp only [lpc, leaderPropConf, Hjv]⟩
+        simp only [↓reduceIte]
+        iexact ErrPropDropped
       · -- no conf change pending, one change (`wantsLeaveJoint` false)
         have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
@@ -428,6 +432,7 @@ theorem wp_stepLeader_prop
           have Hli' : li = logLast s.logst := by
             unfold logLast; simp only at Hli; word
           obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
+          have Htk' := HtkS _ Hstep1
           wp_for_post
           iframe
           iexists n + W64 1, n, els
@@ -437,7 +442,7 @@ theorem wp_stepLeader_prop
             (by rw [Hli']; congr 2; word) $$ Hphys
           iframe
           iframe Hents
-          ipureintro; word
+          ipureintro; exact ⟨by word, Htk'⟩
         · -- inside one (`must transition out of joint config first`): refused
           rw [Hjv]
           wp_auto
@@ -460,25 +465,19 @@ theorem wp_stepLeader_prop
           ihave Htrkf := Htrkfback $$ Hcf
           ihave Hphys := Hback $$ %tv2 Htrkf Htrk
           wp_raft_logC
-          rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
-          haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-          wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-          imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
-          · iframe
-          wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
-          rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
-          wp_apply wp_store_slice_index es0 (sint.Z n) els _ $$ [$Hes] as Hes
-          · ipureintro; refine ⟨Hn.1, ?_⟩; rw [Hlen', Hcurlen]; word
-          icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRO (GF := GF) p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
-          ihave Hents' := Hset $$ %_ %(zero_val EntryM) Hnew
-          obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+          -- (etcd-io/raft#44) refused: `return ErrProposalDropped`, `pendingConfIndex` as the
+          -- loop over the first `n` entries left it
+          try wp_auto
           wp_for_post
-          iframe
-          iexists n + W64 1, n, _
-          rw [Hcur', Hpci']
-          iframe
-          iframe Hents'
-          ipureintro; word
+          iapply HΦ $$ %errPropDropped %_ %true
+          iframe Hphys
+          isplitr
+          · ipureintro
+            refine ⟨cs, Hct, ?_⟩
+            simp only [↓reduceIte]
+            exact Or.inr ⟨sint.nat n, by word, by first | rfl | simp only [lpc, leaderPropConf, Hjv]⟩
+          simp only [↓reduceIte]
+          iexact ErrPropDropped
     · -- a `ConfChangeV2`
       iunfold ccEntOk at Heo
       icases Heo with ⟨%H2, %Hdec⟩
@@ -583,25 +582,19 @@ theorem wp_stepLeader_prop
         ihave Htrkf := Htrkfback $$ Hcf
         ihave Hphys := Hback $$ %tv2 Htrkf Htrk
         wp_raft_logC
-        rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
-        haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-        wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-        imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
-        · iframe
-        wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
-        rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
-        wp_apply wp_store_slice_index es0 (sint.Z n) els _ $$ [$Hes] as Hes
-        · ipureintro; refine ⟨Hn.1, ?_⟩; rw [Hlen', Hcurlen]; word
-        icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRO (GF := GF) p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
-        ihave Hents' := Hset $$ %_ %(zero_val EntryM) Hnew
-        obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+        -- (etcd-io/raft#44) refused: `return ErrProposalDropped`, `pendingConfIndex` as the
+        -- loop over the first `n` entries left it
+        try wp_auto
         wp_for_post
-        iframe
-        iexists n + W64 1, n, _
-        rw [Hcur', Hpci']
-        iframe
-        iframe Hents'
-        ipureintro; word
+        iapply HΦ $$ %errPropDropped %_ %true
+        iframe Hphys
+        isplitr
+        · ipureintro
+          refine ⟨cs, Hct, ?_⟩
+          simp only [↓reduceIte]
+          exact Or.inr ⟨sint.nat n, by word, by first | rfl | simp only [lpc, leaderPropConf, Hjv]⟩
+        simp only [↓reduceIte]
+        iexact ErrPropDropped
       · have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
         have Hlv0 : chs.len = W64 0 ↔ c2.changes = [] := by
@@ -636,25 +629,19 @@ theorem wp_stepLeader_prop
             ihave Htrkf := Htrkfback $$ Hcf
             ihave Hphys := Hback $$ %tv2 Htrkf Htrk
             wp_raft_logC
-            rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
-            haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-            wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-            imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
-            · iframe
-            wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
-            rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
-            wp_apply wp_store_slice_index es0 (sint.Z n) els _ $$ [$Hes] as Hes
-            · ipureintro; refine ⟨Hn.1, ?_⟩; rw [Hlen', Hcurlen]; word
-            icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRO (GF := GF) p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
-            ihave Hents' := Hset $$ %_ %(zero_val EntryM) Hnew
-            obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+            -- (etcd-io/raft#44) refused: `return ErrProposalDropped`, `pendingConfIndex` as the
+            -- loop over the first `n` entries left it
+            try wp_auto
             wp_for_post
-            iframe
-            iexists n + W64 1, n, _
-            rw [Hcur', Hpci']
-            iframe
-            iframe Hents'
-            ipureintro; word
+            iapply HΦ $$ %errPropDropped %_ %true
+            iframe Hphys
+            isplitr
+            · ipureintro
+              refine ⟨cs, Hct, ?_⟩
+              simp only [↓reduceIte]
+              exact Or.inr ⟨sint.nat n, by word, by first | rfl | simp only [lpc, leaderPropConf, Hjv]⟩
+            simp only [↓reduceIte]
+            iexact ErrPropDropped
           · -- a request to leave the joint configuration: accepted
             rw [Hjv]
             try wp_auto
@@ -673,6 +660,7 @@ theorem wp_stepLeader_prop
             have Hli' : li = logLast s.logst := by
               unfold logLast; simp only at Hli; word
             obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
+            have Htk' := HtkS _ Hstep1
             wp_for_post
             iframe
             iexists n + W64 1, n, els
@@ -682,7 +670,7 @@ theorem wp_stepLeader_prop
               (by rw [Hli']; congr 2; word) $$ Hphys
             iframe
             iframe Hents
-            ipureintro; word
+            ipureintro; exact ⟨by word, Htk'⟩
         · rw [decide_eq_false (fun h => Hcw (Hlv0.1 h))]
           try wp_auto
           have Hne : c2.changes.isEmpty = false := by
@@ -709,6 +697,7 @@ theorem wp_stepLeader_prop
             have Hli' : li = logLast s.logst := by
               unfold logLast; simp only at Hli; word
             obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
+            have Htk' := HtkS _ Hstep1
             wp_for_post
             iframe
             iexists n + W64 1, n, els
@@ -718,7 +707,7 @@ theorem wp_stepLeader_prop
               (by rw [Hli']; congr 2; word) $$ Hphys
             iframe
             iframe Hents
-            ipureintro; word
+            ipureintro; exact ⟨by word, Htk'⟩
           · -- a change inside one: refused
             rw [Hjv]
             wp_auto
@@ -741,25 +730,19 @@ theorem wp_stepLeader_prop
             ihave Htrkf := Htrkfback $$ Hcf
             ihave Hphys := Hback $$ %tv2 Htrkf Htrk
             wp_raft_logC
-            rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
-            haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-            wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-            imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
-            · iframe
-            wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
-            rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]
-            wp_apply wp_store_slice_index es0 (sint.Z n) els _ $$ [$Hes] as Hes
-            · ipureintro; refine ⟨Hn.1, ?_⟩; rw [Hlen', Hcurlen]; word
-            icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ p e => entRO (GF := GF) p e) Hl0' Hcur_lookup') $$ Hents with ⟨-, Hset⟩
-            ihave Hents' := Hset $$ %_ %(zero_val EntryM) Hnew
-            obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+            -- (etcd-io/raft#44) refused: `return ErrProposalDropped`, `pendingConfIndex` as the
+            -- loop over the first `n` entries left it
+            try wp_auto
             wp_for_post
-            iframe
-            iexists n + W64 1, n, _
-            rw [Hcur', Hpci']
-            iframe
-            iframe Hents'
-            ipureintro; word
+            iapply HΦ $$ %errPropDropped %_ %true
+            iframe Hphys
+            isplitr
+            · ipureintro
+              refine ⟨cs, Hct, ?_⟩
+              simp only [↓reduceIte]
+              exact Or.inr ⟨sint.nat n, by word, by first | rfl | simp only [lpc, leaderPropConf, Hjv]⟩
+            simp only [↓reduceIte]
+            iexact ErrPropDropped
   · -- the loop is done: `appendEntry` of the loop's batch
     have Hnend : sint.nat n = ents.length := by
       have := Hl'.1; rw [Hlen', Hcurlen] at this; word
@@ -767,6 +750,8 @@ theorem wp_stepLeader_prop
       intro A l hl; rw [Hnend, ← hl, List.take_length]
     have Hfin : lpc (sint.nat n) = leaderPropConf s ents cs c.joint := by
       simp only [lpc, leaderPropConf, Htake ents rfl, Htake cs Hcslen]
+    have Hbatch : (leaderPropConf s ents cs c.joint).1 = ents := by
+      rw [← Hfin, Htk]; exact Htake ents rfl
     rw [Hnend] at Hfin
     rw [Hnend, List.drop_length, List.append_nil, Hfin]
     wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$HEs] as HEs
@@ -786,7 +771,10 @@ theorem wp_stepLeader_prop
       iframe Hphys
       isplitr
       · ipureintro
-        exact ⟨cs, Hct, by simp⟩
+        refine ⟨cs, Hct, ?_⟩
+        simp only [↓reduceIte]
+        exact Or.inr ⟨ents.length, Nat.le_refl _, by
+          rw [List.take_of_length_le (Nat.le_refl _), List.take_of_length_le (by omega)]⟩
       simp only [↓reduceIte]
       iexact ErrPropDropped
     · wp_auto
@@ -798,7 +786,7 @@ theorem wp_stepLeader_prop
       · ipureintro
         refine ⟨cs, Hct, ?_⟩
         simp only [Bool.false_eq_true, ↓reduceIte]
-        exact ⟨ms, pvs, rfl, Hms, Hmm⟩
+        exact ⟨Hbatch, ms, pvs, rfl, Hms, Hmm⟩
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; trivial
 

@@ -27,8 +27,9 @@ This spec covers the seven types `Step` dispatches to it.
   None` drops (a leader transfer in progress); the conf-change loop (since 2026-10-13,
   reconfiguration stage D; until then a premise made every entry `EntryNormal` and the loop
   a no-op) decodes each conf-change entry (`Unmarshal`, which must not fail: `"Hcc"`,
-  `ccEntsOk`, gives the bytes and what they decode to) and refuses it -- writing
-  `pb.Entry{Type: EntryNormal}` over it in the caller's batch -- when a conf change is
+  `ccEntsOk`, gives the bytes and what they decode to) and refuses it -- since etcd-io/raft#44
+  by `return ErrProposalDropped`, the whole proposal dropped (until then by writing
+  `pb.Entry{Type: EntryNormal}` over it in the caller's batch) -- when a conf change is
   pending (`pendingConfIndex > applied`) or it is an empty `ConfChangeV2` (a request to
   leave a joint configuration, which the configuration in use never is: `alreadyJoint` is
   `false`), and otherwise accepts it and moves `pendingConfIndex` to its index-to-be
@@ -38,8 +39,9 @@ This spec covers the seven types `Step` dispatches to it.
   the batch is owned (not `↦*□`). Accepted: the log grows by the loop's batch, stamped, the
   self-acknowledgement is queued (`Step.propose`), then `bcastAppend`'s `ReplSends`
   (`Step.sendApps`), `Match` untouched. Rejected (the uncommitted-size budget, which
-  `NState` does not track): only `pendingConfIndex` has moved, and `ErrProposalDropped` is
-  returned.
+  `NState` does not track), or (etcd-io/raft#44) a conf change refused: only
+  `pendingConfIndex` has moved (by the conf changes the loop accepted before), and
+  `ErrProposalDropped` is returned.
 - `MsgBeat`: `r.bcastHeartbeat()` (`Spec/raft__bcastHeartbeat.lean`) -- heartbeats
   `HeartbeatOk` allows, which is the model's `Step.beat`.
 - `MsgHeartbeatResp`: `pr.RecentActive`, `pr.MsgAppFlowPaused` written;
@@ -139,19 +141,30 @@ def leaderPropConf (s : NState) (ents : List EntryM) (cs : List (Option CCMsg))
   propConf s.logst.applied (logLast s.logst) s.pci ents cs joint
 
 /-- `MsgProp` at the leader: dropped -- unchanged (a leader transfer in progress, before
-the conf-change loop), or with only `pendingConfIndex` moved by the loop (`appendEntry`
-refused the batch) -- or the loop's batch appended and then `bcastAppend`'s sends, judged
-at the appended state, with no `Match` moved; for some decoded conf changes `cs` of the
-batch (2026-10-13; until then the batch was appended as proposed). `joint` (2026-10-14,
-reconfiguration stage A3): whether the configuration in use is joint, which decides which conf
-changes the loop refuses (`propConf`); `false` at a simple configuration. (2026-10-15, stage
-R4) What is appended is `appendEntry`'s clones of the loop's batch, which hold the same records
-(D6). -/
+the conf-change loop), or with only `pendingConfIndex` moved by the loop over a prefix of the
+batch, the first `k` entries (`appendEntry` refused the whole batch, `k` its length; or, since
+etcd-io/raft#44, the loop refused the conf change at entry `k` and returned) -- or the batch
+appended and then `bcastAppend`'s sends, judged at the appended state, with no `Match` moved;
+for some decoded conf changes `cs` of the batch (2026-10-13; until then the batch was appended
+as proposed). `joint` (2026-10-14, reconfiguration stage A3): whether the configuration in use
+is joint, which decides which conf changes the loop refuses (`propConf`); `false` at a simple
+configuration. (2026-10-15, stage R4) What is appended is `appendEntry`'s clones of the loop's
+batch, which hold the same records (D6).
+
+(etcd-io/raft#44, 2026-10-16) A refused conf change no longer becomes an empty entry: the
+proposal is dropped. So a proposal that is not dropped had no conf change refused: the loop's
+batch is the proposal itself (`(leaderPropConf s ents cs joint).1 = ents`), and the dropped
+case's `pendingConfIndex` is the loop's over the entries before the refused one. (Before the
+PR: not dropped, the loop's batch with refused conf changes replaced, `PropRepl`; dropped,
+`pendingConfIndex` as the loop over the whole batch left it.) -/
 def LeaderProposeResult (id : w64) (s : NState) (ents : List EntryM)
     (dropped : Bool) (s' : NState) (joint : Bool := false) : Prop :=
   ∃ cs : List (Option CCMsg), CCTypesOk ents cs ∧
-  if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs joint).2 }
-  else ∃ (ms : List Msg) (pvs : GMap w64 Progress),
+  if dropped then s' = s ∨
+    ∃ k, k ≤ ents.length ∧
+      s' = { s with pci := (leaderPropConf s (ents.take k) (cs.take k) joint).2 }
+  else (leaderPropConf s ents cs joint).1 = ents ∧
+    ∃ (ms : List Msg) (pvs : GMap w64 Progress),
     s' = { sendMsgs (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }
              (leaderPropConf s ents cs joint).1) ms with prvals := pvs } ∧
     ReplSends id (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }

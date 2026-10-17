@@ -43,7 +43,7 @@ theorem node.stepWithWaitOption.wp_proof
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold stepArg
-  icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent⟩ | ⟨%Hw, Hfwd⟩)
+  icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent⟩ | ⟨%Hw, Hfwd⟩ | ⟨%Hw, Hfwd⟩)
   · -- a message from the network: `recvc <- m`
     iunfold netP at Hnet
     icases Hnet with ⟨%st, Hm, %Hok, #Hab, #Hlb, Hcr, Htc⟩
@@ -244,7 +244,7 @@ theorem node.stepWithWaitOption.wp_proof
       iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := zero_val GoChan } : msgWithResult)
         (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm]
       · unfold propP
-        iright
+        iright; ileft
         isplitr
         · ipureintro; rfl
         iunfold fwdP
@@ -264,6 +264,133 @@ theorem node.stepWithWaitOption.wp_proof
       wp_auto
       wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
       iapply HΦ
+      iapply nodeErr_ctx $$ Hcerr
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply isHandshake_isChan $$ Hdone
+      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+
+  · -- (etcd-io/raft#44) a conf change proposal (`fwdP`): `propc <- pm`, then `<-pm.result`
+    subst Hw
+    iunfold fwdP at Hfwd
+    icases Hfwd with ⟨%st, Hm, %Hty, #Hab⟩
+    wp_auto
+    wp_apply wp_GetType.1 $$ [Hm] as Hm
+    · iexact Hm
+    wp_if_destruct
+    rotate_left
+    · exact absurd Hty Hif
+    wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %rch %γrc ⟨#Hrch, %_, Hoc⟩
+    · ipureintro; decide
+    ihave Hoc : ownChan γrc GoInterface (.Buffered []) $$ Hoc
+    imod start_handoff rch stepErr iprop(True) iprop(True) γrc
+      $$ Hrch Hoc with ⟨%γr, %Hγr, #Hho, Hprod, Hcons⟩
+    subst Hγr
+    wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
+    wp_auto_lc 3
+    wp_apply_core chan.wp_select_blocking_nil
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists msgWithResult, inferInstance, inferInstance, inferInstance, inferInstance,
+        nv.propc', γ.propc, ({ m' := m, result' := rch } : msgWithResult)
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplitr
+      · iapply isHandshake_isChan $$ Hpropc
+      iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := rch } : msgWithResult)
+        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm Hprod]
+      · unfold propP
+        iright; iright
+        iexists γr
+        iframe Hho Hprod
+        iunfold fwdP
+        iexists st
+        iframe Hm Hab
+        ipureintro; exact Hty
+      inext
+      iintro -
+      wp_auto
+      wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch2 #Hd2
+      wp_auto_lc 3
+      wp_apply_core chan.wp_select_blocking_nil
+      iapply BigAndL.bigAndL_cons.2
+      isplit
+      · ileft
+        simp only [chan.blockingClausePre]
+        iexists GoInterface, inferInstance, inferInstance, inferInstance, inferInstance,
+          rch, γr.chanName
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · unfold isHandoff
+          icases Hho with ⟨$, -⟩
+        iapply handoff_rcv_au γr rch _ _ _ false $$ Hho Hlc1 Hcons
+        inext
+        iintro %v %ok ⟨-, Hgot⟩
+        unfold handoffGot
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        cases ok
+        · -- the channel closed without a value: `run` always sends first, but the handoff's
+          -- consumer, which never took the value, is only promised `Wc` (`True`); the zero
+          -- value is `nil`
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hgot with ⟨%Hv, -⟩
+          subst Hv
+          wp_auto
+          iapply HΦ
+          iapply propErr_nil
+        · simp only [↓reduceIte]
+          icases Hgot with ⟨#Hse, -⟩
+          cases v with
+          | nil =>
+            wp_auto
+            iapply HΦ
+            iapply propErr_nil
+          | ok e =>
+            wp_auto
+            iapply HΦ
+            iapply propErr_of_stepErr $$ Hse
+      iapply BigAndL.bigAndL_cons.2
+      isplit
+      · -- `case <-ctx.Done(): return ctx.Err()`, the result abandoned
+        iapply nodeDone_recv_clause ctx cd dch2 _ _ $$ Hd2
+        iintro ⟨#Hctx', #HPD, #HCC⟩
+        wp_auto
+        wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
+        iapply HΦ
+        iapply propErr_of_nodeErr
+        iapply nodeErr_ctx $$ Hcerr
+      iapply BigAndL.bigAndL_cons.2
+      isplit
+      · ileft
+        simp only [chan.blockingClausePre]
+        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · iapply isHandshake_isChan $$ Hdone
+        iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc2 $Hlc3] Hdone
+      iapply BigAndL.bigAndL_nil.2
+      itrivial
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · -- `case <-ctx.Done(): return ctx.Err()`
+      iapply nodeDone_recv_clause ctx cd dch _ _ $$ Hd
+      iintro ⟨#Hctx', #HPD, #HCC⟩
+      wp_auto
+      wp_apply isContext_Err_done hED ctx cd $$ [$Hpctx $Hctx' $HPD $HCC] as %cerr #Hcerr
+      iapply HΦ
+      iapply propErr_of_nodeErr
       iapply nodeErr_ctx $$ Hcerr
     iapply BigAndL.bigAndL_cons.2
     isplit

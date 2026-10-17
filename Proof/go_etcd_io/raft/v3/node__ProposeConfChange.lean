@@ -3,7 +3,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.confChangeToMsg
-public import Spec.go_etcd_io.raft.v3.node__Step
+public import Spec.go_etcd_io.raft.v3.node__stepWait
 
 @[expose] public section
 
@@ -24,19 +24,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `confChangeToMsg`, then `Step` of the proposal, forwarded (`fwdP`). (Raft v3.7, stage R5, D6:
 the message `msgIn ml 1` from `confChangeToMsg`, its entry `ccEntryM (some o) bs` holding the
 bytes, so no recording of the data is needed (`entData_cc`). Stage R7a: any `nodeCtx`, the error
-`nodeErr`.) -/
+`nodeErr`. etcd-io/raft#44: `stepWait` of the proposal, the error `propErr`.) -/
 theorem node.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
-    (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
+    (wp_node_stepWait : node.stepWait.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
   intro γ id n c o dq ctx cd Hok
   wp_start as ⟨#Hnode, #Hctx, Hc⟩
   wp_auto
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
   ihave #Hent := entData_cc γ.raft o bs Hbs (Hok bs Hbs)
-  wp_apply wp_node_Step γ id n ml ctx cd $$ [$Hnode $Hctx Hm]
-  · unfold stepP
-    iright
+  wp_apply wp_node_stepWait γ id n ml [] ctx cd $$ [$Hnode $Hctx Hm]
+  · iright
     unfold fwdP
     iexists ⟨propMsgM, [ccEntryM (some o) bs], none, [], []⟩
     iframe Hm

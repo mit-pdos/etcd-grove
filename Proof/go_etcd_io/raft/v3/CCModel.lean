@@ -130,6 +130,18 @@ theorem forall₂_app {α β : Type _} {R : α → β → Prop} {a1 a2 : List α
   | nil => simpa using H2
   | cons h _ ih => exact List.Forall₂.cons h ih
 
+/-- A prefix of a batch, with its decoded conf changes (etcd-io/raft#44: a refused conf change
+drops the proposal with `pendingConfIndex` as the loop over the entries before it left it). -/
+theorem cctypes_take {ents : List EntryM} {cs : List (Option CCMsg)}
+    (H : CCTypesOk ents cs) : ∀ k, CCTypesOk (ents.take k) (cs.take k) := by
+  induction H with
+  | nil => intro k; simp only [List.take_nil]; exact List.Forall₂.nil
+  | cons h _ ih =>
+    intro k
+    cases k with
+    | zero => exact List.Forall₂.nil
+    | succ k => exact List.Forall₂.cons h (ih k)
+
 theorem cctypes_mem {ents : List EntryM} {cs : List (Option CCMsg)}
     (H : CCTypesOk ents cs) : ∀ x ∈ ents.zip cs, x.2.isSome = true → IsConfEnt x.1 := by
   induction H with
