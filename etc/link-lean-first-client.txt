@@ -159,3 +159,40 @@ watcher__Watch: OpWatch streamKeyFromCtx watcher__newWatcherGRPCStream
 NewWatchFromWatchClient: Client__GetLogger
 NewWatcher: NewWatchClient NewWatchFromWatchClient
 watcher__Close: watchGRPCStream__close errors_IsStatusErr
+# Item 5 (client construction, branch `construct`): `clientv3.New` (client.go: `New`, `newClient`,
+# `SetEndpoints`, `credentialsForEndpoint`, `authority`, `dialSetupOpts`, `dial`,
+# `dialWithBalancer` from its trusted body, `autoSync`). Trust boundary: grpc's dial
+# (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
+# names-only `internal/resolver` (`New`, `SetEndpoints`, `Close`) and `internal/endpoint`
+# (`RequiresCredentials`), `streamClientInterceptor`, `roundRobinQuorumBackoff` (floats), the API
+# constructors `NewCluster`/`NewLease`/`NewAuth`/`NewMaintenance`, `strings.SplitN`,
+# `context.WithCancel(TODO())`, `fmt.Sprintf` with a `*Client`.
+grpc_NewClient:
+grpc_WithUnaryInterceptor:
+grpc_WithStreamInterceptor:
+grpc_WithTransportCredentials:
+grpc_WithResolvers:
+insecure_NewCredentials:
+resolver_New:
+resolver_EtcdManualResolver__SetEndpoints:
+resolver_EtcdManualResolver__Close:
+endpoint_RequiresCredentials:
+strings_SplitN:
+fmt_SprintfClientPtr:
+context_TODO:
+context_WithCancelTodo:
+Client__streamClientInterceptor:
+Client__roundRobinQuorumBackoff:
+v3_NewCluster:
+v3_NewLease:
+v3_NewAuth:
+v3_NewMaintenance:
+Client__SetEndpoints: resolver_EtcdManualResolver__SetEndpoints
+Client__credentialsForEndpoint: endpoint_RequiresCredentials
+authority: strings_SplitN
+Client__dialSetupOpts: Client__roundRobinQuorumBackoff withBackoff withMax Client__streamClientInterceptor Client__unaryClientInterceptor insecure_NewCredentials grpc_WithTransportCredentials grpc_WithStreamInterceptor grpc_WithUnaryInterceptor
+Client__dial: Client__dialSetupOpts authority grpc_NewClient fmt_SprintfClientPtr
+Client__dialWithBalancer: Client__Endpoints Client__credentialsForEndpoint grpc_WithResolvers Client__dial
+Client__autoSync:
+newClient: context_TODO context_WithCancelTodo resolver_New Client__SetEndpoints resolver_EtcdManualResolver__Close Client__dialWithBalancer v3_NewCluster v3_NewKV v3_NewLease NewWatcher v3_NewAuth v3_NewMaintenance Client__getToken Client__autoSync
+client_v3_New: newClient

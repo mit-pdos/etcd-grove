@@ -63,7 +63,7 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
       kvObjAt api ep) ∗
     (∃ (w conn wc lg : Loc) (ics : List GoFunc),
       clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
-      isClientWatcher { V with addr := ep, conn := conn, ics := ics, wc := wc, lg := lg } w))
+      isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) : Persistent (isNewClient cl ep V) := by
