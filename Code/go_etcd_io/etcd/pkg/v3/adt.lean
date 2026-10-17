@@ -1801,8 +1801,12 @@ abbrev Comparable [FfiSyntax] : Type := GoInterface
 
 class Comparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Comparable.ty Comparable.underlying
+  method_set : go.MethodSetIs Comparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Comparable.ty) []
 
 attribute [instance] Comparable.TypeAssumptions.underlying
+  Comparable.TypeAssumptions.method_set
+  Comparable.TypeAssumptions.ptr_method_set
 
 abbrev rbcolor [FfiSyntax] : Type := w64
 
@@ -1811,8 +1815,12 @@ abbrev rbcolor [FfiSyntax] : Type := w64
 
 class rbcolor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq rbcolor.ty rbcolor.underlying
+  method_set : go.MethodSetIs rbcolor.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rbcolor.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] rbcolor.TypeAssumptions.underlying
+  rbcolor.TypeAssumptions.method_set
+  rbcolor.TypeAssumptions.ptr_method_set
 
 structure Interval [FfiSyntax] where
   mk ::
@@ -1843,6 +1851,8 @@ class Interval.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_Begin : ∀ (x : Interval) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet Interval.underlying go!"Begin") (PairV #x #y) (Val #(({ x with Begin' := y } : Interval)))
   get_End : ∀ (x : Interval), go.IsGoStepPureDetTagged under (StructFieldGet Interval.underlying go!"End") #x (Val #(x.End'))
   set_End : ∀ (x : Interval) (y : Comparable), go.IsGoStepPureDetTagged under (StructFieldSet Interval.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : Interval)))
+  method_set : go.MethodSetIs Interval.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interval.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType Interval.ty) go!"Compare" Interval.Compare.impl
 
 attribute [instance] Interval.TypeAssumptions.type_repr
@@ -1851,6 +1861,8 @@ attribute [instance] Interval.TypeAssumptions.type_repr
   Interval.TypeAssumptions.set_Begin
   Interval.TypeAssumptions.get_End
   Interval.TypeAssumptions.set_End
+  Interval.TypeAssumptions.method_set
+  Interval.TypeAssumptions.ptr_method_set
   Interval.TypeAssumptions.ptr_Compare_unfold
 
 structure IntervalValue [FfiSyntax] where
@@ -1882,6 +1894,8 @@ class IntervalValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_Ivl : ∀ (x : IntervalValue) (y : Interval), go.IsGoStepPureDetTagged under (StructFieldSet IntervalValue.underlying go!"Ivl") (PairV #x #y) (Val #(({ x with Ivl' := y } : IntervalValue)))
   get_Val : ∀ (x : IntervalValue), go.IsGoStepPureDetTagged under (StructFieldGet IntervalValue.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : IntervalValue) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet IntervalValue.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : IntervalValue)))
+  method_set : go.MethodSetIs IntervalValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IntervalValue.ty) []
 
 attribute [instance] IntervalValue.TypeAssumptions.type_repr
   IntervalValue.TypeAssumptions.underlying
@@ -1889,6 +1903,8 @@ attribute [instance] IntervalValue.TypeAssumptions.type_repr
   IntervalValue.TypeAssumptions.set_Ivl
   IntervalValue.TypeAssumptions.get_Val
   IntervalValue.TypeAssumptions.set_Val
+  IntervalValue.TypeAssumptions.method_set
+  IntervalValue.TypeAssumptions.ptr_method_set
 
 structure intervalNode [FfiSyntax] where
   mk ::
@@ -1935,6 +1951,8 @@ class intervalNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_parent : ∀ (x : intervalNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : intervalNode)))
   get_c : ∀ (x : intervalNode), go.IsGoStepPureDetTagged under (StructFieldGet intervalNode.underlying go!"c") #x (Val #(x.c'))
   set_c : ∀ (x : intervalNode) (y : rbcolor), go.IsGoStepPureDetTagged under (StructFieldSet intervalNode.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : intervalNode)))
+  method_set : go.MethodSetIs intervalNode.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType intervalNode.ty) [(go!"go.etcd.io/etcd/pkg/v3/adt.color", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [rbcolor.ty]))), (go!"go.etcd.io/etcd/pkg/v3/adt.height", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [go.int]))), (go!"go.etcd.io/etcd/pkg/v3/adt.min", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.successor", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.updateMax", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.visit", (some (go.signature.Signature [(go.GoType.PointerType Interval.ty), (go.GoType.PointerType intervalNode.ty), nodeVisitor.ty] false [go.bool])))]
   ptr_color_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"color" intervalNode.color.impl
   ptr_height_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"height" intervalNode.height.impl
   ptr_min_unfold : MethodUnfold (go.GoType.PointerType intervalNode.ty) go!"min" intervalNode.min.impl
@@ -1956,6 +1974,8 @@ attribute [instance] intervalNode.TypeAssumptions.type_repr
   intervalNode.TypeAssumptions.set_parent
   intervalNode.TypeAssumptions.get_c
   intervalNode.TypeAssumptions.set_c
+  intervalNode.TypeAssumptions.method_set
+  intervalNode.TypeAssumptions.ptr_method_set
   intervalNode.TypeAssumptions.ptr_color_unfold
   intervalNode.TypeAssumptions.ptr_height_unfold
   intervalNode.TypeAssumptions.ptr_min_unfold
@@ -1970,8 +1990,12 @@ abbrev nodeVisitor [FfiSyntax] : Type := GoFunc
 
 class nodeVisitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq nodeVisitor.ty nodeVisitor.underlying
+  method_set : go.MethodSetIs nodeVisitor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodeVisitor.ty) []
 
 attribute [instance] nodeVisitor.TypeAssumptions.underlying
+  nodeVisitor.TypeAssumptions.method_set
+  nodeVisitor.TypeAssumptions.ptr_method_set
 
 abbrev IntervalTree [FfiSyntax] : Type := GoInterface
 
@@ -1980,8 +2004,12 @@ abbrev IntervalTree [FfiSyntax] : Type := GoInterface
 
 class IntervalTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IntervalTree.ty IntervalTree.underlying
+  method_set : go.MethodSetIs IntervalTree.ty [(go!"Contains", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Delete", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Find", (some (go.signature.Signature [Interval.ty] false [(go.GoType.PointerType IntervalValue.ty)]))), (go!"Height", (some (go.signature.Signature [] false [go.int]))), (go!"Insert", (some (go.signature.Signature [Interval.ty, go.any] false []))), (go!"Intersects", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeight", (some (go.signature.Signature [] false [go.int]))), (go!"Stab", (some (go.signature.Signature [Interval.ty] false [(go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))]))), (go!"Union", (some (go.signature.Signature [IntervalTree.ty, Interval.ty] false []))), (go!"Visit", (some (go.signature.Signature [Interval.ty, IntervalVisitor.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IntervalTree.ty) []
 
 attribute [instance] IntervalTree.TypeAssumptions.underlying
+  IntervalTree.TypeAssumptions.method_set
+  IntervalTree.TypeAssumptions.ptr_method_set
 
 structure intervalTree [FfiSyntax] where
   mk ::
@@ -2016,6 +2044,8 @@ class intervalTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_count : ∀ (x : intervalTree) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : intervalTree)))
   get_sentinel : ∀ (x : intervalTree), go.IsGoStepPureDetTagged under (StructFieldGet intervalTree.underlying go!"sentinel") #x (Val #(x.sentinel'))
   set_sentinel : ∀ (x : intervalTree) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet intervalTree.underlying go!"sentinel") (PairV #x #y) (Val #(({ x with sentinel' := y } : intervalTree)))
+  method_set : go.MethodSetIs intervalTree.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType intervalTree.ty) [(go!"Contains", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Delete", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Find", (some (go.signature.Signature [Interval.ty] false [(go.GoType.PointerType IntervalValue.ty)]))), (go!"Height", (some (go.signature.Signature [] false [go.int]))), (go!"Insert", (some (go.signature.Signature [Interval.ty, go.any] false []))), (go!"Intersects", (some (go.signature.Signature [Interval.ty] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MaxHeight", (some (go.signature.Signature [] false [go.int]))), (go!"Stab", (some (go.signature.Signature [Interval.ty] false [(go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))]))), (go!"Union", (some (go.signature.Signature [IntervalTree.ty, Interval.ty] false []))), (go!"Visit", (some (go.signature.Signature [Interval.ty, IntervalVisitor.ty] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.createIntervalNode", (some (go.signature.Signature [Interval.ty, go.any] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.deleteFixup", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.find", (some (go.signature.Signature [Interval.ty] false [(go.GoType.PointerType intervalNode.ty)]))), (go!"go.etcd.io/etcd/pkg/v3/adt.insertFixup", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.replaceParent", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty), (go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.rotateLeft", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.rotateRight", (some (go.signature.Signature [(go.GoType.PointerType intervalNode.ty)] false []))), (go!"go.etcd.io/etcd/pkg/v3/adt.visitLevel", (some (go.signature.Signature [] false [(go.GoType.SliceType visitedInterval.ty)])))]
   ptr_Contains_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Contains" intervalTree.Contains.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Delete" intervalTree.Delete.impl
   ptr_Find_unfold : MethodUnfold (go.GoType.PointerType intervalTree.ty) go!"Find" intervalTree.Find.impl
@@ -2042,6 +2072,8 @@ attribute [instance] intervalTree.TypeAssumptions.type_repr
   intervalTree.TypeAssumptions.set_count
   intervalTree.TypeAssumptions.get_sentinel
   intervalTree.TypeAssumptions.set_sentinel
+  intervalTree.TypeAssumptions.method_set
+  intervalTree.TypeAssumptions.ptr_method_set
   intervalTree.TypeAssumptions.ptr_Contains_unfold
   intervalTree.TypeAssumptions.ptr_Delete_unfold
   intervalTree.TypeAssumptions.ptr_Find_unfold
@@ -2067,8 +2099,12 @@ abbrev IntervalVisitor [FfiSyntax] : Type := GoFunc
 
 class IntervalVisitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IntervalVisitor.ty IntervalVisitor.underlying
+  method_set : go.MethodSetIs IntervalVisitor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IntervalVisitor.ty) []
 
 attribute [instance] IntervalVisitor.TypeAssumptions.underlying
+  IntervalVisitor.TypeAssumptions.method_set
+  IntervalVisitor.TypeAssumptions.ptr_method_set
 
 structure visitedInterval [FfiSyntax] where
   mk ::
@@ -2111,6 +2147,8 @@ class visitedInterval.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_color : ∀ (x : visitedInterval) (y : rbcolor), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"color") (PairV #x #y) (Val #(({ x with color' := y } : visitedInterval)))
   get_depth : ∀ (x : visitedInterval), go.IsGoStepPureDetTagged under (StructFieldGet visitedInterval.underlying go!"depth") #x (Val #(x.depth'))
   set_depth : ∀ (x : visitedInterval) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet visitedInterval.underlying go!"depth") (PairV #x #y) (Val #(({ x with depth' := y } : visitedInterval)))
+  method_set : go.MethodSetIs visitedInterval.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType visitedInterval.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] visitedInterval.TypeAssumptions.type_repr
   visitedInterval.TypeAssumptions.underlying
@@ -2124,6 +2162,8 @@ attribute [instance] visitedInterval.TypeAssumptions.type_repr
   visitedInterval.TypeAssumptions.set_color
   visitedInterval.TypeAssumptions.get_depth
   visitedInterval.TypeAssumptions.set_depth
+  visitedInterval.TypeAssumptions.method_set
+  visitedInterval.TypeAssumptions.ptr_method_set
 
 abbrev StringComparable [FfiSyntax] : Type := GoString
 
@@ -2132,11 +2172,15 @@ abbrev StringComparable [FfiSyntax] : Type := GoString
 
 class StringComparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StringComparable.ty StringComparable.underlying
+  method_set : go.MethodSetIs StringComparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StringComparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   Compare_unfold : MethodUnfold StringComparable.ty go!"Compare" StringComparable.Compare.impl
   ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType StringComparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StringComparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad StringComparable.ty))) (Var "$r"))))
 
 attribute [instance] StringComparable.TypeAssumptions.underlying
+  StringComparable.TypeAssumptions.method_set
+  StringComparable.TypeAssumptions.ptr_method_set
   StringComparable.TypeAssumptions.Compare_unfold
   StringComparable.TypeAssumptions.ptr_Compare_unfold
 
@@ -2147,11 +2191,15 @@ abbrev StringAffineComparable [FfiSyntax] : Type := GoString
 
 class StringAffineComparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StringAffineComparable.ty StringAffineComparable.underlying
+  method_set : go.MethodSetIs StringAffineComparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StringAffineComparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   Compare_unfold : MethodUnfold StringAffineComparable.ty go!"Compare" StringAffineComparable.Compare.impl
   ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType StringAffineComparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StringAffineComparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "$r"))))
 
 attribute [instance] StringAffineComparable.TypeAssumptions.underlying
+  StringAffineComparable.TypeAssumptions.method_set
+  StringAffineComparable.TypeAssumptions.ptr_method_set
   StringAffineComparable.TypeAssumptions.Compare_unfold
   StringAffineComparable.TypeAssumptions.ptr_Compare_unfold
 
@@ -2162,11 +2210,15 @@ abbrev Int64Comparable [FfiSyntax] : Type := w64
 
 class Int64Comparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Int64Comparable.ty Int64Comparable.underlying
+  method_set : go.MethodSetIs Int64Comparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Int64Comparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   Compare_unfold : MethodUnfold Int64Comparable.ty go!"Compare" Int64Comparable.Compare.impl
   ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType Int64Comparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Int64Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "$r"))))
 
 attribute [instance] Int64Comparable.TypeAssumptions.underlying
+  Int64Comparable.TypeAssumptions.method_set
+  Int64Comparable.TypeAssumptions.ptr_method_set
   Int64Comparable.TypeAssumptions.Compare_unfold
   Int64Comparable.TypeAssumptions.ptr_Compare_unfold
 
@@ -2177,11 +2229,15 @@ abbrev BytesAffineComparable [FfiSyntax] : Type := GoSlice
 
 class BytesAffineComparable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BytesAffineComparable.ty BytesAffineComparable.underlying
+  method_set : go.MethodSetIs BytesAffineComparable.ty [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BytesAffineComparable.ty) [(go!"Compare", (some (go.signature.Signature [Comparable.ty] false [go.int])))]
   Compare_unfold : MethodUnfold BytesAffineComparable.ty go!"Compare" BytesAffineComparable.Compare.impl
   ptr_Compare_unfold : MethodUnfold (go.GoType.PointerType BytesAffineComparable.ty) go!"Compare" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve BytesAffineComparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "$r"))))
 
 attribute [instance] BytesAffineComparable.TypeAssumptions.underlying
+  BytesAffineComparable.TypeAssumptions.method_set
+  BytesAffineComparable.TypeAssumptions.ptr_method_set
   BytesAffineComparable.TypeAssumptions.Compare_unfold
   BytesAffineComparable.TypeAssumptions.ptr_Compare_unfold
 

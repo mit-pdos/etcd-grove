@@ -116,8 +116,12 @@ abbrev InvalidByteError [FfiSyntax] : Type := w8
 
 class InvalidByteError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidByteError.ty InvalidByteError.underlying
+  method_set : go.MethodSetIs InvalidByteError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidByteError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidByteError.TypeAssumptions.underlying
+  InvalidByteError.TypeAssumptions.method_set
+  InvalidByteError.TypeAssumptions.ptr_method_set
 
 axiom encoder : Type
 axiom encoder.zero_val : ZeroVal encoder
@@ -127,10 +131,14 @@ class encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying encoder.underlying encoder
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
   isUnderlying : go.IsUnderlying encoder.underlying encoder.underlying
+  method_set : go.MethodSetIs encoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoder.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] encoder.TypeAssumptions.type_repr
   encoder.TypeAssumptions.underlying
   encoder.TypeAssumptions.isUnderlying
+  encoder.TypeAssumptions.method_set
+  encoder.TypeAssumptions.ptr_method_set
 
 axiom decoder : Type
 axiom decoder.zero_val : ZeroVal decoder
@@ -140,10 +148,14 @@ class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
   isUnderlying : go.IsUnderlying decoder.underlying decoder.underlying
+  method_set : go.MethodSetIs decoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
   decoder.TypeAssumptions.isUnderlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
 
 axiom dumper : Type
 axiom dumper.zero_val : ZeroVal dumper
@@ -153,10 +165,14 @@ class dumper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying dumper.underlying dumper
   underlying : go.UnderlyingDirectedEq dumper.ty dumper.underlying
   isUnderlying : go.IsUnderlying dumper.underlying dumper.underlying
+  method_set : go.MethodSetIs dumper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dumper.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] dumper.TypeAssumptions.type_repr
   dumper.TypeAssumptions.underlying
   dumper.TypeAssumptions.isUnderlying
+  dumper.TypeAssumptions.method_set
+  dumper.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InvalidByteError_instance : InvalidByteError.TypeAssumptions

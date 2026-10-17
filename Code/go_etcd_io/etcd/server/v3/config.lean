@@ -351,6 +351,8 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_ServerFeatureGate : ∀ (x : ServerConfig) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"ServerFeatureGate") (PairV #x #y) (Val #(({ x with ServerFeatureGate' := y } : ServerConfig)))
   get_Metrics : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Metrics") #x (Val #(x.Metrics'))
   set_Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
+  method_set : go.MethodSetIs ServerConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerConfig.ty) [(go!"BackendPath", (some (go.signature.Signature [] false [go.string]))), (go!"BootstrapTimeoutEffective", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ElectionTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxRequestBytesWithOverhead", (some (go.signature.Signature [] false [go.uint]))), (go!"MemberDir", (some (go.signature.Signature [] false [go.string]))), (go!"PeerDialTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ShouldDiscover", (some (go.signature.Signature [] false [go.bool]))), (go!"SnapDir", (some (go.signature.Signature [] false [go.string]))), (go!"VerifyBootstrap", (some (go.signature.Signature [] false [go.error]))), (go!"VerifyJoinExisting", (some (go.signature.Signature [] false [go.error]))), (go!"WALDir", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/config.advertiseMatchesCluster", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/config.hasLocalMember", (some (go.signature.Signature [] false [go.error])))]
   ptr_ElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
   ptr_MaxRequestBytesWithOverhead_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"MaxRequestBytesWithOverhead" ServerConfig.MaxRequestBytesWithOverhead.impl
   ptr_ReqTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ReqTimeout" ServerConfig.ReqTimeout.impl
@@ -471,6 +473,8 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.set_ServerFeatureGate
   ServerConfig.TypeAssumptions.get_Metrics
   ServerConfig.TypeAssumptions.set_Metrics
+  ServerConfig.TypeAssumptions.method_set
+  ServerConfig.TypeAssumptions.ptr_method_set
   ServerConfig.TypeAssumptions.ptr_ElectionTimeout_unfold
   ServerConfig.TypeAssumptions.ptr_MaxRequestBytesWithOverhead_unfold
   ServerConfig.TypeAssumptions.ptr_ReqTimeout_unfold

@@ -1920,8 +1920,12 @@ abbrev ConfChangeI [FfiSyntax] : Type := GoInterface
 
 class ConfChangeI.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConfChangeI.ty ConfChangeI.underlying
+  method_set : go.MethodSetIs ConfChangeI.ty [(go!"AsV1", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChange.ty), go.bool]))), (go!"AsV2", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeV2.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeI.ty) []
 
 attribute [instance] ConfChangeI.TypeAssumptions.underlying
+  ConfChangeI.TypeAssumptions.method_set
+  ConfChangeI.TypeAssumptions.ptr_method_set
 
 abbrev EntryType [FfiSyntax] : Type := w32
 
@@ -1930,11 +1934,15 @@ abbrev EntryType [FfiSyntax] : Type := w32
 
 class EntryType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EntryType.ty EntryType.underlying
+  method_set : go.MethodSetIs EntryType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType EntryType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EntryType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType EntryType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold EntryType.ty go!"Enum" EntryType.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType EntryType.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve EntryType.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad EntryType.ty))) (Var "$r"))))
 
 attribute [instance] EntryType.TypeAssumptions.underlying
+  EntryType.TypeAssumptions.method_set
+  EntryType.TypeAssumptions.ptr_method_set
   EntryType.TypeAssumptions.Enum_unfold
   EntryType.TypeAssumptions.ptr_Enum_unfold
 
@@ -1945,11 +1953,15 @@ abbrev MessageType [FfiSyntax] : Type := w32
 
 class MessageType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MessageType.ty MessageType.underlying
+  method_set : go.MethodSetIs MessageType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold MessageType.ty go!"Enum" MessageType.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType MessageType.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MessageType.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad MessageType.ty))) (Var "$r"))))
 
 attribute [instance] MessageType.TypeAssumptions.underlying
+  MessageType.TypeAssumptions.method_set
+  MessageType.TypeAssumptions.ptr_method_set
   MessageType.TypeAssumptions.Enum_unfold
   MessageType.TypeAssumptions.ptr_Enum_unfold
 
@@ -1960,11 +1972,15 @@ abbrev ConfChangeTransition [FfiSyntax] : Type := w32
 
 class ConfChangeTransition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConfChangeTransition.ty ConfChangeTransition.underlying
+  method_set : go.MethodSetIs ConfChangeTransition.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeTransition.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeTransition.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeTransition.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold ConfChangeTransition.ty go!"Enum" ConfChangeTransition.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType ConfChangeTransition.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConfChangeTransition.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad ConfChangeTransition.ty))) (Var "$r"))))
 
 attribute [instance] ConfChangeTransition.TypeAssumptions.underlying
+  ConfChangeTransition.TypeAssumptions.method_set
+  ConfChangeTransition.TypeAssumptions.ptr_method_set
   ConfChangeTransition.TypeAssumptions.Enum_unfold
   ConfChangeTransition.TypeAssumptions.ptr_Enum_unfold
 
@@ -1975,11 +1991,15 @@ abbrev ConfChangeType [FfiSyntax] : Type := w32
 
 class ConfChangeType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConfChangeType.ty ConfChangeType.underlying
+  method_set : go.MethodSetIs ConfChangeType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold ConfChangeType.ty go!"Enum" ConfChangeType.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType ConfChangeType.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConfChangeType.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad ConfChangeType.ty))) (Var "$r"))))
 
 attribute [instance] ConfChangeType.TypeAssumptions.underlying
+  ConfChangeType.TypeAssumptions.method_set
+  ConfChangeType.TypeAssumptions.ptr_method_set
   ConfChangeType.TypeAssumptions.Enum_unfold
   ConfChangeType.TypeAssumptions.ptr_Enum_unfold
 
@@ -2032,6 +2052,8 @@ class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_unknownFields : ∀ (x : Entry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Entry)))
   get_sizeCache : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Entry) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Entry)))
+  method_set : go.MethodSetIs Entry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Entry.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [EntryType.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetData_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetData" Entry.GetData.impl
   ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetIndex" Entry.GetIndex.impl
   ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType Entry.ty) go!"GetTerm" Entry.GetTerm.impl
@@ -2054,6 +2076,8 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.set_unknownFields
   Entry.TypeAssumptions.get_sizeCache
   Entry.TypeAssumptions.set_sizeCache
+  Entry.TypeAssumptions.method_set
+  Entry.TypeAssumptions.ptr_method_set
   Entry.TypeAssumptions.ptr_GetData_unfold
   Entry.TypeAssumptions.ptr_GetIndex_unfold
   Entry.TypeAssumptions.ptr_GetTerm_unfold
@@ -2105,6 +2129,8 @@ class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_unknownFields : ∀ (x : SnapshotMetadata) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : SnapshotMetadata)))
   get_sizeCache : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : SnapshotMetadata) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : SnapshotMetadata)))
+  method_set : go.MethodSetIs SnapshotMetadata.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SnapshotMetadata.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetConfState", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfState.ty)]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetConfState_unfold : MethodUnfold (go.GoType.PointerType SnapshotMetadata.ty) go!"GetConfState" SnapshotMetadata.GetConfState.impl
   ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType SnapshotMetadata.ty) go!"GetIndex" SnapshotMetadata.GetIndex.impl
   ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType SnapshotMetadata.ty) go!"GetTerm" SnapshotMetadata.GetTerm.impl
@@ -2124,6 +2150,8 @@ attribute [instance] SnapshotMetadata.TypeAssumptions.type_repr
   SnapshotMetadata.TypeAssumptions.set_unknownFields
   SnapshotMetadata.TypeAssumptions.get_sizeCache
   SnapshotMetadata.TypeAssumptions.set_sizeCache
+  SnapshotMetadata.TypeAssumptions.method_set
+  SnapshotMetadata.TypeAssumptions.ptr_method_set
   SnapshotMetadata.TypeAssumptions.ptr_GetConfState_unfold
   SnapshotMetadata.TypeAssumptions.ptr_GetIndex_unfold
   SnapshotMetadata.TypeAssumptions.ptr_GetTerm_unfold
@@ -2170,6 +2198,8 @@ class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_unknownFields : ∀ (x : Snapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Snapshot)))
   get_sizeCache : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Snapshot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Snapshot)))
+  method_set : go.MethodSetIs Snapshot.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Snapshot.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetMetadata", (some (go.signature.Signature [] false [(go.GoType.PointerType SnapshotMetadata.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetData_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetData" Snapshot.GetData.impl
   ptr_GetMetadata_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetMetadata" Snapshot.GetMetadata.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"ProtoMessage" Snapshot.ProtoMessage.impl
@@ -2186,6 +2216,8 @@ attribute [instance] Snapshot.TypeAssumptions.type_repr
   Snapshot.TypeAssumptions.set_unknownFields
   Snapshot.TypeAssumptions.get_sizeCache
   Snapshot.TypeAssumptions.set_sizeCache
+  Snapshot.TypeAssumptions.method_set
+  Snapshot.TypeAssumptions.ptr_method_set
   Snapshot.TypeAssumptions.ptr_GetData_unfold
   Snapshot.TypeAssumptions.ptr_GetMetadata_unfold
   Snapshot.TypeAssumptions.ptr_ProtoMessage_unfold
@@ -2279,6 +2311,8 @@ class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_unknownFields : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Message)))
   get_sizeCache : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Message) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Message)))
+  method_set : go.MethodSetIs Message.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Entry.ty))]))), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Message.ty))]))), (go!"GetSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType Snapshot.ty)]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [MessageType.ty]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetCommit" Message.GetCommit.impl
   ptr_GetContext_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetContext" Message.GetContext.impl
   ptr_GetEntries_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetEntries" Message.GetEntries.impl
@@ -2331,6 +2365,8 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.set_unknownFields
   Message.TypeAssumptions.get_sizeCache
   Message.TypeAssumptions.set_sizeCache
+  Message.TypeAssumptions.method_set
+  Message.TypeAssumptions.ptr_method_set
   Message.TypeAssumptions.ptr_GetCommit_unfold
   Message.TypeAssumptions.ptr_GetContext_unfold
   Message.TypeAssumptions.ptr_GetEntries_unfold
@@ -2392,6 +2428,8 @@ class HardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_unknownFields : ∀ (x : HardState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : HardState)))
   get_sizeCache : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : HardState) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : HardState)))
+  method_set : go.MethodSetIs HardState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HardState.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetCommit" HardState.GetCommit.impl
   ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetTerm" HardState.GetTerm.impl
   ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetVote" HardState.GetVote.impl
@@ -2411,6 +2449,8 @@ attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.set_unknownFields
   HardState.TypeAssumptions.get_sizeCache
   HardState.TypeAssumptions.set_sizeCache
+  HardState.TypeAssumptions.method_set
+  HardState.TypeAssumptions.ptr_method_set
   HardState.TypeAssumptions.ptr_GetCommit_unfold
   HardState.TypeAssumptions.ptr_GetTerm_unfold
   HardState.TypeAssumptions.ptr_GetVote_unfold
@@ -2469,6 +2509,8 @@ class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_unknownFields : ∀ (x : ConfState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ConfState)))
   get_sizeCache : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ConfState) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConfState.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ConfState)))
+  method_set : go.MethodSetIs ConfState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfState.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Equivalent", (some (go.signature.Signature [(go.GoType.PointerType ConfState.ty)] false [go.error]))), (go!"GetAutoLeave", (some (go.signature.Signature [] false [go.bool]))), (go!"GetLearners", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"GetLearnersNext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"GetVoters", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"GetVotersOutgoing", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_Equivalent_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"Equivalent" ConfState.Equivalent.impl
   ptr_GetAutoLeave_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetAutoLeave" ConfState.GetAutoLeave.impl
   ptr_GetLearners_unfold : MethodUnfold (go.GoType.PointerType ConfState.ty) go!"GetLearners" ConfState.GetLearners.impl
@@ -2495,6 +2537,8 @@ attribute [instance] ConfState.TypeAssumptions.type_repr
   ConfState.TypeAssumptions.set_unknownFields
   ConfState.TypeAssumptions.get_sizeCache
   ConfState.TypeAssumptions.set_sizeCache
+  ConfState.TypeAssumptions.method_set
+  ConfState.TypeAssumptions.ptr_method_set
   ConfState.TypeAssumptions.ptr_Equivalent_unfold
   ConfState.TypeAssumptions.ptr_GetAutoLeave_unfold
   ConfState.TypeAssumptions.ptr_GetLearners_unfold
@@ -2552,6 +2596,8 @@ class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : ConfChange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ConfChange)))
   get_sizeCache : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ConfChange) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ConfChange)))
+  method_set : go.MethodSetIs ConfChange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChange.ty) [(go!"AsV1", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChange.ty), go.bool]))), (go!"AsV2", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeV2.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetNodeId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [ConfChangeType.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_AsV1_unfold : MethodUnfold (go.GoType.PointerType ConfChange.ty) go!"AsV1" ConfChange.AsV1.impl
   ptr_AsV2_unfold : MethodUnfold (go.GoType.PointerType ConfChange.ty) go!"AsV2" ConfChange.AsV2.impl
   ptr_GetContext_unfold : MethodUnfold (go.GoType.PointerType ConfChange.ty) go!"GetContext" ConfChange.GetContext.impl
@@ -2576,6 +2622,8 @@ attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.set_unknownFields
   ConfChange.TypeAssumptions.get_sizeCache
   ConfChange.TypeAssumptions.set_sizeCache
+  ConfChange.TypeAssumptions.method_set
+  ConfChange.TypeAssumptions.ptr_method_set
   ConfChange.TypeAssumptions.ptr_AsV1_unfold
   ConfChange.TypeAssumptions.ptr_AsV2_unfold
   ConfChange.TypeAssumptions.ptr_GetContext_unfold
@@ -2625,6 +2673,8 @@ class ConfChangeSingle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_unknownFields : ∀ (x : ConfChangeSingle) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeSingle.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ConfChangeSingle)))
   get_sizeCache : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ConfChangeSingle) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeSingle.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ConfChangeSingle)))
+  method_set : go.MethodSetIs ConfChangeSingle.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeSingle.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetNodeId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [ConfChangeType.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetNodeId_unfold : MethodUnfold (go.GoType.PointerType ConfChangeSingle.ty) go!"GetNodeId" ConfChangeSingle.GetNodeId.impl
   ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType ConfChangeSingle.ty) go!"GetType" ConfChangeSingle.GetType.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType ConfChangeSingle.ty) go!"ProtoMessage" ConfChangeSingle.ProtoMessage.impl
@@ -2641,6 +2691,8 @@ attribute [instance] ConfChangeSingle.TypeAssumptions.type_repr
   ConfChangeSingle.TypeAssumptions.set_unknownFields
   ConfChangeSingle.TypeAssumptions.get_sizeCache
   ConfChangeSingle.TypeAssumptions.set_sizeCache
+  ConfChangeSingle.TypeAssumptions.method_set
+  ConfChangeSingle.TypeAssumptions.ptr_method_set
   ConfChangeSingle.TypeAssumptions.ptr_GetNodeId_unfold
   ConfChangeSingle.TypeAssumptions.ptr_GetType_unfold
   ConfChangeSingle.TypeAssumptions.ptr_ProtoMessage_unfold
@@ -2690,6 +2742,8 @@ class ConfChangeV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_unknownFields : ∀ (x : ConfChangeV2) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeV2.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ConfChangeV2)))
   get_sizeCache : ∀ (x : ConfChangeV2), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeV2.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ConfChangeV2) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeV2.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ConfChangeV2)))
+  method_set : go.MethodSetIs ConfChangeV2.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeV2.ty) [(go!"AsV1", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChange.ty), go.bool]))), (go!"AsV2", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeV2.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"EnterJoint", (some (go.signature.Signature [] false [go.bool, go.bool]))), (go!"GetChanges", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType ConfChangeSingle.ty))]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetTransition", (some (go.signature.Signature [] false [ConfChangeTransition.ty]))), (go!"LeaveJoint", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_AsV1_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"AsV1" ConfChangeV2.AsV1.impl
   ptr_AsV2_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"AsV2" ConfChangeV2.AsV2.impl
   ptr_EnterJoint_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"EnterJoint" ConfChangeV2.EnterJoint.impl
@@ -2713,6 +2767,8 @@ attribute [instance] ConfChangeV2.TypeAssumptions.type_repr
   ConfChangeV2.TypeAssumptions.set_unknownFields
   ConfChangeV2.TypeAssumptions.get_sizeCache
   ConfChangeV2.TypeAssumptions.set_sizeCache
+  ConfChangeV2.TypeAssumptions.method_set
+  ConfChangeV2.TypeAssumptions.ptr_method_set
   ConfChangeV2.TypeAssumptions.ptr_AsV1_unfold
   ConfChangeV2.TypeAssumptions.ptr_AsV2_unfold
   ConfChangeV2.TypeAssumptions.ptr_EnterJoint_unfold

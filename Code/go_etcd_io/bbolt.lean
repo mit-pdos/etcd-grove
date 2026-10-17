@@ -471,6 +471,8 @@ class Bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_nodes : ∀ (x : Bucket) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Bucket.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Bucket)))
   get_FillPercent : ∀ (x : Bucket), go.IsGoStepPureDetTagged under (StructFieldGet Bucket.underlying go!"FillPercent") #x (Val #(x.FillPercent'))
   set_FillPercent : ∀ (x : Bucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Bucket.underlying go!"FillPercent") (PairV #x #y) (Val #(({ x with FillPercent' := y } : Bucket)))
+  method_set : go.MethodSetIs Bucket.ty [(go!"InSequence", (some (go.signature.Signature [] false [go.uint64]))), (go!"IncSequence", (some (go.signature.Signature [] false []))), (go!"InlinePage", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"RootPage", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"SetInSequence", (some (go.signature.Signature [go.uint64] false []))), (go!"SetRootPage", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Bucket.ty) [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty)]))), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType Cursor.ty)]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"ForEachBucket", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"InSequence", (some (go.signature.Signature [] false [go.uint64]))), (go!"IncSequence", (some (go.signature.Signature [] false []))), (go!"InlinePage", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"Inspect", (some (go.signature.Signature [] false [BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType Bucket.ty)] false [go.error]))), (go!"NextSequence", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Root", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"RootPage", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty]))), (go!"Sequence", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetInSequence", (some (go.signature.Signature [go.uint64] false []))), (go!"SetRootPage", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false []))), (go!"SetSequence", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Stats", (some (go.signature.Signature [] false [BucketStats.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Tx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty)]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt._forEachPageNode", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), (go.GoType.PointerType node.ty), go.int] false []))] false []))), (go!"go.etcd.io/bbolt.dereference", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.int, (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageNode", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), (go.GoType.PointerType node.ty), go.int] false []))] false []))), (go!"go.etcd.io/bbolt.free", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.inlineable", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt.maxInlineBucketSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"go.etcd.io/bbolt.node", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.PointerType node.ty)] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.openBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty)]))), (go!"go.etcd.io/bbolt.pageNode", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), (go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.rebalance", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.recursivelyInspect", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [BucketStructure.ty]))), (go!"go.etcd.io/bbolt.spill", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
 
 attribute [instance] Bucket.TypeAssumptions.type_repr
   Bucket.TypeAssumptions.underlying
@@ -488,6 +490,8 @@ attribute [instance] Bucket.TypeAssumptions.type_repr
   Bucket.TypeAssumptions.set_nodes
   Bucket.TypeAssumptions.get_FillPercent
   Bucket.TypeAssumptions.set_FillPercent
+  Bucket.TypeAssumptions.method_set
+  Bucket.TypeAssumptions.ptr_method_set
 
 structure BucketStats [FfiSyntax] where
   mk ::
@@ -562,6 +566,8 @@ class BucketStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_InlineBucketN : ∀ (x : BucketStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BucketStats.underlying go!"InlineBucketN") (PairV #x #y) (Val #(({ x with InlineBucketN' := y } : BucketStats)))
   get_InlineBucketInuse : ∀ (x : BucketStats), go.IsGoStepPureDetTagged under (StructFieldGet BucketStats.underlying go!"InlineBucketInuse") #x (Val #(x.InlineBucketInuse'))
   set_InlineBucketInuse : ∀ (x : BucketStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BucketStats.underlying go!"InlineBucketInuse") (PairV #x #y) (Val #(({ x with InlineBucketInuse' := y } : BucketStats)))
+  method_set : go.MethodSetIs BucketStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BucketStats.ty) [(go!"Add", (some (go.signature.Signature [BucketStats.ty] false [])))]
 
 attribute [instance] BucketStats.TypeAssumptions.type_repr
   BucketStats.TypeAssumptions.underlying
@@ -591,6 +597,8 @@ attribute [instance] BucketStats.TypeAssumptions.type_repr
   BucketStats.TypeAssumptions.set_InlineBucketN
   BucketStats.TypeAssumptions.get_InlineBucketInuse
   BucketStats.TypeAssumptions.set_InlineBucketInuse
+  BucketStats.TypeAssumptions.method_set
+  BucketStats.TypeAssumptions.ptr_method_set
 
 structure BucketStructure [FfiSyntax] where
   mk ::
@@ -625,6 +633,8 @@ class BucketStructure.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_KeyN : ∀ (x : BucketStructure) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BucketStructure.underlying go!"KeyN") (PairV #x #y) (Val #(({ x with KeyN' := y } : BucketStructure)))
   get_Children : ∀ (x : BucketStructure), go.IsGoStepPureDetTagged under (StructFieldGet BucketStructure.underlying go!"Children") #x (Val #(x.Children'))
   set_Children : ∀ (x : BucketStructure) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet BucketStructure.underlying go!"Children") (PairV #x #y) (Val #(({ x with Children' := y } : BucketStructure)))
+  method_set : go.MethodSetIs BucketStructure.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BucketStructure.ty) []
 
 attribute [instance] BucketStructure.TypeAssumptions.type_repr
   BucketStructure.TypeAssumptions.underlying
@@ -634,6 +644,8 @@ attribute [instance] BucketStructure.TypeAssumptions.type_repr
   BucketStructure.TypeAssumptions.set_KeyN
   BucketStructure.TypeAssumptions.get_Children
   BucketStructure.TypeAssumptions.set_Children
+  BucketStructure.TypeAssumptions.method_set
+  BucketStructure.TypeAssumptions.ptr_method_set
 
 abbrev walkFunc [FfiSyntax] : Type := GoFunc
 
@@ -642,8 +654,12 @@ abbrev walkFunc [FfiSyntax] : Type := GoFunc
 
 class walkFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq walkFunc.ty walkFunc.underlying
+  method_set : go.MethodSetIs walkFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType walkFunc.ty) []
 
 attribute [instance] walkFunc.TypeAssumptions.underlying
+  walkFunc.TypeAssumptions.method_set
+  walkFunc.TypeAssumptions.ptr_method_set
 
 structure Cursor [FfiSyntax] where
   mk ::
@@ -674,6 +690,8 @@ class Cursor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_bucket : ∀ (x : Cursor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cursor.underlying go!"bucket") (PairV #x #y) (Val #(({ x with bucket' := y } : Cursor)))
   get_stack : ∀ (x : Cursor), go.IsGoStepPureDetTagged under (StructFieldGet Cursor.underlying go!"stack") #x (Val #(x.stack'))
   set_stack : ∀ (x : Cursor) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Cursor.underlying go!"stack") (PairV #x #y) (Val #(({ x with stack' := y } : Cursor)))
+  method_set : go.MethodSetIs Cursor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cursor.ty) [(go!"Bucket", (some (go.signature.Signature [] false [(go.GoType.PointerType Bucket.ty)]))), (go!"Delete", (some (go.signature.Signature [] false [go.error]))), (go!"First", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"Last", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"Next", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"Prev", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"Seek", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.first", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.uint32]))), (go!"go.etcd.io/bbolt.goToFirstElementOnTheStack", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.keyValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.uint32]))), (go!"go.etcd.io/bbolt.last", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.next", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.uint32]))), (go!"go.etcd.io/bbolt.node", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.nsearch", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/bbolt.prev", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.uint32]))), (go!"go.etcd.io/bbolt.search", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false []))), (go!"go.etcd.io/bbolt.searchNode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType node.ty)] false []))), (go!"go.etcd.io/bbolt.searchPage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt.seek", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.uint32])))]
 
 attribute [instance] Cursor.TypeAssumptions.type_repr
   Cursor.TypeAssumptions.underlying
@@ -681,6 +699,8 @@ attribute [instance] Cursor.TypeAssumptions.type_repr
   Cursor.TypeAssumptions.set_bucket
   Cursor.TypeAssumptions.get_stack
   Cursor.TypeAssumptions.set_stack
+  Cursor.TypeAssumptions.method_set
+  Cursor.TypeAssumptions.ptr_method_set
 
 structure elemRef [FfiSyntax] where
   mk ::
@@ -715,6 +735,8 @@ class elemRef.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_node : ∀ (x : elemRef) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet elemRef.underlying go!"node") (PairV #x #y) (Val #(({ x with node' := y } : elemRef)))
   get_index : ∀ (x : elemRef), go.IsGoStepPureDetTagged under (StructFieldGet elemRef.underlying go!"index") #x (Val #(x.index'))
   set_index : ∀ (x : elemRef) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet elemRef.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : elemRef)))
+  method_set : go.MethodSetIs elemRef.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType elemRef.ty) [(go!"go.etcd.io/bbolt.count", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.isLeaf", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] elemRef.TypeAssumptions.type_repr
   elemRef.TypeAssumptions.underlying
@@ -724,6 +746,8 @@ attribute [instance] elemRef.TypeAssumptions.type_repr
   elemRef.TypeAssumptions.set_node
   elemRef.TypeAssumptions.get_index
   elemRef.TypeAssumptions.set_index
+  elemRef.TypeAssumptions.method_set
+  elemRef.TypeAssumptions.ptr_method_set
 
 abbrev FreelistType [FfiSyntax] : Type := GoString
 
@@ -732,8 +756,12 @@ abbrev FreelistType [FfiSyntax] : Type := GoString
 
 class FreelistType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FreelistType.ty FreelistType.underlying
+  method_set : go.MethodSetIs FreelistType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FreelistType.ty) []
 
 attribute [instance] FreelistType.TypeAssumptions.underlying
+  FreelistType.TypeAssumptions.method_set
+  FreelistType.TypeAssumptions.ptr_method_set
 
 axiom DB : Type
 axiom DB.zero_val : ZeroVal DB
@@ -743,10 +771,14 @@ class DB.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   type_repr : go.TypeReprUnderlying DB.underlying DB
   underlying : go.UnderlyingDirectedEq DB.ty DB.underlying
   isUnderlying : go.IsUnderlying DB.underlying DB.underlying
+  method_set : go.MethodSetIs DB.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Batch", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"Begin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.PointerType Info.ty)]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Logger", (some (go.signature.Signature [] false [Logger.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"Stats", (some (go.signature.Signature [] false [Stats.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"View", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.error]))), (go!"go.etcd.io/bbolt.beginRWTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.beginTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.fileSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.freepages", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))), (go!"go.etcd.io/bbolt.getPageSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromFirstMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromSecondMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.grow", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.growSize", (some (go.signature.Signature [go.int, go.int] false [go.int]))), (go!"go.etcd.io/bbolt.hasSyncedFreelist", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.invalidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.loadFreelist", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)]))), (go!"go.etcd.io/bbolt.mlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmapSize", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.mrelock", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.pageInBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.removeTx", (some (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [])))]
 
 attribute [instance] DB.TypeAssumptions.type_repr
   DB.TypeAssumptions.underlying
   DB.TypeAssumptions.isUnderlying
+  DB.TypeAssumptions.method_set
+  DB.TypeAssumptions.ptr_method_set
 
 structure call [FfiSyntax] where
   mk ::
@@ -777,6 +809,8 @@ class call.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_fn : ∀ (x : call) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet call.underlying go!"fn") (PairV #x #y) (Val #(({ x with fn' := y } : call)))
   get_err : ∀ (x : call), go.IsGoStepPureDetTagged under (StructFieldGet call.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : call) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet call.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : call)))
+  method_set : go.MethodSetIs call.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType call.ty) []
 
 attribute [instance] call.TypeAssumptions.type_repr
   call.TypeAssumptions.underlying
@@ -784,6 +818,8 @@ attribute [instance] call.TypeAssumptions.type_repr
   call.TypeAssumptions.set_fn
   call.TypeAssumptions.get_err
   call.TypeAssumptions.set_err
+  call.TypeAssumptions.method_set
+  call.TypeAssumptions.ptr_method_set
 
 axiom batch : Type
 axiom batch.zero_val : ZeroVal batch
@@ -793,10 +829,14 @@ class batch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying batch.underlying batch
   underlying : go.UnderlyingDirectedEq batch.ty batch.underlying
   isUnderlying : go.IsUnderlying batch.underlying batch.underlying
+  method_set : go.MethodSetIs batch.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType batch.ty) [(go!"go.etcd.io/bbolt.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.trigger", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] batch.TypeAssumptions.type_repr
   batch.TypeAssumptions.underlying
   batch.TypeAssumptions.isUnderlying
+  batch.TypeAssumptions.method_set
+  batch.TypeAssumptions.ptr_method_set
 
 structure panicked [FfiSyntax] where
   mk ::
@@ -823,11 +863,15 @@ class panicked.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq panicked.ty panicked.underlying
   get_reason : ∀ (x : panicked), go.IsGoStepPureDetTagged under (StructFieldGet panicked.underlying go!"reason") #x (Val #(x.reason'))
   set_reason : ∀ (x : panicked) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet panicked.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : panicked)))
+  method_set : go.MethodSetIs panicked.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType panicked.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] panicked.TypeAssumptions.type_repr
   panicked.TypeAssumptions.underlying
   panicked.TypeAssumptions.get_reason
   panicked.TypeAssumptions.set_reason
+  panicked.TypeAssumptions.method_set
+  panicked.TypeAssumptions.ptr_method_set
 
 axiom Options : Type
 axiom Options.zero_val : ZeroVal Options
@@ -837,10 +881,14 @@ class Options.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Options.underlying Options
   underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
   isUnderlying : go.IsUnderlying Options.underlying Options.underlying
+  method_set : go.MethodSetIs Options.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Options.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Options.TypeAssumptions.type_repr
   Options.TypeAssumptions.underlying
   Options.TypeAssumptions.isUnderlying
+  Options.TypeAssumptions.method_set
+  Options.TypeAssumptions.ptr_method_set
 
 structure TxStats [FfiSyntax] where
   mk ::
@@ -911,6 +959,8 @@ class TxStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_Write : ∀ (x : TxStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TxStats.underlying go!"Write") (PairV #x #y) (Val #(({ x with Write' := y } : TxStats)))
   get_WriteTime : ∀ (x : TxStats), go.IsGoStepPureDetTagged under (StructFieldGet TxStats.underlying go!"WriteTime") #x (Val #(x.WriteTime'))
   set_WriteTime : ∀ (x : TxStats) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet TxStats.underlying go!"WriteTime") (PairV #x #y) (Val #(({ x with WriteTime' := y } : TxStats)))
+  method_set : go.MethodSetIs TxStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TxStats.ty) [(go!"GetCursorCount", (some (go.signature.Signature [] false [go.int64]))), (go!"GetNodeCount", (some (go.signature.Signature [] false [go.int64]))), (go!"GetNodeDeref", (some (go.signature.Signature [] false [go.int64]))), (go!"GetPageAlloc", (some (go.signature.Signature [] false [go.int64]))), (go!"GetPageCount", (some (go.signature.Signature [] false [go.int64]))), (go!"GetRebalance", (some (go.signature.Signature [] false [go.int64]))), (go!"GetRebalanceTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"GetSpill", (some (go.signature.Signature [] false [go.int64]))), (go!"GetSpillTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"GetSplit", (some (go.signature.Signature [] false [go.int64]))), (go!"GetWrite", (some (go.signature.Signature [] false [go.int64]))), (go!"GetWriteTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"IncCursorCount", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncNodeCount", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncNodeDeref", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncPageAlloc", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncPageCount", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncRebalance", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncRebalanceTime", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"IncSpill", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncSpillTime", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"IncSplit", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncWrite", (some (go.signature.Signature [go.int64] false [go.int64]))), (go!"IncWriteTime", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sub", (some (go.signature.Signature [(go.GoType.PointerType TxStats.ty)] false [TxStats.ty]))), (go!"go.etcd.io/bbolt.add", (some (go.signature.Signature [(go.GoType.PointerType TxStats.ty)] false [])))]
 
 attribute [instance] TxStats.TypeAssumptions.type_repr
   TxStats.TypeAssumptions.underlying
@@ -938,6 +988,8 @@ attribute [instance] TxStats.TypeAssumptions.type_repr
   TxStats.TypeAssumptions.set_Write
   TxStats.TypeAssumptions.get_WriteTime
   TxStats.TypeAssumptions.set_WriteTime
+  TxStats.TypeAssumptions.method_set
+  TxStats.TypeAssumptions.ptr_method_set
 
 structure Stats [FfiSyntax] where
   mk ::
@@ -988,6 +1040,8 @@ class Stats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_TxN : ∀ (x : Stats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stats.underlying go!"TxN") (PairV #x #y) (Val #(({ x with TxN' := y } : Stats)))
   get_OpenTxN : ∀ (x : Stats), go.IsGoStepPureDetTagged under (StructFieldGet Stats.underlying go!"OpenTxN") #x (Val #(x.OpenTxN'))
   set_OpenTxN : ∀ (x : Stats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stats.underlying go!"OpenTxN") (PairV #x #y) (Val #(({ x with OpenTxN' := y } : Stats)))
+  method_set : go.MethodSetIs Stats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stats.ty) [(go!"Sub", (some (go.signature.Signature [(go.GoType.PointerType Stats.ty)] false [Stats.ty])))]
 
 attribute [instance] Stats.TypeAssumptions.type_repr
   Stats.TypeAssumptions.underlying
@@ -1005,6 +1059,8 @@ attribute [instance] Stats.TypeAssumptions.type_repr
   Stats.TypeAssumptions.set_TxN
   Stats.TypeAssumptions.get_OpenTxN
   Stats.TypeAssumptions.set_OpenTxN
+  Stats.TypeAssumptions.method_set
+  Stats.TypeAssumptions.ptr_method_set
 
 structure Info [FfiSyntax] where
   mk ::
@@ -1035,6 +1091,8 @@ class Info.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_Data : ∀ (x : Info) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Info.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Info)))
   get_PageSize : ∀ (x : Info), go.IsGoStepPureDetTagged under (StructFieldGet Info.underlying go!"PageSize") #x (Val #(x.PageSize'))
   set_PageSize : ∀ (x : Info) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Info.underlying go!"PageSize") (PairV #x #y) (Val #(({ x with PageSize' := y } : Info)))
+  method_set : go.MethodSetIs Info.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Info.ty) []
 
 attribute [instance] Info.TypeAssumptions.type_repr
   Info.TypeAssumptions.underlying
@@ -1042,6 +1100,8 @@ attribute [instance] Info.TypeAssumptions.type_repr
   Info.TypeAssumptions.set_Data
   Info.TypeAssumptions.get_PageSize
   Info.TypeAssumptions.set_PageSize
+  Info.TypeAssumptions.method_set
+  Info.TypeAssumptions.ptr_method_set
 
 abbrev Logger [FfiSyntax] : Type := GoInterface
 
@@ -1050,8 +1110,12 @@ abbrev Logger [FfiSyntax] : Type := GoInterface
 
 class Logger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
+  method_set : go.MethodSetIs Logger.ty [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) []
 
 attribute [instance] Logger.TypeAssumptions.underlying
+  Logger.TypeAssumptions.method_set
+  Logger.TypeAssumptions.ptr_method_set
 
 axiom DefaultLogger : Type
 axiom DefaultLogger.zero_val : ZeroVal DefaultLogger
@@ -1061,10 +1125,14 @@ class DefaultLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying DefaultLogger.underlying DefaultLogger
   underlying : go.UnderlyingDirectedEq DefaultLogger.ty DefaultLogger.underlying
   isUnderlying : go.IsUnderlying DefaultLogger.underlying DefaultLogger.underlying
+  method_set : go.MethodSetIs DefaultLogger.ty [(go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Flags", (some (go.signature.Signature [] false [go.int]))), (go!"Output", (some (go.signature.Signature [go.int, go.string] false [go.error]))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Prefix", (some (go.signature.Signature [] false [go.string]))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"SetFlags", (some (go.signature.Signature [go.int] false []))), (go!"SetOutput", none), (go!"SetPrefix", (some (go.signature.Signature [go.string] false []))), (go!"Writer", none), (go!"log.output", (some (go.signature.Signature [go.uintptr, go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefaultLogger.ty) [(go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"EnableDebug", (some (go.signature.Signature [] false []))), (go!"EnableTimestamps", (some (go.signature.Signature [] false []))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Flags", (some (go.signature.Signature [] false [go.int]))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Output", (some (go.signature.Signature [go.int, go.string] false [go.error]))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Prefix", (some (go.signature.Signature [] false [go.string]))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"SetFlags", (some (go.signature.Signature [go.int] false []))), (go!"SetOutput", none), (go!"SetPrefix", (some (go.signature.Signature [go.string] false []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Writer", none), (go!"log.output", (some (go.signature.Signature [go.uintptr, go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))] false [go.error])))]
 
 attribute [instance] DefaultLogger.TypeAssumptions.type_repr
   DefaultLogger.TypeAssumptions.underlying
   DefaultLogger.TypeAssumptions.isUnderlying
+  DefaultLogger.TypeAssumptions.method_set
+  DefaultLogger.TypeAssumptions.ptr_method_set
 
 abbrev nodes [FfiSyntax] : Type := GoSlice
 
@@ -1073,8 +1141,12 @@ abbrev nodes [FfiSyntax] : Type := GoSlice
 
 class nodes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq nodes.ty nodes.underlying
+  method_set : go.MethodSetIs nodes.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nodes.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] nodes.TypeAssumptions.underlying
+  nodes.TypeAssumptions.method_set
+  nodes.TypeAssumptions.ptr_method_set
 
 structure node [FfiSyntax] where
   mk ::
@@ -1133,6 +1205,8 @@ class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_children : ∀ (x : node) (y : nodes), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"children") (PairV #x #y) (Val #(({ x with children' := y } : node)))
   get_inodes : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"inodes") #x (Val #(x.inodes'))
   set_inodes : ∀ (x : node) (y : _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"inodes") (PairV #x #y) (Val #(({ x with inodes' := y } : node)))
+  method_set : go.MethodSetIs node.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) [(go!"go.etcd.io/bbolt.childAt", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.childIndex", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false [go.int]))), (go!"go.etcd.io/bbolt.del", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/bbolt.dereference", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.free", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.minKeys", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.nextSibling", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.numChildren", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.pageElementSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"go.etcd.io/bbolt.prevSibling", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.put", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, go.uint32] false []))), (go!"go.etcd.io/bbolt.read", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false []))), (go!"go.etcd.io/bbolt.rebalance", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.removeChild", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"go.etcd.io/bbolt.root", (some (go.signature.Signature [] false [(go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.size", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/bbolt.sizeLessThan", (some (go.signature.Signature [go.uintptr] false [go.bool]))), (go!"go.etcd.io/bbolt.spill", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.split", (some (go.signature.Signature [go.uintptr] false [(go.GoType.SliceType (go.GoType.PointerType node.ty))]))), (go!"go.etcd.io/bbolt.splitIndex", (some (go.signature.Signature [go.int] false [go.uintptr, go.uintptr]))), (go!"go.etcd.io/bbolt.splitTwo", (some (go.signature.Signature [go.uintptr] false [(go.GoType.PointerType node.ty), (go.GoType.PointerType node.ty)]))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)] false [])))]
 
 attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.underlying
@@ -1154,6 +1228,8 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.set_children
   node.TypeAssumptions.get_inodes
   node.TypeAssumptions.set_inodes
+  node.TypeAssumptions.method_set
+  node.TypeAssumptions.ptr_method_set
 
 structure Tx [FfiSyntax] where
   mk ::
@@ -1212,6 +1288,8 @@ class Tx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_commitHandlers : ∀ (x : Tx) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Tx.underlying go!"commitHandlers") (PairV #x #y) (Val #(({ x with commitHandlers' := y } : Tx)))
   get_WriteFlag : ∀ (x : Tx), go.IsGoStepPureDetTagged under (StructFieldGet Tx.underlying go!"WriteFlag") #x (Val #(x.WriteFlag'))
   set_WriteFlag : ∀ (x : Tx) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Tx.underlying go!"WriteFlag") (PairV #x #y) (Val #(({ x with WriteFlag' := y } : Tx)))
+  method_set : go.MethodSetIs Tx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Tx.ty) [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty)]))), (go!"Check", (some (go.signature.Signature [(go.GoType.SliceType CheckOption.ty)] true [(go.GoType.ChannelType go.ChanDir.recvonly go.error)]))), (go!"Commit", (some (go.signature.Signature [] false [go.error]))), (go!"Copy", none), (go!"CopyFile", none), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType Cursor.ty)]))), (go!"DB", (some (go.signature.Signature [] false [(go.GoType.PointerType DB.ty)]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType Bucket.ty)] false [go.error]))] false [go.error]))), (go!"ID", (some (go.signature.Signature [] false [go.int]))), (go!"Inspect", (some (go.signature.Signature [] false [BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType Bucket.ty), (go.GoType.PointerType Bucket.ty)] false [go.error]))), (go!"OnCommit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Page", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.PageInfo.ty), go.error]))), (go!"Rollback", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Stats", (some (go.signature.Signature [] false [TxStats.ty]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"WriteTo", none), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.error]))), (go!"go.etcd.io/bbolt.check", (some (go.signature.Signature [checkConfig.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.checkInvariantProperties", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.bool), KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.commitFreelist", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.int, (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageInternal", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.int, (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)] false []))] false []))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [(go.GoType.PointerType DB.ty)] false []))), (go!"go.etcd.io/bbolt.nonPhysicalRollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.recursivelyCheckBucket", (some (go.signature.Signature [(go.GoType.PointerType Bucket.ty), (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.bool), KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckBucketInPage", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.bool), KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPage", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)), (go.GoType.MapType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty go.bool), KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrder", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrderInternal", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.rollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.writeMeta", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] Tx.TypeAssumptions.type_repr
   Tx.TypeAssumptions.underlying
@@ -1233,6 +1311,8 @@ attribute [instance] Tx.TypeAssumptions.type_repr
   Tx.TypeAssumptions.set_commitHandlers
   Tx.TypeAssumptions.get_WriteFlag
   Tx.TypeAssumptions.set_WriteFlag
+  Tx.TypeAssumptions.method_set
+  Tx.TypeAssumptions.ptr_method_set
 
 abbrev KVStringer [FfiSyntax] : Type := GoInterface
 
@@ -1241,8 +1321,12 @@ abbrev KVStringer [FfiSyntax] : Type := GoInterface
 
 class KVStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KVStringer.ty KVStringer.underlying
+  method_set : go.MethodSetIs KVStringer.ty [(go!"KeyToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string]))), (go!"ValueToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KVStringer.ty) []
 
 attribute [instance] KVStringer.TypeAssumptions.underlying
+  KVStringer.TypeAssumptions.method_set
+  KVStringer.TypeAssumptions.ptr_method_set
 
 structure checkConfig [FfiSyntax] where
   mk ::
@@ -1273,6 +1357,8 @@ class checkConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_kvStringer : ∀ (x : checkConfig) (y : KVStringer), go.IsGoStepPureDetTagged under (StructFieldSet checkConfig.underlying go!"kvStringer") (PairV #x #y) (Val #(({ x with kvStringer' := y } : checkConfig)))
   get_pageId : ∀ (x : checkConfig), go.IsGoStepPureDetTagged under (StructFieldGet checkConfig.underlying go!"pageId") #x (Val #(x.pageId'))
   set_pageId : ∀ (x : checkConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet checkConfig.underlying go!"pageId") (PairV #x #y) (Val #(({ x with pageId' := y } : checkConfig)))
+  method_set : go.MethodSetIs checkConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType checkConfig.ty) []
 
 attribute [instance] checkConfig.TypeAssumptions.type_repr
   checkConfig.TypeAssumptions.underlying
@@ -1280,6 +1366,8 @@ attribute [instance] checkConfig.TypeAssumptions.type_repr
   checkConfig.TypeAssumptions.set_kvStringer
   checkConfig.TypeAssumptions.get_pageId
   checkConfig.TypeAssumptions.set_pageId
+  checkConfig.TypeAssumptions.method_set
+  checkConfig.TypeAssumptions.ptr_method_set
 
 abbrev CheckOption [FfiSyntax] : Type := GoFunc
 
@@ -1288,8 +1376,12 @@ abbrev CheckOption [FfiSyntax] : Type := GoFunc
 
 class CheckOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckOption.ty CheckOption.underlying
+  method_set : go.MethodSetIs CheckOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckOption.ty) []
 
 attribute [instance] CheckOption.TypeAssumptions.underlying
+  CheckOption.TypeAssumptions.method_set
+  CheckOption.TypeAssumptions.ptr_method_set
 
 structure hexKvStringer [FfiSyntax] where
   mk ::
@@ -1313,9 +1405,13 @@ instance equals_unfold_hexKvStringer [FfiSyntax] [GoGlobalContext] :
 class hexKvStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hexKvStringer.underlying hexKvStringer
   underlying : go.UnderlyingDirectedEq hexKvStringer.ty hexKvStringer.underlying
+  method_set : go.MethodSetIs hexKvStringer.ty [(go!"KeyToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string]))), (go!"ValueToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hexKvStringer.ty) [(go!"KeyToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string]))), (go!"ValueToString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])))]
 
 attribute [instance] hexKvStringer.TypeAssumptions.type_repr
   hexKvStringer.TypeAssumptions.underlying
+  hexKvStringer.TypeAssumptions.method_set
+  hexKvStringer.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Bucket_instance : Bucket.TypeAssumptions

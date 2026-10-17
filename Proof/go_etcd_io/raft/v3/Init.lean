@@ -9,25 +9,18 @@ the package's `isPkgInit` (`Base.lean`). For raft that is `isInitialized`: the e
 variables (non-`nil`, and for the three the proofs compare against, of a pointer type, from
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
-Three things are not facts of the model, and are premises:
-* `raftpb`'s, `proto`'s, `os`'s and `strconv`'s `wp_initialize'` are `sorry`: their
-  initializers are only partly translated (raftpb's protobuf plumbing, the file descriptor
-  and its registration, which `raftpb.toml` does not translate; the names-only packages
-  `google.golang.org/protobuf/proto` and the standard library's), so they call opaque values.
-  (Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
+Not proved: `raftpb`'s, `proto`'s, `os`'s and `strconv`'s `wp_initialize'` are `sorry`: their
+initializers are only partly translated (raftpb's protobuf plumbing, the file descriptor
+and its registration, which `raftpb.toml` does not translate; the names-only packages
+`google.golang.org/protobuf/proto` and the standard library's), so they call opaque values.
+(Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
   no longer calling `reflect.DeepEqual`; `emptyState` is a pointer, `&pb.HardState{}`.)
-* `log.New` (raft's `defaultLogger`, `discardLogger`) is not modelled by Perennial: the
-  class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
-  that returns a new `*Logger` (what raft needs of it; the Go function allocates and
-  initializes a `Logger`, without failing).
-* `context`'s initializer needs `context.ErrorStringIsError` and
-  `context.DeadlineExceededIsError`, method-set facts
-  (`Perennial/Proof/context_proof/context_init.lean`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
+public import Perennial.Proof.log
 
 @[expose] public section
 
@@ -39,43 +32,6 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-namespace log
-
-/-- A model of `log.New(out, prefix, flag)`: a fresh pointer. `Logger` is an opaque type in
-Perennial's `log` (no layout, so no typed allocation), and raft only stores the pointer (in
-`DefaultLogger`, whose methods the register's `quietLogger` replaces), so the model
-allocates an untyped cell: what Go returns is a fresh, non-`nil` `*Logger`. -/
-def New.model [FfiSyntax] [GoGlobalContext] : val :=
-  λ: "out" "prefix" "flag", Alloc (Val #())
-
-/-- The name `log.New` stands for `New.model`: an assumption about the semantics, like the
-`FuncUnfold` fields of a package's `Assumptions` (Perennial translates `log` without
-`New`). -/
-class NewModel [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
-  New_unfold : FuncUnfold log.New [] New.model
-
-attribute [instance] NewModel.New_unfold
-
-section wps
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : log.Assumptions] [NewModel]
-
-theorem wp_New (out : GoInterface) (pfx : GoString) (flag : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (App (Val (@! log.New)) (Val #out)) (Val #pfx)) (Val #flag))
-    {{ (l : Loc), RET #l; True }} := by
-  wp_start
-  wp_apply (wp_alloc_untyped _ (isPanic_intoVal _)) as %l Hl
-  iapply HΦ
-  itrivial
-
-end wps
-
-end log
 
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -201,7 +157,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
 
 /-- What `errors.wp_New_ptr` says of its error is what `IsNewError` asks. -/
 theorem isNewError_of_ptr {ii : GoInterfaceOk} (h : errors.IsPointerError ii) :
@@ -216,11 +171,6 @@ theorem os_isPkgInit_Stderr :
     isPkgInit (PROP := IProp GF) pkg_id.os ⊢
       ∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard := by
   with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.os
-
-theorem io_isPkgInit_Discard :
-    isPkgInit (PROP := IProp GF) pkg_id.io ⊢
-      ∃ w : GoInterface, typedPointsto (globalAddr io.Discard) w DFrac.discard := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.io
 
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 get_is_pkg_init) :
@@ -271,7 +221,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hdp⟩
   wp_apply errors.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
   icases os_isPkgInit_Stderr $$ Hd6 with ⟨%stderr, #Hstderr⟩
-  icases io_isPkgInit_Discard $$ Hd4 with ⟨%discard, #Hdiscard⟩
+  icases io.isInit_access $$ Hd4 with ⟨%discard, #Hdiscard⟩
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)

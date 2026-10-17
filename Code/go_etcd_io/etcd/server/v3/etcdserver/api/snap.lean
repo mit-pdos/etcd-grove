@@ -109,10 +109,14 @@ class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
   isUnderlying : go.IsUnderlying Message.underlying Message.underlying
+  method_set : go.MethodSetIs Message.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", none), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", none), (go!"GetSnapshot", none), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", none), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) [(go!"CloseNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly go.bool)]))), (go!"CloseWithError", (some (go.signature.Signature [go.error] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", none), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", none), (go!"GetSnapshot", none), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", none), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.underlying
   Message.TypeAssumptions.isUnderlying
+  Message.TypeAssumptions.method_set
+  Message.TypeAssumptions.ptr_method_set
 
 axiom Snapshotter : Type
 axiom Snapshotter.zero_val : ZeroVal Snapshotter
@@ -122,10 +126,14 @@ class Snapshotter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Snapshotter.underlying Snapshotter
   underlying : go.UnderlyingDirectedEq Snapshotter.ty Snapshotter.underlying
   isUnderlying : go.IsUnderlying Snapshotter.underlying Snapshotter.underlying
+  method_set : go.MethodSetIs Snapshotter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Snapshotter.ty) [(go!"DBFilePath", (some (go.signature.Signature [go.uint64] false [go.string, go.error]))), (go!"ReleaseSnapDBs", none), (go!"SaveDBFrom", none), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.dbFilePath", (some (go.signature.Signature [go.uint64] false [go.string])))]
 
 attribute [instance] Snapshotter.TypeAssumptions.type_repr
   Snapshotter.TypeAssumptions.underlying
   Snapshotter.TypeAssumptions.isUnderlying
+  Snapshotter.TypeAssumptions.method_set
+  Snapshotter.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Message_instance : Message.TypeAssumptions

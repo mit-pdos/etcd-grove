@@ -205,6 +205,8 @@ class Counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_mu : ∀ (x : Counter) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Counter.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Counter)))
   get_n : ∀ (x : Counter), go.IsGoStepPureDetTagged under (StructFieldGet Counter.underlying go!"n") #x (Val #(x.n'))
   set_n : ∀ (x : Counter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Counter.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : Counter)))
+  method_set : go.MethodSetIs Counter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Counter.ty) [(go!"Apply", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType Counter.ty) go!"Apply" Counter.Apply.impl
 
 attribute [instance] Counter.TypeAssumptions.type_repr
@@ -213,6 +215,8 @@ attribute [instance] Counter.TypeAssumptions.type_repr
   Counter.TypeAssumptions.set_mu
   Counter.TypeAssumptions.get_n
   Counter.TypeAssumptions.set_n
+  Counter.TypeAssumptions.method_set
+  Counter.TypeAssumptions.ptr_method_set
   Counter.TypeAssumptions.ptr_Apply_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

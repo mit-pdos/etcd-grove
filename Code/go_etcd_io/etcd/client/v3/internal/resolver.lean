@@ -56,10 +56,14 @@ class EtcdManualResolver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying EtcdManualResolver.underlying EtcdManualResolver
   underlying : go.UnderlyingDirectedEq EtcdManualResolver.ty EtcdManualResolver.underlying
   isUnderlying : go.IsUnderlying EtcdManualResolver.underlying EtcdManualResolver.underlying
+  method_set : go.MethodSetIs EtcdManualResolver.ty [(go!"CC", none), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", none), (go!"ResolveNow", none), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateState", none), (go!"go.etcd.io/etcd/client/v3/internal/resolver.state", none), (go!"go.etcd.io/etcd/client/v3/internal/resolver.updateState", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EtcdManualResolver.ty) [(go!"Build", none), (go!"CC", none), (go!"Close", (some (go.signature.Signature [] false []))), (go!"InitialState", none), (go!"ResolveNow", none), (go!"Scheme", (some (go.signature.Signature [] false [go.string]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"UpdateState", none), (go!"go.etcd.io/etcd/client/v3/internal/resolver.state", none), (go!"go.etcd.io/etcd/client/v3/internal/resolver.updateState", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] EtcdManualResolver.TypeAssumptions.type_repr
   EtcdManualResolver.TypeAssumptions.underlying
   EtcdManualResolver.TypeAssumptions.isUnderlying
+  EtcdManualResolver.TypeAssumptions.method_set
+  EtcdManualResolver.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdManualResolver_instance : EtcdManualResolver.TypeAssumptions

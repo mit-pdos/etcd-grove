@@ -165,7 +165,6 @@ followed by `Main()`, from a fresh state with one thread, of any length, has no 
 thread, no thread ended in a panic, and the main thread's result, if any, is `#()`. -/
 theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
     (σ : state) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) :
     MainSafe registerProgram σ :=
   register_adequate σ Hlctx Hinit

@@ -2290,6 +2290,8 @@ class FreeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_mu : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet (FreeList.underlying T) go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : (FreeList T'))))
   get_freelist : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')), go.IsGoStepPureDetTagged under (StructFieldGet (FreeList.underlying T) go!"freelist") #x (Val #(x.freelist'))
   set_freelist : ∀ (T : go.GoType) (T' : Type) (x : (FreeList T')) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet (FreeList.underlying T) go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : (FreeList T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (FreeList.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (FreeList.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.freeNode", (some (go.signature.Signature [(go.GoType.PointerType (node.ty T))] false [go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.newNode", (some (go.signature.Signature [] false [(go.GoType.PointerType (node.ty T))])))]
   ptr_freeNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (FreeList.ty T)) go!"freeNode" (FreeList.freeNode.impl T)
   ptr_newNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (FreeList.ty T)) go!"newNode" (FreeList.newNode.impl T)
 
@@ -2299,6 +2301,8 @@ attribute [instance] FreeList.TypeAssumptions.type_repr
   FreeList.TypeAssumptions.set_mu
   FreeList.TypeAssumptions.get_freelist
   FreeList.TypeAssumptions.set_freelist
+  FreeList.TypeAssumptions.method_set
+  FreeList.TypeAssumptions.ptr_method_set
   FreeList.TypeAssumptions.ptr_freeNode_unfold
   FreeList.TypeAssumptions.ptr_newNode_unfold
 
@@ -2309,8 +2313,12 @@ abbrev ItemIterator [FfiSyntax] (T : Type) : Type := GoFunc
 
 class ItemIterator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ItemIterator.ty T) (ItemIterator.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (ItemIterator.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ItemIterator.ty T)) []
 
 attribute [instance] ItemIterator.TypeAssumptions.underlying
+  ItemIterator.TypeAssumptions.method_set
+  ItemIterator.TypeAssumptions.ptr_method_set
 
 abbrev items [FfiSyntax] (T : Type) : Type := GoSlice
 
@@ -2319,6 +2327,8 @@ abbrev items [FfiSyntax] (T : Type) : Type := GoSlice
 
 class items.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (items.ty T) (items.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (items.ty T) [(go!"k8s.io/utils/third_party/forked/golang/btree.find", (some (go.signature.Signature [T, (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))] false [go.int, go.bool])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (items.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.find", (some (go.signature.Signature [T, (go.GoType.FunctionType (go.signature.Signature [T, T] false [go.bool]))] false [go.int, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.insertAt", (some (go.signature.Signature [go.int, T] false []))), (go!"k8s.io/utils/third_party/forked/golang/btree.pop", (some (go.signature.Signature [] false [T]))), (go!"k8s.io/utils/third_party/forked/golang/btree.removeAt", (some (go.signature.Signature [go.int] false [T]))), (go!"k8s.io/utils/third_party/forked/golang/btree.truncate", (some (go.signature.Signature [go.int] false [])))]
   find_unfold : ∀ (T : go.GoType), MethodUnfold (items.ty T) go!"find" (items.find.impl T)
   ptr_find_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (items.ty T)) go!"find" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (items.ty T) go!"find"))) (App (Val (GoInstruction (GoLoad (items.ty T)))) (Var "$r"))))
@@ -2328,6 +2338,8 @@ class items.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   ptr_truncate_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (items.ty T)) go!"truncate" (items.truncate.impl T)
 
 attribute [instance] items.TypeAssumptions.underlying
+  items.TypeAssumptions.method_set
+  items.TypeAssumptions.ptr_method_set
   items.TypeAssumptions.find_unfold
   items.TypeAssumptions.ptr_find_unfold
   items.TypeAssumptions.ptr_insertAt_unfold
@@ -2368,6 +2380,8 @@ class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_children : ∀ (T : go.GoType) (T' : Type) (x : (node T')) (y : (items Loc)), go.IsGoStepPureDetTagged under (StructFieldSet (node.underlying T) go!"children") (PairV #x #y) (Val #(({ x with children' := y } : (node T'))))
   get_cow : ∀ (T : go.GoType) (T' : Type) (x : (node T')), go.IsGoStepPureDetTagged under (StructFieldGet (node.underlying T) go!"cow") #x (Val #(x.cow'))
   set_cow : ∀ (T : go.GoType) (T' : Type) (x : (node T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (node.underlying T) go!"cow") (PairV #x #y) (Val #(({ x with cow' := y } : (node T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (node.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (node.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.get", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.growChildAndRemove", (some (go.signature.Signature [go.int, T, go.int, toRemove.ty] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.insert", (some (go.signature.Signature [T, go.int] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.iterate", (some (go.signature.Signature [direction.ty, (optionalItem.ty T), (optionalItem.ty T), go.bool, go.bool, (ItemIterator.ty T)] false [go.bool, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.maybeSplitChild", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.mutableChild", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (node.ty T))]))), (go!"k8s.io/utils/third_party/forked/golang/btree.mutableFor", (some (go.signature.Signature [(go.GoType.PointerType (copyOnWriteContext.ty T))] false [(go.GoType.PointerType (node.ty T))]))), (go!"k8s.io/utils/third_party/forked/golang/btree.remove", (some (go.signature.Signature [T, go.int, toRemove.ty] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.reset", (some (go.signature.Signature [(go.GoType.PointerType (copyOnWriteContext.ty T))] false [go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.split", (some (go.signature.Signature [go.int] false [T, (go.GoType.PointerType (node.ty T))])))]
   ptr_get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (node.ty T)) go!"get" (node.get.impl T)
   ptr_growChildAndRemove_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (node.ty T)) go!"growChildAndRemove" (node.growChildAndRemove.impl T)
   ptr_insert_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (node.ty T)) go!"insert" (node.insert.impl T)
@@ -2387,6 +2401,8 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.set_children
   node.TypeAssumptions.get_cow
   node.TypeAssumptions.set_cow
+  node.TypeAssumptions.method_set
+  node.TypeAssumptions.ptr_method_set
   node.TypeAssumptions.ptr_get_unfold
   node.TypeAssumptions.ptr_growChildAndRemove_unfold
   node.TypeAssumptions.ptr_insert_unfold
@@ -2405,8 +2421,12 @@ abbrev toRemove [FfiSyntax] : Type := w64
 
 class toRemove.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq toRemove.ty toRemove.underlying
+  method_set : go.MethodSetIs toRemove.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType toRemove.ty) []
 
 attribute [instance] toRemove.TypeAssumptions.underlying
+  toRemove.TypeAssumptions.method_set
+  toRemove.TypeAssumptions.ptr_method_set
 
 abbrev direction [FfiSyntax] : Type := w64
 
@@ -2415,8 +2435,12 @@ abbrev direction [FfiSyntax] : Type := w64
 
 class direction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq direction.ty direction.underlying
+  method_set : go.MethodSetIs direction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType direction.ty) []
 
 attribute [instance] direction.TypeAssumptions.underlying
+  direction.TypeAssumptions.method_set
+  direction.TypeAssumptions.ptr_method_set
 
 structure optionalItem [FfiSyntax] (T : Type) where
   mk ::
@@ -2447,6 +2471,8 @@ class optionalItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_item : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')) (y : T'), go.IsGoStepPureDetTagged under (StructFieldSet (optionalItem.underlying T) go!"item") (PairV #x #y) (Val #(({ x with item' := y } : (optionalItem T'))))
   get_valid : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')), go.IsGoStepPureDetTagged under (StructFieldGet (optionalItem.underlying T) go!"valid") #x (Val #(x.valid'))
   set_valid : ∀ (T : go.GoType) (T' : Type) (x : (optionalItem T')) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet (optionalItem.underlying T) go!"valid") (PairV #x #y) (Val #(({ x with valid' := y } : (optionalItem T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (optionalItem.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (optionalItem.ty T)) []
 
 attribute [instance] optionalItem.TypeAssumptions.type_repr
   optionalItem.TypeAssumptions.underlying
@@ -2454,6 +2480,8 @@ attribute [instance] optionalItem.TypeAssumptions.type_repr
   optionalItem.TypeAssumptions.set_item
   optionalItem.TypeAssumptions.get_valid
   optionalItem.TypeAssumptions.set_valid
+  optionalItem.TypeAssumptions.method_set
+  optionalItem.TypeAssumptions.ptr_method_set
 
 structure BTree [FfiSyntax] (T : Type) where
   mk ::
@@ -2492,6 +2520,8 @@ class BTree.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_root : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (BTree.underlying T) go!"root") (PairV #x #y) (Val #(({ x with root' := y } : (BTree T'))))
   get_cow : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')), go.IsGoStepPureDetTagged under (StructFieldGet (BTree.underlying T) go!"cow") #x (Val #(x.cow'))
   set_cow : ∀ (T : go.GoType) (T' : Type) (x : (BTree T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (BTree.underlying T) go!"cow") (PairV #x #y) (Val #(({ x with cow' := y } : (BTree T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (BTree.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (BTree.ty T)) [(go!"Ascend", (some (go.signature.Signature [(ItemIterator.ty T)] false []))), (go!"AscendGreaterOrEqual", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"AscendLessThan", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"AscendRange", (some (go.signature.Signature [T, T, (ItemIterator.ty T)] false []))), (go!"Clear", (some (go.signature.Signature [go.bool] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType (BTree.ty T))]))), (go!"Delete", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"DeleteMax", (some (go.signature.Signature [] false [T, go.bool]))), (go!"DeleteMin", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Descend", (some (go.signature.Signature [(ItemIterator.ty T)] false []))), (go!"DescendGreaterThan", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"DescendLessOrEqual", (some (go.signature.Signature [T, (ItemIterator.ty T)] false []))), (go!"DescendRange", (some (go.signature.Signature [T, T, (ItemIterator.ty T)] false []))), (go!"Get", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"Has", (some (go.signature.Signature [T] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Max", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Min", (some (go.signature.Signature [] false [T, go.bool]))), (go!"ReplaceOrInsert", (some (go.signature.Signature [T] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.deleteItem", (some (go.signature.Signature [T, toRemove.ty] false [T, go.bool]))), (go!"k8s.io/utils/third_party/forked/golang/btree.maxItems", (some (go.signature.Signature [] false [go.int]))), (go!"k8s.io/utils/third_party/forked/golang/btree.minItems", (some (go.signature.Signature [] false [go.int])))]
   ptr_Ascend_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (BTree.ty T)) go!"Ascend" (BTree.Ascend.impl T)
   ptr_AscendGreaterOrEqual_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (BTree.ty T)) go!"AscendGreaterOrEqual" (BTree.AscendGreaterOrEqual.impl T)
   ptr_AscendLessThan_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (BTree.ty T)) go!"AscendLessThan" (BTree.AscendLessThan.impl T)
@@ -2525,6 +2555,8 @@ attribute [instance] BTree.TypeAssumptions.type_repr
   BTree.TypeAssumptions.set_root
   BTree.TypeAssumptions.get_cow
   BTree.TypeAssumptions.set_cow
+  BTree.TypeAssumptions.method_set
+  BTree.TypeAssumptions.ptr_method_set
   BTree.TypeAssumptions.ptr_Ascend_unfold
   BTree.TypeAssumptions.ptr_AscendGreaterOrEqual_unfold
   BTree.TypeAssumptions.ptr_AscendLessThan_unfold
@@ -2555,8 +2587,12 @@ abbrev LessFunc [FfiSyntax] (T : Type) : Type := GoFunc
 
 class LessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (LessFunc.ty T) (LessFunc.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (LessFunc.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (LessFunc.ty T)) []
 
 attribute [instance] LessFunc.TypeAssumptions.underlying
+  LessFunc.TypeAssumptions.method_set
+  LessFunc.TypeAssumptions.ptr_method_set
 
 structure copyOnWriteContext [FfiSyntax] (T : Type) where
   mk ::
@@ -2587,6 +2623,8 @@ class copyOnWriteContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_freelist : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet (copyOnWriteContext.underlying T) go!"freelist") (PairV #x #y) (Val #(({ x with freelist' := y } : (copyOnWriteContext T'))))
   get_less : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')), go.IsGoStepPureDetTagged under (StructFieldGet (copyOnWriteContext.underlying T) go!"less") #x (Val #(x.less'))
   set_less : ∀ (T : go.GoType) (T' : Type) (x : (copyOnWriteContext T')) (y : (LessFunc T')), go.IsGoStepPureDetTagged under (StructFieldSet (copyOnWriteContext.underlying T) go!"less") (PairV #x #y) (Val #(({ x with less' := y } : (copyOnWriteContext T'))))
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (copyOnWriteContext.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (copyOnWriteContext.ty T)) [(go!"k8s.io/utils/third_party/forked/golang/btree.freeNode", (some (go.signature.Signature [(go.GoType.PointerType (node.ty T))] false [freeType.ty]))), (go!"k8s.io/utils/third_party/forked/golang/btree.newNode", (some (go.signature.Signature [] false [(go.GoType.PointerType (node.ty T))])))]
   ptr_freeNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (copyOnWriteContext.ty T)) go!"freeNode" (copyOnWriteContext.freeNode.impl T)
   ptr_newNode_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (copyOnWriteContext.ty T)) go!"newNode" (copyOnWriteContext.newNode.impl T)
 
@@ -2596,6 +2634,8 @@ attribute [instance] copyOnWriteContext.TypeAssumptions.type_repr
   copyOnWriteContext.TypeAssumptions.set_freelist
   copyOnWriteContext.TypeAssumptions.get_less
   copyOnWriteContext.TypeAssumptions.set_less
+  copyOnWriteContext.TypeAssumptions.method_set
+  copyOnWriteContext.TypeAssumptions.ptr_method_set
   copyOnWriteContext.TypeAssumptions.ptr_freeNode_unfold
   copyOnWriteContext.TypeAssumptions.ptr_newNode_unfold
 
@@ -2606,8 +2646,12 @@ abbrev freeType [FfiSyntax] : Type := w64
 
 class freeType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq freeType.ty freeType.underlying
+  method_set : go.MethodSetIs freeType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType freeType.ty) []
 
 attribute [instance] freeType.TypeAssumptions.underlying
+  freeType.TypeAssumptions.method_set
+  freeType.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   FreeList_instance : FreeList.TypeAssumptions

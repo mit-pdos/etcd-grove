@@ -146,6 +146,8 @@ class RaftAttributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : RaftAttributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RaftAttributes)))
   get_sizeCache : ∀ (x : RaftAttributes), go.IsGoStepPureDetTagged under (StructFieldGet RaftAttributes.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RaftAttributes) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RaftAttributes.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RaftAttributes)))
+  method_set : go.MethodSetIs RaftAttributes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftAttributes.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetIsLearner", (some (go.signature.Signature [] false [go.bool]))), (go!"GetPeerUrls", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.underlying
@@ -159,6 +161,8 @@ attribute [instance] RaftAttributes.TypeAssumptions.type_repr
   RaftAttributes.TypeAssumptions.set_unknownFields
   RaftAttributes.TypeAssumptions.get_sizeCache
   RaftAttributes.TypeAssumptions.set_sizeCache
+  RaftAttributes.TypeAssumptions.method_set
+  RaftAttributes.TypeAssumptions.ptr_method_set
 
 structure Attributes [FfiSyntax] where
   mk ::
@@ -201,6 +205,8 @@ class Attributes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_unknownFields : ∀ (x : Attributes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Attributes)))
   get_sizeCache : ∀ (x : Attributes), go.IsGoStepPureDetTagged under (StructFieldGet Attributes.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Attributes) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Attributes.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Attributes)))
+  method_set : go.MethodSetIs Attributes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Attributes.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClientUrls", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.underlying
@@ -214,6 +220,8 @@ attribute [instance] Attributes.TypeAssumptions.type_repr
   Attributes.TypeAssumptions.set_unknownFields
   Attributes.TypeAssumptions.get_sizeCache
   Attributes.TypeAssumptions.set_sizeCache
+  Attributes.TypeAssumptions.method_set
+  Attributes.TypeAssumptions.ptr_method_set
 
 structure Member [FfiSyntax] where
   mk ::
@@ -260,6 +268,8 @@ class Member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_unknownFields : ∀ (x : Member) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Member)))
   get_sizeCache : ∀ (x : Member), go.IsGoStepPureDetTagged under (StructFieldGet Member.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Member) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Member.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Member)))
+  method_set : go.MethodSetIs Member.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Member.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberAttributes", (some (go.signature.Signature [] false [(go.GoType.PointerType Attributes.ty)]))), (go!"GetRaftAttributes", (some (go.signature.Signature [] false [(go.GoType.PointerType RaftAttributes.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.underlying
@@ -275,6 +285,8 @@ attribute [instance] Member.TypeAssumptions.type_repr
   Member.TypeAssumptions.set_unknownFields
   Member.TypeAssumptions.get_sizeCache
   Member.TypeAssumptions.set_sizeCache
+  Member.TypeAssumptions.method_set
+  Member.TypeAssumptions.ptr_method_set
 
 structure ClusterVersionSetRequest [FfiSyntax] where
   mk ::
@@ -313,6 +325,8 @@ class ClusterVersionSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   set_unknownFields : ∀ (x : ClusterVersionSetRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClusterVersionSetRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClusterVersionSetRequest)))
   get_sizeCache : ∀ (x : ClusterVersionSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet ClusterVersionSetRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ClusterVersionSetRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClusterVersionSetRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClusterVersionSetRequest)))
+  method_set : go.MethodSetIs ClusterVersionSetRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterVersionSetRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetVer", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ClusterVersionSetRequest.TypeAssumptions.type_repr
   ClusterVersionSetRequest.TypeAssumptions.underlying
@@ -324,6 +338,8 @@ attribute [instance] ClusterVersionSetRequest.TypeAssumptions.type_repr
   ClusterVersionSetRequest.TypeAssumptions.set_unknownFields
   ClusterVersionSetRequest.TypeAssumptions.get_sizeCache
   ClusterVersionSetRequest.TypeAssumptions.set_sizeCache
+  ClusterVersionSetRequest.TypeAssumptions.method_set
+  ClusterVersionSetRequest.TypeAssumptions.ptr_method_set
 
 structure ClusterMemberAttrSetRequest [FfiSyntax] where
   mk ::
@@ -366,6 +382,8 @@ class ClusterMemberAttrSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] 
   set_unknownFields : ∀ (x : ClusterMemberAttrSetRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ClusterMemberAttrSetRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ClusterMemberAttrSetRequest)))
   get_sizeCache : ∀ (x : ClusterMemberAttrSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet ClusterMemberAttrSetRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ClusterMemberAttrSetRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ClusterMemberAttrSetRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ClusterMemberAttrSetRequest)))
+  method_set : go.MethodSetIs ClusterMemberAttrSetRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClusterMemberAttrSetRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetMemberAttributes", (some (go.signature.Signature [] false [(go.GoType.PointerType Attributes.ty)]))), (go!"GetMember_ID", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ClusterMemberAttrSetRequest.TypeAssumptions.type_repr
   ClusterMemberAttrSetRequest.TypeAssumptions.underlying
@@ -379,6 +397,8 @@ attribute [instance] ClusterMemberAttrSetRequest.TypeAssumptions.type_repr
   ClusterMemberAttrSetRequest.TypeAssumptions.set_unknownFields
   ClusterMemberAttrSetRequest.TypeAssumptions.get_sizeCache
   ClusterMemberAttrSetRequest.TypeAssumptions.set_sizeCache
+  ClusterMemberAttrSetRequest.TypeAssumptions.method_set
+  ClusterMemberAttrSetRequest.TypeAssumptions.ptr_method_set
 
 structure DowngradeInfoSetRequest [FfiSyntax] where
   mk ::
@@ -421,6 +441,8 @@ class DowngradeInfoSetRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoL
   set_unknownFields : ∀ (x : DowngradeInfoSetRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfoSetRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : DowngradeInfoSetRequest)))
   get_sizeCache : ∀ (x : DowngradeInfoSetRequest), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfoSetRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : DowngradeInfoSetRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfoSetRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : DowngradeInfoSetRequest)))
+  method_set : go.MethodSetIs DowngradeInfoSetRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfoSetRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"GetVer", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] DowngradeInfoSetRequest.TypeAssumptions.type_repr
   DowngradeInfoSetRequest.TypeAssumptions.underlying
@@ -434,6 +456,8 @@ attribute [instance] DowngradeInfoSetRequest.TypeAssumptions.type_repr
   DowngradeInfoSetRequest.TypeAssumptions.set_unknownFields
   DowngradeInfoSetRequest.TypeAssumptions.get_sizeCache
   DowngradeInfoSetRequest.TypeAssumptions.set_sizeCache
+  DowngradeInfoSetRequest.TypeAssumptions.method_set
+  DowngradeInfoSetRequest.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RaftAttributes_instance : RaftAttributes.TypeAssumptions

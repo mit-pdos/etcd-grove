@@ -79,10 +79,14 @@ class Status.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Status.underlying Status
   underlying : go.UnderlyingDirectedEq Status.ty Status.underlying
   isUnderlying : go.IsUnderlying Status.underlying Status.underlying
+  method_set : go.MethodSetIs Status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) [(go!"Code", none), (go!"Details", (some (go.signature.Signature [] false [(go.GoType.SliceType go.any)]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Message", (some (go.signature.Signature [] false [go.string]))), (go!"Proto", none), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithDetails", none)]
 
 attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.underlying
   Status.TypeAssumptions.isUnderlying
+  Status.TypeAssumptions.method_set
+  Status.TypeAssumptions.ptr_method_set
 
 axiom Error : Type
 axiom Error.zero_val : ZeroVal Error
@@ -92,10 +96,14 @@ class Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
   isUnderlying : go.IsUnderlying Error.underlying Error.underlying
+  method_set : go.MethodSetIs Error.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"GRPCStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType Status.ty)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
   Error.TypeAssumptions.isUnderlying
+  Error.TypeAssumptions.method_set
+  Error.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Status_instance : Status.TypeAssumptions

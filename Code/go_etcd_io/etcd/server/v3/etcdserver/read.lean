@@ -727,8 +727,12 @@ abbrev server [FfiSyntax] : Type := GoInterface
 
 class server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq server.ty server.underlying
+  method_set : go.MethodSetIs server.ty [(go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType server.ty) []
 
 attribute [instance] server.TypeAssumptions.underlying
+  server.TypeAssumptions.method_set
+  server.TypeAssumptions.ptr_method_set
 
 abbrev raftInterface [FfiSyntax] : Type := GoInterface
 
@@ -737,8 +741,12 @@ abbrev raftInterface [FfiSyntax] : Type := GoInterface
 
 class raftInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq raftInterface.ty raftInterface.underlying
+  method_set : go.MethodSetIs raftInterface.ty [(go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ReadState", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftInterface.ty) []
 
 attribute [instance] raftInterface.TypeAssumptions.underlying
+  raftInterface.TypeAssumptions.method_set
+  raftInterface.TypeAssumptions.ptr_method_set
 
 structure Read [FfiSyntax] where
   mk ::
@@ -781,6 +789,8 @@ class Read.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_waitC : ∀ (x : Read) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"waitC") (PairV #x #y) (Val #(({ x with waitC' := y } : Read)))
   get_notifier : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"notifier") #x (Val #(x.notifier'))
   set_notifier : ∀ (x : Read) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"notifier") (PairV #x #y) (Val #(({ x with notifier' := y } : Read)))
+  method_set : go.MethodSetIs Read.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Read.ty) [(go!"LinearizableReadLoop", (some (go.signature.Signature [] false []))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/read.requestCurrentIndex", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/read.sendReadIndex", (some (go.signature.Signature [go.uint64] false [go.error])))]
   ptr_LinearizableReadLoop_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadLoop" Read.LinearizableReadLoop.impl
   ptr_LinearizableReadNotify_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadNotify" Read.LinearizableReadNotify.impl
   ptr_requestCurrentIndex_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"requestCurrentIndex" Read.requestCurrentIndex.impl
@@ -798,6 +808,8 @@ attribute [instance] Read.TypeAssumptions.type_repr
   Read.TypeAssumptions.set_waitC
   Read.TypeAssumptions.get_notifier
   Read.TypeAssumptions.set_notifier
+  Read.TypeAssumptions.method_set
+  Read.TypeAssumptions.ptr_method_set
   Read.TypeAssumptions.ptr_LinearizableReadLoop_unfold
   Read.TypeAssumptions.ptr_LinearizableReadNotify_unfold
   Read.TypeAssumptions.ptr_requestCurrentIndex_unfold
@@ -832,6 +844,8 @@ class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_c : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : notifier)))
   get_err : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : notifier) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : notifier)))
+  method_set : go.MethodSetIs notifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notifier.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/read.notify", (some (go.signature.Signature [go.error] false [])))]
   ptr_notify_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
 
 attribute [instance] notifier.TypeAssumptions.type_repr
@@ -840,6 +854,8 @@ attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.set_c
   notifier.TypeAssumptions.get_err
   notifier.TypeAssumptions.set_err
+  notifier.TypeAssumptions.method_set
+  notifier.TypeAssumptions.ptr_method_set
   notifier.TypeAssumptions.ptr_notify_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

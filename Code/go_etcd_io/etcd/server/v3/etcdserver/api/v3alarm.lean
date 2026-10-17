@@ -154,8 +154,12 @@ abbrev BackendGetter [FfiSyntax] : Type := GoInterface
 
 class BackendGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BackendGetter.ty BackendGetter.underlying
+  method_set : go.MethodSetIs BackendGetter.ty [(go!"Backend", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendGetter.ty) []
 
 attribute [instance] BackendGetter.TypeAssumptions.underlying
+  BackendGetter.TypeAssumptions.method_set
+  BackendGetter.TypeAssumptions.ptr_method_set
 
 abbrev alarmSet [FfiSyntax] : Type := GoMap
 
@@ -164,8 +168,12 @@ abbrev alarmSet [FfiSyntax] : Type := GoMap
 
 class alarmSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq alarmSet.ty alarmSet.underlying
+  method_set : go.MethodSetIs alarmSet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType alarmSet.ty) []
 
 attribute [instance] alarmSet.TypeAssumptions.underlying
+  alarmSet.TypeAssumptions.method_set
+  alarmSet.TypeAssumptions.ptr_method_set
 
 structure AlarmStore [FfiSyntax] where
   mk ::
@@ -204,6 +212,8 @@ class AlarmStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_types : ∀ (x : AlarmStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"types") (PairV #x #y) (Val #(({ x with types' := y } : AlarmStore)))
   get_be : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : AlarmStore) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : AlarmStore)))
+  method_set : go.MethodSetIs AlarmStore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmStore.ty) [(go!"Activate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"Deactivate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.addToMap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.restore", (some (go.signature.Signature [] false [go.error])))]
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Get" AlarmStore.Get.impl
 
 attribute [instance] AlarmStore.TypeAssumptions.type_repr
@@ -216,6 +226,8 @@ attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.set_types
   AlarmStore.TypeAssumptions.get_be
   AlarmStore.TypeAssumptions.set_be
+  AlarmStore.TypeAssumptions.method_set
+  AlarmStore.TypeAssumptions.ptr_method_set
   AlarmStore.TypeAssumptions.ptr_Get_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

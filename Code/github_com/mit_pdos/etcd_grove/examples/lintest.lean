@@ -275,8 +275,12 @@ abbrev Clock [FfiSyntax] : Type := GoFunc
 
 class Clock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
+  method_set : go.MethodSetIs Clock.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Clock.ty) []
 
 attribute [instance] Clock.TypeAssumptions.underlying
+  Clock.TypeAssumptions.method_set
+  Clock.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Clock_instance : Clock.TypeAssumptions

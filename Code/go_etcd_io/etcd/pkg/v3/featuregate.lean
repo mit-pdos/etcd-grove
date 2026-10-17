@@ -113,8 +113,12 @@ abbrev Feature [FfiSyntax] : Type := GoString
 
 class Feature.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Feature.ty Feature.underlying
+  method_set : go.MethodSetIs Feature.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Feature.ty) []
 
 attribute [instance] Feature.TypeAssumptions.underlying
+  Feature.TypeAssumptions.method_set
+  Feature.TypeAssumptions.ptr_method_set
 
 abbrev prerelease [FfiSyntax] : Type := GoString
 
@@ -123,8 +127,12 @@ abbrev prerelease [FfiSyntax] : Type := GoString
 
 class prerelease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq prerelease.ty prerelease.underlying
+  method_set : go.MethodSetIs prerelease.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prerelease.ty) []
 
 attribute [instance] prerelease.TypeAssumptions.underlying
+  prerelease.TypeAssumptions.method_set
+  prerelease.TypeAssumptions.ptr_method_set
 
 structure FeatureSpec [FfiSyntax] where
   mk ::
@@ -159,6 +167,8 @@ class FeatureSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_LockToDefault : ∀ (x : FeatureSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"LockToDefault") (PairV #x #y) (Val #(({ x with LockToDefault' := y } : FeatureSpec)))
   get_PreRelease : ∀ (x : FeatureSpec), go.IsGoStepPureDetTagged under (StructFieldGet FeatureSpec.underlying go!"PreRelease") #x (Val #(x.PreRelease'))
   set_PreRelease : ∀ (x : FeatureSpec) (y : prerelease), go.IsGoStepPureDetTagged under (StructFieldSet FeatureSpec.underlying go!"PreRelease") (PairV #x #y) (Val #(({ x with PreRelease' := y } : FeatureSpec)))
+  method_set : go.MethodSetIs FeatureSpec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSpec.ty) []
 
 attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.underlying
@@ -168,6 +178,8 @@ attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.set_LockToDefault
   FeatureSpec.TypeAssumptions.get_PreRelease
   FeatureSpec.TypeAssumptions.set_PreRelease
+  FeatureSpec.TypeAssumptions.method_set
+  FeatureSpec.TypeAssumptions.ptr_method_set
 
 abbrev FeatureGate [FfiSyntax] : Type := GoInterface
 
@@ -176,8 +188,12 @@ abbrev FeatureGate [FfiSyntax] : Type := GoInterface
 
 class FeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FeatureGate.ty FeatureGate.underlying
+  method_set : go.MethodSetIs FeatureGate.ty [(go!"DeepCopy", (some (go.signature.Signature [] false [MutableFeatureGate.ty]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureGate.ty) []
 
 attribute [instance] FeatureGate.TypeAssumptions.underlying
+  FeatureGate.TypeAssumptions.method_set
+  FeatureGate.TypeAssumptions.ptr_method_set
 
 axiom MutableFeatureGate : Type
 axiom MutableFeatureGate.zero_val : ZeroVal MutableFeatureGate
@@ -187,10 +203,14 @@ class MutableFeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying MutableFeatureGate.underlying MutableFeatureGate
   underlying : go.UnderlyingDirectedEq MutableFeatureGate.ty MutableFeatureGate.underlying
   isUnderlying : go.IsUnderlying MutableFeatureGate.underlying MutableFeatureGate.underlying
+  method_set : go.MethodSetIs MutableFeatureGate.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddFlag", none), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableFeatureGate.ty]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutableFeatureGate.ty) []
 
 attribute [instance] MutableFeatureGate.TypeAssumptions.type_repr
   MutableFeatureGate.TypeAssumptions.underlying
   MutableFeatureGate.TypeAssumptions.isUnderlying
+  MutableFeatureGate.TypeAssumptions.method_set
+  MutableFeatureGate.TypeAssumptions.ptr_method_set
 
 axiom featureGate : Type
 axiom featureGate.zero_val : ZeroVal featureGate
@@ -200,10 +220,14 @@ class featureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying featureGate.underlying featureGate
   underlying : go.UnderlyingDirectedEq featureGate.ty featureGate.underlying
   isUnderlying : go.IsUnderlying featureGate.underlying featureGate.underlying
+  method_set : go.MethodSetIs featureGate.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType featureGate.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddFlag", none), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableFeatureGate.ty]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] featureGate.TypeAssumptions.type_repr
   featureGate.TypeAssumptions.underlying
   featureGate.TypeAssumptions.isUnderlying
+  featureGate.TypeAssumptions.method_set
+  featureGate.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Feature_instance : Feature.TypeAssumptions

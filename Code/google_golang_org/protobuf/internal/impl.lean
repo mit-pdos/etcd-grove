@@ -3613,10 +3613,14 @@ class Export.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Export.underlying Export
   underlying : go.UnderlyingDirectedEq Export.ty Export.underlying
   isUnderlying : go.IsUnderlying Export.underlying Export.underlying
+  method_set : go.MethodSetIs Export.ty [(go!"AtomicCheckPointerIsNil", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"AtomicInitializePointer", (some (go.signature.Signature [Pointer.ty, Pointer.ty] false []))), (go!"AtomicLoadPointer", (some (go.signature.Signature [Pointer.ty, Pointer.ty] false []))), (go!"AtomicSetPointer", (some (go.signature.Signature [go.any, go.any] false []))), (go!"ClearPresent", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32] false []))), (go!"CompressGZIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"EnumDescriptorOf", none), (go!"EnumOf", none), (go!"EnumStringOf", none), (go!"EnumTypeOf", none), (go!"LegacyEnumName", none), (go!"LegacyMessageTypeOf", none), (go!"MessageDescriptorOf", none), (go!"MessageFieldStringOf", none), (go!"MessageOf", none), (go!"MessageStateOf", (some (go.signature.Signature [Pointer.ty] false [(go.GoType.PointerType messageState.ty)]))), (go!"MessageStringOf", none), (go!"MessageTypeOf", none), (go!"NewError", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [go.error]))), (go!"Present", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32] false [go.bool]))), (go!"ProtoMessageV1Of", none), (go!"ProtoMessageV2Of", none), (go!"SetPresent", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32, go.uint32] false []))), (go!"SetPresentNonAtomic", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32, go.uint32] false []))), (go!"UnmarshalField", (some (go.signature.Signature [go.any, go.int32] false []))), (go!"UnmarshalJSONEnum", none), (go!"google.golang.org/protobuf/internal/impl.protoMessageV2Of", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Export.ty) [(go!"AtomicCheckPointerIsNil", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"AtomicInitializePointer", (some (go.signature.Signature [Pointer.ty, Pointer.ty] false []))), (go!"AtomicLoadPointer", (some (go.signature.Signature [Pointer.ty, Pointer.ty] false []))), (go!"AtomicSetPointer", (some (go.signature.Signature [go.any, go.any] false []))), (go!"ClearPresent", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32] false []))), (go!"CompressGZIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"EnumDescriptorOf", none), (go!"EnumOf", none), (go!"EnumStringOf", none), (go!"EnumTypeOf", none), (go!"LegacyEnumName", none), (go!"LegacyMessageTypeOf", none), (go!"MessageDescriptorOf", none), (go!"MessageFieldStringOf", none), (go!"MessageOf", none), (go!"MessageStateOf", (some (go.signature.Signature [Pointer.ty] false [(go.GoType.PointerType messageState.ty)]))), (go!"MessageStringOf", none), (go!"MessageTypeOf", none), (go!"NewError", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [go.error]))), (go!"Present", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32] false [go.bool]))), (go!"ProtoMessageV1Of", none), (go!"ProtoMessageV2Of", none), (go!"SetPresent", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32, go.uint32] false []))), (go!"SetPresentNonAtomic", (some (go.signature.Signature [(go.GoType.PointerType go.uint32), go.uint32, go.uint32] false []))), (go!"UnmarshalField", (some (go.signature.Signature [go.any, go.int32] false []))), (go!"UnmarshalJSONEnum", none), (go!"google.golang.org/protobuf/internal/impl.protoMessageV2Of", none)]
 
 attribute [instance] Export.TypeAssumptions.type_repr
   Export.TypeAssumptions.underlying
   Export.TypeAssumptions.isUnderlying
+  Export.TypeAssumptions.method_set
+  Export.TypeAssumptions.ptr_method_set
 
 axiom legacyMessageWrapper : Type
 axiom legacyMessageWrapper.zero_val : ZeroVal legacyMessageWrapper
@@ -3626,10 +3630,14 @@ class legacyMessageWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying legacyMessageWrapper.underlying legacyMessageWrapper
   underlying : go.UnderlyingDirectedEq legacyMessageWrapper.ty legacyMessageWrapper.underlying
   isUnderlying : go.IsUnderlying legacyMessageWrapper.underlying legacyMessageWrapper.underlying
+  method_set : go.MethodSetIs legacyMessageWrapper.ty [(go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType legacyMessageWrapper.ty) [(go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] legacyMessageWrapper.TypeAssumptions.type_repr
   legacyMessageWrapper.TypeAssumptions.underlying
   legacyMessageWrapper.TypeAssumptions.isUnderlying
+  legacyMessageWrapper.TypeAssumptions.method_set
+  legacyMessageWrapper.TypeAssumptions.ptr_method_set
 
 axiom RaceDetectHookData : Type
 axiom RaceDetectHookData.zero_val : ZeroVal RaceDetectHookData
@@ -3639,10 +3647,14 @@ class RaceDetectHookData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying RaceDetectHookData.underlying RaceDetectHookData
   underlying : go.UnderlyingDirectedEq RaceDetectHookData.ty RaceDetectHookData.underlying
   isUnderlying : go.IsUnderlying RaceDetectHookData.underlying RaceDetectHookData.underlying
+  method_set : go.MethodSetIs RaceDetectHookData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaceDetectHookData.ty) []
 
 attribute [instance] RaceDetectHookData.TypeAssumptions.type_repr
   RaceDetectHookData.TypeAssumptions.underlying
   RaceDetectHookData.TypeAssumptions.isUnderlying
+  RaceDetectHookData.TypeAssumptions.method_set
+  RaceDetectHookData.TypeAssumptions.ptr_method_set
 
 axiom extensionFieldInfo : Type
 axiom extensionFieldInfo.zero_val : ZeroVal extensionFieldInfo
@@ -3652,10 +3664,14 @@ class extensionFieldInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying extensionFieldInfo.underlying extensionFieldInfo
   underlying : go.UnderlyingDirectedEq extensionFieldInfo.ty extensionFieldInfo.underlying
   isUnderlying : go.IsUnderlying extensionFieldInfo.underlying extensionFieldInfo.underlying
+  method_set : go.MethodSetIs extensionFieldInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType extensionFieldInfo.ty) []
 
 attribute [instance] extensionFieldInfo.TypeAssumptions.type_repr
   extensionFieldInfo.TypeAssumptions.underlying
   extensionFieldInfo.TypeAssumptions.isUnderlying
+  extensionFieldInfo.TypeAssumptions.method_set
+  extensionFieldInfo.TypeAssumptions.ptr_method_set
 
 axiom lazyExtensionValue : Type
 axiom lazyExtensionValue.zero_val : ZeroVal lazyExtensionValue
@@ -3665,10 +3681,14 @@ class lazyExtensionValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying lazyExtensionValue.underlying lazyExtensionValue
   underlying : go.UnderlyingDirectedEq lazyExtensionValue.ty lazyExtensionValue.underlying
   isUnderlying : go.IsUnderlying lazyExtensionValue.underlying lazyExtensionValue.underlying
+  method_set : go.MethodSetIs lazyExtensionValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazyExtensionValue.ty) []
 
 attribute [instance] lazyExtensionValue.TypeAssumptions.type_repr
   lazyExtensionValue.TypeAssumptions.underlying
   lazyExtensionValue.TypeAssumptions.isUnderlying
+  lazyExtensionValue.TypeAssumptions.method_set
+  lazyExtensionValue.TypeAssumptions.ptr_method_set
 
 axiom ExtensionField : Type
 axiom ExtensionField.zero_val : ZeroVal ExtensionField
@@ -3678,10 +3698,14 @@ class ExtensionField.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying ExtensionField.underlying ExtensionField
   underlying : go.UnderlyingDirectedEq ExtensionField.ty ExtensionField.underlying
   isUnderlying : go.IsUnderlying ExtensionField.underlying ExtensionField.underlying
+  method_set : go.MethodSetIs ExtensionField.ty [(go!"IsSet", (some (go.signature.Signature [] false [go.bool]))), (go!"Type", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionField.ty) [(go!"IsSet", (some (go.signature.Signature [] false [go.bool]))), (go!"Set", none), (go!"Type", none), (go!"Value", none), (go!"google.golang.org/protobuf/internal/impl.appendLazyBytes", none), (go!"google.golang.org/protobuf/internal/impl.canLazy", none), (go!"google.golang.org/protobuf/internal/impl.isUnexpandedLazy", (some (go.signature.Signature [] false [go.bool]))), (go!"google.golang.org/protobuf/internal/impl.lazyBuffer", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"google.golang.org/protobuf/internal/impl.lazyInit", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ExtensionField.TypeAssumptions.type_repr
   ExtensionField.TypeAssumptions.underlying
   ExtensionField.TypeAssumptions.isUnderlying
+  ExtensionField.TypeAssumptions.method_set
+  ExtensionField.TypeAssumptions.ptr_method_set
 
 axiom errInvalidUTF8 : Type
 axiom errInvalidUTF8.zero_val : ZeroVal errInvalidUTF8
@@ -3691,10 +3715,14 @@ class errInvalidUTF8.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying errInvalidUTF8.underlying errInvalidUTF8
   underlying : go.UnderlyingDirectedEq errInvalidUTF8.ty errInvalidUTF8.underlying
   isUnderlying : go.IsUnderlying errInvalidUTF8.underlying errInvalidUTF8.underlying
+  method_set : go.MethodSetIs errInvalidUTF8.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"InvalidUTF8", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errInvalidUTF8.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"InvalidUTF8", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] errInvalidUTF8.TypeAssumptions.type_repr
   errInvalidUTF8.TypeAssumptions.underlying
   errInvalidUTF8.TypeAssumptions.isUnderlying
+  errInvalidUTF8.TypeAssumptions.method_set
+  errInvalidUTF8.TypeAssumptions.ptr_method_set
 
 axiom mapInfo : Type
 axiom mapInfo.zero_val : ZeroVal mapInfo
@@ -3704,10 +3732,14 @@ class mapInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying mapInfo.underlying mapInfo
   underlying : go.UnderlyingDirectedEq mapInfo.ty mapInfo.underlying
   isUnderlying : go.IsUnderlying mapInfo.underlying mapInfo.underlying
+  method_set : go.MethodSetIs mapInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapInfo.ty) []
 
 attribute [instance] mapInfo.TypeAssumptions.type_repr
   mapInfo.TypeAssumptions.underlying
   mapInfo.TypeAssumptions.isUnderlying
+  mapInfo.TypeAssumptions.method_set
+  mapInfo.TypeAssumptions.ptr_method_set
 
 axiom coderMessageInfo : Type
 axiom coderMessageInfo.zero_val : ZeroVal coderMessageInfo
@@ -3717,10 +3749,14 @@ class coderMessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying coderMessageInfo.underlying coderMessageInfo
   underlying : go.UnderlyingDirectedEq coderMessageInfo.ty coderMessageInfo.underlying
   isUnderlying : go.IsUnderlying coderMessageInfo.underlying coderMessageInfo.underlying
+  method_set : go.MethodSetIs coderMessageInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType coderMessageInfo.ty) []
 
 attribute [instance] coderMessageInfo.TypeAssumptions.type_repr
   coderMessageInfo.TypeAssumptions.underlying
   coderMessageInfo.TypeAssumptions.isUnderlying
+  coderMessageInfo.TypeAssumptions.method_set
+  coderMessageInfo.TypeAssumptions.ptr_method_set
 
 axiom coderFieldInfo : Type
 axiom coderFieldInfo.zero_val : ZeroVal coderFieldInfo
@@ -3730,10 +3766,14 @@ class coderFieldInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying coderFieldInfo.underlying coderFieldInfo
   underlying : go.UnderlyingDirectedEq coderFieldInfo.ty coderFieldInfo.underlying
   isUnderlying : go.IsUnderlying coderFieldInfo.underlying coderFieldInfo.underlying
+  method_set : go.MethodSetIs coderFieldInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType coderFieldInfo.ty) []
 
 attribute [instance] coderFieldInfo.TypeAssumptions.type_repr
   coderFieldInfo.TypeAssumptions.underlying
   coderFieldInfo.TypeAssumptions.isUnderlying
+  coderFieldInfo.TypeAssumptions.method_set
+  coderFieldInfo.TypeAssumptions.ptr_method_set
 
 axiom pointerCoderFuncs : Type
 axiom pointerCoderFuncs.zero_val : ZeroVal pointerCoderFuncs
@@ -3743,10 +3783,14 @@ class pointerCoderFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying pointerCoderFuncs.underlying pointerCoderFuncs
   underlying : go.UnderlyingDirectedEq pointerCoderFuncs.ty pointerCoderFuncs.underlying
   isUnderlying : go.IsUnderlying pointerCoderFuncs.underlying pointerCoderFuncs.underlying
+  method_set : go.MethodSetIs pointerCoderFuncs.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pointerCoderFuncs.ty) []
 
 attribute [instance] pointerCoderFuncs.TypeAssumptions.type_repr
   pointerCoderFuncs.TypeAssumptions.underlying
   pointerCoderFuncs.TypeAssumptions.isUnderlying
+  pointerCoderFuncs.TypeAssumptions.method_set
+  pointerCoderFuncs.TypeAssumptions.ptr_method_set
 
 axiom valueCoderFuncs : Type
 axiom valueCoderFuncs.zero_val : ZeroVal valueCoderFuncs
@@ -3756,10 +3800,14 @@ class valueCoderFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying valueCoderFuncs.underlying valueCoderFuncs
   underlying : go.UnderlyingDirectedEq valueCoderFuncs.ty valueCoderFuncs.underlying
   isUnderlying : go.IsUnderlying valueCoderFuncs.underlying valueCoderFuncs.underlying
+  method_set : go.MethodSetIs valueCoderFuncs.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType valueCoderFuncs.ty) []
 
 attribute [instance] valueCoderFuncs.TypeAssumptions.type_repr
   valueCoderFuncs.TypeAssumptions.underlying
   valueCoderFuncs.TypeAssumptions.isUnderlying
+  valueCoderFuncs.TypeAssumptions.method_set
+  valueCoderFuncs.TypeAssumptions.ptr_method_set
 
 axiom unwrapper : Type
 axiom unwrapper.zero_val : ZeroVal unwrapper
@@ -3769,10 +3817,14 @@ class unwrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying unwrapper.underlying unwrapper
   underlying : go.UnderlyingDirectedEq unwrapper.ty unwrapper.underlying
   isUnderlying : go.IsUnderlying unwrapper.underlying unwrapper.underlying
+  method_set : go.MethodSetIs unwrapper.ty [(go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unwrapper.ty) []
 
 attribute [instance] unwrapper.TypeAssumptions.type_repr
   unwrapper.TypeAssumptions.underlying
   unwrapper.TypeAssumptions.isUnderlying
+  unwrapper.TypeAssumptions.method_set
+  unwrapper.TypeAssumptions.ptr_method_set
 
 axiom Converter : Type
 axiom Converter.zero_val : ZeroVal Converter
@@ -3782,10 +3834,14 @@ class Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying Converter.underlying Converter
   underlying : go.UnderlyingDirectedEq Converter.ty Converter.underlying
   isUnderlying : go.IsUnderlying Converter.underlying Converter.underlying
+  method_set : go.MethodSetIs Converter.ty [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Converter.ty) []
 
 attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.underlying
   Converter.TypeAssumptions.isUnderlying
+  Converter.TypeAssumptions.method_set
+  Converter.TypeAssumptions.ptr_method_set
 
 axiom boolConverter : Type
 axiom boolConverter.zero_val : ZeroVal boolConverter
@@ -3795,10 +3851,14 @@ class boolConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying boolConverter.underlying boolConverter
   underlying : go.UnderlyingDirectedEq boolConverter.ty boolConverter.underlying
   isUnderlying : go.IsUnderlying boolConverter.underlying boolConverter.underlying
+  method_set : go.MethodSetIs boolConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType boolConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] boolConverter.TypeAssumptions.type_repr
   boolConverter.TypeAssumptions.underlying
   boolConverter.TypeAssumptions.isUnderlying
+  boolConverter.TypeAssumptions.method_set
+  boolConverter.TypeAssumptions.ptr_method_set
 
 axiom int32Converter : Type
 axiom int32Converter.zero_val : ZeroVal int32Converter
@@ -3808,10 +3868,14 @@ class int32Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying int32Converter.underlying int32Converter
   underlying : go.UnderlyingDirectedEq int32Converter.ty int32Converter.underlying
   isUnderlying : go.IsUnderlying int32Converter.underlying int32Converter.underlying
+  method_set : go.MethodSetIs int32Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int32Converter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] int32Converter.TypeAssumptions.type_repr
   int32Converter.TypeAssumptions.underlying
   int32Converter.TypeAssumptions.isUnderlying
+  int32Converter.TypeAssumptions.method_set
+  int32Converter.TypeAssumptions.ptr_method_set
 
 axiom int64Converter : Type
 axiom int64Converter.zero_val : ZeroVal int64Converter
@@ -3821,10 +3885,14 @@ class int64Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying int64Converter.underlying int64Converter
   underlying : go.UnderlyingDirectedEq int64Converter.ty int64Converter.underlying
   isUnderlying : go.IsUnderlying int64Converter.underlying int64Converter.underlying
+  method_set : go.MethodSetIs int64Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int64Converter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] int64Converter.TypeAssumptions.type_repr
   int64Converter.TypeAssumptions.underlying
   int64Converter.TypeAssumptions.isUnderlying
+  int64Converter.TypeAssumptions.method_set
+  int64Converter.TypeAssumptions.ptr_method_set
 
 axiom uint32Converter : Type
 axiom uint32Converter.zero_val : ZeroVal uint32Converter
@@ -3834,10 +3902,14 @@ class uint32Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying uint32Converter.underlying uint32Converter
   underlying : go.UnderlyingDirectedEq uint32Converter.ty uint32Converter.underlying
   isUnderlying : go.IsUnderlying uint32Converter.underlying uint32Converter.underlying
+  method_set : go.MethodSetIs uint32Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uint32Converter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] uint32Converter.TypeAssumptions.type_repr
   uint32Converter.TypeAssumptions.underlying
   uint32Converter.TypeAssumptions.isUnderlying
+  uint32Converter.TypeAssumptions.method_set
+  uint32Converter.TypeAssumptions.ptr_method_set
 
 axiom uint64Converter : Type
 axiom uint64Converter.zero_val : ZeroVal uint64Converter
@@ -3847,10 +3919,14 @@ class uint64Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying uint64Converter.underlying uint64Converter
   underlying : go.UnderlyingDirectedEq uint64Converter.ty uint64Converter.underlying
   isUnderlying : go.IsUnderlying uint64Converter.underlying uint64Converter.underlying
+  method_set : go.MethodSetIs uint64Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uint64Converter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] uint64Converter.TypeAssumptions.type_repr
   uint64Converter.TypeAssumptions.underlying
   uint64Converter.TypeAssumptions.isUnderlying
+  uint64Converter.TypeAssumptions.method_set
+  uint64Converter.TypeAssumptions.ptr_method_set
 
 axiom float32Converter : Type
 axiom float32Converter.zero_val : ZeroVal float32Converter
@@ -3860,10 +3936,14 @@ class float32Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying float32Converter.underlying float32Converter
   underlying : go.UnderlyingDirectedEq float32Converter.ty float32Converter.underlying
   isUnderlying : go.IsUnderlying float32Converter.underlying float32Converter.underlying
+  method_set : go.MethodSetIs float32Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType float32Converter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] float32Converter.TypeAssumptions.type_repr
   float32Converter.TypeAssumptions.underlying
   float32Converter.TypeAssumptions.isUnderlying
+  float32Converter.TypeAssumptions.method_set
+  float32Converter.TypeAssumptions.ptr_method_set
 
 axiom float64Converter : Type
 axiom float64Converter.zero_val : ZeroVal float64Converter
@@ -3873,10 +3953,14 @@ class float64Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying float64Converter.underlying float64Converter
   underlying : go.UnderlyingDirectedEq float64Converter.ty float64Converter.underlying
   isUnderlying : go.IsUnderlying float64Converter.underlying float64Converter.underlying
+  method_set : go.MethodSetIs float64Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType float64Converter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] float64Converter.TypeAssumptions.type_repr
   float64Converter.TypeAssumptions.underlying
   float64Converter.TypeAssumptions.isUnderlying
+  float64Converter.TypeAssumptions.method_set
+  float64Converter.TypeAssumptions.ptr_method_set
 
 axiom stringConverter : Type
 axiom stringConverter.zero_val : ZeroVal stringConverter
@@ -3886,10 +3970,14 @@ class stringConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying stringConverter.underlying stringConverter
   underlying : go.UnderlyingDirectedEq stringConverter.ty stringConverter.underlying
   isUnderlying : go.IsUnderlying stringConverter.underlying stringConverter.underlying
+  method_set : go.MethodSetIs stringConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stringConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] stringConverter.TypeAssumptions.type_repr
   stringConverter.TypeAssumptions.underlying
   stringConverter.TypeAssumptions.isUnderlying
+  stringConverter.TypeAssumptions.method_set
+  stringConverter.TypeAssumptions.ptr_method_set
 
 axiom bytesConverter : Type
 axiom bytesConverter.zero_val : ZeroVal bytesConverter
@@ -3899,10 +3987,14 @@ class bytesConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying bytesConverter.underlying bytesConverter
   underlying : go.UnderlyingDirectedEq bytesConverter.ty bytesConverter.underlying
   isUnderlying : go.IsUnderlying bytesConverter.underlying bytesConverter.underlying
+  method_set : go.MethodSetIs bytesConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bytesConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] bytesConverter.TypeAssumptions.type_repr
   bytesConverter.TypeAssumptions.underlying
   bytesConverter.TypeAssumptions.isUnderlying
+  bytesConverter.TypeAssumptions.method_set
+  bytesConverter.TypeAssumptions.ptr_method_set
 
 axiom enumConverter : Type
 axiom enumConverter.zero_val : ZeroVal enumConverter
@@ -3912,10 +4004,14 @@ class enumConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying enumConverter.underlying enumConverter
   underlying : go.UnderlyingDirectedEq enumConverter.ty enumConverter.underlying
   isUnderlying : go.IsUnderlying enumConverter.underlying enumConverter.underlying
+  method_set : go.MethodSetIs enumConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType enumConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] enumConverter.TypeAssumptions.type_repr
   enumConverter.TypeAssumptions.underlying
   enumConverter.TypeAssumptions.isUnderlying
+  enumConverter.TypeAssumptions.method_set
+  enumConverter.TypeAssumptions.ptr_method_set
 
 axiom messageConverter : Type
 axiom messageConverter.zero_val : ZeroVal messageConverter
@@ -3925,10 +4021,14 @@ class messageConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying messageConverter.underlying messageConverter
   underlying : go.UnderlyingDirectedEq messageConverter.ty messageConverter.underlying
   isUnderlying : go.IsUnderlying messageConverter.underlying messageConverter.underlying
+  method_set : go.MethodSetIs messageConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none), (go!"google.golang.org/protobuf/internal/impl.isNonPointer", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] messageConverter.TypeAssumptions.type_repr
   messageConverter.TypeAssumptions.underlying
   messageConverter.TypeAssumptions.isUnderlying
+  messageConverter.TypeAssumptions.method_set
+  messageConverter.TypeAssumptions.ptr_method_set
 
 axiom listConverter : Type
 axiom listConverter.zero_val : ZeroVal listConverter
@@ -3938,10 +4038,14 @@ class listConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying listConverter.underlying listConverter
   underlying : go.UnderlyingDirectedEq listConverter.ty listConverter.underlying
   isUnderlying : go.IsUnderlying listConverter.underlying listConverter.underlying
+  method_set : go.MethodSetIs listConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] listConverter.TypeAssumptions.type_repr
   listConverter.TypeAssumptions.underlying
   listConverter.TypeAssumptions.isUnderlying
+  listConverter.TypeAssumptions.method_set
+  listConverter.TypeAssumptions.ptr_method_set
 
 axiom listPtrConverter : Type
 axiom listPtrConverter.zero_val : ZeroVal listPtrConverter
@@ -3951,10 +4055,14 @@ class listPtrConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying listPtrConverter.underlying listPtrConverter
   underlying : go.UnderlyingDirectedEq listPtrConverter.ty listPtrConverter.underlying
   isUnderlying : go.IsUnderlying listPtrConverter.underlying listPtrConverter.underlying
+  method_set : go.MethodSetIs listPtrConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listPtrConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] listPtrConverter.TypeAssumptions.type_repr
   listPtrConverter.TypeAssumptions.underlying
   listPtrConverter.TypeAssumptions.isUnderlying
+  listPtrConverter.TypeAssumptions.method_set
+  listPtrConverter.TypeAssumptions.ptr_method_set
 
 axiom listReflect : Type
 axiom listReflect.zero_val : ZeroVal listReflect
@@ -3964,10 +4072,14 @@ class listReflect.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying listReflect.underlying listReflect
   underlying : go.UnderlyingDirectedEq listReflect.ty listReflect.underlying
   isUnderlying : go.IsUnderlying listReflect.underlying listReflect.underlying
+  method_set : go.MethodSetIs listReflect.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listReflect.ty) [(go!"Append", none), (go!"AppendMutable", none), (go!"Get", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NewElement", none), (go!"Set", none), (go!"Truncate", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] listReflect.TypeAssumptions.type_repr
   listReflect.TypeAssumptions.underlying
   listReflect.TypeAssumptions.isUnderlying
+  listReflect.TypeAssumptions.method_set
+  listReflect.TypeAssumptions.ptr_method_set
 
 axiom mapConverter : Type
 axiom mapConverter.zero_val : ZeroVal mapConverter
@@ -3977,10 +4089,14 @@ class mapConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying mapConverter.underlying mapConverter
   underlying : go.UnderlyingDirectedEq mapConverter.ty mapConverter.underlying
   isUnderlying : go.IsUnderlying mapConverter.underlying mapConverter.underlying
+  method_set : go.MethodSetIs mapConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapConverter.ty) [(go!"GoValueOf", none), (go!"IsValidGo", none), (go!"IsValidPB", none), (go!"New", none), (go!"PBValueOf", none), (go!"Zero", none)]
 
 attribute [instance] mapConverter.TypeAssumptions.type_repr
   mapConverter.TypeAssumptions.underlying
   mapConverter.TypeAssumptions.isUnderlying
+  mapConverter.TypeAssumptions.method_set
+  mapConverter.TypeAssumptions.ptr_method_set
 
 axiom mapReflect : Type
 axiom mapReflect.zero_val : ZeroVal mapReflect
@@ -3990,10 +4106,14 @@ class mapReflect.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying mapReflect.underlying mapReflect
   underlying : go.UnderlyingDirectedEq mapReflect.ty mapReflect.underlying
   isUnderlying : go.IsUnderlying mapReflect.underlying mapReflect.underlying
+  method_set : go.MethodSetIs mapReflect.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapReflect.ty) [(go!"Clear", none), (go!"Get", none), (go!"Has", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Mutable", none), (go!"NewValue", none), (go!"Range", none), (go!"Set", none), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] mapReflect.TypeAssumptions.type_repr
   mapReflect.TypeAssumptions.underlying
   mapReflect.TypeAssumptions.isUnderlying
+  mapReflect.TypeAssumptions.method_set
+  mapReflect.TypeAssumptions.ptr_method_set
 
 axiom unmarshalOptions : Type
 axiom unmarshalOptions.zero_val : ZeroVal unmarshalOptions
@@ -4003,10 +4123,14 @@ class unmarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying unmarshalOptions.underlying unmarshalOptions
   underlying : go.UnderlyingDirectedEq unmarshalOptions.ty unmarshalOptions.underlying
   isUnderlying : go.IsUnderlying unmarshalOptions.underlying unmarshalOptions.underlying
+  method_set : go.MethodSetIs unmarshalOptions.ty [(go!"AliasBuffer", (some (go.signature.Signature [] false [go.bool]))), (go!"CanBeLazy", (some (go.signature.Signature [] false [go.bool]))), (go!"DiscardUnknown", (some (go.signature.Signature [] false [go.bool]))), (go!"NoLazyDecoding", (some (go.signature.Signature [] false [go.bool]))), (go!"Options", none), (go!"Validated", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unmarshalOptions.ty) [(go!"AliasBuffer", (some (go.signature.Signature [] false [go.bool]))), (go!"CanBeLazy", (some (go.signature.Signature [] false [go.bool]))), (go!"DiscardUnknown", (some (go.signature.Signature [] false [go.bool]))), (go!"NoLazyDecoding", (some (go.signature.Signature [] false [go.bool]))), (go!"Options", none), (go!"Validated", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] unmarshalOptions.TypeAssumptions.type_repr
   unmarshalOptions.TypeAssumptions.underlying
   unmarshalOptions.TypeAssumptions.isUnderlying
+  unmarshalOptions.TypeAssumptions.method_set
+  unmarshalOptions.TypeAssumptions.ptr_method_set
 
 axiom unmarshalOutput : Type
 axiom unmarshalOutput.zero_val : ZeroVal unmarshalOutput
@@ -4016,10 +4140,14 @@ class unmarshalOutput.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying unmarshalOutput.underlying unmarshalOutput
   underlying : go.UnderlyingDirectedEq unmarshalOutput.ty unmarshalOutput.underlying
   isUnderlying : go.IsUnderlying unmarshalOutput.underlying unmarshalOutput.underlying
+  method_set : go.MethodSetIs unmarshalOutput.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unmarshalOutput.ty) []
 
 attribute [instance] unmarshalOutput.TypeAssumptions.type_repr
   unmarshalOutput.TypeAssumptions.underlying
   unmarshalOutput.TypeAssumptions.isUnderlying
+  unmarshalOutput.TypeAssumptions.method_set
+  unmarshalOutput.TypeAssumptions.ptr_method_set
 
 axiom marshalOptions : Type
 axiom marshalOptions.zero_val : ZeroVal marshalOptions
@@ -4029,10 +4157,14 @@ class marshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying marshalOptions.underlying marshalOptions
   underlying : go.UnderlyingDirectedEq marshalOptions.ty marshalOptions.underlying
   isUnderlying : go.IsUnderlying marshalOptions.underlying marshalOptions.underlying
+  method_set : go.MethodSetIs marshalOptions.ty [(go!"Deterministic", (some (go.signature.Signature [] false [go.bool]))), (go!"Options", none), (go!"UseCachedSize", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType marshalOptions.ty) [(go!"Deterministic", (some (go.signature.Signature [] false [go.bool]))), (go!"Options", none), (go!"UseCachedSize", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] marshalOptions.TypeAssumptions.type_repr
   marshalOptions.TypeAssumptions.underlying
   marshalOptions.TypeAssumptions.isUnderlying
+  marshalOptions.TypeAssumptions.method_set
+  marshalOptions.TypeAssumptions.ptr_method_set
 
 axiom EnumInfo : Type
 axiom EnumInfo.zero_val : ZeroVal EnumInfo
@@ -4042,10 +4174,14 @@ class EnumInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying EnumInfo.underlying EnumInfo
   underlying : go.UnderlyingDirectedEq EnumInfo.ty EnumInfo.underlying
   isUnderlying : go.IsUnderlying EnumInfo.underlying EnumInfo.underlying
+  method_set : go.MethodSetIs EnumInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EnumInfo.ty) [(go!"Descriptor", none), (go!"New", none)]
 
 attribute [instance] EnumInfo.TypeAssumptions.type_repr
   EnumInfo.TypeAssumptions.underlying
   EnumInfo.TypeAssumptions.isUnderlying
+  EnumInfo.TypeAssumptions.method_set
+  EnumInfo.TypeAssumptions.ptr_method_set
 
 axiom ExtensionInfo : Type
 axiom ExtensionInfo.zero_val : ZeroVal ExtensionInfo
@@ -4055,10 +4191,14 @@ class ExtensionInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ExtensionInfo.underlying ExtensionInfo
   underlying : go.UnderlyingDirectedEq ExtensionInfo.ty ExtensionInfo.underlying
   isUnderlying : go.IsUnderlying ExtensionInfo.underlying ExtensionInfo.underlying
+  method_set : go.MethodSetIs ExtensionInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionInfo.ty) [(go!"InterfaceOf", none), (go!"IsValidInterface", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"IsValidValue", none), (go!"New", none), (go!"TypeDescriptor", none), (go!"ValueOf", none), (go!"Zero", none), (go!"google.golang.org/protobuf/internal/impl.initFromLegacy", (some (go.signature.Signature [] false []))), (go!"google.golang.org/protobuf/internal/impl.initToLegacy", (some (go.signature.Signature [] false []))), (go!"google.golang.org/protobuf/internal/impl.lazyInit", (some (go.signature.Signature [] false [Converter.ty]))), (go!"google.golang.org/protobuf/internal/impl.lazyInitSlow", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ExtensionInfo.TypeAssumptions.type_repr
   ExtensionInfo.TypeAssumptions.underlying
   ExtensionInfo.TypeAssumptions.isUnderlying
+  ExtensionInfo.TypeAssumptions.method_set
+  ExtensionInfo.TypeAssumptions.ptr_method_set
 
 axiom extensionTypeDescriptor : Type
 axiom extensionTypeDescriptor.zero_val : ZeroVal extensionTypeDescriptor
@@ -4068,10 +4208,14 @@ class extensionTypeDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoL
   type_repr : go.TypeReprUnderlying extensionTypeDescriptor.underlying extensionTypeDescriptor
   underlying : go.UnderlyingDirectedEq extensionTypeDescriptor.ty extensionTypeDescriptor.underlying
   isUnderlying : go.IsUnderlying extensionTypeDescriptor.underlying extensionTypeDescriptor.underlying
+  method_set : go.MethodSetIs extensionTypeDescriptor.ty [(go!"Cardinality", none), (go!"ContainingMessage", none), (go!"ContainingOneof", none), (go!"Default", none), (go!"DefaultEnumValue", none), (go!"Enum", none), (go!"FullName", none), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", none), (go!"MapKey", none), (go!"MapValue", none), (go!"Message", none), (go!"Name", none), (go!"Number", none), (go!"Options", none), (go!"Parent", none), (go!"ParentFile", none), (go!"ProtoInternal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotImplement.ty] false []))), (go!"ProtoType", none), (go!"Syntax", none), (go!"TextName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType extensionTypeDescriptor.ty) [(go!"Cardinality", none), (go!"ContainingMessage", none), (go!"ContainingOneof", none), (go!"Default", none), (go!"DefaultEnumValue", none), (go!"Descriptor", none), (go!"Enum", none), (go!"FullName", none), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", none), (go!"MapKey", none), (go!"MapValue", none), (go!"Message", none), (go!"Name", none), (go!"Number", none), (go!"Options", none), (go!"Parent", none), (go!"ParentFile", none), (go!"ProtoInternal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotImplement.ty] false []))), (go!"ProtoType", none), (go!"Syntax", none), (go!"TextName", (some (go.signature.Signature [] false [go.string]))), (go!"Type", none)]
 
 attribute [instance] extensionTypeDescriptor.TypeAssumptions.type_repr
   extensionTypeDescriptor.TypeAssumptions.underlying
   extensionTypeDescriptor.TypeAssumptions.isUnderlying
+  extensionTypeDescriptor.TypeAssumptions.method_set
+  extensionTypeDescriptor.TypeAssumptions.ptr_method_set
 
 axiom legacyEnumType : Type
 axiom legacyEnumType.zero_val : ZeroVal legacyEnumType
@@ -4081,10 +4225,14 @@ class legacyEnumType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying legacyEnumType.underlying legacyEnumType
   underlying : go.UnderlyingDirectedEq legacyEnumType.ty legacyEnumType.underlying
   isUnderlying : go.IsUnderlying legacyEnumType.underlying legacyEnumType.underlying
+  method_set : go.MethodSetIs legacyEnumType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType legacyEnumType.ty) [(go!"Descriptor", none), (go!"New", none)]
 
 attribute [instance] legacyEnumType.TypeAssumptions.type_repr
   legacyEnumType.TypeAssumptions.underlying
   legacyEnumType.TypeAssumptions.isUnderlying
+  legacyEnumType.TypeAssumptions.method_set
+  legacyEnumType.TypeAssumptions.ptr_method_set
 
 axiom legacyEnumWrapper : Type
 axiom legacyEnumWrapper.zero_val : ZeroVal legacyEnumWrapper
@@ -4094,10 +4242,14 @@ class legacyEnumWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying legacyEnumWrapper.underlying legacyEnumWrapper
   underlying : go.UnderlyingDirectedEq legacyEnumWrapper.ty legacyEnumWrapper.underlying
   isUnderlying : go.IsUnderlying legacyEnumWrapper.underlying legacyEnumWrapper.underlying
+  method_set : go.MethodSetIs legacyEnumWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType legacyEnumWrapper.ty) [(go!"Descriptor", none), (go!"Number", none), (go!"ProtoReflect", none), (go!"Type", none), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] legacyEnumWrapper.TypeAssumptions.type_repr
   legacyEnumWrapper.TypeAssumptions.underlying
   legacyEnumWrapper.TypeAssumptions.isUnderlying
+  legacyEnumWrapper.TypeAssumptions.method_set
+  legacyEnumWrapper.TypeAssumptions.ptr_method_set
 
 axiom placeholderExtension : Type
 axiom placeholderExtension.zero_val : ZeroVal placeholderExtension
@@ -4107,10 +4259,14 @@ class placeholderExtension.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying placeholderExtension.underlying placeholderExtension
   underlying : go.UnderlyingDirectedEq placeholderExtension.ty placeholderExtension.underlying
   isUnderlying : go.IsUnderlying placeholderExtension.underlying placeholderExtension.underlying
+  method_set : go.MethodSetIs placeholderExtension.ty [(go!"Cardinality", none), (go!"ContainingMessage", none), (go!"ContainingOneof", none), (go!"Default", none), (go!"DefaultEnumValue", none), (go!"Enum", none), (go!"FullName", none), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLazy", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", none), (go!"MapKey", none), (go!"MapValue", none), (go!"Message", none), (go!"Name", none), (go!"Number", none), (go!"Options", none), (go!"Parent", none), (go!"ParentFile", none), (go!"ProtoInternal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotImplement.ty] false []))), (go!"ProtoType", none), (go!"Syntax", none), (go!"TextName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType placeholderExtension.ty) [(go!"Cardinality", none), (go!"ContainingMessage", none), (go!"ContainingOneof", none), (go!"Default", none), (go!"DefaultEnumValue", none), (go!"Enum", none), (go!"FullName", none), (go!"HasDefault", (some (go.signature.Signature [] false [go.bool]))), (go!"HasJSONName", (some (go.signature.Signature [] false [go.bool]))), (go!"HasOptionalKeyword", (some (go.signature.Signature [] false [go.bool]))), (go!"HasPresence", (some (go.signature.Signature [] false [go.bool]))), (go!"Index", (some (go.signature.Signature [] false [go.int]))), (go!"IsExtension", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLazy", (some (go.signature.Signature [] false [go.bool]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMap", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPacked", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPlaceholder", (some (go.signature.Signature [] false [go.bool]))), (go!"IsWeak", (some (go.signature.Signature [] false [go.bool]))), (go!"JSONName", (some (go.signature.Signature [] false [go.string]))), (go!"Kind", none), (go!"MapKey", none), (go!"MapValue", none), (go!"Message", none), (go!"Name", none), (go!"Number", none), (go!"Options", none), (go!"Parent", none), (go!"ParentFile", none), (go!"ProtoInternal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotImplement.ty] false []))), (go!"ProtoType", none), (go!"Syntax", none), (go!"TextName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] placeholderExtension.TypeAssumptions.type_repr
   placeholderExtension.TypeAssumptions.underlying
   placeholderExtension.TypeAssumptions.isUnderlying
+  placeholderExtension.TypeAssumptions.method_set
+  placeholderExtension.TypeAssumptions.ptr_method_set
 
 axiom enumV1 : Type
 axiom enumV1.zero_val : ZeroVal enumV1
@@ -4120,10 +4276,14 @@ class enumV1.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying enumV1.underlying enumV1
   underlying : go.UnderlyingDirectedEq enumV1.ty enumV1.underlying
   isUnderlying : go.IsUnderlying enumV1.underlying enumV1.underlying
+  method_set : go.MethodSetIs enumV1.ty [(go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType enumV1.ty) []
 
 attribute [instance] enumV1.TypeAssumptions.type_repr
   enumV1.TypeAssumptions.underlying
   enumV1.TypeAssumptions.isUnderlying
+  enumV1.TypeAssumptions.method_set
+  enumV1.TypeAssumptions.ptr_method_set
 
 axiom messageV1 : Type
 axiom messageV1.zero_val : ZeroVal messageV1
@@ -4133,10 +4293,14 @@ class messageV1.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying messageV1.underlying messageV1
   underlying : go.UnderlyingDirectedEq messageV1.ty messageV1.underlying
   isUnderlying : go.IsUnderlying messageV1.underlying messageV1.underlying
+  method_set : go.MethodSetIs messageV1.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageV1.ty) []
 
 attribute [instance] messageV1.TypeAssumptions.type_repr
   messageV1.TypeAssumptions.underlying
   messageV1.TypeAssumptions.isUnderlying
+  messageV1.TypeAssumptions.method_set
+  messageV1.TypeAssumptions.ptr_method_set
 
 axiom resolverOnly : Type
 axiom resolverOnly.zero_val : ZeroVal resolverOnly
@@ -4146,10 +4310,14 @@ class resolverOnly.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying resolverOnly.underlying resolverOnly
   underlying : go.UnderlyingDirectedEq resolverOnly.ty resolverOnly.underlying
   isUnderlying : go.IsUnderlying resolverOnly.underlying resolverOnly.underlying
+  method_set : go.MethodSetIs resolverOnly.ty [(go!"FindDescriptorByName", none), (go!"FindFileByPath", none), (go!"RegisterFile", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resolverOnly.ty) [(go!"FindDescriptorByName", none), (go!"FindFileByPath", none), (go!"RegisterFile", none)]
 
 attribute [instance] resolverOnly.TypeAssumptions.type_repr
   resolverOnly.TypeAssumptions.underlying
   resolverOnly.TypeAssumptions.isUnderlying
+  resolverOnly.TypeAssumptions.method_set
+  resolverOnly.TypeAssumptions.ptr_method_set
 
 axiom placeholderEnumValues : Type
 axiom placeholderEnumValues.zero_val : ZeroVal placeholderEnumValues
@@ -4159,10 +4327,14 @@ class placeholderEnumValues.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying placeholderEnumValues.underlying placeholderEnumValues
   underlying : go.UnderlyingDirectedEq placeholderEnumValues.ty placeholderEnumValues.underlying
   isUnderlying : go.IsUnderlying placeholderEnumValues.underlying placeholderEnumValues.underlying
+  method_set : go.MethodSetIs placeholderEnumValues.ty [(go!"ByName", none), (go!"ByNumber", none), (go!"Get", none), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotImplement.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType placeholderEnumValues.ty) [(go!"ByName", none), (go!"ByNumber", none), (go!"Get", none), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ProtoInternal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotImplement.ty] false [])))]
 
 attribute [instance] placeholderEnumValues.TypeAssumptions.type_repr
   placeholderEnumValues.TypeAssumptions.underlying
   placeholderEnumValues.TypeAssumptions.isUnderlying
+  placeholderEnumValues.TypeAssumptions.method_set
+  placeholderEnumValues.TypeAssumptions.ptr_method_set
 
 axiom legacyMarshaler : Type
 axiom legacyMarshaler.zero_val : ZeroVal legacyMarshaler
@@ -4172,10 +4344,14 @@ class legacyMarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying legacyMarshaler.underlying legacyMarshaler
   underlying : go.UnderlyingDirectedEq legacyMarshaler.ty legacyMarshaler.underlying
   isUnderlying : go.IsUnderlying legacyMarshaler.underlying legacyMarshaler.underlying
+  method_set : go.MethodSetIs legacyMarshaler.ty [(go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType legacyMarshaler.ty) []
 
 attribute [instance] legacyMarshaler.TypeAssumptions.type_repr
   legacyMarshaler.TypeAssumptions.underlying
   legacyMarshaler.TypeAssumptions.isUnderlying
+  legacyMarshaler.TypeAssumptions.method_set
+  legacyMarshaler.TypeAssumptions.ptr_method_set
 
 axiom legacyUnmarshaler : Type
 axiom legacyUnmarshaler.zero_val : ZeroVal legacyUnmarshaler
@@ -4185,10 +4361,14 @@ class legacyUnmarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying legacyUnmarshaler.underlying legacyUnmarshaler
   underlying : go.UnderlyingDirectedEq legacyUnmarshaler.ty legacyUnmarshaler.underlying
   isUnderlying : go.IsUnderlying legacyUnmarshaler.underlying legacyUnmarshaler.underlying
+  method_set : go.MethodSetIs legacyUnmarshaler.ty [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType legacyUnmarshaler.ty) []
 
 attribute [instance] legacyUnmarshaler.TypeAssumptions.type_repr
   legacyUnmarshaler.TypeAssumptions.underlying
   legacyUnmarshaler.TypeAssumptions.isUnderlying
+  legacyUnmarshaler.TypeAssumptions.method_set
+  legacyUnmarshaler.TypeAssumptions.ptr_method_set
 
 axiom legacyMerger : Type
 axiom legacyMerger.zero_val : ZeroVal legacyMerger
@@ -4198,10 +4378,14 @@ class legacyMerger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying legacyMerger.underlying legacyMerger
   underlying : go.UnderlyingDirectedEq legacyMerger.ty legacyMerger.underlying
   isUnderlying : go.IsUnderlying legacyMerger.underlying legacyMerger.underlying
+  method_set : go.MethodSetIs legacyMerger.ty [(go!"Merge", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType legacyMerger.ty) []
 
 attribute [instance] legacyMerger.TypeAssumptions.type_repr
   legacyMerger.TypeAssumptions.underlying
   legacyMerger.TypeAssumptions.isUnderlying
+  legacyMerger.TypeAssumptions.method_set
+  legacyMerger.TypeAssumptions.ptr_method_set
 
 axiom aberrantMessageType : Type
 axiom aberrantMessageType.zero_val : ZeroVal aberrantMessageType
@@ -4211,10 +4395,14 @@ class aberrantMessageType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying aberrantMessageType.underlying aberrantMessageType
   underlying : go.UnderlyingDirectedEq aberrantMessageType.ty aberrantMessageType.underlying
   isUnderlying : go.IsUnderlying aberrantMessageType.underlying aberrantMessageType.underlying
+  method_set : go.MethodSetIs aberrantMessageType.ty [(go!"Descriptor", none), (go!"GoType", none), (go!"New", none), (go!"Zero", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aberrantMessageType.ty) [(go!"Descriptor", none), (go!"GoType", none), (go!"New", none), (go!"Zero", none)]
 
 attribute [instance] aberrantMessageType.TypeAssumptions.type_repr
   aberrantMessageType.TypeAssumptions.underlying
   aberrantMessageType.TypeAssumptions.isUnderlying
+  aberrantMessageType.TypeAssumptions.method_set
+  aberrantMessageType.TypeAssumptions.ptr_method_set
 
 axiom aberrantMessage : Type
 axiom aberrantMessage.zero_val : ZeroVal aberrantMessage
@@ -4224,10 +4412,14 @@ class aberrantMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying aberrantMessage.underlying aberrantMessage
   underlying : go.UnderlyingDirectedEq aberrantMessage.ty aberrantMessage.underlying
   isUnderlying : go.IsUnderlying aberrantMessage.underlying aberrantMessage.underlying
+  method_set : go.MethodSetIs aberrantMessage.ty [(go!"Clear", none), (go!"Descriptor", none), (go!"Get", none), (go!"GetUnknown", none), (go!"Has", none), (go!"Interface", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", none), (go!"New", none), (go!"NewField", none), (go!"ProtoMethods", none), (go!"ProtoReflect", none), (go!"Range", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Set", none), (go!"SetUnknown", none), (go!"Type", none), (go!"WhichOneof", none), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType aberrantMessage.ty) [(go!"Clear", none), (go!"Descriptor", none), (go!"Get", none), (go!"GetUnknown", none), (go!"Has", none), (go!"Interface", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", none), (go!"New", none), (go!"NewField", none), (go!"ProtoMethods", none), (go!"ProtoReflect", none), (go!"Range", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Set", none), (go!"SetUnknown", none), (go!"Type", none), (go!"WhichOneof", none), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] aberrantMessage.TypeAssumptions.type_repr
   aberrantMessage.TypeAssumptions.underlying
   aberrantMessage.TypeAssumptions.isUnderlying
+  aberrantMessage.TypeAssumptions.method_set
+  aberrantMessage.TypeAssumptions.ptr_method_set
 
 axiom mergeOptions : Type
 axiom mergeOptions.zero_val : ZeroVal mergeOptions
@@ -4237,10 +4429,14 @@ class mergeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying mergeOptions.underlying mergeOptions
   underlying : go.UnderlyingDirectedEq mergeOptions.ty mergeOptions.underlying
   isUnderlying : go.IsUnderlying mergeOptions.underlying mergeOptions.underlying
+  method_set : go.MethodSetIs mergeOptions.ty [(go!"Merge", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mergeOptions.ty) [(go!"Merge", none)]
 
 attribute [instance] mergeOptions.TypeAssumptions.type_repr
   mergeOptions.TypeAssumptions.underlying
   mergeOptions.TypeAssumptions.isUnderlying
+  mergeOptions.TypeAssumptions.method_set
+  mergeOptions.TypeAssumptions.ptr_method_set
 
 axiom MessageInfo : Type
 axiom MessageInfo.zero_val : ZeroVal MessageInfo
@@ -4250,10 +4446,14 @@ class MessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying MessageInfo.underlying MessageInfo
   underlying : go.UnderlyingDirectedEq MessageInfo.ty MessageInfo.underlying
   isUnderlying : go.IsUnderlying MessageInfo.underlying MessageInfo.underlying
+  method_set : go.MethodSetIs MessageInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageInfo.ty) [(go!"Descriptor", none), (go!"Enum", none), (go!"Message", none), (go!"MessageOf", none), (go!"New", none), (go!"Zero", none), (go!"google.golang.org/protobuf/internal/impl.appendExtensions", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.MapType go.int32 ExtensionField.ty)), marshalOptions.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/internal/impl.checkField", none), (go!"google.golang.org/protobuf/internal/impl.checkInitialized", none), (go!"google.golang.org/protobuf/internal/impl.checkInitializedPointer", (some (go.signature.Signature [pointer.ty] false [go.error]))), (go!"google.golang.org/protobuf/internal/impl.clearPresent", (some (go.signature.Signature [pointer.ty, go.uint32] false []))), (go!"google.golang.org/protobuf/internal/impl.fieldInfoForMapOpaque", none), (go!"google.golang.org/protobuf/internal/impl.fieldInfoForMessageListOpaque", none), (go!"google.golang.org/protobuf/internal/impl.fieldInfoForMessageListOpaqueNoPresence", none), (go!"google.golang.org/protobuf/internal/impl.fieldInfoForMessageOpaque", none), (go!"google.golang.org/protobuf/internal/impl.fieldInfoForScalarListOpaque", none), (go!"google.golang.org/protobuf/internal/impl.fieldInfoForScalarOpaque", none), (go!"google.golang.org/protobuf/internal/impl.getPointer", none), (go!"google.golang.org/protobuf/internal/impl.getUnknownBytes", (some (go.signature.Signature [pointer.ty] false [(go.GoType.PointerType (go.GoType.SliceType go.byte))]))), (go!"google.golang.org/protobuf/internal/impl.init", (some (go.signature.Signature [] false []))), (go!"google.golang.org/protobuf/internal/impl.initOnce", (some (go.signature.Signature [] false []))), (go!"google.golang.org/protobuf/internal/impl.initOneofFieldCoders", none), (go!"google.golang.org/protobuf/internal/impl.isInitExtensions", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.MapType go.int32 ExtensionField.ty))] false [go.error]))), (go!"google.golang.org/protobuf/internal/impl.lazyUnmarshal", none), (go!"google.golang.org/protobuf/internal/impl.makeCoderMethods", none), (go!"google.golang.org/protobuf/internal/impl.makeExtensionFieldsFunc", none), (go!"google.golang.org/protobuf/internal/impl.makeFieldTypes", (some (go.signature.Signature [structInfo.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.makeKnownFieldsFunc", (some (go.signature.Signature [structInfo.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.makeOpaqueCoderMethods", none), (go!"google.golang.org/protobuf/internal/impl.makeReflectFuncs", none), (go!"google.golang.org/protobuf/internal/impl.makeStructInfo", none), (go!"google.golang.org/protobuf/internal/impl.makeUnknownFieldsFunc", none), (go!"google.golang.org/protobuf/internal/impl.marshal", none), (go!"google.golang.org/protobuf/internal/impl.marshalAppendPointer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), pointer.ty, marshalOptions.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/internal/impl.merge", none), (go!"google.golang.org/protobuf/internal/impl.mergePointer", (some (go.signature.Signature [pointer.ty, pointer.ty, mergeOptions.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.mutableUnknownBytes", (some (go.signature.Signature [pointer.ty] false [(go.GoType.PointerType (go.GoType.SliceType go.byte))]))), (go!"google.golang.org/protobuf/internal/impl.present", (some (go.signature.Signature [pointer.ty, go.uint32] false [go.bool]))), (go!"google.golang.org/protobuf/internal/impl.setPresent", (some (go.signature.Signature [pointer.ty, go.uint32] false []))), (go!"google.golang.org/protobuf/internal/impl.size", none), (go!"google.golang.org/protobuf/internal/impl.sizeExtensions", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.MapType go.int32 ExtensionField.ty)), marshalOptions.ty] false [go.int]))), (go!"google.golang.org/protobuf/internal/impl.sizePointer", (some (go.signature.Signature [pointer.ty, marshalOptions.ty] false [go.int]))), (go!"google.golang.org/protobuf/internal/impl.sizePointerSlow", (some (go.signature.Signature [pointer.ty, marshalOptions.ty] false [go.int]))), (go!"google.golang.org/protobuf/internal/impl.skipField", none), (go!"google.golang.org/protobuf/internal/impl.unmarshal", none), (go!"google.golang.org/protobuf/internal/impl.unmarshalExtension", none), (go!"google.golang.org/protobuf/internal/impl.unmarshalField", none), (go!"google.golang.org/protobuf/internal/impl.unmarshalPointer", none), (go!"google.golang.org/protobuf/internal/impl.unmarshalPointerEager", none), (go!"google.golang.org/protobuf/internal/impl.unmarshalPointerLazy", none), (go!"google.golang.org/protobuf/internal/impl.validate", none)]
 
 attribute [instance] MessageInfo.TypeAssumptions.type_repr
   MessageInfo.TypeAssumptions.underlying
   MessageInfo.TypeAssumptions.isUnderlying
+  MessageInfo.TypeAssumptions.method_set
+  MessageInfo.TypeAssumptions.ptr_method_set
 
 axiom exporter : Type
 axiom exporter.zero_val : ZeroVal exporter
@@ -4263,10 +4463,14 @@ class exporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying exporter.underlying exporter
   underlying : go.UnderlyingDirectedEq exporter.ty exporter.underlying
   isUnderlying : go.IsUnderlying exporter.underlying exporter.underlying
+  method_set : go.MethodSetIs exporter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exporter.ty) []
 
 attribute [instance] exporter.TypeAssumptions.type_repr
   exporter.TypeAssumptions.underlying
   exporter.TypeAssumptions.isUnderlying
+  exporter.TypeAssumptions.method_set
+  exporter.TypeAssumptions.ptr_method_set
 
 axiom structInfo : Type
 axiom structInfo.zero_val : ZeroVal structInfo
@@ -4276,10 +4480,14 @@ class structInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying structInfo.underlying structInfo
   underlying : go.UnderlyingDirectedEq structInfo.ty structInfo.underlying
   isUnderlying : go.IsUnderlying structInfo.underlying structInfo.underlying
+  method_set : go.MethodSetIs structInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType structInfo.ty) []
 
 attribute [instance] structInfo.TypeAssumptions.type_repr
   structInfo.TypeAssumptions.underlying
   structInfo.TypeAssumptions.isUnderlying
+  structInfo.TypeAssumptions.method_set
+  structInfo.TypeAssumptions.ptr_method_set
 
 axiom mapEntryType : Type
 axiom mapEntryType.zero_val : ZeroVal mapEntryType
@@ -4289,10 +4497,14 @@ class mapEntryType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying mapEntryType.underlying mapEntryType
   underlying : go.UnderlyingDirectedEq mapEntryType.ty mapEntryType.underlying
   isUnderlying : go.IsUnderlying mapEntryType.underlying mapEntryType.underlying
+  method_set : go.MethodSetIs mapEntryType.ty [(go!"Descriptor", none), (go!"Enum", none), (go!"Message", none), (go!"New", none), (go!"Zero", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapEntryType.ty) [(go!"Descriptor", none), (go!"Enum", none), (go!"Message", none), (go!"New", none), (go!"Zero", none)]
 
 attribute [instance] mapEntryType.TypeAssumptions.type_repr
   mapEntryType.TypeAssumptions.underlying
   mapEntryType.TypeAssumptions.isUnderlying
+  mapEntryType.TypeAssumptions.method_set
+  mapEntryType.TypeAssumptions.ptr_method_set
 
 axiom opaqueStructInfo : Type
 axiom opaqueStructInfo.zero_val : ZeroVal opaqueStructInfo
@@ -4302,10 +4514,14 @@ class opaqueStructInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying opaqueStructInfo.underlying opaqueStructInfo
   underlying : go.UnderlyingDirectedEq opaqueStructInfo.ty opaqueStructInfo.underlying
   isUnderlying : go.IsUnderlying opaqueStructInfo.underlying opaqueStructInfo.underlying
+  method_set : go.MethodSetIs opaqueStructInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType opaqueStructInfo.ty) []
 
 attribute [instance] opaqueStructInfo.TypeAssumptions.type_repr
   opaqueStructInfo.TypeAssumptions.underlying
   opaqueStructInfo.TypeAssumptions.isUnderlying
+  opaqueStructInfo.TypeAssumptions.method_set
+  opaqueStructInfo.TypeAssumptions.ptr_method_set
 
 axiom presenceList : Type
 axiom presenceList.zero_val : ZeroVal presenceList
@@ -4315,10 +4531,14 @@ class presenceList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying presenceList.underlying presenceList
   underlying : go.UnderlyingDirectedEq presenceList.ty presenceList.underlying
   isUnderlying : go.IsUnderlying presenceList.underlying presenceList.underlying
+  method_set : go.MethodSetIs presenceList.ty [(go!"Append", none), (go!"AppendMutable", none), (go!"Get", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NewElement", none), (go!"Set", none), (go!"Truncate", (some (go.signature.Signature [go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType presenceList.ty) [(go!"Append", none), (go!"AppendMutable", none), (go!"Get", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NewElement", none), (go!"Set", none), (go!"Truncate", (some (go.signature.Signature [go.int] false [])))]
 
 attribute [instance] presenceList.TypeAssumptions.type_repr
   presenceList.TypeAssumptions.underlying
   presenceList.TypeAssumptions.isUnderlying
+  presenceList.TypeAssumptions.method_set
+  presenceList.TypeAssumptions.ptr_method_set
 
 axiom pvalueList : Type
 axiom pvalueList.zero_val : ZeroVal pvalueList
@@ -4328,10 +4548,14 @@ class pvalueList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying pvalueList.underlying pvalueList
   underlying : go.UnderlyingDirectedEq pvalueList.ty pvalueList.underlying
   isUnderlying : go.IsUnderlying pvalueList.underlying pvalueList.underlying
+  method_set : go.MethodSetIs pvalueList.ty [(go!"Append", none), (go!"AppendMutable", none), (go!"Get", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NewElement", none), (go!"Set", none), (go!"Truncate", (some (go.signature.Signature [go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pvalueList.ty) []
 
 attribute [instance] pvalueList.TypeAssumptions.type_repr
   pvalueList.TypeAssumptions.underlying
   pvalueList.TypeAssumptions.isUnderlying
+  pvalueList.TypeAssumptions.method_set
+  pvalueList.TypeAssumptions.ptr_method_set
 
 axiom reflectMessageInfo : Type
 axiom reflectMessageInfo.zero_val : ZeroVal reflectMessageInfo
@@ -4341,10 +4565,14 @@ class reflectMessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying reflectMessageInfo.underlying reflectMessageInfo
   underlying : go.UnderlyingDirectedEq reflectMessageInfo.ty reflectMessageInfo.underlying
   isUnderlying : go.IsUnderlying reflectMessageInfo.underlying reflectMessageInfo.underlying
+  method_set : go.MethodSetIs reflectMessageInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType reflectMessageInfo.ty) []
 
 attribute [instance] reflectMessageInfo.TypeAssumptions.type_repr
   reflectMessageInfo.TypeAssumptions.underlying
   reflectMessageInfo.TypeAssumptions.isUnderlying
+  reflectMessageInfo.TypeAssumptions.method_set
+  reflectMessageInfo.TypeAssumptions.ptr_method_set
 
 axiom extensionMap : Type
 axiom extensionMap.zero_val : ZeroVal extensionMap
@@ -4354,10 +4582,14 @@ class extensionMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying extensionMap.underlying extensionMap
   underlying : go.UnderlyingDirectedEq extensionMap.ty extensionMap.underlying
   isUnderlying : go.IsUnderlying extensionMap.underlying extensionMap.underlying
+  method_set : go.MethodSetIs extensionMap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType extensionMap.ty) [(go!"Clear", none), (go!"Get", none), (go!"Has", none), (go!"Mutable", none), (go!"Range", none), (go!"Set", none)]
 
 attribute [instance] extensionMap.TypeAssumptions.type_repr
   extensionMap.TypeAssumptions.underlying
   extensionMap.TypeAssumptions.isUnderlying
+  extensionMap.TypeAssumptions.method_set
+  extensionMap.TypeAssumptions.ptr_method_set
 
 structure MessageState [FfiSyntax] where
   mk ::
@@ -4396,6 +4628,8 @@ class MessageState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_DoNotCopy : ∀ (x : MessageState) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"DoNotCopy") (PairV #x #y) (Val #(({ x with DoNotCopy' := y } : MessageState)))
   get_atomicMessageInfo : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"atomicMessageInfo") #x (Val #(x.atomicMessageInfo'))
   set_atomicMessageInfo : ∀ (x : MessageState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet MessageState.underlying go!"atomicMessageInfo") (PairV #x #y) (Val #(({ x with atomicMessageInfo' := y } : MessageState)))
+  method_set : go.MethodSetIs MessageState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MessageState.ty) []
 
 attribute [instance] MessageState.TypeAssumptions.type_repr
   MessageState.TypeAssumptions.underlying
@@ -4407,6 +4641,8 @@ attribute [instance] MessageState.TypeAssumptions.type_repr
   MessageState.TypeAssumptions.set_DoNotCopy
   MessageState.TypeAssumptions.get_atomicMessageInfo
   MessageState.TypeAssumptions.set_atomicMessageInfo
+  MessageState.TypeAssumptions.method_set
+  MessageState.TypeAssumptions.ptr_method_set
 
 axiom messageState : Type
 axiom messageState.zero_val : ZeroVal messageState
@@ -4416,10 +4652,14 @@ class messageState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying messageState.underlying messageState
   underlying : go.UnderlyingDirectedEq messageState.ty messageState.underlying
   isUnderlying : go.IsUnderlying messageState.underlying messageState.underlying
+  method_set : go.MethodSetIs messageState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageState.ty) [(go!"Clear", none), (go!"Descriptor", none), (go!"Get", none), (go!"GetUnknown", none), (go!"Has", none), (go!"Interface", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"LoadMessageInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageInfo.ty)]))), (go!"Mutable", none), (go!"New", none), (go!"NewField", none), (go!"ProtoMessageInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageInfo.ty)]))), (go!"ProtoMethods", none), (go!"Range", none), (go!"Set", none), (go!"SetUnknown", none), (go!"StoreMessageInfo", (some (go.signature.Signature [(go.GoType.PointerType MessageInfo.ty)] false []))), (go!"Type", none), (go!"WhichOneof", none), (go!"google.golang.org/protobuf/internal/impl.messageInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageInfo.ty)]))), (go!"google.golang.org/protobuf/internal/impl.pointer", (some (go.signature.Signature [] false [pointer.ty]))), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] messageState.TypeAssumptions.type_repr
   messageState.TypeAssumptions.underlying
   messageState.TypeAssumptions.isUnderlying
+  messageState.TypeAssumptions.method_set
+  messageState.TypeAssumptions.ptr_method_set
 
 axiom messageDataType : Type
 axiom messageDataType.zero_val : ZeroVal messageDataType
@@ -4429,10 +4669,14 @@ class messageDataType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying messageDataType.underlying messageDataType
   underlying : go.UnderlyingDirectedEq messageDataType.ty messageDataType.underlying
   isUnderlying : go.IsUnderlying messageDataType.underlying messageDataType.underlying
+  method_set : go.MethodSetIs messageDataType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageDataType.ty) []
 
 attribute [instance] messageDataType.TypeAssumptions.type_repr
   messageDataType.TypeAssumptions.underlying
   messageDataType.TypeAssumptions.isUnderlying
+  messageDataType.TypeAssumptions.method_set
+  messageDataType.TypeAssumptions.ptr_method_set
 
 axiom messageReflectWrapper : Type
 axiom messageReflectWrapper.zero_val : ZeroVal messageReflectWrapper
@@ -4442,10 +4686,14 @@ class messageReflectWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying messageReflectWrapper.underlying messageReflectWrapper
   underlying : go.UnderlyingDirectedEq messageReflectWrapper.ty messageReflectWrapper.underlying
   isUnderlying : go.IsUnderlying messageReflectWrapper.underlying messageReflectWrapper.underlying
+  method_set : go.MethodSetIs messageReflectWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageReflectWrapper.ty) [(go!"Clear", none), (go!"Descriptor", none), (go!"Get", none), (go!"GetUnknown", none), (go!"Has", none), (go!"Interface", none), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", none), (go!"New", none), (go!"NewField", none), (go!"ProtoMessageInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageInfo.ty)]))), (go!"ProtoMethods", none), (go!"Range", none), (go!"Set", none), (go!"SetUnknown", none), (go!"Type", none), (go!"WhichOneof", none), (go!"google.golang.org/protobuf/internal/impl.messageInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType MessageInfo.ty)]))), (go!"google.golang.org/protobuf/internal/impl.pointer", (some (go.signature.Signature [] false [pointer.ty]))), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] messageReflectWrapper.TypeAssumptions.type_repr
   messageReflectWrapper.TypeAssumptions.underlying
   messageReflectWrapper.TypeAssumptions.isUnderlying
+  messageReflectWrapper.TypeAssumptions.method_set
+  messageReflectWrapper.TypeAssumptions.ptr_method_set
 
 axiom messageIfaceWrapper : Type
 axiom messageIfaceWrapper.zero_val : ZeroVal messageIfaceWrapper
@@ -4455,10 +4703,14 @@ class messageIfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying messageIfaceWrapper.underlying messageIfaceWrapper
   underlying : go.UnderlyingDirectedEq messageIfaceWrapper.ty messageIfaceWrapper.underlying
   isUnderlying : go.IsUnderlying messageIfaceWrapper.underlying messageIfaceWrapper.underlying
+  method_set : go.MethodSetIs messageIfaceWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageIfaceWrapper.ty) [(go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"google.golang.org/protobuf/internal/impl.protoUnwrap", (some (go.signature.Signature [] false [go.any])))]
 
 attribute [instance] messageIfaceWrapper.TypeAssumptions.type_repr
   messageIfaceWrapper.TypeAssumptions.underlying
   messageIfaceWrapper.TypeAssumptions.isUnderlying
+  messageIfaceWrapper.TypeAssumptions.method_set
+  messageIfaceWrapper.TypeAssumptions.ptr_method_set
 
 axiom fieldInfo : Type
 axiom fieldInfo.zero_val : ZeroVal fieldInfo
@@ -4468,10 +4720,14 @@ class fieldInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying fieldInfo.underlying fieldInfo
   underlying : go.UnderlyingDirectedEq fieldInfo.ty fieldInfo.underlying
   isUnderlying : go.IsUnderlying fieldInfo.underlying fieldInfo.underlying
+  method_set : go.MethodSetIs fieldInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fieldInfo.ty) []
 
 attribute [instance] fieldInfo.TypeAssumptions.type_repr
   fieldInfo.TypeAssumptions.underlying
   fieldInfo.TypeAssumptions.isUnderlying
+  fieldInfo.TypeAssumptions.method_set
+  fieldInfo.TypeAssumptions.ptr_method_set
 
 axiom oneofInfo : Type
 axiom oneofInfo.zero_val : ZeroVal oneofInfo
@@ -4481,10 +4737,14 @@ class oneofInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying oneofInfo.underlying oneofInfo
   underlying : go.UnderlyingDirectedEq oneofInfo.ty oneofInfo.underlying
   isUnderlying : go.IsUnderlying oneofInfo.underlying oneofInfo.underlying
+  method_set : go.MethodSetIs oneofInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType oneofInfo.ty) []
 
 attribute [instance] oneofInfo.TypeAssumptions.type_repr
   oneofInfo.TypeAssumptions.underlying
   oneofInfo.TypeAssumptions.isUnderlying
+  oneofInfo.TypeAssumptions.method_set
+  oneofInfo.TypeAssumptions.ptr_method_set
 
 axiom Pointer : Type
 axiom Pointer.zero_val : ZeroVal Pointer
@@ -4494,10 +4754,14 @@ class Pointer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Pointer.underlying Pointer
   underlying : go.UnderlyingDirectedEq Pointer.ty Pointer.underlying
   isUnderlying : go.IsUnderlying Pointer.underlying Pointer.underlying
+  method_set : go.MethodSetIs Pointer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pointer.ty) []
 
 attribute [instance] Pointer.TypeAssumptions.type_repr
   Pointer.TypeAssumptions.underlying
   Pointer.TypeAssumptions.isUnderlying
+  Pointer.TypeAssumptions.method_set
+  Pointer.TypeAssumptions.ptr_method_set
 
 axiom offset : Type
 axiom offset.zero_val : ZeroVal offset
@@ -4507,10 +4771,14 @@ class offset.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying offset.underlying offset
   underlying : go.UnderlyingDirectedEq offset.ty offset.underlying
   isUnderlying : go.IsUnderlying offset.underlying offset.underlying
+  method_set : go.MethodSetIs offset.ty [(go!"IsValid", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType offset.ty) [(go!"IsValid", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] offset.TypeAssumptions.type_repr
   offset.TypeAssumptions.underlying
   offset.TypeAssumptions.isUnderlying
+  offset.TypeAssumptions.method_set
+  offset.TypeAssumptions.ptr_method_set
 
 axiom pointer : Type
 axiom pointer.zero_val : ZeroVal pointer
@@ -4520,10 +4788,14 @@ class pointer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying pointer.underlying pointer
   underlying : go.UnderlyingDirectedEq pointer.ty pointer.underlying
   isUnderlying : go.IsUnderlying pointer.underlying pointer.underlying
+  method_set : go.MethodSetIs pointer.ty [(go!"AppendPointerSlice", (some (go.signature.Signature [pointer.ty] false []))), (go!"Apply", (some (go.signature.Signature [offset.ty] false [pointer.ty]))), (go!"AsIfaceOf", none), (go!"AsValueOf", none), (go!"AtomicGetPointer", (some (go.signature.Signature [] false [pointer.ty]))), (go!"AtomicSetNilPointer", (some (go.signature.Signature [] false []))), (go!"AtomicSetPointer", (some (go.signature.Signature [pointer.ty] false []))), (go!"AtomicSetPointerIfNil", (some (go.signature.Signature [pointer.ty] false [pointer.ty]))), (go!"Bool", (some (go.signature.Signature [] false [(go.GoType.PointerType go.bool)]))), (go!"BoolPtr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.bool))]))), (go!"BoolSlice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.bool))]))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.byte))]))), (go!"BytesPtr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType (go.GoType.SliceType go.byte)))]))), (go!"BytesSlice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType (go.GoType.SliceType go.byte)))]))), (go!"Elem", (some (go.signature.Signature [] false [pointer.ty]))), (go!"Extensions", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.MapType go.int32 ExtensionField.ty))]))), (go!"Float32", (some (go.signature.Signature [] false [(go.GoType.PointerType go.float32)]))), (go!"Float32Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.float32))]))), (go!"Float32Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.float32))]))), (go!"Float64", (some (go.signature.Signature [] false [(go.GoType.PointerType go.float64)]))), (go!"Float64Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.float64))]))), (go!"Float64Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.float64))]))), (go!"Int32", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int32)]))), (go!"Int32Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.int32))]))), (go!"Int32Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.int32))]))), (go!"Int64", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"Int64Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.int64))]))), (go!"Int64Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.int64))]))), (go!"IsNil", (some (go.signature.Signature [] false [go.bool]))), (go!"LazyInfoPtr", none), (go!"PointerSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType pointer.ty)]))), (go!"PresenceInfo", (some (go.signature.Signature [] false [presence.ty]))), (go!"SetPointer", (some (go.signature.Signature [pointer.ty] false []))), (go!"String", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"StringPtr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.string))]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.string))]))), (go!"Uint32", (some (go.signature.Signature [] false [(go.GoType.PointerType go.uint32)]))), (go!"Uint32Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.uint32))]))), (go!"Uint32Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.uint32))]))), (go!"Uint64", (some (go.signature.Signature [] false [(go.GoType.PointerType go.uint64)]))), (go!"Uint64Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.uint64))]))), (go!"Uint64Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.uint64))]))), (go!"google.golang.org/protobuf/internal/impl.atomicGetPointer", (some (go.signature.Signature [] false [pointer.ty]))), (go!"google.golang.org/protobuf/internal/impl.atomicSetPointer", (some (go.signature.Signature [pointer.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.growBoolSlice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growFloat32Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growFloat64Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growInt32Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growInt64Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growUint32Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growUint64Slice", (some (go.signature.Signature [go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pointer.ty) [(go!"AppendPointerSlice", (some (go.signature.Signature [pointer.ty] false []))), (go!"Apply", (some (go.signature.Signature [offset.ty] false [pointer.ty]))), (go!"AsIfaceOf", none), (go!"AsValueOf", none), (go!"AtomicGetPointer", (some (go.signature.Signature [] false [pointer.ty]))), (go!"AtomicSetNilPointer", (some (go.signature.Signature [] false []))), (go!"AtomicSetPointer", (some (go.signature.Signature [pointer.ty] false []))), (go!"AtomicSetPointerIfNil", (some (go.signature.Signature [pointer.ty] false [pointer.ty]))), (go!"Bool", (some (go.signature.Signature [] false [(go.GoType.PointerType go.bool)]))), (go!"BoolPtr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.bool))]))), (go!"BoolSlice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.bool))]))), (go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.byte))]))), (go!"BytesPtr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType (go.GoType.SliceType go.byte)))]))), (go!"BytesSlice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType (go.GoType.SliceType go.byte)))]))), (go!"Elem", (some (go.signature.Signature [] false [pointer.ty]))), (go!"Extensions", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.MapType go.int32 ExtensionField.ty))]))), (go!"Float32", (some (go.signature.Signature [] false [(go.GoType.PointerType go.float32)]))), (go!"Float32Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.float32))]))), (go!"Float32Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.float32))]))), (go!"Float64", (some (go.signature.Signature [] false [(go.GoType.PointerType go.float64)]))), (go!"Float64Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.float64))]))), (go!"Float64Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.float64))]))), (go!"Int32", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int32)]))), (go!"Int32Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.int32))]))), (go!"Int32Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.int32))]))), (go!"Int64", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"Int64Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.int64))]))), (go!"Int64Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.int64))]))), (go!"IsNil", (some (go.signature.Signature [] false [go.bool]))), (go!"LazyInfoPtr", none), (go!"PointerSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType pointer.ty)]))), (go!"PresenceInfo", (some (go.signature.Signature [] false [presence.ty]))), (go!"SetPointer", (some (go.signature.Signature [pointer.ty] false []))), (go!"String", (some (go.signature.Signature [] false [(go.GoType.PointerType go.string)]))), (go!"StringPtr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.string))]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.string))]))), (go!"Uint32", (some (go.signature.Signature [] false [(go.GoType.PointerType go.uint32)]))), (go!"Uint32Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.uint32))]))), (go!"Uint32Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.uint32))]))), (go!"Uint64", (some (go.signature.Signature [] false [(go.GoType.PointerType go.uint64)]))), (go!"Uint64Ptr", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.PointerType go.uint64))]))), (go!"Uint64Slice", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.SliceType go.uint64))]))), (go!"google.golang.org/protobuf/internal/impl.atomicGetPointer", (some (go.signature.Signature [] false [pointer.ty]))), (go!"google.golang.org/protobuf/internal/impl.atomicSetPointer", (some (go.signature.Signature [pointer.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.growBoolSlice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growFloat32Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growFloat64Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growInt32Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growInt64Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growUint32Slice", (some (go.signature.Signature [go.int] false []))), (go!"google.golang.org/protobuf/internal/impl.growUint64Slice", (some (go.signature.Signature [go.int] false [])))]
 
 attribute [instance] pointer.TypeAssumptions.type_repr
   pointer.TypeAssumptions.underlying
   pointer.TypeAssumptions.isUnderlying
+  pointer.TypeAssumptions.method_set
+  pointer.TypeAssumptions.ptr_method_set
 
 axiom atomicNilMessage : Type
 axiom atomicNilMessage.zero_val : ZeroVal atomicNilMessage
@@ -4533,10 +4805,14 @@ class atomicNilMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying atomicNilMessage.underlying atomicNilMessage
   underlying : go.UnderlyingDirectedEq atomicNilMessage.ty atomicNilMessage.underlying
   isUnderlying : go.IsUnderlying atomicNilMessage.underlying atomicNilMessage.underlying
+  method_set : go.MethodSetIs atomicNilMessage.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType atomicNilMessage.ty) [(go!"Init", (some (go.signature.Signature [(go.GoType.PointerType MessageInfo.ty)] false [(go.GoType.PointerType messageReflectWrapper.ty)])))]
 
 attribute [instance] atomicNilMessage.TypeAssumptions.type_repr
   atomicNilMessage.TypeAssumptions.underlying
   atomicNilMessage.TypeAssumptions.isUnderlying
+  atomicNilMessage.TypeAssumptions.method_set
+  atomicNilMessage.TypeAssumptions.ptr_method_set
 
 axiom atomicV1MessageInfo : Type
 axiom atomicV1MessageInfo.zero_val : ZeroVal atomicV1MessageInfo
@@ -4546,10 +4822,14 @@ class atomicV1MessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying atomicV1MessageInfo.underlying atomicV1MessageInfo
   underlying : go.UnderlyingDirectedEq atomicV1MessageInfo.ty atomicV1MessageInfo.underlying
   isUnderlying : go.IsUnderlying atomicV1MessageInfo.underlying atomicV1MessageInfo.underlying
+  method_set : go.MethodSetIs atomicV1MessageInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType atomicV1MessageInfo.ty) [(go!"Get", (some (go.signature.Signature [] false [Pointer.ty]))), (go!"SetIfNil", (some (go.signature.Signature [Pointer.ty] false [Pointer.ty])))]
 
 attribute [instance] atomicV1MessageInfo.TypeAssumptions.type_repr
   atomicV1MessageInfo.TypeAssumptions.underlying
   atomicV1MessageInfo.TypeAssumptions.isUnderlying
+  atomicV1MessageInfo.TypeAssumptions.method_set
+  atomicV1MessageInfo.TypeAssumptions.ptr_method_set
 
 axiom presenceSize : Type
 axiom presenceSize.zero_val : ZeroVal presenceSize
@@ -4559,10 +4839,14 @@ class presenceSize.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying presenceSize.underlying presenceSize
   underlying : go.UnderlyingDirectedEq presenceSize.ty presenceSize.underlying
   isUnderlying : go.IsUnderlying presenceSize.underlying presenceSize.underlying
+  method_set : go.MethodSetIs presenceSize.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType presenceSize.ty) []
 
 attribute [instance] presenceSize.TypeAssumptions.type_repr
   presenceSize.TypeAssumptions.underlying
   presenceSize.TypeAssumptions.isUnderlying
+  presenceSize.TypeAssumptions.method_set
+  presenceSize.TypeAssumptions.ptr_method_set
 
 axiom presence : Type
 axiom presence.zero_val : ZeroVal presence
@@ -4572,10 +4856,14 @@ class presence.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying presence.underlying presence
   underlying : go.UnderlyingDirectedEq presence.ty presence.underlying
   isUnderlying : go.IsUnderlying presence.underlying presence.underlying
+  method_set : go.MethodSetIs presence.ty [(go!"AnyPresent", (some (go.signature.Signature [presenceSize.ty] false [go.bool]))), (go!"ClearPresent", (some (go.signature.Signature [go.uint32] false []))), (go!"LoadPresenceCache", (some (go.signature.Signature [] false [go.uint32]))), (go!"Present", (some (go.signature.Signature [go.uint32] false [go.bool]))), (go!"PresentInCache", (some (go.signature.Signature [go.uint32, (go.GoType.PointerType go.uint32), (go.GoType.PointerType go.uint32)] false [go.bool]))), (go!"SetPresent", (some (go.signature.Signature [go.uint32, presenceSize.ty] false []))), (go!"SetPresentUnatomic", (some (go.signature.Signature [go.uint32, presenceSize.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookAllocAndCopy", (some (go.signature.Signature [presence.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookClearPresent", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookPresent", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookSetPresent", (some (go.signature.Signature [go.uint32, presenceSize.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.toElem", (some (go.signature.Signature [go.uint32] false [(go.GoType.PointerType go.uint32)]))), (go!"google.golang.org/protobuf/internal/impl.toRaceDetectData", (some (go.signature.Signature [] false [(go.GoType.PointerType RaceDetectHookData.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType presence.ty) [(go!"AnyPresent", (some (go.signature.Signature [presenceSize.ty] false [go.bool]))), (go!"ClearPresent", (some (go.signature.Signature [go.uint32] false []))), (go!"LoadPresenceCache", (some (go.signature.Signature [] false [go.uint32]))), (go!"Present", (some (go.signature.Signature [go.uint32] false [go.bool]))), (go!"PresentInCache", (some (go.signature.Signature [go.uint32, (go.GoType.PointerType go.uint32), (go.GoType.PointerType go.uint32)] false [go.bool]))), (go!"SetPresent", (some (go.signature.Signature [go.uint32, presenceSize.ty] false []))), (go!"SetPresentUnatomic", (some (go.signature.Signature [go.uint32, presenceSize.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookAllocAndCopy", (some (go.signature.Signature [presence.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookClearPresent", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookPresent", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/protobuf/internal/impl.raceDetectHookSetPresent", (some (go.signature.Signature [go.uint32, presenceSize.ty] false []))), (go!"google.golang.org/protobuf/internal/impl.toElem", (some (go.signature.Signature [go.uint32] false [(go.GoType.PointerType go.uint32)]))), (go!"google.golang.org/protobuf/internal/impl.toRaceDetectData", (some (go.signature.Signature [] false [(go.GoType.PointerType RaceDetectHookData.ty)])))]
 
 attribute [instance] presence.TypeAssumptions.type_repr
   presence.TypeAssumptions.underlying
   presence.TypeAssumptions.isUnderlying
+  presence.TypeAssumptions.method_set
+  presence.TypeAssumptions.ptr_method_set
 
 axiom ValidationStatus : Type
 axiom ValidationStatus.zero_val : ZeroVal ValidationStatus
@@ -4585,10 +4873,14 @@ class ValidationStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying ValidationStatus.underlying ValidationStatus
   underlying : go.UnderlyingDirectedEq ValidationStatus.ty ValidationStatus.underlying
   isUnderlying : go.IsUnderlying ValidationStatus.underlying ValidationStatus.underlying
+  method_set : go.MethodSetIs ValidationStatus.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidationStatus.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ValidationStatus.TypeAssumptions.type_repr
   ValidationStatus.TypeAssumptions.underlying
   ValidationStatus.TypeAssumptions.isUnderlying
+  ValidationStatus.TypeAssumptions.method_set
+  ValidationStatus.TypeAssumptions.ptr_method_set
 
 axiom validationInfo : Type
 axiom validationInfo.zero_val : ZeroVal validationInfo
@@ -4598,10 +4890,14 @@ class validationInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying validationInfo.underlying validationInfo
   underlying : go.UnderlyingDirectedEq validationInfo.ty validationInfo.underlying
   isUnderlying : go.IsUnderlying validationInfo.underlying validationInfo.underlying
+  method_set : go.MethodSetIs validationInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType validationInfo.ty) []
 
 attribute [instance] validationInfo.TypeAssumptions.type_repr
   validationInfo.TypeAssumptions.underlying
   validationInfo.TypeAssumptions.isUnderlying
+  validationInfo.TypeAssumptions.method_set
+  validationInfo.TypeAssumptions.ptr_method_set
 
 axiom validationType : Type
 axiom validationType.zero_val : ZeroVal validationType
@@ -4611,10 +4907,14 @@ class validationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying validationType.underlying validationType
   underlying : go.UnderlyingDirectedEq validationType.ty validationType.underlying
   isUnderlying : go.IsUnderlying validationType.underlying validationType.underlying
+  method_set : go.MethodSetIs validationType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType validationType.ty) []
 
 attribute [instance] validationType.TypeAssumptions.type_repr
   validationType.TypeAssumptions.underlying
   validationType.TypeAssumptions.isUnderlying
+  validationType.TypeAssumptions.method_set
+  validationType.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Export_instance : Export.TypeAssumptions

@@ -527,9 +527,13 @@ instance equals_unfold_TraceKey [FfiSyntax] [GoGlobalContext] :
 class TraceKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TraceKey.underlying TraceKey
   underlying : go.UnderlyingDirectedEq TraceKey.ty TraceKey.underlying
+  method_set : go.MethodSetIs TraceKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceKey.ty) []
 
 attribute [instance] TraceKey.TypeAssumptions.type_repr
   TraceKey.TypeAssumptions.underlying
+  TraceKey.TypeAssumptions.method_set
+  TraceKey.TypeAssumptions.ptr_method_set
 
 structure StartTimeKey [FfiSyntax] where
   mk ::
@@ -553,9 +557,13 @@ instance equals_unfold_StartTimeKey [FfiSyntax] [GoGlobalContext] :
 class StartTimeKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StartTimeKey.underlying StartTimeKey
   underlying : go.UnderlyingDirectedEq StartTimeKey.ty StartTimeKey.underlying
+  method_set : go.MethodSetIs StartTimeKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StartTimeKey.ty) []
 
 attribute [instance] StartTimeKey.TypeAssumptions.type_repr
   StartTimeKey.TypeAssumptions.underlying
+  StartTimeKey.TypeAssumptions.method_set
+  StartTimeKey.TypeAssumptions.ptr_method_set
 
 structure Field [FfiSyntax] where
   mk ::
@@ -586,6 +594,8 @@ class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Key : ∀ (x : Field) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Field)))
   get_Value : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : Field) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Field)))
+  method_set : go.MethodSetIs Field.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Field.ty) [(go!"go.etcd.io/etcd/pkg/v3/traceutil.format", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
@@ -593,6 +603,8 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.set_Key
   Field.TypeAssumptions.get_Value
   Field.TypeAssumptions.set_Value
+  Field.TypeAssumptions.method_set
+  Field.TypeAssumptions.ptr_method_set
 
 structure Trace [FfiSyntax] where
   mk ::
@@ -643,6 +655,8 @@ class Trace.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_stepDisabled : ∀ (x : Trace) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"stepDisabled") (PairV #x #y) (Val #(({ x with stepDisabled' := y } : Trace)))
   get_isEmpty : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"isEmpty") #x (Val #(x.isEmpty'))
   set_isEmpty : ∀ (x : Trace) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"isEmpty") (PairV #x #y) (Val #(({ x with isEmpty' := y } : Trace)))
+  method_set : go.MethodSetIs Trace.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Trace.ty) [(go!"AddField", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"GetStartTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"InsertStep", (some (go.signature.Signature [go.int, _root_.Perennial.time.Time.ty, go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"IsEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"Log", (some (go.signature.Signature [] false []))), (go!"LogAllStepsIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogWithStepThreshold", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"SetStartTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"StartSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"Step", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StepWithFunction", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [])), go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StopSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.disableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.enableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.logInfo", none), (go!"go.etcd.io/etcd/pkg/v3/traceutil.updateFieldIfExist", (some (go.signature.Signature [Field.ty] false [go.bool])))]
   ptr_AddField_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"AddField" Trace.AddField.impl
   ptr_GetStartTime_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"GetStartTime" Trace.GetStartTime.impl
   ptr_InsertStep_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"InsertStep" Trace.InsertStep.impl
@@ -674,6 +688,8 @@ attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.set_stepDisabled
   Trace.TypeAssumptions.get_isEmpty
   Trace.TypeAssumptions.set_isEmpty
+  Trace.TypeAssumptions.method_set
+  Trace.TypeAssumptions.ptr_method_set
   Trace.TypeAssumptions.ptr_AddField_unfold
   Trace.TypeAssumptions.ptr_GetStartTime_unfold
   Trace.TypeAssumptions.ptr_InsertStep_unfold
@@ -730,6 +746,8 @@ class step.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_isSubTraceStart : ∀ (x : step) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet step.underlying go!"isSubTraceStart") (PairV #x #y) (Val #(({ x with isSubTraceStart' := y } : step)))
   get_isSubTraceEnd : ∀ (x : step), go.IsGoStepPureDetTagged under (StructFieldGet step.underlying go!"isSubTraceEnd") #x (Val #(x.isSubTraceEnd'))
   set_isSubTraceEnd : ∀ (x : step) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet step.underlying go!"isSubTraceEnd") (PairV #x #y) (Val #(({ x with isSubTraceEnd' := y } : step)))
+  method_set : go.MethodSetIs step.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType step.ty) []
 
 attribute [instance] step.TypeAssumptions.type_repr
   step.TypeAssumptions.underlying
@@ -743,6 +761,8 @@ attribute [instance] step.TypeAssumptions.type_repr
   step.TypeAssumptions.set_isSubTraceStart
   step.TypeAssumptions.get_isSubTraceEnd
   step.TypeAssumptions.set_isSubTraceEnd
+  step.TypeAssumptions.method_set
+  step.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   TraceKey_instance : TraceKey.TypeAssumptions

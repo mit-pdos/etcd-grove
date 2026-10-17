@@ -286,6 +286,8 @@ class BackendHooks.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_confStateDirty : ∀ (x : BackendHooks) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confStateDirty") (PairV #x #y) (Val #(({ x with confStateDirty' := y } : BackendHooks)))
   get_confStateLock : ∀ (x : BackendHooks), go.IsGoStepPureDetTagged under (StructFieldGet BackendHooks.underlying go!"confStateLock") #x (Val #(x.confStateLock'))
   set_confStateLock : ∀ (x : BackendHooks) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet BackendHooks.underlying go!"confStateLock") (PairV #x #y) (Val #(({ x with confStateLock' := y } : BackendHooks)))
+  method_set : go.MethodSetIs BackendHooks.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendHooks.ty) [(go!"OnPreCommitUnsafe", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false []))), (go!"SetConfState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)] false [])))]
   ptr_OnPreCommitUnsafe_unfold : MethodUnfold (go.GoType.PointerType BackendHooks.ty) go!"OnPreCommitUnsafe" BackendHooks.OnPreCommitUnsafe.impl
   ptr_SetConfState_unfold : MethodUnfold (go.GoType.PointerType BackendHooks.ty) go!"SetConfState" BackendHooks.SetConfState.impl
 
@@ -301,6 +303,8 @@ attribute [instance] BackendHooks.TypeAssumptions.type_repr
   BackendHooks.TypeAssumptions.set_confStateDirty
   BackendHooks.TypeAssumptions.get_confStateLock
   BackendHooks.TypeAssumptions.set_confStateLock
+  BackendHooks.TypeAssumptions.method_set
+  BackendHooks.TypeAssumptions.ptr_method_set
   BackendHooks.TypeAssumptions.ptr_OnPreCommitUnsafe_unfold
   BackendHooks.TypeAssumptions.ptr_SetConfState_unfold
 
@@ -311,8 +315,12 @@ abbrev Quota [FfiSyntax] : Type := GoInterface
 
 class Quota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Quota.ty Quota.underlying
+  method_set : go.MethodSetIs Quota.ty [(go!"Available", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"Cost", (some (go.signature.Signature [go.any] false [go.int]))), (go!"Remaining", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Quota.ty) []
 
 attribute [instance] Quota.TypeAssumptions.underlying
+  Quota.TypeAssumptions.method_set
+  Quota.TypeAssumptions.ptr_method_set
 
 structure passthroughQuota [FfiSyntax] where
   mk ::
@@ -336,9 +344,13 @@ instance equals_unfold_passthroughQuota [FfiSyntax] [GoGlobalContext] :
 class passthroughQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying passthroughQuota.underlying passthroughQuota
   underlying : go.UnderlyingDirectedEq passthroughQuota.ty passthroughQuota.underlying
+  method_set : go.MethodSetIs passthroughQuota.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType passthroughQuota.ty) [(go!"Available", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"Cost", (some (go.signature.Signature [go.any] false [go.int]))), (go!"Remaining", (some (go.signature.Signature [] false [go.int64])))]
 
 attribute [instance] passthroughQuota.TypeAssumptions.type_repr
   passthroughQuota.TypeAssumptions.underlying
+  passthroughQuota.TypeAssumptions.method_set
+  passthroughQuota.TypeAssumptions.ptr_method_set
 
 structure BackendQuota [FfiSyntax] where
   mk ::
@@ -369,6 +381,8 @@ class BackendQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_be : ∀ (x : BackendQuota) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet BackendQuota.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : BackendQuota)))
   get_maxBackendBytes : ∀ (x : BackendQuota), go.IsGoStepPureDetTagged under (StructFieldGet BackendQuota.underlying go!"maxBackendBytes") #x (Val #(x.maxBackendBytes'))
   set_maxBackendBytes : ∀ (x : BackendQuota) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet BackendQuota.underlying go!"maxBackendBytes") (PairV #x #y) (Val #(({ x with maxBackendBytes' := y } : BackendQuota)))
+  method_set : go.MethodSetIs BackendQuota.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendQuota.ty) [(go!"Available", (some (go.signature.Signature [go.any] false [go.bool]))), (go!"Cost", (some (go.signature.Signature [go.any] false [go.int]))), (go!"Remaining", (some (go.signature.Signature [] false [go.int64])))]
 
 attribute [instance] BackendQuota.TypeAssumptions.type_repr
   BackendQuota.TypeAssumptions.underlying
@@ -376,6 +390,8 @@ attribute [instance] BackendQuota.TypeAssumptions.type_repr
   BackendQuota.TypeAssumptions.set_be
   BackendQuota.TypeAssumptions.get_maxBackendBytes
   BackendQuota.TypeAssumptions.set_maxBackendBytes
+  BackendQuota.TypeAssumptions.method_set
+  BackendQuota.TypeAssumptions.ptr_method_set
 
 abbrev Storage [FfiSyntax] : Type := GoInterface
 
@@ -384,8 +400,12 @@ abbrev Storage [FfiSyntax] : Type := GoInterface
 
 class Storage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Storage.ty Storage.underlying
+  method_set : go.MethodSetIs Storage.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Release", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Storage.ty) []
 
 attribute [instance] Storage.TypeAssumptions.underlying
+  Storage.TypeAssumptions.method_set
+  Storage.TypeAssumptions.ptr_method_set
 
 axiom storage : Type
 axiom storage.zero_val : ZeroVal storage
@@ -395,10 +415,14 @@ class storage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying storage.underlying storage
   underlying : go.UnderlyingDirectedEq storage.ty storage.underlying
   isUnderlying : go.IsUnderlying storage.underlying storage.underlying
+  method_set : go.MethodSetIs storage.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType storage.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))), (go!"Release", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] storage.TypeAssumptions.type_repr
   storage.TypeAssumptions.underlying
   storage.TypeAssumptions.isUnderlying
+  storage.TypeAssumptions.method_set
+  storage.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackendHooks_instance : BackendHooks.TypeAssumptions

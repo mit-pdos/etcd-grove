@@ -106,10 +106,14 @@ class LeaderStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying LeaderStats.underlying LeaderStats
   underlying : go.UnderlyingDirectedEq LeaderStats.ty LeaderStats.underlying
   isUnderlying : go.IsUnderlying LeaderStats.underlying LeaderStats.underlying
+  method_set : go.MethodSetIs LeaderStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderStats.ty) [(go!"Follower", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType FollowerStats.ty)]))), (go!"JSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] LeaderStats.TypeAssumptions.type_repr
   LeaderStats.TypeAssumptions.underlying
   LeaderStats.TypeAssumptions.isUnderlying
+  LeaderStats.TypeAssumptions.method_set
+  LeaderStats.TypeAssumptions.ptr_method_set
 
 structure leaderStats [FfiSyntax] where
   mk ::
@@ -140,6 +144,8 @@ class leaderStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Leader : ∀ (x : leaderStats) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet leaderStats.underlying go!"Leader") (PairV #x #y) (Val #(({ x with Leader' := y } : leaderStats)))
   get_Followers : ∀ (x : leaderStats), go.IsGoStepPureDetTagged under (StructFieldGet leaderStats.underlying go!"Followers") #x (Val #(x.Followers'))
   set_Followers : ∀ (x : leaderStats) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet leaderStats.underlying go!"Followers") (PairV #x #y) (Val #(({ x with Followers' := y } : leaderStats)))
+  method_set : go.MethodSetIs leaderStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leaderStats.ty) []
 
 attribute [instance] leaderStats.TypeAssumptions.type_repr
   leaderStats.TypeAssumptions.underlying
@@ -147,6 +153,8 @@ attribute [instance] leaderStats.TypeAssumptions.type_repr
   leaderStats.TypeAssumptions.set_Leader
   leaderStats.TypeAssumptions.get_Followers
   leaderStats.TypeAssumptions.set_Followers
+  leaderStats.TypeAssumptions.method_set
+  leaderStats.TypeAssumptions.ptr_method_set
 
 axiom FollowerStats : Type
 axiom FollowerStats.zero_val : ZeroVal FollowerStats
@@ -156,10 +164,14 @@ class FollowerStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying FollowerStats.underlying FollowerStats
   underlying : go.UnderlyingDirectedEq FollowerStats.ty FollowerStats.underlying
   isUnderlying : go.IsUnderlying FollowerStats.underlying FollowerStats.underlying
+  method_set : go.MethodSetIs FollowerStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FollowerStats.ty) [(go!"Fail", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Succ", none), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] FollowerStats.TypeAssumptions.type_repr
   FollowerStats.TypeAssumptions.underlying
   FollowerStats.TypeAssumptions.isUnderlying
+  FollowerStats.TypeAssumptions.method_set
+  FollowerStats.TypeAssumptions.ptr_method_set
 
 structure LatencyStats [FfiSyntax] where
   mk ::
@@ -206,6 +218,8 @@ class LatencyStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_Minimum : ∀ (x : LatencyStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LatencyStats.underlying go!"Minimum") (PairV #x #y) (Val #(({ x with Minimum' := y } : LatencyStats)))
   get_Maximum : ∀ (x : LatencyStats), go.IsGoStepPureDetTagged under (StructFieldGet LatencyStats.underlying go!"Maximum") #x (Val #(x.Maximum'))
   set_Maximum : ∀ (x : LatencyStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LatencyStats.underlying go!"Maximum") (PairV #x #y) (Val #(({ x with Maximum' := y } : LatencyStats)))
+  method_set : go.MethodSetIs LatencyStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LatencyStats.ty) []
 
 attribute [instance] LatencyStats.TypeAssumptions.type_repr
   LatencyStats.TypeAssumptions.underlying
@@ -221,6 +235,8 @@ attribute [instance] LatencyStats.TypeAssumptions.type_repr
   LatencyStats.TypeAssumptions.set_Minimum
   LatencyStats.TypeAssumptions.get_Maximum
   LatencyStats.TypeAssumptions.set_Maximum
+  LatencyStats.TypeAssumptions.method_set
+  LatencyStats.TypeAssumptions.ptr_method_set
 
 structure CountsStats [FfiSyntax] where
   mk ::
@@ -251,6 +267,8 @@ class CountsStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Fail : ∀ (x : CountsStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CountsStats.underlying go!"Fail") (PairV #x #y) (Val #(({ x with Fail' := y } : CountsStats)))
   get_Success : ∀ (x : CountsStats), go.IsGoStepPureDetTagged under (StructFieldGet CountsStats.underlying go!"Success") #x (Val #(x.Success'))
   set_Success : ∀ (x : CountsStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CountsStats.underlying go!"Success") (PairV #x #y) (Val #(({ x with Success' := y } : CountsStats)))
+  method_set : go.MethodSetIs CountsStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CountsStats.ty) []
 
 attribute [instance] CountsStats.TypeAssumptions.type_repr
   CountsStats.TypeAssumptions.underlying
@@ -258,6 +276,8 @@ attribute [instance] CountsStats.TypeAssumptions.type_repr
   CountsStats.TypeAssumptions.set_Fail
   CountsStats.TypeAssumptions.get_Success
   CountsStats.TypeAssumptions.set_Success
+  CountsStats.TypeAssumptions.method_set
+  CountsStats.TypeAssumptions.ptr_method_set
 
 axiom RequestStats : Type
 axiom RequestStats.zero_val : ZeroVal RequestStats
@@ -267,10 +287,14 @@ class RequestStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying RequestStats.underlying RequestStats
   underlying : go.UnderlyingDirectedEq RequestStats.ty RequestStats.underlying
   isUnderlying : go.IsUnderlying RequestStats.underlying RequestStats.underlying
+  method_set : go.MethodSetIs RequestStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestStats.ty) []
 
 attribute [instance] RequestStats.TypeAssumptions.type_repr
   RequestStats.TypeAssumptions.underlying
   RequestStats.TypeAssumptions.isUnderlying
+  RequestStats.TypeAssumptions.method_set
+  RequestStats.TypeAssumptions.ptr_method_set
 
 axiom statsQueue : Type
 axiom statsQueue.zero_val : ZeroVal statsQueue
@@ -280,10 +304,14 @@ class statsQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying statsQueue.underlying statsQueue
   underlying : go.UnderlyingDirectedEq statsQueue.ty statsQueue.underlying
   isUnderlying : go.IsUnderlying statsQueue.underlying statsQueue.underlying
+  method_set : go.MethodSetIs statsQueue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType statsQueue.ty) [(go!"Clear", (some (go.signature.Signature [] false []))), (go!"Insert", (some (go.signature.Signature [(go.GoType.PointerType RequestStats.ty)] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Rate", (some (go.signature.Signature [] false [go.float64, go.float64]))), (go!"ReqSize", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.frontAndBack", (some (go.signature.Signature [] false [(go.GoType.PointerType RequestStats.ty), (go.GoType.PointerType RequestStats.ty)])))]
 
 attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.underlying
   statsQueue.TypeAssumptions.isUnderlying
+  statsQueue.TypeAssumptions.method_set
+  statsQueue.TypeAssumptions.ptr_method_set
 
 axiom ServerStats : Type
 axiom ServerStats.zero_val : ZeroVal ServerStats
@@ -293,10 +321,14 @@ class ServerStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying ServerStats.underlying ServerStats
   underlying : go.UnderlyingDirectedEq ServerStats.ty ServerStats.underlying
   isUnderlying : go.IsUnderlying ServerStats.underlying ServerStats.underlying
+  method_set : go.MethodSetIs ServerStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerStats.ty) [(go!"BecomeLeader", (some (go.signature.Signature [] false []))), (go!"JSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RecvAppendReq", (some (go.signature.Signature [go.string, go.int] false []))), (go!"SendAppendReq", (some (go.signature.Signature [go.int] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.becomeLeader", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ServerStats.TypeAssumptions.type_repr
   ServerStats.TypeAssumptions.underlying
   ServerStats.TypeAssumptions.isUnderlying
+  ServerStats.TypeAssumptions.method_set
+  ServerStats.TypeAssumptions.ptr_method_set
 
 axiom serverStats : Type
 axiom serverStats.zero_val : ZeroVal serverStats
@@ -306,10 +338,14 @@ class serverStats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying serverStats.underlying serverStats
   underlying : go.UnderlyingDirectedEq serverStats.ty serverStats.underlying
   isUnderlying : go.IsUnderlying serverStats.underlying serverStats.underlying
+  method_set : go.MethodSetIs serverStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStats.ty) []
 
 attribute [instance] serverStats.TypeAssumptions.type_repr
   serverStats.TypeAssumptions.underlying
   serverStats.TypeAssumptions.isUnderlying
+  serverStats.TypeAssumptions.method_set
+  serverStats.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   LeaderStats_instance : LeaderStats.TypeAssumptions

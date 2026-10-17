@@ -104,8 +104,12 @@ abbrev Job [FfiSyntax] : Type := GoInterface
 
 class Job.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Job.ty Job.underlying
+  method_set : go.MethodSetIs Job.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Job.ty) []
 
 attribute [instance] Job.TypeAssumptions.underlying
+  Job.TypeAssumptions.method_set
+  Job.TypeAssumptions.ptr_method_set
 
 structure job [FfiSyntax] where
   mk ::
@@ -136,6 +140,8 @@ class job.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   set_name : ∀ (x : job) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet job.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : job)))
   get_do : ∀ (x : job), go.IsGoStepPureDetTagged under (StructFieldGet job.underlying go!"do") #x (Val #(x.do'))
   set_do : ∀ (x : job) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet job.underlying go!"do") (PairV #x #y) (Val #(({ x with do' := y } : job)))
+  method_set : go.MethodSetIs job.ty [(go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType job.ty) [(go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
   Do_unfold : MethodUnfold job.ty go!"Do" job.Do.impl
   Name_unfold : MethodUnfold job.ty go!"Name" job.Name.impl
   ptr_Do_unfold : MethodUnfold (go.GoType.PointerType job.ty) go!"Do" (LamV "$r"
@@ -149,6 +155,8 @@ attribute [instance] job.TypeAssumptions.type_repr
   job.TypeAssumptions.set_name
   job.TypeAssumptions.get_do
   job.TypeAssumptions.set_do
+  job.TypeAssumptions.method_set
+  job.TypeAssumptions.ptr_method_set
   job.TypeAssumptions.Do_unfold
   job.TypeAssumptions.Name_unfold
   job.TypeAssumptions.ptr_Do_unfold
@@ -161,8 +169,12 @@ abbrev Scheduler [FfiSyntax] : Type := GoInterface
 
 class Scheduler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Scheduler.ty Scheduler.underlying
+  method_set : go.MethodSetIs Scheduler.ty [(go!"Finished", (some (go.signature.Signature [] false [go.int]))), (go!"Pending", (some (go.signature.Signature [] false [go.int]))), (go!"Schedule", (some (go.signature.Signature [Job.ty] false []))), (go!"Scheduled", (some (go.signature.Signature [] false [go.int]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"WaitFinish", (some (go.signature.Signature [go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scheduler.ty) []
 
 attribute [instance] Scheduler.TypeAssumptions.underlying
+  Scheduler.TypeAssumptions.method_set
+  Scheduler.TypeAssumptions.ptr_method_set
 
 axiom fifo : Type
 axiom fifo.zero_val : ZeroVal fifo
@@ -172,10 +184,14 @@ class fifo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying fifo.underlying fifo
   underlying : go.UnderlyingDirectedEq fifo.ty fifo.underlying
   isUnderlying : go.IsUnderlying fifo.underlying fifo.underlying
+  method_set : go.MethodSetIs fifo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fifo.ty) [(go!"Finished", (some (go.signature.Signature [] false [go.int]))), (go!"Pending", (some (go.signature.Signature [] false [go.int]))), (go!"Schedule", (some (go.signature.Signature [Job.ty] false []))), (go!"Scheduled", (some (go.signature.Signature [] false [go.int]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"WaitFinish", (some (go.signature.Signature [go.int] false []))), (go!"go.etcd.io/etcd/pkg/v3/schedule.executeJob", (some (go.signature.Signature [Job.ty, go.bool] false []))), (go!"go.etcd.io/etcd/pkg/v3/schedule.run", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] fifo.TypeAssumptions.type_repr
   fifo.TypeAssumptions.underlying
   fifo.TypeAssumptions.isUnderlying
+  fifo.TypeAssumptions.method_set
+  fifo.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Job_instance : Job.TypeAssumptions

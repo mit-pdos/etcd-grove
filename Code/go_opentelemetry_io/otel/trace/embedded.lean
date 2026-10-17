@@ -51,32 +51,44 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
 abbrev TracerProvider [FfiSyntax] : Type := GoInterface
 
 @[reducible] def TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"tracerProvider" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider" (go.signature.Signature [] false []))])
 
 class TracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TracerProvider.ty TracerProvider.underlying
+  method_set : go.MethodSetIs TracerProvider.ty [(go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerProvider.ty) []
 
 attribute [instance] TracerProvider.TypeAssumptions.underlying
+  TracerProvider.TypeAssumptions.method_set
+  TracerProvider.TypeAssumptions.ptr_method_set
 
 abbrev Tracer [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Tracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"tracer" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace/embedded.tracer" (go.signature.Signature [] false []))])
 
 class Tracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Tracer.ty Tracer.underlying
+  method_set : go.MethodSetIs Tracer.ty [(go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Tracer.ty) []
 
 attribute [instance] Tracer.TypeAssumptions.underlying
+  Tracer.TypeAssumptions.method_set
+  Tracer.TypeAssumptions.ptr_method_set
 
 abbrev Span [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"span" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace/embedded.span" (go.signature.Signature [] false []))])
 
 class Span.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Span.ty Span.underlying
+  method_set : go.MethodSetIs Span.ty [(go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Span.ty) []
 
 attribute [instance] Span.TypeAssumptions.underlying
+  Span.TypeAssumptions.method_set
+  Span.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   TracerProvider_instance : TracerProvider.TypeAssumptions

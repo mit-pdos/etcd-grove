@@ -1260,8 +1260,12 @@ abbrev LeaseID [FfiSyntax] : Type := w64
 
 class LeaseID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseID.ty LeaseID.underlying
+  method_set : go.MethodSetIs LeaseID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseID.ty) []
 
 attribute [instance] LeaseID.TypeAssumptions.underlying
+  LeaseID.TypeAssumptions.method_set
+  LeaseID.TypeAssumptions.ptr_method_set
 
 structure Lease [FfiSyntax] where
   mk ::
@@ -1316,6 +1320,8 @@ class Lease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_itemSet : ∀ (x : Lease) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"itemSet") (PairV #x #y) (Val #(({ x with itemSet' := y } : Lease)))
   get_revokec : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"revokec") #x (Val #(x.revokec'))
   set_revokec : ∀ (x : Lease) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"revokec") (PairV #x #y) (Val #(({ x with revokec' := y } : Lease)))
+  method_set : go.MethodSetIs Lease.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lease.ty) [(go!"Demoted", (some (go.signature.Signature [] false [go.bool]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Remaining", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"SetLeaseItem", (some (go.signature.Signature [LeaseItem.ty] false []))), (go!"TTL", (some (go.signature.Signature [] false [go.int64]))), (go!"go.etcd.io/etcd/server/v3/lease.expired", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.forever", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.getRemainingTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"go.etcd.io/etcd/server/v3/lease.persistTo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty] false []))), (go!"go.etcd.io/etcd/server/v3/lease.refresh", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])))]
   ptr_Keys_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"Keys" Lease.Keys.impl
   ptr_TTL_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"TTL" Lease.TTL.impl
   ptr_forever_unfold : MethodUnfold (go.GoType.PointerType Lease.ty) go!"forever" Lease.forever.impl
@@ -1341,6 +1347,8 @@ attribute [instance] Lease.TypeAssumptions.type_repr
   Lease.TypeAssumptions.set_itemSet
   Lease.TypeAssumptions.get_revokec
   Lease.TypeAssumptions.set_revokec
+  Lease.TypeAssumptions.method_set
+  Lease.TypeAssumptions.ptr_method_set
   Lease.TypeAssumptions.ptr_Keys_unfold
   Lease.TypeAssumptions.ptr_TTL_unfold
   Lease.TypeAssumptions.ptr_forever_unfold
@@ -1373,11 +1381,15 @@ class LeaseItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq LeaseItem.ty LeaseItem.underlying
   get_Key : ∀ (x : LeaseItem), go.IsGoStepPureDetTagged under (StructFieldGet LeaseItem.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : LeaseItem) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LeaseItem.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : LeaseItem)))
+  method_set : go.MethodSetIs LeaseItem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseItem.ty) []
 
 attribute [instance] LeaseItem.TypeAssumptions.type_repr
   LeaseItem.TypeAssumptions.underlying
   LeaseItem.TypeAssumptions.get_Key
   LeaseItem.TypeAssumptions.set_Key
+  LeaseItem.TypeAssumptions.method_set
+  LeaseItem.TypeAssumptions.ptr_method_set
 
 abbrev leasesByExpiry [FfiSyntax] : Type := GoSlice
 
@@ -1386,8 +1398,12 @@ abbrev leasesByExpiry [FfiSyntax] : Type := GoSlice
 
 class leasesByExpiry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq leasesByExpiry.ty leasesByExpiry.underlying
+  method_set : go.MethodSetIs leasesByExpiry.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leasesByExpiry.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] leasesByExpiry.TypeAssumptions.underlying
+  leasesByExpiry.TypeAssumptions.method_set
+  leasesByExpiry.TypeAssumptions.ptr_method_set
 
 structure LeaseWithTime [FfiSyntax] where
   mk ::
@@ -1422,6 +1438,8 @@ class LeaseWithTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_time : ∀ (x : LeaseWithTime) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"time") (PairV #x #y) (Val #(({ x with time' := y } : LeaseWithTime)))
   get_index : ∀ (x : LeaseWithTime), go.IsGoStepPureDetTagged under (StructFieldGet LeaseWithTime.underlying go!"index") #x (Val #(x.index'))
   set_index : ∀ (x : LeaseWithTime) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseWithTime.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : LeaseWithTime)))
+  method_set : go.MethodSetIs LeaseWithTime.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseWithTime.ty) []
 
 attribute [instance] LeaseWithTime.TypeAssumptions.type_repr
   LeaseWithTime.TypeAssumptions.underlying
@@ -1431,6 +1449,8 @@ attribute [instance] LeaseWithTime.TypeAssumptions.type_repr
   LeaseWithTime.TypeAssumptions.set_time
   LeaseWithTime.TypeAssumptions.get_index
   LeaseWithTime.TypeAssumptions.set_index
+  LeaseWithTime.TypeAssumptions.method_set
+  LeaseWithTime.TypeAssumptions.ptr_method_set
 
 abbrev LeaseQueue [FfiSyntax] : Type := GoSlice
 
@@ -1439,6 +1459,8 @@ abbrev LeaseQueue [FfiSyntax] : Type := GoSlice
 
 class LeaseQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseQueue.ty LeaseQueue.underlying
+  method_set : go.MethodSetIs LeaseQueue.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseQueue.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [go.any]))), (go!"Push", (some (go.signature.Signature [go.any] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold LeaseQueue.ty go!"Len" LeaseQueue.Len.impl
   Less_unfold : MethodUnfold LeaseQueue.ty go!"Less" LeaseQueue.Less.impl
   Swap_unfold : MethodUnfold LeaseQueue.ty go!"Swap" LeaseQueue.Swap.impl
@@ -1452,6 +1474,8 @@ class LeaseQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 (App (Val (GoInstruction (MethodResolve LeaseQueue.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad LeaseQueue.ty))) (Var "$r"))))
 
 attribute [instance] LeaseQueue.TypeAssumptions.underlying
+  LeaseQueue.TypeAssumptions.method_set
+  LeaseQueue.TypeAssumptions.ptr_method_set
   LeaseQueue.TypeAssumptions.Len_unfold
   LeaseQueue.TypeAssumptions.Less_unfold
   LeaseQueue.TypeAssumptions.Swap_unfold
@@ -1490,6 +1514,8 @@ class LeaseExpiredNotifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   set_m : ∀ (x : LeaseExpiredNotifier) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : LeaseExpiredNotifier)))
   get_queue : ∀ (x : LeaseExpiredNotifier), go.IsGoStepPureDetTagged under (StructFieldGet LeaseExpiredNotifier.underlying go!"queue") #x (Val #(x.queue'))
   set_queue : ∀ (x : LeaseExpiredNotifier) (y : LeaseQueue), go.IsGoStepPureDetTagged under (StructFieldSet LeaseExpiredNotifier.underlying go!"queue") (PairV #x #y) (Val #(({ x with queue' := y } : LeaseExpiredNotifier)))
+  method_set : go.MethodSetIs LeaseExpiredNotifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseExpiredNotifier.ty) [(go!"Init", (some (go.signature.Signature [] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Peek", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseWithTime.ty)]))), (go!"RegisterOrUpdate", (some (go.signature.Signature [(go.GoType.PointerType LeaseWithTime.ty)] false []))), (go!"Unregister", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaseWithTime.ty)])))]
   ptr_RegisterOrUpdate_unfold : MethodUnfold (go.GoType.PointerType LeaseExpiredNotifier.ty) go!"RegisterOrUpdate" LeaseExpiredNotifier.RegisterOrUpdate.impl
 
 attribute [instance] LeaseExpiredNotifier.TypeAssumptions.type_repr
@@ -1498,6 +1524,8 @@ attribute [instance] LeaseExpiredNotifier.TypeAssumptions.type_repr
   LeaseExpiredNotifier.TypeAssumptions.set_m
   LeaseExpiredNotifier.TypeAssumptions.get_queue
   LeaseExpiredNotifier.TypeAssumptions.set_queue
+  LeaseExpiredNotifier.TypeAssumptions.method_set
+  LeaseExpiredNotifier.TypeAssumptions.ptr_method_set
   LeaseExpiredNotifier.TypeAssumptions.ptr_RegisterOrUpdate_unfold
 
 abbrev TxnDelete [FfiSyntax] : Type := GoInterface
@@ -1507,8 +1535,12 @@ abbrev TxnDelete [FfiSyntax] : Type := GoInterface
 
 class TxnDelete.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TxnDelete.ty TxnDelete.underlying
+  method_set : go.MethodSetIs TxnDelete.ty [(go!"DeleteRange", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int64, go.int64]))), (go!"End", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TxnDelete.ty) []
 
 attribute [instance] TxnDelete.TypeAssumptions.underlying
+  TxnDelete.TypeAssumptions.method_set
+  TxnDelete.TypeAssumptions.ptr_method_set
 
 abbrev RangeDeleter [FfiSyntax] : Type := GoFunc
 
@@ -1517,8 +1549,12 @@ abbrev RangeDeleter [FfiSyntax] : Type := GoFunc
 
 class RangeDeleter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RangeDeleter.ty RangeDeleter.underlying
+  method_set : go.MethodSetIs RangeDeleter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeDeleter.ty) []
 
 attribute [instance] RangeDeleter.TypeAssumptions.underlying
+  RangeDeleter.TypeAssumptions.method_set
+  RangeDeleter.TypeAssumptions.ptr_method_set
 
 abbrev Checkpointer [FfiSyntax] : Type := GoFunc
 
@@ -1527,8 +1563,12 @@ abbrev Checkpointer [FfiSyntax] : Type := GoFunc
 
 class Checkpointer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Checkpointer.ty Checkpointer.underlying
+  method_set : go.MethodSetIs Checkpointer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Checkpointer.ty) []
 
 attribute [instance] Checkpointer.TypeAssumptions.underlying
+  Checkpointer.TypeAssumptions.method_set
+  Checkpointer.TypeAssumptions.ptr_method_set
 
 abbrev Lessor [FfiSyntax] : Type := GoInterface
 
@@ -1537,8 +1577,12 @@ abbrev Lessor [FfiSyntax] : Type := GoInterface
 
 class Lessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Lessor.ty Lessor.underlying
+  method_set : go.MethodSetIs Lessor.ty [(go!"Attach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"Checkpoint", (some (go.signature.Signature [LeaseID.ty, go.int64] false [go.error]))), (go!"Demote", (some (go.signature.Signature [] false []))), (go!"Detach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"ExpiredLeasesC", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))]))), (go!"GetLease", (some (go.signature.Signature [LeaseItem.ty] false [LeaseID.ty]))), (go!"Grant", (some (go.signature.Signature [LeaseID.ty, go.int64] false [(go.GoType.PointerType Lease.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"Lookup", (some (go.signature.Signature [LeaseID.ty] false [(go.GoType.PointerType Lease.ty)]))), (go!"Promote", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty, RangeDeleter.ty] false []))), (go!"Renew", (some (go.signature.Signature [LeaseID.ty] false [go.int64, go.error]))), (go!"Revoke", (some (go.signature.Signature [LeaseID.ty] false [go.error]))), (go!"SetCheckpointer", (some (go.signature.Signature [Checkpointer.ty] false []))), (go!"SetRangeDeleter", (some (go.signature.Signature [RangeDeleter.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lessor.ty) []
 
 attribute [instance] Lessor.TypeAssumptions.underlying
+  Lessor.TypeAssumptions.method_set
+  Lessor.TypeAssumptions.ptr_method_set
 
 abbrev cluster [FfiSyntax] : Type := GoInterface
 
@@ -1547,8 +1591,12 @@ abbrev cluster [FfiSyntax] : Type := GoInterface
 
 class cluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cluster.ty cluster.underlying
+  method_set : go.MethodSetIs cluster.ty [(go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cluster.ty) []
 
 attribute [instance] cluster.TypeAssumptions.underlying
+  cluster.TypeAssumptions.method_set
+  cluster.TypeAssumptions.ptr_method_set
 
 structure lessor [FfiSyntax] where
   mk ::
@@ -1647,6 +1695,8 @@ class lessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_checkpointPersist : ∀ (x : lessor) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"checkpointPersist") (PairV #x #y) (Val #(({ x with checkpointPersist' := y } : lessor)))
   get_cluster : ∀ (x : lessor), go.IsGoStepPureDetTagged under (StructFieldGet lessor.underlying go!"cluster") #x (Val #(x.cluster'))
   set_cluster : ∀ (x : lessor) (y : cluster), go.IsGoStepPureDetTagged under (StructFieldSet lessor.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : lessor)))
+  method_set : go.MethodSetIs lessor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lessor.ty) [(go!"Attach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"Checkpoint", (some (go.signature.Signature [LeaseID.ty, go.int64] false [go.error]))), (go!"Demote", (some (go.signature.Signature [] false []))), (go!"Detach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"ExpiredLeasesC", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))]))), (go!"GetLease", (some (go.signature.Signature [LeaseItem.ty] false [LeaseID.ty]))), (go!"Grant", (some (go.signature.Signature [LeaseID.ty, go.int64] false [(go.GoType.PointerType Lease.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"Lookup", (some (go.signature.Signature [LeaseID.ty] false [(go.GoType.PointerType Lease.ty)]))), (go!"Promote", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty, RangeDeleter.ty] false []))), (go!"Renew", (some (go.signature.Signature [LeaseID.ty] false [go.int64, go.error]))), (go!"Revoke", (some (go.signature.Signature [LeaseID.ty] false [go.error]))), (go!"SetCheckpointer", (some (go.signature.Signature [Checkpointer.ty] false []))), (go!"SetRangeDeleter", (some (go.signature.Signature [RangeDeleter.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.checkpointScheduledLeases", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.clearLeaseExpiredNotifier", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.clearScheduledLeasesCheckpoints", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.expireExists", (some (go.signature.Signature [] false [(go.GoType.PointerType Lease.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.findDueScheduledCheckpoints", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint.ty))]))), (go!"go.etcd.io/etcd/server/v3/lease.findExpiredLeases", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"go.etcd.io/etcd/server/v3/lease.initAndRecover", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.isPrimary", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.revokeExpiredLeases", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.runLoop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/lease.scheduleCheckpointIfNeeded", (some (go.signature.Signature [(go.GoType.PointerType Lease.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/lease.shouldPersistCheckpoints", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/lease.unsafeLeases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))])))]
   ptr_Attach_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Attach" lessor.Attach.impl
   ptr_Checkpoint_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Checkpoint" lessor.Checkpoint.impl
   ptr_Demote_unfold : MethodUnfold (go.GoType.PointerType lessor.ty) go!"Demote" lessor.Demote.impl
@@ -1702,6 +1752,8 @@ attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.set_checkpointPersist
   lessor.TypeAssumptions.get_cluster
   lessor.TypeAssumptions.set_cluster
+  lessor.TypeAssumptions.method_set
+  lessor.TypeAssumptions.ptr_method_set
   lessor.TypeAssumptions.ptr_Attach_unfold
   lessor.TypeAssumptions.ptr_Checkpoint_unfold
   lessor.TypeAssumptions.ptr_Demote_unfold
@@ -1758,6 +1810,8 @@ class LessorConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_CheckpointPersist : ∀ (x : LessorConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"CheckpointPersist") (PairV #x #y) (Val #(({ x with CheckpointPersist' := y } : LessorConfig)))
   get_leaseRevokeRate : ∀ (x : LessorConfig), go.IsGoStepPureDetTagged under (StructFieldGet LessorConfig.underlying go!"leaseRevokeRate") #x (Val #(x.leaseRevokeRate'))
   set_leaseRevokeRate : ∀ (x : LessorConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LessorConfig.underlying go!"leaseRevokeRate") (PairV #x #y) (Val #(({ x with leaseRevokeRate' := y } : LessorConfig)))
+  method_set : go.MethodSetIs LessorConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LessorConfig.ty) []
 
 attribute [instance] LessorConfig.TypeAssumptions.type_repr
   LessorConfig.TypeAssumptions.underlying
@@ -1771,6 +1825,8 @@ attribute [instance] LessorConfig.TypeAssumptions.type_repr
   LessorConfig.TypeAssumptions.set_CheckpointPersist
   LessorConfig.TypeAssumptions.get_leaseRevokeRate
   LessorConfig.TypeAssumptions.set_leaseRevokeRate
+  LessorConfig.TypeAssumptions.method_set
+  LessorConfig.TypeAssumptions.ptr_method_set
 
 structure FakeLessor [FfiSyntax] where
   mk ::
@@ -1797,11 +1853,15 @@ class FakeLessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq FakeLessor.ty FakeLessor.underlying
   get_LeaseSet : ∀ (x : FakeLessor), go.IsGoStepPureDetTagged under (StructFieldGet FakeLessor.underlying go!"LeaseSet") #x (Val #(x.LeaseSet'))
   set_LeaseSet : ∀ (x : FakeLessor) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet FakeLessor.underlying go!"LeaseSet") (PairV #x #y) (Val #(({ x with LeaseSet' := y } : FakeLessor)))
+  method_set : go.MethodSetIs FakeLessor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeLessor.ty) [(go!"Attach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"Checkpoint", (some (go.signature.Signature [LeaseID.ty, go.int64] false [go.error]))), (go!"Demote", (some (go.signature.Signature [] false []))), (go!"Detach", (some (go.signature.Signature [LeaseID.ty, (go.GoType.SliceType LeaseItem.ty)] false [go.error]))), (go!"ExpiredLeasesC", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.SliceType (go.GoType.PointerType Lease.ty)))]))), (go!"GetLease", (some (go.signature.Signature [LeaseItem.ty] false [LeaseID.ty]))), (go!"Grant", (some (go.signature.Signature [LeaseID.ty, go.int64] false [(go.GoType.PointerType Lease.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Lease.ty))]))), (go!"Lookup", (some (go.signature.Signature [LeaseID.ty] false [(go.GoType.PointerType Lease.ty)]))), (go!"Promote", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty, RangeDeleter.ty] false []))), (go!"Renew", (some (go.signature.Signature [LeaseID.ty] false [go.int64, go.error]))), (go!"Revoke", (some (go.signature.Signature [LeaseID.ty] false [go.error]))), (go!"SetCheckpointer", (some (go.signature.Signature [Checkpointer.ty] false []))), (go!"SetRangeDeleter", (some (go.signature.Signature [RangeDeleter.ty] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] FakeLessor.TypeAssumptions.type_repr
   FakeLessor.TypeAssumptions.underlying
   FakeLessor.TypeAssumptions.get_LeaseSet
   FakeLessor.TypeAssumptions.set_LeaseSet
+  FakeLessor.TypeAssumptions.method_set
+  FakeLessor.TypeAssumptions.ptr_method_set
 
 structure FakeTxnDelete [FfiSyntax] where
   mk ::
@@ -1828,11 +1888,15 @@ class FakeTxnDelete.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq FakeTxnDelete.ty FakeTxnDelete.underlying
   get_BatchTx : ∀ (x : FakeTxnDelete), go.IsGoStepPureDetTagged under (StructFieldGet FakeTxnDelete.underlying go!"BatchTx") #x (Val #(x.BatchTx'))
   set_BatchTx : ∀ (x : FakeTxnDelete) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet FakeTxnDelete.underlying go!"BatchTx") (PairV #x #y) (Val #(({ x with BatchTx' := y } : FakeTxnDelete)))
+  method_set : go.MethodSetIs FakeTxnDelete.ty [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeTxnDelete.ty) [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int64, go.int64]))), (go!"End", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
 
 attribute [instance] FakeTxnDelete.TypeAssumptions.type_repr
   FakeTxnDelete.TypeAssumptions.underlying
   FakeTxnDelete.TypeAssumptions.get_BatchTx
   FakeTxnDelete.TypeAssumptions.set_BatchTx
+  FakeTxnDelete.TypeAssumptions.method_set
+  FakeTxnDelete.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Lease_instance : Lease.TypeAssumptions

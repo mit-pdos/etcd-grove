@@ -130,6 +130,8 @@ class DowngradeInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_TargetVersion : ∀ (x : DowngradeInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"TargetVersion") (PairV #x #y) (Val #(({ x with TargetVersion' := y } : DowngradeInfo)))
   get_Enabled : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"Enabled") #x (Val #(x.Enabled'))
   set_Enabled : ∀ (x : DowngradeInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"Enabled") (PairV #x #y) (Val #(({ x with Enabled' := y } : DowngradeInfo)))
+  method_set : go.MethodSetIs DowngradeInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfo.ty) [(go!"GetTargetVersion", none)]
 
 attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
   DowngradeInfo.TypeAssumptions.underlying
@@ -137,6 +139,8 @@ attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
   DowngradeInfo.TypeAssumptions.set_TargetVersion
   DowngradeInfo.TypeAssumptions.get_Enabled
   DowngradeInfo.TypeAssumptions.set_Enabled
+  DowngradeInfo.TypeAssumptions.method_set
+  DowngradeInfo.TypeAssumptions.ptr_method_set
 
 axiom Monitor : Type
 axiom Monitor.zero_val : ZeroVal Monitor
@@ -146,10 +150,14 @@ class Monitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Monitor.underlying Monitor
   underlying : go.UnderlyingDirectedEq Monitor.ty Monitor.underlying
   isUnderlying : go.IsUnderlying Monitor.underlying Monitor.underlying
+  method_set : go.MethodSetIs Monitor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Monitor.ty) [(go!"CancelDowngradeIfNeeded", (some (go.signature.Signature [] false []))), (go!"UpdateClusterVersionIfNeeded", (some (go.signature.Signature [] false [go.error]))), (go!"UpdateStorageVersionIfNeeded", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.decideClusterVersion", none), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.membersMinimalServerVersion", none), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.versionsMatchTarget", none)]
 
 attribute [instance] Monitor.TypeAssumptions.type_repr
   Monitor.TypeAssumptions.underlying
   Monitor.TypeAssumptions.isUnderlying
+  Monitor.TypeAssumptions.method_set
+  Monitor.TypeAssumptions.ptr_method_set
 
 axiom Server : Type
 axiom Server.zero_val : ZeroVal Server
@@ -159,10 +167,14 @@ class Server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
+  method_set : go.MethodSetIs Server.ty [(go!"DowngradeCancel", none), (go!"DowngradeEnable", none), (go!"GetClusterVersion", none), (go!"GetDowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType DowngradeInfo.ty)]))), (go!"GetMembersVersions", none), (go!"GetStorageVersion", none), (go!"LinearizableReadNotify", none), (go!"UpdateClusterVersion", (some (go.signature.Signature [go.string] false []))), (go!"UpdateStorageVersion", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) []
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
+  Server.TypeAssumptions.method_set
+  Server.TypeAssumptions.ptr_method_set
 
 axiom Manager : Type
 axiom Manager.zero_val : ZeroVal Manager
@@ -172,10 +184,14 @@ class Manager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Manager.underlying Manager
   underlying : go.UnderlyingDirectedEq Manager.ty Manager.underlying
   isUnderlying : go.IsUnderlying Manager.underlying Manager.underlying
+  method_set : go.MethodSetIs Manager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Manager.ty) [(go!"DowngradeCancel", none), (go!"DowngradeEnable", none), (go!"DowngradeValidate", none)]
 
 attribute [instance] Manager.TypeAssumptions.type_repr
   Manager.TypeAssumptions.underlying
   Manager.TypeAssumptions.isUnderlying
+  Manager.TypeAssumptions.method_set
+  Manager.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DowngradeInfo_instance : DowngradeInfo.TypeAssumptions

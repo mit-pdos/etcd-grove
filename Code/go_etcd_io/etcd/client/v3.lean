@@ -6795,8 +6795,12 @@ abbrev AuthEnableResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd
 
 class AuthEnableResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthEnableResponse.ty AuthEnableResponse.underlying
+  method_set : go.MethodSetIs AuthEnableResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthEnableResponse.ty) []
 
 attribute [instance] AuthEnableResponse.TypeAssumptions.underlying
+  AuthEnableResponse.TypeAssumptions.method_set
+  AuthEnableResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthDisableResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse
 
@@ -6805,8 +6809,12 @@ abbrev AuthDisableResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etc
 
 class AuthDisableResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthDisableResponse.ty AuthDisableResponse.underlying
+  method_set : go.MethodSetIs AuthDisableResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthDisableResponse.ty) []
 
 attribute [instance] AuthDisableResponse.TypeAssumptions.underlying
+  AuthDisableResponse.TypeAssumptions.method_set
+  AuthDisableResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthStatusResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse
 
@@ -6815,8 +6823,12 @@ abbrev AuthStatusResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd
 
 class AuthStatusResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthStatusResponse.ty AuthStatusResponse.underlying
+  method_set : go.MethodSetIs AuthStatusResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthStatusResponse.ty) []
 
 attribute [instance] AuthStatusResponse.TypeAssumptions.underlying
+  AuthStatusResponse.TypeAssumptions.method_set
+  AuthStatusResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthenticateResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse
 
@@ -6825,8 +6837,12 @@ abbrev AuthenticateResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.et
 
 class AuthenticateResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthenticateResponse.ty AuthenticateResponse.underlying
+  method_set : go.MethodSetIs AuthenticateResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthenticateResponse.ty) []
 
 attribute [instance] AuthenticateResponse.TypeAssumptions.underlying
+  AuthenticateResponse.TypeAssumptions.method_set
+  AuthenticateResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserAddResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse
 
@@ -6835,8 +6851,12 @@ abbrev AuthUserAddResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etc
 
 class AuthUserAddResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserAddResponse.ty AuthUserAddResponse.underlying
+  method_set : go.MethodSetIs AuthUserAddResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserAddResponse.ty) []
 
 attribute [instance] AuthUserAddResponse.TypeAssumptions.underlying
+  AuthUserAddResponse.TypeAssumptions.method_set
+  AuthUserAddResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserDeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse
 
@@ -6845,8 +6865,12 @@ abbrev AuthUserDeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.
 
 class AuthUserDeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserDeleteResponse.ty AuthUserDeleteResponse.underlying
+  method_set : go.MethodSetIs AuthUserDeleteResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserDeleteResponse.ty) []
 
 attribute [instance] AuthUserDeleteResponse.TypeAssumptions.underlying
+  AuthUserDeleteResponse.TypeAssumptions.method_set
+  AuthUserDeleteResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserChangePasswordResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse
 
@@ -6855,8 +6879,12 @@ abbrev AuthUserChangePasswordResponse [FfiSyntax] : Type := _root_.Perennial.go_
 
 class AuthUserChangePasswordResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserChangePasswordResponse.ty AuthUserChangePasswordResponse.underlying
+  method_set : go.MethodSetIs AuthUserChangePasswordResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserChangePasswordResponse.ty) []
 
 attribute [instance] AuthUserChangePasswordResponse.TypeAssumptions.underlying
+  AuthUserChangePasswordResponse.TypeAssumptions.method_set
+  AuthUserChangePasswordResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserGrantRoleResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse
 
@@ -6865,8 +6893,12 @@ abbrev AuthUserGrantRoleResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_
 
 class AuthUserGrantRoleResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserGrantRoleResponse.ty AuthUserGrantRoleResponse.underlying
+  method_set : go.MethodSetIs AuthUserGrantRoleResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserGrantRoleResponse.ty) []
 
 attribute [instance] AuthUserGrantRoleResponse.TypeAssumptions.underlying
+  AuthUserGrantRoleResponse.TypeAssumptions.method_set
+  AuthUserGrantRoleResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserGetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse
 
@@ -6875,8 +6907,12 @@ abbrev AuthUserGetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etc
 
 class AuthUserGetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserGetResponse.ty AuthUserGetResponse.underlying
+  method_set : go.MethodSetIs AuthUserGetResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserGetResponse.ty) []
 
 attribute [instance] AuthUserGetResponse.TypeAssumptions.underlying
+  AuthUserGetResponse.TypeAssumptions.method_set
+  AuthUserGetResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserRevokeRoleResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse
 
@@ -6885,8 +6921,12 @@ abbrev AuthUserRevokeRoleResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd
 
 class AuthUserRevokeRoleResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserRevokeRoleResponse.ty AuthUserRevokeRoleResponse.underlying
+  method_set : go.MethodSetIs AuthUserRevokeRoleResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserRevokeRoleResponse.ty) []
 
 attribute [instance] AuthUserRevokeRoleResponse.TypeAssumptions.underlying
+  AuthUserRevokeRoleResponse.TypeAssumptions.method_set
+  AuthUserRevokeRoleResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthRoleAddResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse
 
@@ -6895,8 +6935,12 @@ abbrev AuthRoleAddResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etc
 
 class AuthRoleAddResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthRoleAddResponse.ty AuthRoleAddResponse.underlying
+  method_set : go.MethodSetIs AuthRoleAddResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleAddResponse.ty) []
 
 attribute [instance] AuthRoleAddResponse.TypeAssumptions.underlying
+  AuthRoleAddResponse.TypeAssumptions.method_set
+  AuthRoleAddResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthRoleGrantPermissionResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse
 
@@ -6905,8 +6949,12 @@ abbrev AuthRoleGrantPermissionResponse [FfiSyntax] : Type := _root_.Perennial.go
 
 class AuthRoleGrantPermissionResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthRoleGrantPermissionResponse.ty AuthRoleGrantPermissionResponse.underlying
+  method_set : go.MethodSetIs AuthRoleGrantPermissionResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleGrantPermissionResponse.ty) []
 
 attribute [instance] AuthRoleGrantPermissionResponse.TypeAssumptions.underlying
+  AuthRoleGrantPermissionResponse.TypeAssumptions.method_set
+  AuthRoleGrantPermissionResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthRoleGetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse
 
@@ -6915,8 +6963,12 @@ abbrev AuthRoleGetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etc
 
 class AuthRoleGetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthRoleGetResponse.ty AuthRoleGetResponse.underlying
+  method_set : go.MethodSetIs AuthRoleGetResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleGetResponse.ty) []
 
 attribute [instance] AuthRoleGetResponse.TypeAssumptions.underlying
+  AuthRoleGetResponse.TypeAssumptions.method_set
+  AuthRoleGetResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthRoleRevokePermissionResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse
 
@@ -6925,8 +6977,12 @@ abbrev AuthRoleRevokePermissionResponse [FfiSyntax] : Type := _root_.Perennial.g
 
 class AuthRoleRevokePermissionResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthRoleRevokePermissionResponse.ty AuthRoleRevokePermissionResponse.underlying
+  method_set : go.MethodSetIs AuthRoleRevokePermissionResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleRevokePermissionResponse.ty) []
 
 attribute [instance] AuthRoleRevokePermissionResponse.TypeAssumptions.underlying
+  AuthRoleRevokePermissionResponse.TypeAssumptions.method_set
+  AuthRoleRevokePermissionResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthRoleDeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse
 
@@ -6935,8 +6991,12 @@ abbrev AuthRoleDeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.
 
 class AuthRoleDeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthRoleDeleteResponse.ty AuthRoleDeleteResponse.underlying
+  method_set : go.MethodSetIs AuthRoleDeleteResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleDeleteResponse.ty) []
 
 attribute [instance] AuthRoleDeleteResponse.TypeAssumptions.underlying
+  AuthRoleDeleteResponse.TypeAssumptions.method_set
+  AuthRoleDeleteResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthUserListResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse
 
@@ -6945,8 +7005,12 @@ abbrev AuthUserListResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.et
 
 class AuthUserListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthUserListResponse.ty AuthUserListResponse.underlying
+  method_set : go.MethodSetIs AuthUserListResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthUserListResponse.ty) []
 
 attribute [instance] AuthUserListResponse.TypeAssumptions.underlying
+  AuthUserListResponse.TypeAssumptions.method_set
+  AuthUserListResponse.TypeAssumptions.ptr_method_set
 
 abbrev AuthRoleListResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse
 
@@ -6955,8 +7019,12 @@ abbrev AuthRoleListResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.et
 
 class AuthRoleListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthRoleListResponse.ty AuthRoleListResponse.underlying
+  method_set : go.MethodSetIs AuthRoleListResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthRoleListResponse.ty) []
 
 attribute [instance] AuthRoleListResponse.TypeAssumptions.underlying
+  AuthRoleListResponse.TypeAssumptions.method_set
+  AuthRoleListResponse.TypeAssumptions.ptr_method_set
 
 axiom PermissionType : Type
 axiom PermissionType.zero_val : ZeroVal PermissionType
@@ -6966,10 +7034,14 @@ class PermissionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying PermissionType.underlying PermissionType
   underlying : go.UnderlyingDirectedEq PermissionType.ty PermissionType.underlying
   isUnderlying : go.IsUnderlying PermissionType.underlying PermissionType.underlying
+  method_set : go.MethodSetIs PermissionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PermissionType.ty) []
 
 attribute [instance] PermissionType.TypeAssumptions.type_repr
   PermissionType.TypeAssumptions.underlying
   PermissionType.TypeAssumptions.isUnderlying
+  PermissionType.TypeAssumptions.method_set
+  PermissionType.TypeAssumptions.ptr_method_set
 
 axiom Permission : Type
 axiom Permission.zero_val : ZeroVal Permission
@@ -6979,10 +7051,14 @@ class Permission.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying Permission.underlying Permission
   underlying : go.UnderlyingDirectedEq Permission.ty Permission.underlying
   isUnderlying : go.IsUnderlying Permission.underlying Permission.underlying
+  method_set : go.MethodSetIs Permission.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission.ty) []
 
 attribute [instance] Permission.TypeAssumptions.type_repr
   Permission.TypeAssumptions.underlying
   Permission.TypeAssumptions.isUnderlying
+  Permission.TypeAssumptions.method_set
+  Permission.TypeAssumptions.ptr_method_set
 
 axiom UserAddOptions : Type
 axiom UserAddOptions.zero_val : ZeroVal UserAddOptions
@@ -6992,10 +7068,14 @@ class UserAddOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying UserAddOptions.underlying UserAddOptions
   underlying : go.UnderlyingDirectedEq UserAddOptions.ty UserAddOptions.underlying
   isUnderlying : go.IsUnderlying UserAddOptions.underlying UserAddOptions.underlying
+  method_set : go.MethodSetIs UserAddOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UserAddOptions.ty) []
 
 attribute [instance] UserAddOptions.TypeAssumptions.type_repr
   UserAddOptions.TypeAssumptions.underlying
   UserAddOptions.TypeAssumptions.isUnderlying
+  UserAddOptions.TypeAssumptions.method_set
+  UserAddOptions.TypeAssumptions.ptr_method_set
 
 abbrev Auth [FfiSyntax] : Type := GoInterface
 
@@ -7004,8 +7084,12 @@ abbrev Auth [FfiSyntax] : Type := GoInterface
 
 class Auth.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Auth.ty Auth.underlying
+  method_set : go.MethodSetIs Auth.ty [(go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthenticateResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, PermissionType.ty] false [(go.GoType.PointerType AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType UserAddOptions.ty)] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserRevokeRoleResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Auth.ty) []
 
 attribute [instance] Auth.TypeAssumptions.underlying
+  Auth.TypeAssumptions.method_set
+  Auth.TypeAssumptions.ptr_method_set
 
 structure authClient [FfiSyntax] where
   mk ::
@@ -7036,6 +7120,8 @@ class authClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_remote : ∀ (x : authClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient), go.IsGoStepPureDetTagged under (StructFieldSet authClient.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : authClient)))
   get_callOpts : ∀ (x : authClient), go.IsGoStepPureDetTagged under (StructFieldGet authClient.underlying go!"callOpts") #x (Val #(x.callOpts'))
   set_callOpts : ∀ (x : authClient) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet authClient.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : authClient)))
+  method_set : go.MethodSetIs authClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authClient.ty) [(go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthenticateResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, PermissionType.ty] false [(go.GoType.PointerType AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType UserAddOptions.ty)] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserRevokeRoleResponse.ty), go.error])))]
 
 attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.underlying
@@ -7043,6 +7129,8 @@ attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.set_remote
   authClient.TypeAssumptions.get_callOpts
   authClient.TypeAssumptions.set_callOpts
+  authClient.TypeAssumptions.method_set
+  authClient.TypeAssumptions.ptr_method_set
 
 structure blockLogger [FfiSyntax] where
   mk ::
@@ -7097,6 +7185,8 @@ class blockLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_eventCount : ∀ (x : blockLogger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet blockLogger.underlying go!"eventCount") (PairV #x #y) (Val #(({ x with eventCount' := y } : blockLogger)))
   get_timeWaiting : ∀ (x : blockLogger), go.IsGoStepPureDetTagged under (StructFieldGet blockLogger.underlying go!"timeWaiting") #x (Val #(x.timeWaiting'))
   set_timeWaiting : ∀ (x : blockLogger) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet blockLogger.underlying go!"timeWaiting") (PairV #x #y) (Val #(({ x with timeWaiting' := y } : blockLogger)))
+  method_set : go.MethodSetIs blockLogger.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType blockLogger.ty) [(go!"go.etcd.io/etcd/client/v3.recordWait", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])))]
   ptr_recordWait_unfold : MethodUnfold (go.GoType.PointerType blockLogger.ty) go!"recordWait" blockLogger.recordWait.impl
 
 attribute [instance] blockLogger.TypeAssumptions.type_repr
@@ -7117,6 +7207,8 @@ attribute [instance] blockLogger.TypeAssumptions.type_repr
   blockLogger.TypeAssumptions.set_eventCount
   blockLogger.TypeAssumptions.get_timeWaiting
   blockLogger.TypeAssumptions.set_timeWaiting
+  blockLogger.TypeAssumptions.method_set
+  blockLogger.TypeAssumptions.ptr_method_set
   blockLogger.TypeAssumptions.ptr_recordWait_unfold
 
 abbrev Cluster [FfiSyntax] : Type := GoInterface
@@ -7126,8 +7218,12 @@ abbrev Cluster [FfiSyntax] : Type := GoInterface
 
 class Cluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Cluster.ty Cluster.underlying
+  method_set : go.MethodSetIs Cluster.ty [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cluster.ty) []
 
 attribute [instance] Cluster.TypeAssumptions.underlying
+  Cluster.TypeAssumptions.method_set
+  Cluster.TypeAssumptions.ptr_method_set
 
 abbrev KV [FfiSyntax] : Type := GoInterface
 
@@ -7136,8 +7232,12 @@ abbrev KV [FfiSyntax] : Type := GoInterface
 
 class KV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KV.ty KV.underlying
+  method_set : go.MethodSetIs KV.ty [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType CompactOption.ty)] true [(go.GoType.PointerType CompactResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType DeleteResponse.ty), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Op.ty] false [OpResponse.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType GetResponse.ty), go.error]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [GetStreamChan.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [Txn.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) []
 
 attribute [instance] KV.TypeAssumptions.underlying
+  KV.TypeAssumptions.method_set
+  KV.TypeAssumptions.ptr_method_set
 
 abbrev Lease [FfiSyntax] : Type := GoInterface
 
@@ -7146,8 +7246,12 @@ abbrev Lease [FfiSyntax] : Type := GoInterface
 
 class Lease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Lease.ty Lease.underlying
+  method_set : go.MethodSetIs Lease.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty, (go.GoType.SliceType LeaseOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lease.ty) []
 
 attribute [instance] Lease.TypeAssumptions.underlying
+  Lease.TypeAssumptions.method_set
+  Lease.TypeAssumptions.ptr_method_set
 
 abbrev Watcher [FfiSyntax] : Type := GoInterface
 
@@ -7156,8 +7260,12 @@ abbrev Watcher [FfiSyntax] : Type := GoInterface
 
 class Watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Watcher.ty Watcher.underlying
+  method_set : go.MethodSetIs Watcher.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [WatchChan.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Watcher.ty) []
 
 attribute [instance] Watcher.TypeAssumptions.underlying
+  Watcher.TypeAssumptions.method_set
+  Watcher.TypeAssumptions.ptr_method_set
 
 axiom Maintenance : Type
 axiom Maintenance.zero_val : ZeroVal Maintenance
@@ -7167,10 +7275,14 @@ class Maintenance.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Maintenance.underlying Maintenance
   underlying : go.UnderlyingDirectedEq Maintenance.ty Maintenance.underlying
   isUnderlying : go.IsUnderlying Maintenance.underlying Maintenance.underlying
+  method_set : go.MethodSetIs Maintenance.ty [(go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmMember.ty)] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, DowngradeAction.ty, go.string] false [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", none), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType StatusResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Maintenance.ty) []
 
 attribute [instance] Maintenance.TypeAssumptions.type_repr
   Maintenance.TypeAssumptions.underlying
   Maintenance.TypeAssumptions.isUnderlying
+  Maintenance.TypeAssumptions.method_set
+  Maintenance.TypeAssumptions.ptr_method_set
 
 axiom Config : Type
 axiom Config.zero_val : ZeroVal Config
@@ -7180,10 +7292,14 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   isUnderlying : go.IsUnderlying Config.underlying Config.underlying
+  method_set : go.MethodSetIs Config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
   Config.TypeAssumptions.isUnderlying
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
 structure Client [FfiSyntax] where
   mk ::
@@ -7286,6 +7402,8 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_callOpts : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : Client)))
   get_lg : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : Client) (y : (_root_.Perennial.sync.atomic.Pointer _root_.Perennial.go_uber_org.zap.Logger)), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Client)))
+  method_set : go.MethodSetIs Client.ty [(go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmMember.ty)] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthenticateResponse.ty), go.error]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType CompactOption.ty)] true [(go.GoType.PointerType CompactResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType DeleteResponse.ty), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Op.ty] false [OpResponse.ty, go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, DowngradeAction.ty, go.string] false [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType GetResponse.ty), go.error]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [GetStreamChan.ty, go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, PermissionType.ty] false [(go.GoType.PointerType AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Snapshot", none), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType StatusResponse.ty), go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty, (go.GoType.SliceType LeaseOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [Txn.ty]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType UserAddOptions.ty)] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [WatchChan.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Client.ty) [(go!"ActiveConnection", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)]))), (go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmMember.ty)] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthenticateResponse.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType CompactOption.ty)] true [(go.GoType.PointerType CompactResponse.ty), go.error]))), (go!"Ctx", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType DeleteResponse.ty), go.error]))), (go!"Dial", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Op.ty] false [OpResponse.ty, go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, DowngradeAction.ty, go.string] false [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"Endpoints", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType GetResponse.ty), go.error]))), (go!"GetLogger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [GetStreamChan.ty, go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, PermissionType.ty] false [(go.GoType.PointerType AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true []))), (go!"Snapshot", none), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType StatusResponse.ty), go.error]))), (go!"Sync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty, (go.GoType.SliceType LeaseOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [Txn.ty]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType UserAddOptions.ty)] false [(go.GoType.PointerType AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [WatchChan.ty]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [(go.GoType.PointerType Client.ty)]))), (go!"go.etcd.io/etcd/client/v3.autoSync", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.checkVersion", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.credentialsForEndpoint", (some (go.signature.Signature [go.string] false [_root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty]))), (go!"go.etcd.io/etcd/client/v3.dial", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)] true [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3.dialSetupOpts", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty, (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)] true [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)]))), (go!"go.etcd.io/etcd/client/v3.dialWithBalancer", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)] true [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3.getToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.refreshToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.roundRobinQuorumBackoff", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.float64] false [backoffFunc.ty]))), (go!"go.etcd.io/etcd/client/v3.shouldRefreshToken", (some (go.signature.Signature [go.error, (go.GoType.PointerType options.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.streamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType retryOption.ty)] true [_root_.Perennial.google_golang_org.grpc.StreamClientInterceptor.ty]))), (go!"go.etcd.io/etcd/client/v3.unaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType retryOption.ty)] true [_root_.Perennial.google_golang_org.grpc.UnaryClientInterceptor.ty])))]
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" Client.Ctx.impl
   ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" Client.GetLogger.impl
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
@@ -7334,6 +7452,8 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.set_callOpts
   Client.TypeAssumptions.get_lg
   Client.TypeAssumptions.set_lg
+  Client.TypeAssumptions.method_set
+  Client.TypeAssumptions.ptr_method_set
   Client.TypeAssumptions.ptr_Ctx_unfold
   Client.TypeAssumptions.ptr_GetLogger_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
@@ -7347,8 +7467,12 @@ abbrev Option [FfiSyntax] : Type := GoFunc
 
 class Option.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Option.ty Option.underlying
+  method_set : go.MethodSetIs Option.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Option.ty) []
 
 attribute [instance] Option.TypeAssumptions.underlying
+  Option.TypeAssumptions.method_set
+  Option.TypeAssumptions.ptr_method_set
 
 abbrev Member [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Member
 
@@ -7357,8 +7481,12 @@ abbrev Member [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcd
 
 class Member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Member.ty Member.underlying
+  method_set : go.MethodSetIs Member.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Member.ty) []
 
 attribute [instance] Member.TypeAssumptions.underlying
+  Member.TypeAssumptions.method_set
+  Member.TypeAssumptions.ptr_method_set
 
 abbrev MemberListResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse
 
@@ -7367,8 +7495,12 @@ abbrev MemberListResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd
 
 class MemberListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemberListResponse.ty MemberListResponse.underlying
+  method_set : go.MethodSetIs MemberListResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberListResponse.ty) []
 
 attribute [instance] MemberListResponse.TypeAssumptions.underlying
+  MemberListResponse.TypeAssumptions.method_set
+  MemberListResponse.TypeAssumptions.ptr_method_set
 
 abbrev MemberAddResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse
 
@@ -7377,8 +7509,12 @@ abbrev MemberAddResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.
 
 class MemberAddResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemberAddResponse.ty MemberAddResponse.underlying
+  method_set : go.MethodSetIs MemberAddResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberAddResponse.ty) []
 
 attribute [instance] MemberAddResponse.TypeAssumptions.underlying
+  MemberAddResponse.TypeAssumptions.method_set
+  MemberAddResponse.TypeAssumptions.ptr_method_set
 
 abbrev MemberRemoveResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse
 
@@ -7387,8 +7523,12 @@ abbrev MemberRemoveResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.et
 
 class MemberRemoveResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemberRemoveResponse.ty MemberRemoveResponse.underlying
+  method_set : go.MethodSetIs MemberRemoveResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberRemoveResponse.ty) []
 
 attribute [instance] MemberRemoveResponse.TypeAssumptions.underlying
+  MemberRemoveResponse.TypeAssumptions.method_set
+  MemberRemoveResponse.TypeAssumptions.ptr_method_set
 
 abbrev MemberUpdateResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse
 
@@ -7397,8 +7537,12 @@ abbrev MemberUpdateResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.et
 
 class MemberUpdateResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemberUpdateResponse.ty MemberUpdateResponse.underlying
+  method_set : go.MethodSetIs MemberUpdateResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberUpdateResponse.ty) []
 
 attribute [instance] MemberUpdateResponse.TypeAssumptions.underlying
+  MemberUpdateResponse.TypeAssumptions.method_set
+  MemberUpdateResponse.TypeAssumptions.ptr_method_set
 
 abbrev MemberPromoteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse
 
@@ -7407,8 +7551,12 @@ abbrev MemberPromoteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.e
 
 class MemberPromoteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemberPromoteResponse.ty MemberPromoteResponse.underlying
+  method_set : go.MethodSetIs MemberPromoteResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberPromoteResponse.ty) []
 
 attribute [instance] MemberPromoteResponse.TypeAssumptions.underlying
+  MemberPromoteResponse.TypeAssumptions.method_set
+  MemberPromoteResponse.TypeAssumptions.ptr_method_set
 
 structure cluster [FfiSyntax] where
   mk ::
@@ -7439,6 +7587,8 @@ class cluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_remote : ∀ (x : cluster) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient), go.IsGoStepPureDetTagged under (StructFieldSet cluster.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : cluster)))
   get_callOpts : ∀ (x : cluster), go.IsGoStepPureDetTagged under (StructFieldGet cluster.underlying go!"callOpts") #x (Val #(x.callOpts'))
   set_callOpts : ∀ (x : cluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet cluster.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : cluster)))
+  method_set : go.MethodSetIs cluster.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cluster.ty) [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType MemberUpdateResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3.memberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string), go.bool] false [(go.GoType.PointerType MemberAddResponse.ty), go.error])))]
 
 attribute [instance] cluster.TypeAssumptions.type_repr
   cluster.TypeAssumptions.underlying
@@ -7446,6 +7596,8 @@ attribute [instance] cluster.TypeAssumptions.type_repr
   cluster.TypeAssumptions.set_remote
   cluster.TypeAssumptions.get_callOpts
   cluster.TypeAssumptions.set_callOpts
+  cluster.TypeAssumptions.method_set
+  cluster.TypeAssumptions.ptr_method_set
 
 structure CompactOp [FfiSyntax] where
   mk ::
@@ -7476,6 +7628,8 @@ class CompactOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_revision : ∀ (x : CompactOp) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet CompactOp.underlying go!"revision") (PairV #x #y) (Val #(({ x with revision' := y } : CompactOp)))
   get_physical : ∀ (x : CompactOp), go.IsGoStepPureDetTagged under (StructFieldGet CompactOp.underlying go!"physical") #x (Val #(x.physical'))
   set_physical : ∀ (x : CompactOp) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet CompactOp.underlying go!"physical") (PairV #x #y) (Val #(({ x with physical' := y } : CompactOp)))
+  method_set : go.MethodSetIs CompactOp.ty [(go!"go.etcd.io/etcd/client/v3.toRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompactOp.ty) [(go!"go.etcd.io/etcd/client/v3.applyCompactOpts", (some (go.signature.Signature [(go.GoType.SliceType CompactOption.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.toRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)])))]
 
 attribute [instance] CompactOp.TypeAssumptions.type_repr
   CompactOp.TypeAssumptions.underlying
@@ -7483,6 +7637,8 @@ attribute [instance] CompactOp.TypeAssumptions.type_repr
   CompactOp.TypeAssumptions.set_revision
   CompactOp.TypeAssumptions.get_physical
   CompactOp.TypeAssumptions.set_physical
+  CompactOp.TypeAssumptions.method_set
+  CompactOp.TypeAssumptions.ptr_method_set
 
 abbrev CompactOption [FfiSyntax] : Type := GoFunc
 
@@ -7491,8 +7647,12 @@ abbrev CompactOption [FfiSyntax] : Type := GoFunc
 
 class CompactOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CompactOption.ty CompactOption.underlying
+  method_set : go.MethodSetIs CompactOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompactOption.ty) []
 
 attribute [instance] CompactOption.TypeAssumptions.underlying
+  CompactOption.TypeAssumptions.method_set
+  CompactOption.TypeAssumptions.ptr_method_set
 
 abbrev CompareTarget [FfiSyntax] : Type := w64
 
@@ -7501,8 +7661,12 @@ abbrev CompareTarget [FfiSyntax] : Type := w64
 
 class CompareTarget.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CompareTarget.ty CompareTarget.underlying
+  method_set : go.MethodSetIs CompareTarget.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompareTarget.ty) []
 
 attribute [instance] CompareTarget.TypeAssumptions.underlying
+  CompareTarget.TypeAssumptions.method_set
+  CompareTarget.TypeAssumptions.ptr_method_set
 
 abbrev CompareResult [FfiSyntax] : Type := w64
 
@@ -7511,8 +7675,12 @@ abbrev CompareResult [FfiSyntax] : Type := w64
 
 class CompareResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CompareResult.ty CompareResult.underlying
+  method_set : go.MethodSetIs CompareResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompareResult.ty) []
 
 attribute [instance] CompareResult.TypeAssumptions.underlying
+  CompareResult.TypeAssumptions.method_set
+  CompareResult.TypeAssumptions.ptr_method_set
 
 structure Cmp [FfiSyntax] where
   mk ::
@@ -7539,6 +7707,8 @@ class Cmp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   underlying : go.UnderlyingDirectedEq Cmp.ty Cmp.underlying
   get_c : ∀ (x : Cmp), go.IsGoStepPureDetTagged under (StructFieldGet Cmp.underlying go!"c") #x (Val #(x.c'))
   set_c : ∀ (x : Cmp) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Cmp.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : Cmp)))
+  method_set : go.MethodSetIs Cmp.ty [(go!"WithPrefix", (some (go.signature.Signature [] false [Cmp.ty]))), (go!"WithRange", (some (go.signature.Signature [go.string] false [Cmp.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cmp.ty) [(go!"Clone", (some (go.signature.Signature [] false [Cmp.ty]))), (go!"GetCompare", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Compare.ty)]))), (go!"KeyBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ValueBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"WithKeyBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"WithPrefix", (some (go.signature.Signature [] false [Cmp.ty]))), (go!"WithRange", (some (go.signature.Signature [go.string] false [Cmp.ty]))), (go!"WithValueBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/client/v3.ensureCompare", (some (go.signature.Signature [] false [])))]
   WithPrefix_unfold : MethodUnfold Cmp.ty go!"WithPrefix" Cmp.WithPrefix.impl
   WithRange_unfold : MethodUnfold Cmp.ty go!"WithRange" Cmp.WithRange.impl
   ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Cmp.ty) go!"Clone" Cmp.Clone.impl
@@ -7554,6 +7724,8 @@ attribute [instance] Cmp.TypeAssumptions.type_repr
   Cmp.TypeAssumptions.underlying
   Cmp.TypeAssumptions.get_c
   Cmp.TypeAssumptions.set_c
+  Cmp.TypeAssumptions.method_set
+  Cmp.TypeAssumptions.ptr_method_set
   Cmp.TypeAssumptions.WithPrefix_unfold
   Cmp.TypeAssumptions.WithRange_unfold
   Cmp.TypeAssumptions.ptr_Clone_unfold
@@ -7620,6 +7792,8 @@ class ConfigSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Secure : ∀ (x : ConfigSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConfigSpec.underlying go!"Secure") (PairV #x #y) (Val #(({ x with Secure' := y } : ConfigSpec)))
   get_Auth : ∀ (x : ConfigSpec), go.IsGoStepPureDetTagged under (StructFieldGet ConfigSpec.underlying go!"Auth") #x (Val #(x.Auth'))
   set_Auth : ∀ (x : ConfigSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ConfigSpec.underlying go!"Auth") (PairV #x #y) (Val #(({ x with Auth' := y } : ConfigSpec)))
+  method_set : go.MethodSetIs ConfigSpec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfigSpec.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfigSpec.ty)])))]
 
 attribute [instance] ConfigSpec.TypeAssumptions.type_repr
   ConfigSpec.TypeAssumptions.underlying
@@ -7641,6 +7815,8 @@ attribute [instance] ConfigSpec.TypeAssumptions.type_repr
   ConfigSpec.TypeAssumptions.set_Secure
   ConfigSpec.TypeAssumptions.get_Auth
   ConfigSpec.TypeAssumptions.set_Auth
+  ConfigSpec.TypeAssumptions.method_set
+  ConfigSpec.TypeAssumptions.ptr_method_set
 
 structure SecureConfig [FfiSyntax] where
   mk ::
@@ -7687,6 +7863,8 @@ class SecureConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_InsecureTransport : ∀ (x : SecureConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SecureConfig.underlying go!"InsecureTransport") (PairV #x #y) (Val #(({ x with InsecureTransport' := y } : SecureConfig)))
   get_InsecureSkipVerify : ∀ (x : SecureConfig), go.IsGoStepPureDetTagged under (StructFieldGet SecureConfig.underlying go!"InsecureSkipVerify") #x (Val #(x.InsecureSkipVerify'))
   set_InsecureSkipVerify : ∀ (x : SecureConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SecureConfig.underlying go!"InsecureSkipVerify") (PairV #x #y) (Val #(({ x with InsecureSkipVerify' := y } : SecureConfig)))
+  method_set : go.MethodSetIs SecureConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SecureConfig.ty) []
 
 attribute [instance] SecureConfig.TypeAssumptions.type_repr
   SecureConfig.TypeAssumptions.underlying
@@ -7702,6 +7880,8 @@ attribute [instance] SecureConfig.TypeAssumptions.type_repr
   SecureConfig.TypeAssumptions.set_InsecureTransport
   SecureConfig.TypeAssumptions.get_InsecureSkipVerify
   SecureConfig.TypeAssumptions.set_InsecureSkipVerify
+  SecureConfig.TypeAssumptions.method_set
+  SecureConfig.TypeAssumptions.ptr_method_set
 
 structure AuthConfig [FfiSyntax] where
   mk ::
@@ -7736,6 +7916,8 @@ class AuthConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Password : ∀ (x : AuthConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthConfig.underlying go!"Password") (PairV #x #y) (Val #(({ x with Password' := y } : AuthConfig)))
   get_Token : ∀ (x : AuthConfig), go.IsGoStepPureDetTagged under (StructFieldGet AuthConfig.underlying go!"Token") #x (Val #(x.Token'))
   set_Token : ∀ (x : AuthConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthConfig.underlying go!"Token") (PairV #x #y) (Val #(({ x with Token' := y } : AuthConfig)))
+  method_set : go.MethodSetIs AuthConfig.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthConfig.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] AuthConfig.TypeAssumptions.type_repr
   AuthConfig.TypeAssumptions.underlying
@@ -7745,6 +7927,8 @@ attribute [instance] AuthConfig.TypeAssumptions.type_repr
   AuthConfig.TypeAssumptions.set_Password
   AuthConfig.TypeAssumptions.get_Token
   AuthConfig.TypeAssumptions.set_Token
+  AuthConfig.TypeAssumptions.method_set
+  AuthConfig.TypeAssumptions.ptr_method_set
 
 abbrev CompactResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse
 
@@ -7753,8 +7937,12 @@ abbrev CompactResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.ap
 
 class CompactResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CompactResponse.ty CompactResponse.underlying
+  method_set : go.MethodSetIs CompactResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompactResponse.ty) []
 
 attribute [instance] CompactResponse.TypeAssumptions.underlying
+  CompactResponse.TypeAssumptions.method_set
+  CompactResponse.TypeAssumptions.ptr_method_set
 
 abbrev PutResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse
 
@@ -7763,9 +7951,13 @@ abbrev PutResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class PutResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PutResponse.ty PutResponse.underlying
+  method_set : go.MethodSetIs PutResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutResponse.ty) [(go!"OpResponse", (some (go.signature.Signature [] false [OpResponse.ty])))]
   ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType PutResponse.ty) go!"OpResponse" PutResponse.OpResponse.impl
 
 attribute [instance] PutResponse.TypeAssumptions.underlying
+  PutResponse.TypeAssumptions.method_set
+  PutResponse.TypeAssumptions.ptr_method_set
   PutResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 abbrev GetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse
@@ -7775,9 +7967,13 @@ abbrev GetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class GetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GetResponse.ty GetResponse.underlying
+  method_set : go.MethodSetIs GetResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetResponse.ty) [(go!"OpResponse", (some (go.signature.Signature [] false [OpResponse.ty])))]
   ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType GetResponse.ty) go!"OpResponse" GetResponse.OpResponse.impl
 
 attribute [instance] GetResponse.TypeAssumptions.underlying
+  GetResponse.TypeAssumptions.method_set
+  GetResponse.TypeAssumptions.ptr_method_set
   GetResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 abbrev GetStreamChan [FfiSyntax] : Type := GoChan
@@ -7787,8 +7983,12 @@ abbrev GetStreamChan [FfiSyntax] : Type := GoChan
 
 class GetStreamChan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GetStreamChan.ty GetStreamChan.underlying
+  method_set : go.MethodSetIs GetStreamChan.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetStreamChan.ty) []
 
 attribute [instance] GetStreamChan.TypeAssumptions.underlying
+  GetStreamChan.TypeAssumptions.method_set
+  GetStreamChan.TypeAssumptions.ptr_method_set
 
 abbrev DeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse
 
@@ -7797,9 +7997,13 @@ abbrev DeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api
 
 class DeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DeleteResponse.ty DeleteResponse.underlying
+  method_set : go.MethodSetIs DeleteResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteResponse.ty) [(go!"OpResponse", (some (go.signature.Signature [] false [OpResponse.ty])))]
   ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType DeleteResponse.ty) go!"OpResponse" DeleteResponse.OpResponse.impl
 
 attribute [instance] DeleteResponse.TypeAssumptions.underlying
+  DeleteResponse.TypeAssumptions.method_set
+  DeleteResponse.TypeAssumptions.ptr_method_set
   DeleteResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 abbrev TxnResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse
@@ -7809,9 +8013,13 @@ abbrev TxnResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class TxnResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TxnResponse.ty TxnResponse.underlying
+  method_set : go.MethodSetIs TxnResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TxnResponse.ty) [(go!"OpResponse", (some (go.signature.Signature [] false [OpResponse.ty])))]
   ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType TxnResponse.ty) go!"OpResponse" TxnResponse.OpResponse.impl
 
 attribute [instance] TxnResponse.TypeAssumptions.underlying
+  TxnResponse.TypeAssumptions.method_set
+  TxnResponse.TypeAssumptions.ptr_method_set
   TxnResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 structure RangeStreamResponse [FfiSyntax] where
@@ -7843,6 +8051,8 @@ class RangeStreamResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_RangeResponse : ∀ (x : RangeStreamResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"RangeResponse") (PairV #x #y) (Val #(({ x with RangeResponse' := y } : RangeStreamResponse)))
   get_closeErr : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"closeErr") #x (Val #(x.closeErr'))
   set_closeErr : ∀ (x : RangeStreamResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"closeErr") (PairV #x #y) (Val #(({ x with closeErr' := y } : RangeStreamResponse)))
+  method_set : go.MethodSetIs RangeStreamResponse.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCount", (some (go.signature.Signature [] false [go.int64]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetKvs", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))), (go!"GetMore", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RangeStreamResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"GetCount", (some (go.signature.Signature [] false [go.int64]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetKvs", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))), (go!"GetMore", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RangeStreamResponse.TypeAssumptions.type_repr
   RangeStreamResponse.TypeAssumptions.underlying
@@ -7850,6 +8060,8 @@ attribute [instance] RangeStreamResponse.TypeAssumptions.type_repr
   RangeStreamResponse.TypeAssumptions.set_RangeResponse
   RangeStreamResponse.TypeAssumptions.get_closeErr
   RangeStreamResponse.TypeAssumptions.set_closeErr
+  RangeStreamResponse.TypeAssumptions.method_set
+  RangeStreamResponse.TypeAssumptions.ptr_method_set
 
 structure OpResponse [FfiSyntax] where
   mk ::
@@ -7888,6 +8100,8 @@ class OpResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_del : ∀ (x : OpResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet OpResponse.underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : OpResponse)))
   get_txn : ∀ (x : OpResponse), go.IsGoStepPureDetTagged under (StructFieldGet OpResponse.underlying go!"txn") #x (Val #(x.txn'))
   set_txn : ∀ (x : OpResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet OpResponse.underlying go!"txn") (PairV #x #y) (Val #(({ x with txn' := y } : OpResponse)))
+  method_set : go.MethodSetIs OpResponse.ty [(go!"Del", (some (go.signature.Signature [] false [(go.GoType.PointerType DeleteResponse.ty)]))), (go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType GetResponse.ty)]))), (go!"Put", (some (go.signature.Signature [] false [(go.GoType.PointerType PutResponse.ty)]))), (go!"Txn", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnResponse.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpResponse.ty) [(go!"Del", (some (go.signature.Signature [] false [(go.GoType.PointerType DeleteResponse.ty)]))), (go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType GetResponse.ty)]))), (go!"Put", (some (go.signature.Signature [] false [(go.GoType.PointerType PutResponse.ty)]))), (go!"Txn", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnResponse.ty)])))]
   Get_unfold : MethodUnfold OpResponse.ty go!"Get" OpResponse.Get.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType OpResponse.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve OpResponse.ty go!"Get"))) (App (Val (GoInstruction (GoLoad OpResponse.ty))) (Var "$r"))))
@@ -7902,6 +8116,8 @@ attribute [instance] OpResponse.TypeAssumptions.type_repr
   OpResponse.TypeAssumptions.set_del
   OpResponse.TypeAssumptions.get_txn
   OpResponse.TypeAssumptions.set_txn
+  OpResponse.TypeAssumptions.method_set
+  OpResponse.TypeAssumptions.ptr_method_set
   OpResponse.TypeAssumptions.Get_unfold
   OpResponse.TypeAssumptions.ptr_Get_unfold
 
@@ -7934,6 +8150,8 @@ class kv.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_remote : ∀ (x : kv) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVClient), go.IsGoStepPureDetTagged under (StructFieldSet kv.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : kv)))
   get_callOpts : ∀ (x : kv), go.IsGoStepPureDetTagged under (StructFieldGet kv.underlying go!"callOpts") #x (Val #(x.callOpts'))
   set_callOpts : ∀ (x : kv) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kv.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : kv)))
+  method_set : go.MethodSetIs kv.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kv.ty) [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType CompactOption.ty)] true [(go.GoType.PointerType CompactResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType DeleteResponse.ty), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, Op.ty] false [OpResponse.ty, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType GetResponse.ty), go.error]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [GetStreamChan.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType OpOption.ty)] true [(go.GoType.PointerType PutResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [Txn.ty])))]
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType kv.ty) go!"Delete" kv.Delete.impl
   ptr_Do_unfold : MethodUnfold (go.GoType.PointerType kv.ty) go!"Do" kv.Do.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType kv.ty) go!"Get" kv.Get.impl
@@ -7946,6 +8164,8 @@ attribute [instance] kv.TypeAssumptions.type_repr
   kv.TypeAssumptions.set_remote
   kv.TypeAssumptions.get_callOpts
   kv.TypeAssumptions.set_callOpts
+  kv.TypeAssumptions.method_set
+  kv.TypeAssumptions.ptr_method_set
   kv.TypeAssumptions.ptr_Delete_unfold
   kv.TypeAssumptions.ptr_Do_unfold
   kv.TypeAssumptions.ptr_Get_unfold
@@ -7959,8 +8179,12 @@ abbrev LeaseRevokeResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etc
 
 class LeaseRevokeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseRevokeResponse.ty LeaseRevokeResponse.underlying
+  method_set : go.MethodSetIs LeaseRevokeResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseRevokeResponse.ty) []
 
 attribute [instance] LeaseRevokeResponse.TypeAssumptions.underlying
+  LeaseRevokeResponse.TypeAssumptions.method_set
+  LeaseRevokeResponse.TypeAssumptions.ptr_method_set
 
 abbrev LeaseID [FfiSyntax] : Type := w64
 
@@ -7969,8 +8193,12 @@ abbrev LeaseID [FfiSyntax] : Type := w64
 
 class LeaseID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseID.ty LeaseID.underlying
+  method_set : go.MethodSetIs LeaseID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseID.ty) []
 
 attribute [instance] LeaseID.TypeAssumptions.underlying
+  LeaseID.TypeAssumptions.method_set
+  LeaseID.TypeAssumptions.ptr_method_set
 
 structure LeaseGrantResponse [FfiSyntax] where
   mk ::
@@ -8009,6 +8237,8 @@ class LeaseGrantResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_TTL : ∀ (x : LeaseGrantResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseGrantResponse.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : LeaseGrantResponse)))
   get_Error : ∀ (x : LeaseGrantResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseGrantResponse.underlying go!"Error") #x (Val #(x.Error'))
   set_Error : ∀ (x : LeaseGrantResponse) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LeaseGrantResponse.underlying go!"Error") (PairV #x #y) (Val #(({ x with Error' := y } : LeaseGrantResponse)))
+  method_set : go.MethodSetIs LeaseGrantResponse.ty [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseGrantResponse.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LeaseGrantResponse.TypeAssumptions.type_repr
   LeaseGrantResponse.TypeAssumptions.underlying
@@ -8020,6 +8250,8 @@ attribute [instance] LeaseGrantResponse.TypeAssumptions.type_repr
   LeaseGrantResponse.TypeAssumptions.set_TTL
   LeaseGrantResponse.TypeAssumptions.get_Error
   LeaseGrantResponse.TypeAssumptions.set_Error
+  LeaseGrantResponse.TypeAssumptions.method_set
+  LeaseGrantResponse.TypeAssumptions.ptr_method_set
 
 structure LeaseKeepAliveResponse [FfiSyntax] where
   mk ::
@@ -8054,6 +8286,8 @@ class LeaseKeepAliveResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   set_ID : ∀ (x : LeaseKeepAliveResponse) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : LeaseKeepAliveResponse)))
   get_TTL : ∀ (x : LeaseKeepAliveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseKeepAliveResponse.underlying go!"TTL") #x (Val #(x.TTL'))
   set_TTL : ∀ (x : LeaseKeepAliveResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseKeepAliveResponse.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : LeaseKeepAliveResponse)))
+  method_set : go.MethodSetIs LeaseKeepAliveResponse.ty [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseKeepAliveResponse.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LeaseKeepAliveResponse.TypeAssumptions.type_repr
   LeaseKeepAliveResponse.TypeAssumptions.underlying
@@ -8063,6 +8297,8 @@ attribute [instance] LeaseKeepAliveResponse.TypeAssumptions.type_repr
   LeaseKeepAliveResponse.TypeAssumptions.set_ID
   LeaseKeepAliveResponse.TypeAssumptions.get_TTL
   LeaseKeepAliveResponse.TypeAssumptions.set_TTL
+  LeaseKeepAliveResponse.TypeAssumptions.method_set
+  LeaseKeepAliveResponse.TypeAssumptions.ptr_method_set
 
 structure LeaseTimeToLiveResponse [FfiSyntax] where
   mk ::
@@ -8105,6 +8341,8 @@ class LeaseTimeToLiveResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoL
   set_GrantedTTL : ∀ (x : LeaseTimeToLiveResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet LeaseTimeToLiveResponse.underlying go!"GrantedTTL") (PairV #x #y) (Val #(({ x with GrantedTTL' := y } : LeaseTimeToLiveResponse)))
   get_Keys : ∀ (x : LeaseTimeToLiveResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseTimeToLiveResponse.underlying go!"Keys") #x (Val #(x.Keys'))
   set_Keys : ∀ (x : LeaseTimeToLiveResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaseTimeToLiveResponse.underlying go!"Keys") (PairV #x #y) (Val #(({ x with Keys' := y } : LeaseTimeToLiveResponse)))
+  method_set : go.MethodSetIs LeaseTimeToLiveResponse.ty [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseTimeToLiveResponse.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LeaseTimeToLiveResponse.TypeAssumptions.type_repr
   LeaseTimeToLiveResponse.TypeAssumptions.underlying
@@ -8118,6 +8356,8 @@ attribute [instance] LeaseTimeToLiveResponse.TypeAssumptions.type_repr
   LeaseTimeToLiveResponse.TypeAssumptions.set_GrantedTTL
   LeaseTimeToLiveResponse.TypeAssumptions.get_Keys
   LeaseTimeToLiveResponse.TypeAssumptions.set_Keys
+  LeaseTimeToLiveResponse.TypeAssumptions.method_set
+  LeaseTimeToLiveResponse.TypeAssumptions.ptr_method_set
 
 structure LeaseStatus [FfiSyntax] where
   mk ::
@@ -8144,11 +8384,15 @@ class LeaseStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq LeaseStatus.ty LeaseStatus.underlying
   get_ID : ∀ (x : LeaseStatus), go.IsGoStepPureDetTagged under (StructFieldGet LeaseStatus.underlying go!"ID") #x (Val #(x.ID'))
   set_ID : ∀ (x : LeaseStatus) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet LeaseStatus.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : LeaseStatus)))
+  method_set : go.MethodSetIs LeaseStatus.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseStatus.ty) []
 
 attribute [instance] LeaseStatus.TypeAssumptions.type_repr
   LeaseStatus.TypeAssumptions.underlying
   LeaseStatus.TypeAssumptions.get_ID
   LeaseStatus.TypeAssumptions.set_ID
+  LeaseStatus.TypeAssumptions.method_set
+  LeaseStatus.TypeAssumptions.ptr_method_set
 
 structure LeaseLeasesResponse [FfiSyntax] where
   mk ::
@@ -8179,6 +8423,8 @@ class LeaseLeasesResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_ResponseHeader : ∀ (x : LeaseLeasesResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaseLeasesResponse.underlying go!"ResponseHeader") (PairV #x #y) (Val #(({ x with ResponseHeader' := y } : LeaseLeasesResponse)))
   get_Leases : ∀ (x : LeaseLeasesResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaseLeasesResponse.underlying go!"Leases") #x (Val #(x.Leases'))
   set_Leases : ∀ (x : LeaseLeasesResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaseLeasesResponse.underlying go!"Leases") (PairV #x #y) (Val #(({ x with Leases' := y } : LeaseLeasesResponse)))
+  method_set : go.MethodSetIs LeaseLeasesResponse.ty [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseLeasesResponse.ty) [(go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetClusterId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaderId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetMemberId", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRaftTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LeaseLeasesResponse.TypeAssumptions.type_repr
   LeaseLeasesResponse.TypeAssumptions.underlying
@@ -8186,6 +8432,8 @@ attribute [instance] LeaseLeasesResponse.TypeAssumptions.type_repr
   LeaseLeasesResponse.TypeAssumptions.set_ResponseHeader
   LeaseLeasesResponse.TypeAssumptions.get_Leases
   LeaseLeasesResponse.TypeAssumptions.set_Leases
+  LeaseLeasesResponse.TypeAssumptions.method_set
+  LeaseLeasesResponse.TypeAssumptions.ptr_method_set
 
 structure ErrKeepAliveHalted [FfiSyntax] where
   mk ::
@@ -8212,11 +8460,15 @@ class ErrKeepAliveHalted.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq ErrKeepAliveHalted.ty ErrKeepAliveHalted.underlying
   get_Reason : ∀ (x : ErrKeepAliveHalted), go.IsGoStepPureDetTagged under (StructFieldGet ErrKeepAliveHalted.underlying go!"Reason") #x (Val #(x.Reason'))
   set_Reason : ∀ (x : ErrKeepAliveHalted) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet ErrKeepAliveHalted.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : ErrKeepAliveHalted)))
+  method_set : go.MethodSetIs ErrKeepAliveHalted.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrKeepAliveHalted.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ErrKeepAliveHalted.TypeAssumptions.type_repr
   ErrKeepAliveHalted.TypeAssumptions.underlying
   ErrKeepAliveHalted.TypeAssumptions.get_Reason
   ErrKeepAliveHalted.TypeAssumptions.set_Reason
+  ErrKeepAliveHalted.TypeAssumptions.method_set
+  ErrKeepAliveHalted.TypeAssumptions.ptr_method_set
 
 axiom lessor : Type
 axiom lessor.zero_val : ZeroVal lessor
@@ -8226,10 +8478,14 @@ class lessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying lessor.underlying lessor
   underlying : go.UnderlyingDirectedEq lessor.ty lessor.underlying
   isUnderlying : go.IsUnderlying lessor.underlying lessor.underlying
+  method_set : go.MethodSetIs lessor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lessor.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType LeaseGrantResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType LeaseLeasesResponse.ty), go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseRevokeResponse.ty), go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty, (go.GoType.SliceType LeaseOption.ty)] true [(go.GoType.PointerType LeaseTimeToLiveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3.closeRequireLeader", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.deadlineLoop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.keepAliveCtxCloser", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty, (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"go.etcd.io/etcd/client/v3.keepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, LeaseID.ty] false [(go.GoType.PointerType LeaseKeepAliveResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3.recvKeepAlive", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.recvKeepAliveLoop", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.resetRecv", none), (go!"go.etcd.io/etcd/client/v3.sendKeepAliveLoop", none)]
 
 attribute [instance] lessor.TypeAssumptions.type_repr
   lessor.TypeAssumptions.underlying
   lessor.TypeAssumptions.isUnderlying
+  lessor.TypeAssumptions.method_set
+  lessor.TypeAssumptions.ptr_method_set
 
 structure keepAlive [FfiSyntax] where
   mk ::
@@ -8272,6 +8528,8 @@ class keepAlive.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_nextKeepAlive : ∀ (x : keepAlive) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"nextKeepAlive") (PairV #x #y) (Val #(({ x with nextKeepAlive' := y } : keepAlive)))
   get_donec : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"donec") #x (Val #(x.donec'))
   set_donec : ∀ (x : keepAlive) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : keepAlive)))
+  method_set : go.MethodSetIs keepAlive.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepAlive.ty) [(go!"go.etcd.io/etcd/client/v3.close", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] keepAlive.TypeAssumptions.type_repr
   keepAlive.TypeAssumptions.underlying
@@ -8285,6 +8543,8 @@ attribute [instance] keepAlive.TypeAssumptions.type_repr
   keepAlive.TypeAssumptions.set_nextKeepAlive
   keepAlive.TypeAssumptions.get_donec
   keepAlive.TypeAssumptions.set_donec
+  keepAlive.TypeAssumptions.method_set
+  keepAlive.TypeAssumptions.ptr_method_set
 
 structure keepAliveCtxKey [FfiSyntax] where
   mk ::
@@ -8308,9 +8568,13 @@ instance equals_unfold_keepAliveCtxKey [FfiSyntax] [GoGlobalContext] :
 class keepAliveCtxKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keepAliveCtxKey.underlying keepAliveCtxKey
   underlying : go.UnderlyingDirectedEq keepAliveCtxKey.ty keepAliveCtxKey.underlying
+  method_set : go.MethodSetIs keepAliveCtxKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepAliveCtxKey.ty) []
 
 attribute [instance] keepAliveCtxKey.TypeAssumptions.type_repr
   keepAliveCtxKey.TypeAssumptions.underlying
+  keepAliveCtxKey.TypeAssumptions.method_set
+  keepAliveCtxKey.TypeAssumptions.ptr_method_set
 
 abbrev DefragmentResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse
 
@@ -8319,8 +8583,12 @@ abbrev DefragmentResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd
 
 class DefragmentResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DefragmentResponse.ty DefragmentResponse.underlying
+  method_set : go.MethodSetIs DefragmentResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DefragmentResponse.ty) []
 
 attribute [instance] DefragmentResponse.TypeAssumptions.underlying
+  DefragmentResponse.TypeAssumptions.method_set
+  DefragmentResponse.TypeAssumptions.ptr_method_set
 
 abbrev AlarmResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse
 
@@ -8329,8 +8597,12 @@ abbrev AlarmResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.
 
 class AlarmResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmResponse.ty AlarmResponse.underlying
+  method_set : go.MethodSetIs AlarmResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmResponse.ty) []
 
 attribute [instance] AlarmResponse.TypeAssumptions.underlying
+  AlarmResponse.TypeAssumptions.method_set
+  AlarmResponse.TypeAssumptions.ptr_method_set
 
 abbrev AlarmMember [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember
 
@@ -8339,8 +8611,12 @@ abbrev AlarmMember [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class AlarmMember.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmMember.ty AlarmMember.underlying
+  method_set : go.MethodSetIs AlarmMember.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmMember.ty) []
 
 attribute [instance] AlarmMember.TypeAssumptions.underlying
+  AlarmMember.TypeAssumptions.method_set
+  AlarmMember.TypeAssumptions.ptr_method_set
 
 abbrev StatusResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse
 
@@ -8349,8 +8625,12 @@ abbrev StatusResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api
 
 class StatusResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StatusResponse.ty StatusResponse.underlying
+  method_set : go.MethodSetIs StatusResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusResponse.ty) []
 
 attribute [instance] StatusResponse.TypeAssumptions.underlying
+  StatusResponse.TypeAssumptions.method_set
+  StatusResponse.TypeAssumptions.ptr_method_set
 
 abbrev HashKVResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse
 
@@ -8359,8 +8639,12 @@ abbrev HashKVResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api
 
 class HashKVResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HashKVResponse.ty HashKVResponse.underlying
+  method_set : go.MethodSetIs HashKVResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HashKVResponse.ty) []
 
 attribute [instance] HashKVResponse.TypeAssumptions.underlying
+  HashKVResponse.TypeAssumptions.method_set
+  HashKVResponse.TypeAssumptions.ptr_method_set
 
 abbrev MoveLeaderResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse
 
@@ -8369,8 +8653,12 @@ abbrev MoveLeaderResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd
 
 class MoveLeaderResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MoveLeaderResponse.ty MoveLeaderResponse.underlying
+  method_set : go.MethodSetIs MoveLeaderResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MoveLeaderResponse.ty) []
 
 attribute [instance] MoveLeaderResponse.TypeAssumptions.underlying
+  MoveLeaderResponse.TypeAssumptions.method_set
+  MoveLeaderResponse.TypeAssumptions.ptr_method_set
 
 abbrev DowngradeResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse
 
@@ -8379,8 +8667,12 @@ abbrev DowngradeResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.
 
 class DowngradeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DowngradeResponse.ty DowngradeResponse.underlying
+  method_set : go.MethodSetIs DowngradeResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeResponse.ty) []
 
 attribute [instance] DowngradeResponse.TypeAssumptions.underlying
+  DowngradeResponse.TypeAssumptions.method_set
+  DowngradeResponse.TypeAssumptions.ptr_method_set
 
 abbrev DowngradeAction [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest_DowngradeAction
 
@@ -8389,8 +8681,12 @@ abbrev DowngradeAction [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.ap
 
 class DowngradeAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DowngradeAction.ty DowngradeAction.underlying
+  method_set : go.MethodSetIs DowngradeAction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeAction.ty) []
 
 attribute [instance] DowngradeAction.TypeAssumptions.underlying
+  DowngradeAction.TypeAssumptions.method_set
+  DowngradeAction.TypeAssumptions.ptr_method_set
 
 axiom SnapshotResponse : Type
 axiom SnapshotResponse.zero_val : ZeroVal SnapshotResponse
@@ -8400,10 +8696,14 @@ class SnapshotResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying SnapshotResponse.underlying SnapshotResponse
   underlying : go.UnderlyingDirectedEq SnapshotResponse.ty SnapshotResponse.underlying
   isUnderlying : go.IsUnderlying SnapshotResponse.underlying SnapshotResponse.underlying
+  method_set : go.MethodSetIs SnapshotResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SnapshotResponse.ty) []
 
 attribute [instance] SnapshotResponse.TypeAssumptions.type_repr
   SnapshotResponse.TypeAssumptions.underlying
   SnapshotResponse.TypeAssumptions.isUnderlying
+  SnapshotResponse.TypeAssumptions.method_set
+  SnapshotResponse.TypeAssumptions.ptr_method_set
 
 structure maintenance [FfiSyntax] where
   mk ::
@@ -8442,6 +8742,8 @@ class maintenance.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_remote : ∀ (x : maintenance) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient), go.IsGoStepPureDetTagged under (StructFieldSet maintenance.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : maintenance)))
   get_callOpts : ∀ (x : maintenance), go.IsGoStepPureDetTagged under (StructFieldGet maintenance.underlying go!"callOpts") #x (Val #(x.callOpts'))
   set_callOpts : ∀ (x : maintenance) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet maintenance.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : maintenance)))
+  method_set : go.MethodSetIs maintenance.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType maintenance.ty) [(go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmMember.ty)] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, DowngradeAction.ty, go.string] false [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", none), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType StatusResponse.ty), go.error]))), (go!"go.etcd.io/etcd/client/v3.logAndCloseWithError", none), (go!"go.etcd.io/etcd/client/v3.save", none)]
 
 attribute [instance] maintenance.TypeAssumptions.type_repr
   maintenance.TypeAssumptions.underlying
@@ -8453,6 +8755,8 @@ attribute [instance] maintenance.TypeAssumptions.type_repr
   maintenance.TypeAssumptions.set_remote
   maintenance.TypeAssumptions.get_callOpts
   maintenance.TypeAssumptions.set_callOpts
+  maintenance.TypeAssumptions.method_set
+  maintenance.TypeAssumptions.ptr_method_set
 
 axiom snapshotReadCloser : Type
 axiom snapshotReadCloser.zero_val : ZeroVal snapshotReadCloser
@@ -8462,10 +8766,14 @@ class snapshotReadCloser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying snapshotReadCloser.underlying snapshotReadCloser
   underlying : go.UnderlyingDirectedEq snapshotReadCloser.ty snapshotReadCloser.underlying
   isUnderlying : go.IsUnderlying snapshotReadCloser.underlying snapshotReadCloser.underlying
+  method_set : go.MethodSetIs snapshotReadCloser.ty [(go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotReadCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] snapshotReadCloser.TypeAssumptions.type_repr
   snapshotReadCloser.TypeAssumptions.underlying
   snapshotReadCloser.TypeAssumptions.isUnderlying
+  snapshotReadCloser.TypeAssumptions.method_set
+  snapshotReadCloser.TypeAssumptions.ptr_method_set
 
 abbrev opType [FfiSyntax] : Type := w64
 
@@ -8474,8 +8782,12 @@ abbrev opType [FfiSyntax] : Type := w64
 
 class opType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq opType.ty opType.underlying
+  method_set : go.MethodSetIs opType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType opType.ty) []
 
 attribute [instance] opType.TypeAssumptions.underlying
+  opType.TypeAssumptions.method_set
+  opType.TypeAssumptions.ptr_method_set
 
 structure Op [FfiSyntax] where
   mk ::
@@ -8614,6 +8926,8 @@ class Op.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_isOptsWithFromKey : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"isOptsWithFromKey") (PairV #x #y) (Val #(({ x with isOptsWithFromKey' := y } : Op)))
   get_isOptsWithPrefix : ∀ (x : Op), go.IsGoStepPureDetTagged under (StructFieldGet Op.underlying go!"isOptsWithPrefix") #x (Val #(x.isOptsWithPrefix'))
   set_isOptsWithPrefix : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"isOptsWithPrefix") (PairV #x #y) (Val #(({ x with isOptsWithPrefix' := y } : Op)))
+  method_set : go.MethodSetIs Op.ty [(go!"IsCountOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"IsCreatedNotify", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDelete", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFilterDelete", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFilterPut", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFragment", (some (go.signature.Signature [] false [go.bool]))), (go!"IsGet", (some (go.signature.Signature [] false [go.bool]))), (go!"IsKeysOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"IsOptsWithFromKey", (some (go.signature.Signature [] false [go.bool]))), (go!"IsOptsWithPrefix", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrevKV", (some (go.signature.Signature [] false [go.bool]))), (go!"IsProgressNotify", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPut", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSerializable", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSortOptionValid", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSortSet", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTxn", (some (go.signature.Signature [] false [go.bool]))), (go!"KeyBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Limit", (some (go.signature.Signature [] false [go.int64]))), (go!"MaxCreateRev", (some (go.signature.Signature [] false [go.int64]))), (go!"MaxModRev", (some (go.signature.Signature [] false [go.int64]))), (go!"MinCreateRev", (some (go.signature.Signature [] false [go.int64]))), (go!"MinModRev", (some (go.signature.Signature [] false [go.int64]))), (go!"RangeBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Rev", (some (go.signature.Signature [] false [go.int64]))), (go!"Txn", (some (go.signature.Signature [] false [(go.GoType.SliceType Cmp.ty), (go.GoType.SliceType Op.ty), (go.GoType.SliceType Op.ty)]))), (go!"ValueBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/etcd/client/v3.isWrite", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.toRangeRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)]))), (go!"go.etcd.io/etcd/client/v3.toRequestOp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)]))), (go!"go.etcd.io/etcd/client/v3.toTxnRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Op.ty) [(go!"IsCountOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"IsCreatedNotify", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDelete", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFilterDelete", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFilterPut", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFragment", (some (go.signature.Signature [] false [go.bool]))), (go!"IsGet", (some (go.signature.Signature [] false [go.bool]))), (go!"IsKeysOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"IsOptsWithFromKey", (some (go.signature.Signature [] false [go.bool]))), (go!"IsOptsWithPrefix", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrevKV", (some (go.signature.Signature [] false [go.bool]))), (go!"IsProgressNotify", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPut", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSerializable", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSortOptionValid", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSortSet", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTxn", (some (go.signature.Signature [] false [go.bool]))), (go!"KeyBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Limit", (some (go.signature.Signature [] false [go.int64]))), (go!"MaxCreateRev", (some (go.signature.Signature [] false [go.int64]))), (go!"MaxModRev", (some (go.signature.Signature [] false [go.int64]))), (go!"MinCreateRev", (some (go.signature.Signature [] false [go.int64]))), (go!"MinModRev", (some (go.signature.Signature [] false [go.int64]))), (go!"RangeBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Rev", (some (go.signature.Signature [] false [go.int64]))), (go!"Txn", (some (go.signature.Signature [] false [(go.GoType.SliceType Cmp.ty), (go.GoType.SliceType Op.ty), (go.GoType.SliceType Op.ty)]))), (go!"ValueBytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"WithKeyBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"WithRangeBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"WithValueBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/client/v3.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType OpOption.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.isWrite", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.toRangeRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)]))), (go!"go.etcd.io/etcd/client/v3.toRequestOp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)]))), (go!"go.etcd.io/etcd/client/v3.toTxnRequest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)])))]
   IsCountOnly_unfold : MethodUnfold Op.ty go!"IsCountOnly" Op.IsCountOnly.impl
   IsCreatedNotify_unfold : MethodUnfold Op.ty go!"IsCreatedNotify" Op.IsCreatedNotify.impl
   IsDelete_unfold : MethodUnfold Op.ty go!"IsDelete" Op.IsDelete.impl
@@ -8763,6 +9077,8 @@ attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.set_isOptsWithFromKey
   Op.TypeAssumptions.get_isOptsWithPrefix
   Op.TypeAssumptions.set_isOptsWithPrefix
+  Op.TypeAssumptions.method_set
+  Op.TypeAssumptions.ptr_method_set
   Op.TypeAssumptions.IsCountOnly_unfold
   Op.TypeAssumptions.IsCreatedNotify_unfold
   Op.TypeAssumptions.IsDelete_unfold
@@ -8830,8 +9146,12 @@ abbrev OpOption [FfiSyntax] : Type := GoFunc
 
 class OpOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq OpOption.ty OpOption.underlying
+  method_set : go.MethodSetIs OpOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpOption.ty) []
 
 attribute [instance] OpOption.TypeAssumptions.underlying
+  OpOption.TypeAssumptions.method_set
+  OpOption.TypeAssumptions.ptr_method_set
 
 structure LeaseOp [FfiSyntax] where
   mk ::
@@ -8862,6 +9182,8 @@ class LeaseOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_id : ∀ (x : LeaseOp) (y : LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet LeaseOp.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : LeaseOp)))
   get_attachedKeys : ∀ (x : LeaseOp), go.IsGoStepPureDetTagged under (StructFieldGet LeaseOp.underlying go!"attachedKeys") #x (Val #(x.attachedKeys'))
   set_attachedKeys : ∀ (x : LeaseOp) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet LeaseOp.underlying go!"attachedKeys") (PairV #x #y) (Val #(({ x with attachedKeys' := y } : LeaseOp)))
+  method_set : go.MethodSetIs LeaseOp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseOp.ty) [(go!"go.etcd.io/etcd/client/v3.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType LeaseOption.ty)] false [])))]
 
 attribute [instance] LeaseOp.TypeAssumptions.type_repr
   LeaseOp.TypeAssumptions.underlying
@@ -8869,6 +9191,8 @@ attribute [instance] LeaseOp.TypeAssumptions.type_repr
   LeaseOp.TypeAssumptions.set_id
   LeaseOp.TypeAssumptions.get_attachedKeys
   LeaseOp.TypeAssumptions.set_attachedKeys
+  LeaseOp.TypeAssumptions.method_set
+  LeaseOp.TypeAssumptions.ptr_method_set
 
 abbrev LeaseOption [FfiSyntax] : Type := GoFunc
 
@@ -8877,8 +9201,12 @@ abbrev LeaseOption [FfiSyntax] : Type := GoFunc
 
 class LeaseOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseOption.ty LeaseOption.underlying
+  method_set : go.MethodSetIs LeaseOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseOption.ty) []
 
 attribute [instance] LeaseOption.TypeAssumptions.underlying
+  LeaseOption.TypeAssumptions.method_set
+  LeaseOption.TypeAssumptions.ptr_method_set
 
 abbrev retryPolicy [FfiSyntax] : Type := w8
 
@@ -8887,11 +9215,15 @@ abbrev retryPolicy [FfiSyntax] : Type := w8
 
 class retryPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq retryPolicy.ty retryPolicy.underlying
+  method_set : go.MethodSetIs retryPolicy.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryPolicy.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   String_unfold : MethodUnfold retryPolicy.ty go!"String" retryPolicy.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType retryPolicy.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve retryPolicy.ty go!"String"))) (App (Val (GoInstruction (GoLoad retryPolicy.ty))) (Var "$r"))))
 
 attribute [instance] retryPolicy.TypeAssumptions.underlying
+  retryPolicy.TypeAssumptions.method_set
+  retryPolicy.TypeAssumptions.ptr_method_set
   retryPolicy.TypeAssumptions.String_unfold
   retryPolicy.TypeAssumptions.ptr_String_unfold
 
@@ -8920,6 +9252,8 @@ class retryKVClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq retryKVClient.ty retryKVClient.underlying
   get_kc : ∀ (x : retryKVClient), go.IsGoStepPureDetTagged under (StructFieldGet retryKVClient.underlying go!"kc") #x (Val #(x.kc'))
   set_kc : ∀ (x : retryKVClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVClient), go.IsGoStepPureDetTagged under (StructFieldSet retryKVClient.underlying go!"kc") (PairV #x #y) (Val #(({ x with kc' := y } : retryKVClient)))
+  method_set : go.MethodSetIs retryKVClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryKVClient.ty) [(go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error]))), (go!"RangeStream", none), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error])))]
   ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType retryKVClient.ty) go!"DeleteRange" retryKVClient.DeleteRange.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType retryKVClient.ty) go!"Put" retryKVClient.Put.impl
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType retryKVClient.ty) go!"Range" retryKVClient.Range.impl
@@ -8929,6 +9263,8 @@ attribute [instance] retryKVClient.TypeAssumptions.type_repr
   retryKVClient.TypeAssumptions.underlying
   retryKVClient.TypeAssumptions.get_kc
   retryKVClient.TypeAssumptions.set_kc
+  retryKVClient.TypeAssumptions.method_set
+  retryKVClient.TypeAssumptions.ptr_method_set
   retryKVClient.TypeAssumptions.ptr_DeleteRange_unfold
   retryKVClient.TypeAssumptions.ptr_Put_unfold
   retryKVClient.TypeAssumptions.ptr_Range_unfold
@@ -8959,11 +9295,15 @@ class retryLeaseClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq retryLeaseClient.ty retryLeaseClient.underlying
   get_lc : ∀ (x : retryLeaseClient), go.IsGoStepPureDetTagged under (StructFieldGet retryLeaseClient.underlying go!"lc") #x (Val #(x.lc'))
   set_lc : ∀ (x : retryLeaseClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient), go.IsGoStepPureDetTagged under (StructFieldSet retryLeaseClient.underlying go!"lc") (PairV #x #y) (Val #(({ x with lc' := y } : retryLeaseClient)))
+  method_set : go.MethodSetIs retryLeaseClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryLeaseClient.ty) [(go!"LeaseGrant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseKeepAlive", none), (go!"LeaseLeases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"LeaseTimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error])))]
 
 attribute [instance] retryLeaseClient.TypeAssumptions.type_repr
   retryLeaseClient.TypeAssumptions.underlying
   retryLeaseClient.TypeAssumptions.get_lc
   retryLeaseClient.TypeAssumptions.set_lc
+  retryLeaseClient.TypeAssumptions.method_set
+  retryLeaseClient.TypeAssumptions.ptr_method_set
 
 structure retryClusterClient [FfiSyntax] where
   mk ::
@@ -8990,11 +9330,15 @@ class retryClusterClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq retryClusterClient.ty retryClusterClient.underlying
   get_cc : ∀ (x : retryClusterClient), go.IsGoStepPureDetTagged under (StructFieldGet retryClusterClient.underlying go!"cc") #x (Val #(x.cc'))
   set_cc : ∀ (x : retryClusterClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient), go.IsGoStepPureDetTagged under (StructFieldSet retryClusterClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : retryClusterClient)))
+  method_set : go.MethodSetIs retryClusterClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryClusterClient.ty) [(go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MemberUpdateResponse.ty), go.error])))]
 
 attribute [instance] retryClusterClient.TypeAssumptions.type_repr
   retryClusterClient.TypeAssumptions.underlying
   retryClusterClient.TypeAssumptions.get_cc
   retryClusterClient.TypeAssumptions.set_cc
+  retryClusterClient.TypeAssumptions.method_set
+  retryClusterClient.TypeAssumptions.ptr_method_set
 
 structure retryMaintenanceClient [FfiSyntax] where
   mk ::
@@ -9021,11 +9365,15 @@ class retryMaintenanceClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq retryMaintenanceClient.ty retryMaintenanceClient.underlying
   get_mc : ∀ (x : retryMaintenanceClient), go.IsGoStepPureDetTagged under (StructFieldGet retryMaintenanceClient.underlying go!"mc") #x (Val #(x.mc'))
   set_mc : ∀ (x : retryMaintenanceClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient), go.IsGoStepPureDetTagged under (StructFieldSet retryMaintenanceClient.underlying go!"mc") (PairV #x #y) (Val #(({ x with mc' := y } : retryMaintenanceClient)))
+  method_set : go.MethodSetIs retryMaintenanceClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryMaintenanceClient.ty) [(go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeResponse.ty), go.error]))), (go!"Hash", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", none), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusResponse.ty), go.error])))]
 
 attribute [instance] retryMaintenanceClient.TypeAssumptions.type_repr
   retryMaintenanceClient.TypeAssumptions.underlying
   retryMaintenanceClient.TypeAssumptions.get_mc
   retryMaintenanceClient.TypeAssumptions.set_mc
+  retryMaintenanceClient.TypeAssumptions.method_set
+  retryMaintenanceClient.TypeAssumptions.ptr_method_set
 
 structure retryAuthClient [FfiSyntax] where
   mk ::
@@ -9052,11 +9400,15 @@ class retryAuthClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq retryAuthClient.ty retryAuthClient.underlying
   get_ac : ∀ (x : retryAuthClient), go.IsGoStepPureDetTagged under (StructFieldGet retryAuthClient.underlying go!"ac") #x (Val #(x.ac'))
   set_ac : ∀ (x : retryAuthClient) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient), go.IsGoStepPureDetTagged under (StructFieldSet retryAuthClient.underlying go!"ac") (PairV #x #y) (Val #(({ x with ac' := y } : retryAuthClient)))
+  method_set : go.MethodSetIs retryAuthClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryAuthClient.ty) [(go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
 
 attribute [instance] retryAuthClient.TypeAssumptions.type_repr
   retryAuthClient.TypeAssumptions.underlying
   retryAuthClient.TypeAssumptions.get_ac
   retryAuthClient.TypeAssumptions.set_ac
+  retryAuthClient.TypeAssumptions.method_set
+  retryAuthClient.TypeAssumptions.ptr_method_set
 
 structure serverStreamingRetryingStream [FfiSyntax] where
   mk ::
@@ -9115,6 +9467,8 @@ class serverStreamingRetryingStream.TypeAssumptions [FfiSyntax] [GoGlobalContext
   set_streamerCall : ∀ (x : serverStreamingRetryingStream) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamingRetryingStream.underlying go!"streamerCall") (PairV #x #y) (Val #(({ x with streamerCall' := y } : serverStreamingRetryingStream)))
   get_mu : ∀ (x : serverStreamingRetryingStream), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamingRetryingStream.underlying go!"mu") #x (Val #(x.mu'))
   set_mu : ∀ (x : serverStreamingRetryingStream) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamingRetryingStream.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : serverStreamingRetryingStream)))
+  method_set : go.MethodSetIs serverStreamingRetryingStream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStreamingRetryingStream.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", none), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", none), (go!"go.etcd.io/etcd/client/v3.getStream", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.ClientStream.ty]))), (go!"go.etcd.io/etcd/client/v3.receiveMsgAndIndicateRetry", (some (go.signature.Signature [go.any] false [go.bool, go.error]))), (go!"go.etcd.io/etcd/client/v3.reestablishStreamAndResendBuffer", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.ClientStream.ty, go.error]))), (go!"go.etcd.io/etcd/client/v3.setStream", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.ClientStream.ty] false [])))]
 
 attribute [instance] serverStreamingRetryingStream.TypeAssumptions.type_repr
   serverStreamingRetryingStream.TypeAssumptions.underlying
@@ -9136,6 +9490,8 @@ attribute [instance] serverStreamingRetryingStream.TypeAssumptions.type_repr
   serverStreamingRetryingStream.TypeAssumptions.set_streamerCall
   serverStreamingRetryingStream.TypeAssumptions.get_mu
   serverStreamingRetryingStream.TypeAssumptions.set_mu
+  serverStreamingRetryingStream.TypeAssumptions.method_set
+  serverStreamingRetryingStream.TypeAssumptions.ptr_method_set
 
 abbrev backoffFunc [FfiSyntax] : Type := GoFunc
 
@@ -9144,8 +9500,12 @@ abbrev backoffFunc [FfiSyntax] : Type := GoFunc
 
 class backoffFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq backoffFunc.ty backoffFunc.underlying
+  method_set : go.MethodSetIs backoffFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType backoffFunc.ty) []
 
 attribute [instance] backoffFunc.TypeAssumptions.underlying
+  backoffFunc.TypeAssumptions.method_set
+  backoffFunc.TypeAssumptions.ptr_method_set
 
 structure options [FfiSyntax] where
   mk ::
@@ -9184,6 +9544,8 @@ class options.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_backoffFunc : ∀ (x : options) (y : backoffFunc), go.IsGoStepPureDetTagged under (StructFieldSet options.underlying go!"backoffFunc") (PairV #x #y) (Val #(({ x with backoffFunc' := y } : options)))
   get_retryAuth : ∀ (x : options), go.IsGoStepPureDetTagged under (StructFieldGet options.underlying go!"retryAuth") #x (Val #(x.retryAuth'))
   set_retryAuth : ∀ (x : options) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet options.underlying go!"retryAuth") (PairV #x #y) (Val #(({ x with retryAuth' := y } : options)))
+  method_set : go.MethodSetIs options.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType options.ty) []
 
 attribute [instance] options.TypeAssumptions.type_repr
   options.TypeAssumptions.underlying
@@ -9195,6 +9557,8 @@ attribute [instance] options.TypeAssumptions.type_repr
   options.TypeAssumptions.set_backoffFunc
   options.TypeAssumptions.get_retryAuth
   options.TypeAssumptions.set_retryAuth
+  options.TypeAssumptions.method_set
+  options.TypeAssumptions.ptr_method_set
 
 structure retryOption [FfiSyntax] where
   mk ::
@@ -9225,6 +9589,8 @@ class retryOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_EmptyCallOption : ∀ (x : retryOption) (y : _root_.Perennial.google_golang_org.grpc.EmptyCallOption), go.IsGoStepPureDetTagged under (StructFieldSet retryOption.underlying go!"EmptyCallOption") (PairV #x #y) (Val #(({ x with EmptyCallOption' := y } : retryOption)))
   get_applyFunc : ∀ (x : retryOption), go.IsGoStepPureDetTagged under (StructFieldGet retryOption.underlying go!"applyFunc") #x (Val #(x.applyFunc'))
   set_applyFunc : ∀ (x : retryOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet retryOption.underlying go!"applyFunc") (PairV #x #y) (Val #(({ x with applyFunc' := y } : retryOption)))
+  method_set : go.MethodSetIs retryOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.callInfo.ty), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.callInfo.ty), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.callInfo.ty)] false [go.error])))]
 
 attribute [instance] retryOption.TypeAssumptions.type_repr
   retryOption.TypeAssumptions.underlying
@@ -9232,6 +9598,8 @@ attribute [instance] retryOption.TypeAssumptions.type_repr
   retryOption.TypeAssumptions.set_EmptyCallOption
   retryOption.TypeAssumptions.get_applyFunc
   retryOption.TypeAssumptions.set_applyFunc
+  retryOption.TypeAssumptions.method_set
+  retryOption.TypeAssumptions.ptr_method_set
 
 abbrev SortTarget [FfiSyntax] : Type := w64
 
@@ -9240,8 +9608,12 @@ abbrev SortTarget [FfiSyntax] : Type := w64
 
 class SortTarget.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SortTarget.ty SortTarget.underlying
+  method_set : go.MethodSetIs SortTarget.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SortTarget.ty) []
 
 attribute [instance] SortTarget.TypeAssumptions.underlying
+  SortTarget.TypeAssumptions.method_set
+  SortTarget.TypeAssumptions.ptr_method_set
 
 abbrev SortOrder [FfiSyntax] : Type := w64
 
@@ -9250,8 +9622,12 @@ abbrev SortOrder [FfiSyntax] : Type := w64
 
 class SortOrder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SortOrder.ty SortOrder.underlying
+  method_set : go.MethodSetIs SortOrder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SortOrder.ty) []
 
 attribute [instance] SortOrder.TypeAssumptions.underlying
+  SortOrder.TypeAssumptions.method_set
+  SortOrder.TypeAssumptions.ptr_method_set
 
 structure SortOption [FfiSyntax] where
   mk ::
@@ -9282,6 +9658,8 @@ class SortOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Target : ∀ (x : SortOption) (y : SortTarget), go.IsGoStepPureDetTagged under (StructFieldSet SortOption.underlying go!"Target") (PairV #x #y) (Val #(({ x with Target' := y } : SortOption)))
   get_Order : ∀ (x : SortOption), go.IsGoStepPureDetTagged under (StructFieldGet SortOption.underlying go!"Order") #x (Val #(x.Order'))
   set_Order : ∀ (x : SortOption) (y : SortOrder), go.IsGoStepPureDetTagged under (StructFieldSet SortOption.underlying go!"Order") (PairV #x #y) (Val #(({ x with Order' := y } : SortOption)))
+  method_set : go.MethodSetIs SortOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SortOption.ty) []
 
 attribute [instance] SortOption.TypeAssumptions.type_repr
   SortOption.TypeAssumptions.underlying
@@ -9289,6 +9667,8 @@ attribute [instance] SortOption.TypeAssumptions.type_repr
   SortOption.TypeAssumptions.set_Target
   SortOption.TypeAssumptions.get_Order
   SortOption.TypeAssumptions.set_Order
+  SortOption.TypeAssumptions.method_set
+  SortOption.TypeAssumptions.ptr_method_set
 
 abbrev Txn [FfiSyntax] : Type := GoInterface
 
@@ -9297,8 +9677,12 @@ abbrev Txn [FfiSyntax] : Type := GoInterface
 
 class Txn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Txn.ty Txn.underlying
+  method_set : go.MethodSetIs Txn.ty [(go!"Commit", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnResponse.ty), go.error]))), (go!"Else", (some (go.signature.Signature [(go.GoType.SliceType Op.ty)] true [Txn.ty]))), (go!"If", (some (go.signature.Signature [(go.GoType.SliceType Cmp.ty)] true [Txn.ty]))), (go!"Then", (some (go.signature.Signature [(go.GoType.SliceType Op.ty)] true [Txn.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Txn.ty) []
 
 attribute [instance] Txn.TypeAssumptions.underlying
+  Txn.TypeAssumptions.method_set
+  Txn.TypeAssumptions.ptr_method_set
 
 structure txn [FfiSyntax] where
   mk ::
@@ -9365,6 +9749,8 @@ class txn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   set_fas : ∀ (x : txn) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txn.underlying go!"fas") (PairV #x #y) (Val #(({ x with fas' := y } : txn)))
   get_callOpts : ∀ (x : txn), go.IsGoStepPureDetTagged under (StructFieldGet txn.underlying go!"callOpts") #x (Val #(x.callOpts'))
   set_callOpts : ∀ (x : txn) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet txn.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : txn)))
+  method_set : go.MethodSetIs txn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType txn.ty) [(go!"Commit", (some (go.signature.Signature [] false [(go.GoType.PointerType TxnResponse.ty), go.error]))), (go!"Else", (some (go.signature.Signature [(go.GoType.SliceType Op.ty)] true [Txn.ty]))), (go!"If", (some (go.signature.Signature [(go.GoType.SliceType Cmp.ty)] true [Txn.ty]))), (go!"Then", (some (go.signature.Signature [(go.GoType.SliceType Op.ty)] true [Txn.ty])))]
   ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType txn.ty) go!"Commit" txn.Commit.impl
   ptr_Else_unfold : MethodUnfold (go.GoType.PointerType txn.ty) go!"Else" txn.Else.impl
   ptr_If_unfold : MethodUnfold (go.GoType.PointerType txn.ty) go!"If" txn.If.impl
@@ -9394,6 +9780,8 @@ attribute [instance] txn.TypeAssumptions.type_repr
   txn.TypeAssumptions.set_fas
   txn.TypeAssumptions.get_callOpts
   txn.TypeAssumptions.set_callOpts
+  txn.TypeAssumptions.method_set
+  txn.TypeAssumptions.ptr_method_set
   txn.TypeAssumptions.ptr_Commit_unfold
   txn.TypeAssumptions.ptr_Else_unfold
   txn.TypeAssumptions.ptr_If_unfold
@@ -9406,8 +9794,12 @@ abbrev WatchChan [FfiSyntax] : Type := GoChan
 
 class WatchChan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchChan.ty WatchChan.underlying
+  method_set : go.MethodSetIs WatchChan.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchChan.ty) []
 
 attribute [instance] WatchChan.TypeAssumptions.underlying
+  WatchChan.TypeAssumptions.method_set
+  WatchChan.TypeAssumptions.ptr_method_set
 
 structure WatchResponse [FfiSyntax] where
   mk ::
@@ -9458,6 +9850,8 @@ class WatchResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_closeErr : ∀ (x : WatchResponse) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet WatchResponse.underlying go!"closeErr") (PairV #x #y) (Val #(({ x with closeErr' := y } : WatchResponse)))
   get_CancelReason : ∀ (x : WatchResponse), go.IsGoStepPureDetTagged under (StructFieldGet WatchResponse.underlying go!"CancelReason") #x (Val #(x.CancelReason'))
   set_CancelReason : ∀ (x : WatchResponse) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet WatchResponse.underlying go!"CancelReason") (PairV #x #y) (Val #(({ x with CancelReason' := y } : WatchResponse)))
+  method_set : go.MethodSetIs WatchResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchResponse.ty) [(go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"IsProgressNotify", (some (go.signature.Signature [] false [go.bool])))]
   ptr_Err_unfold : MethodUnfold (go.GoType.PointerType WatchResponse.ty) go!"Err" WatchResponse.Err.impl
   ptr_IsProgressNotify_unfold : MethodUnfold (go.GoType.PointerType WatchResponse.ty) go!"IsProgressNotify" WatchResponse.IsProgressNotify.impl
 
@@ -9477,6 +9871,8 @@ attribute [instance] WatchResponse.TypeAssumptions.type_repr
   WatchResponse.TypeAssumptions.set_closeErr
   WatchResponse.TypeAssumptions.get_CancelReason
   WatchResponse.TypeAssumptions.set_CancelReason
+  WatchResponse.TypeAssumptions.method_set
+  WatchResponse.TypeAssumptions.ptr_method_set
   WatchResponse.TypeAssumptions.ptr_Err_unfold
   WatchResponse.TypeAssumptions.ptr_IsProgressNotify_unfold
 
@@ -9521,6 +9917,8 @@ class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_streams : ∀ (x : watcher) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : watcher)))
   get_lg : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : watcher) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcher.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watcher)))
+  method_set : go.MethodSetIs watcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcher.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType OpOption.ty)] true [WatchChan.ty]))), (go!"go.etcd.io/etcd/client/v3.closeStream", (some (go.signature.Signature [(go.GoType.PointerType watchGRPCStream.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.newWatcherGRPCStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType watchGRPCStream.ty)])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Close" watcher.Close.impl
   ptr_RequestProgress_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"RequestProgress" watcher.RequestProgress.impl
   ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType watcher.ty) go!"Watch" watcher.Watch.impl
@@ -9539,6 +9937,8 @@ attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.set_streams
   watcher.TypeAssumptions.get_lg
   watcher.TypeAssumptions.set_lg
+  watcher.TypeAssumptions.method_set
+  watcher.TypeAssumptions.ptr_method_set
   watcher.TypeAssumptions.ptr_Close_unfold
   watcher.TypeAssumptions.ptr_RequestProgress_unfold
   watcher.TypeAssumptions.ptr_Watch_unfold
@@ -9634,6 +10034,8 @@ class watchGRPCStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_closeErr : ∀ (x : watchGRPCStream) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet watchGRPCStream.underlying go!"closeErr") (PairV #x #y) (Val #(({ x with closeErr' := y } : watchGRPCStream)))
   get_lg : ∀ (x : watchGRPCStream), go.IsGoStepPureDetTagged under (StructFieldGet watchGRPCStream.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : watchGRPCStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchGRPCStream.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : watchGRPCStream)))
+  method_set : go.MethodSetIs watchGRPCStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchGRPCStream.ty) [(go!"go.etcd.io/etcd/client/v3.addSubstream", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty), (go.GoType.PointerType watcherStream.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.backoffIfUnavailable", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, go.error] false [_root_.Perennial.time.Duration.ty]))), (go!"go.etcd.io/etcd/client/v3.broadcastResponse", (some (go.signature.Signature [(go.GoType.PointerType WatchResponse.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.closeSubstream", (some (go.signature.Signature [(go.GoType.PointerType watcherStream.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.dispatchEvent", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchResponse.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.joinSubstreams", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.newWatchClient", none), (go!"go.etcd.io/etcd/client/v3.newWatcherStreamBufLogger", (some (go.signature.Signature [(go.GoType.PointerType watcherStream.ty), (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))] false [(go.GoType.PointerType blockLogger.ty)]))), (go!"go.etcd.io/etcd/client/v3.nextResume", (some (go.signature.Signature [] false [(go.GoType.PointerType watcherStream.ty)]))), (go!"go.etcd.io/etcd/client/v3.openWatchClient", none), (go!"go.etcd.io/etcd/client/v3.recordBufWait", (some (go.signature.Signature [(go.GoType.PointerType watcherStream.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.sendCloseSubstream", (some (go.signature.Signature [(go.GoType.PointerType watcherStream.ty), (go.GoType.PointerType WatchResponse.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.serveSubstream", (some (go.signature.Signature [(go.GoType.PointerType watcherStream.ty), (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))] false []))), (go!"go.etcd.io/etcd/client/v3.serveWatchClient", none), (go!"go.etcd.io/etcd/client/v3.startBufWait", (some (go.signature.Signature [(go.GoType.PointerType watcherStream.ty)] false []))), (go!"go.etcd.io/etcd/client/v3.unicastResponse", (some (go.signature.Signature [(go.GoType.PointerType WatchResponse.ty), go.int64] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.waitCancelSubstreams", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
   ptr_addSubstream_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"addSubstream" watchGRPCStream.addSubstream.impl
   ptr_backoffIfUnavailable_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"backoffIfUnavailable" watchGRPCStream.backoffIfUnavailable.impl
   ptr_broadcastResponse_unfold : MethodUnfold (go.GoType.PointerType watchGRPCStream.ty) go!"broadcastResponse" watchGRPCStream.broadcastResponse.impl
@@ -9690,6 +10092,8 @@ attribute [instance] watchGRPCStream.TypeAssumptions.type_repr
   watchGRPCStream.TypeAssumptions.set_closeErr
   watchGRPCStream.TypeAssumptions.get_lg
   watchGRPCStream.TypeAssumptions.set_lg
+  watchGRPCStream.TypeAssumptions.method_set
+  watchGRPCStream.TypeAssumptions.ptr_method_set
   watchGRPCStream.TypeAssumptions.ptr_addSubstream_unfold
   watchGRPCStream.TypeAssumptions.ptr_backoffIfUnavailable_unfold
   watchGRPCStream.TypeAssumptions.ptr_broadcastResponse_unfold
@@ -9713,12 +10117,16 @@ attribute [instance] watchGRPCStream.TypeAssumptions.type_repr
 abbrev watchStreamRequest [FfiSyntax] : Type := GoInterface
 
 @[reducible] def watchStreamRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"toPB" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/client/v3.toPB" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)]))])
 
 class watchStreamRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watchStreamRequest.ty watchStreamRequest.underlying
+  method_set : go.MethodSetIs watchStreamRequest.ty [(go!"go.etcd.io/etcd/client/v3.toPB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchStreamRequest.ty) []
 
 attribute [instance] watchStreamRequest.TypeAssumptions.underlying
+  watchStreamRequest.TypeAssumptions.method_set
+  watchStreamRequest.TypeAssumptions.ptr_method_set
 
 structure watchRequest [FfiSyntax] where
   mk ::
@@ -9785,6 +10193,8 @@ class watchRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_prevKV : ∀ (x : watchRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet watchRequest.underlying go!"prevKV") (PairV #x #y) (Val #(({ x with prevKV' := y } : watchRequest)))
   get_retc : ∀ (x : watchRequest), go.IsGoStepPureDetTagged under (StructFieldGet watchRequest.underlying go!"retc") #x (Val #(x.retc'))
   set_retc : ∀ (x : watchRequest) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watchRequest.underlying go!"retc") (PairV #x #y) (Val #(({ x with retc' := y } : watchRequest)))
+  method_set : go.MethodSetIs watchRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchRequest.ty) [(go!"go.etcd.io/etcd/client/v3.toPB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)])))]
   ptr_toPB_unfold : MethodUnfold (go.GoType.PointerType watchRequest.ty) go!"toPB" watchRequest.toPB.impl
 
 attribute [instance] watchRequest.TypeAssumptions.type_repr
@@ -9811,6 +10221,8 @@ attribute [instance] watchRequest.TypeAssumptions.type_repr
   watchRequest.TypeAssumptions.set_prevKV
   watchRequest.TypeAssumptions.get_retc
   watchRequest.TypeAssumptions.set_retc
+  watchRequest.TypeAssumptions.method_set
+  watchRequest.TypeAssumptions.ptr_method_set
   watchRequest.TypeAssumptions.ptr_toPB_unfold
 
 structure progressRequest [FfiSyntax] where
@@ -9835,10 +10247,14 @@ instance equals_unfold_progressRequest [FfiSyntax] [GoGlobalContext] :
 class progressRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying progressRequest.underlying progressRequest
   underlying : go.UnderlyingDirectedEq progressRequest.ty progressRequest.underlying
+  method_set : go.MethodSetIs progressRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType progressRequest.ty) [(go!"go.etcd.io/etcd/client/v3.toPB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.ty)])))]
   ptr_toPB_unfold : MethodUnfold (go.GoType.PointerType progressRequest.ty) go!"toPB" progressRequest.toPB.impl
 
 attribute [instance] progressRequest.TypeAssumptions.type_repr
   progressRequest.TypeAssumptions.underlying
+  progressRequest.TypeAssumptions.method_set
+  progressRequest.TypeAssumptions.ptr_method_set
   progressRequest.TypeAssumptions.ptr_toPB_unfold
 
 structure watcherStream [FfiSyntax] where
@@ -9898,6 +10314,8 @@ class watcherStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_bufLogger : ∀ (x : watcherStream) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufLogger") (PairV #x #y) (Val #(({ x with bufLogger' := y } : watcherStream)))
   get_bufWaitStartTime : ∀ (x : watcherStream), go.IsGoStepPureDetTagged under (StructFieldGet watcherStream.underlying go!"bufWaitStartTime") #x (Val #(x.bufWaitStartTime'))
   set_bufWaitStartTime : ∀ (x : watcherStream) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet watcherStream.underlying go!"bufWaitStartTime") (PairV #x #y) (Val #(({ x with bufWaitStartTime' := y } : watcherStream)))
+  method_set : go.MethodSetIs watcherStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcherStream.ty) [(go!"go.etcd.io/etcd/client/v3.resetBufWait", (some (go.signature.Signature [] false [])))]
   ptr_resetBufWait_unfold : MethodUnfold (go.GoType.PointerType watcherStream.ty) go!"resetBufWait" watcherStream.resetBufWait.impl
 
 attribute [instance] watcherStream.TypeAssumptions.type_repr
@@ -9920,6 +10338,8 @@ attribute [instance] watcherStream.TypeAssumptions.type_repr
   watcherStream.TypeAssumptions.set_bufLogger
   watcherStream.TypeAssumptions.get_bufWaitStartTime
   watcherStream.TypeAssumptions.set_bufWaitStartTime
+  watcherStream.TypeAssumptions.method_set
+  watcherStream.TypeAssumptions.ptr_method_set
   watcherStream.TypeAssumptions.ptr_resetBufWait_unfold
 
 structure valCtx [FfiSyntax] where
@@ -9947,6 +10367,8 @@ class valCtx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq valCtx.ty valCtx.underlying
   get_Context : ∀ (x : valCtx), go.IsGoStepPureDetTagged under (StructFieldGet valCtx.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : valCtx) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet valCtx.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : valCtx)))
+  method_set : go.MethodSetIs valCtx.ty [(go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType valCtx.ty) [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Deadline" valCtx.Deadline.impl
   ptr_Done_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Done" valCtx.Done.impl
   ptr_Err_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Err" valCtx.Err.impl
@@ -9955,6 +10377,8 @@ attribute [instance] valCtx.TypeAssumptions.type_repr
   valCtx.TypeAssumptions.underlying
   valCtx.TypeAssumptions.get_Context
   valCtx.TypeAssumptions.set_Context
+  valCtx.TypeAssumptions.method_set
+  valCtx.TypeAssumptions.ptr_method_set
   valCtx.TypeAssumptions.ptr_Deadline_unfold
   valCtx.TypeAssumptions.ptr_Done_unfold
   valCtx.TypeAssumptions.ptr_Err_unfold

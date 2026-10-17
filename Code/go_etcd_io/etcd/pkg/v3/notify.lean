@@ -140,6 +140,8 @@ class Notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_mu : ∀ (x : Notifier) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Notifier)))
   get_channel : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"channel") #x (Val #(x.channel'))
   set_channel : ∀ (x : Notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"channel") (PairV #x #y) (Val #(({ x with channel' := y } : Notifier)))
+  method_set : go.MethodSetIs Notifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Notifier.ty) [(go!"Notify", (some (go.signature.Signature [] false []))), (go!"Receive", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
   ptr_Notify_unfold : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Notify" Notifier.Notify.impl
   ptr_Receive_unfold : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Receive" Notifier.Receive.impl
 
@@ -149,6 +151,8 @@ attribute [instance] Notifier.TypeAssumptions.type_repr
   Notifier.TypeAssumptions.set_mu
   Notifier.TypeAssumptions.get_channel
   Notifier.TypeAssumptions.set_channel
+  Notifier.TypeAssumptions.method_set
+  Notifier.TypeAssumptions.ptr_method_set
   Notifier.TypeAssumptions.ptr_Notify_unfold
   Notifier.TypeAssumptions.ptr_Receive_unfold
 

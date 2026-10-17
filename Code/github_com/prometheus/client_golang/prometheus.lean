@@ -1086,8 +1086,12 @@ abbrev Collector [FfiSyntax] : Type := GoInterface
 
 class Collector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Collector.ty Collector.underlying
+  method_set : go.MethodSetIs Collector.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Collector.ty) []
 
 attribute [instance] Collector.TypeAssumptions.underlying
+  Collector.TypeAssumptions.method_set
+  Collector.TypeAssumptions.ptr_method_set
 
 axiom Metric : Type
 axiom Metric.zero_val : ZeroVal Metric
@@ -1097,10 +1101,14 @@ class Metric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Metric.underlying Metric
   underlying : go.UnderlyingDirectedEq Metric.ty Metric.underlying
   isUnderlying : go.IsUnderlying Metric.underlying Metric.underlying
+  method_set : go.MethodSetIs Metric.ty [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Metric.ty) []
 
 attribute [instance] Metric.TypeAssumptions.type_repr
   Metric.TypeAssumptions.underlying
   Metric.TypeAssumptions.isUnderlying
+  Metric.TypeAssumptions.method_set
+  Metric.TypeAssumptions.ptr_method_set
 
 structure selfCollector [FfiSyntax] where
   mk ::
@@ -1127,21 +1135,29 @@ class selfCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq selfCollector.ty selfCollector.underlying
   get_self : ∀ (x : selfCollector), go.IsGoStepPureDetTagged under (StructFieldGet selfCollector.underlying go!"self") #x (Val #(x.self'))
   set_self : ∀ (x : selfCollector) (y : Metric), go.IsGoStepPureDetTagged under (StructFieldSet selfCollector.underlying go!"self") (PairV #x #y) (Val #(({ x with self' := y } : selfCollector)))
+  method_set : go.MethodSetIs selfCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType selfCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false [])))]
 
 attribute [instance] selfCollector.TypeAssumptions.type_repr
   selfCollector.TypeAssumptions.underlying
   selfCollector.TypeAssumptions.get_self
   selfCollector.TypeAssumptions.set_self
+  selfCollector.TypeAssumptions.method_set
+  selfCollector.TypeAssumptions.ptr_method_set
 
 abbrev collectorMetric [FfiSyntax] : Type := GoInterface
 
 @[reducible] def collectorMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class collectorMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq collectorMetric.ty collectorMetric.underlying
+  method_set : go.MethodSetIs collectorMetric.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType collectorMetric.ty) []
 
 attribute [instance] collectorMetric.TypeAssumptions.underlying
+  collectorMetric.TypeAssumptions.method_set
+  collectorMetric.TypeAssumptions.ptr_method_set
 
 abbrev CollectorFunc [FfiSyntax] : Type := GoFunc
 
@@ -1150,18 +1166,26 @@ abbrev CollectorFunc [FfiSyntax] : Type := GoFunc
 
 class CollectorFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CollectorFunc.ty CollectorFunc.underlying
+  method_set : go.MethodSetIs CollectorFunc.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CollectorFunc.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])))]
 
 attribute [instance] CollectorFunc.TypeAssumptions.underlying
+  CollectorFunc.TypeAssumptions.method_set
+  CollectorFunc.TypeAssumptions.ptr_method_set
 
 abbrev Counter [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Counter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class Counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Counter.ty Counter.underlying
+  method_set : go.MethodSetIs Counter.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Counter.ty) []
 
 attribute [instance] Counter.TypeAssumptions.underlying
+  Counter.TypeAssumptions.method_set
+  Counter.TypeAssumptions.ptr_method_set
 
 abbrev ExemplarAdder [FfiSyntax] : Type := GoInterface
 
@@ -1170,8 +1194,12 @@ abbrev ExemplarAdder [FfiSyntax] : Type := GoInterface
 
 class ExemplarAdder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ExemplarAdder.ty ExemplarAdder.underlying
+  method_set : go.MethodSetIs ExemplarAdder.ty [(go!"AddWithExemplar", (some (go.signature.Signature [go.float64, Labels.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExemplarAdder.ty) []
 
 attribute [instance] ExemplarAdder.TypeAssumptions.underlying
+  ExemplarAdder.TypeAssumptions.method_set
+  ExemplarAdder.TypeAssumptions.ptr_method_set
 
 axiom Opts : Type
 axiom Opts.zero_val : ZeroVal Opts
@@ -1181,10 +1209,14 @@ class Opts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Opts.underlying Opts
   underlying : go.UnderlyingDirectedEq Opts.ty Opts.underlying
   isUnderlying : go.IsUnderlying Opts.underlying Opts.underlying
+  method_set : go.MethodSetIs Opts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Opts.ty) []
 
 attribute [instance] Opts.TypeAssumptions.type_repr
   Opts.TypeAssumptions.underlying
   Opts.TypeAssumptions.isUnderlying
+  Opts.TypeAssumptions.method_set
+  Opts.TypeAssumptions.ptr_method_set
 
 abbrev CounterOpts [FfiSyntax] : Type := Opts
 
@@ -1193,18 +1225,26 @@ abbrev CounterOpts [FfiSyntax] : Type := Opts
 
 class CounterOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CounterOpts.ty CounterOpts.underlying
+  method_set : go.MethodSetIs CounterOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterOpts.ty) []
 
 attribute [instance] CounterOpts.TypeAssumptions.underlying
+  CounterOpts.TypeAssumptions.method_set
+  CounterOpts.TypeAssumptions.ptr_method_set
 
 abbrev ConstrainableLabels [FfiSyntax] : Type := GoInterface
 
 @[reducible] def ConstrainableLabels.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"compile" (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)])), (go.InterfaceElem.MethodElem go!"labelNames" (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"github.com/prometheus/client_golang/prometheus.compile" (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)])), (go.InterfaceElem.MethodElem go!"github.com/prometheus/client_golang/prometheus.labelNames" (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))])
 
 class ConstrainableLabels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConstrainableLabels.ty ConstrainableLabels.underlying
+  method_set : go.MethodSetIs ConstrainableLabels.ty [(go!"github.com/prometheus/client_golang/prometheus.compile", (some (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.labelNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConstrainableLabels.ty) []
 
 attribute [instance] ConstrainableLabels.TypeAssumptions.underlying
+  ConstrainableLabels.TypeAssumptions.method_set
+  ConstrainableLabels.TypeAssumptions.ptr_method_set
 
 structure CounterVecOpts [FfiSyntax] where
   mk ::
@@ -1235,6 +1275,8 @@ class CounterVecOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_CounterOpts : ∀ (x : CounterVecOpts) (y : CounterOpts), go.IsGoStepPureDetTagged under (StructFieldSet CounterVecOpts.underlying go!"CounterOpts") (PairV #x #y) (Val #(({ x with CounterOpts' := y } : CounterVecOpts)))
   get_VariableLabels : ∀ (x : CounterVecOpts), go.IsGoStepPureDetTagged under (StructFieldGet CounterVecOpts.underlying go!"VariableLabels") #x (Val #(x.VariableLabels'))
   set_VariableLabels : ∀ (x : CounterVecOpts) (y : ConstrainableLabels), go.IsGoStepPureDetTagged under (StructFieldSet CounterVecOpts.underlying go!"VariableLabels") (PairV #x #y) (Val #(({ x with VariableLabels' := y } : CounterVecOpts)))
+  method_set : go.MethodSetIs CounterVecOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterVecOpts.ty) []
 
 attribute [instance] CounterVecOpts.TypeAssumptions.type_repr
   CounterVecOpts.TypeAssumptions.underlying
@@ -1242,6 +1284,8 @@ attribute [instance] CounterVecOpts.TypeAssumptions.type_repr
   CounterVecOpts.TypeAssumptions.set_CounterOpts
   CounterVecOpts.TypeAssumptions.get_VariableLabels
   CounterVecOpts.TypeAssumptions.set_VariableLabels
+  CounterVecOpts.TypeAssumptions.method_set
+  CounterVecOpts.TypeAssumptions.ptr_method_set
 
 axiom counter : Type
 axiom counter.zero_val : ZeroVal counter
@@ -1251,10 +1295,14 @@ class counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying counter.underlying counter
   underlying : go.UnderlyingDirectedEq counter.ty counter.underlying
   isUnderlying : go.IsUnderlying counter.underlying counter.underlying
+  method_set : go.MethodSetIs counter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType counter.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"AddWithExemplar", (some (go.signature.Signature [go.float64, Labels.ty] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.get", (some (go.signature.Signature [] false [go.float64]))), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false []))), (go!"github.com/prometheus/client_golang/prometheus.updateExemplar", (some (go.signature.Signature [go.float64, Labels.ty] false [])))]
 
 attribute [instance] counter.TypeAssumptions.type_repr
   counter.TypeAssumptions.underlying
   counter.TypeAssumptions.isUnderlying
+  counter.TypeAssumptions.method_set
+  counter.TypeAssumptions.ptr_method_set
 
 structure CounterVec [FfiSyntax] where
   mk ::
@@ -1281,21 +1329,29 @@ class CounterVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq CounterVec.ty CounterVec.underlying
   get_MetricVec : ∀ (x : CounterVec), go.IsGoStepPureDetTagged under (StructFieldGet CounterVec.underlying go!"MetricVec") #x (Val #(x.MetricVec'))
   set_MetricVec : ∀ (x : CounterVec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet CounterVec.underlying go!"MetricVec") (PairV #x #y) (Val #(({ x with MetricVec' := y } : CounterVec)))
+  method_set : go.MethodSetIs CounterVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterVec.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"CurryWith", (some (go.signature.Signature [Labels.ty] false [(go.GoType.PointerType CounterVec.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [Labels.ty] false [Counter.ty, go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Counter.ty, go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [Labels.ty] false [(go.GoType.PointerType CounterVec.ty)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [Labels.ty] false [Counter.ty]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Counter.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
 
 attribute [instance] CounterVec.TypeAssumptions.type_repr
   CounterVec.TypeAssumptions.underlying
   CounterVec.TypeAssumptions.get_MetricVec
   CounterVec.TypeAssumptions.set_MetricVec
+  CounterVec.TypeAssumptions.method_set
+  CounterVec.TypeAssumptions.ptr_method_set
 
 abbrev CounterFunc [FfiSyntax] : Type := GoInterface
 
 @[reducible] def CounterFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class CounterFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CounterFunc.ty CounterFunc.underlying
+  method_set : go.MethodSetIs CounterFunc.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterFunc.ty) []
 
 attribute [instance] CounterFunc.TypeAssumptions.underlying
+  CounterFunc.TypeAssumptions.method_set
+  CounterFunc.TypeAssumptions.ptr_method_set
 
 axiom Desc : Type
 axiom Desc.zero_val : ZeroVal Desc
@@ -1305,10 +1361,14 @@ class Desc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Desc.underlying Desc
   underlying : go.UnderlyingDirectedEq Desc.ty Desc.underlying
   isUnderlying : go.IsUnderlying Desc.underlying Desc.underlying
+  method_set : go.MethodSetIs Desc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Desc.ty) [(go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Desc.TypeAssumptions.type_repr
   Desc.TypeAssumptions.underlying
   Desc.TypeAssumptions.isUnderlying
+  Desc.TypeAssumptions.method_set
+  Desc.TypeAssumptions.ptr_method_set
 
 abbrev DescOpt [FfiSyntax] : Type := GoFunc
 
@@ -1317,8 +1377,12 @@ abbrev DescOpt [FfiSyntax] : Type := GoFunc
 
 class DescOpt.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DescOpt.ty DescOpt.underlying
+  method_set : go.MethodSetIs DescOpt.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DescOpt.ty) []
 
 attribute [instance] DescOpt.TypeAssumptions.underlying
+  DescOpt.TypeAssumptions.method_set
+  DescOpt.TypeAssumptions.ptr_method_set
 
 structure expvarCollector [FfiSyntax] where
   mk ::
@@ -1345,21 +1409,29 @@ class expvarCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq expvarCollector.ty expvarCollector.underlying
   get_exports : ∀ (x : expvarCollector), go.IsGoStepPureDetTagged under (StructFieldGet expvarCollector.underlying go!"exports") #x (Val #(x.exports'))
   set_exports : ∀ (x : expvarCollector) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet expvarCollector.underlying go!"exports") (PairV #x #y) (Val #(({ x with exports' := y } : expvarCollector)))
+  method_set : go.MethodSetIs expvarCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType expvarCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])))]
 
 attribute [instance] expvarCollector.TypeAssumptions.type_repr
   expvarCollector.TypeAssumptions.underlying
   expvarCollector.TypeAssumptions.get_exports
   expvarCollector.TypeAssumptions.set_exports
+  expvarCollector.TypeAssumptions.method_set
+  expvarCollector.TypeAssumptions.ptr_method_set
 
 abbrev Gauge [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Gauge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"Dec" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"SetToCurrentTime" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Sub" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Dec" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Set" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"SetToCurrentTime" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Sub" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class Gauge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Gauge.ty Gauge.underlying
+  method_set : go.MethodSetIs Gauge.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Sub", (some (go.signature.Signature [go.float64] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Gauge.ty) []
 
 attribute [instance] Gauge.TypeAssumptions.underlying
+  Gauge.TypeAssumptions.method_set
+  Gauge.TypeAssumptions.ptr_method_set
 
 abbrev GaugeOpts [FfiSyntax] : Type := Opts
 
@@ -1368,8 +1440,12 @@ abbrev GaugeOpts [FfiSyntax] : Type := Opts
 
 class GaugeOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GaugeOpts.ty GaugeOpts.underlying
+  method_set : go.MethodSetIs GaugeOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeOpts.ty) []
 
 attribute [instance] GaugeOpts.TypeAssumptions.underlying
+  GaugeOpts.TypeAssumptions.method_set
+  GaugeOpts.TypeAssumptions.ptr_method_set
 
 structure GaugeVecOpts [FfiSyntax] where
   mk ::
@@ -1400,6 +1476,8 @@ class GaugeVecOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_GaugeOpts : ∀ (x : GaugeVecOpts) (y : GaugeOpts), go.IsGoStepPureDetTagged under (StructFieldSet GaugeVecOpts.underlying go!"GaugeOpts") (PairV #x #y) (Val #(({ x with GaugeOpts' := y } : GaugeVecOpts)))
   get_VariableLabels : ∀ (x : GaugeVecOpts), go.IsGoStepPureDetTagged under (StructFieldGet GaugeVecOpts.underlying go!"VariableLabels") #x (Val #(x.VariableLabels'))
   set_VariableLabels : ∀ (x : GaugeVecOpts) (y : ConstrainableLabels), go.IsGoStepPureDetTagged under (StructFieldSet GaugeVecOpts.underlying go!"VariableLabels") (PairV #x #y) (Val #(({ x with VariableLabels' := y } : GaugeVecOpts)))
+  method_set : go.MethodSetIs GaugeVecOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeVecOpts.ty) []
 
 attribute [instance] GaugeVecOpts.TypeAssumptions.type_repr
   GaugeVecOpts.TypeAssumptions.underlying
@@ -1407,6 +1485,8 @@ attribute [instance] GaugeVecOpts.TypeAssumptions.type_repr
   GaugeVecOpts.TypeAssumptions.set_GaugeOpts
   GaugeVecOpts.TypeAssumptions.get_VariableLabels
   GaugeVecOpts.TypeAssumptions.set_VariableLabels
+  GaugeVecOpts.TypeAssumptions.method_set
+  GaugeVecOpts.TypeAssumptions.ptr_method_set
 
 axiom gauge : Type
 axiom gauge.zero_val : ZeroVal gauge
@@ -1416,10 +1496,14 @@ class gauge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying gauge.underlying gauge
   underlying : go.UnderlyingDirectedEq gauge.ty gauge.underlying
   isUnderlying : go.IsUnderlying gauge.underlying gauge.underlying
+  method_set : go.MethodSetIs gauge.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gauge.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Sub", (some (go.signature.Signature [go.float64] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false [])))]
 
 attribute [instance] gauge.TypeAssumptions.type_repr
   gauge.TypeAssumptions.underlying
   gauge.TypeAssumptions.isUnderlying
+  gauge.TypeAssumptions.method_set
+  gauge.TypeAssumptions.ptr_method_set
 
 structure GaugeVec [FfiSyntax] where
   mk ::
@@ -1446,21 +1530,29 @@ class GaugeVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq GaugeVec.ty GaugeVec.underlying
   get_MetricVec : ∀ (x : GaugeVec), go.IsGoStepPureDetTagged under (StructFieldGet GaugeVec.underlying go!"MetricVec") #x (Val #(x.MetricVec'))
   set_MetricVec : ∀ (x : GaugeVec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GaugeVec.underlying go!"MetricVec") (PairV #x #y) (Val #(({ x with MetricVec' := y } : GaugeVec)))
+  method_set : go.MethodSetIs GaugeVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeVec.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"CurryWith", (some (go.signature.Signature [Labels.ty] false [(go.GoType.PointerType GaugeVec.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [Labels.ty] false [Gauge.ty, go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Gauge.ty, go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [Labels.ty] false [(go.GoType.PointerType GaugeVec.ty)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [Labels.ty] false [Gauge.ty]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Gauge.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
 
 attribute [instance] GaugeVec.TypeAssumptions.type_repr
   GaugeVec.TypeAssumptions.underlying
   GaugeVec.TypeAssumptions.get_MetricVec
   GaugeVec.TypeAssumptions.set_MetricVec
+  GaugeVec.TypeAssumptions.method_set
+  GaugeVec.TypeAssumptions.ptr_method_set
 
 abbrev GaugeFunc [FfiSyntax] : Type := GoInterface
 
 @[reducible] def GaugeFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class GaugeFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GaugeFunc.ty GaugeFunc.underlying
+  method_set : go.MethodSetIs GaugeFunc.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeFunc.ty) []
 
 attribute [instance] GaugeFunc.TypeAssumptions.underlying
+  GaugeFunc.TypeAssumptions.method_set
+  GaugeFunc.TypeAssumptions.ptr_method_set
 
 structure baseGoCollector [FfiSyntax] where
   mk ::
@@ -1503,6 +1595,8 @@ class baseGoCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_gcLastTimeDesc : ∀ (x : baseGoCollector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet baseGoCollector.underlying go!"gcLastTimeDesc") (PairV #x #y) (Val #(({ x with gcLastTimeDesc' := y } : baseGoCollector)))
   get_goInfoDesc : ∀ (x : baseGoCollector), go.IsGoStepPureDetTagged under (StructFieldGet baseGoCollector.underlying go!"goInfoDesc") #x (Val #(x.goInfoDesc'))
   set_goInfoDesc : ∀ (x : baseGoCollector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet baseGoCollector.underlying go!"goInfoDesc") (PairV #x #y) (Val #(({ x with goInfoDesc' := y } : baseGoCollector)))
+  method_set : go.MethodSetIs baseGoCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType baseGoCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])))]
 
 attribute [instance] baseGoCollector.TypeAssumptions.type_repr
   baseGoCollector.TypeAssumptions.underlying
@@ -1516,6 +1610,8 @@ attribute [instance] baseGoCollector.TypeAssumptions.type_repr
   baseGoCollector.TypeAssumptions.set_gcLastTimeDesc
   baseGoCollector.TypeAssumptions.get_goInfoDesc
   baseGoCollector.TypeAssumptions.set_goInfoDesc
+  baseGoCollector.TypeAssumptions.method_set
+  baseGoCollector.TypeAssumptions.ptr_method_set
 
 axiom memStatsMetrics : Type
 axiom memStatsMetrics.zero_val : ZeroVal memStatsMetrics
@@ -1525,10 +1621,14 @@ class memStatsMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying memStatsMetrics.underlying memStatsMetrics
   underlying : go.UnderlyingDirectedEq memStatsMetrics.ty memStatsMetrics.underlying
   isUnderlying : go.IsUnderlying memStatsMetrics.underlying memStatsMetrics.underlying
+  method_set : go.MethodSetIs memStatsMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType memStatsMetrics.ty) []
 
 attribute [instance] memStatsMetrics.TypeAssumptions.type_repr
   memStatsMetrics.TypeAssumptions.underlying
   memStatsMetrics.TypeAssumptions.isUnderlying
+  memStatsMetrics.TypeAssumptions.method_set
+  memStatsMetrics.TypeAssumptions.ptr_method_set
 
 axiom goCollector : Type
 axiom goCollector.zero_val : ZeroVal goCollector
@@ -1538,10 +1638,14 @@ class goCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying goCollector.underlying goCollector
   underlying : go.UnderlyingDirectedEq goCollector.ty goCollector.underlying
   isUnderlying : go.IsUnderlying goCollector.underlying goCollector.underlying
+  method_set : go.MethodSetIs goCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType goCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"github.com/prometheus/client_golang/prometheus.exactSumFor", (some (go.signature.Signature [go.string] false [go.float64])))]
 
 attribute [instance] goCollector.TypeAssumptions.type_repr
   goCollector.TypeAssumptions.underlying
   goCollector.TypeAssumptions.isUnderlying
+  goCollector.TypeAssumptions.method_set
+  goCollector.TypeAssumptions.ptr_method_set
 
 axiom rmMetricDesc : Type
 axiom rmMetricDesc.zero_val : ZeroVal rmMetricDesc
@@ -1551,10 +1655,14 @@ class rmMetricDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying rmMetricDesc.underlying rmMetricDesc
   underlying : go.UnderlyingDirectedEq rmMetricDesc.ty rmMetricDesc.underlying
   isUnderlying : go.IsUnderlying rmMetricDesc.underlying rmMetricDesc.underlying
+  method_set : go.MethodSetIs rmMetricDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rmMetricDesc.ty) []
 
 attribute [instance] rmMetricDesc.TypeAssumptions.type_repr
   rmMetricDesc.TypeAssumptions.underlying
   rmMetricDesc.TypeAssumptions.isUnderlying
+  rmMetricDesc.TypeAssumptions.method_set
+  rmMetricDesc.TypeAssumptions.ptr_method_set
 
 axiom batchHistogram : Type
 axiom batchHistogram.zero_val : ZeroVal batchHistogram
@@ -1564,20 +1672,28 @@ class batchHistogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying batchHistogram.underlying batchHistogram
   underlying : go.UnderlyingDirectedEq batchHistogram.ty batchHistogram.underlying
   isUnderlying : go.IsUnderlying batchHistogram.underlying batchHistogram.underlying
+  method_set : go.MethodSetIs batchHistogram.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType batchHistogram.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false []))), (go!"github.com/prometheus/client_golang/prometheus.update", none)]
 
 attribute [instance] batchHistogram.TypeAssumptions.type_repr
   batchHistogram.TypeAssumptions.underlying
   batchHistogram.TypeAssumptions.isUnderlying
+  batchHistogram.TypeAssumptions.method_set
+  batchHistogram.TypeAssumptions.ptr_method_set
 
 abbrev Histogram [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Histogram.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class Histogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Histogram.ty Histogram.underlying
+  method_set : go.MethodSetIs Histogram.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Histogram.ty) []
 
 attribute [instance] Histogram.TypeAssumptions.underlying
+  Histogram.TypeAssumptions.method_set
+  Histogram.TypeAssumptions.ptr_method_set
 
 axiom HistogramOpts : Type
 axiom HistogramOpts.zero_val : ZeroVal HistogramOpts
@@ -1587,10 +1703,14 @@ class HistogramOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying HistogramOpts.underlying HistogramOpts
   underlying : go.UnderlyingDirectedEq HistogramOpts.ty HistogramOpts.underlying
   isUnderlying : go.IsUnderlying HistogramOpts.underlying HistogramOpts.underlying
+  method_set : go.MethodSetIs HistogramOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramOpts.ty) []
 
 attribute [instance] HistogramOpts.TypeAssumptions.type_repr
   HistogramOpts.TypeAssumptions.underlying
   HistogramOpts.TypeAssumptions.isUnderlying
+  HistogramOpts.TypeAssumptions.method_set
+  HistogramOpts.TypeAssumptions.ptr_method_set
 
 structure HistogramVecOpts [FfiSyntax] where
   mk ::
@@ -1621,6 +1741,8 @@ class HistogramVecOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_HistogramOpts : ∀ (x : HistogramVecOpts) (y : HistogramOpts), go.IsGoStepPureDetTagged under (StructFieldSet HistogramVecOpts.underlying go!"HistogramOpts") (PairV #x #y) (Val #(({ x with HistogramOpts' := y } : HistogramVecOpts)))
   get_VariableLabels : ∀ (x : HistogramVecOpts), go.IsGoStepPureDetTagged under (StructFieldGet HistogramVecOpts.underlying go!"VariableLabels") #x (Val #(x.VariableLabels'))
   set_VariableLabels : ∀ (x : HistogramVecOpts) (y : ConstrainableLabels), go.IsGoStepPureDetTagged under (StructFieldSet HistogramVecOpts.underlying go!"VariableLabels") (PairV #x #y) (Val #(({ x with VariableLabels' := y } : HistogramVecOpts)))
+  method_set : go.MethodSetIs HistogramVecOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramVecOpts.ty) []
 
 attribute [instance] HistogramVecOpts.TypeAssumptions.type_repr
   HistogramVecOpts.TypeAssumptions.underlying
@@ -1628,6 +1750,8 @@ attribute [instance] HistogramVecOpts.TypeAssumptions.type_repr
   HistogramVecOpts.TypeAssumptions.set_HistogramOpts
   HistogramVecOpts.TypeAssumptions.get_VariableLabels
   HistogramVecOpts.TypeAssumptions.set_VariableLabels
+  HistogramVecOpts.TypeAssumptions.method_set
+  HistogramVecOpts.TypeAssumptions.ptr_method_set
 
 axiom histogramCounts : Type
 axiom histogramCounts.zero_val : ZeroVal histogramCounts
@@ -1637,10 +1761,14 @@ class histogramCounts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying histogramCounts.underlying histogramCounts
   underlying : go.UnderlyingDirectedEq histogramCounts.ty histogramCounts.underlying
   isUnderlying : go.IsUnderlying histogramCounts.underlying histogramCounts.underlying
+  method_set : go.MethodSetIs histogramCounts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType histogramCounts.ty) [(go!"github.com/prometheus/client_golang/prometheus.observe", (some (go.signature.Signature [go.float64, go.int, go.bool] false [])))]
 
 attribute [instance] histogramCounts.TypeAssumptions.type_repr
   histogramCounts.TypeAssumptions.underlying
   histogramCounts.TypeAssumptions.isUnderlying
+  histogramCounts.TypeAssumptions.method_set
+  histogramCounts.TypeAssumptions.ptr_method_set
 
 axiom histogram : Type
 axiom histogram.zero_val : ZeroVal histogram
@@ -1650,10 +1778,14 @@ class histogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying histogram.underlying histogram
   underlying : go.UnderlyingDirectedEq histogram.ty histogram.underlying
   isUnderlying : go.IsUnderlying histogram.underlying histogram.underlying
+  method_set : go.MethodSetIs histogram.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType histogram.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"ObserveWithExemplar", (some (go.signature.Signature [go.float64, Labels.ty] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.doubleBucketWidth", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), (go.GoType.PointerType histogramCounts.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.findBucket", (some (go.signature.Signature [go.float64] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false []))), (go!"github.com/prometheus/client_golang/prometheus.limitBuckets", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), go.float64, go.int] false []))), (go!"github.com/prometheus/client_golang/prometheus.maybeReset", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), (go.GoType.PointerType histogramCounts.ty), go.uint64, go.float64, go.int] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.maybeWidenZeroBucket", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty), (go.GoType.PointerType histogramCounts.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.observe", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"github.com/prometheus/client_golang/prometheus.reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.resetCounts", (some (go.signature.Signature [(go.GoType.PointerType histogramCounts.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.updateExemplar", (some (go.signature.Signature [go.float64, go.int, Labels.ty] false [])))]
 
 attribute [instance] histogram.TypeAssumptions.type_repr
   histogram.TypeAssumptions.underlying
   histogram.TypeAssumptions.isUnderlying
+  histogram.TypeAssumptions.method_set
+  histogram.TypeAssumptions.ptr_method_set
 
 structure HistogramVec [FfiSyntax] where
   mk ::
@@ -1680,11 +1812,15 @@ class HistogramVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq HistogramVec.ty HistogramVec.underlying
   get_MetricVec : ∀ (x : HistogramVec), go.IsGoStepPureDetTagged under (StructFieldGet HistogramVec.underlying go!"MetricVec") #x (Val #(x.MetricVec'))
   set_MetricVec : ∀ (x : HistogramVec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HistogramVec.underlying go!"MetricVec") (PairV #x #y) (Val #(({ x with MetricVec' := y } : HistogramVec)))
+  method_set : go.MethodSetIs HistogramVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramVec.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"CurryWith", (some (go.signature.Signature [Labels.ty] false [ObserverVec.ty, go.error]))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [Labels.ty] false [Observer.ty, go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty, go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [Labels.ty] false [ObserverVec.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [Labels.ty] false [Observer.ty]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
 
 attribute [instance] HistogramVec.TypeAssumptions.type_repr
   HistogramVec.TypeAssumptions.underlying
   HistogramVec.TypeAssumptions.get_MetricVec
   HistogramVec.TypeAssumptions.set_MetricVec
+  HistogramVec.TypeAssumptions.method_set
+  HistogramVec.TypeAssumptions.ptr_method_set
 
 axiom constHistogram : Type
 axiom constHistogram.zero_val : ZeroVal constHistogram
@@ -1694,10 +1830,14 @@ class constHistogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying constHistogram.underlying constHistogram
   underlying : go.UnderlyingDirectedEq constHistogram.ty constHistogram.underlying
   isUnderlying : go.IsUnderlying constHistogram.underlying constHistogram.underlying
+  method_set : go.MethodSetIs constHistogram.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType constHistogram.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] constHistogram.TypeAssumptions.type_repr
   constHistogram.TypeAssumptions.underlying
   constHistogram.TypeAssumptions.isUnderlying
+  constHistogram.TypeAssumptions.method_set
+  constHistogram.TypeAssumptions.ptr_method_set
 
 axiom buckSort : Type
 axiom buckSort.zero_val : ZeroVal buckSort
@@ -1707,10 +1847,14 @@ class buckSort.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying buckSort.underlying buckSort
   underlying : go.UnderlyingDirectedEq buckSort.ty buckSort.underlying
   isUnderlying : go.IsUnderlying buckSort.underlying buckSort.underlying
+  method_set : go.MethodSetIs buckSort.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType buckSort.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] buckSort.TypeAssumptions.type_repr
   buckSort.TypeAssumptions.underlying
   buckSort.TypeAssumptions.isUnderlying
+  buckSort.TypeAssumptions.method_set
+  buckSort.TypeAssumptions.ptr_method_set
 
 axiom nativeExemplars : Type
 axiom nativeExemplars.zero_val : ZeroVal nativeExemplars
@@ -1720,10 +1864,14 @@ class nativeExemplars.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying nativeExemplars.underlying nativeExemplars
   underlying : go.UnderlyingDirectedEq nativeExemplars.ty nativeExemplars.underlying
   isUnderlying : go.IsUnderlying nativeExemplars.underlying nativeExemplars.underlying
+  method_set : go.MethodSetIs nativeExemplars.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nativeExemplars.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.addExemplar", none), (go!"github.com/prometheus/client_golang/prometheus.isEnabled", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] nativeExemplars.TypeAssumptions.type_repr
   nativeExemplars.TypeAssumptions.underlying
   nativeExemplars.TypeAssumptions.isUnderlying
+  nativeExemplars.TypeAssumptions.method_set
+  nativeExemplars.TypeAssumptions.ptr_method_set
 
 axiom constNativeHistogram : Type
 axiom constNativeHistogram.zero_val : ZeroVal constNativeHistogram
@@ -1733,10 +1881,14 @@ class constNativeHistogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying constNativeHistogram.underlying constNativeHistogram
   underlying : go.UnderlyingDirectedEq constNativeHistogram.ty constNativeHistogram.underlying
   isUnderlying : go.IsUnderlying constNativeHistogram.underlying constNativeHistogram.underlying
+  method_set : go.MethodSetIs constNativeHistogram.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType constNativeHistogram.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetBucket", none), (go!"GetCreatedTimestamp", none), (go!"GetExemplars", none), (go!"GetNegativeCount", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"GetNegativeDelta", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"GetNegativeSpan", none), (go!"GetPositiveCount", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"GetPositiveDelta", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"GetPositiveSpan", none), (go!"GetSampleCount", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetSampleCountFloat", (some (go.signature.Signature [] false [go.float64]))), (go!"GetSampleSum", (some (go.signature.Signature [] false [go.float64]))), (go!"GetSchema", (some (go.signature.Signature [] false [go.int32]))), (go!"GetZeroCount", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetZeroCountFloat", (some (go.signature.Signature [] false [go.float64]))), (go!"GetZeroThreshold", (some (go.signature.Signature [] false [go.float64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Write", none)]
 
 attribute [instance] constNativeHistogram.TypeAssumptions.type_repr
   constNativeHistogram.TypeAssumptions.underlying
   constNativeHistogram.TypeAssumptions.isUnderlying
+  constNativeHistogram.TypeAssumptions.method_set
+  constNativeHistogram.TypeAssumptions.ptr_method_set
 
 abbrev Labels [FfiSyntax] : Type := GoMap
 
@@ -1745,8 +1897,12 @@ abbrev Labels [FfiSyntax] : Type := GoMap
 
 class Labels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Labels.ty Labels.underlying
+  method_set : go.MethodSetIs Labels.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Labels.ty) []
 
 attribute [instance] Labels.TypeAssumptions.underlying
+  Labels.TypeAssumptions.method_set
+  Labels.TypeAssumptions.ptr_method_set
 
 abbrev LabelConstraint [FfiSyntax] : Type := GoFunc
 
@@ -1755,8 +1911,12 @@ abbrev LabelConstraint [FfiSyntax] : Type := GoFunc
 
 class LabelConstraint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LabelConstraint.ty LabelConstraint.underlying
+  method_set : go.MethodSetIs LabelConstraint.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LabelConstraint.ty) []
 
 attribute [instance] LabelConstraint.TypeAssumptions.underlying
+  LabelConstraint.TypeAssumptions.method_set
+  LabelConstraint.TypeAssumptions.ptr_method_set
 
 structure ConstrainedLabel [FfiSyntax] where
   mk ::
@@ -1787,6 +1947,8 @@ class ConstrainedLabel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_Name : ∀ (x : ConstrainedLabel) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ConstrainedLabel.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : ConstrainedLabel)))
   get_Constraint : ∀ (x : ConstrainedLabel), go.IsGoStepPureDetTagged under (StructFieldGet ConstrainedLabel.underlying go!"Constraint") #x (Val #(x.Constraint'))
   set_Constraint : ∀ (x : ConstrainedLabel) (y : LabelConstraint), go.IsGoStepPureDetTagged under (StructFieldSet ConstrainedLabel.underlying go!"Constraint") (PairV #x #y) (Val #(({ x with Constraint' := y } : ConstrainedLabel)))
+  method_set : go.MethodSetIs ConstrainedLabel.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConstrainedLabel.ty) []
 
 attribute [instance] ConstrainedLabel.TypeAssumptions.type_repr
   ConstrainedLabel.TypeAssumptions.underlying
@@ -1794,6 +1956,8 @@ attribute [instance] ConstrainedLabel.TypeAssumptions.type_repr
   ConstrainedLabel.TypeAssumptions.set_Name
   ConstrainedLabel.TypeAssumptions.get_Constraint
   ConstrainedLabel.TypeAssumptions.set_Constraint
+  ConstrainedLabel.TypeAssumptions.method_set
+  ConstrainedLabel.TypeAssumptions.ptr_method_set
 
 abbrev ConstrainedLabels [FfiSyntax] : Type := GoSlice
 
@@ -1802,8 +1966,12 @@ abbrev ConstrainedLabels [FfiSyntax] : Type := GoSlice
 
 class ConstrainedLabels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConstrainedLabels.ty ConstrainedLabels.underlying
+  method_set : go.MethodSetIs ConstrainedLabels.ty [(go!"github.com/prometheus/client_golang/prometheus.compile", (some (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.labelNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConstrainedLabels.ty) [(go!"github.com/prometheus/client_golang/prometheus.compile", (some (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.labelNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] ConstrainedLabels.TypeAssumptions.underlying
+  ConstrainedLabels.TypeAssumptions.method_set
+  ConstrainedLabels.TypeAssumptions.ptr_method_set
 
 abbrev UnconstrainedLabels [FfiSyntax] : Type := GoSlice
 
@@ -1812,8 +1980,12 @@ abbrev UnconstrainedLabels [FfiSyntax] : Type := GoSlice
 
 class UnconstrainedLabels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnconstrainedLabels.ty UnconstrainedLabels.underlying
+  method_set : go.MethodSetIs UnconstrainedLabels.ty [(go!"github.com/prometheus/client_golang/prometheus.compile", (some (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.labelNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnconstrainedLabels.ty) [(go!"github.com/prometheus/client_golang/prometheus.compile", (some (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.labelNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] UnconstrainedLabels.TypeAssumptions.underlying
+  UnconstrainedLabels.TypeAssumptions.method_set
+  UnconstrainedLabels.TypeAssumptions.ptr_method_set
 
 structure compiledLabels [FfiSyntax] where
   mk ::
@@ -1844,6 +2016,8 @@ class compiledLabels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_names : ∀ (x : compiledLabels) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet compiledLabels.underlying go!"names") (PairV #x #y) (Val #(({ x with names' := y } : compiledLabels)))
   get_labelConstraints : ∀ (x : compiledLabels), go.IsGoStepPureDetTagged under (StructFieldGet compiledLabels.underlying go!"labelConstraints") #x (Val #(x.labelConstraints'))
   set_labelConstraints : ∀ (x : compiledLabels) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet compiledLabels.underlying go!"labelConstraints") (PairV #x #y) (Val #(({ x with labelConstraints' := y } : compiledLabels)))
+  method_set : go.MethodSetIs compiledLabels.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType compiledLabels.ty) [(go!"github.com/prometheus/client_golang/prometheus.compile", (some (go.signature.Signature [] false [(go.GoType.PointerType compiledLabels.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.constrain", (some (go.signature.Signature [go.string, go.string] false [go.string]))), (go!"github.com/prometheus/client_golang/prometheus.labelNames", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] compiledLabels.TypeAssumptions.type_repr
   compiledLabels.TypeAssumptions.underlying
@@ -1851,6 +2025,8 @@ attribute [instance] compiledLabels.TypeAssumptions.type_repr
   compiledLabels.TypeAssumptions.set_names
   compiledLabels.TypeAssumptions.get_labelConstraints
   compiledLabels.TypeAssumptions.set_labelConstraints
+  compiledLabels.TypeAssumptions.method_set
+  compiledLabels.TypeAssumptions.ptr_method_set
 
 structure invalidMetric [FfiSyntax] where
   mk ::
@@ -1881,6 +2057,8 @@ class invalidMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_desc : ∀ (x : invalidMetric) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet invalidMetric.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : invalidMetric)))
   get_err : ∀ (x : invalidMetric), go.IsGoStepPureDetTagged under (StructFieldGet invalidMetric.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : invalidMetric) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet invalidMetric.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : invalidMetric)))
+  method_set : go.MethodSetIs invalidMetric.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType invalidMetric.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] invalidMetric.TypeAssumptions.type_repr
   invalidMetric.TypeAssumptions.underlying
@@ -1888,6 +2066,8 @@ attribute [instance] invalidMetric.TypeAssumptions.type_repr
   invalidMetric.TypeAssumptions.set_desc
   invalidMetric.TypeAssumptions.get_err
   invalidMetric.TypeAssumptions.set_err
+  invalidMetric.TypeAssumptions.method_set
+  invalidMetric.TypeAssumptions.ptr_method_set
 
 axiom timestampedMetric : Type
 axiom timestampedMetric.zero_val : ZeroVal timestampedMetric
@@ -1897,10 +2077,14 @@ class timestampedMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying timestampedMetric.underlying timestampedMetric
   underlying : go.UnderlyingDirectedEq timestampedMetric.ty timestampedMetric.underlying
   isUnderlying : go.IsUnderlying timestampedMetric.underlying timestampedMetric.underlying
+  method_set : go.MethodSetIs timestampedMetric.ty [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timestampedMetric.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] timestampedMetric.TypeAssumptions.type_repr
   timestampedMetric.TypeAssumptions.underlying
   timestampedMetric.TypeAssumptions.isUnderlying
+  timestampedMetric.TypeAssumptions.method_set
+  timestampedMetric.TypeAssumptions.ptr_method_set
 
 axiom withExemplarsMetric : Type
 axiom withExemplarsMetric.zero_val : ZeroVal withExemplarsMetric
@@ -1910,10 +2094,14 @@ class withExemplarsMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying withExemplarsMetric.underlying withExemplarsMetric
   underlying : go.UnderlyingDirectedEq withExemplarsMetric.ty withExemplarsMetric.underlying
   isUnderlying : go.IsUnderlying withExemplarsMetric.underlying withExemplarsMetric.underlying
+  method_set : go.MethodSetIs withExemplarsMetric.ty [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType withExemplarsMetric.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] withExemplarsMetric.TypeAssumptions.type_repr
   withExemplarsMetric.TypeAssumptions.underlying
   withExemplarsMetric.TypeAssumptions.isUnderlying
+  withExemplarsMetric.TypeAssumptions.method_set
+  withExemplarsMetric.TypeAssumptions.ptr_method_set
 
 axiom Exemplar : Type
 axiom Exemplar.zero_val : ZeroVal Exemplar
@@ -1923,10 +2111,14 @@ class Exemplar.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Exemplar.underlying Exemplar
   underlying : go.UnderlyingDirectedEq Exemplar.ty Exemplar.underlying
   isUnderlying : go.IsUnderlying Exemplar.underlying Exemplar.underlying
+  method_set : go.MethodSetIs Exemplar.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Exemplar.ty) []
 
 attribute [instance] Exemplar.TypeAssumptions.type_repr
   Exemplar.TypeAssumptions.underlying
   Exemplar.TypeAssumptions.isUnderlying
+  Exemplar.TypeAssumptions.method_set
+  Exemplar.TypeAssumptions.ptr_method_set
 
 abbrev Observer [FfiSyntax] : Type := GoInterface
 
@@ -1935,8 +2127,12 @@ abbrev Observer [FfiSyntax] : Type := GoInterface
 
 class Observer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Observer.ty Observer.underlying
+  method_set : go.MethodSetIs Observer.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Observer.ty) []
 
 attribute [instance] Observer.TypeAssumptions.underlying
+  Observer.TypeAssumptions.method_set
+  Observer.TypeAssumptions.ptr_method_set
 
 abbrev ObserverFunc [FfiSyntax] : Type := GoFunc
 
@@ -1945,18 +2141,26 @@ abbrev ObserverFunc [FfiSyntax] : Type := GoFunc
 
 class ObserverFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObserverFunc.ty ObserverFunc.underlying
+  method_set : go.MethodSetIs ObserverFunc.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObserverFunc.ty) [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] ObserverFunc.TypeAssumptions.underlying
+  ObserverFunc.TypeAssumptions.method_set
+  ObserverFunc.TypeAssumptions.ptr_method_set
 
 abbrev ObserverVec [FfiSyntax] : Type := GoInterface
 
 @[reducible] def ObserverVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CurryWith" (go.signature.Signature [Labels.ty] false [ObserverVec.ty, go.error])), (go.InterfaceElem.MethodElem go!"GetMetricWith" (go.signature.Signature [Labels.ty] false [Observer.ty, go.error])), (go.InterfaceElem.MethodElem go!"GetMetricWithLabelValues" (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty, go.error])), (go.InterfaceElem.MethodElem go!"MustCurryWith" (go.signature.Signature [Labels.ty] false [ObserverVec.ty])), (go.InterfaceElem.MethodElem go!"With" (go.signature.Signature [Labels.ty] false [Observer.ty])), (go.InterfaceElem.MethodElem go!"WithLabelValues" (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"CurryWith" (go.signature.Signature [Labels.ty] false [ObserverVec.ty, go.error])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.MethodElem go!"GetMetricWith" (go.signature.Signature [Labels.ty] false [Observer.ty, go.error])), (go.InterfaceElem.MethodElem go!"GetMetricWithLabelValues" (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty, go.error])), (go.InterfaceElem.MethodElem go!"MustCurryWith" (go.signature.Signature [Labels.ty] false [ObserverVec.ty])), (go.InterfaceElem.MethodElem go!"With" (go.signature.Signature [Labels.ty] false [Observer.ty])), (go.InterfaceElem.MethodElem go!"WithLabelValues" (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty]))])
 
 class ObserverVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObserverVec.ty ObserverVec.underlying
+  method_set : go.MethodSetIs ObserverVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"CurryWith", (some (go.signature.Signature [Labels.ty] false [ObserverVec.ty, go.error]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [Labels.ty] false [Observer.ty, go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty, go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [Labels.ty] false [ObserverVec.ty]))), (go!"With", (some (go.signature.Signature [Labels.ty] false [Observer.ty]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObserverVec.ty) []
 
 attribute [instance] ObserverVec.TypeAssumptions.underlying
+  ObserverVec.TypeAssumptions.method_set
+  ObserverVec.TypeAssumptions.ptr_method_set
 
 abbrev ExemplarObserver [FfiSyntax] : Type := GoInterface
 
@@ -1965,8 +2169,12 @@ abbrev ExemplarObserver [FfiSyntax] : Type := GoInterface
 
 class ExemplarObserver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ExemplarObserver.ty ExemplarObserver.underlying
+  method_set : go.MethodSetIs ExemplarObserver.ty [(go!"ObserveWithExemplar", (some (go.signature.Signature [go.float64, Labels.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExemplarObserver.ty) []
 
 attribute [instance] ExemplarObserver.TypeAssumptions.underlying
+  ExemplarObserver.TypeAssumptions.method_set
+  ExemplarObserver.TypeAssumptions.ptr_method_set
 
 structure processCollector [FfiSyntax] where
   mk ::
@@ -2041,6 +2249,8 @@ class processCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_inBytes : ∀ (x : processCollector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet processCollector.underlying go!"inBytes") (PairV #x #y) (Val #(({ x with inBytes' := y } : processCollector)))
   get_outBytes : ∀ (x : processCollector), go.IsGoStepPureDetTagged under (StructFieldGet processCollector.underlying go!"outBytes") #x (Val #(x.outBytes'))
   set_outBytes : ∀ (x : processCollector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet processCollector.underlying go!"outBytes") (PairV #x #y) (Val #(({ x with outBytes' := y } : processCollector)))
+  method_set : go.MethodSetIs processCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType processCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"github.com/prometheus/client_golang/prometheus.describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"github.com/prometheus/client_golang/prometheus.errorCollectFn", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.errorDescribeFn", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"github.com/prometheus/client_golang/prometheus.processCollect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"github.com/prometheus/client_golang/prometheus.reportError", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty), (go.GoType.PointerType Desc.ty), go.error] false [])))]
 
 attribute [instance] processCollector.TypeAssumptions.type_repr
   processCollector.TypeAssumptions.underlying
@@ -2070,6 +2280,8 @@ attribute [instance] processCollector.TypeAssumptions.type_repr
   processCollector.TypeAssumptions.set_inBytes
   processCollector.TypeAssumptions.get_outBytes
   processCollector.TypeAssumptions.set_outBytes
+  processCollector.TypeAssumptions.method_set
+  processCollector.TypeAssumptions.ptr_method_set
 
 structure ProcessCollectorOpts [FfiSyntax] where
   mk ::
@@ -2104,6 +2316,8 @@ class ProcessCollectorOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   set_Namespace : ∀ (x : ProcessCollectorOpts) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProcessCollectorOpts.underlying go!"Namespace") (PairV #x #y) (Val #(({ x with Namespace' := y } : ProcessCollectorOpts)))
   get_ReportErrors : ∀ (x : ProcessCollectorOpts), go.IsGoStepPureDetTagged under (StructFieldGet ProcessCollectorOpts.underlying go!"ReportErrors") #x (Val #(x.ReportErrors'))
   set_ReportErrors : ∀ (x : ProcessCollectorOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ProcessCollectorOpts.underlying go!"ReportErrors") (PairV #x #y) (Val #(({ x with ReportErrors' := y } : ProcessCollectorOpts)))
+  method_set : go.MethodSetIs ProcessCollectorOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcessCollectorOpts.ty) []
 
 attribute [instance] ProcessCollectorOpts.TypeAssumptions.type_repr
   ProcessCollectorOpts.TypeAssumptions.underlying
@@ -2113,6 +2327,8 @@ attribute [instance] ProcessCollectorOpts.TypeAssumptions.type_repr
   ProcessCollectorOpts.TypeAssumptions.set_Namespace
   ProcessCollectorOpts.TypeAssumptions.get_ReportErrors
   ProcessCollectorOpts.TypeAssumptions.set_ReportErrors
+  ProcessCollectorOpts.TypeAssumptions.method_set
+  ProcessCollectorOpts.TypeAssumptions.ptr_method_set
 
 abbrev Registerer [FfiSyntax] : Type := GoInterface
 
@@ -2121,8 +2337,12 @@ abbrev Registerer [FfiSyntax] : Type := GoInterface
 
 class Registerer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Registerer.ty Registerer.underlying
+  method_set : go.MethodSetIs Registerer.ty [(go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType Collector.ty)] true []))), (go!"Register", (some (go.signature.Signature [Collector.ty] false [go.error]))), (go!"Unregister", (some (go.signature.Signature [Collector.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Registerer.ty) []
 
 attribute [instance] Registerer.TypeAssumptions.underlying
+  Registerer.TypeAssumptions.method_set
+  Registerer.TypeAssumptions.ptr_method_set
 
 axiom Gatherer : Type
 axiom Gatherer.zero_val : ZeroVal Gatherer
@@ -2132,10 +2352,14 @@ class Gatherer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Gatherer.underlying Gatherer
   underlying : go.UnderlyingDirectedEq Gatherer.ty Gatherer.underlying
   isUnderlying : go.IsUnderlying Gatherer.underlying Gatherer.underlying
+  method_set : go.MethodSetIs Gatherer.ty [(go!"Gather", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Gatherer.ty) []
 
 attribute [instance] Gatherer.TypeAssumptions.type_repr
   Gatherer.TypeAssumptions.underlying
   Gatherer.TypeAssumptions.isUnderlying
+  Gatherer.TypeAssumptions.method_set
+  Gatherer.TypeAssumptions.ptr_method_set
 
 axiom GathererFunc : Type
 axiom GathererFunc.zero_val : ZeroVal GathererFunc
@@ -2145,10 +2369,14 @@ class GathererFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying GathererFunc.underlying GathererFunc
   underlying : go.UnderlyingDirectedEq GathererFunc.ty GathererFunc.underlying
   isUnderlying : go.IsUnderlying GathererFunc.underlying GathererFunc.underlying
+  method_set : go.MethodSetIs GathererFunc.ty [(go!"Gather", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GathererFunc.ty) [(go!"Gather", none)]
 
 attribute [instance] GathererFunc.TypeAssumptions.type_repr
   GathererFunc.TypeAssumptions.underlying
   GathererFunc.TypeAssumptions.isUnderlying
+  GathererFunc.TypeAssumptions.method_set
+  GathererFunc.TypeAssumptions.ptr_method_set
 
 structure AlreadyRegisteredError [FfiSyntax] where
   mk ::
@@ -2179,6 +2407,8 @@ class AlreadyRegisteredError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   set_ExistingCollector : ∀ (x : AlreadyRegisteredError) (y : Collector), go.IsGoStepPureDetTagged under (StructFieldSet AlreadyRegisteredError.underlying go!"ExistingCollector") (PairV #x #y) (Val #(({ x with ExistingCollector' := y } : AlreadyRegisteredError)))
   get_NewCollector : ∀ (x : AlreadyRegisteredError), go.IsGoStepPureDetTagged under (StructFieldGet AlreadyRegisteredError.underlying go!"NewCollector") #x (Val #(x.NewCollector'))
   set_NewCollector : ∀ (x : AlreadyRegisteredError) (y : Collector), go.IsGoStepPureDetTagged under (StructFieldSet AlreadyRegisteredError.underlying go!"NewCollector") (PairV #x #y) (Val #(({ x with NewCollector' := y } : AlreadyRegisteredError)))
+  method_set : go.MethodSetIs AlreadyRegisteredError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlreadyRegisteredError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] AlreadyRegisteredError.TypeAssumptions.type_repr
   AlreadyRegisteredError.TypeAssumptions.underlying
@@ -2186,6 +2416,8 @@ attribute [instance] AlreadyRegisteredError.TypeAssumptions.type_repr
   AlreadyRegisteredError.TypeAssumptions.set_ExistingCollector
   AlreadyRegisteredError.TypeAssumptions.get_NewCollector
   AlreadyRegisteredError.TypeAssumptions.set_NewCollector
+  AlreadyRegisteredError.TypeAssumptions.method_set
+  AlreadyRegisteredError.TypeAssumptions.ptr_method_set
 
 abbrev MultiError [FfiSyntax] : Type := GoSlice
 
@@ -2194,8 +2426,12 @@ abbrev MultiError [FfiSyntax] : Type := GoSlice
 
 class MultiError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MultiError.ty MultiError.underlying
+  method_set : go.MethodSetIs MultiError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"MaybeUnwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MultiError.ty) [(go!"Append", (some (go.signature.Signature [go.error] false []))), (go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"MaybeUnwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] MultiError.TypeAssumptions.underlying
+  MultiError.TypeAssumptions.method_set
+  MultiError.TypeAssumptions.ptr_method_set
 
 axiom SafeMultiError : Type
 axiom SafeMultiError.zero_val : ZeroVal SafeMultiError
@@ -2205,10 +2441,14 @@ class SafeMultiError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying SafeMultiError.underlying SafeMultiError
   underlying : go.UnderlyingDirectedEq SafeMultiError.ty SafeMultiError.underlying
   isUnderlying : go.IsUnderlying SafeMultiError.underlying SafeMultiError.underlying
+  method_set : go.MethodSetIs SafeMultiError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SafeMultiError.ty) [(go!"Append", (some (go.signature.Signature [go.error] false [])))]
 
 attribute [instance] SafeMultiError.TypeAssumptions.type_repr
   SafeMultiError.TypeAssumptions.underlying
   SafeMultiError.TypeAssumptions.isUnderlying
+  SafeMultiError.TypeAssumptions.method_set
+  SafeMultiError.TypeAssumptions.ptr_method_set
 
 axiom Registry : Type
 axiom Registry.zero_val : ZeroVal Registry
@@ -2218,10 +2458,14 @@ class Registry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Registry.underlying Registry
   underlying : go.UnderlyingDirectedEq Registry.ty Registry.underlying
   isUnderlying : go.IsUnderlying Registry.underlying Registry.underlying
+  method_set : go.MethodSetIs Registry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Registry.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Gather", none), (go!"MustGather", none), (go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType Collector.ty)] true []))), (go!"Register", (some (go.signature.Signature [Collector.ty] false [go.error]))), (go!"Unregister", (some (go.signature.Signature [Collector.ty] false [go.bool])))]
 
 attribute [instance] Registry.TypeAssumptions.type_repr
   Registry.TypeAssumptions.underlying
   Registry.TypeAssumptions.isUnderlying
+  Registry.TypeAssumptions.method_set
+  Registry.TypeAssumptions.ptr_method_set
 
 abbrev Gatherers [FfiSyntax] : Type := GoSlice
 
@@ -2230,8 +2474,12 @@ abbrev Gatherers [FfiSyntax] : Type := GoSlice
 
 class Gatherers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Gatherers.ty Gatherers.underlying
+  method_set : go.MethodSetIs Gatherers.ty [(go!"Gather", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Gatherers.ty) [(go!"Gather", none)]
 
 attribute [instance] Gatherers.TypeAssumptions.underlying
+  Gatherers.TypeAssumptions.method_set
+  Gatherers.TypeAssumptions.ptr_method_set
 
 structure MultiTRegistry [FfiSyntax] where
   mk ::
@@ -2258,11 +2506,15 @@ class MultiTRegistry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq MultiTRegistry.ty MultiTRegistry.underlying
   get_tGatherers : ∀ (x : MultiTRegistry), go.IsGoStepPureDetTagged under (StructFieldGet MultiTRegistry.underlying go!"tGatherers") #x (Val #(x.tGatherers'))
   set_tGatherers : ∀ (x : MultiTRegistry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MultiTRegistry.underlying go!"tGatherers") (PairV #x #y) (Val #(({ x with tGatherers' := y } : MultiTRegistry)))
+  method_set : go.MethodSetIs MultiTRegistry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MultiTRegistry.ty) [(go!"Gather", none)]
 
 attribute [instance] MultiTRegistry.TypeAssumptions.type_repr
   MultiTRegistry.TypeAssumptions.underlying
   MultiTRegistry.TypeAssumptions.get_tGatherers
   MultiTRegistry.TypeAssumptions.set_tGatherers
+  MultiTRegistry.TypeAssumptions.method_set
+  MultiTRegistry.TypeAssumptions.ptr_method_set
 
 axiom TransactionalGatherer : Type
 axiom TransactionalGatherer.zero_val : ZeroVal TransactionalGatherer
@@ -2272,10 +2524,14 @@ class TransactionalGatherer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying TransactionalGatherer.underlying TransactionalGatherer
   underlying : go.UnderlyingDirectedEq TransactionalGatherer.ty TransactionalGatherer.underlying
   isUnderlying : go.IsUnderlying TransactionalGatherer.underlying TransactionalGatherer.underlying
+  method_set : go.MethodSetIs TransactionalGatherer.ty [(go!"Gather", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionalGatherer.ty) []
 
 attribute [instance] TransactionalGatherer.TypeAssumptions.type_repr
   TransactionalGatherer.TypeAssumptions.underlying
   TransactionalGatherer.TypeAssumptions.isUnderlying
+  TransactionalGatherer.TypeAssumptions.method_set
+  TransactionalGatherer.TypeAssumptions.ptr_method_set
 
 structure noTransactionGatherer [FfiSyntax] where
   mk ::
@@ -2302,21 +2558,29 @@ class noTransactionGatherer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq noTransactionGatherer.ty noTransactionGatherer.underlying
   get_g : ∀ (x : noTransactionGatherer), go.IsGoStepPureDetTagged under (StructFieldGet noTransactionGatherer.underlying go!"g") #x (Val #(x.g'))
   set_g : ∀ (x : noTransactionGatherer) (y : Gatherer), go.IsGoStepPureDetTagged under (StructFieldSet noTransactionGatherer.underlying go!"g") (PairV #x #y) (Val #(({ x with g' := y } : noTransactionGatherer)))
+  method_set : go.MethodSetIs noTransactionGatherer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noTransactionGatherer.ty) [(go!"Gather", none)]
 
 attribute [instance] noTransactionGatherer.TypeAssumptions.type_repr
   noTransactionGatherer.TypeAssumptions.underlying
   noTransactionGatherer.TypeAssumptions.get_g
   noTransactionGatherer.TypeAssumptions.set_g
+  noTransactionGatherer.TypeAssumptions.method_set
+  noTransactionGatherer.TypeAssumptions.ptr_method_set
 
 abbrev Summary [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Summary.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class Summary.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Summary.ty Summary.underlying
+  method_set : go.MethodSetIs Summary.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Summary.ty) []
 
 attribute [instance] Summary.TypeAssumptions.underlying
+  Summary.TypeAssumptions.method_set
+  Summary.TypeAssumptions.ptr_method_set
 
 axiom SummaryOpts : Type
 axiom SummaryOpts.zero_val : ZeroVal SummaryOpts
@@ -2326,10 +2590,14 @@ class SummaryOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying SummaryOpts.underlying SummaryOpts
   underlying : go.UnderlyingDirectedEq SummaryOpts.ty SummaryOpts.underlying
   isUnderlying : go.IsUnderlying SummaryOpts.underlying SummaryOpts.underlying
+  method_set : go.MethodSetIs SummaryOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryOpts.ty) []
 
 attribute [instance] SummaryOpts.TypeAssumptions.type_repr
   SummaryOpts.TypeAssumptions.underlying
   SummaryOpts.TypeAssumptions.isUnderlying
+  SummaryOpts.TypeAssumptions.method_set
+  SummaryOpts.TypeAssumptions.ptr_method_set
 
 structure SummaryVecOpts [FfiSyntax] where
   mk ::
@@ -2360,6 +2628,8 @@ class SummaryVecOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_SummaryOpts : ∀ (x : SummaryVecOpts) (y : SummaryOpts), go.IsGoStepPureDetTagged under (StructFieldSet SummaryVecOpts.underlying go!"SummaryOpts") (PairV #x #y) (Val #(({ x with SummaryOpts' := y } : SummaryVecOpts)))
   get_VariableLabels : ∀ (x : SummaryVecOpts), go.IsGoStepPureDetTagged under (StructFieldGet SummaryVecOpts.underlying go!"VariableLabels") #x (Val #(x.VariableLabels'))
   set_VariableLabels : ∀ (x : SummaryVecOpts) (y : ConstrainableLabels), go.IsGoStepPureDetTagged under (StructFieldSet SummaryVecOpts.underlying go!"VariableLabels") (PairV #x #y) (Val #(({ x with VariableLabels' := y } : SummaryVecOpts)))
+  method_set : go.MethodSetIs SummaryVecOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryVecOpts.ty) []
 
 attribute [instance] SummaryVecOpts.TypeAssumptions.type_repr
   SummaryVecOpts.TypeAssumptions.underlying
@@ -2367,6 +2637,8 @@ attribute [instance] SummaryVecOpts.TypeAssumptions.type_repr
   SummaryVecOpts.TypeAssumptions.set_SummaryOpts
   SummaryVecOpts.TypeAssumptions.get_VariableLabels
   SummaryVecOpts.TypeAssumptions.set_VariableLabels
+  SummaryVecOpts.TypeAssumptions.method_set
+  SummaryVecOpts.TypeAssumptions.ptr_method_set
 
 axiom summary : Type
 axiom summary.zero_val : ZeroVal summary
@@ -2376,10 +2648,14 @@ class summary.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying summary.underlying summary
   underlying : go.UnderlyingDirectedEq summary.ty summary.underlying
   isUnderlying : go.IsUnderlying summary.underlying summary.underlying
+  method_set : go.MethodSetIs summary.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType summary.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.asyncFlush", none), (go!"github.com/prometheus/client_golang/prometheus.flushColdBuf", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false []))), (go!"github.com/prometheus/client_golang/prometheus.maybeRotateStreams", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.newStream", none), (go!"github.com/prometheus/client_golang/prometheus.swapBufs", none)]
 
 attribute [instance] summary.TypeAssumptions.type_repr
   summary.TypeAssumptions.underlying
   summary.TypeAssumptions.isUnderlying
+  summary.TypeAssumptions.method_set
+  summary.TypeAssumptions.ptr_method_set
 
 structure summaryCounts [FfiSyntax] where
   mk ::
@@ -2410,6 +2686,8 @@ class summaryCounts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_sumBits : ∀ (x : summaryCounts) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet summaryCounts.underlying go!"sumBits") (PairV #x #y) (Val #(({ x with sumBits' := y } : summaryCounts)))
   get_count : ∀ (x : summaryCounts), go.IsGoStepPureDetTagged under (StructFieldGet summaryCounts.underlying go!"count") #x (Val #(x.count'))
   set_count : ∀ (x : summaryCounts) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet summaryCounts.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : summaryCounts)))
+  method_set : go.MethodSetIs summaryCounts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType summaryCounts.ty) []
 
 attribute [instance] summaryCounts.TypeAssumptions.type_repr
   summaryCounts.TypeAssumptions.underlying
@@ -2417,6 +2695,8 @@ attribute [instance] summaryCounts.TypeAssumptions.type_repr
   summaryCounts.TypeAssumptions.set_sumBits
   summaryCounts.TypeAssumptions.get_count
   summaryCounts.TypeAssumptions.set_count
+  summaryCounts.TypeAssumptions.method_set
+  summaryCounts.TypeAssumptions.ptr_method_set
 
 axiom noObjectivesSummary : Type
 axiom noObjectivesSummary.zero_val : ZeroVal noObjectivesSummary
@@ -2426,10 +2706,14 @@ class noObjectivesSummary.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying noObjectivesSummary.underlying noObjectivesSummary
   underlying : go.UnderlyingDirectedEq noObjectivesSummary.ty noObjectivesSummary.underlying
   isUnderlying : go.IsUnderlying noObjectivesSummary.underlying noObjectivesSummary.underlying
+  method_set : go.MethodSetIs noObjectivesSummary.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noObjectivesSummary.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false [])))]
 
 attribute [instance] noObjectivesSummary.TypeAssumptions.type_repr
   noObjectivesSummary.TypeAssumptions.underlying
   noObjectivesSummary.TypeAssumptions.isUnderlying
+  noObjectivesSummary.TypeAssumptions.method_set
+  noObjectivesSummary.TypeAssumptions.ptr_method_set
 
 axiom quantSort : Type
 axiom quantSort.zero_val : ZeroVal quantSort
@@ -2439,10 +2723,14 @@ class quantSort.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying quantSort.underlying quantSort
   underlying : go.UnderlyingDirectedEq quantSort.ty quantSort.underlying
   isUnderlying : go.IsUnderlying quantSort.underlying quantSort.underlying
+  method_set : go.MethodSetIs quantSort.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType quantSort.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] quantSort.TypeAssumptions.type_repr
   quantSort.TypeAssumptions.underlying
   quantSort.TypeAssumptions.isUnderlying
+  quantSort.TypeAssumptions.method_set
+  quantSort.TypeAssumptions.ptr_method_set
 
 structure SummaryVec [FfiSyntax] where
   mk ::
@@ -2469,11 +2757,15 @@ class SummaryVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq SummaryVec.ty SummaryVec.underlying
   get_MetricVec : ∀ (x : SummaryVec), go.IsGoStepPureDetTagged under (StructFieldGet SummaryVec.underlying go!"MetricVec") #x (Val #(x.MetricVec'))
   set_MetricVec : ∀ (x : SummaryVec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SummaryVec.underlying go!"MetricVec") (PairV #x #y) (Val #(({ x with MetricVec' := y } : SummaryVec)))
+  method_set : go.MethodSetIs SummaryVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryVec.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"CurryWith", (some (go.signature.Signature [Labels.ty] false [ObserverVec.ty, go.error]))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [Labels.ty] false [Observer.ty, go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty, go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [Labels.ty] false [ObserverVec.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [Labels.ty] false [Observer.ty]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Observer.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
 
 attribute [instance] SummaryVec.TypeAssumptions.type_repr
   SummaryVec.TypeAssumptions.underlying
   SummaryVec.TypeAssumptions.get_MetricVec
   SummaryVec.TypeAssumptions.set_MetricVec
+  SummaryVec.TypeAssumptions.method_set
+  SummaryVec.TypeAssumptions.ptr_method_set
 
 axiom constSummary : Type
 axiom constSummary.zero_val : ZeroVal constSummary
@@ -2483,10 +2775,14 @@ class constSummary.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying constSummary.underlying constSummary
   underlying : go.UnderlyingDirectedEq constSummary.ty constSummary.underlying
   isUnderlying : go.IsUnderlying constSummary.underlying constSummary.underlying
+  method_set : go.MethodSetIs constSummary.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType constSummary.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] constSummary.TypeAssumptions.type_repr
   constSummary.TypeAssumptions.underlying
   constSummary.TypeAssumptions.isUnderlying
+  constSummary.TypeAssumptions.method_set
+  constSummary.TypeAssumptions.ptr_method_set
 
 axiom Timer : Type
 axiom Timer.zero_val : ZeroVal Timer
@@ -2496,10 +2792,14 @@ class Timer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Timer.underlying Timer
   underlying : go.UnderlyingDirectedEq Timer.ty Timer.underlying
   isUnderlying : go.IsUnderlying Timer.underlying Timer.underlying
+  method_set : go.MethodSetIs Timer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Timer.ty) [(go!"ObserveDuration", none), (go!"ObserveDurationWithExemplar", none)]
 
 attribute [instance] Timer.TypeAssumptions.type_repr
   Timer.TypeAssumptions.underlying
   Timer.TypeAssumptions.isUnderlying
+  Timer.TypeAssumptions.method_set
+  Timer.TypeAssumptions.ptr_method_set
 
 abbrev UntypedOpts [FfiSyntax] : Type := Opts
 
@@ -2508,18 +2808,26 @@ abbrev UntypedOpts [FfiSyntax] : Type := Opts
 
 class UntypedOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UntypedOpts.ty UntypedOpts.underlying
+  method_set : go.MethodSetIs UntypedOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UntypedOpts.ty) []
 
 attribute [instance] UntypedOpts.TypeAssumptions.underlying
+  UntypedOpts.TypeAssumptions.method_set
+  UntypedOpts.TypeAssumptions.ptr_method_set
 
 abbrev UntypedFunc [FfiSyntax] : Type := GoInterface
 
 @[reducible] def UntypedFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Collector.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Collect" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false [])), (go.InterfaceElem.MethodElem go!"Desc" (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)])), (go.InterfaceElem.MethodElem go!"Describe" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Metric.ty)])])
 
 class UntypedFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UntypedFunc.ty UntypedFunc.underlying
+  method_set : go.MethodSetIs UntypedFunc.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UntypedFunc.ty) []
 
 attribute [instance] UntypedFunc.TypeAssumptions.underlying
+  UntypedFunc.TypeAssumptions.method_set
+  UntypedFunc.TypeAssumptions.ptr_method_set
 
 abbrev ValueType [FfiSyntax] : Type := w64
 
@@ -2528,8 +2836,12 @@ abbrev ValueType [FfiSyntax] : Type := w64
 
 class ValueType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValueType.ty ValueType.underlying
+  method_set : go.MethodSetIs ValueType.ty [(go!"ToDTO", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValueType.ty) [(go!"ToDTO", none)]
 
 attribute [instance] ValueType.TypeAssumptions.underlying
+  ValueType.TypeAssumptions.method_set
+  ValueType.TypeAssumptions.ptr_method_set
 
 axiom valueFunc : Type
 axiom valueFunc.zero_val : ZeroVal valueFunc
@@ -2539,10 +2851,14 @@ class valueFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying valueFunc.underlying valueFunc
   underlying : go.UnderlyingDirectedEq valueFunc.ty valueFunc.underlying
   isUnderlying : go.IsUnderlying valueFunc.underlying valueFunc.underlying
+  method_set : go.MethodSetIs valueFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType valueFunc.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Write", none), (go!"github.com/prometheus/client_golang/prometheus.init", (some (go.signature.Signature [Metric.ty] false [])))]
 
 attribute [instance] valueFunc.TypeAssumptions.type_repr
   valueFunc.TypeAssumptions.underlying
   valueFunc.TypeAssumptions.isUnderlying
+  valueFunc.TypeAssumptions.method_set
+  valueFunc.TypeAssumptions.ptr_method_set
 
 axiom constMetric : Type
 axiom constMetric.zero_val : ZeroVal constMetric
@@ -2552,10 +2868,14 @@ class constMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying constMetric.underlying constMetric
   underlying : go.UnderlyingDirectedEq constMetric.ty constMetric.underlying
   isUnderlying : go.IsUnderlying constMetric.underlying constMetric.underlying
+  method_set : go.MethodSetIs constMetric.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType constMetric.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] constMetric.TypeAssumptions.type_repr
   constMetric.TypeAssumptions.underlying
   constMetric.TypeAssumptions.isUnderlying
+  constMetric.TypeAssumptions.method_set
+  constMetric.TypeAssumptions.ptr_method_set
 
 structure MetricVec [FfiSyntax] where
   mk ::
@@ -2594,6 +2914,8 @@ class MetricVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_hashAdd : ∀ (x : MetricVec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MetricVec.underlying go!"hashAdd") (PairV #x #y) (Val #(({ x with hashAdd' := y } : MetricVec)))
   get_hashAddByte : ∀ (x : MetricVec), go.IsGoStepPureDetTagged under (StructFieldGet MetricVec.underlying go!"hashAddByte") #x (Val #(x.hashAddByte'))
   set_hashAddByte : ∀ (x : MetricVec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MetricVec.underlying go!"hashAddByte") (PairV #x #y) (Val #(({ x with hashAddByte' := y } : MetricVec)))
+  method_set : go.MethodSetIs MetricVec.ty [(go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricVec.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"CurryWith", (some (go.signature.Signature [Labels.ty] false [(go.GoType.PointerType MetricVec.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [Labels.ty] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [Labels.ty] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [Labels.ty] false [Metric.ty, go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [Metric.ty, go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [Labels.ty] false [go.uint64, go.error])))]
 
 attribute [instance] MetricVec.TypeAssumptions.type_repr
   MetricVec.TypeAssumptions.underlying
@@ -2605,6 +2927,8 @@ attribute [instance] MetricVec.TypeAssumptions.type_repr
   MetricVec.TypeAssumptions.set_hashAdd
   MetricVec.TypeAssumptions.get_hashAddByte
   MetricVec.TypeAssumptions.set_hashAddByte
+  MetricVec.TypeAssumptions.method_set
+  MetricVec.TypeAssumptions.ptr_method_set
 
 structure metricWithLabelValues [FfiSyntax] where
   mk ::
@@ -2635,6 +2959,8 @@ class metricWithLabelValues.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   set_values : ∀ (x : metricWithLabelValues) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet metricWithLabelValues.underlying go!"values") (PairV #x #y) (Val #(({ x with values' := y } : metricWithLabelValues)))
   get_metric : ∀ (x : metricWithLabelValues), go.IsGoStepPureDetTagged under (StructFieldGet metricWithLabelValues.underlying go!"metric") #x (Val #(x.metric'))
   set_metric : ∀ (x : metricWithLabelValues) (y : Metric), go.IsGoStepPureDetTagged under (StructFieldSet metricWithLabelValues.underlying go!"metric") (PairV #x #y) (Val #(({ x with metric' := y } : metricWithLabelValues)))
+  method_set : go.MethodSetIs metricWithLabelValues.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType metricWithLabelValues.ty) []
 
 attribute [instance] metricWithLabelValues.TypeAssumptions.type_repr
   metricWithLabelValues.TypeAssumptions.underlying
@@ -2642,6 +2968,8 @@ attribute [instance] metricWithLabelValues.TypeAssumptions.type_repr
   metricWithLabelValues.TypeAssumptions.set_values
   metricWithLabelValues.TypeAssumptions.get_metric
   metricWithLabelValues.TypeAssumptions.set_metric
+  metricWithLabelValues.TypeAssumptions.method_set
+  metricWithLabelValues.TypeAssumptions.ptr_method_set
 
 structure curriedLabelValue [FfiSyntax] where
   mk ::
@@ -2672,6 +3000,8 @@ class curriedLabelValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_index : ∀ (x : curriedLabelValue) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet curriedLabelValue.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : curriedLabelValue)))
   get_value : ∀ (x : curriedLabelValue), go.IsGoStepPureDetTagged under (StructFieldGet curriedLabelValue.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : curriedLabelValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet curriedLabelValue.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : curriedLabelValue)))
+  method_set : go.MethodSetIs curriedLabelValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType curriedLabelValue.ty) []
 
 attribute [instance] curriedLabelValue.TypeAssumptions.type_repr
   curriedLabelValue.TypeAssumptions.underlying
@@ -2679,6 +3009,8 @@ attribute [instance] curriedLabelValue.TypeAssumptions.type_repr
   curriedLabelValue.TypeAssumptions.set_index
   curriedLabelValue.TypeAssumptions.get_value
   curriedLabelValue.TypeAssumptions.set_value
+  curriedLabelValue.TypeAssumptions.method_set
+  curriedLabelValue.TypeAssumptions.ptr_method_set
 
 axiom metricMap : Type
 axiom metricMap.zero_val : ZeroVal metricMap
@@ -2688,10 +3020,14 @@ class metricMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying metricMap.underlying metricMap
   underlying : go.UnderlyingDirectedEq metricMap.ty metricMap.underlying
   isUnderlying : go.IsUnderlying metricMap.underlying metricMap.underlying
+  method_set : go.MethodSetIs metricMap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType metricMap.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty, go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, Labels.ty, (go.GoType.SliceType curriedLabelValue.ty)] false [Metric.ty])))]
 
 attribute [instance] metricMap.TypeAssumptions.type_repr
   metricMap.TypeAssumptions.underlying
   metricMap.TypeAssumptions.isUnderlying
+  metricMap.TypeAssumptions.method_set
+  metricMap.TypeAssumptions.ptr_method_set
 
 structure v2 [FfiSyntax] where
   mk ::
@@ -2715,9 +3051,13 @@ instance equals_unfold_v2 [FfiSyntax] [GoGlobalContext] :
 class v2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying v2.underlying v2
   underlying : go.UnderlyingDirectedEq v2.ty v2.underlying
+  method_set : go.MethodSetIs v2.ty [(go!"NewCounterVec", (some (go.signature.Signature [CounterVecOpts.ty] false [(go.GoType.PointerType CounterVec.ty)]))), (go!"NewDesc", (some (go.signature.Signature [go.string, go.string, ConstrainableLabels.ty, Labels.ty, (go.GoType.SliceType DescOpt.ty)] true [(go.GoType.PointerType Desc.ty)]))), (go!"NewGaugeVec", (some (go.signature.Signature [GaugeVecOpts.ty] false [(go.GoType.PointerType GaugeVec.ty)]))), (go!"NewHistogramVec", (some (go.signature.Signature [HistogramVecOpts.ty] false [(go.GoType.PointerType HistogramVec.ty)]))), (go!"NewSummaryVec", (some (go.signature.Signature [SummaryVecOpts.ty] false [(go.GoType.PointerType SummaryVec.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType v2.ty) [(go!"NewCounterVec", (some (go.signature.Signature [CounterVecOpts.ty] false [(go.GoType.PointerType CounterVec.ty)]))), (go!"NewDesc", (some (go.signature.Signature [go.string, go.string, ConstrainableLabels.ty, Labels.ty, (go.GoType.SliceType DescOpt.ty)] true [(go.GoType.PointerType Desc.ty)]))), (go!"NewGaugeVec", (some (go.signature.Signature [GaugeVecOpts.ty] false [(go.GoType.PointerType GaugeVec.ty)]))), (go!"NewHistogramVec", (some (go.signature.Signature [HistogramVecOpts.ty] false [(go.GoType.PointerType HistogramVec.ty)]))), (go!"NewSummaryVec", (some (go.signature.Signature [SummaryVecOpts.ty] false [(go.GoType.PointerType SummaryVec.ty)])))]
 
 attribute [instance] v2.TypeAssumptions.type_repr
   v2.TypeAssumptions.underlying
+  v2.TypeAssumptions.method_set
+  v2.TypeAssumptions.ptr_method_set
 
 structure wrappingRegisterer [FfiSyntax] where
   mk ::
@@ -2752,6 +3092,8 @@ class wrappingRegisterer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_prefix : ∀ (x : wrappingRegisterer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet wrappingRegisterer.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : wrappingRegisterer)))
   get_labels : ∀ (x : wrappingRegisterer), go.IsGoStepPureDetTagged under (StructFieldGet wrappingRegisterer.underlying go!"labels") #x (Val #(x.labels'))
   set_labels : ∀ (x : wrappingRegisterer) (y : Labels), go.IsGoStepPureDetTagged under (StructFieldSet wrappingRegisterer.underlying go!"labels") (PairV #x #y) (Val #(({ x with labels' := y } : wrappingRegisterer)))
+  method_set : go.MethodSetIs wrappingRegisterer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType wrappingRegisterer.ty) [(go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType Collector.ty)] true []))), (go!"Register", (some (go.signature.Signature [Collector.ty] false [go.error]))), (go!"Unregister", (some (go.signature.Signature [Collector.ty] false [go.bool])))]
 
 attribute [instance] wrappingRegisterer.TypeAssumptions.type_repr
   wrappingRegisterer.TypeAssumptions.underlying
@@ -2761,6 +3103,8 @@ attribute [instance] wrappingRegisterer.TypeAssumptions.type_repr
   wrappingRegisterer.TypeAssumptions.set_prefix
   wrappingRegisterer.TypeAssumptions.get_labels
   wrappingRegisterer.TypeAssumptions.set_labels
+  wrappingRegisterer.TypeAssumptions.method_set
+  wrappingRegisterer.TypeAssumptions.ptr_method_set
 
 structure wrappingCollector [FfiSyntax] where
   mk ::
@@ -2795,6 +3139,8 @@ class wrappingCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_prefix : ∀ (x : wrappingCollector) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet wrappingCollector.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : wrappingCollector)))
   get_labels : ∀ (x : wrappingCollector), go.IsGoStepPureDetTagged under (StructFieldGet wrappingCollector.underlying go!"labels") #x (Val #(x.labels'))
   set_labels : ∀ (x : wrappingCollector) (y : Labels), go.IsGoStepPureDetTagged under (StructFieldSet wrappingCollector.underlying go!"labels") (PairV #x #y) (Val #(({ x with labels' := y } : wrappingCollector)))
+  method_set : go.MethodSetIs wrappingCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType wrappingCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"github.com/prometheus/client_golang/prometheus.unwrapRecursively", (some (go.signature.Signature [] false [Collector.ty])))]
 
 attribute [instance] wrappingCollector.TypeAssumptions.type_repr
   wrappingCollector.TypeAssumptions.underlying
@@ -2804,6 +3150,8 @@ attribute [instance] wrappingCollector.TypeAssumptions.type_repr
   wrappingCollector.TypeAssumptions.set_prefix
   wrappingCollector.TypeAssumptions.get_labels
   wrappingCollector.TypeAssumptions.set_labels
+  wrappingCollector.TypeAssumptions.method_set
+  wrappingCollector.TypeAssumptions.ptr_method_set
 
 structure wrappingMetric [FfiSyntax] where
   mk ::
@@ -2838,6 +3186,8 @@ class wrappingMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_prefix : ∀ (x : wrappingMetric) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet wrappingMetric.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : wrappingMetric)))
   get_labels : ∀ (x : wrappingMetric), go.IsGoStepPureDetTagged under (StructFieldGet wrappingMetric.underlying go!"labels") #x (Val #(x.labels'))
   set_labels : ∀ (x : wrappingMetric) (y : Labels), go.IsGoStepPureDetTagged under (StructFieldSet wrappingMetric.underlying go!"labels") (PairV #x #y) (Val #(({ x with labels' := y } : wrappingMetric)))
+  method_set : go.MethodSetIs wrappingMetric.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType wrappingMetric.ty) [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"Write", none)]
 
 attribute [instance] wrappingMetric.TypeAssumptions.type_repr
   wrappingMetric.TypeAssumptions.underlying
@@ -2847,6 +3197,8 @@ attribute [instance] wrappingMetric.TypeAssumptions.type_repr
   wrappingMetric.TypeAssumptions.set_prefix
   wrappingMetric.TypeAssumptions.get_labels
   wrappingMetric.TypeAssumptions.set_labels
+  wrappingMetric.TypeAssumptions.method_set
+  wrappingMetric.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Collector_instance : Collector.TypeAssumptions

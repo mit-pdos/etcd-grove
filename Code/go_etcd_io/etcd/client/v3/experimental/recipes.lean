@@ -2100,6 +2100,8 @@ class Barrier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_ctx : ∀ (x : Barrier) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Barrier)))
   get_key : ∀ (x : Barrier), go.IsGoStepPureDetTagged under (StructFieldGet Barrier.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : Barrier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Barrier.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Barrier)))
+  method_set : go.MethodSetIs Barrier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Barrier.ty) [(go!"Hold", (some (go.signature.Signature [] false [go.error]))), (go!"Release", (some (go.signature.Signature [] false [go.error]))), (go!"Wait", (some (go.signature.Signature [] false [go.error])))]
   ptr_Hold_unfold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Hold" Barrier.Hold.impl
   ptr_Release_unfold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Release" Barrier.Release.impl
   ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType Barrier.ty) go!"Wait" Barrier.Wait.impl
@@ -2112,6 +2114,8 @@ attribute [instance] Barrier.TypeAssumptions.type_repr
   Barrier.TypeAssumptions.set_ctx
   Barrier.TypeAssumptions.get_key
   Barrier.TypeAssumptions.set_key
+  Barrier.TypeAssumptions.method_set
+  Barrier.TypeAssumptions.ptr_method_set
   Barrier.TypeAssumptions.ptr_Hold_unfold
   Barrier.TypeAssumptions.ptr_Release_unfold
   Barrier.TypeAssumptions.ptr_Wait_unfold
@@ -2157,6 +2161,8 @@ class DoubleBarrier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_count : ∀ (x : DoubleBarrier) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : DoubleBarrier)))
   get_myKey : ∀ (x : DoubleBarrier), go.IsGoStepPureDetTagged under (StructFieldGet DoubleBarrier.underlying go!"myKey") #x (Val #(x.myKey'))
   set_myKey : ∀ (x : DoubleBarrier) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet DoubleBarrier.underlying go!"myKey") (PairV #x #y) (Val #(({ x with myKey' := y } : DoubleBarrier)))
+  method_set : go.MethodSetIs DoubleBarrier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoubleBarrier.ty) [(go!"Enter", (some (go.signature.Signature [] false [go.error]))), (go!"Leave", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/experimental/recipes.enteredClients", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty), go.error])))]
   ptr_Enter_unfold : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"Enter" DoubleBarrier.Enter.impl
   ptr_Leave_unfold : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"Leave" DoubleBarrier.Leave.impl
   ptr_enteredClients_unfold : MethodUnfold (go.GoType.PointerType DoubleBarrier.ty) go!"enteredClients" DoubleBarrier.enteredClients.impl
@@ -2173,6 +2179,8 @@ attribute [instance] DoubleBarrier.TypeAssumptions.type_repr
   DoubleBarrier.TypeAssumptions.set_count
   DoubleBarrier.TypeAssumptions.get_myKey
   DoubleBarrier.TypeAssumptions.set_myKey
+  DoubleBarrier.TypeAssumptions.method_set
+  DoubleBarrier.TypeAssumptions.ptr_method_set
   DoubleBarrier.TypeAssumptions.ptr_Enter_unfold
   DoubleBarrier.TypeAssumptions.ptr_Leave_unfold
   DoubleBarrier.TypeAssumptions.ptr_enteredClients_unfold
@@ -2214,6 +2222,8 @@ class RemoteKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_rev : ∀ (x : RemoteKV) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : RemoteKV)))
   get_val : ∀ (x : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldGet RemoteKV.underlying go!"val") #x (Val #(x.val'))
   set_val : ∀ (x : RemoteKV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RemoteKV.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : RemoteKV)))
+  method_set : go.MethodSetIs RemoteKV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RemoteKV.ty) [(go!"Delete", (some (go.signature.Signature [] false [go.error]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Revision", (some (go.signature.Signature [] false [go.int64]))), (go!"Value", (some (go.signature.Signature [] false [go.string])))]
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Delete" RemoteKV.Delete.impl
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Key" RemoteKV.Key.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType RemoteKV.ty) go!"Put" RemoteKV.Put.impl
@@ -2230,6 +2240,8 @@ attribute [instance] RemoteKV.TypeAssumptions.type_repr
   RemoteKV.TypeAssumptions.set_rev
   RemoteKV.TypeAssumptions.get_val
   RemoteKV.TypeAssumptions.set_val
+  RemoteKV.TypeAssumptions.method_set
+  RemoteKV.TypeAssumptions.ptr_method_set
   RemoteKV.TypeAssumptions.ptr_Delete_unfold
   RemoteKV.TypeAssumptions.ptr_Key_unfold
   RemoteKV.TypeAssumptions.ptr_Put_unfold
@@ -2261,6 +2273,8 @@ class EphemeralKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq EphemeralKV.ty EphemeralKV.underlying
   get_RemoteKV : ∀ (x : EphemeralKV), go.IsGoStepPureDetTagged under (StructFieldGet EphemeralKV.underlying go!"RemoteKV") #x (Val #(x.RemoteKV'))
   set_RemoteKV : ∀ (x : EphemeralKV) (y : RemoteKV), go.IsGoStepPureDetTagged under (StructFieldSet EphemeralKV.underlying go!"RemoteKV") (PairV #x #y) (Val #(({ x with RemoteKV' := y } : EphemeralKV)))
+  method_set : go.MethodSetIs EphemeralKV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EphemeralKV.ty) [(go!"Delete", (some (go.signature.Signature [] false [go.error]))), (go!"Key", (some (go.signature.Signature [] false [go.string]))), (go!"Put", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Revision", (some (go.signature.Signature [] false [go.int64]))), (go!"Value", (some (go.signature.Signature [] false [go.string])))]
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RemoteKV.ty) go!"Delete"))) (App (Val (GoInstruction (StructFieldRef EphemeralKV.ty go!"RemoteKV"))) (Var "$r"))))
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType EphemeralKV.ty) go!"Key" (LamV "$r"
@@ -2276,6 +2290,8 @@ attribute [instance] EphemeralKV.TypeAssumptions.type_repr
   EphemeralKV.TypeAssumptions.underlying
   EphemeralKV.TypeAssumptions.get_RemoteKV
   EphemeralKV.TypeAssumptions.set_RemoteKV
+  EphemeralKV.TypeAssumptions.method_set
+  EphemeralKV.TypeAssumptions.ptr_method_set
   EphemeralKV.TypeAssumptions.ptr_Delete_unfold
   EphemeralKV.TypeAssumptions.ptr_Key_unfold
   EphemeralKV.TypeAssumptions.ptr_Put_unfold
@@ -2315,6 +2331,8 @@ class PriorityQueue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_ctx : ∀ (x : PriorityQueue) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : PriorityQueue)))
   get_key : ∀ (x : PriorityQueue), go.IsGoStepPureDetTagged under (StructFieldGet PriorityQueue.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : PriorityQueue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PriorityQueue.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : PriorityQueue)))
+  method_set : go.MethodSetIs PriorityQueue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PriorityQueue.ty) [(go!"Dequeue", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"Enqueue", (some (go.signature.Signature [go.string, go.uint16] false [go.error])))]
   ptr_Dequeue_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Dequeue" PriorityQueue.Dequeue.impl
   ptr_Enqueue_unfold : MethodUnfold (go.GoType.PointerType PriorityQueue.ty) go!"Enqueue" PriorityQueue.Enqueue.impl
 
@@ -2326,6 +2344,8 @@ attribute [instance] PriorityQueue.TypeAssumptions.type_repr
   PriorityQueue.TypeAssumptions.set_ctx
   PriorityQueue.TypeAssumptions.get_key
   PriorityQueue.TypeAssumptions.set_key
+  PriorityQueue.TypeAssumptions.method_set
+  PriorityQueue.TypeAssumptions.ptr_method_set
   PriorityQueue.TypeAssumptions.ptr_Dequeue_unfold
   PriorityQueue.TypeAssumptions.ptr_Enqueue_unfold
 
@@ -2362,6 +2382,8 @@ class Queue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_ctx : ∀ (x : Queue) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : Queue)))
   get_keyPrefix : ∀ (x : Queue), go.IsGoStepPureDetTagged under (StructFieldGet Queue.underlying go!"keyPrefix") #x (Val #(x.keyPrefix'))
   set_keyPrefix : ∀ (x : Queue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Queue.underlying go!"keyPrefix") (PairV #x #y) (Val #(({ x with keyPrefix' := y } : Queue)))
+  method_set : go.MethodSetIs Queue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Queue.ty) [(go!"Dequeue", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"Enqueue", (some (go.signature.Signature [go.string] false [go.error])))]
   ptr_Dequeue_unfold : MethodUnfold (go.GoType.PointerType Queue.ty) go!"Dequeue" Queue.Dequeue.impl
   ptr_Enqueue_unfold : MethodUnfold (go.GoType.PointerType Queue.ty) go!"Enqueue" Queue.Enqueue.impl
 
@@ -2373,6 +2395,8 @@ attribute [instance] Queue.TypeAssumptions.type_repr
   Queue.TypeAssumptions.set_ctx
   Queue.TypeAssumptions.get_keyPrefix
   Queue.TypeAssumptions.set_keyPrefix
+  Queue.TypeAssumptions.method_set
+  Queue.TypeAssumptions.ptr_method_set
   Queue.TypeAssumptions.ptr_Dequeue_unfold
   Queue.TypeAssumptions.ptr_Enqueue_unfold
 
@@ -2413,6 +2437,8 @@ class RWMutex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_pfx : ∀ (x : RWMutex) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"pfx") (PairV #x #y) (Val #(({ x with pfx' := y } : RWMutex)))
   get_myKey : ∀ (x : RWMutex), go.IsGoStepPureDetTagged under (StructFieldGet RWMutex.underlying go!"myKey") #x (Val #(x.myKey'))
   set_myKey : ∀ (x : RWMutex) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RWMutex.underlying go!"myKey") (PairV #x #y) (Val #(({ x with myKey' := y } : RWMutex)))
+  method_set : go.MethodSetIs RWMutex.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RWMutex.ty) [(go!"Lock", (some (go.signature.Signature [] false [go.error]))), (go!"RLock", (some (go.signature.Signature [] false [go.error]))), (go!"RUnlock", (some (go.signature.Signature [] false [go.error]))), (go!"Unlock", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3/experimental/recipes.waitOnLastRev", (some (go.signature.Signature [go.string] false [go.bool, go.error])))]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"Lock" RWMutex.Lock.impl
   ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"RLock" RWMutex.RLock.impl
   ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType RWMutex.ty) go!"RUnlock" RWMutex.RUnlock.impl
@@ -2429,6 +2455,8 @@ attribute [instance] RWMutex.TypeAssumptions.type_repr
   RWMutex.TypeAssumptions.set_pfx
   RWMutex.TypeAssumptions.get_myKey
   RWMutex.TypeAssumptions.set_myKey
+  RWMutex.TypeAssumptions.method_set
+  RWMutex.TypeAssumptions.ptr_method_set
   RWMutex.TypeAssumptions.ptr_Lock_unfold
   RWMutex.TypeAssumptions.ptr_RLock_unfold
   RWMutex.TypeAssumptions.ptr_RUnlock_unfold

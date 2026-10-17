@@ -550,11 +550,15 @@ class autoTracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq autoTracerProvider.ty autoTracerProvider.underlying
   get_TracerProvider : ∀ (x : autoTracerProvider), go.IsGoStepPureDetTagged under (StructFieldGet autoTracerProvider.underlying go!"TracerProvider") #x (Val #(x.TracerProvider'))
   set_TracerProvider : ∀ (x : autoTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider), go.IsGoStepPureDetTagged under (StructFieldSet autoTracerProvider.underlying go!"TracerProvider") (PairV #x #y) (Val #(({ x with TracerProvider' := y } : autoTracerProvider)))
+  method_set : go.MethodSetIs autoTracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType autoTracerProvider.ty) [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] autoTracerProvider.TypeAssumptions.type_repr
   autoTracerProvider.TypeAssumptions.underlying
   autoTracerProvider.TypeAssumptions.get_TracerProvider
   autoTracerProvider.TypeAssumptions.set_TracerProvider
+  autoTracerProvider.TypeAssumptions.method_set
+  autoTracerProvider.TypeAssumptions.ptr_method_set
 
 structure autoTracer [FfiSyntax] where
   mk ::
@@ -593,6 +597,8 @@ class autoTracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_schemaURL : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : autoTracer)))
   get_version : ∀ (x : autoTracer), go.IsGoStepPureDetTagged under (StructFieldGet autoTracer.underlying go!"version") #x (Val #(x.version'))
   set_version : ∀ (x : autoTracer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet autoTracer.underlying go!"version") (PairV #x #y) (Val #(({ x with version' := y } : autoTracer)))
+  method_set : go.MethodSetIs autoTracer.ty [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace.traces", none), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType autoTracer.ty) [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace.start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false []))), (go!"go.opentelemetry.io/otel/trace.traces", none), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] autoTracer.TypeAssumptions.type_repr
   autoTracer.TypeAssumptions.underlying
@@ -604,6 +610,8 @@ attribute [instance] autoTracer.TypeAssumptions.type_repr
   autoTracer.TypeAssumptions.set_schemaURL
   autoTracer.TypeAssumptions.get_version
   autoTracer.TypeAssumptions.set_version
+  autoTracer.TypeAssumptions.method_set
+  autoTracer.TypeAssumptions.ptr_method_set
 
 axiom autoSpan : Type
 axiom autoSpan.zero_val : ZeroVal autoSpan
@@ -613,10 +621,14 @@ class autoSpan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying autoSpan.underlying autoSpan
   underlying : go.UnderlyingDirectedEq autoSpan.ty autoSpan.underlying
   isUnderlying : go.IsUnderlying autoSpan.underlying autoSpan.underlying
+  method_set : go.MethodSetIs autoSpan.ty [(go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType autoSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.addEvent", none), (go!"go.opentelemetry.io/otel/trace.end", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/trace.ended", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] autoSpan.TypeAssumptions.type_repr
   autoSpan.TypeAssumptions.underlying
   autoSpan.TypeAssumptions.isUnderlying
+  autoSpan.TypeAssumptions.method_set
+  autoSpan.TypeAssumptions.ptr_method_set
 
 structure spanLimits [FfiSyntax] where
   mk ::
@@ -663,6 +675,8 @@ class spanLimits.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Links : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"Links") (PairV #x #y) (Val #(({ x with Links' := y } : spanLimits)))
   get_LinkAttrs : ∀ (x : spanLimits), go.IsGoStepPureDetTagged under (StructFieldGet spanLimits.underlying go!"LinkAttrs") #x (Val #(x.LinkAttrs'))
   set_LinkAttrs : ∀ (x : spanLimits) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet spanLimits.underlying go!"LinkAttrs") (PairV #x #y) (Val #(({ x with LinkAttrs' := y } : spanLimits)))
+  method_set : go.MethodSetIs spanLimits.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType spanLimits.ty) []
 
 attribute [instance] spanLimits.TypeAssumptions.type_repr
   spanLimits.TypeAssumptions.underlying
@@ -678,6 +692,8 @@ attribute [instance] spanLimits.TypeAssumptions.type_repr
   spanLimits.TypeAssumptions.set_Links
   spanLimits.TypeAssumptions.get_LinkAttrs
   spanLimits.TypeAssumptions.set_LinkAttrs
+  spanLimits.TypeAssumptions.method_set
+  spanLimits.TypeAssumptions.ptr_method_set
 
 structure TracerConfig [FfiSyntax] where
   mk ::
@@ -712,6 +728,8 @@ class TracerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_schemaURL : ∀ (x : TracerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"schemaURL") (PairV #x #y) (Val #(({ x with schemaURL' := y } : TracerConfig)))
   get_attrs : ∀ (x : TracerConfig), go.IsGoStepPureDetTagged under (StructFieldGet TracerConfig.underlying go!"attrs") #x (Val #(x.attrs'))
   set_attrs : ∀ (x : TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'), go.IsGoStepPureDetTagged under (StructFieldSet TracerConfig.underlying go!"attrs") (PairV #x #y) (Val #(({ x with attrs' := y } : TracerConfig)))
+  method_set : go.MethodSetIs TracerConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerConfig.ty) [(go!"InstrumentationAttributes", (some (go.signature.Signature [] false [_root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'.ty]))), (go!"InstrumentationVersion", (some (go.signature.Signature [] false [go.string]))), (go!"SchemaURL", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] TracerConfig.TypeAssumptions.type_repr
   TracerConfig.TypeAssumptions.underlying
@@ -721,6 +739,8 @@ attribute [instance] TracerConfig.TypeAssumptions.type_repr
   TracerConfig.TypeAssumptions.set_schemaURL
   TracerConfig.TypeAssumptions.get_attrs
   TracerConfig.TypeAssumptions.set_attrs
+  TracerConfig.TypeAssumptions.method_set
+  TracerConfig.TypeAssumptions.ptr_method_set
 
 abbrev experimentalOption [FfiSyntax] : Type := GoInterface
 
@@ -729,18 +749,26 @@ abbrev experimentalOption [FfiSyntax] : Type := GoInterface
 
 class experimentalOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq experimentalOption.ty experimentalOption.underlying
+  method_set : go.MethodSetIs experimentalOption.ty [(go!"Experimental", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType experimentalOption.ty) []
 
 attribute [instance] experimentalOption.TypeAssumptions.underlying
+  experimentalOption.TypeAssumptions.method_set
+  experimentalOption.TypeAssumptions.ptr_method_set
 
 abbrev TracerOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def TracerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.apply" (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty]))])
 
 class TracerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TracerOption.ty TracerOption.underlying
+  method_set : go.MethodSetIs TracerOption.ty [(go!"go.opentelemetry.io/otel/trace.apply", (some (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerOption.ty) []
 
 attribute [instance] TracerOption.TypeAssumptions.underlying
+  TracerOption.TypeAssumptions.method_set
+  TracerOption.TypeAssumptions.ptr_method_set
 
 abbrev tracerOptionFunc [FfiSyntax] : Type := GoFunc
 
@@ -749,8 +777,12 @@ abbrev tracerOptionFunc [FfiSyntax] : Type := GoFunc
 
 class tracerOptionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq tracerOptionFunc.ty tracerOptionFunc.underlying
+  method_set : go.MethodSetIs tracerOptionFunc.ty [(go!"go.opentelemetry.io/otel/trace.apply", (some (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tracerOptionFunc.ty) [(go!"go.opentelemetry.io/otel/trace.apply", (some (go.signature.Signature [TracerConfig.ty] false [TracerConfig.ty])))]
 
 attribute [instance] tracerOptionFunc.TypeAssumptions.underlying
+  tracerOptionFunc.TypeAssumptions.method_set
+  tracerOptionFunc.TypeAssumptions.ptr_method_set
 
 axiom SpanConfig : Type
 axiom SpanConfig.zero_val : ZeroVal SpanConfig
@@ -760,20 +792,28 @@ class SpanConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying SpanConfig.underlying SpanConfig
   underlying : go.UnderlyingDirectedEq SpanConfig.ty SpanConfig.underlying
   isUnderlying : go.IsUnderlying SpanConfig.underlying SpanConfig.underlying
+  method_set : go.MethodSetIs SpanConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanConfig.ty) [(go!"Attributes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)]))), (go!"Links", (some (go.signature.Signature [] false [(go.GoType.SliceType Link.ty)]))), (go!"NewRoot", (some (go.signature.Signature [] false [go.bool]))), (go!"SpanKind", (some (go.signature.Signature [] false [SpanKind.ty]))), (go!"StackTrace", (some (go.signature.Signature [] false [go.bool]))), (go!"Timestamp", none)]
 
 attribute [instance] SpanConfig.TypeAssumptions.type_repr
   SpanConfig.TypeAssumptions.underlying
   SpanConfig.TypeAssumptions.isUnderlying
+  SpanConfig.TypeAssumptions.method_set
+  SpanConfig.TypeAssumptions.ptr_method_set
 
 abbrev SpanStartOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def SpanStartOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"applySpanStart" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanStart" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanStartOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanStartOption.ty SpanStartOption.underlying
+  method_set : go.MethodSetIs SpanStartOption.ty [(go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanStartOption.ty) []
 
 attribute [instance] SpanStartOption.TypeAssumptions.underlying
+  SpanStartOption.TypeAssumptions.method_set
+  SpanStartOption.TypeAssumptions.ptr_method_set
 
 abbrev spanOptionFunc [FfiSyntax] : Type := GoFunc
 
@@ -782,18 +822,26 @@ abbrev spanOptionFunc [FfiSyntax] : Type := GoFunc
 
 class spanOptionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq spanOptionFunc.ty spanOptionFunc.underlying
+  method_set : go.MethodSetIs spanOptionFunc.ty [(go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType spanOptionFunc.ty) [(go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
 
 attribute [instance] spanOptionFunc.TypeAssumptions.underlying
+  spanOptionFunc.TypeAssumptions.method_set
+  spanOptionFunc.TypeAssumptions.ptr_method_set
 
 abbrev SpanEndOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def SpanEndOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"applySpanEnd" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanEnd" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanEndOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanEndOption.ty SpanEndOption.underlying
+  method_set : go.MethodSetIs SpanEndOption.ty [(go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanEndOption.ty) []
 
 attribute [instance] SpanEndOption.TypeAssumptions.underlying
+  SpanEndOption.TypeAssumptions.method_set
+  SpanEndOption.TypeAssumptions.ptr_method_set
 
 axiom EventConfig : Type
 axiom EventConfig.zero_val : ZeroVal EventConfig
@@ -803,50 +851,70 @@ class EventConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying EventConfig.underlying EventConfig
   underlying : go.UnderlyingDirectedEq EventConfig.ty EventConfig.underlying
   isUnderlying : go.IsUnderlying EventConfig.underlying EventConfig.underlying
+  method_set : go.MethodSetIs EventConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventConfig.ty) [(go!"Attributes", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)]))), (go!"StackTrace", (some (go.signature.Signature [] false [go.bool]))), (go!"Timestamp", none)]
 
 attribute [instance] EventConfig.TypeAssumptions.type_repr
   EventConfig.TypeAssumptions.underlying
   EventConfig.TypeAssumptions.isUnderlying
+  EventConfig.TypeAssumptions.method_set
+  EventConfig.TypeAssumptions.ptr_method_set
 
 abbrev EventOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def EventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"applyEvent" (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applyEvent" (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))])
 
 class EventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventOption.ty EventOption.underlying
+  method_set : go.MethodSetIs EventOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventOption.ty) []
 
 attribute [instance] EventOption.TypeAssumptions.underlying
+  EventOption.TypeAssumptions.method_set
+  EventOption.TypeAssumptions.ptr_method_set
 
 abbrev SpanOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def SpanOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanStartOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanEndOption.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanEnd" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanStart" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanOption.ty SpanOption.underlying
+  method_set : go.MethodSetIs SpanOption.ty [(go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanOption.ty) []
 
 attribute [instance] SpanOption.TypeAssumptions.underlying
+  SpanOption.TypeAssumptions.method_set
+  SpanOption.TypeAssumptions.ptr_method_set
 
 abbrev SpanStartEventOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def SpanStartEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanStartOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EventOption.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applyEvent" (go.signature.Signature [EventConfig.ty] false [EventConfig.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanStart" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanStartEventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanStartEventOption.ty SpanStartEventOption.underlying
+  method_set : go.MethodSetIs SpanStartEventOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanStartEventOption.ty) []
 
 attribute [instance] SpanStartEventOption.TypeAssumptions.underlying
+  SpanStartEventOption.TypeAssumptions.method_set
+  SpanStartEventOption.TypeAssumptions.ptr_method_set
 
 abbrev SpanEndEventOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def SpanEndEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanEndOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EventOption.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applyEvent" (go.signature.Signature [EventConfig.ty] false [EventConfig.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanEnd" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanEndEventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanEndEventOption.ty SpanEndEventOption.underlying
+  method_set : go.MethodSetIs SpanEndEventOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanEndEventOption.ty) []
 
 attribute [instance] SpanEndEventOption.TypeAssumptions.underlying
+  SpanEndEventOption.TypeAssumptions.method_set
+  SpanEndEventOption.TypeAssumptions.ptr_method_set
 
 abbrev attributeOption [FfiSyntax] : Type := GoSlice
 
@@ -855,18 +923,26 @@ abbrev attributeOption [FfiSyntax] : Type := GoSlice
 
 class attributeOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq attributeOption.ty attributeOption.underlying
+  method_set : go.MethodSetIs attributeOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpan", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType attributeOption.ty) [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpan", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
 
 attribute [instance] attributeOption.TypeAssumptions.underlying
+  attributeOption.TypeAssumptions.method_set
+  attributeOption.TypeAssumptions.ptr_method_set
 
 abbrev SpanEventOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def SpanEventOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm SpanOption.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EventOption.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applyEvent" (go.signature.Signature [EventConfig.ty] false [EventConfig.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanEnd" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace.applySpanStart" (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))])
 
 class SpanEventOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanEventOption.ty SpanEventOption.underlying
+  method_set : go.MethodSetIs SpanEventOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanEventOption.ty) []
 
 attribute [instance] SpanEventOption.TypeAssumptions.underlying
+  SpanEventOption.TypeAssumptions.method_set
+  SpanEventOption.TypeAssumptions.ptr_method_set
 
 axiom timestampOption : Type
 axiom timestampOption.zero_val : ZeroVal timestampOption
@@ -876,10 +952,14 @@ class timestampOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying timestampOption.underlying timestampOption
   underlying : go.UnderlyingDirectedEq timestampOption.ty timestampOption.underlying
   isUnderlying : go.IsUnderlying timestampOption.underlying timestampOption.underlying
+  method_set : go.MethodSetIs timestampOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpan", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timestampOption.ty) [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpan", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanStart", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
 
 attribute [instance] timestampOption.TypeAssumptions.type_repr
   timestampOption.TypeAssumptions.underlying
   timestampOption.TypeAssumptions.isUnderlying
+  timestampOption.TypeAssumptions.method_set
+  timestampOption.TypeAssumptions.ptr_method_set
 
 abbrev stackTraceOption [FfiSyntax] : Type := Bool
 
@@ -888,8 +968,12 @@ abbrev stackTraceOption [FfiSyntax] : Type := Bool
 
 class stackTraceOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq stackTraceOption.ty stackTraceOption.underlying
+  method_set : go.MethodSetIs stackTraceOption.ty [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpan", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stackTraceOption.ty) [(go!"go.opentelemetry.io/otel/trace.applyEvent", (some (go.signature.Signature [EventConfig.ty] false [EventConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpan", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty]))), (go!"go.opentelemetry.io/otel/trace.applySpanEnd", (some (go.signature.Signature [SpanConfig.ty] false [SpanConfig.ty])))]
 
 attribute [instance] stackTraceOption.TypeAssumptions.underlying
+  stackTraceOption.TypeAssumptions.method_set
+  stackTraceOption.TypeAssumptions.ptr_method_set
 
 abbrev traceContextKeyType [FfiSyntax] : Type := w64
 
@@ -898,8 +982,12 @@ abbrev traceContextKeyType [FfiSyntax] : Type := w64
 
 class traceContextKeyType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq traceContextKeyType.ty traceContextKeyType.underlying
+  method_set : go.MethodSetIs traceContextKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceContextKeyType.ty) []
 
 attribute [instance] traceContextKeyType.TypeAssumptions.underlying
+  traceContextKeyType.TypeAssumptions.method_set
+  traceContextKeyType.TypeAssumptions.ptr_method_set
 
 structure noopSpan [FfiSyntax] where
   mk ::
@@ -926,11 +1014,15 @@ class noopSpan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq noopSpan.ty noopSpan.underlying
   get_Span : ∀ (x : noopSpan), go.IsGoStepPureDetTagged under (StructFieldGet noopSpan.underlying go!"Span") #x (Val #(x.Span'))
   set_Span : ∀ (x : noopSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span), go.IsGoStepPureDetTagged under (StructFieldSet noopSpan.underlying go!"Span") (PairV #x #y) (Val #(({ x with Span' := y } : noopSpan)))
+  method_set : go.MethodSetIs noopSpan.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopSpan.TypeAssumptions.type_repr
   noopSpan.TypeAssumptions.underlying
   noopSpan.TypeAssumptions.get_Span
   noopSpan.TypeAssumptions.set_Span
+  noopSpan.TypeAssumptions.method_set
+  noopSpan.TypeAssumptions.ptr_method_set
 
 abbrev TraceID [FfiSyntax] : Type := (GoArray w8 16)
 
@@ -939,8 +1031,12 @@ abbrev TraceID [FfiSyntax] : Type := (GoArray w8 16)
 
 class TraceID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TraceID.ty TraceID.underlying
+  method_set : go.MethodSetIs TraceID.ty [(go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.opentelemetry.io/otel/trace.hexBytes", (some (go.signature.Signature [] false [(go.GoType.ArrayType 32 go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceID.ty) [(go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.opentelemetry.io/otel/trace.hexBytes", (some (go.signature.Signature [] false [(go.GoType.ArrayType 32 go.byte)])))]
 
 attribute [instance] TraceID.TypeAssumptions.underlying
+  TraceID.TypeAssumptions.method_set
+  TraceID.TypeAssumptions.ptr_method_set
 
 abbrev SpanID [FfiSyntax] : Type := (GoArray w8 8)
 
@@ -949,8 +1045,12 @@ abbrev SpanID [FfiSyntax] : Type := (GoArray w8 8)
 
 class SpanID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanID.ty SpanID.underlying
+  method_set : go.MethodSetIs SpanID.ty [(go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.opentelemetry.io/otel/trace.hexBytes", (some (go.signature.Signature [] false [(go.GoType.ArrayType 16 go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanID.ty) [(go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.opentelemetry.io/otel/trace.hexBytes", (some (go.signature.Signature [] false [(go.GoType.ArrayType 16 go.byte)])))]
 
 attribute [instance] SpanID.TypeAssumptions.underlying
+  SpanID.TypeAssumptions.method_set
+  SpanID.TypeAssumptions.ptr_method_set
 
 abbrev TraceFlags [FfiSyntax] : Type := w8
 
@@ -959,8 +1059,12 @@ abbrev TraceFlags [FfiSyntax] : Type := w8
 
 class TraceFlags.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TraceFlags.ty TraceFlags.underlying
+  method_set : go.MethodSetIs TraceFlags.ty [(go!"IsRandom", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSampled", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithRandom", (some (go.signature.Signature [go.bool] false [TraceFlags.ty]))), (go!"WithSampled", (some (go.signature.Signature [go.bool] false [TraceFlags.ty]))), (go!"go.opentelemetry.io/otel/trace.hexBytes", (some (go.signature.Signature [] false [(go.GoType.ArrayType 2 go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceFlags.ty) [(go!"IsRandom", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSampled", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithRandom", (some (go.signature.Signature [go.bool] false [TraceFlags.ty]))), (go!"WithSampled", (some (go.signature.Signature [go.bool] false [TraceFlags.ty]))), (go!"go.opentelemetry.io/otel/trace.hexBytes", (some (go.signature.Signature [] false [(go.GoType.ArrayType 2 go.byte)])))]
 
 attribute [instance] TraceFlags.TypeAssumptions.underlying
+  TraceFlags.TypeAssumptions.method_set
+  TraceFlags.TypeAssumptions.ptr_method_set
 
 structure TraceState [FfiSyntax] where
   mk ::
@@ -987,11 +1091,15 @@ class TraceState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq TraceState.ty TraceState.underlying
   get_list : ∀ (x : TraceState), go.IsGoStepPureDetTagged under (StructFieldGet TraceState.underlying go!"list") #x (Val #(x.list'))
   set_list : ∀ (x : TraceState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TraceState.underlying go!"list") (PairV #x #y) (Val #(({ x with list' := y } : TraceState)))
+  method_set : go.MethodSetIs TraceState.ty [(go!"Delete", (some (go.signature.Signature [go.string] false [TraceState.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Insert", (some (go.signature.Signature [go.string, go.string] false [TraceState.ty, go.error]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, go.string] false [go.bool]))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceState.ty) [(go!"Delete", (some (go.signature.Signature [go.string] false [TraceState.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Insert", (some (go.signature.Signature [go.string, go.string] false [TraceState.ty, go.error]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.string, go.string] false [go.bool]))] false [])))]
 
 attribute [instance] TraceState.TypeAssumptions.type_repr
   TraceState.TypeAssumptions.underlying
   TraceState.TypeAssumptions.get_list
   TraceState.TypeAssumptions.set_list
+  TraceState.TypeAssumptions.method_set
+  TraceState.TypeAssumptions.ptr_method_set
 
 structure SpanContext [FfiSyntax] where
   mk ::
@@ -1034,6 +1142,8 @@ class SpanContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_traceState : ∀ (x : SpanContext) (y : TraceState), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"traceState") (PairV #x #y) (Val #(({ x with traceState' := y } : SpanContext)))
   get_remote : ∀ (x : SpanContext), go.IsGoStepPureDetTagged under (StructFieldGet SpanContext.underlying go!"remote") #x (Val #(x.remote'))
   set_remote : ∀ (x : SpanContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SpanContext.underlying go!"remote") (PairV #x #y) (Val #(({ x with remote' := y } : SpanContext)))
+  method_set : go.MethodSetIs SpanContext.ty [(go!"Equal", (some (go.signature.Signature [SpanContext.ty] false [go.bool]))), (go!"HasSpanID", (some (go.signature.Signature [] false [go.bool]))), (go!"HasTraceID", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRandom", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRemote", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSampled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"SpanID", (some (go.signature.Signature [] false [SpanID.ty]))), (go!"TraceFlags", (some (go.signature.Signature [] false [TraceFlags.ty]))), (go!"TraceID", (some (go.signature.Signature [] false [TraceID.ty]))), (go!"TraceState", (some (go.signature.Signature [] false [TraceState.ty]))), (go!"WithRemote", (some (go.signature.Signature [go.bool] false [SpanContext.ty]))), (go!"WithSpanID", (some (go.signature.Signature [SpanID.ty] false [SpanContext.ty]))), (go!"WithTraceFlags", (some (go.signature.Signature [TraceFlags.ty] false [SpanContext.ty]))), (go!"WithTraceID", (some (go.signature.Signature [TraceID.ty] false [SpanContext.ty]))), (go!"WithTraceState", (some (go.signature.Signature [TraceState.ty] false [SpanContext.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanContext.ty) [(go!"Equal", (some (go.signature.Signature [SpanContext.ty] false [go.bool]))), (go!"HasSpanID", (some (go.signature.Signature [] false [go.bool]))), (go!"HasTraceID", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRandom", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRemote", (some (go.signature.Signature [] false [go.bool]))), (go!"IsSampled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"SpanID", (some (go.signature.Signature [] false [SpanID.ty]))), (go!"TraceFlags", (some (go.signature.Signature [] false [TraceFlags.ty]))), (go!"TraceID", (some (go.signature.Signature [] false [TraceID.ty]))), (go!"TraceState", (some (go.signature.Signature [] false [TraceState.ty]))), (go!"WithRemote", (some (go.signature.Signature [go.bool] false [SpanContext.ty]))), (go!"WithSpanID", (some (go.signature.Signature [SpanID.ty] false [SpanContext.ty]))), (go!"WithTraceFlags", (some (go.signature.Signature [TraceFlags.ty] false [SpanContext.ty]))), (go!"WithTraceID", (some (go.signature.Signature [TraceID.ty] false [SpanContext.ty]))), (go!"WithTraceState", (some (go.signature.Signature [TraceState.ty] false [SpanContext.ty])))]
 
 attribute [instance] SpanContext.TypeAssumptions.type_repr
   SpanContext.TypeAssumptions.underlying
@@ -1047,6 +1157,8 @@ attribute [instance] SpanContext.TypeAssumptions.type_repr
   SpanContext.TypeAssumptions.set_traceState
   SpanContext.TypeAssumptions.get_remote
   SpanContext.TypeAssumptions.set_remote
+  SpanContext.TypeAssumptions.method_set
+  SpanContext.TypeAssumptions.ptr_method_set
 
 structure nonRecordingSpan [FfiSyntax] where
   mk ::
@@ -1077,6 +1189,8 @@ class nonRecordingSpan.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_noopSpan : ∀ (x : nonRecordingSpan) (y : noopSpan), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"noopSpan") (PairV #x #y) (Val #(({ x with noopSpan' := y } : nonRecordingSpan)))
   get_sc : ∀ (x : nonRecordingSpan), go.IsGoStepPureDetTagged under (StructFieldGet nonRecordingSpan.underlying go!"sc") #x (Val #(x.sc'))
   set_sc : ∀ (x : nonRecordingSpan) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet nonRecordingSpan.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : nonRecordingSpan)))
+  method_set : go.MethodSetIs nonRecordingSpan.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nonRecordingSpan.ty) [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetError", (some (go.signature.Signature [go.bool] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace.tracerProvider", (some (go.signature.Signature [(go.GoType.PointerType go.bool)] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] nonRecordingSpan.TypeAssumptions.type_repr
   nonRecordingSpan.TypeAssumptions.underlying
@@ -1084,6 +1198,8 @@ attribute [instance] nonRecordingSpan.TypeAssumptions.type_repr
   nonRecordingSpan.TypeAssumptions.set_noopSpan
   nonRecordingSpan.TypeAssumptions.get_sc
   nonRecordingSpan.TypeAssumptions.set_sc
+  nonRecordingSpan.TypeAssumptions.method_set
+  nonRecordingSpan.TypeAssumptions.ptr_method_set
 
 structure noopTracerProvider [FfiSyntax] where
   mk ::
@@ -1110,11 +1226,15 @@ class noopTracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq noopTracerProvider.ty noopTracerProvider.underlying
   get_TracerProvider : ∀ (x : noopTracerProvider), go.IsGoStepPureDetTagged under (StructFieldGet noopTracerProvider.underlying go!"TracerProvider") #x (Val #(x.TracerProvider'))
   set_TracerProvider : ∀ (x : noopTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider), go.IsGoStepPureDetTagged under (StructFieldSet noopTracerProvider.underlying go!"TracerProvider") (PairV #x #y) (Val #(({ x with TracerProvider' := y } : noopTracerProvider)))
+  method_set : go.MethodSetIs noopTracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTracerProvider.ty) [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTracerProvider.TypeAssumptions.type_repr
   noopTracerProvider.TypeAssumptions.underlying
   noopTracerProvider.TypeAssumptions.get_TracerProvider
   noopTracerProvider.TypeAssumptions.set_TracerProvider
+  noopTracerProvider.TypeAssumptions.method_set
+  noopTracerProvider.TypeAssumptions.ptr_method_set
 
 structure noopTracer [FfiSyntax] where
   mk ::
@@ -1141,31 +1261,43 @@ class noopTracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq noopTracer.ty noopTracer.underlying
   get_Tracer : ∀ (x : noopTracer), go.IsGoStepPureDetTagged under (StructFieldGet noopTracer.underlying go!"Tracer") #x (Val #(x.Tracer'))
   set_Tracer : ∀ (x : noopTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer), go.IsGoStepPureDetTagged under (StructFieldSet noopTracer.underlying go!"Tracer") (PairV #x #y) (Val #(({ x with Tracer' := y } : noopTracer)))
+  method_set : go.MethodSetIs noopTracer.ty [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTracer.ty) [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTracer.TypeAssumptions.type_repr
   noopTracer.TypeAssumptions.underlying
   noopTracer.TypeAssumptions.get_Tracer
   noopTracer.TypeAssumptions.set_Tracer
+  noopTracer.TypeAssumptions.method_set
+  noopTracer.TypeAssumptions.ptr_method_set
 
 abbrev TracerProvider [FfiSyntax] : Type := GoInterface
 
 @[reducible] def TracerProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Tracer" (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Tracer" (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider" (go.signature.Signature [] false []))])
 
 class TracerProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TracerProvider.ty TracerProvider.underlying
+  method_set : go.MethodSetIs TracerProvider.ty [(go!"Tracer", (some (go.signature.Signature [go.string, (go.GoType.SliceType TracerOption.ty)] true [Tracer.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracerProvider", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TracerProvider.ty) []
 
 attribute [instance] TracerProvider.TypeAssumptions.underlying
+  TracerProvider.TypeAssumptions.method_set
+  TracerProvider.TypeAssumptions.ptr_method_set
 
 abbrev Span [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Span.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddEvent" (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"AddLink" (go.signature.Signature [Link.ty] false [])), (go.InterfaceElem.MethodElem go!"End" (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"IsRecording" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"RecordError" (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"SetAttributes" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true [])), (go.InterfaceElem.MethodElem go!"SetName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetStatus" (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false [])), (go.InterfaceElem.MethodElem go!"SpanContext" (go.signature.Signature [] false [SpanContext.ty])), (go.InterfaceElem.MethodElem go!"TracerProvider" (go.signature.Signature [] false [TracerProvider.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddEvent" (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"AddLink" (go.signature.Signature [Link.ty] false [])), (go.InterfaceElem.MethodElem go!"End" (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"IsRecording" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"RecordError" (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true [])), (go.InterfaceElem.MethodElem go!"SetAttributes" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true [])), (go.InterfaceElem.MethodElem go!"SetName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetStatus" (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false [])), (go.InterfaceElem.MethodElem go!"SpanContext" (go.signature.Signature [] false [SpanContext.ty])), (go.InterfaceElem.MethodElem go!"TracerProvider" (go.signature.Signature [] false [TracerProvider.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace/embedded.span" (go.signature.Signature [] false []))])
 
 class Span.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Span.ty Span.underlying
+  method_set : go.MethodSetIs Span.ty [(go!"AddEvent", (some (go.signature.Signature [go.string, (go.GoType.SliceType EventOption.ty)] true []))), (go!"AddLink", (some (go.signature.Signature [Link.ty] false []))), (go!"End", (some (go.signature.Signature [(go.GoType.SliceType SpanEndOption.ty)] true []))), (go!"IsRecording", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordError", (some (go.signature.Signature [go.error, (go.GoType.SliceType EventOption.ty)] true []))), (go!"SetAttributes", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_opentelemetry_io.otel.«attribute».KeyValue.ty)] true []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetStatus", (some (go.signature.Signature [_root_.Perennial.go_opentelemetry_io.otel.codes.Code.ty, go.string] false []))), (go!"SpanContext", (some (go.signature.Signature [] false [SpanContext.ty]))), (go!"TracerProvider", (some (go.signature.Signature [] false [TracerProvider.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.span", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Span.ty) []
 
 attribute [instance] Span.TypeAssumptions.underlying
+  Span.TypeAssumptions.method_set
+  Span.TypeAssumptions.ptr_method_set
 
 structure Link [FfiSyntax] where
   mk ::
@@ -1196,6 +1328,8 @@ class Link.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_SpanContext : ∀ (x : Link) (y : SpanContext), go.IsGoStepPureDetTagged under (StructFieldSet Link.underlying go!"SpanContext") (PairV #x #y) (Val #(({ x with SpanContext' := y } : Link)))
   get_Attributes : ∀ (x : Link), go.IsGoStepPureDetTagged under (StructFieldGet Link.underlying go!"Attributes") #x (Val #(x.Attributes'))
   set_Attributes : ∀ (x : Link) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Link.underlying go!"Attributes") (PairV #x #y) (Val #(({ x with Attributes' := y } : Link)))
+  method_set : go.MethodSetIs Link.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Link.ty) []
 
 attribute [instance] Link.TypeAssumptions.type_repr
   Link.TypeAssumptions.underlying
@@ -1203,6 +1337,8 @@ attribute [instance] Link.TypeAssumptions.type_repr
   Link.TypeAssumptions.set_SpanContext
   Link.TypeAssumptions.get_Attributes
   Link.TypeAssumptions.set_Attributes
+  Link.TypeAssumptions.method_set
+  Link.TypeAssumptions.ptr_method_set
 
 abbrev SpanKind [FfiSyntax] : Type := w64
 
@@ -1211,8 +1347,12 @@ abbrev SpanKind [FfiSyntax] : Type := w64
 
 class SpanKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SpanKind.ty SpanKind.underlying
+  method_set : go.MethodSetIs SpanKind.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanKind.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SpanKind.TypeAssumptions.underlying
+  SpanKind.TypeAssumptions.method_set
+  SpanKind.TypeAssumptions.ptr_method_set
 
 abbrev errorConst [FfiSyntax] : Type := GoString
 
@@ -1221,8 +1361,12 @@ abbrev errorConst [FfiSyntax] : Type := GoString
 
 class errorConst.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq errorConst.ty errorConst.underlying
+  method_set : go.MethodSetIs errorConst.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errorConst.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] errorConst.TypeAssumptions.underlying
+  errorConst.TypeAssumptions.method_set
+  errorConst.TypeAssumptions.ptr_method_set
 
 structure SpanContextConfig [FfiSyntax] where
   mk ::
@@ -1265,6 +1409,8 @@ class SpanContextConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_TraceState : ∀ (x : SpanContextConfig) (y : TraceState), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"TraceState") (PairV #x #y) (Val #(({ x with TraceState' := y } : SpanContextConfig)))
   get_Remote : ∀ (x : SpanContextConfig), go.IsGoStepPureDetTagged under (StructFieldGet SpanContextConfig.underlying go!"Remote") #x (Val #(x.Remote'))
   set_Remote : ∀ (x : SpanContextConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SpanContextConfig.underlying go!"Remote") (PairV #x #y) (Val #(({ x with Remote' := y } : SpanContextConfig)))
+  method_set : go.MethodSetIs SpanContextConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SpanContextConfig.ty) []
 
 attribute [instance] SpanContextConfig.TypeAssumptions.type_repr
   SpanContextConfig.TypeAssumptions.underlying
@@ -1278,16 +1424,22 @@ attribute [instance] SpanContextConfig.TypeAssumptions.type_repr
   SpanContextConfig.TypeAssumptions.set_TraceState
   SpanContextConfig.TypeAssumptions.get_Remote
   SpanContextConfig.TypeAssumptions.set_Remote
+  SpanContextConfig.TypeAssumptions.method_set
+  SpanContextConfig.TypeAssumptions.ptr_method_set
 
 abbrev Tracer [FfiSyntax] : Type := GoInterface
 
 @[reducible] def Tracer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty])), (go.InterfaceElem.MethodElem go!"go.opentelemetry.io/otel/trace/embedded.tracer" (go.signature.Signature [] false []))])
 
 class Tracer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Tracer.ty Tracer.underlying
+  method_set : go.MethodSetIs Tracer.ty [(go!"Start", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType SpanStartOption.ty)] true [_root_.Perennial.context.Context.ty, Span.ty]))), (go!"go.opentelemetry.io/otel/trace/embedded.tracer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Tracer.ty) []
 
 attribute [instance] Tracer.TypeAssumptions.underlying
+  Tracer.TypeAssumptions.method_set
+  Tracer.TypeAssumptions.ptr_method_set
 
 structure member [FfiSyntax] where
   mk ::
@@ -1318,6 +1470,8 @@ class member.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_Key : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : member)))
   get_Value : ∀ (x : member), go.IsGoStepPureDetTagged under (StructFieldGet member.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : member) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet member.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : member)))
+  method_set : go.MethodSetIs member.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType member.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] member.TypeAssumptions.type_repr
   member.TypeAssumptions.underlying
@@ -1325,6 +1479,8 @@ attribute [instance] member.TypeAssumptions.type_repr
   member.TypeAssumptions.set_Key
   member.TypeAssumptions.get_Value
   member.TypeAssumptions.set_Value
+  member.TypeAssumptions.method_set
+  member.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   autoTracerProvider_instance : autoTracerProvider.TypeAssumptions

@@ -2110,6 +2110,8 @@ abbrev bitset [FfiSyntax] : Type := GoSlice
 
 class bitset.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq bitset.ty bitset.underlying
+  method_set : go.MethodSetIs bitset.ty [(go!"github.com/anishathalye/porcupine.clear", (some (go.signature.Signature [go.uint] false [bitset.ty]))), (go!"github.com/anishathalye/porcupine.clone", (some (go.signature.Signature [] false [bitset.ty]))), (go!"github.com/anishathalye/porcupine.equal", (some (go.signature.Signature [bitset.ty] false [go.bool]))), (go!"github.com/anishathalye/porcupine.hash", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/anishathalye/porcupine.set", (some (go.signature.Signature [go.uint] false [bitset.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bitset.ty) [(go!"github.com/anishathalye/porcupine.clear", (some (go.signature.Signature [go.uint] false [bitset.ty]))), (go!"github.com/anishathalye/porcupine.clone", (some (go.signature.Signature [] false [bitset.ty]))), (go!"github.com/anishathalye/porcupine.equal", (some (go.signature.Signature [bitset.ty] false [go.bool]))), (go!"github.com/anishathalye/porcupine.hash", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/anishathalye/porcupine.set", (some (go.signature.Signature [go.uint] false [bitset.ty])))]
   clear_unfold : MethodUnfold bitset.ty go!"clear" bitset.clear.impl
   clone_unfold : MethodUnfold bitset.ty go!"clone" bitset.clone.impl
   equal_unfold : MethodUnfold bitset.ty go!"equal" bitset.equal.impl
@@ -2127,6 +2129,8 @@ class bitset.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve bitset.ty go!"set"))) (App (Val (GoInstruction (GoLoad bitset.ty))) (Var "$r"))))
 
 attribute [instance] bitset.TypeAssumptions.underlying
+  bitset.TypeAssumptions.method_set
+  bitset.TypeAssumptions.ptr_method_set
   bitset.TypeAssumptions.clear_unfold
   bitset.TypeAssumptions.clone_unfold
   bitset.TypeAssumptions.equal_unfold
@@ -2145,8 +2149,12 @@ abbrev entryKind [FfiSyntax] : Type := Bool
 
 class entryKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq entryKind.ty entryKind.underlying
+  method_set : go.MethodSetIs entryKind.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entryKind.ty) []
 
 attribute [instance] entryKind.TypeAssumptions.underlying
+  entryKind.TypeAssumptions.method_set
+  entryKind.TypeAssumptions.ptr_method_set
 
 structure entry [FfiSyntax] where
   mk ::
@@ -2193,6 +2201,8 @@ class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_clientId : ∀ (x : entry) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet entry.underlying go!"clientId") (PairV #x #y) (Val #(({ x with clientId' := y } : entry)))
   get_metadata : ∀ (x : entry), go.IsGoStepPureDetTagged under (StructFieldGet entry.underlying go!"metadata") #x (Val #(x.metadata'))
   set_metadata : ∀ (x : entry) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet entry.underlying go!"metadata") (PairV #x #y) (Val #(({ x with metadata' := y } : entry)))
+  method_set : go.MethodSetIs entry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entry.ty) []
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
@@ -2208,6 +2218,8 @@ attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.set_clientId
   entry.TypeAssumptions.get_metadata
   entry.TypeAssumptions.set_metadata
+  entry.TypeAssumptions.method_set
+  entry.TypeAssumptions.ptr_method_set
 
 structure LinearizationInfo [FfiSyntax] where
   mk ::
@@ -2242,6 +2254,8 @@ class LinearizationInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_partialLinearizations : ∀ (x : LinearizationInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LinearizationInfo.underlying go!"partialLinearizations") (PairV #x #y) (Val #(({ x with partialLinearizations' := y } : LinearizationInfo)))
   get_annotations : ∀ (x : LinearizationInfo), go.IsGoStepPureDetTagged under (StructFieldGet LinearizationInfo.underlying go!"annotations") #x (Val #(x.annotations'))
   set_annotations : ∀ (x : LinearizationInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LinearizationInfo.underlying go!"annotations") (PairV #x #y) (Val #(({ x with annotations' := y } : LinearizationInfo)))
+  method_set : go.MethodSetIs LinearizationInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LinearizationInfo.ty) [(go!"AddAnnotations", (some (go.signature.Signature [(go.GoType.SliceType Annotation.ty)] false []))), (go!"PartialLinearizations", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))]))), (go!"PartialLinearizationsOperations", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType Operation.ty)))])))]
   ptr_PartialLinearizations_unfold : MethodUnfold (go.GoType.PointerType LinearizationInfo.ty) go!"PartialLinearizations" LinearizationInfo.PartialLinearizations.impl
 
 attribute [instance] LinearizationInfo.TypeAssumptions.type_repr
@@ -2252,6 +2266,8 @@ attribute [instance] LinearizationInfo.TypeAssumptions.type_repr
   LinearizationInfo.TypeAssumptions.set_partialLinearizations
   LinearizationInfo.TypeAssumptions.get_annotations
   LinearizationInfo.TypeAssumptions.set_annotations
+  LinearizationInfo.TypeAssumptions.method_set
+  LinearizationInfo.TypeAssumptions.ptr_method_set
   LinearizationInfo.TypeAssumptions.ptr_PartialLinearizations_unfold
 
 abbrev byTime [FfiSyntax] : Type := GoSlice
@@ -2261,6 +2277,8 @@ abbrev byTime [FfiSyntax] : Type := GoSlice
 
 class byTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq byTime.ty byTime.underlying
+  method_set : go.MethodSetIs byTime.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byTime.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold byTime.ty go!"Len" byTime.Len.impl
   Less_unfold : MethodUnfold byTime.ty go!"Less" byTime.Less.impl
   Swap_unfold : MethodUnfold byTime.ty go!"Swap" byTime.Swap.impl
@@ -2272,6 +2290,8 @@ class byTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve byTime.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad byTime.ty))) (Var "$r"))))
 
 attribute [instance] byTime.TypeAssumptions.underlying
+  byTime.TypeAssumptions.method_set
+  byTime.TypeAssumptions.ptr_method_set
   byTime.TypeAssumptions.Len_unfold
   byTime.TypeAssumptions.Less_unfold
   byTime.TypeAssumptions.Swap_unfold
@@ -2320,6 +2340,8 @@ class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_next : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : node)))
   get_prev : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"prev") #x (Val #(x.prev'))
   set_prev : ∀ (x : node) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet node.underlying go!"prev") (PairV #x #y) (Val #(({ x with prev' := y } : node)))
+  method_set : go.MethodSetIs node.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType node.ty) []
 
 attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.underlying
@@ -2333,6 +2355,8 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.set_next
   node.TypeAssumptions.get_prev
   node.TypeAssumptions.set_prev
+  node.TypeAssumptions.method_set
+  node.TypeAssumptions.ptr_method_set
 
 structure cacheEntry [FfiSyntax] where
   mk ::
@@ -2363,6 +2387,8 @@ class cacheEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_linearized : ∀ (x : cacheEntry) (y : bitset), go.IsGoStepPureDetTagged under (StructFieldSet cacheEntry.underlying go!"linearized") (PairV #x #y) (Val #(({ x with linearized' := y } : cacheEntry)))
   get_state : ∀ (x : cacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet cacheEntry.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : cacheEntry) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet cacheEntry.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : cacheEntry)))
+  method_set : go.MethodSetIs cacheEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheEntry.ty) []
 
 attribute [instance] cacheEntry.TypeAssumptions.type_repr
   cacheEntry.TypeAssumptions.underlying
@@ -2370,6 +2396,8 @@ attribute [instance] cacheEntry.TypeAssumptions.type_repr
   cacheEntry.TypeAssumptions.set_linearized
   cacheEntry.TypeAssumptions.get_state
   cacheEntry.TypeAssumptions.set_state
+  cacheEntry.TypeAssumptions.method_set
+  cacheEntry.TypeAssumptions.ptr_method_set
 
 structure callsEntry [FfiSyntax] where
   mk ::
@@ -2400,6 +2428,8 @@ class callsEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_entry : ∀ (x : callsEntry) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet callsEntry.underlying go!"entry") (PairV #x #y) (Val #(({ x with entry' := y } : callsEntry)))
   get_state : ∀ (x : callsEntry), go.IsGoStepPureDetTagged under (StructFieldGet callsEntry.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : callsEntry) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet callsEntry.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : callsEntry)))
+  method_set : go.MethodSetIs callsEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType callsEntry.ty) []
 
 attribute [instance] callsEntry.TypeAssumptions.type_repr
   callsEntry.TypeAssumptions.underlying
@@ -2407,6 +2437,8 @@ attribute [instance] callsEntry.TypeAssumptions.type_repr
   callsEntry.TypeAssumptions.set_entry
   callsEntry.TypeAssumptions.get_state
   callsEntry.TypeAssumptions.set_state
+  callsEntry.TypeAssumptions.method_set
+  callsEntry.TypeAssumptions.ptr_method_set
 
 structure Operation [FfiSyntax] where
   mk ::
@@ -2457,6 +2489,8 @@ class Operation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_Metadata : ∀ (x : Operation) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Operation.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Operation)))
   get__6 : ∀ (x : Operation), go.IsGoStepPureDetTagged under (StructFieldGet Operation.underlying go!"_6") #x (Val #(x._6'))
   set__6 : ∀ (x : Operation) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Operation.underlying go!"_6") (PairV #x #y) (Val #(({ x with _6' := y } : Operation)))
+  method_set : go.MethodSetIs Operation.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Operation.ty) []
 
 attribute [instance] Operation.TypeAssumptions.type_repr
   Operation.TypeAssumptions.underlying
@@ -2474,6 +2508,8 @@ attribute [instance] Operation.TypeAssumptions.type_repr
   Operation.TypeAssumptions.set_Metadata
   Operation.TypeAssumptions.get__6
   Operation.TypeAssumptions.set__6
+  Operation.TypeAssumptions.method_set
+  Operation.TypeAssumptions.ptr_method_set
 
 abbrev EventKind [FfiSyntax] : Type := Bool
 
@@ -2482,8 +2518,12 @@ abbrev EventKind [FfiSyntax] : Type := Bool
 
 class EventKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventKind.ty EventKind.underlying
+  method_set : go.MethodSetIs EventKind.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventKind.ty) []
 
 attribute [instance] EventKind.TypeAssumptions.underlying
+  EventKind.TypeAssumptions.method_set
+  EventKind.TypeAssumptions.ptr_method_set
 
 structure Event [FfiSyntax] where
   mk ::
@@ -2530,6 +2570,8 @@ class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Metadata : ∀ (x : Event) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Event)))
   get__5 : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"_5") #x (Val #(x._5'))
   set__5 : ∀ (x : Event) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"_5") (PairV #x #y) (Val #(({ x with _5' := y } : Event)))
+  method_set : go.MethodSetIs Event.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) []
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
@@ -2545,6 +2587,8 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.set_Metadata
   Event.TypeAssumptions.get__5
   Event.TypeAssumptions.set__5
+  Event.TypeAssumptions.method_set
+  Event.TypeAssumptions.ptr_method_set
 
 structure Model [FfiSyntax] where
   mk ::
@@ -2611,6 +2655,8 @@ class Model.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_DescribeOperationMetadata : ∀ (x : Model) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Model.underlying go!"DescribeOperationMetadata") (PairV #x #y) (Val #(({ x with DescribeOperationMetadata' := y } : Model)))
   get__10 : ∀ (x : Model), go.IsGoStepPureDetTagged under (StructFieldGet Model.underlying go!"_10") #x (Val #(x._10'))
   set__10 : ∀ (x : Model) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Model.underlying go!"_10") (PairV #x #y) (Val #(({ x with _10' := y } : Model)))
+  method_set : go.MethodSetIs Model.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Model.ty) []
 
 attribute [instance] Model.TypeAssumptions.type_repr
   Model.TypeAssumptions.underlying
@@ -2636,6 +2682,8 @@ attribute [instance] Model.TypeAssumptions.type_repr
   Model.TypeAssumptions.set_DescribeOperationMetadata
   Model.TypeAssumptions.get__10
   Model.TypeAssumptions.set__10
+  Model.TypeAssumptions.method_set
+  Model.TypeAssumptions.ptr_method_set
 
 structure NondeterministicModel [FfiSyntax] where
   mk ::
@@ -2702,6 +2750,8 @@ class NondeterministicModel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   set_DescribeOperationMetadata : ∀ (x : NondeterministicModel) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet NondeterministicModel.underlying go!"DescribeOperationMetadata") (PairV #x #y) (Val #(({ x with DescribeOperationMetadata' := y } : NondeterministicModel)))
   get__10 : ∀ (x : NondeterministicModel), go.IsGoStepPureDetTagged under (StructFieldGet NondeterministicModel.underlying go!"_10") #x (Val #(x._10'))
   set__10 : ∀ (x : NondeterministicModel) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet NondeterministicModel.underlying go!"_10") (PairV #x #y) (Val #(({ x with _10' := y } : NondeterministicModel)))
+  method_set : go.MethodSetIs NondeterministicModel.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NondeterministicModel.ty) [(go!"ToModel", (some (go.signature.Signature [] false [Model.ty])))]
   ptr_ToModel_unfold : MethodUnfold (go.GoType.PointerType NondeterministicModel.ty) go!"ToModel" NondeterministicModel.ToModel.impl
 
 attribute [instance] NondeterministicModel.TypeAssumptions.type_repr
@@ -2728,6 +2778,8 @@ attribute [instance] NondeterministicModel.TypeAssumptions.type_repr
   NondeterministicModel.TypeAssumptions.set_DescribeOperationMetadata
   NondeterministicModel.TypeAssumptions.get__10
   NondeterministicModel.TypeAssumptions.set__10
+  NondeterministicModel.TypeAssumptions.method_set
+  NondeterministicModel.TypeAssumptions.ptr_method_set
   NondeterministicModel.TypeAssumptions.ptr_ToModel_unfold
 
 abbrev CheckResult [FfiSyntax] : Type := GoString
@@ -2737,8 +2789,12 @@ abbrev CheckResult [FfiSyntax] : Type := GoString
 
 class CheckResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckResult.ty CheckResult.underlying
+  method_set : go.MethodSetIs CheckResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckResult.ty) []
 
 attribute [instance] CheckResult.TypeAssumptions.underlying
+  CheckResult.TypeAssumptions.method_set
+  CheckResult.TypeAssumptions.ptr_method_set
 
 structure historyElement [FfiSyntax] where
   mk ::
@@ -2789,6 +2845,8 @@ class historyElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_Description : ∀ (x : historyElement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet historyElement.underlying go!"Description") (PairV #x #y) (Val #(({ x with Description' := y } : historyElement)))
   get_Metadata : ∀ (x : historyElement), go.IsGoStepPureDetTagged under (StructFieldGet historyElement.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : historyElement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet historyElement.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : historyElement)))
+  method_set : go.MethodSetIs historyElement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType historyElement.ty) []
 
 attribute [instance] historyElement.TypeAssumptions.type_repr
   historyElement.TypeAssumptions.underlying
@@ -2806,6 +2864,8 @@ attribute [instance] historyElement.TypeAssumptions.type_repr
   historyElement.TypeAssumptions.set_Description
   historyElement.TypeAssumptions.get_Metadata
   historyElement.TypeAssumptions.set_Metadata
+  historyElement.TypeAssumptions.method_set
+  historyElement.TypeAssumptions.ptr_method_set
 
 structure annotation [FfiSyntax] where
   mk ::
@@ -2864,6 +2924,8 @@ class annotation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_TextColor : ∀ (x : annotation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet annotation.underlying go!"TextColor") (PairV #x #y) (Val #(({ x with TextColor' := y } : annotation)))
   get_BackgroundColor : ∀ (x : annotation), go.IsGoStepPureDetTagged under (StructFieldGet annotation.underlying go!"BackgroundColor") #x (Val #(x.BackgroundColor'))
   set_BackgroundColor : ∀ (x : annotation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet annotation.underlying go!"BackgroundColor") (PairV #x #y) (Val #(({ x with BackgroundColor' := y } : annotation)))
+  method_set : go.MethodSetIs annotation.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType annotation.ty) []
 
 attribute [instance] annotation.TypeAssumptions.type_repr
   annotation.TypeAssumptions.underlying
@@ -2885,6 +2947,8 @@ attribute [instance] annotation.TypeAssumptions.type_repr
   annotation.TypeAssumptions.set_TextColor
   annotation.TypeAssumptions.get_BackgroundColor
   annotation.TypeAssumptions.set_BackgroundColor
+  annotation.TypeAssumptions.method_set
+  annotation.TypeAssumptions.ptr_method_set
 
 structure linearizationStep [FfiSyntax] where
   mk ::
@@ -2915,6 +2979,8 @@ class linearizationStep.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_Index : ∀ (x : linearizationStep) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet linearizationStep.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : linearizationStep)))
   get_StateDescription : ∀ (x : linearizationStep), go.IsGoStepPureDetTagged under (StructFieldGet linearizationStep.underlying go!"StateDescription") #x (Val #(x.StateDescription'))
   set_StateDescription : ∀ (x : linearizationStep) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet linearizationStep.underlying go!"StateDescription") (PairV #x #y) (Val #(({ x with StateDescription' := y } : linearizationStep)))
+  method_set : go.MethodSetIs linearizationStep.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType linearizationStep.ty) []
 
 attribute [instance] linearizationStep.TypeAssumptions.type_repr
   linearizationStep.TypeAssumptions.underlying
@@ -2922,6 +2988,8 @@ attribute [instance] linearizationStep.TypeAssumptions.type_repr
   linearizationStep.TypeAssumptions.set_Index
   linearizationStep.TypeAssumptions.get_StateDescription
   linearizationStep.TypeAssumptions.set_StateDescription
+  linearizationStep.TypeAssumptions.method_set
+  linearizationStep.TypeAssumptions.ptr_method_set
 
 structure partitionVisualizationData [FfiSyntax] where
   mk ::
@@ -2956,6 +3024,8 @@ class partitionVisualizationData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [
   set_PartialLinearizations : ∀ (x : partitionVisualizationData) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet partitionVisualizationData.underlying go!"PartialLinearizations") (PairV #x #y) (Val #(({ x with PartialLinearizations' := y } : partitionVisualizationData)))
   get_Largest : ∀ (x : partitionVisualizationData), go.IsGoStepPureDetTagged under (StructFieldGet partitionVisualizationData.underlying go!"Largest") #x (Val #(x.Largest'))
   set_Largest : ∀ (x : partitionVisualizationData) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet partitionVisualizationData.underlying go!"Largest") (PairV #x #y) (Val #(({ x with Largest' := y } : partitionVisualizationData)))
+  method_set : go.MethodSetIs partitionVisualizationData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType partitionVisualizationData.ty) []
 
 attribute [instance] partitionVisualizationData.TypeAssumptions.type_repr
   partitionVisualizationData.TypeAssumptions.underlying
@@ -2965,6 +3035,8 @@ attribute [instance] partitionVisualizationData.TypeAssumptions.type_repr
   partitionVisualizationData.TypeAssumptions.set_PartialLinearizations
   partitionVisualizationData.TypeAssumptions.get_Largest
   partitionVisualizationData.TypeAssumptions.set_Largest
+  partitionVisualizationData.TypeAssumptions.method_set
+  partitionVisualizationData.TypeAssumptions.ptr_method_set
 
 structure visualizationData [FfiSyntax] where
   mk ::
@@ -2995,6 +3067,8 @@ class visualizationData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_Partitions : ∀ (x : visualizationData) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet visualizationData.underlying go!"Partitions") (PairV #x #y) (Val #(({ x with Partitions' := y } : visualizationData)))
   get_Annotations : ∀ (x : visualizationData), go.IsGoStepPureDetTagged under (StructFieldGet visualizationData.underlying go!"Annotations") #x (Val #(x.Annotations'))
   set_Annotations : ∀ (x : visualizationData) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet visualizationData.underlying go!"Annotations") (PairV #x #y) (Val #(({ x with Annotations' := y } : visualizationData)))
+  method_set : go.MethodSetIs visualizationData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType visualizationData.ty) []
 
 attribute [instance] visualizationData.TypeAssumptions.type_repr
   visualizationData.TypeAssumptions.underlying
@@ -3002,6 +3076,8 @@ attribute [instance] visualizationData.TypeAssumptions.type_repr
   visualizationData.TypeAssumptions.set_Partitions
   visualizationData.TypeAssumptions.get_Annotations
   visualizationData.TypeAssumptions.set_Annotations
+  visualizationData.TypeAssumptions.method_set
+  visualizationData.TypeAssumptions.ptr_method_set
 
 structure Annotation [FfiSyntax] where
   mk ::
@@ -3060,6 +3136,8 @@ class Annotation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_BackgroundColor : ∀ (x : Annotation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Annotation.underlying go!"BackgroundColor") (PairV #x #y) (Val #(({ x with BackgroundColor' := y } : Annotation)))
   get__8 : ∀ (x : Annotation), go.IsGoStepPureDetTagged under (StructFieldGet Annotation.underlying go!"_8") #x (Val #(x._8'))
   set__8 : ∀ (x : Annotation) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Annotation.underlying go!"_8") (PairV #x #y) (Val #(({ x with _8' := y } : Annotation)))
+  method_set : go.MethodSetIs Annotation.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Annotation.ty) []
 
 attribute [instance] Annotation.TypeAssumptions.type_repr
   Annotation.TypeAssumptions.underlying
@@ -3081,6 +3159,8 @@ attribute [instance] Annotation.TypeAssumptions.type_repr
   Annotation.TypeAssumptions.set_BackgroundColor
   Annotation.TypeAssumptions.get__8
   Annotation.TypeAssumptions.set__8
+  Annotation.TypeAssumptions.method_set
+  Annotation.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   bitset_instance : bitset.TypeAssumptions

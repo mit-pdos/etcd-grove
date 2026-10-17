@@ -479,10 +479,14 @@ class RelTimeMagnitude.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying RelTimeMagnitude.underlying RelTimeMagnitude
   underlying : go.UnderlyingDirectedEq RelTimeMagnitude.ty RelTimeMagnitude.underlying
   isUnderlying : go.IsUnderlying RelTimeMagnitude.underlying RelTimeMagnitude.underlying
+  method_set : go.MethodSetIs RelTimeMagnitude.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RelTimeMagnitude.ty) []
 
 attribute [instance] RelTimeMagnitude.TypeAssumptions.type_repr
   RelTimeMagnitude.TypeAssumptions.underlying
   RelTimeMagnitude.TypeAssumptions.isUnderlying
+  RelTimeMagnitude.TypeAssumptions.method_set
+  RelTimeMagnitude.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RelTimeMagnitude_instance : RelTimeMagnitude.TypeAssumptions

@@ -150,8 +150,12 @@ abbrev Permission_Type [FfiSyntax] : Type := w32
 
 class Permission_Type.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Permission_Type.ty Permission_Type.underlying
+  method_set : go.MethodSetIs Permission_Type.ty [(go!"Descriptor", none), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Permission_Type.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", none), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission_Type.ty) [(go!"Descriptor", none), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType Permission_Type.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", none), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", none)]
 
 attribute [instance] Permission_Type.TypeAssumptions.underlying
+  Permission_Type.TypeAssumptions.method_set
+  Permission_Type.TypeAssumptions.ptr_method_set
 
 axiom UserAddOptions : Type
 axiom UserAddOptions.zero_val : ZeroVal UserAddOptions
@@ -161,10 +165,14 @@ class UserAddOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying UserAddOptions.underlying UserAddOptions
   underlying : go.UnderlyingDirectedEq UserAddOptions.ty UserAddOptions.underlying
   isUnderlying : go.IsUnderlying UserAddOptions.underlying UserAddOptions.underlying
+  method_set : go.MethodSetIs UserAddOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UserAddOptions.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetNoPassword", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UserAddOptions.TypeAssumptions.type_repr
   UserAddOptions.TypeAssumptions.underlying
   UserAddOptions.TypeAssumptions.isUnderlying
+  UserAddOptions.TypeAssumptions.method_set
+  UserAddOptions.TypeAssumptions.ptr_method_set
 
 axiom User : Type
 axiom User.zero_val : ZeroVal User
@@ -174,10 +182,14 @@ class User.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying User.underlying User
   underlying : go.UnderlyingDirectedEq User.ty User.underlying
   isUnderlying : go.IsUnderlying User.underlying User.underlying
+  method_set : go.MethodSetIs User.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType User.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetOptions", (some (go.signature.Signature [] false [(go.GoType.PointerType UserAddOptions.ty)]))), (go!"GetPassword", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] User.TypeAssumptions.type_repr
   User.TypeAssumptions.underlying
   User.TypeAssumptions.isUnderlying
+  User.TypeAssumptions.method_set
+  User.TypeAssumptions.ptr_method_set
 
 axiom Permission : Type
 axiom Permission.zero_val : ZeroVal Permission
@@ -187,10 +199,14 @@ class Permission.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying Permission.underlying Permission
   underlying : go.UnderlyingDirectedEq Permission.ty Permission.underlying
   isUnderlying : go.IsUnderlying Permission.underlying Permission.underlying
+  method_set : go.MethodSetIs Permission.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Permission.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetPermType", (some (go.signature.Signature [] false [Permission_Type.ty]))), (go!"GetRangeEnd", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Permission.TypeAssumptions.type_repr
   Permission.TypeAssumptions.underlying
   Permission.TypeAssumptions.isUnderlying
+  Permission.TypeAssumptions.method_set
+  Permission.TypeAssumptions.ptr_method_set
 
 axiom Role : Type
 axiom Role.zero_val : ZeroVal Role
@@ -200,10 +216,14 @@ class Role.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Role.underlying Role
   underlying : go.UnderlyingDirectedEq Role.ty Role.underlying
   isUnderlying : go.IsUnderlying Role.underlying Role.underlying
+  method_set : go.MethodSetIs Role.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Role.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKeyPermission", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Permission.ty))]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Role.TypeAssumptions.type_repr
   Role.TypeAssumptions.underlying
   Role.TypeAssumptions.isUnderlying
+  Role.TypeAssumptions.method_set
+  Role.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Permission_Type_instance : Permission_Type.TypeAssumptions

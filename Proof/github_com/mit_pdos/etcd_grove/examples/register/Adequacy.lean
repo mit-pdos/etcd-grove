@@ -122,7 +122,6 @@ has finished, its result is `#()`; no thread is stuck; no thread has ended in a 
 bodies behind the register's and its imports' names). -/
 theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
     (σ : state) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) :
     MainSafe registerProgram σ := by
   refine mainSafe_of_wp registerProgram σ Hlctx Hinit fun {hG} HL => ?_

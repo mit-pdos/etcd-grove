@@ -1685,10 +1685,14 @@ class BackoffConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying BackoffConfig.underlying BackoffConfig
   underlying : go.UnderlyingDirectedEq BackoffConfig.ty BackoffConfig.underlying
   isUnderlying : go.IsUnderlying BackoffConfig.underlying BackoffConfig.underlying
+  method_set : go.MethodSetIs BackoffConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackoffConfig.ty) []
 
 attribute [instance] BackoffConfig.TypeAssumptions.type_repr
   BackoffConfig.TypeAssumptions.underlying
   BackoffConfig.TypeAssumptions.isUnderlying
+  BackoffConfig.TypeAssumptions.method_set
+  BackoffConfig.TypeAssumptions.ptr_method_set
 
 axiom ConnectParams : Type
 axiom ConnectParams.zero_val : ZeroVal ConnectParams
@@ -1698,10 +1702,14 @@ class ConnectParams.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ConnectParams.underlying ConnectParams
   underlying : go.UnderlyingDirectedEq ConnectParams.ty ConnectParams.underlying
   isUnderlying : go.IsUnderlying ConnectParams.underlying ConnectParams.underlying
+  method_set : go.MethodSetIs ConnectParams.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConnectParams.ty) []
 
 attribute [instance] ConnectParams.TypeAssumptions.type_repr
   ConnectParams.TypeAssumptions.underlying
   ConnectParams.TypeAssumptions.isUnderlying
+  ConnectParams.TypeAssumptions.method_set
+  ConnectParams.TypeAssumptions.ptr_method_set
 
 axiom ccBalancerWrapper : Type
 axiom ccBalancerWrapper.zero_val : ZeroVal ccBalancerWrapper
@@ -1711,10 +1719,14 @@ class ccBalancerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying ccBalancerWrapper.underlying ccBalancerWrapper
   underlying : go.UnderlyingDirectedEq ccBalancerWrapper.ty ccBalancerWrapper.underlying
   isUnderlying : go.IsUnderlying ccBalancerWrapper.underlying ccBalancerWrapper.underlying
+  method_set : go.MethodSetIs ccBalancerWrapper.ty [(go!"google.golang.org/grpc/internal.enforceClientConnEmbedding", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccBalancerWrapper.ty) [(go!"MetricsRecorder", none), (go!"NewSubConn", none), (go!"RemoveSubConn", none), (go!"ResolveNow", none), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateAddresses", none), (go!"UpdateState", none), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdle", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolverError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.updateClientConnState", none), (go!"google.golang.org/grpc/internal.enforceClientConnEmbedding", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ccBalancerWrapper.TypeAssumptions.type_repr
   ccBalancerWrapper.TypeAssumptions.underlying
   ccBalancerWrapper.TypeAssumptions.isUnderlying
+  ccBalancerWrapper.TypeAssumptions.method_set
+  ccBalancerWrapper.TypeAssumptions.ptr_method_set
 
 axiom acBalancerWrapper : Type
 axiom acBalancerWrapper.zero_val : ZeroVal acBalancerWrapper
@@ -1724,10 +1736,14 @@ class acBalancerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying acBalancerWrapper.underlying acBalancerWrapper
   underlying : go.UnderlyingDirectedEq acBalancerWrapper.ty acBalancerWrapper.underlying
   isUnderlying : go.IsUnderlying acBalancerWrapper.underlying acBalancerWrapper.underlying
+  method_set : go.MethodSetIs acBalancerWrapper.ty [(go!"google.golang.org/grpc/internal.enforceSubConnEmbedding", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType acBalancerWrapper.ty) [(go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetOrBuildProducer", none), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"RegisterHealthListener", none), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateAddresses", none), (go!"google.golang.org/grpc.closeProducers", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.healthListenerRegFn", none), (go!"google.golang.org/grpc.updateState", none), (go!"google.golang.org/grpc/internal.enforceSubConnEmbedding", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] acBalancerWrapper.TypeAssumptions.type_repr
   acBalancerWrapper.TypeAssumptions.underlying
   acBalancerWrapper.TypeAssumptions.isUnderlying
+  acBalancerWrapper.TypeAssumptions.method_set
+  acBalancerWrapper.TypeAssumptions.ptr_method_set
 
 axiom healthData : Type
 axiom healthData.zero_val : ZeroVal healthData
@@ -1737,10 +1753,14 @@ class healthData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying healthData.underlying healthData
   underlying : go.UnderlyingDirectedEq healthData.ty healthData.underlying
   isUnderlying : go.IsUnderlying healthData.underlying healthData.underlying
+  method_set : go.MethodSetIs healthData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthData.ty) []
 
 attribute [instance] healthData.TypeAssumptions.type_repr
   healthData.TypeAssumptions.underlying
   healthData.TypeAssumptions.isUnderlying
+  healthData.TypeAssumptions.method_set
+  healthData.TypeAssumptions.ptr_method_set
 
 axiom refCountedProducer : Type
 axiom refCountedProducer.zero_val : ZeroVal refCountedProducer
@@ -1750,10 +1770,14 @@ class refCountedProducer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying refCountedProducer.underlying refCountedProducer
   underlying : go.UnderlyingDirectedEq refCountedProducer.ty refCountedProducer.underlying
   isUnderlying : go.IsUnderlying refCountedProducer.underlying refCountedProducer.underlying
+  method_set : go.MethodSetIs refCountedProducer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType refCountedProducer.ty) []
 
 attribute [instance] refCountedProducer.TypeAssumptions.type_repr
   refCountedProducer.TypeAssumptions.underlying
   refCountedProducer.TypeAssumptions.isUnderlying
+  refCountedProducer.TypeAssumptions.method_set
+  refCountedProducer.TypeAssumptions.ptr_method_set
 
 structure defaultConfigSelector [FfiSyntax] where
   mk ::
@@ -1780,11 +1804,15 @@ class defaultConfigSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq defaultConfigSelector.ty defaultConfigSelector.underlying
   get_sc : ∀ (x : defaultConfigSelector), go.IsGoStepPureDetTagged under (StructFieldGet defaultConfigSelector.underlying go!"sc") #x (Val #(x.sc'))
   set_sc : ∀ (x : defaultConfigSelector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet defaultConfigSelector.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : defaultConfigSelector)))
+  method_set : go.MethodSetIs defaultConfigSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultConfigSelector.ty) [(go!"SelectConfig", none)]
 
 attribute [instance] defaultConfigSelector.TypeAssumptions.type_repr
   defaultConfigSelector.TypeAssumptions.underlying
   defaultConfigSelector.TypeAssumptions.get_sc
   defaultConfigSelector.TypeAssumptions.set_sc
+  defaultConfigSelector.TypeAssumptions.method_set
+  defaultConfigSelector.TypeAssumptions.ptr_method_set
 
 axiom ClientConn : Type
 axiom ClientConn.zero_val : ZeroVal ClientConn
@@ -1794,10 +1822,14 @@ class ClientConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying ClientConn.underlying ClientConn
   underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
   isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
+  method_set : go.MethodSetIs ClientConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) [(go!"CanonicalTarget", (some (go.signature.Signature [] false [go.string]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetMethodConfig", none), (go!"GetState", none), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"ResetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"WaitForStateChange", none), (go!"google.golang.org/grpc.addTraceEvent", (some (go.signature.Signature [go.string] false []))), (go!"google.golang.org/grpc.applyFailingLBLocked", none), (go!"google.golang.org/grpc.applyServiceConfigAndBalancer", none), (go!"google.golang.org/grpc.channelzRegistration", (some (go.signature.Signature [go.string] false []))), (go!"google.golang.org/grpc.connectionError", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.enterIdleMode", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdleMode", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.getResolver", none), (go!"google.golang.org/grpc.getServerName", none), (go!"google.golang.org/grpc.healthCheckConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType healthCheckConfig.ty)]))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initAuthority", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.initIdleStateLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initParsedTargetAndResolverBuilder", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.maybeApplyDefaultServiceConfig", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.newAddrConnLocked", none), (go!"google.golang.org/grpc.removeAddrConn", (some (go.signature.Signature [(go.GoType.PointerType addrConn.ty), go.error] false []))), (go!"google.golang.org/grpc.resolveNow", none), (go!"google.golang.org/grpc.resolveNowLocked", none), (go!"google.golang.org/grpc.updateConnectionError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.updateResolverStateAndUnlock", none), (go!"google.golang.org/grpc.validateTransportCredentials", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.waitForResolvedAddrs", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.bool, go.error])))]
 
 attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.underlying
   ClientConn.TypeAssumptions.isUnderlying
+  ClientConn.TypeAssumptions.method_set
+  ClientConn.TypeAssumptions.ptr_method_set
 
 abbrev idler [FfiSyntax] : Type := ClientConn
 
@@ -1806,8 +1838,12 @@ abbrev idler [FfiSyntax] : Type := ClientConn
 
 class idler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq idler.ty idler.underlying
+  method_set : go.MethodSetIs idler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType idler.ty) [(go!"EnterIdleMode", (some (go.signature.Signature [] false []))), (go!"ExitIdleMode", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] idler.TypeAssumptions.underlying
+  idler.TypeAssumptions.method_set
+  idler.TypeAssumptions.ptr_method_set
 
 axiom connectivityStateManager : Type
 axiom connectivityStateManager.zero_val : ZeroVal connectivityStateManager
@@ -1817,10 +1853,14 @@ class connectivityStateManager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   type_repr : go.TypeReprUnderlying connectivityStateManager.underlying connectivityStateManager
   underlying : go.UnderlyingDirectedEq connectivityStateManager.ty connectivityStateManager.underlying
   isUnderlying : go.IsUnderlying connectivityStateManager.underlying connectivityStateManager.underlying
+  method_set : go.MethodSetIs connectivityStateManager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectivityStateManager.ty) [(go!"google.golang.org/grpc.getNotifyChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"google.golang.org/grpc.getState", none), (go!"google.golang.org/grpc.updateState", none)]
 
 attribute [instance] connectivityStateManager.TypeAssumptions.type_repr
   connectivityStateManager.TypeAssumptions.underlying
   connectivityStateManager.TypeAssumptions.isUnderlying
+  connectivityStateManager.TypeAssumptions.method_set
+  connectivityStateManager.TypeAssumptions.ptr_method_set
 
 abbrev ClientConnInterface [FfiSyntax] : Type := GoInterface
 
@@ -1829,8 +1869,12 @@ abbrev ClientConnInterface [FfiSyntax] : Type := GoInterface
 
 class ClientConnInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientConnInterface.ty ClientConnInterface.underlying
+  method_set : go.MethodSetIs ClientConnInterface.ty [(go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConnInterface.ty) []
 
 attribute [instance] ClientConnInterface.TypeAssumptions.underlying
+  ClientConnInterface.TypeAssumptions.method_set
+  ClientConnInterface.TypeAssumptions.ptr_method_set
 
 axiom addrConn : Type
 axiom addrConn.zero_val : ZeroVal addrConn
@@ -1840,10 +1884,14 @@ class addrConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying addrConn.underlying addrConn
   underlying : go.UnderlyingDirectedEq addrConn.ty addrConn.underlying
   isUnderlying : go.IsUnderlying addrConn.underlying addrConn.underlying
+  method_set : go.MethodSetIs addrConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrConn.ty) [(go!"google.golang.org/grpc.adjustParams", none), (go!"google.golang.org/grpc.connect", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.createTransport", none), (go!"google.golang.org/grpc.getReadyTransport", none), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resetTransportAndUnlock", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.securityLevelLocked", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/grpc.startHealthCheck", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"google.golang.org/grpc.tearDown", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.tryAllAddrs", none), (go!"google.golang.org/grpc.updateAddrs", none), (go!"google.golang.org/grpc.updateConnectivityState", none), (go!"google.golang.org/grpc.updateTelemetryLabelsLocked", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] addrConn.TypeAssumptions.type_repr
   addrConn.TypeAssumptions.underlying
   addrConn.TypeAssumptions.isUnderlying
+  addrConn.TypeAssumptions.method_set
+  addrConn.TypeAssumptions.ptr_method_set
 
 structure securityLevelKey [FfiSyntax] where
   mk ::
@@ -1867,9 +1915,13 @@ instance equals_unfold_securityLevelKey [FfiSyntax] [GoGlobalContext] :
 class securityLevelKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying securityLevelKey.underlying securityLevelKey
   underlying : go.UnderlyingDirectedEq securityLevelKey.ty securityLevelKey.underlying
+  method_set : go.MethodSetIs securityLevelKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType securityLevelKey.ty) []
 
 attribute [instance] securityLevelKey.TypeAssumptions.type_repr
   securityLevelKey.TypeAssumptions.underlying
+  securityLevelKey.TypeAssumptions.method_set
+  securityLevelKey.TypeAssumptions.ptr_method_set
 
 axiom retryThrottler : Type
 axiom retryThrottler.zero_val : ZeroVal retryThrottler
@@ -1879,10 +1931,14 @@ class retryThrottler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying retryThrottler.underlying retryThrottler
   underlying : go.UnderlyingDirectedEq retryThrottler.ty retryThrottler.underlying
   isUnderlying : go.IsUnderlying retryThrottler.underlying retryThrottler.underlying
+  method_set : go.MethodSetIs retryThrottler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryThrottler.ty) [(go!"google.golang.org/grpc.successfulRPC", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.throttle", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] retryThrottler.TypeAssumptions.type_repr
   retryThrottler.TypeAssumptions.underlying
   retryThrottler.TypeAssumptions.isUnderlying
+  retryThrottler.TypeAssumptions.method_set
+  retryThrottler.TypeAssumptions.ptr_method_set
 
 axiom baseCodec : Type
 axiom baseCodec.zero_val : ZeroVal baseCodec
@@ -1892,10 +1948,14 @@ class baseCodec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying baseCodec.underlying baseCodec
   underlying : go.UnderlyingDirectedEq baseCodec.ty baseCodec.underlying
   isUnderlying : go.IsUnderlying baseCodec.underlying baseCodec.underlying
+  method_set : go.MethodSetIs baseCodec.ty [(go!"Marshal", none), (go!"Unmarshal", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType baseCodec.ty) []
 
 attribute [instance] baseCodec.TypeAssumptions.type_repr
   baseCodec.TypeAssumptions.underlying
   baseCodec.TypeAssumptions.isUnderlying
+  baseCodec.TypeAssumptions.method_set
+  baseCodec.TypeAssumptions.ptr_method_set
 
 structure codecV0Bridge [FfiSyntax] where
   mk ::
@@ -1922,11 +1982,15 @@ class codecV0Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq codecV0Bridge.ty codecV0Bridge.underlying
   get_codec : ∀ (x : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV0Bridge.underlying go!"codec") #x (Val #(x.codec'))
   set_codec : ∀ (x : codecV0Bridge) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet codecV0Bridge.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : codecV0Bridge)))
+  method_set : go.MethodSetIs codecV0Bridge.ty [(go!"Marshal", none), (go!"Unmarshal", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV0Bridge.ty) [(go!"Marshal", none), (go!"Unmarshal", none)]
 
 attribute [instance] codecV0Bridge.TypeAssumptions.type_repr
   codecV0Bridge.TypeAssumptions.underlying
   codecV0Bridge.TypeAssumptions.get_codec
   codecV0Bridge.TypeAssumptions.set_codec
+  codecV0Bridge.TypeAssumptions.method_set
+  codecV0Bridge.TypeAssumptions.ptr_method_set
 
 structure codecV1Bridge [FfiSyntax] where
   mk ::
@@ -1957,6 +2021,8 @@ class codecV1Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_codecV0Bridge : ∀ (x : codecV1Bridge) (y : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"codecV0Bridge") (PairV #x #y) (Val #(({ x with codecV0Bridge' := y } : codecV1Bridge)))
   get_name : ∀ (x : codecV1Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV1Bridge.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : codecV1Bridge) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : codecV1Bridge)))
+  method_set : go.MethodSetIs codecV1Bridge.ty [(go!"Marshal", none), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV1Bridge.ty) [(go!"Marshal", none), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", none)]
 
 attribute [instance] codecV1Bridge.TypeAssumptions.type_repr
   codecV1Bridge.TypeAssumptions.underlying
@@ -1964,6 +2030,8 @@ attribute [instance] codecV1Bridge.TypeAssumptions.type_repr
   codecV1Bridge.TypeAssumptions.set_codecV0Bridge
   codecV1Bridge.TypeAssumptions.get_name
   codecV1Bridge.TypeAssumptions.set_name
+  codecV1Bridge.TypeAssumptions.method_set
+  codecV1Bridge.TypeAssumptions.ptr_method_set
 
 abbrev Codec [FfiSyntax] : Type := GoInterface
 
@@ -1972,8 +2040,12 @@ abbrev Codec [FfiSyntax] : Type := GoInterface
 
 class Codec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
+  method_set : go.MethodSetIs Codec.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
 attribute [instance] Codec.TypeAssumptions.underlying
+  Codec.TypeAssumptions.method_set
+  Codec.TypeAssumptions.ptr_method_set
 
 axiom dialOptions : Type
 axiom dialOptions.zero_val : ZeroVal dialOptions
@@ -1983,20 +2055,28 @@ class dialOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying dialOptions.underlying dialOptions
   underlying : go.UnderlyingDirectedEq dialOptions.ty dialOptions.underlying
   isUnderlying : go.IsUnderlying dialOptions.underlying dialOptions.underlying
+  method_set : go.MethodSetIs dialOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialOptions.ty) []
 
 attribute [instance] dialOptions.TypeAssumptions.type_repr
   dialOptions.TypeAssumptions.underlying
   dialOptions.TypeAssumptions.isUnderlying
+  dialOptions.TypeAssumptions.method_set
+  dialOptions.TypeAssumptions.ptr_method_set
 
 abbrev DialOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def DialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc.apply" (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))])
 
 class DialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DialOption.ty DialOption.underlying
+  method_set : go.MethodSetIs DialOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DialOption.ty) []
 
 attribute [instance] DialOption.TypeAssumptions.underlying
+  DialOption.TypeAssumptions.method_set
+  DialOption.TypeAssumptions.ptr_method_set
 
 axiom perTargetDialOption : Type
 axiom perTargetDialOption.zero_val : ZeroVal perTargetDialOption
@@ -2006,10 +2086,14 @@ class perTargetDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying perTargetDialOption.underlying perTargetDialOption
   underlying : go.UnderlyingDirectedEq perTargetDialOption.ty perTargetDialOption.underlying
   isUnderlying : go.IsUnderlying perTargetDialOption.underlying perTargetDialOption.underlying
+  method_set : go.MethodSetIs perTargetDialOption.ty [(go!"DialOptionForTarget", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType perTargetDialOption.ty) []
 
 attribute [instance] perTargetDialOption.TypeAssumptions.type_repr
   perTargetDialOption.TypeAssumptions.underlying
   perTargetDialOption.TypeAssumptions.isUnderlying
+  perTargetDialOption.TypeAssumptions.method_set
+  perTargetDialOption.TypeAssumptions.ptr_method_set
 
 structure EmptyDialOption [FfiSyntax] where
   mk ::
@@ -2033,9 +2117,13 @@ instance equals_unfold_EmptyDialOption [FfiSyntax] [GoGlobalContext] :
 class EmptyDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyDialOption.underlying EmptyDialOption
   underlying : go.UnderlyingDirectedEq EmptyDialOption.ty EmptyDialOption.underlying
+  method_set : go.MethodSetIs EmptyDialOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] EmptyDialOption.TypeAssumptions.type_repr
   EmptyDialOption.TypeAssumptions.underlying
+  EmptyDialOption.TypeAssumptions.method_set
+  EmptyDialOption.TypeAssumptions.ptr_method_set
 
 structure disableGlobalDialOptions [FfiSyntax] where
   mk ::
@@ -2059,9 +2147,13 @@ instance equals_unfold_disableGlobalDialOptions [FfiSyntax] [GoGlobalContext] :
 class disableGlobalDialOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying disableGlobalDialOptions.underlying disableGlobalDialOptions
   underlying : go.UnderlyingDirectedEq disableGlobalDialOptions.ty disableGlobalDialOptions.underlying
+  method_set : go.MethodSetIs disableGlobalDialOptions.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType disableGlobalDialOptions.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] disableGlobalDialOptions.TypeAssumptions.type_repr
   disableGlobalDialOptions.TypeAssumptions.underlying
+  disableGlobalDialOptions.TypeAssumptions.method_set
+  disableGlobalDialOptions.TypeAssumptions.ptr_method_set
 
 structure funcDialOption [FfiSyntax] where
   mk ::
@@ -2088,11 +2180,15 @@ class funcDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq funcDialOption.ty funcDialOption.underlying
   get_f : ∀ (x : funcDialOption), go.IsGoStepPureDetTagged under (StructFieldGet funcDialOption.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : funcDialOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcDialOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcDialOption)))
+  method_set : go.MethodSetIs funcDialOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType funcDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.underlying
   funcDialOption.TypeAssumptions.get_f
   funcDialOption.TypeAssumptions.set_f
+  funcDialOption.TypeAssumptions.method_set
+  funcDialOption.TypeAssumptions.ptr_method_set
 
 structure joinDialOption [FfiSyntax] where
   mk ::
@@ -2119,11 +2215,15 @@ class joinDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq joinDialOption.ty joinDialOption.underlying
   get_opts : ∀ (x : joinDialOption), go.IsGoStepPureDetTagged under (StructFieldGet joinDialOption.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : joinDialOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet joinDialOption.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : joinDialOption)))
+  method_set : go.MethodSetIs joinDialOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType joinDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] joinDialOption.TypeAssumptions.type_repr
   joinDialOption.TypeAssumptions.underlying
   joinDialOption.TypeAssumptions.get_opts
   joinDialOption.TypeAssumptions.set_opts
+  joinDialOption.TypeAssumptions.method_set
+  joinDialOption.TypeAssumptions.ptr_method_set
 
 structure MaxHeaderListSizeDialOption [FfiSyntax] where
   mk ::
@@ -2150,11 +2250,15 @@ class MaxHeaderListSizeDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] 
   underlying : go.UnderlyingDirectedEq MaxHeaderListSizeDialOption.ty MaxHeaderListSizeDialOption.underlying
   get_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeDialOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxHeaderListSizeDialOption.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
   set_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeDialOption) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MaxHeaderListSizeDialOption.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : MaxHeaderListSizeDialOption)))
+  method_set : go.MethodSetIs MaxHeaderListSizeDialOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxHeaderListSizeDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] MaxHeaderListSizeDialOption.TypeAssumptions.type_repr
   MaxHeaderListSizeDialOption.TypeAssumptions.underlying
   MaxHeaderListSizeDialOption.TypeAssumptions.get_MaxHeaderListSize
   MaxHeaderListSizeDialOption.TypeAssumptions.set_MaxHeaderListSize
+  MaxHeaderListSizeDialOption.TypeAssumptions.method_set
+  MaxHeaderListSizeDialOption.TypeAssumptions.ptr_method_set
 
 abbrev UnaryInvoker [FfiSyntax] : Type := GoFunc
 
@@ -2163,8 +2267,12 @@ abbrev UnaryInvoker [FfiSyntax] : Type := GoFunc
 
 class UnaryInvoker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryInvoker.ty UnaryInvoker.underlying
+  method_set : go.MethodSetIs UnaryInvoker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryInvoker.ty) []
 
 attribute [instance] UnaryInvoker.TypeAssumptions.underlying
+  UnaryInvoker.TypeAssumptions.method_set
+  UnaryInvoker.TypeAssumptions.ptr_method_set
 
 abbrev UnaryClientInterceptor [FfiSyntax] : Type := GoFunc
 
@@ -2173,8 +2281,12 @@ abbrev UnaryClientInterceptor [FfiSyntax] : Type := GoFunc
 
 class UnaryClientInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryClientInterceptor.ty UnaryClientInterceptor.underlying
+  method_set : go.MethodSetIs UnaryClientInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryClientInterceptor.ty) []
 
 attribute [instance] UnaryClientInterceptor.TypeAssumptions.underlying
+  UnaryClientInterceptor.TypeAssumptions.method_set
+  UnaryClientInterceptor.TypeAssumptions.ptr_method_set
 
 abbrev Streamer [FfiSyntax] : Type := GoFunc
 
@@ -2183,8 +2295,12 @@ abbrev Streamer [FfiSyntax] : Type := GoFunc
 
 class Streamer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Streamer.ty Streamer.underlying
+  method_set : go.MethodSetIs Streamer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Streamer.ty) []
 
 attribute [instance] Streamer.TypeAssumptions.underlying
+  Streamer.TypeAssumptions.method_set
+  Streamer.TypeAssumptions.ptr_method_set
 
 abbrev StreamClientInterceptor [FfiSyntax] : Type := GoFunc
 
@@ -2193,8 +2309,12 @@ abbrev StreamClientInterceptor [FfiSyntax] : Type := GoFunc
 
 class StreamClientInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StreamClientInterceptor.ty StreamClientInterceptor.underlying
+  method_set : go.MethodSetIs StreamClientInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamClientInterceptor.ty) []
 
 attribute [instance] StreamClientInterceptor.TypeAssumptions.underlying
+  StreamClientInterceptor.TypeAssumptions.method_set
+  StreamClientInterceptor.TypeAssumptions.ptr_method_set
 
 structure UnaryServerInfo [FfiSyntax] where
   mk ::
@@ -2225,6 +2345,8 @@ class UnaryServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_Server : ∀ (x : UnaryServerInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet UnaryServerInfo.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : UnaryServerInfo)))
   get_FullMethod : ∀ (x : UnaryServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet UnaryServerInfo.underlying go!"FullMethod") #x (Val #(x.FullMethod'))
   set_FullMethod : ∀ (x : UnaryServerInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet UnaryServerInfo.underlying go!"FullMethod") (PairV #x #y) (Val #(({ x with FullMethod' := y } : UnaryServerInfo)))
+  method_set : go.MethodSetIs UnaryServerInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryServerInfo.ty) []
 
 attribute [instance] UnaryServerInfo.TypeAssumptions.type_repr
   UnaryServerInfo.TypeAssumptions.underlying
@@ -2232,6 +2354,8 @@ attribute [instance] UnaryServerInfo.TypeAssumptions.type_repr
   UnaryServerInfo.TypeAssumptions.set_Server
   UnaryServerInfo.TypeAssumptions.get_FullMethod
   UnaryServerInfo.TypeAssumptions.set_FullMethod
+  UnaryServerInfo.TypeAssumptions.method_set
+  UnaryServerInfo.TypeAssumptions.ptr_method_set
 
 abbrev UnaryHandler [FfiSyntax] : Type := GoFunc
 
@@ -2240,8 +2364,12 @@ abbrev UnaryHandler [FfiSyntax] : Type := GoFunc
 
 class UnaryHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryHandler.ty UnaryHandler.underlying
+  method_set : go.MethodSetIs UnaryHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryHandler.ty) []
 
 attribute [instance] UnaryHandler.TypeAssumptions.underlying
+  UnaryHandler.TypeAssumptions.method_set
+  UnaryHandler.TypeAssumptions.ptr_method_set
 
 abbrev UnaryServerInterceptor [FfiSyntax] : Type := GoFunc
 
@@ -2250,8 +2378,12 @@ abbrev UnaryServerInterceptor [FfiSyntax] : Type := GoFunc
 
 class UnaryServerInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryServerInterceptor.ty UnaryServerInterceptor.underlying
+  method_set : go.MethodSetIs UnaryServerInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryServerInterceptor.ty) []
 
 attribute [instance] UnaryServerInterceptor.TypeAssumptions.underlying
+  UnaryServerInterceptor.TypeAssumptions.method_set
+  UnaryServerInterceptor.TypeAssumptions.ptr_method_set
 
 structure StreamServerInfo [FfiSyntax] where
   mk ::
@@ -2286,6 +2418,8 @@ class StreamServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_IsClientStream : ∀ (x : StreamServerInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamServerInfo.underlying go!"IsClientStream") (PairV #x #y) (Val #(({ x with IsClientStream' := y } : StreamServerInfo)))
   get_IsServerStream : ∀ (x : StreamServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet StreamServerInfo.underlying go!"IsServerStream") #x (Val #(x.IsServerStream'))
   set_IsServerStream : ∀ (x : StreamServerInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamServerInfo.underlying go!"IsServerStream") (PairV #x #y) (Val #(({ x with IsServerStream' := y } : StreamServerInfo)))
+  method_set : go.MethodSetIs StreamServerInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamServerInfo.ty) []
 
 attribute [instance] StreamServerInfo.TypeAssumptions.type_repr
   StreamServerInfo.TypeAssumptions.underlying
@@ -2295,6 +2429,8 @@ attribute [instance] StreamServerInfo.TypeAssumptions.type_repr
   StreamServerInfo.TypeAssumptions.set_IsClientStream
   StreamServerInfo.TypeAssumptions.get_IsServerStream
   StreamServerInfo.TypeAssumptions.set_IsServerStream
+  StreamServerInfo.TypeAssumptions.method_set
+  StreamServerInfo.TypeAssumptions.ptr_method_set
 
 abbrev StreamServerInterceptor [FfiSyntax] : Type := GoFunc
 
@@ -2303,8 +2439,12 @@ abbrev StreamServerInterceptor [FfiSyntax] : Type := GoFunc
 
 class StreamServerInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StreamServerInterceptor.ty StreamServerInterceptor.underlying
+  method_set : go.MethodSetIs StreamServerInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamServerInterceptor.ty) []
 
 attribute [instance] StreamServerInterceptor.TypeAssumptions.underlying
+  StreamServerInterceptor.TypeAssumptions.method_set
+  StreamServerInterceptor.TypeAssumptions.ptr_method_set
 
 axiom pickerGeneration : Type
 axiom pickerGeneration.zero_val : ZeroVal pickerGeneration
@@ -2314,10 +2454,14 @@ class pickerGeneration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying pickerGeneration.underlying pickerGeneration
   underlying : go.UnderlyingDirectedEq pickerGeneration.ty pickerGeneration.underlying
   isUnderlying : go.IsUnderlying pickerGeneration.underlying pickerGeneration.underlying
+  method_set : go.MethodSetIs pickerGeneration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pickerGeneration.ty) []
 
 attribute [instance] pickerGeneration.TypeAssumptions.type_repr
   pickerGeneration.TypeAssumptions.underlying
   pickerGeneration.TypeAssumptions.isUnderlying
+  pickerGeneration.TypeAssumptions.method_set
+  pickerGeneration.TypeAssumptions.ptr_method_set
 
 axiom pickerWrapper : Type
 axiom pickerWrapper.zero_val : ZeroVal pickerWrapper
@@ -2327,10 +2471,14 @@ class pickerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying pickerWrapper.underlying pickerWrapper
   underlying : go.UnderlyingDirectedEq pickerWrapper.ty pickerWrapper.underlying
   isUnderlying : go.IsUnderlying pickerWrapper.underlying pickerWrapper.underlying
+  method_set : go.MethodSetIs pickerWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pickerWrapper.ty) [(go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.pick", none), (go!"google.golang.org/grpc.reset", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.updatePicker", none)]
 
 attribute [instance] pickerWrapper.TypeAssumptions.type_repr
   pickerWrapper.TypeAssumptions.underlying
   pickerWrapper.TypeAssumptions.isUnderlying
+  pickerWrapper.TypeAssumptions.method_set
+  pickerWrapper.TypeAssumptions.ptr_method_set
 
 axiom pick : Type
 axiom pick.zero_val : ZeroVal pick
@@ -2340,10 +2488,14 @@ class pick.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying pick.underlying pick
   underlying : go.UnderlyingDirectedEq pick.ty pick.underlying
   isUnderlying : go.IsUnderlying pick.underlying pick.underlying
+  method_set : go.MethodSetIs pick.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pick.ty) []
 
 attribute [instance] pick.TypeAssumptions.type_repr
   pick.TypeAssumptions.underlying
   pick.TypeAssumptions.isUnderlying
+  pick.TypeAssumptions.method_set
+  pick.TypeAssumptions.ptr_method_set
 
 structure dropError [FfiSyntax] where
   mk ::
@@ -2370,11 +2522,15 @@ class dropError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq dropError.ty dropError.underlying
   get_error : ∀ (x : dropError), go.IsGoStepPureDetTagged under (StructFieldGet dropError.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : dropError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet dropError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : dropError)))
+  method_set : go.MethodSetIs dropError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dropError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] dropError.TypeAssumptions.type_repr
   dropError.TypeAssumptions.underlying
   dropError.TypeAssumptions.get_error
   dropError.TypeAssumptions.set_error
+  dropError.TypeAssumptions.method_set
+  dropError.TypeAssumptions.ptr_method_set
 
 axiom PreparedMsg : Type
 axiom PreparedMsg.zero_val : ZeroVal PreparedMsg
@@ -2384,10 +2540,14 @@ class PreparedMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying PreparedMsg.underlying PreparedMsg
   underlying : go.UnderlyingDirectedEq PreparedMsg.ty PreparedMsg.underlying
   isUnderlying : go.IsUnderlying PreparedMsg.underlying PreparedMsg.underlying
+  method_set : go.MethodSetIs PreparedMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreparedMsg.ty) [(go!"Encode", (some (go.signature.Signature [Stream.ty, go.any] false [go.error])))]
 
 attribute [instance] PreparedMsg.TypeAssumptions.type_repr
   PreparedMsg.TypeAssumptions.underlying
   PreparedMsg.TypeAssumptions.isUnderlying
+  PreparedMsg.TypeAssumptions.method_set
+  PreparedMsg.TypeAssumptions.ptr_method_set
 
 axiom ccResolverWrapper : Type
 axiom ccResolverWrapper.zero_val : ZeroVal ccResolverWrapper
@@ -2397,10 +2557,14 @@ class ccResolverWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying ccResolverWrapper.underlying ccResolverWrapper
   underlying : go.UnderlyingDirectedEq ccResolverWrapper.ty ccResolverWrapper.underlying
   isUnderlying : go.IsUnderlying ccResolverWrapper.underlying ccResolverWrapper.underlying
+  method_set : go.MethodSetIs ccResolverWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccResolverWrapper.ty) [(go!"NewAddress", none), (go!"ParseServiceConfig", none), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", none), (go!"google.golang.org/grpc.addChannelzTraceEvent", none), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolveNow", none), (go!"google.golang.org/grpc.start", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] ccResolverWrapper.TypeAssumptions.type_repr
   ccResolverWrapper.TypeAssumptions.underlying
   ccResolverWrapper.TypeAssumptions.isUnderlying
+  ccResolverWrapper.TypeAssumptions.method_set
+  ccResolverWrapper.TypeAssumptions.ptr_method_set
 
 axiom Compressor : Type
 axiom Compressor.zero_val : ZeroVal Compressor
@@ -2410,10 +2574,14 @@ class Compressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying Compressor.underlying Compressor
   underlying : go.UnderlyingDirectedEq Compressor.ty Compressor.underlying
   isUnderlying : go.IsUnderlying Compressor.underlying Compressor.underlying
+  method_set : go.MethodSetIs Compressor.ty [(go!"Do", none), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compressor.ty) []
 
 attribute [instance] Compressor.TypeAssumptions.type_repr
   Compressor.TypeAssumptions.underlying
   Compressor.TypeAssumptions.isUnderlying
+  Compressor.TypeAssumptions.method_set
+  Compressor.TypeAssumptions.ptr_method_set
 
 axiom gzipCompressor : Type
 axiom gzipCompressor.zero_val : ZeroVal gzipCompressor
@@ -2423,10 +2591,14 @@ class gzipCompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying gzipCompressor.underlying gzipCompressor
   underlying : go.UnderlyingDirectedEq gzipCompressor.ty gzipCompressor.underlying
   isUnderlying : go.IsUnderlying gzipCompressor.underlying gzipCompressor.underlying
+  method_set : go.MethodSetIs gzipCompressor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gzipCompressor.ty) [(go!"Do", none), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] gzipCompressor.TypeAssumptions.type_repr
   gzipCompressor.TypeAssumptions.underlying
   gzipCompressor.TypeAssumptions.isUnderlying
+  gzipCompressor.TypeAssumptions.method_set
+  gzipCompressor.TypeAssumptions.ptr_method_set
 
 axiom Decompressor : Type
 axiom Decompressor.zero_val : ZeroVal Decompressor
@@ -2436,10 +2608,14 @@ class Decompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying Decompressor.underlying Decompressor
   underlying : go.UnderlyingDirectedEq Decompressor.ty Decompressor.underlying
   isUnderlying : go.IsUnderlying Decompressor.underlying Decompressor.underlying
+  method_set : go.MethodSetIs Decompressor.ty [(go!"Do", none), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decompressor.ty) []
 
 attribute [instance] Decompressor.TypeAssumptions.type_repr
   Decompressor.TypeAssumptions.underlying
   Decompressor.TypeAssumptions.isUnderlying
+  Decompressor.TypeAssumptions.method_set
+  Decompressor.TypeAssumptions.ptr_method_set
 
 axiom gzipDecompressor : Type
 axiom gzipDecompressor.zero_val : ZeroVal gzipDecompressor
@@ -2449,10 +2625,14 @@ class gzipDecompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying gzipDecompressor.underlying gzipDecompressor
   underlying : go.UnderlyingDirectedEq gzipDecompressor.ty gzipDecompressor.underlying
   isUnderlying : go.IsUnderlying gzipDecompressor.underlying gzipDecompressor.underlying
+  method_set : go.MethodSetIs gzipDecompressor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gzipDecompressor.ty) [(go!"Do", none), (go!"Type", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/grpc.doWithMaxSize", none)]
 
 attribute [instance] gzipDecompressor.TypeAssumptions.type_repr
   gzipDecompressor.TypeAssumptions.underlying
   gzipDecompressor.TypeAssumptions.isUnderlying
+  gzipDecompressor.TypeAssumptions.method_set
+  gzipDecompressor.TypeAssumptions.ptr_method_set
 
 axiom callInfo : Type
 axiom callInfo.zero_val : ZeroVal callInfo
@@ -2462,20 +2642,28 @@ class callInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying callInfo.underlying callInfo
   underlying : go.UnderlyingDirectedEq callInfo.ty callInfo.underlying
   isUnderlying : go.IsUnderlying callInfo.underlying callInfo.underlying
+  method_set : go.MethodSetIs callInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType callInfo.ty) []
 
 attribute [instance] callInfo.TypeAssumptions.type_repr
   callInfo.TypeAssumptions.underlying
   callInfo.TypeAssumptions.isUnderlying
+  callInfo.TypeAssumptions.method_set
+  callInfo.TypeAssumptions.ptr_method_set
 
 abbrev CallOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def CallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"after" (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false [])), (go.InterfaceElem.MethodElem go!"before" (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc.after" (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false [])), (go.InterfaceElem.MethodElem go!"google.golang.org/grpc.before" (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error]))])
 
 class CallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CallOption.ty CallOption.underlying
+  method_set : go.MethodSetIs CallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CallOption.ty) []
 
 attribute [instance] CallOption.TypeAssumptions.underlying
+  CallOption.TypeAssumptions.method_set
+  CallOption.TypeAssumptions.ptr_method_set
 
 structure EmptyCallOption [FfiSyntax] where
   mk ::
@@ -2499,9 +2687,13 @@ instance equals_unfold_EmptyCallOption [FfiSyntax] [GoGlobalContext] :
 class EmptyCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyCallOption.underlying EmptyCallOption
   underlying : go.UnderlyingDirectedEq EmptyCallOption.ty EmptyCallOption.underlying
+  method_set : go.MethodSetIs EmptyCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] EmptyCallOption.TypeAssumptions.type_repr
   EmptyCallOption.TypeAssumptions.underlying
+  EmptyCallOption.TypeAssumptions.method_set
+  EmptyCallOption.TypeAssumptions.ptr_method_set
 
 structure StaticMethodCallOption [FfiSyntax] where
   mk ::
@@ -2528,11 +2720,15 @@ class StaticMethodCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq StaticMethodCallOption.ty StaticMethodCallOption.underlying
   get_EmptyCallOption : ∀ (x : StaticMethodCallOption), go.IsGoStepPureDetTagged under (StructFieldGet StaticMethodCallOption.underlying go!"EmptyCallOption") #x (Val #(x.EmptyCallOption'))
   set_EmptyCallOption : ∀ (x : StaticMethodCallOption) (y : EmptyCallOption), go.IsGoStepPureDetTagged under (StructFieldSet StaticMethodCallOption.underlying go!"EmptyCallOption") (PairV #x #y) (Val #(({ x with EmptyCallOption' := y } : StaticMethodCallOption)))
+  method_set : go.MethodSetIs StaticMethodCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StaticMethodCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] StaticMethodCallOption.TypeAssumptions.type_repr
   StaticMethodCallOption.TypeAssumptions.underlying
   StaticMethodCallOption.TypeAssumptions.get_EmptyCallOption
   StaticMethodCallOption.TypeAssumptions.set_EmptyCallOption
+  StaticMethodCallOption.TypeAssumptions.method_set
+  StaticMethodCallOption.TypeAssumptions.ptr_method_set
 
 structure HeaderCallOption [FfiSyntax] where
   mk ::
@@ -2559,11 +2755,15 @@ class HeaderCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq HeaderCallOption.ty HeaderCallOption.underlying
   get_HeaderAddr : ∀ (x : HeaderCallOption), go.IsGoStepPureDetTagged under (StructFieldGet HeaderCallOption.underlying go!"HeaderAddr") #x (Val #(x.HeaderAddr'))
   set_HeaderAddr : ∀ (x : HeaderCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HeaderCallOption.underlying go!"HeaderAddr") (PairV #x #y) (Val #(({ x with HeaderAddr' := y } : HeaderCallOption)))
+  method_set : go.MethodSetIs HeaderCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HeaderCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] HeaderCallOption.TypeAssumptions.type_repr
   HeaderCallOption.TypeAssumptions.underlying
   HeaderCallOption.TypeAssumptions.get_HeaderAddr
   HeaderCallOption.TypeAssumptions.set_HeaderAddr
+  HeaderCallOption.TypeAssumptions.method_set
+  HeaderCallOption.TypeAssumptions.ptr_method_set
 
 structure TrailerCallOption [FfiSyntax] where
   mk ::
@@ -2590,11 +2790,15 @@ class TrailerCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq TrailerCallOption.ty TrailerCallOption.underlying
   get_TrailerAddr : ∀ (x : TrailerCallOption), go.IsGoStepPureDetTagged under (StructFieldGet TrailerCallOption.underlying go!"TrailerAddr") #x (Val #(x.TrailerAddr'))
   set_TrailerAddr : ∀ (x : TrailerCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TrailerCallOption.underlying go!"TrailerAddr") (PairV #x #y) (Val #(({ x with TrailerAddr' := y } : TrailerCallOption)))
+  method_set : go.MethodSetIs TrailerCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TrailerCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] TrailerCallOption.TypeAssumptions.type_repr
   TrailerCallOption.TypeAssumptions.underlying
   TrailerCallOption.TypeAssumptions.get_TrailerAddr
   TrailerCallOption.TypeAssumptions.set_TrailerAddr
+  TrailerCallOption.TypeAssumptions.method_set
+  TrailerCallOption.TypeAssumptions.ptr_method_set
 
 axiom PeerCallOption : Type
 axiom PeerCallOption.zero_val : ZeroVal PeerCallOption
@@ -2604,10 +2808,14 @@ class PeerCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying PeerCallOption.underlying PeerCallOption
   underlying : go.UnderlyingDirectedEq PeerCallOption.ty PeerCallOption.underlying
   isUnderlying : go.IsUnderlying PeerCallOption.underlying PeerCallOption.underlying
+  method_set : go.MethodSetIs PeerCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PeerCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] PeerCallOption.TypeAssumptions.type_repr
   PeerCallOption.TypeAssumptions.underlying
   PeerCallOption.TypeAssumptions.isUnderlying
+  PeerCallOption.TypeAssumptions.method_set
+  PeerCallOption.TypeAssumptions.ptr_method_set
 
 structure FailFastCallOption [FfiSyntax] where
   mk ::
@@ -2634,11 +2842,15 @@ class FailFastCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq FailFastCallOption.ty FailFastCallOption.underlying
   get_FailFast : ∀ (x : FailFastCallOption), go.IsGoStepPureDetTagged under (StructFieldGet FailFastCallOption.underlying go!"FailFast") #x (Val #(x.FailFast'))
   set_FailFast : ∀ (x : FailFastCallOption) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FailFastCallOption.underlying go!"FailFast") (PairV #x #y) (Val #(({ x with FailFast' := y } : FailFastCallOption)))
+  method_set : go.MethodSetIs FailFastCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FailFastCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] FailFastCallOption.TypeAssumptions.type_repr
   FailFastCallOption.TypeAssumptions.underlying
   FailFastCallOption.TypeAssumptions.get_FailFast
   FailFastCallOption.TypeAssumptions.set_FailFast
+  FailFastCallOption.TypeAssumptions.method_set
+  FailFastCallOption.TypeAssumptions.ptr_method_set
 
 structure OnFinishCallOption [FfiSyntax] where
   mk ::
@@ -2665,11 +2877,15 @@ class OnFinishCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   underlying : go.UnderlyingDirectedEq OnFinishCallOption.ty OnFinishCallOption.underlying
   get_OnFinish : ∀ (x : OnFinishCallOption), go.IsGoStepPureDetTagged under (StructFieldGet OnFinishCallOption.underlying go!"OnFinish") #x (Val #(x.OnFinish'))
   set_OnFinish : ∀ (x : OnFinishCallOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet OnFinishCallOption.underlying go!"OnFinish") (PairV #x #y) (Val #(({ x with OnFinish' := y } : OnFinishCallOption)))
+  method_set : go.MethodSetIs OnFinishCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OnFinishCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] OnFinishCallOption.TypeAssumptions.type_repr
   OnFinishCallOption.TypeAssumptions.underlying
   OnFinishCallOption.TypeAssumptions.get_OnFinish
   OnFinishCallOption.TypeAssumptions.set_OnFinish
+  OnFinishCallOption.TypeAssumptions.method_set
+  OnFinishCallOption.TypeAssumptions.ptr_method_set
 
 structure MaxRecvMsgSizeCallOption [FfiSyntax] where
   mk ::
@@ -2696,11 +2912,15 @@ class MaxRecvMsgSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   underlying : go.UnderlyingDirectedEq MaxRecvMsgSizeCallOption.ty MaxRecvMsgSizeCallOption.underlying
   get_MaxRecvMsgSize : ∀ (x : MaxRecvMsgSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxRecvMsgSizeCallOption.underlying go!"MaxRecvMsgSize") #x (Val #(x.MaxRecvMsgSize'))
   set_MaxRecvMsgSize : ∀ (x : MaxRecvMsgSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxRecvMsgSizeCallOption.underlying go!"MaxRecvMsgSize") (PairV #x #y) (Val #(({ x with MaxRecvMsgSize' := y } : MaxRecvMsgSizeCallOption)))
+  method_set : go.MethodSetIs MaxRecvMsgSizeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxRecvMsgSizeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] MaxRecvMsgSizeCallOption.TypeAssumptions.type_repr
   MaxRecvMsgSizeCallOption.TypeAssumptions.underlying
   MaxRecvMsgSizeCallOption.TypeAssumptions.get_MaxRecvMsgSize
   MaxRecvMsgSizeCallOption.TypeAssumptions.set_MaxRecvMsgSize
+  MaxRecvMsgSizeCallOption.TypeAssumptions.method_set
+  MaxRecvMsgSizeCallOption.TypeAssumptions.ptr_method_set
 
 structure AuthorityOverrideCallOption [FfiSyntax] where
   mk ::
@@ -2727,11 +2947,15 @@ class AuthorityOverrideCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] 
   underlying : go.UnderlyingDirectedEq AuthorityOverrideCallOption.ty AuthorityOverrideCallOption.underlying
   get_Authority : ∀ (x : AuthorityOverrideCallOption), go.IsGoStepPureDetTagged under (StructFieldGet AuthorityOverrideCallOption.underlying go!"Authority") #x (Val #(x.Authority'))
   set_Authority : ∀ (x : AuthorityOverrideCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthorityOverrideCallOption.underlying go!"Authority") (PairV #x #y) (Val #(({ x with Authority' := y } : AuthorityOverrideCallOption)))
+  method_set : go.MethodSetIs AuthorityOverrideCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthorityOverrideCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] AuthorityOverrideCallOption.TypeAssumptions.type_repr
   AuthorityOverrideCallOption.TypeAssumptions.underlying
   AuthorityOverrideCallOption.TypeAssumptions.get_Authority
   AuthorityOverrideCallOption.TypeAssumptions.set_Authority
+  AuthorityOverrideCallOption.TypeAssumptions.method_set
+  AuthorityOverrideCallOption.TypeAssumptions.ptr_method_set
 
 structure MaxSendMsgSizeCallOption [FfiSyntax] where
   mk ::
@@ -2758,11 +2982,15 @@ class MaxSendMsgSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   underlying : go.UnderlyingDirectedEq MaxSendMsgSizeCallOption.ty MaxSendMsgSizeCallOption.underlying
   get_MaxSendMsgSize : ∀ (x : MaxSendMsgSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxSendMsgSizeCallOption.underlying go!"MaxSendMsgSize") #x (Val #(x.MaxSendMsgSize'))
   set_MaxSendMsgSize : ∀ (x : MaxSendMsgSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxSendMsgSizeCallOption.underlying go!"MaxSendMsgSize") (PairV #x #y) (Val #(({ x with MaxSendMsgSize' := y } : MaxSendMsgSizeCallOption)))
+  method_set : go.MethodSetIs MaxSendMsgSizeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxSendMsgSizeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] MaxSendMsgSizeCallOption.TypeAssumptions.type_repr
   MaxSendMsgSizeCallOption.TypeAssumptions.underlying
   MaxSendMsgSizeCallOption.TypeAssumptions.get_MaxSendMsgSize
   MaxSendMsgSizeCallOption.TypeAssumptions.set_MaxSendMsgSize
+  MaxSendMsgSizeCallOption.TypeAssumptions.method_set
+  MaxSendMsgSizeCallOption.TypeAssumptions.ptr_method_set
 
 axiom PerRPCCredsCallOption : Type
 axiom PerRPCCredsCallOption.zero_val : ZeroVal PerRPCCredsCallOption
@@ -2772,10 +3000,14 @@ class PerRPCCredsCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying PerRPCCredsCallOption.underlying PerRPCCredsCallOption
   underlying : go.UnderlyingDirectedEq PerRPCCredsCallOption.ty PerRPCCredsCallOption.underlying
   isUnderlying : go.IsUnderlying PerRPCCredsCallOption.underlying PerRPCCredsCallOption.underlying
+  method_set : go.MethodSetIs PerRPCCredsCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PerRPCCredsCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] PerRPCCredsCallOption.TypeAssumptions.type_repr
   PerRPCCredsCallOption.TypeAssumptions.underlying
   PerRPCCredsCallOption.TypeAssumptions.isUnderlying
+  PerRPCCredsCallOption.TypeAssumptions.method_set
+  PerRPCCredsCallOption.TypeAssumptions.ptr_method_set
 
 structure CompressorCallOption [FfiSyntax] where
   mk ::
@@ -2802,11 +3034,15 @@ class CompressorCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   underlying : go.UnderlyingDirectedEq CompressorCallOption.ty CompressorCallOption.underlying
   get_CompressorType : ∀ (x : CompressorCallOption), go.IsGoStepPureDetTagged under (StructFieldGet CompressorCallOption.underlying go!"CompressorType") #x (Val #(x.CompressorType'))
   set_CompressorType : ∀ (x : CompressorCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CompressorCallOption.underlying go!"CompressorType") (PairV #x #y) (Val #(({ x with CompressorType' := y } : CompressorCallOption)))
+  method_set : go.MethodSetIs CompressorCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompressorCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] CompressorCallOption.TypeAssumptions.type_repr
   CompressorCallOption.TypeAssumptions.underlying
   CompressorCallOption.TypeAssumptions.get_CompressorType
   CompressorCallOption.TypeAssumptions.set_CompressorType
+  CompressorCallOption.TypeAssumptions.method_set
+  CompressorCallOption.TypeAssumptions.ptr_method_set
 
 structure acceptCompressorsCallOption [FfiSyntax] where
   mk ::
@@ -2833,11 +3069,15 @@ class acceptCompressorsCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] 
   underlying : go.UnderlyingDirectedEq acceptCompressorsCallOption.ty acceptCompressorsCallOption.underlying
   get_names : ∀ (x : acceptCompressorsCallOption), go.IsGoStepPureDetTagged under (StructFieldGet acceptCompressorsCallOption.underlying go!"names") #x (Val #(x.names'))
   set_names : ∀ (x : acceptCompressorsCallOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet acceptCompressorsCallOption.underlying go!"names") (PairV #x #y) (Val #(({ x with names' := y } : acceptCompressorsCallOption)))
+  method_set : go.MethodSetIs acceptCompressorsCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType acceptCompressorsCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] acceptCompressorsCallOption.TypeAssumptions.type_repr
   acceptCompressorsCallOption.TypeAssumptions.underlying
   acceptCompressorsCallOption.TypeAssumptions.get_names
   acceptCompressorsCallOption.TypeAssumptions.set_names
+  acceptCompressorsCallOption.TypeAssumptions.method_set
+  acceptCompressorsCallOption.TypeAssumptions.ptr_method_set
 
 structure ContentSubtypeCallOption [FfiSyntax] where
   mk ::
@@ -2864,11 +3104,15 @@ class ContentSubtypeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   underlying : go.UnderlyingDirectedEq ContentSubtypeCallOption.ty ContentSubtypeCallOption.underlying
   get_ContentSubtype : ∀ (x : ContentSubtypeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet ContentSubtypeCallOption.underlying go!"ContentSubtype") #x (Val #(x.ContentSubtype'))
   set_ContentSubtype : ∀ (x : ContentSubtypeCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ContentSubtypeCallOption.underlying go!"ContentSubtype") (PairV #x #y) (Val #(({ x with ContentSubtype' := y } : ContentSubtypeCallOption)))
+  method_set : go.MethodSetIs ContentSubtypeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContentSubtypeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] ContentSubtypeCallOption.TypeAssumptions.type_repr
   ContentSubtypeCallOption.TypeAssumptions.underlying
   ContentSubtypeCallOption.TypeAssumptions.get_ContentSubtype
   ContentSubtypeCallOption.TypeAssumptions.set_ContentSubtype
+  ContentSubtypeCallOption.TypeAssumptions.method_set
+  ContentSubtypeCallOption.TypeAssumptions.ptr_method_set
 
 axiom ForceCodecCallOption : Type
 axiom ForceCodecCallOption.zero_val : ZeroVal ForceCodecCallOption
@@ -2878,10 +3122,14 @@ class ForceCodecCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying ForceCodecCallOption.underlying ForceCodecCallOption
   underlying : go.UnderlyingDirectedEq ForceCodecCallOption.ty ForceCodecCallOption.underlying
   isUnderlying : go.IsUnderlying ForceCodecCallOption.underlying ForceCodecCallOption.underlying
+  method_set : go.MethodSetIs ForceCodecCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ForceCodecCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] ForceCodecCallOption.TypeAssumptions.type_repr
   ForceCodecCallOption.TypeAssumptions.underlying
   ForceCodecCallOption.TypeAssumptions.isUnderlying
+  ForceCodecCallOption.TypeAssumptions.method_set
+  ForceCodecCallOption.TypeAssumptions.ptr_method_set
 
 axiom ForceCodecV2CallOption : Type
 axiom ForceCodecV2CallOption.zero_val : ZeroVal ForceCodecV2CallOption
@@ -2891,10 +3139,14 @@ class ForceCodecV2CallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   type_repr : go.TypeReprUnderlying ForceCodecV2CallOption.underlying ForceCodecV2CallOption
   underlying : go.UnderlyingDirectedEq ForceCodecV2CallOption.ty ForceCodecV2CallOption.underlying
   isUnderlying : go.IsUnderlying ForceCodecV2CallOption.underlying ForceCodecV2CallOption.underlying
+  method_set : go.MethodSetIs ForceCodecV2CallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ForceCodecV2CallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] ForceCodecV2CallOption.TypeAssumptions.type_repr
   ForceCodecV2CallOption.TypeAssumptions.underlying
   ForceCodecV2CallOption.TypeAssumptions.isUnderlying
+  ForceCodecV2CallOption.TypeAssumptions.method_set
+  ForceCodecV2CallOption.TypeAssumptions.ptr_method_set
 
 structure CustomCodecCallOption [FfiSyntax] where
   mk ::
@@ -2921,11 +3173,15 @@ class CustomCodecCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq CustomCodecCallOption.ty CustomCodecCallOption.underlying
   get_Codec : ∀ (x : CustomCodecCallOption), go.IsGoStepPureDetTagged under (StructFieldGet CustomCodecCallOption.underlying go!"Codec") #x (Val #(x.Codec'))
   set_Codec : ∀ (x : CustomCodecCallOption) (y : Codec), go.IsGoStepPureDetTagged under (StructFieldSet CustomCodecCallOption.underlying go!"Codec") (PairV #x #y) (Val #(({ x with Codec' := y } : CustomCodecCallOption)))
+  method_set : go.MethodSetIs CustomCodecCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CustomCodecCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] CustomCodecCallOption.TypeAssumptions.type_repr
   CustomCodecCallOption.TypeAssumptions.underlying
   CustomCodecCallOption.TypeAssumptions.get_Codec
   CustomCodecCallOption.TypeAssumptions.set_Codec
+  CustomCodecCallOption.TypeAssumptions.method_set
+  CustomCodecCallOption.TypeAssumptions.ptr_method_set
 
 structure MaxRetryRPCBufferSizeCallOption [FfiSyntax] where
   mk ::
@@ -2952,11 +3208,15 @@ class MaxRetryRPCBufferSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalConte
   underlying : go.UnderlyingDirectedEq MaxRetryRPCBufferSizeCallOption.ty MaxRetryRPCBufferSizeCallOption.underlying
   get_MaxRetryRPCBufferSize : ∀ (x : MaxRetryRPCBufferSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxRetryRPCBufferSizeCallOption.underlying go!"MaxRetryRPCBufferSize") #x (Val #(x.MaxRetryRPCBufferSize'))
   set_MaxRetryRPCBufferSize : ∀ (x : MaxRetryRPCBufferSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxRetryRPCBufferSizeCallOption.underlying go!"MaxRetryRPCBufferSize") (PairV #x #y) (Val #(({ x with MaxRetryRPCBufferSize' := y } : MaxRetryRPCBufferSizeCallOption)))
+  method_set : go.MethodSetIs MaxRetryRPCBufferSizeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxRetryRPCBufferSizeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] MaxRetryRPCBufferSizeCallOption.TypeAssumptions.type_repr
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.underlying
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.get_MaxRetryRPCBufferSize
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.set_MaxRetryRPCBufferSize
+  MaxRetryRPCBufferSizeCallOption.TypeAssumptions.method_set
+  MaxRetryRPCBufferSizeCallOption.TypeAssumptions.ptr_method_set
 
 abbrev payloadFormat [FfiSyntax] : Type := w8
 
@@ -2965,8 +3225,12 @@ abbrev payloadFormat [FfiSyntax] : Type := w8
 
 class payloadFormat.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq payloadFormat.ty payloadFormat.underlying
+  method_set : go.MethodSetIs payloadFormat.ty [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadFormat.ty) [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] payloadFormat.TypeAssumptions.underlying
+  payloadFormat.TypeAssumptions.method_set
+  payloadFormat.TypeAssumptions.ptr_method_set
 
 axiom streamReader : Type
 axiom streamReader.zero_val : ZeroVal streamReader
@@ -2976,10 +3240,14 @@ class streamReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying streamReader.underlying streamReader
   underlying : go.UnderlyingDirectedEq streamReader.ty streamReader.underlying
   isUnderlying : go.IsUnderlying streamReader.underlying streamReader.underlying
+  method_set : go.MethodSetIs streamReader.ty [(go!"Read", none), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamReader.ty) []
 
 attribute [instance] streamReader.TypeAssumptions.type_repr
   streamReader.TypeAssumptions.underlying
   streamReader.TypeAssumptions.isUnderlying
+  streamReader.TypeAssumptions.method_set
+  streamReader.TypeAssumptions.ptr_method_set
 
 structure noCopy [FfiSyntax] where
   mk ::
@@ -3003,9 +3271,13 @@ instance equals_unfold_noCopy [FfiSyntax] [GoGlobalContext] :
 class noCopy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noCopy.underlying noCopy
   underlying : go.UnderlyingDirectedEq noCopy.ty noCopy.underlying
+  method_set : go.MethodSetIs noCopy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noCopy.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noCopy.TypeAssumptions.type_repr
   noCopy.TypeAssumptions.underlying
+  noCopy.TypeAssumptions.method_set
+  noCopy.TypeAssumptions.ptr_method_set
 
 axiom parser : Type
 axiom parser.zero_val : ZeroVal parser
@@ -3015,10 +3287,14 @@ class parser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying parser.underlying parser
   underlying : go.UnderlyingDirectedEq parser.ty parser.underlying
   isUnderlying : go.IsUnderlying parser.underlying parser.underlying
+  method_set : go.MethodSetIs parser.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parser.ty) [(go!"google.golang.org/grpc.recvMsg", none)]
 
 attribute [instance] parser.TypeAssumptions.type_repr
   parser.TypeAssumptions.underlying
   parser.TypeAssumptions.isUnderlying
+  parser.TypeAssumptions.method_set
+  parser.TypeAssumptions.ptr_method_set
 
 axiom payloadInfo : Type
 axiom payloadInfo.zero_val : ZeroVal payloadInfo
@@ -3028,10 +3304,14 @@ class payloadInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying payloadInfo.underlying payloadInfo
   underlying : go.UnderlyingDirectedEq payloadInfo.ty payloadInfo.underlying
   isUnderlying : go.IsUnderlying payloadInfo.underlying payloadInfo.underlying
+  method_set : go.MethodSetIs payloadInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadInfo.ty) [(go!"google.golang.org/grpc.free", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] payloadInfo.TypeAssumptions.type_repr
   payloadInfo.TypeAssumptions.underlying
   payloadInfo.TypeAssumptions.isUnderlying
+  payloadInfo.TypeAssumptions.method_set
+  payloadInfo.TypeAssumptions.ptr_method_set
 
 abbrev recvCompressor [FfiSyntax] : Type := GoInterface
 
@@ -3040,8 +3320,12 @@ abbrev recvCompressor [FfiSyntax] : Type := GoInterface
 
 class recvCompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq recvCompressor.ty recvCompressor.underlying
+  method_set : go.MethodSetIs recvCompressor.ty [(go!"RecvCompress", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recvCompressor.ty) []
 
 attribute [instance] recvCompressor.TypeAssumptions.underlying
+  recvCompressor.TypeAssumptions.method_set
+  recvCompressor.TypeAssumptions.ptr_method_set
 
 axiom compressorInfo : Type
 axiom compressorInfo.zero_val : ZeroVal compressorInfo
@@ -3051,10 +3335,14 @@ class compressorInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying compressorInfo.underlying compressorInfo
   underlying : go.UnderlyingDirectedEq compressorInfo.ty compressorInfo.underlying
   isUnderlying : go.IsUnderlying compressorInfo.underlying compressorInfo.underlying
+  method_set : go.MethodSetIs compressorInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType compressorInfo.ty) []
 
 attribute [instance] compressorInfo.TypeAssumptions.type_repr
   compressorInfo.TypeAssumptions.underlying
   compressorInfo.TypeAssumptions.isUnderlying
+  compressorInfo.TypeAssumptions.method_set
+  compressorInfo.TypeAssumptions.ptr_method_set
 
 structure rpcInfo [FfiSyntax] where
   mk ::
@@ -3085,6 +3373,8 @@ class rpcInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_failfast : ∀ (x : rpcInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet rpcInfo.underlying go!"failfast") (PairV #x #y) (Val #(({ x with failfast' := y } : rpcInfo)))
   get_preloaderInfo : ∀ (x : rpcInfo), go.IsGoStepPureDetTagged under (StructFieldGet rpcInfo.underlying go!"preloaderInfo") #x (Val #(x.preloaderInfo'))
   set_preloaderInfo : ∀ (x : rpcInfo) (y : compressorInfo), go.IsGoStepPureDetTagged under (StructFieldSet rpcInfo.underlying go!"preloaderInfo") (PairV #x #y) (Val #(({ x with preloaderInfo' := y } : rpcInfo)))
+  method_set : go.MethodSetIs rpcInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rpcInfo.ty) []
 
 attribute [instance] rpcInfo.TypeAssumptions.type_repr
   rpcInfo.TypeAssumptions.underlying
@@ -3092,6 +3382,8 @@ attribute [instance] rpcInfo.TypeAssumptions.type_repr
   rpcInfo.TypeAssumptions.set_failfast
   rpcInfo.TypeAssumptions.get_preloaderInfo
   rpcInfo.TypeAssumptions.set_preloaderInfo
+  rpcInfo.TypeAssumptions.method_set
+  rpcInfo.TypeAssumptions.ptr_method_set
 
 structure rpcInfoContextKey [FfiSyntax] where
   mk ::
@@ -3115,9 +3407,13 @@ instance equals_unfold_rpcInfoContextKey [FfiSyntax] [GoGlobalContext] :
 class rpcInfoContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rpcInfoContextKey.underlying rpcInfoContextKey
   underlying : go.UnderlyingDirectedEq rpcInfoContextKey.ty rpcInfoContextKey.underlying
+  method_set : go.MethodSetIs rpcInfoContextKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rpcInfoContextKey.ty) []
 
 attribute [instance] rpcInfoContextKey.TypeAssumptions.type_repr
   rpcInfoContextKey.TypeAssumptions.underlying
+  rpcInfoContextKey.TypeAssumptions.method_set
+  rpcInfoContextKey.TypeAssumptions.ptr_method_set
 
 abbrev MethodHandler [FfiSyntax] : Type := GoFunc
 
@@ -3126,8 +3422,12 @@ abbrev MethodHandler [FfiSyntax] : Type := GoFunc
 
 class MethodHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MethodHandler.ty MethodHandler.underlying
+  method_set : go.MethodSetIs MethodHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MethodHandler.ty) []
 
 attribute [instance] MethodHandler.TypeAssumptions.underlying
+  MethodHandler.TypeAssumptions.method_set
+  MethodHandler.TypeAssumptions.ptr_method_set
 
 structure MethodDesc [FfiSyntax] where
   mk ::
@@ -3158,6 +3458,8 @@ class MethodDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_MethodName : ∀ (x : MethodDesc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet MethodDesc.underlying go!"MethodName") (PairV #x #y) (Val #(({ x with MethodName' := y } : MethodDesc)))
   get_Handler : ∀ (x : MethodDesc), go.IsGoStepPureDetTagged under (StructFieldGet MethodDesc.underlying go!"Handler") #x (Val #(x.Handler'))
   set_Handler : ∀ (x : MethodDesc) (y : MethodHandler), go.IsGoStepPureDetTagged under (StructFieldSet MethodDesc.underlying go!"Handler") (PairV #x #y) (Val #(({ x with Handler' := y } : MethodDesc)))
+  method_set : go.MethodSetIs MethodDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MethodDesc.ty) []
 
 attribute [instance] MethodDesc.TypeAssumptions.type_repr
   MethodDesc.TypeAssumptions.underlying
@@ -3165,6 +3467,8 @@ attribute [instance] MethodDesc.TypeAssumptions.type_repr
   MethodDesc.TypeAssumptions.set_MethodName
   MethodDesc.TypeAssumptions.get_Handler
   MethodDesc.TypeAssumptions.set_Handler
+  MethodDesc.TypeAssumptions.method_set
+  MethodDesc.TypeAssumptions.ptr_method_set
 
 structure ServiceDesc [FfiSyntax] where
   mk ::
@@ -3207,6 +3511,8 @@ class ServiceDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Streams : ∀ (x : ServiceDesc) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceDesc.underlying go!"Streams") (PairV #x #y) (Val #(({ x with Streams' := y } : ServiceDesc)))
   get_Metadata : ∀ (x : ServiceDesc), go.IsGoStepPureDetTagged under (StructFieldGet ServiceDesc.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : ServiceDesc) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet ServiceDesc.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : ServiceDesc)))
+  method_set : go.MethodSetIs ServiceDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceDesc.ty) []
 
 attribute [instance] ServiceDesc.TypeAssumptions.type_repr
   ServiceDesc.TypeAssumptions.underlying
@@ -3220,6 +3526,8 @@ attribute [instance] ServiceDesc.TypeAssumptions.type_repr
   ServiceDesc.TypeAssumptions.set_Streams
   ServiceDesc.TypeAssumptions.get_Metadata
   ServiceDesc.TypeAssumptions.set_Metadata
+  ServiceDesc.TypeAssumptions.method_set
+  ServiceDesc.TypeAssumptions.ptr_method_set
 
 structure serviceInfo [FfiSyntax] where
   mk ::
@@ -3254,6 +3562,8 @@ class serviceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_streams : ∀ (x : serviceInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serviceInfo.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : serviceInfo)))
   get_mdata : ∀ (x : serviceInfo), go.IsGoStepPureDetTagged under (StructFieldGet serviceInfo.underlying go!"mdata") #x (Val #(x.mdata'))
   set_mdata : ∀ (x : serviceInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet serviceInfo.underlying go!"mdata") (PairV #x #y) (Val #(({ x with mdata' := y } : serviceInfo)))
+  method_set : go.MethodSetIs serviceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serviceInfo.ty) []
 
 attribute [instance] serviceInfo.TypeAssumptions.type_repr
   serviceInfo.TypeAssumptions.underlying
@@ -3263,6 +3573,8 @@ attribute [instance] serviceInfo.TypeAssumptions.type_repr
   serviceInfo.TypeAssumptions.set_streams
   serviceInfo.TypeAssumptions.get_mdata
   serviceInfo.TypeAssumptions.set_mdata
+  serviceInfo.TypeAssumptions.method_set
+  serviceInfo.TypeAssumptions.ptr_method_set
 
 axiom Server : Type
 axiom Server.zero_val : ZeroVal Server
@@ -3272,10 +3584,14 @@ class Server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
+  method_set : go.MethodSetIs Server.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", none), (go!"ServeHTTP", none), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", none), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", none), (go!"google.golang.org/grpc.handleRawConn", none), (go!"google.golang.org/grpc.handleStream", none), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initServerWorkers", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.newHTTP2Transport", none), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", none), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", none), (go!"google.golang.org/grpc.serveStreams", none), (go!"google.golang.org/grpc.serverWorker", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
+  Server.TypeAssumptions.method_set
+  Server.TypeAssumptions.ptr_method_set
 
 axiom serverOptions : Type
 axiom serverOptions.zero_val : ZeroVal serverOptions
@@ -3285,20 +3601,28 @@ class serverOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying serverOptions.underlying serverOptions
   underlying : go.UnderlyingDirectedEq serverOptions.ty serverOptions.underlying
   isUnderlying : go.IsUnderlying serverOptions.underlying serverOptions.underlying
+  method_set : go.MethodSetIs serverOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverOptions.ty) []
 
 attribute [instance] serverOptions.TypeAssumptions.type_repr
   serverOptions.TypeAssumptions.underlying
   serverOptions.TypeAssumptions.isUnderlying
+  serverOptions.TypeAssumptions.method_set
+  serverOptions.TypeAssumptions.ptr_method_set
 
 abbrev ServerOption [FfiSyntax] : Type := GoInterface
 
 @[reducible] def ServerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc.apply" (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false []))])
 
 class ServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerOption.ty ServerOption.underlying
+  method_set : go.MethodSetIs ServerOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerOption.ty) []
 
 attribute [instance] ServerOption.TypeAssumptions.underlying
+  ServerOption.TypeAssumptions.method_set
+  ServerOption.TypeAssumptions.ptr_method_set
 
 structure EmptyServerOption [FfiSyntax] where
   mk ::
@@ -3322,9 +3646,13 @@ instance equals_unfold_EmptyServerOption [FfiSyntax] [GoGlobalContext] :
 class EmptyServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyServerOption.underlying EmptyServerOption
   underlying : go.UnderlyingDirectedEq EmptyServerOption.ty EmptyServerOption.underlying
+  method_set : go.MethodSetIs EmptyServerOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] EmptyServerOption.TypeAssumptions.type_repr
   EmptyServerOption.TypeAssumptions.underlying
+  EmptyServerOption.TypeAssumptions.method_set
+  EmptyServerOption.TypeAssumptions.ptr_method_set
 
 structure funcServerOption [FfiSyntax] where
   mk ::
@@ -3351,11 +3679,15 @@ class funcServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq funcServerOption.ty funcServerOption.underlying
   get_f : ∀ (x : funcServerOption), go.IsGoStepPureDetTagged under (StructFieldGet funcServerOption.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : funcServerOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcServerOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcServerOption)))
+  method_set : go.MethodSetIs funcServerOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType funcServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] funcServerOption.TypeAssumptions.type_repr
   funcServerOption.TypeAssumptions.underlying
   funcServerOption.TypeAssumptions.get_f
   funcServerOption.TypeAssumptions.set_f
+  funcServerOption.TypeAssumptions.method_set
+  funcServerOption.TypeAssumptions.ptr_method_set
 
 structure joinServerOption [FfiSyntax] where
   mk ::
@@ -3382,11 +3714,15 @@ class joinServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq joinServerOption.ty joinServerOption.underlying
   get_opts : ∀ (x : joinServerOption), go.IsGoStepPureDetTagged under (StructFieldGet joinServerOption.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : joinServerOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet joinServerOption.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : joinServerOption)))
+  method_set : go.MethodSetIs joinServerOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType joinServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] joinServerOption.TypeAssumptions.type_repr
   joinServerOption.TypeAssumptions.underlying
   joinServerOption.TypeAssumptions.get_opts
   joinServerOption.TypeAssumptions.set_opts
+  joinServerOption.TypeAssumptions.method_set
+  joinServerOption.TypeAssumptions.ptr_method_set
 
 structure MaxHeaderListSizeServerOption [FfiSyntax] where
   mk ::
@@ -3413,11 +3749,15 @@ class MaxHeaderListSizeServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext
   underlying : go.UnderlyingDirectedEq MaxHeaderListSizeServerOption.ty MaxHeaderListSizeServerOption.underlying
   get_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeServerOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxHeaderListSizeServerOption.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
   set_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeServerOption) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MaxHeaderListSizeServerOption.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : MaxHeaderListSizeServerOption)))
+  method_set : go.MethodSetIs MaxHeaderListSizeServerOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxHeaderListSizeServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] MaxHeaderListSizeServerOption.TypeAssumptions.type_repr
   MaxHeaderListSizeServerOption.TypeAssumptions.underlying
   MaxHeaderListSizeServerOption.TypeAssumptions.get_MaxHeaderListSize
   MaxHeaderListSizeServerOption.TypeAssumptions.set_MaxHeaderListSize
+  MaxHeaderListSizeServerOption.TypeAssumptions.method_set
+  MaxHeaderListSizeServerOption.TypeAssumptions.ptr_method_set
 
 abbrev ServiceRegistrar [FfiSyntax] : Type := GoInterface
 
@@ -3426,8 +3766,12 @@ abbrev ServiceRegistrar [FfiSyntax] : Type := GoInterface
 
 class ServiceRegistrar.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServiceRegistrar.ty ServiceRegistrar.underlying
+  method_set : go.MethodSetIs ServiceRegistrar.ty [(go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceRegistrar.ty) []
 
 attribute [instance] ServiceRegistrar.TypeAssumptions.underlying
+  ServiceRegistrar.TypeAssumptions.method_set
+  ServiceRegistrar.TypeAssumptions.ptr_method_set
 
 structure MethodInfo [FfiSyntax] where
   mk ::
@@ -3462,6 +3806,8 @@ class MethodInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_IsClientStream : ∀ (x : MethodInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MethodInfo.underlying go!"IsClientStream") (PairV #x #y) (Val #(({ x with IsClientStream' := y } : MethodInfo)))
   get_IsServerStream : ∀ (x : MethodInfo), go.IsGoStepPureDetTagged under (StructFieldGet MethodInfo.underlying go!"IsServerStream") #x (Val #(x.IsServerStream'))
   set_IsServerStream : ∀ (x : MethodInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MethodInfo.underlying go!"IsServerStream") (PairV #x #y) (Val #(({ x with IsServerStream' := y } : MethodInfo)))
+  method_set : go.MethodSetIs MethodInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MethodInfo.ty) []
 
 attribute [instance] MethodInfo.TypeAssumptions.type_repr
   MethodInfo.TypeAssumptions.underlying
@@ -3471,6 +3817,8 @@ attribute [instance] MethodInfo.TypeAssumptions.type_repr
   MethodInfo.TypeAssumptions.set_IsClientStream
   MethodInfo.TypeAssumptions.get_IsServerStream
   MethodInfo.TypeAssumptions.set_IsServerStream
+  MethodInfo.TypeAssumptions.method_set
+  MethodInfo.TypeAssumptions.ptr_method_set
 
 structure ServiceInfo [FfiSyntax] where
   mk ::
@@ -3501,6 +3849,8 @@ class ServiceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Methods : ∀ (x : ServiceInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceInfo.underlying go!"Methods") (PairV #x #y) (Val #(({ x with Methods' := y } : ServiceInfo)))
   get_Metadata : ∀ (x : ServiceInfo), go.IsGoStepPureDetTagged under (StructFieldGet ServiceInfo.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : ServiceInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet ServiceInfo.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : ServiceInfo)))
+  method_set : go.MethodSetIs ServiceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceInfo.ty) []
 
 attribute [instance] ServiceInfo.TypeAssumptions.type_repr
   ServiceInfo.TypeAssumptions.underlying
@@ -3508,6 +3858,8 @@ attribute [instance] ServiceInfo.TypeAssumptions.type_repr
   ServiceInfo.TypeAssumptions.set_Methods
   ServiceInfo.TypeAssumptions.get_Metadata
   ServiceInfo.TypeAssumptions.set_Metadata
+  ServiceInfo.TypeAssumptions.method_set
+  ServiceInfo.TypeAssumptions.ptr_method_set
 
 axiom listenSocket : Type
 axiom listenSocket.zero_val : ZeroVal listenSocket
@@ -3517,10 +3869,14 @@ class listenSocket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying listenSocket.underlying listenSocket
   underlying : go.UnderlyingDirectedEq listenSocket.ty listenSocket.underlying
   isUnderlying : go.IsUnderlying listenSocket.underlying listenSocket.underlying
+  method_set : go.MethodSetIs listenSocket.ty [(go!"Accept", none), (go!"Addr", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listenSocket.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] listenSocket.TypeAssumptions.type_repr
   listenSocket.TypeAssumptions.underlying
   listenSocket.TypeAssumptions.isUnderlying
+  listenSocket.TypeAssumptions.method_set
+  listenSocket.TypeAssumptions.ptr_method_set
 
 structure streamKey [FfiSyntax] where
   mk ::
@@ -3544,9 +3900,13 @@ instance equals_unfold_streamKey [FfiSyntax] [GoGlobalContext] :
 class streamKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamKey.underlying streamKey
   underlying : go.UnderlyingDirectedEq streamKey.ty streamKey.underlying
+  method_set : go.MethodSetIs streamKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamKey.ty) []
 
 attribute [instance] streamKey.TypeAssumptions.type_repr
   streamKey.TypeAssumptions.underlying
+  streamKey.TypeAssumptions.method_set
+  streamKey.TypeAssumptions.ptr_method_set
 
 abbrev ServerTransportStream [FfiSyntax] : Type := GoInterface
 
@@ -3555,8 +3915,12 @@ abbrev ServerTransportStream [FfiSyntax] : Type := GoInterface
 
 class ServerTransportStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerTransportStream.ty ServerTransportStream.underlying
+  method_set : go.MethodSetIs ServerTransportStream.ty [(go!"Method", (some (go.signature.Signature [] false [go.string]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerTransportStream.ty) []
 
 attribute [instance] ServerTransportStream.TypeAssumptions.underlying
+  ServerTransportStream.TypeAssumptions.method_set
+  ServerTransportStream.TypeAssumptions.ptr_method_set
 
 structure serverKey [FfiSyntax] where
   mk ::
@@ -3580,9 +3944,13 @@ instance equals_unfold_serverKey [FfiSyntax] [GoGlobalContext] :
 class serverKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverKey.underlying serverKey
   underlying : go.UnderlyingDirectedEq serverKey.ty serverKey.underlying
+  method_set : go.MethodSetIs serverKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverKey.ty) []
 
 attribute [instance] serverKey.TypeAssumptions.type_repr
   serverKey.TypeAssumptions.underlying
+  serverKey.TypeAssumptions.method_set
+  serverKey.TypeAssumptions.ptr_method_set
 
 axiom atomicSemaphore : Type
 axiom atomicSemaphore.zero_val : ZeroVal atomicSemaphore
@@ -3592,10 +3960,14 @@ class atomicSemaphore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying atomicSemaphore.underlying atomicSemaphore
   underlying : go.UnderlyingDirectedEq atomicSemaphore.ty atomicSemaphore.underlying
   isUnderlying : go.IsUnderlying atomicSemaphore.underlying atomicSemaphore.underlying
+  method_set : go.MethodSetIs atomicSemaphore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType atomicSemaphore.ty) [(go!"google.golang.org/grpc.acquire", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.release", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] atomicSemaphore.TypeAssumptions.type_repr
   atomicSemaphore.TypeAssumptions.underlying
   atomicSemaphore.TypeAssumptions.isUnderlying
+  atomicSemaphore.TypeAssumptions.method_set
+  atomicSemaphore.TypeAssumptions.ptr_method_set
 
 axiom ServiceConfig : Type
 axiom ServiceConfig.zero_val : ZeroVal ServiceConfig
@@ -3605,10 +3977,14 @@ class ServiceConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ServiceConfig.underlying ServiceConfig
   underlying : go.UnderlyingDirectedEq ServiceConfig.ty ServiceConfig.underlying
   isUnderlying : go.IsUnderlying ServiceConfig.underlying ServiceConfig.underlying
+  method_set : go.MethodSetIs ServiceConfig.ty [(go!"google.golang.org/grpc/serviceconfig.isServiceConfig", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceConfig.ty) [(go!"google.golang.org/grpc/serviceconfig.isServiceConfig", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ServiceConfig.TypeAssumptions.type_repr
   ServiceConfig.TypeAssumptions.underlying
   ServiceConfig.TypeAssumptions.isUnderlying
+  ServiceConfig.TypeAssumptions.method_set
+  ServiceConfig.TypeAssumptions.ptr_method_set
 
 structure healthCheckConfig [FfiSyntax] where
   mk ::
@@ -3635,11 +4011,15 @@ class healthCheckConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq healthCheckConfig.ty healthCheckConfig.underlying
   get_ServiceName : ∀ (x : healthCheckConfig), go.IsGoStepPureDetTagged under (StructFieldGet healthCheckConfig.underlying go!"ServiceName") #x (Val #(x.ServiceName'))
   set_ServiceName : ∀ (x : healthCheckConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet healthCheckConfig.underlying go!"ServiceName") (PairV #x #y) (Val #(({ x with ServiceName' := y } : healthCheckConfig)))
+  method_set : go.MethodSetIs healthCheckConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthCheckConfig.ty) []
 
 attribute [instance] healthCheckConfig.TypeAssumptions.type_repr
   healthCheckConfig.TypeAssumptions.underlying
   healthCheckConfig.TypeAssumptions.get_ServiceName
   healthCheckConfig.TypeAssumptions.set_ServiceName
+  healthCheckConfig.TypeAssumptions.method_set
+  healthCheckConfig.TypeAssumptions.ptr_method_set
 
 axiom jsonRetryPolicy : Type
 axiom jsonRetryPolicy.zero_val : ZeroVal jsonRetryPolicy
@@ -3649,10 +4029,14 @@ class jsonRetryPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying jsonRetryPolicy.underlying jsonRetryPolicy
   underlying : go.UnderlyingDirectedEq jsonRetryPolicy.ty jsonRetryPolicy.underlying
   isUnderlying : go.IsUnderlying jsonRetryPolicy.underlying jsonRetryPolicy.underlying
+  method_set : go.MethodSetIs jsonRetryPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonRetryPolicy.ty) []
 
 attribute [instance] jsonRetryPolicy.TypeAssumptions.type_repr
   jsonRetryPolicy.TypeAssumptions.underlying
   jsonRetryPolicy.TypeAssumptions.isUnderlying
+  jsonRetryPolicy.TypeAssumptions.method_set
+  jsonRetryPolicy.TypeAssumptions.ptr_method_set
 
 structure retryThrottlingPolicy [FfiSyntax] where
   mk ::
@@ -3683,6 +4067,8 @@ class retryThrottlingPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   set_MaxTokens : ∀ (x : retryThrottlingPolicy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet retryThrottlingPolicy.underlying go!"MaxTokens") (PairV #x #y) (Val #(({ x with MaxTokens' := y } : retryThrottlingPolicy)))
   get_TokenRatio : ∀ (x : retryThrottlingPolicy), go.IsGoStepPureDetTagged under (StructFieldGet retryThrottlingPolicy.underlying go!"TokenRatio") #x (Val #(x.TokenRatio'))
   set_TokenRatio : ∀ (x : retryThrottlingPolicy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet retryThrottlingPolicy.underlying go!"TokenRatio") (PairV #x #y) (Val #(({ x with TokenRatio' := y } : retryThrottlingPolicy)))
+  method_set : go.MethodSetIs retryThrottlingPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryThrottlingPolicy.ty) []
 
 attribute [instance] retryThrottlingPolicy.TypeAssumptions.type_repr
   retryThrottlingPolicy.TypeAssumptions.underlying
@@ -3690,6 +4076,8 @@ attribute [instance] retryThrottlingPolicy.TypeAssumptions.type_repr
   retryThrottlingPolicy.TypeAssumptions.set_MaxTokens
   retryThrottlingPolicy.TypeAssumptions.get_TokenRatio
   retryThrottlingPolicy.TypeAssumptions.set_TokenRatio
+  retryThrottlingPolicy.TypeAssumptions.method_set
+  retryThrottlingPolicy.TypeAssumptions.ptr_method_set
 
 structure jsonName [FfiSyntax] where
   mk ::
@@ -3720,6 +4108,8 @@ class jsonName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_Service : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Service") (PairV #x #y) (Val #(({ x with Service' := y } : jsonName)))
   get_Method : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Method") #x (Val #(x.Method'))
   set_Method : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : jsonName)))
+  method_set : go.MethodSetIs jsonName.ty [(go!"google.golang.org/grpc.generatePath", (some (go.signature.Signature [] false [go.string, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonName.ty) [(go!"google.golang.org/grpc.generatePath", (some (go.signature.Signature [] false [go.string, go.error])))]
 
 attribute [instance] jsonName.TypeAssumptions.type_repr
   jsonName.TypeAssumptions.underlying
@@ -3727,6 +4117,8 @@ attribute [instance] jsonName.TypeAssumptions.type_repr
   jsonName.TypeAssumptions.set_Service
   jsonName.TypeAssumptions.get_Method
   jsonName.TypeAssumptions.set_Method
+  jsonName.TypeAssumptions.method_set
+  jsonName.TypeAssumptions.ptr_method_set
 
 axiom jsonMC : Type
 axiom jsonMC.zero_val : ZeroVal jsonMC
@@ -3736,10 +4128,14 @@ class jsonMC.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying jsonMC.underlying jsonMC
   underlying : go.UnderlyingDirectedEq jsonMC.ty jsonMC.underlying
   isUnderlying : go.IsUnderlying jsonMC.underlying jsonMC.underlying
+  method_set : go.MethodSetIs jsonMC.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonMC.ty) []
 
 attribute [instance] jsonMC.TypeAssumptions.type_repr
   jsonMC.TypeAssumptions.underlying
   jsonMC.TypeAssumptions.isUnderlying
+  jsonMC.TypeAssumptions.method_set
+  jsonMC.TypeAssumptions.ptr_method_set
 
 axiom jsonSC : Type
 axiom jsonSC.zero_val : ZeroVal jsonSC
@@ -3749,10 +4145,14 @@ class jsonSC.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying jsonSC.underlying jsonSC
   underlying : go.UnderlyingDirectedEq jsonSC.ty jsonSC.underlying
   isUnderlying : go.IsUnderlying jsonSC.underlying jsonSC.underlying
+  method_set : go.MethodSetIs jsonSC.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonSC.ty) []
 
 attribute [instance] jsonSC.TypeAssumptions.type_repr
   jsonSC.TypeAssumptions.underlying
   jsonSC.TypeAssumptions.isUnderlying
+  jsonSC.TypeAssumptions.method_set
+  jsonSC.TypeAssumptions.ptr_method_set
 
 abbrev StreamHandler [FfiSyntax] : Type := GoFunc
 
@@ -3761,8 +4161,12 @@ abbrev StreamHandler [FfiSyntax] : Type := GoFunc
 
 class StreamHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StreamHandler.ty StreamHandler.underlying
+  method_set : go.MethodSetIs StreamHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamHandler.ty) []
 
 attribute [instance] StreamHandler.TypeAssumptions.underlying
+  StreamHandler.TypeAssumptions.method_set
+  StreamHandler.TypeAssumptions.ptr_method_set
 
 structure StreamDesc [FfiSyntax] where
   mk ::
@@ -3801,6 +4205,8 @@ class StreamDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_ServerStreams : ∀ (x : StreamDesc) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamDesc.underlying go!"ServerStreams") (PairV #x #y) (Val #(({ x with ServerStreams' := y } : StreamDesc)))
   get_ClientStreams : ∀ (x : StreamDesc), go.IsGoStepPureDetTagged under (StructFieldGet StreamDesc.underlying go!"ClientStreams") #x (Val #(x.ClientStreams'))
   set_ClientStreams : ∀ (x : StreamDesc) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamDesc.underlying go!"ClientStreams") (PairV #x #y) (Val #(({ x with ClientStreams' := y } : StreamDesc)))
+  method_set : go.MethodSetIs StreamDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamDesc.ty) []
 
 attribute [instance] StreamDesc.TypeAssumptions.type_repr
   StreamDesc.TypeAssumptions.underlying
@@ -3812,6 +4218,8 @@ attribute [instance] StreamDesc.TypeAssumptions.type_repr
   StreamDesc.TypeAssumptions.set_ServerStreams
   StreamDesc.TypeAssumptions.get_ClientStreams
   StreamDesc.TypeAssumptions.set_ClientStreams
+  StreamDesc.TypeAssumptions.method_set
+  StreamDesc.TypeAssumptions.ptr_method_set
 
 abbrev Stream [FfiSyntax] : Type := GoInterface
 
@@ -3820,8 +4228,12 @@ abbrev Stream [FfiSyntax] : Type := GoInterface
 
 class Stream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Stream.ty Stream.underlying
+  method_set : go.MethodSetIs Stream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stream.ty) []
 
 attribute [instance] Stream.TypeAssumptions.underlying
+  Stream.TypeAssumptions.method_set
+  Stream.TypeAssumptions.ptr_method_set
 
 abbrev ClientStream [FfiSyntax] : Type := GoInterface
 
@@ -3830,8 +4242,12 @@ abbrev ClientStream [FfiSyntax] : Type := GoInterface
 
 class ClientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientStream.ty ClientStream.underlying
+  method_set : go.MethodSetIs ClientStream.ty [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientStream.ty) []
 
 attribute [instance] ClientStream.TypeAssumptions.underlying
+  ClientStream.TypeAssumptions.method_set
+  ClientStream.TypeAssumptions.ptr_method_set
 
 axiom clientStreamWrapper : Type
 axiom clientStreamWrapper.zero_val : ZeroVal clientStreamWrapper
@@ -3841,10 +4257,14 @@ class clientStreamWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying clientStreamWrapper.underlying clientStreamWrapper
   underlying : go.UnderlyingDirectedEq clientStreamWrapper.ty clientStreamWrapper.underlying
   isUnderlying : go.IsUnderlying clientStreamWrapper.underlying clientStreamWrapper.underlying
+  method_set : go.MethodSetIs clientStreamWrapper.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientStreamWrapper.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
 
 attribute [instance] clientStreamWrapper.TypeAssumptions.type_repr
   clientStreamWrapper.TypeAssumptions.underlying
   clientStreamWrapper.TypeAssumptions.isUnderlying
+  clientStreamWrapper.TypeAssumptions.method_set
+  clientStreamWrapper.TypeAssumptions.ptr_method_set
 
 axiom clientInterceptor : Type
 axiom clientInterceptor.zero_val : ZeroVal clientInterceptor
@@ -3854,10 +4274,14 @@ class clientInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying clientInterceptor.underlying clientInterceptor
   underlying : go.UnderlyingDirectedEq clientInterceptor.ty clientInterceptor.underlying
   isUnderlying : go.IsUnderlying clientInterceptor.underlying clientInterceptor.underlying
+  method_set : go.MethodSetIs clientInterceptor.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"NewStream", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientInterceptor.ty) []
 
 attribute [instance] clientInterceptor.TypeAssumptions.type_repr
   clientInterceptor.TypeAssumptions.underlying
   clientInterceptor.TypeAssumptions.isUnderlying
+  clientInterceptor.TypeAssumptions.method_set
+  clientInterceptor.TypeAssumptions.ptr_method_set
 
 axiom clientStream : Type
 axiom clientStream.zero_val : ZeroVal clientStream
@@ -3867,10 +4291,14 @@ class clientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying clientStream.underlying clientStream
   underlying : go.UnderlyingDirectedEq clientStream.ty clientStream.underlying
   isUnderlying : go.IsUnderlying clientStream.underlying clientStream.underlying
+  method_set : go.MethodSetIs clientStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientStream.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"google.golang.org/grpc.bufferForRetryLocked", (some (go.signature.Signature [go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"google.golang.org/grpc.commitAttempt", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.commitAttemptLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.newAttemptLocked", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType csAttempt.ty), go.error]))), (go!"google.golang.org/grpc.replayBufferLocked", (some (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error]))), (go!"google.golang.org/grpc.retryLocked", (some (go.signature.Signature [(go.GoType.PointerType csAttempt.ty), go.error] false [go.error]))), (go!"google.golang.org/grpc.withRetry", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error])))]
 
 attribute [instance] clientStream.TypeAssumptions.type_repr
   clientStream.TypeAssumptions.underlying
   clientStream.TypeAssumptions.isUnderlying
+  clientStream.TypeAssumptions.method_set
+  clientStream.TypeAssumptions.ptr_method_set
 
 structure replayOp [FfiSyntax] where
   mk ::
@@ -3901,6 +4329,8 @@ class replayOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_op : ∀ (x : replayOp) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet replayOp.underlying go!"op") (PairV #x #y) (Val #(({ x with op' := y } : replayOp)))
   get_cleanup : ∀ (x : replayOp), go.IsGoStepPureDetTagged under (StructFieldGet replayOp.underlying go!"cleanup") #x (Val #(x.cleanup'))
   set_cleanup : ∀ (x : replayOp) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet replayOp.underlying go!"cleanup") (PairV #x #y) (Val #(({ x with cleanup' := y } : replayOp)))
+  method_set : go.MethodSetIs replayOp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayOp.ty) []
 
 attribute [instance] replayOp.TypeAssumptions.type_repr
   replayOp.TypeAssumptions.underlying
@@ -3908,6 +4338,8 @@ attribute [instance] replayOp.TypeAssumptions.type_repr
   replayOp.TypeAssumptions.set_op
   replayOp.TypeAssumptions.get_cleanup
   replayOp.TypeAssumptions.set_cleanup
+  replayOp.TypeAssumptions.method_set
+  replayOp.TypeAssumptions.ptr_method_set
 
 axiom csAttempt : Type
 axiom csAttempt.zero_val : ZeroVal csAttempt
@@ -3917,10 +4349,14 @@ class csAttempt.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying csAttempt.underlying csAttempt
   underlying : go.UnderlyingDirectedEq csAttempt.ty csAttempt.underlying
   isUnderlying : go.IsUnderlying csAttempt.underlying csAttempt.underlying
+  method_set : go.MethodSetIs csAttempt.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType csAttempt.ty) [(go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getTransport", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.newStream", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.any, (go.GoType.PointerType payloadInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.sendMsg", none), (go!"google.golang.org/grpc.shouldRetry", (some (go.signature.Signature [go.error] false [go.bool, go.error])))]
 
 attribute [instance] csAttempt.TypeAssumptions.type_repr
   csAttempt.TypeAssumptions.underlying
   csAttempt.TypeAssumptions.isUnderlying
+  csAttempt.TypeAssumptions.method_set
+  csAttempt.TypeAssumptions.ptr_method_set
 
 axiom addrConnStream : Type
 axiom addrConnStream.zero_val : ZeroVal addrConnStream
@@ -3930,10 +4366,14 @@ class addrConnStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying addrConnStream.underlying addrConnStream
   underlying : go.UnderlyingDirectedEq addrConnStream.ty addrConnStream.underlying
   isUnderlying : go.IsUnderlying addrConnStream.underlying addrConnStream.underlying
+  method_set : go.MethodSetIs addrConnStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrConnStream.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false [])))]
 
 attribute [instance] addrConnStream.TypeAssumptions.type_repr
   addrConnStream.TypeAssumptions.underlying
   addrConnStream.TypeAssumptions.isUnderlying
+  addrConnStream.TypeAssumptions.method_set
+  addrConnStream.TypeAssumptions.ptr_method_set
 
 abbrev ServerStream [FfiSyntax] : Type := GoInterface
 
@@ -3942,8 +4382,12 @@ abbrev ServerStream [FfiSyntax] : Type := GoInterface
 
 class ServerStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerStream.ty ServerStream.underlying
+  method_set : go.MethodSetIs ServerStream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerStream.ty) []
 
 attribute [instance] ServerStream.TypeAssumptions.underlying
+  ServerStream.TypeAssumptions.method_set
+  ServerStream.TypeAssumptions.ptr_method_set
 
 axiom serverStream : Type
 axiom serverStream.zero_val : ZeroVal serverStream
@@ -3953,70 +4397,98 @@ class serverStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying serverStream.underlying serverStream
   underlying : go.UnderlyingDirectedEq serverStream.ty serverStream.underlying
   isUnderlying : go.IsUnderlying serverStream.underlying serverStream.underlying
+  method_set : go.MethodSetIs serverStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStream.ty) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))), (go!"google.golang.org/grpc.writeStatus", none)]
 
 attribute [instance] serverStream.TypeAssumptions.type_repr
   serverStream.TypeAssumptions.underlying
   serverStream.TypeAssumptions.isUnderlying
+  serverStream.TypeAssumptions.method_set
+  serverStream.TypeAssumptions.ptr_method_set
 
 abbrev ServerStreamingClient [FfiSyntax] (Res : Type) : Type := GoInterface
 
 @[reducible] def ServerStreamingClient.underlying [FfiSyntax] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClientStream.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
 class ServerStreamingClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Res : go.GoType), go.UnderlyingDirectedEq (ServerStreamingClient.ty Res) (ServerStreamingClient.underlying Res)
+  method_set : ∀ (Res : go.GoType), go.MethodSetIs (ServerStreamingClient.ty Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ServerStreamingClient.ty Res)) []
 
 attribute [instance] ServerStreamingClient.TypeAssumptions.underlying
+  ServerStreamingClient.TypeAssumptions.method_set
+  ServerStreamingClient.TypeAssumptions.ptr_method_set
 
 abbrev ServerStreamingServer [FfiSyntax] (Res : Type) : Type := GoInterface
 
 @[reducible] def ServerStreamingServer.underlying [FfiSyntax] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerStream.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
 class ServerStreamingServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Res : go.GoType), go.UnderlyingDirectedEq (ServerStreamingServer.ty Res) (ServerStreamingServer.underlying Res)
+  method_set : ∀ (Res : go.GoType), go.MethodSetIs (ServerStreamingServer.ty Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ServerStreamingServer.ty Res)) []
 
 attribute [instance] ServerStreamingServer.TypeAssumptions.underlying
+  ServerStreamingServer.TypeAssumptions.method_set
+  ServerStreamingServer.TypeAssumptions.ptr_method_set
 
 abbrev ClientStreamingClient [FfiSyntax] (Req Res : Type) : Type := GoInterface
 
 @[reducible] def ClientStreamingClient.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseAndRecv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClientStream.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseAndRecv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
 class ClientStreamingClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (ClientStreamingClient.ty Req Res) (ClientStreamingClient.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (ClientStreamingClient.ty Req Res) [(go!"CloseAndRecv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ClientStreamingClient.ty Req Res)) []
 
 attribute [instance] ClientStreamingClient.TypeAssumptions.underlying
+  ClientStreamingClient.TypeAssumptions.method_set
+  ClientStreamingClient.TypeAssumptions.ptr_method_set
 
 abbrev ClientStreamingServer [FfiSyntax] (Req Res : Type) : Type := GoInterface
 
 @[reducible] def ClientStreamingServer.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"SendAndClose" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerStream.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendAndClose" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
 class ClientStreamingServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (ClientStreamingServer.ty Req Res) (ClientStreamingServer.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (ClientStreamingServer.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendAndClose", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ClientStreamingServer.ty Req Res)) []
 
 attribute [instance] ClientStreamingServer.TypeAssumptions.underlying
+  ClientStreamingServer.TypeAssumptions.method_set
+  ClientStreamingServer.TypeAssumptions.ptr_method_set
 
 abbrev BidiStreamingClient [FfiSyntax] (Req Res : Type) : Type := GoInterface
 
 @[reducible] def BidiStreamingClient.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClientStream.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
 class BidiStreamingClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (BidiStreamingClient.ty Req Res) (BidiStreamingClient.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (BidiStreamingClient.ty Req Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (BidiStreamingClient.ty Req Res)) []
 
 attribute [instance] BidiStreamingClient.TypeAssumptions.underlying
+  BidiStreamingClient.TypeAssumptions.method_set
+  BidiStreamingClient.TypeAssumptions.ptr_method_set
 
 abbrev BidiStreamingServer [FfiSyntax] (Req Res : Type) : Type := GoInterface
 
 @[reducible] def BidiStreamingServer.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerStream.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
 class BidiStreamingServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (BidiStreamingServer.ty Req Res) (BidiStreamingServer.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (BidiStreamingServer.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (BidiStreamingServer.ty Req Res)) []
 
 attribute [instance] BidiStreamingServer.TypeAssumptions.underlying
+  BidiStreamingServer.TypeAssumptions.method_set
+  BidiStreamingServer.TypeAssumptions.ptr_method_set
 
 structure GenericClientStream [FfiSyntax] (Req Res : Type) where
   mk ::
@@ -4043,11 +4515,15 @@ class GenericClientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (GenericClientStream.ty Req Res) (GenericClientStream.underlying Req Res)
   get_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')), go.IsGoStepPureDetTagged under (StructFieldGet (GenericClientStream.underlying Req Res) go!"ClientStream") #x (Val #(x.ClientStream'))
   set_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')) (y : ClientStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericClientStream.underlying Req Res) go!"ClientStream") (PairV #x #y) (Val #(({ x with ClientStream' := y } : (GenericClientStream Req' Res'))))
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (GenericClientStream.ty Req Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (GenericClientStream.ty Req Res)) [(go!"CloseAndRecv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
 
 attribute [instance] GenericClientStream.TypeAssumptions.type_repr
   GenericClientStream.TypeAssumptions.underlying
   GenericClientStream.TypeAssumptions.get_ClientStream
   GenericClientStream.TypeAssumptions.set_ClientStream
+  GenericClientStream.TypeAssumptions.method_set
+  GenericClientStream.TypeAssumptions.ptr_method_set
 
 structure GenericServerStream [FfiSyntax] (Req Res : Type) where
   mk ::
@@ -4074,11 +4550,15 @@ class GenericServerStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (GenericServerStream.ty Req Res) (GenericServerStream.underlying Req Res)
   get_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')), go.IsGoStepPureDetTagged under (StructFieldGet (GenericServerStream.underlying Req Res) go!"ServerStream") #x (Val #(x.ServerStream'))
   set_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')) (y : ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericServerStream.underlying Req Res) go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : (GenericServerStream Req' Res'))))
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (GenericServerStream.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (GenericServerStream.ty Req Res)) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendAndClose", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
 
 attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.underlying
   GenericServerStream.TypeAssumptions.get_ServerStream
   GenericServerStream.TypeAssumptions.set_ServerStream
+  GenericServerStream.TypeAssumptions.method_set
+  GenericServerStream.TypeAssumptions.ptr_method_set
 
 abbrev traceEventLog [FfiSyntax] : Type := GoInterface
 
@@ -4087,8 +4567,12 @@ abbrev traceEventLog [FfiSyntax] : Type := GoInterface
 
 class traceEventLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq traceEventLog.ty traceEventLog.underlying
+  method_set : go.MethodSetIs traceEventLog.ty [(go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Finish", (some (go.signature.Signature [] false []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceEventLog.ty) []
 
 attribute [instance] traceEventLog.TypeAssumptions.underlying
+  traceEventLog.TypeAssumptions.method_set
+  traceEventLog.TypeAssumptions.ptr_method_set
 
 axiom traceLog : Type
 axiom traceLog.zero_val : ZeroVal traceLog
@@ -4098,10 +4582,14 @@ class traceLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying traceLog.underlying traceLog
   underlying : go.UnderlyingDirectedEq traceLog.ty traceLog.underlying
   isUnderlying : go.IsUnderlying traceLog.underlying traceLog.underlying
+  method_set : go.MethodSetIs traceLog.ty [(go!"Finish", (some (go.signature.Signature [] false []))), (go!"LazyLog", none), (go!"LazyPrintf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"SetError", (some (go.signature.Signature [] false []))), (go!"SetMaxEvents", (some (go.signature.Signature [go.int] false []))), (go!"SetRecycler", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.any] false []))] false []))), (go!"SetTraceInfo", (some (go.signature.Signature [go.uint64, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceLog.ty) []
 
 attribute [instance] traceLog.TypeAssumptions.type_repr
   traceLog.TypeAssumptions.underlying
   traceLog.TypeAssumptions.isUnderlying
+  traceLog.TypeAssumptions.method_set
+  traceLog.TypeAssumptions.ptr_method_set
 
 axiom firstLine : Type
 axiom firstLine.zero_val : ZeroVal firstLine
@@ -4111,10 +4599,14 @@ class firstLine.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying firstLine.underlying firstLine
   underlying : go.UnderlyingDirectedEq firstLine.ty firstLine.underlying
   isUnderlying : go.IsUnderlying firstLine.underlying firstLine.underlying
+  method_set : go.MethodSetIs firstLine.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType firstLine.ty) [(go!"SetRemoteAddr", none), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] firstLine.TypeAssumptions.type_repr
   firstLine.TypeAssumptions.underlying
   firstLine.TypeAssumptions.isUnderlying
+  firstLine.TypeAssumptions.method_set
+  firstLine.TypeAssumptions.ptr_method_set
 
 structure traceInfo [FfiSyntax] where
   mk ::
@@ -4145,6 +4637,8 @@ class traceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_tr : ∀ (x : traceInfo) (y : traceLog), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : traceInfo)))
   get_firstLine : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"firstLine") #x (Val #(x.firstLine'))
   set_firstLine : ∀ (x : traceInfo) (y : firstLine), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"firstLine") (PairV #x #y) (Val #(({ x with firstLine' := y } : traceInfo)))
+  method_set : go.MethodSetIs traceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceInfo.ty) []
 
 attribute [instance] traceInfo.TypeAssumptions.type_repr
   traceInfo.TypeAssumptions.underlying
@@ -4152,6 +4646,8 @@ attribute [instance] traceInfo.TypeAssumptions.type_repr
   traceInfo.TypeAssumptions.set_tr
   traceInfo.TypeAssumptions.get_firstLine
   traceInfo.TypeAssumptions.set_firstLine
+  traceInfo.TypeAssumptions.method_set
+  traceInfo.TypeAssumptions.ptr_method_set
 
 structure payload [FfiSyntax] where
   mk ::
@@ -4182,6 +4678,8 @@ class payload.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_sent : ∀ (x : payload) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"sent") (PairV #x #y) (Val #(({ x with sent' := y } : payload)))
   get_msg : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"msg") #x (Val #(x.msg'))
   set_msg : ∀ (x : payload) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : payload)))
+  method_set : go.MethodSetIs payload.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payload.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] payload.TypeAssumptions.type_repr
   payload.TypeAssumptions.underlying
@@ -4189,6 +4687,8 @@ attribute [instance] payload.TypeAssumptions.type_repr
   payload.TypeAssumptions.set_sent
   payload.TypeAssumptions.get_msg
   payload.TypeAssumptions.set_msg
+  payload.TypeAssumptions.method_set
+  payload.TypeAssumptions.ptr_method_set
 
 structure fmtStringer [FfiSyntax] where
   mk ::
@@ -4219,6 +4719,8 @@ class fmtStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_format : ∀ (x : fmtStringer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fmtStringer.underlying go!"format") (PairV #x #y) (Val #(({ x with format' := y } : fmtStringer)))
   get_a : ∀ (x : fmtStringer), go.IsGoStepPureDetTagged under (StructFieldGet fmtStringer.underlying go!"a") #x (Val #(x.a'))
   set_a : ∀ (x : fmtStringer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fmtStringer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : fmtStringer)))
+  method_set : go.MethodSetIs fmtStringer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fmtStringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] fmtStringer.TypeAssumptions.type_repr
   fmtStringer.TypeAssumptions.underlying
@@ -4226,6 +4728,8 @@ attribute [instance] fmtStringer.TypeAssumptions.type_repr
   fmtStringer.TypeAssumptions.set_format
   fmtStringer.TypeAssumptions.get_a
   fmtStringer.TypeAssumptions.set_a
+  fmtStringer.TypeAssumptions.method_set
+  fmtStringer.TypeAssumptions.ptr_method_set
 
 abbrev stringer [FfiSyntax] : Type := GoString
 
@@ -4234,8 +4738,12 @@ abbrev stringer [FfiSyntax] : Type := GoString
 
 class stringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq stringer.ty stringer.underlying
+  method_set : go.MethodSetIs stringer.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] stringer.TypeAssumptions.underlying
+  stringer.TypeAssumptions.method_set
+  stringer.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackoffConfig_instance : BackoffConfig.TypeAssumptions

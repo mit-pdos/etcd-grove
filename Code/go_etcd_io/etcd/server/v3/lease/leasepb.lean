@@ -139,6 +139,8 @@ class Lease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_unknownFields : ∀ (x : Lease) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Lease)))
   get_sizeCache : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Lease) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Lease.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Lease)))
+  method_set : go.MethodSetIs Lease.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lease.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetID", (some (go.signature.Signature [] false [go.int64]))), (go!"GetRemainingTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"GetTTL", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Lease.TypeAssumptions.type_repr
   Lease.TypeAssumptions.underlying
@@ -154,6 +156,8 @@ attribute [instance] Lease.TypeAssumptions.type_repr
   Lease.TypeAssumptions.set_unknownFields
   Lease.TypeAssumptions.get_sizeCache
   Lease.TypeAssumptions.set_sizeCache
+  Lease.TypeAssumptions.method_set
+  Lease.TypeAssumptions.ptr_method_set
 
 axiom LeaseInternalRequest : Type
 axiom LeaseInternalRequest.zero_val : ZeroVal LeaseInternalRequest
@@ -163,10 +167,14 @@ class LeaseInternalRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying LeaseInternalRequest.underlying LeaseInternalRequest
   underlying : go.UnderlyingDirectedEq LeaseInternalRequest.ty LeaseInternalRequest.underlying
   isUnderlying : go.IsUnderlying LeaseInternalRequest.underlying LeaseInternalRequest.underlying
+  method_set : go.MethodSetIs LeaseInternalRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseInternalRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLeaseTimeToLiveRequest", none), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LeaseInternalRequest.TypeAssumptions.type_repr
   LeaseInternalRequest.TypeAssumptions.underlying
   LeaseInternalRequest.TypeAssumptions.isUnderlying
+  LeaseInternalRequest.TypeAssumptions.method_set
+  LeaseInternalRequest.TypeAssumptions.ptr_method_set
 
 axiom LeaseInternalResponse : Type
 axiom LeaseInternalResponse.zero_val : ZeroVal LeaseInternalResponse
@@ -176,10 +184,14 @@ class LeaseInternalResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying LeaseInternalResponse.underlying LeaseInternalResponse
   underlying : go.UnderlyingDirectedEq LeaseInternalResponse.ty LeaseInternalResponse.underlying
   isUnderlying : go.IsUnderlying LeaseInternalResponse.underlying LeaseInternalResponse.underlying
+  method_set : go.MethodSetIs LeaseInternalResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaseInternalResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLeaseTimeToLiveResponse", none), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", none), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] LeaseInternalResponse.TypeAssumptions.type_repr
   LeaseInternalResponse.TypeAssumptions.underlying
   LeaseInternalResponse.TypeAssumptions.isUnderlying
+  LeaseInternalResponse.TypeAssumptions.method_set
+  LeaseInternalResponse.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Lease_instance : Lease.TypeAssumptions

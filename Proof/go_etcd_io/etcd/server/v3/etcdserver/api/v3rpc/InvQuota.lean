@@ -11,10 +11,9 @@ embedded service's (promoted). Lean-first (no Rocq counterpart).
   boundary), its alarmer the server `s`, its member id.
 * `quotaKVServerAt q kv s` (persistent): the `*quotaKVServer` `q`, read-only: its embedded
   `KVServer` the value `kv`, its alarmer `quotaAlarmerAt`.
-* `QuotaKVServerIsKVServer`: `*quotaKVServer` implements `pb.KVServer` (a method-set fact, which
-  the model leaves uninterpreted: `methodSet`; Go's type checker establishes it,
-  `NewQuotaKVServer` converts a `*quotaKVServer` to `pb.KVServer`), as context's
-  `ErrorStringIsError`: an assumption about the semantics.
+* `quotaKVServer_is_KVServer`: `*quotaKVServer` implements `pb.KVServer` (`NewQuotaKVServer`
+  converts a `*quotaKVServer` to `pb.KVServer`): from the method sets of the packages'
+  `Assumptions` (`go_type_set`; an assumed class until Perennial `5f111b9a8`).
 * `learnerReqOk req` (persistent): what the unary interceptor's learner check
   (`isRPCSupportedForLearner`) reads of a request: an interface holding a pointer (or `nil`),
   and, for a `*RangeRequest`, its `Serializable` read-only.
@@ -40,11 +39,12 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.server.v3.etcdserver
   go_etcd_io.etcd.api.v3
 
-/-- **`*quotaKVServer` implements `pb.KVServer`** (a method-set fact; see the file header). -/
-class v3rpc.QuotaKVServerIsKVServer [FfiSyntax] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] : Prop where
-  is_kv : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
-    etcdserverpb.KVServer.ty = true
+/-- **`*quotaKVServer` implements `pb.KVServer`** (see the file header). -/
+theorem v3rpc.quotaKVServer_is_KVServer [FfiSyntax] [GoGlobalContext] [GoLocalContext]
+    [go.Semantics] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
+      etcdserverpb.KVServer.ty = true := by
+  go_type_set
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

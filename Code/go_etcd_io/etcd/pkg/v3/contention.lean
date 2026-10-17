@@ -51,10 +51,14 @@ class TimeoutDetector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying TimeoutDetector.underlying TimeoutDetector
   underlying : go.UnderlyingDirectedEq TimeoutDetector.ty TimeoutDetector.underlying
   isUnderlying : go.IsUnderlying TimeoutDetector.underlying TimeoutDetector.underlying
+  method_set : go.MethodSetIs TimeoutDetector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimeoutDetector.ty) [(go!"Observe", none), (go!"Reset", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] TimeoutDetector.TypeAssumptions.type_repr
   TimeoutDetector.TypeAssumptions.underlying
   TimeoutDetector.TypeAssumptions.isUnderlying
+  TimeoutDetector.TypeAssumptions.method_set
+  TimeoutDetector.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   TimeoutDetector_instance : TimeoutDetector.TypeAssumptions

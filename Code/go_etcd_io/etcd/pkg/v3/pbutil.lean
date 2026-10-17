@@ -103,8 +103,12 @@ abbrev Marshaler [FfiSyntax] : Type := GoInterface
 
 class Marshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Marshaler.ty Marshaler.underlying
+  method_set : go.MethodSetIs Marshaler.ty [(go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Marshaler.ty) []
 
 attribute [instance] Marshaler.TypeAssumptions.underlying
+  Marshaler.TypeAssumptions.method_set
+  Marshaler.TypeAssumptions.ptr_method_set
 
 abbrev Unmarshaler [FfiSyntax] : Type := GoInterface
 
@@ -113,8 +117,12 @@ abbrev Unmarshaler [FfiSyntax] : Type := GoInterface
 
 class Unmarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Unmarshaler.ty Unmarshaler.underlying
+  method_set : go.MethodSetIs Unmarshaler.ty [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Unmarshaler.ty) []
 
 attribute [instance] Unmarshaler.TypeAssumptions.underlying
+  Unmarshaler.TypeAssumptions.method_set
+  Unmarshaler.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Marshaler_instance : Marshaler.TypeAssumptions

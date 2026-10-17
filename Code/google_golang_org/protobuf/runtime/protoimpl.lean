@@ -91,10 +91,14 @@ class EnforceVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying EnforceVersion.underlying EnforceVersion
   underlying : go.UnderlyingDirectedEq EnforceVersion.ty EnforceVersion.underlying
   isUnderlying : go.IsUnderlying EnforceVersion.underlying EnforceVersion.underlying
+  method_set : go.MethodSetIs EnforceVersion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EnforceVersion.ty) []
 
 attribute [instance] EnforceVersion.TypeAssumptions.type_repr
   EnforceVersion.TypeAssumptions.underlying
   EnforceVersion.TypeAssumptions.isUnderlying
+  EnforceVersion.TypeAssumptions.method_set
+  EnforceVersion.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EnforceVersion_instance : EnforceVersion.TypeAssumptions

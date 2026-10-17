@@ -80,8 +80,12 @@ abbrev VerificationType [FfiSyntax] : Type := GoString
 
 class VerificationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VerificationType.ty VerificationType.underlying
+  method_set : go.MethodSetIs VerificationType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VerificationType.ty) []
 
 attribute [instance] VerificationType.TypeAssumptions.underlying
+  VerificationType.TypeAssumptions.method_set
+  VerificationType.TypeAssumptions.ptr_method_set
 
 abbrev VerifyFunc [FfiSyntax] : Type := GoFunc
 
@@ -90,8 +94,12 @@ abbrev VerifyFunc [FfiSyntax] : Type := GoFunc
 
 class VerifyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VerifyFunc.ty VerifyFunc.underlying
+  method_set : go.MethodSetIs VerifyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VerifyFunc.ty) []
 
 attribute [instance] VerifyFunc.TypeAssumptions.underlying
+  VerifyFunc.TypeAssumptions.method_set
+  VerifyFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   VerificationType_instance : VerificationType.TypeAssumptions

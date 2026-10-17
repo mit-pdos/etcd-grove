@@ -1786,7 +1786,7 @@ theorem deleteReq_learnerOk (l : Loc) :
 `*quotaKVServer` `q` whose `Put` meets etcd's spec, under a chain of transparent interceptors
 (for requests the learner check reads); the run's resource is the method's and the
 interceptors'. -/
-theorem etcd_putMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_putMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Put")
         S (etcdPutSpec E γr cid mid) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -1806,7 +1806,7 @@ theorem etcd_putMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AE
     iapply putReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__KV_Put_Handler pbPutRequest pbPutResponse (etcdPutSpec E γr cid mid)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.quotaKVServer_is_KVServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
@@ -1815,7 +1815,7 @@ theorem etcd_putMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AE
   iframe
 
 /-- **etcd's `Range`, as grpc runs it** (as `etcd_putMethodOk`). -/
-theorem etcd_rangeMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_rangeMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Range")
         S (etcdRangeSpec E γr cid mid) ∗
@@ -1838,7 +1838,7 @@ theorem etcd_rangeMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.
   iapply (v3rpc.etcdserverpb.wp__KV_Range_Handler pbRangeRequest pbRangeResponse
     (etcdRangeSpec E γr cid mid)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.quotaKVServer_is_KVServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
@@ -1847,7 +1847,7 @@ theorem etcd_rangeMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.
   iframe
 
 /-- **etcd's `DeleteRange`, as grpc runs it** (as `etcd_putMethodOk`). -/
-theorem etcd_deleteMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_deleteMethodOk (q : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"DeleteRange")
         S (etcdDeleteSpec E γr cid mid) ∗
@@ -1868,7 +1868,7 @@ theorem etcd_deleteMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply
   iapply (v3rpc.etcdserverpb.wp__KV_DeleteRange_Handler pbDeleteRangeRequest pbDeleteRangeResponse
     (etcdDeleteSpec E γr cid mid)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.quotaKVServer_is_KVServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
@@ -1883,7 +1883,7 @@ theorem txnReq_learnerOk (l : Loc) :
     simp [etcdserverpb.TxnRequest.ty, etcdserverpb.RangeRequest.ty])
 
 /-- **etcd's `Txn`, as grpc runs it** (as `etcd_putMethodOk`; the vertical slice's unit V2). -/
-theorem etcd_txnMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AEnv GF)
+theorem etcd_txnMethodOk (q : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (S : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) :
     grpcHandlerOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Txn")
         S (etcdTxnSpec E γw γr cid mid) ∗
@@ -1903,7 +1903,7 @@ theorem etcd_txnMethodOk [v3rpc.QuotaKVServerIsKVServer] (q : Loc) (E : apply.AE
     iapply txnReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__KV_Txn_Handler pbTxnRequest pbTxnResponse (etcdTxnSpec E γw γr cid mid)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
+    S ics Rs v3rpc.learnerReqOk m Φ ci cd dec ui rfl rfl v3rpc.quotaKVServer_is_KVServer)
     $$ [HS HRs HSpec]
   · iframe; iframe #
   inext
@@ -1921,8 +1921,8 @@ Premises: the server's (`isServerReq`, `isServerRead`, its `*kvServer` `p`, the 
 `□ |==> idCred ρ.ids 1` of `srvStarted`), the quota wrapper over `p` (`quotaKVServerAt`: what
 `NewQuotaKVServer(s)` returns), the interceptors' contracts (`srvInterceptorOk`: what
 `newLogUnaryInterceptor(s)` and `newUnaryInterceptor(s)` return, proved; grpc-prometheus's,
-assumed), the method-set fact `QuotaKVServerIsKVServer`, the packages'. -/
-theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s : Loc)
+assumed), the packages'. -/
+theorem etcd_kv_served (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs) :

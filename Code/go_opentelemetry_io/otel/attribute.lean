@@ -560,8 +560,12 @@ abbrev Encoder [FfiSyntax] : Type := GoInterface
 
 class Encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
+  method_set : go.MethodSetIs Encoder.ty [(go!"Encode", (some (go.signature.Signature [Iterator.ty] false [go.string]))), (go!"ID", (some (go.signature.Signature [] false [EncoderID.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoder.ty) []
 
 attribute [instance] Encoder.TypeAssumptions.underlying
+  Encoder.TypeAssumptions.method_set
+  Encoder.TypeAssumptions.ptr_method_set
 
 structure EncoderID [FfiSyntax] where
   mk ::
@@ -588,11 +592,15 @@ class EncoderID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq EncoderID.ty EncoderID.underlying
   get_value : ∀ (x : EncoderID), go.IsGoStepPureDetTagged under (StructFieldGet EncoderID.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : EncoderID) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet EncoderID.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : EncoderID)))
+  method_set : go.MethodSetIs EncoderID.ty [(go!"Valid", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EncoderID.ty) [(go!"Valid", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] EncoderID.TypeAssumptions.type_repr
   EncoderID.TypeAssumptions.underlying
   EncoderID.TypeAssumptions.get_value
   EncoderID.TypeAssumptions.set_value
+  EncoderID.TypeAssumptions.method_set
+  EncoderID.TypeAssumptions.ptr_method_set
 
 axiom defaultAttrEncoder : Type
 axiom defaultAttrEncoder.zero_val : ZeroVal defaultAttrEncoder
@@ -602,10 +610,14 @@ class defaultAttrEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying defaultAttrEncoder.underlying defaultAttrEncoder
   underlying : go.UnderlyingDirectedEq defaultAttrEncoder.ty defaultAttrEncoder.underlying
   isUnderlying : go.IsUnderlying defaultAttrEncoder.underlying defaultAttrEncoder.underlying
+  method_set : go.MethodSetIs defaultAttrEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultAttrEncoder.ty) [(go!"Encode", (some (go.signature.Signature [Iterator.ty] false [go.string]))), (go!"ID", (some (go.signature.Signature [] false [EncoderID.ty])))]
 
 attribute [instance] defaultAttrEncoder.TypeAssumptions.type_repr
   defaultAttrEncoder.TypeAssumptions.underlying
   defaultAttrEncoder.TypeAssumptions.isUnderlying
+  defaultAttrEncoder.TypeAssumptions.method_set
+  defaultAttrEncoder.TypeAssumptions.ptr_method_set
 
 abbrev Filter [FfiSyntax] : Type := GoFunc
 
@@ -614,8 +626,12 @@ abbrev Filter [FfiSyntax] : Type := GoFunc
 
 class Filter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Filter.ty Filter.underlying
+  method_set : go.MethodSetIs Filter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Filter.ty) []
 
 attribute [instance] Filter.TypeAssumptions.underlying
+  Filter.TypeAssumptions.method_set
+  Filter.TypeAssumptions.ptr_method_set
 
 axiom Hasher : Type
 axiom Hasher.zero_val : ZeroVal Hasher
@@ -625,10 +641,14 @@ class Hasher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Hasher.underlying Hasher
   underlying : go.UnderlyingDirectedEq Hasher.ty Hasher.underlying
   isUnderlying : go.IsUnderlying Hasher.underlying Hasher.underlying
+  method_set : go.MethodSetIs Hasher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Hasher.ty) [(go!"Distinct", (some (go.signature.Signature [] false [Distinct.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [KeyValue.ty] false [])))]
 
 attribute [instance] Hasher.TypeAssumptions.type_repr
   Hasher.TypeAssumptions.underlying
   Hasher.TypeAssumptions.isUnderlying
+  Hasher.TypeAssumptions.method_set
+  Hasher.TypeAssumptions.ptr_method_set
 
 structure Iterator [FfiSyntax] where
   mk ::
@@ -659,6 +679,8 @@ class Iterator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_storage : ∀ (x : Iterator) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : Iterator)))
   get_idx : ∀ (x : Iterator), go.IsGoStepPureDetTagged under (StructFieldGet Iterator.underlying go!"idx") #x (Val #(x.idx'))
   set_idx : ∀ (x : Iterator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Iterator.underlying go!"idx") (PairV #x #y) (Val #(({ x with idx' := y } : Iterator)))
+  method_set : go.MethodSetIs Iterator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Iterator.ty) [(go!"Attribute", (some (go.signature.Signature [] false [KeyValue.ty]))), (go!"IndexedAttribute", (some (go.signature.Signature [] false [go.int, KeyValue.ty]))), (go!"IndexedLabel", (some (go.signature.Signature [] false [go.int, KeyValue.ty]))), (go!"Label", (some (go.signature.Signature [] false [KeyValue.ty]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Next", (some (go.signature.Signature [] false [go.bool]))), (go!"ToSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)])))]
 
 attribute [instance] Iterator.TypeAssumptions.type_repr
   Iterator.TypeAssumptions.underlying
@@ -666,6 +688,8 @@ attribute [instance] Iterator.TypeAssumptions.type_repr
   Iterator.TypeAssumptions.set_storage
   Iterator.TypeAssumptions.get_idx
   Iterator.TypeAssumptions.set_idx
+  Iterator.TypeAssumptions.method_set
+  Iterator.TypeAssumptions.ptr_method_set
 
 abbrev Key [FfiSyntax] : Type := GoString
 
@@ -674,8 +698,12 @@ abbrev Key [FfiSyntax] : Type := GoString
 
 class Key.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Key.ty Key.underlying
+  method_set : go.MethodSetIs Key.ty [(go!"Bool", (some (go.signature.Signature [go.bool] false [KeyValue.ty]))), (go!"BoolSlice", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [KeyValue.ty]))), (go!"ByteSlice", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [KeyValue.ty]))), (go!"Defined", (some (go.signature.Signature [] false [go.bool]))), (go!"Float64", (some (go.signature.Signature [go.float64] false [KeyValue.ty]))), (go!"Float64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.float64)] false [KeyValue.ty]))), (go!"Int", (some (go.signature.Signature [go.int] false [KeyValue.ty]))), (go!"Int64", (some (go.signature.Signature [go.int64] false [KeyValue.ty]))), (go!"Int64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.int64)] false [KeyValue.ty]))), (go!"IntSlice", (some (go.signature.Signature [(go.GoType.SliceType go.int)] false [KeyValue.ty]))), (go!"Map", (some (go.signature.Signature [(go.GoType.SliceType KeyValue.ty)] true [KeyValue.ty]))), (go!"Slice", (some (go.signature.Signature [(go.GoType.SliceType Value.ty)] true [KeyValue.ty]))), (go!"String", (some (go.signature.Signature [go.string] false [KeyValue.ty]))), (go!"StringSlice", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [KeyValue.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Key.ty) [(go!"Bool", (some (go.signature.Signature [go.bool] false [KeyValue.ty]))), (go!"BoolSlice", (some (go.signature.Signature [(go.GoType.SliceType go.bool)] false [KeyValue.ty]))), (go!"ByteSlice", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [KeyValue.ty]))), (go!"Defined", (some (go.signature.Signature [] false [go.bool]))), (go!"Float64", (some (go.signature.Signature [go.float64] false [KeyValue.ty]))), (go!"Float64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.float64)] false [KeyValue.ty]))), (go!"Int", (some (go.signature.Signature [go.int] false [KeyValue.ty]))), (go!"Int64", (some (go.signature.Signature [go.int64] false [KeyValue.ty]))), (go!"Int64Slice", (some (go.signature.Signature [(go.GoType.SliceType go.int64)] false [KeyValue.ty]))), (go!"IntSlice", (some (go.signature.Signature [(go.GoType.SliceType go.int)] false [KeyValue.ty]))), (go!"Map", (some (go.signature.Signature [(go.GoType.SliceType KeyValue.ty)] true [KeyValue.ty]))), (go!"Slice", (some (go.signature.Signature [(go.GoType.SliceType Value.ty)] true [KeyValue.ty]))), (go!"String", (some (go.signature.Signature [go.string] false [KeyValue.ty]))), (go!"StringSlice", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [KeyValue.ty])))]
 
 attribute [instance] Key.TypeAssumptions.underlying
+  Key.TypeAssumptions.method_set
+  Key.TypeAssumptions.ptr_method_set
 
 abbrev Type' [FfiSyntax] : Type := w64
 
@@ -684,8 +712,12 @@ abbrev Type' [FfiSyntax] : Type := w64
 
 class «Type».TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Type'.ty Type'.underlying
+  method_set : go.MethodSetIs Type'.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Type'.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] «Type».TypeAssumptions.underlying
+  «Type».TypeAssumptions.method_set
+  «Type».TypeAssumptions.ptr_method_set
 
 structure Value [FfiSyntax] where
   mk ::
@@ -724,6 +756,8 @@ class Value.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_stringly : ∀ (x : Value) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"stringly") (PairV #x #y) (Val #(({ x with stringly' := y } : Value)))
   get_slice : ∀ (x : Value), go.IsGoStepPureDetTagged under (StructFieldGet Value.underlying go!"slice") #x (Val #(x.slice'))
   set_slice : ∀ (x : Value) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Value.underlying go!"slice") (PairV #x #y) (Val #(({ x with slice' := y } : Value)))
+  method_set : go.MethodSetIs Value.ty [(go!"AsBool", (some (go.signature.Signature [] false [go.bool]))), (go!"AsBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"AsByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"AsFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64]))), (go!"AsInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"AsInterface", (some (go.signature.Signature [] false [go.any]))), (go!"AsMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"AsSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"AsString", (some (go.signature.Signature [] false [go.string]))), (go!"AsStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Emit", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [Type'.ty]))), (go!"go.opentelemetry.io/otel/attribute.asBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"go.opentelemetry.io/otel/attribute.asByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/attribute.asFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"go.opentelemetry.io/otel/attribute.asInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"go.opentelemetry.io/otel/attribute.asMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Value.ty) [(go!"AsBool", (some (go.signature.Signature [] false [go.bool]))), (go!"AsBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"AsByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"AsFloat64", (some (go.signature.Signature [] false [go.float64]))), (go!"AsFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"AsInt64", (some (go.signature.Signature [] false [go.int64]))), (go!"AsInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"AsInterface", (some (go.signature.Signature [] false [go.any]))), (go!"AsMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"AsSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"AsString", (some (go.signature.Signature [] false [go.string]))), (go!"AsStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Emit", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [Type'.ty]))), (go!"go.opentelemetry.io/otel/attribute.asBoolSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.bool)]))), (go!"go.opentelemetry.io/otel/attribute.asByteSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.opentelemetry.io/otel/attribute.asFloat64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.float64)]))), (go!"go.opentelemetry.io/otel/attribute.asInt64Slice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int64)]))), (go!"go.opentelemetry.io/otel/attribute.asMap", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType Value.ty)]))), (go!"go.opentelemetry.io/otel/attribute.asStringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] Value.TypeAssumptions.type_repr
   Value.TypeAssumptions.underlying
@@ -735,6 +769,8 @@ attribute [instance] Value.TypeAssumptions.type_repr
   Value.TypeAssumptions.set_stringly
   Value.TypeAssumptions.get_slice
   Value.TypeAssumptions.set_slice
+  Value.TypeAssumptions.method_set
+  Value.TypeAssumptions.ptr_method_set
 
 structure KeyValue [FfiSyntax] where
   mk ::
@@ -765,6 +801,8 @@ class KeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_Key : ∀ (x : KeyValue) (y : Key), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KeyValue)))
   get_Value : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : KeyValue) (y : Value), go.IsGoStepPureDetTagged under (StructFieldSet KeyValue.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : KeyValue)))
+  method_set : go.MethodSetIs KeyValue.ty [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Valid", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyValue.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Valid", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.underlying
@@ -772,6 +810,8 @@ attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.set_Key
   KeyValue.TypeAssumptions.get_Value
   KeyValue.TypeAssumptions.set_Value
+  KeyValue.TypeAssumptions.method_set
+  KeyValue.TypeAssumptions.ptr_method_set
 
 structure oneIterator [FfiSyntax] where
   mk ::
@@ -806,6 +846,8 @@ class oneIterator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_done : ∀ (x : oneIterator) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet oneIterator.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : oneIterator)))
   get_attr : ∀ (x : oneIterator), go.IsGoStepPureDetTagged under (StructFieldGet oneIterator.underlying go!"attr") #x (Val #(x.attr'))
   set_attr : ∀ (x : oneIterator) (y : KeyValue), go.IsGoStepPureDetTagged under (StructFieldSet oneIterator.underlying go!"attr") (PairV #x #y) (Val #(({ x with attr' := y } : oneIterator)))
+  method_set : go.MethodSetIs oneIterator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType oneIterator.ty) [(go!"go.opentelemetry.io/otel/attribute.advance", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] oneIterator.TypeAssumptions.type_repr
   oneIterator.TypeAssumptions.underlying
@@ -815,6 +857,8 @@ attribute [instance] oneIterator.TypeAssumptions.type_repr
   oneIterator.TypeAssumptions.set_done
   oneIterator.TypeAssumptions.get_attr
   oneIterator.TypeAssumptions.set_attr
+  oneIterator.TypeAssumptions.method_set
+  oneIterator.TypeAssumptions.ptr_method_set
 
 structure MergeIterator [FfiSyntax] where
   mk ::
@@ -849,6 +893,8 @@ class MergeIterator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_two : ∀ (x : MergeIterator) (y : oneIterator), go.IsGoStepPureDetTagged under (StructFieldSet MergeIterator.underlying go!"two") (PairV #x #y) (Val #(({ x with two' := y } : MergeIterator)))
   get_current : ∀ (x : MergeIterator), go.IsGoStepPureDetTagged under (StructFieldGet MergeIterator.underlying go!"current") #x (Val #(x.current'))
   set_current : ∀ (x : MergeIterator) (y : KeyValue), go.IsGoStepPureDetTagged under (StructFieldSet MergeIterator.underlying go!"current") (PairV #x #y) (Val #(({ x with current' := y } : MergeIterator)))
+  method_set : go.MethodSetIs MergeIterator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MergeIterator.ty) [(go!"Attribute", (some (go.signature.Signature [] false [KeyValue.ty]))), (go!"Label", (some (go.signature.Signature [] false [KeyValue.ty]))), (go!"Next", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] MergeIterator.TypeAssumptions.type_repr
   MergeIterator.TypeAssumptions.underlying
@@ -858,6 +904,8 @@ attribute [instance] MergeIterator.TypeAssumptions.type_repr
   MergeIterator.TypeAssumptions.set_two
   MergeIterator.TypeAssumptions.get_current
   MergeIterator.TypeAssumptions.set_current
+  MergeIterator.TypeAssumptions.method_set
+  MergeIterator.TypeAssumptions.ptr_method_set
 
 structure Set' [FfiSyntax] where
   mk ::
@@ -888,6 +936,8 @@ class Set.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   set_hash : ∀ (x : Set') (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Set'.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : Set')))
   get_data : ∀ (x : Set'), go.IsGoStepPureDetTagged under (StructFieldGet Set'.underlying go!"data") #x (Val #(x.data'))
   set_data : ∀ (x : Set') (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Set'.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : Set')))
+  method_set : go.MethodSetIs Set'.ty [(go!"MarshalLog", (some (go.signature.Signature [] false [go.any]))), (go!"go.opentelemetry.io/otel/attribute.reflectValue", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) [(go!"Encoded", (some (go.signature.Signature [Encoder.ty] false [go.string]))), (go!"Equals", (some (go.signature.Signature [(go.GoType.PointerType Set'.ty)] false [go.bool]))), (go!"Equivalent", (some (go.signature.Signature [] false [Distinct.ty]))), (go!"Filter", (some (go.signature.Signature [Filter.ty] false [Set'.ty, (go.GoType.SliceType KeyValue.ty)]))), (go!"Get", (some (go.signature.Signature [go.int] false [KeyValue.ty, go.bool]))), (go!"HasValue", (some (go.signature.Signature [Key.ty] false [go.bool]))), (go!"Iter", (some (go.signature.Signature [] false [Iterator.ty]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalLog", (some (go.signature.Signature [] false [go.any]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType KeyValue.ty)]))), (go!"Value", (some (go.signature.Signature [Key.ty] false [Value.ty, go.bool]))), (go!"go.opentelemetry.io/otel/attribute.reflectValue", none)]
 
 attribute [instance] Set.TypeAssumptions.type_repr
   Set.TypeAssumptions.underlying
@@ -895,6 +945,8 @@ attribute [instance] Set.TypeAssumptions.type_repr
   Set.TypeAssumptions.set_hash
   Set.TypeAssumptions.get_data
   Set.TypeAssumptions.set_data
+  Set.TypeAssumptions.method_set
+  Set.TypeAssumptions.ptr_method_set
 
 structure Distinct [FfiSyntax] where
   mk ::
@@ -921,11 +973,15 @@ class Distinct.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq Distinct.ty Distinct.underlying
   get_hash : ∀ (x : Distinct), go.IsGoStepPureDetTagged under (StructFieldGet Distinct.underlying go!"hash") #x (Val #(x.hash'))
   set_hash : ∀ (x : Distinct) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Distinct.underlying go!"hash") (PairV #x #y) (Val #(({ x with hash' := y } : Distinct)))
+  method_set : go.MethodSetIs Distinct.ty [(go!"Valid", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Distinct.ty) [(go!"Valid", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] Distinct.TypeAssumptions.type_repr
   Distinct.TypeAssumptions.underlying
   Distinct.TypeAssumptions.get_hash
   Distinct.TypeAssumptions.set_hash
+  Distinct.TypeAssumptions.method_set
+  Distinct.TypeAssumptions.ptr_method_set
 
 abbrev Sortable [FfiSyntax] : Type := GoSlice
 
@@ -934,8 +990,12 @@ abbrev Sortable [FfiSyntax] : Type := GoSlice
 
 class Sortable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Sortable.ty Sortable.underlying
+  method_set : go.MethodSetIs Sortable.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sortable.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] Sortable.TypeAssumptions.underlying
+  Sortable.TypeAssumptions.method_set
+  Sortable.TypeAssumptions.ptr_method_set
 
 structure unknownValueType [FfiSyntax] where
   mk ::
@@ -959,9 +1019,13 @@ instance equals_unfold_unknownValueType [FfiSyntax] [GoGlobalContext] :
 class unknownValueType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unknownValueType.underlying unknownValueType
   underlying : go.UnderlyingDirectedEq unknownValueType.ty unknownValueType.underlying
+  method_set : go.MethodSetIs unknownValueType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unknownValueType.ty) []
 
 attribute [instance] unknownValueType.TypeAssumptions.type_repr
   unknownValueType.TypeAssumptions.underlying
+  unknownValueType.TypeAssumptions.method_set
+  unknownValueType.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Encoder_instance : Encoder.TypeAssumptions

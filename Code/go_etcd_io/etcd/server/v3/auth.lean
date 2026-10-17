@@ -1049,10 +1049,14 @@ class tokenJWT.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying tokenJWT.underlying tokenJWT
   underlying : go.UnderlyingDirectedEq tokenJWT.ty tokenJWT.underlying
   isUnderlying : go.IsUnderlying tokenJWT.underlying tokenJWT.underlying
+  method_set : go.MethodSetIs tokenJWT.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenJWT.ty) [(go!"go.etcd.io/etcd/server/v3/auth.assign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.disable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.enable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.info", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.invalidateUser", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] tokenJWT.TypeAssumptions.type_repr
   tokenJWT.TypeAssumptions.underlying
   tokenJWT.TypeAssumptions.isUnderlying
+  tokenJWT.TypeAssumptions.method_set
+  tokenJWT.TypeAssumptions.ptr_method_set
 
 structure tokenNop [FfiSyntax] where
   mk ::
@@ -1076,9 +1080,13 @@ instance equals_unfold_tokenNop [FfiSyntax] [GoGlobalContext] :
 class tokenNop.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tokenNop.underlying tokenNop
   underlying : go.UnderlyingDirectedEq tokenNop.ty tokenNop.underlying
+  method_set : go.MethodSetIs tokenNop.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenNop.ty) [(go!"go.etcd.io/etcd/server/v3/auth.assign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.disable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.enable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.info", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.invalidateUser", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] tokenNop.TypeAssumptions.type_repr
   tokenNop.TypeAssumptions.underlying
+  tokenNop.TypeAssumptions.method_set
+  tokenNop.TypeAssumptions.ptr_method_set
 
 axiom jwtOptions : Type
 axiom jwtOptions.zero_val : ZeroVal jwtOptions
@@ -1088,10 +1096,14 @@ class jwtOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying jwtOptions.underlying jwtOptions
   underlying : go.UnderlyingDirectedEq jwtOptions.ty jwtOptions.underlying
   isUnderlying : go.IsUnderlying jwtOptions.underlying jwtOptions.underlying
+  method_set : go.MethodSetIs jwtOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jwtOptions.ty) [(go!"Key", (some (go.signature.Signature [] false [go.any, go.error]))), (go!"Parse", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.error]))), (go!"ParseWithDefaults", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.ecKey", (some (go.signature.Signature [] false [go.any, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.edKey", (some (go.signature.Signature [] false [go.any, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.hmacKey", (some (go.signature.Signature [] false [go.any, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.rsaKey", (some (go.signature.Signature [] false [go.any, go.error])))]
 
 attribute [instance] jwtOptions.TypeAssumptions.type_repr
   jwtOptions.TypeAssumptions.underlying
   jwtOptions.TypeAssumptions.isUnderlying
+  jwtOptions.TypeAssumptions.method_set
+  jwtOptions.TypeAssumptions.ptr_method_set
 
 structure unifiedRangePermissions [FfiSyntax] where
   mk ::
@@ -1122,6 +1134,8 @@ class unifiedRangePermissions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoL
   set_readPerms : ∀ (x : unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree), go.IsGoStepPureDetTagged under (StructFieldSet unifiedRangePermissions.underlying go!"readPerms") (PairV #x #y) (Val #(({ x with readPerms' := y } : unifiedRangePermissions)))
   get_writePerms : ∀ (x : unifiedRangePermissions), go.IsGoStepPureDetTagged under (StructFieldGet unifiedRangePermissions.underlying go!"writePerms") #x (Val #(x.writePerms'))
   set_writePerms : ∀ (x : unifiedRangePermissions) (y : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree), go.IsGoStepPureDetTagged under (StructFieldSet unifiedRangePermissions.underlying go!"writePerms") (PairV #x #y) (Val #(({ x with writePerms' := y } : unifiedRangePermissions)))
+  method_set : go.MethodSetIs unifiedRangePermissions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unifiedRangePermissions.ty) []
 
 attribute [instance] unifiedRangePermissions.TypeAssumptions.type_repr
   unifiedRangePermissions.TypeAssumptions.underlying
@@ -1129,6 +1143,8 @@ attribute [instance] unifiedRangePermissions.TypeAssumptions.type_repr
   unifiedRangePermissions.TypeAssumptions.set_readPerms
   unifiedRangePermissions.TypeAssumptions.get_writePerms
   unifiedRangePermissions.TypeAssumptions.set_writePerms
+  unifiedRangePermissions.TypeAssumptions.method_set
+  unifiedRangePermissions.TypeAssumptions.ptr_method_set
 
 axiom simpleTokenTTLKeeper : Type
 axiom simpleTokenTTLKeeper.zero_val : ZeroVal simpleTokenTTLKeeper
@@ -1138,10 +1154,14 @@ class simpleTokenTTLKeeper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying simpleTokenTTLKeeper.underlying simpleTokenTTLKeeper
   underlying : go.UnderlyingDirectedEq simpleTokenTTLKeeper.ty simpleTokenTTLKeeper.underlying
   isUnderlying : go.IsUnderlying simpleTokenTTLKeeper.underlying simpleTokenTTLKeeper.underlying
+  method_set : go.MethodSetIs simpleTokenTTLKeeper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType simpleTokenTTLKeeper.ty) [(go!"go.etcd.io/etcd/server/v3/auth.addSimpleToken", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.deleteSimpleToken", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.resetSimpleToken", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] simpleTokenTTLKeeper.TypeAssumptions.type_repr
   simpleTokenTTLKeeper.TypeAssumptions.underlying
   simpleTokenTTLKeeper.TypeAssumptions.isUnderlying
+  simpleTokenTTLKeeper.TypeAssumptions.method_set
+  simpleTokenTTLKeeper.TypeAssumptions.ptr_method_set
 
 axiom tokenSimple : Type
 axiom tokenSimple.zero_val : ZeroVal tokenSimple
@@ -1151,10 +1171,14 @@ class tokenSimple.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying tokenSimple.underlying tokenSimple
   underlying : go.UnderlyingDirectedEq tokenSimple.ty tokenSimple.underlying
   isUnderlying : go.IsUnderlying tokenSimple.underlying tokenSimple.underlying
+  method_set : go.MethodSetIs tokenSimple.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tokenSimple.ty) [(go!"go.etcd.io/etcd/server/v3/auth.assign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.assignSimpleTokenToUser", (some (go.signature.Signature [go.string, go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.disable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.enable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.info", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.invalidateUser", (some (go.signature.Signature [go.string] false []))), (go!"go.etcd.io/etcd/server/v3/auth.isValidSimpleToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [go.bool])))]
 
 attribute [instance] tokenSimple.TypeAssumptions.type_repr
   tokenSimple.TypeAssumptions.underlying
   tokenSimple.TypeAssumptions.isUnderlying
+  tokenSimple.TypeAssumptions.method_set
+  tokenSimple.TypeAssumptions.ptr_method_set
 
 structure AuthInfo [FfiSyntax] where
   mk ::
@@ -1185,6 +1209,8 @@ class AuthInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_Username : ∀ (x : AuthInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Username") (PairV #x #y) (Val #(({ x with Username' := y } : AuthInfo)))
   get_Revision : ∀ (x : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet AuthInfo.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : AuthInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet AuthInfo.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : AuthInfo)))
+  method_set : go.MethodSetIs AuthInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthInfo.ty) []
 
 attribute [instance] AuthInfo.TypeAssumptions.type_repr
   AuthInfo.TypeAssumptions.underlying
@@ -1192,6 +1218,8 @@ attribute [instance] AuthInfo.TypeAssumptions.type_repr
   AuthInfo.TypeAssumptions.set_Username
   AuthInfo.TypeAssumptions.get_Revision
   AuthInfo.TypeAssumptions.set_Revision
+  AuthInfo.TypeAssumptions.method_set
+  AuthInfo.TypeAssumptions.ptr_method_set
 
 structure AuthenticateParamIndex [FfiSyntax] where
   mk ::
@@ -1215,9 +1243,13 @@ instance equals_unfold_AuthenticateParamIndex [FfiSyntax] [GoGlobalContext] :
 class AuthenticateParamIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticateParamIndex.underlying AuthenticateParamIndex
   underlying : go.UnderlyingDirectedEq AuthenticateParamIndex.ty AuthenticateParamIndex.underlying
+  method_set : go.MethodSetIs AuthenticateParamIndex.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthenticateParamIndex.ty) []
 
 attribute [instance] AuthenticateParamIndex.TypeAssumptions.type_repr
   AuthenticateParamIndex.TypeAssumptions.underlying
+  AuthenticateParamIndex.TypeAssumptions.method_set
+  AuthenticateParamIndex.TypeAssumptions.ptr_method_set
 
 structure AuthenticateParamSimpleTokenPrefix [FfiSyntax] where
   mk ::
@@ -1241,9 +1273,13 @@ instance equals_unfold_AuthenticateParamSimpleTokenPrefix [FfiSyntax] [GoGlobalC
 class AuthenticateParamSimpleTokenPrefix.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthenticateParamSimpleTokenPrefix.underlying AuthenticateParamSimpleTokenPrefix
   underlying : go.UnderlyingDirectedEq AuthenticateParamSimpleTokenPrefix.ty AuthenticateParamSimpleTokenPrefix.underlying
+  method_set : go.MethodSetIs AuthenticateParamSimpleTokenPrefix.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthenticateParamSimpleTokenPrefix.ty) []
 
 attribute [instance] AuthenticateParamSimpleTokenPrefix.TypeAssumptions.type_repr
   AuthenticateParamSimpleTokenPrefix.TypeAssumptions.underlying
+  AuthenticateParamSimpleTokenPrefix.TypeAssumptions.method_set
+  AuthenticateParamSimpleTokenPrefix.TypeAssumptions.ptr_method_set
 
 abbrev AuthStore [FfiSyntax] : Type := GoInterface
 
@@ -1252,18 +1288,26 @@ abbrev AuthStore [FfiSyntax] : Type := GoInterface
 
 class AuthStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthStore.ty AuthStore.underlying
+  method_set : go.MethodSetIs AuthStore.ty [(go!"AuthDisable", (some (go.signature.Signature [] false []))), (go!"AuthEnable", (some (go.signature.Signature [] false [go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthInfo.ty), go.error]))), (go!"AuthInfoFromTLS", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthInfo.ty)]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"BcryptCost", (some (go.signature.Signature [] false [go.int]))), (go!"CheckPassword", (some (go.signature.Signature [go.string, go.string] false [go.uint64, go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GenTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"HasRole", (some (go.signature.Signature [go.string, go.string] false [go.bool]))), (go!"IsAdminPermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty)] false [go.error]))), (go!"IsAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeleteRangePermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"IsPutPermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"IsRangePermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Recover", (some (go.signature.Signature [AuthBackend.ty] false []))), (go!"Revision", (some (go.signature.Signature [] false [go.uint64]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"WithRoot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.context.Context.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthStore.ty) []
 
 attribute [instance] AuthStore.TypeAssumptions.underlying
+  AuthStore.TypeAssumptions.method_set
+  AuthStore.TypeAssumptions.ptr_method_set
 
 abbrev TokenProvider [FfiSyntax] : Type := GoInterface
 
 @[reducible] def TokenProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"assign" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error])), (go.InterfaceElem.MethodElem go!"disable" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"enable" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"genTokenPrefix" (go.signature.Signature [] false [go.string, go.error])), (go.InterfaceElem.MethodElem go!"info" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool])), (go.InterfaceElem.MethodElem go!"invalidateUser" (go.signature.Signature [go.string] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/auth.assign" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/auth.disable" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/auth.enable" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix" (go.signature.Signature [] false [go.string, go.error])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/auth.info" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/auth.invalidateUser" (go.signature.Signature [go.string] false []))])
 
 class TokenProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TokenProvider.ty TokenProvider.underlying
+  method_set : go.MethodSetIs TokenProvider.ty [(go!"go.etcd.io/etcd/server/v3/auth.assign", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.disable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.enable", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/auth.genTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.info", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.uint64] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.invalidateUser", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TokenProvider.ty) []
 
 attribute [instance] TokenProvider.TypeAssumptions.underlying
+  TokenProvider.TypeAssumptions.method_set
+  TokenProvider.TypeAssumptions.ptr_method_set
 
 abbrev AuthBackend [FfiSyntax] : Type := GoInterface
 
@@ -1272,18 +1316,26 @@ abbrev AuthBackend [FfiSyntax] : Type := GoInterface
 
 class AuthBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthBackend.ty AuthBackend.underlying
+  method_set : go.MethodSetIs AuthBackend.ty [(go!"BatchTx", (some (go.signature.Signature [] false [AuthBatchTx.ty]))), (go!"CreateAuthBuckets", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"GetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"GetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"GetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"ReadTx", (some (go.signature.Signature [] false [AuthReadTx.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthBackend.ty) []
 
 attribute [instance] AuthBackend.TypeAssumptions.underlying
+  AuthBackend.TypeAssumptions.method_set
+  AuthBackend.TypeAssumptions.ptr_method_set
 
 abbrev AuthReadTx [FfiSyntax] : Type := GoInterface
 
 @[reducible] def AuthReadTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RLock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RUnlock" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeAuthReader.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RLock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RUnlock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnsafeGetAllRoles" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))])), (go.InterfaceElem.MethodElem go!"UnsafeGetAllUsers" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))])), (go.InterfaceElem.MethodElem go!"UnsafeGetRole" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)])), (go.InterfaceElem.MethodElem go!"UnsafeGetUser" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)])), (go.InterfaceElem.MethodElem go!"UnsafeReadAuthEnabled" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"UnsafeReadAuthRevision" (go.signature.Signature [] false [go.uint64]))])
 
 class AuthReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthReadTx.ty AuthReadTx.underlying
+  method_set : go.MethodSetIs AuthReadTx.ty [(go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthReadTx.ty) []
 
 attribute [instance] AuthReadTx.TypeAssumptions.underlying
+  AuthReadTx.TypeAssumptions.method_set
+  AuthReadTx.TypeAssumptions.ptr_method_set
 
 abbrev UnsafeAuthReader [FfiSyntax] : Type := GoInterface
 
@@ -1292,28 +1344,40 @@ abbrev UnsafeAuthReader [FfiSyntax] : Type := GoInterface
 
 class UnsafeAuthReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeAuthReader.ty UnsafeAuthReader.underlying
+  method_set : go.MethodSetIs UnsafeAuthReader.ty [(go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeAuthReader.ty) []
 
 attribute [instance] UnsafeAuthReader.TypeAssumptions.underlying
+  UnsafeAuthReader.TypeAssumptions.method_set
+  UnsafeAuthReader.TypeAssumptions.ptr_method_set
 
 abbrev AuthBatchTx [FfiSyntax] : Type := GoInterface
 
 @[reducible] def AuthBatchTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeAuthReadWriter.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteRole" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteUser" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"UnsafeGetAllRoles" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))])), (go.InterfaceElem.MethodElem go!"UnsafeGetAllUsers" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))])), (go.InterfaceElem.MethodElem go!"UnsafeGetRole" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)])), (go.InterfaceElem.MethodElem go!"UnsafeGetUser" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)])), (go.InterfaceElem.MethodElem go!"UnsafePutRole" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false [])), (go.InterfaceElem.MethodElem go!"UnsafePutUser" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeReadAuthEnabled" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"UnsafeReadAuthRevision" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"UnsafeSaveAuthEnabled" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"UnsafeSaveAuthRevision" (go.signature.Signature [go.uint64] false []))])
 
 class AuthBatchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthBatchTx.ty AuthBatchTx.underlying
+  method_set : go.MethodSetIs AuthBatchTx.ty [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeDeleteRole", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeDeleteUser", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafePutRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false []))), (go!"UnsafePutUser", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false []))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSaveAuthEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UnsafeSaveAuthRevision", (some (go.signature.Signature [go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthBatchTx.ty) []
 
 attribute [instance] AuthBatchTx.TypeAssumptions.underlying
+  AuthBatchTx.TypeAssumptions.method_set
+  AuthBatchTx.TypeAssumptions.ptr_method_set
 
 abbrev UnsafeAuthReadWriter [FfiSyntax] : Type := GoInterface
 
 @[reducible] def UnsafeAuthReadWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeAuthReader.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeAuthWriter.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"UnsafeDeleteRole" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteUser" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"UnsafeGetAllRoles" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))])), (go.InterfaceElem.MethodElem go!"UnsafeGetAllUsers" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))])), (go.InterfaceElem.MethodElem go!"UnsafeGetRole" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)])), (go.InterfaceElem.MethodElem go!"UnsafeGetUser" (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)])), (go.InterfaceElem.MethodElem go!"UnsafePutRole" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false [])), (go.InterfaceElem.MethodElem go!"UnsafePutUser" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeReadAuthEnabled" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"UnsafeReadAuthRevision" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"UnsafeSaveAuthEnabled" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"UnsafeSaveAuthRevision" (go.signature.Signature [go.uint64] false []))])
 
 class UnsafeAuthReadWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeAuthReadWriter.ty UnsafeAuthReadWriter.underlying
+  method_set : go.MethodSetIs UnsafeAuthReadWriter.ty [(go!"UnsafeDeleteRole", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeDeleteUser", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafePutRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false []))), (go!"UnsafePutUser", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false []))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSaveAuthEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UnsafeSaveAuthRevision", (some (go.signature.Signature [go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeAuthReadWriter.ty) []
 
 attribute [instance] UnsafeAuthReadWriter.TypeAssumptions.underlying
+  UnsafeAuthReadWriter.TypeAssumptions.method_set
+  UnsafeAuthReadWriter.TypeAssumptions.ptr_method_set
 
 abbrev UnsafeAuthWriter [FfiSyntax] : Type := GoInterface
 
@@ -1322,8 +1386,12 @@ abbrev UnsafeAuthWriter [FfiSyntax] : Type := GoInterface
 
 class UnsafeAuthWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeAuthWriter.ty UnsafeAuthWriter.underlying
+  method_set : go.MethodSetIs UnsafeAuthWriter.ty [(go!"UnsafeDeleteRole", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeDeleteUser", (some (go.signature.Signature [go.string] false []))), (go!"UnsafePutRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false []))), (go!"UnsafePutUser", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false []))), (go!"UnsafeSaveAuthEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UnsafeSaveAuthRevision", (some (go.signature.Signature [go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeAuthWriter.ty) []
 
 attribute [instance] UnsafeAuthWriter.TypeAssumptions.underlying
+  UnsafeAuthWriter.TypeAssumptions.method_set
+  UnsafeAuthWriter.TypeAssumptions.ptr_method_set
 
 structure authStore [FfiSyntax] where
   mk ::
@@ -1382,6 +1450,8 @@ class authStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_tokenProvider : ∀ (x : authStore) (y : TokenProvider), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"tokenProvider") (PairV #x #y) (Val #(({ x with tokenProvider' := y } : authStore)))
   get_bcryptCost : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"bcryptCost") #x (Val #(x.bcryptCost'))
   set_bcryptCost : ∀ (x : authStore) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"bcryptCost") (PairV #x #y) (Val #(({ x with bcryptCost' := y } : authStore)))
+  method_set : go.MethodSetIs authStore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authStore.ty) [(go!"AuthDisable", (some (go.signature.Signature [] false []))), (go!"AuthEnable", (some (go.signature.Signature [] false [go.error]))), (go!"AuthInfoFromCtx", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthInfo.ty), go.error]))), (go!"AuthInfoFromTLS", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType AuthInfo.ty)]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"BcryptCost", (some (go.signature.Signature [] false [go.int]))), (go!"CheckPassword", (some (go.signature.Signature [go.string, go.string] false [go.uint64, go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GenTokenPrefix", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"HasRole", (some (go.signature.Signature [go.string, go.string] false [go.bool]))), (go!"IsAdminPermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty)] false [go.error]))), (go!"IsAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeleteRangePermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"IsPutPermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"IsRangePermitted", (some (go.signature.Signature [(go.GoType.PointerType AuthInfo.ty), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Recover", (some (go.signature.Signature [AuthBackend.ty] false []))), (go!"Revision", (some (go.signature.Signature [] false [go.uint64]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"WithRoot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.context.Context.ty]))), (go!"go.etcd.io/etcd/server/v3/auth.authInfoFromToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType AuthInfo.ty), go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.commitRevision", (some (go.signature.Signature [UnsafeAuthWriter.ty] false []))), (go!"go.etcd.io/etcd/server/v3/auth.isOpPermitted", (some (go.signature.Signature [go.string, go.uint64, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.isRangeOpPermitted", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/auth.refreshRangePermCache", (some (go.signature.Signature [UnsafeAuthReader.ty] false []))), (go!"go.etcd.io/etcd/server/v3/auth.selectPassword", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.etcd.io/etcd/server/v3/auth.setRevision", (some (go.signature.Signature [go.uint64] false []))), (go!"go.etcd.io/etcd/server/v3/auth.setupMetricsReporter", (some (go.signature.Signature [] false [])))]
   ptr_AuthInfoFromCtx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"AuthInfoFromCtx" authStore.AuthInfoFromCtx.impl
   ptr_IsAdminPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAdminPermitted" authStore.IsAdminPermitted.impl
   ptr_IsAuthEnabled_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"IsAuthEnabled" authStore.IsAuthEnabled.impl
@@ -1413,6 +1483,8 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.set_tokenProvider
   authStore.TypeAssumptions.get_bcryptCost
   authStore.TypeAssumptions.set_bcryptCost
+  authStore.TypeAssumptions.method_set
+  authStore.TypeAssumptions.ptr_method_set
   authStore.TypeAssumptions.ptr_AuthInfoFromCtx_unfold
   authStore.TypeAssumptions.ptr_IsAdminPermitted_unfold
   authStore.TypeAssumptions.ptr_IsAuthEnabled_unfold
@@ -1431,8 +1503,12 @@ abbrev permSlice [FfiSyntax] : Type := GoSlice
 
 class permSlice.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq permSlice.ty permSlice.underlying
+  method_set : go.MethodSetIs permSlice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType permSlice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] permSlice.TypeAssumptions.underlying
+  permSlice.TypeAssumptions.method_set
+  permSlice.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   tokenJWT_instance : tokenJWT.TypeAssumptions

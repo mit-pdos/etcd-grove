@@ -256,10 +256,14 @@ class keepaliveListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying keepaliveListener.underlying keepaliveListener
   underlying : go.UnderlyingDirectedEq keepaliveListener.ty keepaliveListener.underlying
   isUnderlying : go.IsUnderlying keepaliveListener.underlying keepaliveListener.underlying
+  method_set : go.MethodSetIs keepaliveListener.ty [(go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepaliveListener.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] keepaliveListener.TypeAssumptions.type_repr
   keepaliveListener.TypeAssumptions.underlying
   keepaliveListener.TypeAssumptions.isUnderlying
+  keepaliveListener.TypeAssumptions.method_set
+  keepaliveListener.TypeAssumptions.ptr_method_set
 
 axiom keepAliveConn : Type
 axiom keepAliveConn.zero_val : ZeroVal keepAliveConn
@@ -269,10 +273,14 @@ class keepAliveConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying keepAliveConn.underlying keepAliveConn
   underlying : go.UnderlyingDirectedEq keepAliveConn.ty keepAliveConn.underlying
   isUnderlying : go.IsUnderlying keepAliveConn.underlying keepAliveConn.underlying
+  method_set : go.MethodSetIs keepAliveConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", none), (go!"LocalAddr", none), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", none), (go!"RemoteAddr", none), (go!"SetDeadline", none), (go!"SetKeepAliveConfig", none), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", none), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", none), (go!"SyscallConn", none), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", none), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", none), (go!"net.writeBuffers", none), (go!"net.writeTo", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepAliveConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", none), (go!"LocalAddr", none), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", none), (go!"RemoteAddr", none), (go!"SetDeadline", none), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", none), (go!"SetKeepAlivePeriod", none), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", none), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", none), (go!"SyscallConn", none), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", none), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", none), (go!"net.writeBuffers", none), (go!"net.writeTo", none)]
 
 attribute [instance] keepAliveConn.TypeAssumptions.type_repr
   keepAliveConn.TypeAssumptions.underlying
   keepAliveConn.TypeAssumptions.isUnderlying
+  keepAliveConn.TypeAssumptions.method_set
+  keepAliveConn.TypeAssumptions.ptr_method_set
 
 axiom tlsKeepaliveListener : Type
 axiom tlsKeepaliveListener.zero_val : ZeroVal tlsKeepaliveListener
@@ -282,10 +290,14 @@ class tlsKeepaliveListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying tlsKeepaliveListener.underlying tlsKeepaliveListener
   underlying : go.UnderlyingDirectedEq tlsKeepaliveListener.ty tlsKeepaliveListener.underlying
   isUnderlying : go.IsUnderlying tlsKeepaliveListener.underlying tlsKeepaliveListener.underlying
+  method_set : go.MethodSetIs tlsKeepaliveListener.ty [(go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsKeepaliveListener.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] tlsKeepaliveListener.TypeAssumptions.type_repr
   tlsKeepaliveListener.TypeAssumptions.underlying
   tlsKeepaliveListener.TypeAssumptions.isUnderlying
+  tlsKeepaliveListener.TypeAssumptions.method_set
+  tlsKeepaliveListener.TypeAssumptions.ptr_method_set
 
 axiom limitListener : Type
 axiom limitListener.zero_val : ZeroVal limitListener
@@ -295,10 +307,14 @@ class limitListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying limitListener.underlying limitListener
   underlying : go.UnderlyingDirectedEq limitListener.ty limitListener.underlying
   isUnderlying : go.IsUnderlying limitListener.underlying limitListener.underlying
+  method_set : go.MethodSetIs limitListener.ty [(go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitListener.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.acquire", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.release", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] limitListener.TypeAssumptions.type_repr
   limitListener.TypeAssumptions.underlying
   limitListener.TypeAssumptions.isUnderlying
+  limitListener.TypeAssumptions.method_set
+  limitListener.TypeAssumptions.ptr_method_set
 
 axiom limitListenerConn : Type
 axiom limitListenerConn.zero_val : ZeroVal limitListenerConn
@@ -308,10 +324,14 @@ class limitListenerConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying limitListenerConn.underlying limitListenerConn
   underlying : go.UnderlyingDirectedEq limitListenerConn.ty limitListenerConn.underlying
   isUnderlying : go.IsUnderlying limitListenerConn.underlying limitListenerConn.underlying
+  method_set : go.MethodSetIs limitListenerConn.ty [(go!"LocalAddr", none), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", none), (go!"SetDeadline", none), (go!"SetReadDeadline", none), (go!"SetWriteDeadline", none), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitListenerConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", none), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", none), (go!"SetDeadline", none), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAlivePeriod", none), (go!"SetReadDeadline", none), (go!"SetWriteDeadline", none), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] limitListenerConn.TypeAssumptions.type_repr
   limitListenerConn.TypeAssumptions.underlying
   limitListenerConn.TypeAssumptions.isUnderlying
+  limitListenerConn.TypeAssumptions.method_set
+  limitListenerConn.TypeAssumptions.ptr_method_set
 
 axiom TLSInfo : Type
 axiom TLSInfo.zero_val : ZeroVal TLSInfo
@@ -321,10 +341,14 @@ class TLSInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying TLSInfo.underlying TLSInfo
   underlying : go.UnderlyingDirectedEq TLSInfo.ty TLSInfo.underlying
   isUnderlying : go.IsUnderlying TLSInfo.underlying TLSInfo.underlying
+  method_set : go.MethodSetIs TLSInfo.ty [(go!"ClientConfig", none), (go!"ConfigureCRLVerification", none), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"ServerConfig", none), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.baseConfig", none), (go!"go.etcd.io/etcd/client/pkg/v3/transport.cafiles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSInfo.ty) [(go!"ClientConfig", none), (go!"ConfigureCRLVerification", none), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"ServerConfig", none), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.baseConfig", none), (go!"go.etcd.io/etcd/client/pkg/v3/transport.cafiles", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.underlying
   TLSInfo.TypeAssumptions.isUnderlying
+  TLSInfo.TypeAssumptions.method_set
+  TLSInfo.TypeAssumptions.ptr_method_set
 
 axiom ListenerOptions : Type
 axiom ListenerOptions.zero_val : ZeroVal ListenerOptions
@@ -334,10 +358,14 @@ class ListenerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying ListenerOptions.underlying ListenerOptions
   underlying : go.UnderlyingDirectedEq ListenerOptions.ty ListenerOptions.underlying
   isUnderlying : go.IsUnderlying ListenerOptions.underlying ListenerOptions.underlying
+  method_set : go.MethodSetIs ListenerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListenerOptions.ty) [(go!"IsSocketOpts", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTLS", (some (go.signature.Signature [] false [go.bool]))), (go!"IsTimeout", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.applyOpts", (some (go.signature.Signature [(go.GoType.SliceType ListenerOption.ty)] false [])))]
 
 attribute [instance] ListenerOptions.TypeAssumptions.type_repr
   ListenerOptions.TypeAssumptions.underlying
   ListenerOptions.TypeAssumptions.isUnderlying
+  ListenerOptions.TypeAssumptions.method_set
+  ListenerOptions.TypeAssumptions.ptr_method_set
 
 abbrev ListenerOption [FfiSyntax] : Type := GoFunc
 
@@ -346,8 +374,12 @@ abbrev ListenerOption [FfiSyntax] : Type := GoFunc
 
 class ListenerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ListenerOption.ty ListenerOption.underlying
+  method_set : go.MethodSetIs ListenerOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListenerOption.ty) []
 
 attribute [instance] ListenerOption.TypeAssumptions.underlying
+  ListenerOption.TypeAssumptions.method_set
+  ListenerOption.TypeAssumptions.ptr_method_set
 
 axiom tlsListener : Type
 axiom tlsListener.zero_val : ZeroVal tlsListener
@@ -357,10 +389,14 @@ class tlsListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying tlsListener.underlying tlsListener
   underlying : go.UnderlyingDirectedEq tlsListener.ty tlsListener.underlying
   isUnderlying : go.IsUnderlying tlsListener.underlying tlsListener.underlying
+  method_set : go.MethodSetIs tlsListener.ty [(go!"Addr", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsListener.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/pkg/v3/transport.acceptLoop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] tlsListener.TypeAssumptions.type_repr
   tlsListener.TypeAssumptions.underlying
   tlsListener.TypeAssumptions.isUnderlying
+  tlsListener.TypeAssumptions.method_set
+  tlsListener.TypeAssumptions.ptr_method_set
 
 axiom tlsCheckFunc : Type
 axiom tlsCheckFunc.zero_val : ZeroVal tlsCheckFunc
@@ -370,10 +406,14 @@ class tlsCheckFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying tlsCheckFunc.underlying tlsCheckFunc
   underlying : go.UnderlyingDirectedEq tlsCheckFunc.ty tlsCheckFunc.underlying
   isUnderlying : go.IsUnderlying tlsCheckFunc.underlying tlsCheckFunc.underlying
+  method_set : go.MethodSetIs tlsCheckFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsCheckFunc.ty) []
 
 attribute [instance] tlsCheckFunc.TypeAssumptions.type_repr
   tlsCheckFunc.TypeAssumptions.underlying
   tlsCheckFunc.TypeAssumptions.isUnderlying
+  tlsCheckFunc.TypeAssumptions.method_set
+  tlsCheckFunc.TypeAssumptions.ptr_method_set
 
 axiom Controls : Type
 axiom Controls.zero_val : ZeroVal Controls
@@ -383,10 +423,14 @@ class Controls.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Controls.underlying Controls
   underlying : go.UnderlyingDirectedEq Controls.ty Controls.underlying
   isUnderlying : go.IsUnderlying Controls.underlying Controls.underlying
+  method_set : go.MethodSetIs Controls.ty [(go!"Control", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Controls.ty) [(go!"Control", none)]
 
 attribute [instance] Controls.TypeAssumptions.type_repr
   Controls.TypeAssumptions.underlying
   Controls.TypeAssumptions.isUnderlying
+  Controls.TypeAssumptions.method_set
+  Controls.TypeAssumptions.ptr_method_set
 
 structure SocketOpts [FfiSyntax] where
   mk ::
@@ -417,6 +461,8 @@ class SocketOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_ReusePort : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReusePort") (PairV #x #y) (Val #(({ x with ReusePort' := y } : SocketOpts)))
   get_ReuseAddress : ∀ (x : SocketOpts), go.IsGoStepPureDetTagged under (StructFieldGet SocketOpts.underlying go!"ReuseAddress") #x (Val #(x.ReuseAddress'))
   set_ReuseAddress : ∀ (x : SocketOpts) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SocketOpts.underlying go!"ReuseAddress") (PairV #x #y) (Val #(({ x with ReuseAddress' := y } : SocketOpts)))
+  method_set : go.MethodSetIs SocketOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SocketOpts.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.underlying
@@ -424,6 +470,8 @@ attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.set_ReusePort
   SocketOpts.TypeAssumptions.get_ReuseAddress
   SocketOpts.TypeAssumptions.set_ReuseAddress
+  SocketOpts.TypeAssumptions.method_set
+  SocketOpts.TypeAssumptions.ptr_method_set
 
 axiom timeoutConn : Type
 axiom timeoutConn.zero_val : ZeroVal timeoutConn
@@ -433,10 +481,14 @@ class timeoutConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying timeoutConn.underlying timeoutConn
   underlying : go.UnderlyingDirectedEq timeoutConn.ty timeoutConn.underlying
   isUnderlying : go.IsUnderlying timeoutConn.underlying timeoutConn.underlying
+  method_set : go.MethodSetIs timeoutConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", none), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", none), (go!"SetDeadline", none), (go!"SetReadDeadline", none), (go!"SetWriteDeadline", none), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", none), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", none), (go!"SetDeadline", none), (go!"SetReadDeadline", none), (go!"SetWriteDeadline", none), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] timeoutConn.TypeAssumptions.type_repr
   timeoutConn.TypeAssumptions.underlying
   timeoutConn.TypeAssumptions.isUnderlying
+  timeoutConn.TypeAssumptions.method_set
+  timeoutConn.TypeAssumptions.ptr_method_set
 
 axiom rwTimeoutDialer : Type
 axiom rwTimeoutDialer.zero_val : ZeroVal rwTimeoutDialer
@@ -446,10 +498,14 @@ class rwTimeoutDialer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying rwTimeoutDialer.underlying rwTimeoutDialer
   underlying : go.UnderlyingDirectedEq rwTimeoutDialer.ty rwTimeoutDialer.underlying
   isUnderlying : go.IsUnderlying rwTimeoutDialer.underlying rwTimeoutDialer.underlying
+  method_set : go.MethodSetIs rwTimeoutDialer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rwTimeoutDialer.ty) [(go!"Dial", none), (go!"DialContext", none), (go!"DialIP", none), (go!"DialTCP", none), (go!"DialUDP", none), (go!"DialUnix", none), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false []))), (go!"net.deadline", none), (go!"net.dialCtx", none), (go!"net.dualStack", (some (go.signature.Signature [] false [go.bool]))), (go!"net.fallbackDelay", none), (go!"net.resolver", none)]
 
 attribute [instance] rwTimeoutDialer.TypeAssumptions.type_repr
   rwTimeoutDialer.TypeAssumptions.underlying
   rwTimeoutDialer.TypeAssumptions.isUnderlying
+  rwTimeoutDialer.TypeAssumptions.method_set
+  rwTimeoutDialer.TypeAssumptions.ptr_method_set
 
 axiom rwTimeoutListener : Type
 axiom rwTimeoutListener.zero_val : ZeroVal rwTimeoutListener
@@ -459,10 +515,14 @@ class rwTimeoutListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying rwTimeoutListener.underlying rwTimeoutListener
   underlying : go.UnderlyingDirectedEq rwTimeoutListener.ty rwTimeoutListener.underlying
   isUnderlying : go.IsUnderlying rwTimeoutListener.underlying rwTimeoutListener.underlying
+  method_set : go.MethodSetIs rwTimeoutListener.ty [(go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rwTimeoutListener.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] rwTimeoutListener.TypeAssumptions.type_repr
   rwTimeoutListener.TypeAssumptions.underlying
   rwTimeoutListener.TypeAssumptions.isUnderlying
+  rwTimeoutListener.TypeAssumptions.method_set
+  rwTimeoutListener.TypeAssumptions.ptr_method_set
 
 axiom unixTransport : Type
 axiom unixTransport.zero_val : ZeroVal unixTransport
@@ -472,10 +532,14 @@ class unixTransport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying unixTransport.underlying unixTransport
   underlying : go.UnderlyingDirectedEq unixTransport.ty unixTransport.underlying
   isUnderlying : go.IsUnderlying unixTransport.underlying unixTransport.underlying
+  method_set : go.MethodSetIs unixTransport.ty [(go!"CancelRequest", none), (go!"Clone", none), (go!"CloseIdleConnections", (some (go.signature.Signature [] false []))), (go!"NewClientConn", none), (go!"RegisterProtocol", none), (go!"net/http.alternateRoundTripper", none), (go!"net/http.configureHTTP2", none), (go!"net/http.connectMethodForRequest", none), (go!"net/http.customDialTLS", none), (go!"net/http.decConnsPerHost", none), (go!"net/http.dial", none), (go!"net/http.dialConn", none), (go!"net/http.dialConnFor", none), (go!"net/http.getConn", none), (go!"net/http.hasCustomTLSDialer", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http2AddConn", none), (go!"net/http.http2ExternalDial", none), (go!"net/http.http2NewClientConn", none), (go!"net/http.http2NewClientConnFromContext", none), (go!"net/http.maxHeaderResponseSize", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.maxIdleConnsPerHost", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.onceSetNextProtoDefaults", (some (go.signature.Signature [] false []))), (go!"net/http.prepareTransportCancel", none), (go!"net/http.protocols", none), (go!"net/http.putOrCloseIdleConn", none), (go!"net/http.queueForDial", none), (go!"net/http.queueForIdleConn", none), (go!"net/http.readBufferSize", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.registerProtocol", none), (go!"net/http.removeIdleConn", none), (go!"net/http.removeIdleConnLocked", none), (go!"net/http.roundTrip", none), (go!"net/http.startDialConnForLocked", none), (go!"net/http.tryPutIdleConn", none), (go!"net/http.useRegisteredProtocol", none), (go!"net/http.writeBufferSize", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixTransport.ty) [(go!"CancelRequest", none), (go!"Clone", none), (go!"CloseIdleConnections", (some (go.signature.Signature [] false []))), (go!"NewClientConn", none), (go!"RegisterProtocol", none), (go!"RoundTrip", none), (go!"net/http.alternateRoundTripper", none), (go!"net/http.configureHTTP2", none), (go!"net/http.connectMethodForRequest", none), (go!"net/http.customDialTLS", none), (go!"net/http.decConnsPerHost", none), (go!"net/http.dial", none), (go!"net/http.dialConn", none), (go!"net/http.dialConnFor", none), (go!"net/http.getConn", none), (go!"net/http.hasCustomTLSDialer", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.http2AddConn", none), (go!"net/http.http2ExternalDial", none), (go!"net/http.http2NewClientConn", none), (go!"net/http.http2NewClientConnFromContext", none), (go!"net/http.maxHeaderResponseSize", (some (go.signature.Signature [] false [go.int64]))), (go!"net/http.maxIdleConnsPerHost", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.onceSetNextProtoDefaults", (some (go.signature.Signature [] false []))), (go!"net/http.prepareTransportCancel", none), (go!"net/http.protocols", none), (go!"net/http.putOrCloseIdleConn", none), (go!"net/http.queueForDial", none), (go!"net/http.queueForIdleConn", none), (go!"net/http.readBufferSize", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.registerProtocol", none), (go!"net/http.removeIdleConn", none), (go!"net/http.removeIdleConnLocked", none), (go!"net/http.roundTrip", none), (go!"net/http.startDialConnForLocked", none), (go!"net/http.tryPutIdleConn", none), (go!"net/http.useRegisteredProtocol", none), (go!"net/http.writeBufferSize", (some (go.signature.Signature [] false [go.int])))]
 
 attribute [instance] unixTransport.TypeAssumptions.type_repr
   unixTransport.TypeAssumptions.underlying
   unixTransport.TypeAssumptions.isUnderlying
+  unixTransport.TypeAssumptions.method_set
+  unixTransport.TypeAssumptions.ptr_method_set
 
 axiom unixListener : Type
 axiom unixListener.zero_val : ZeroVal unixListener
@@ -485,10 +549,14 @@ class unixListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying unixListener.underlying unixListener
   underlying : go.UnderlyingDirectedEq unixListener.ty unixListener.underlying
   isUnderlying : go.IsUnderlying unixListener.underlying unixListener.underlying
+  method_set : go.MethodSetIs unixListener.ty [(go!"Accept", none), (go!"Addr", none)]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixListener.ty) [(go!"Accept", none), (go!"Addr", none), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] unixListener.TypeAssumptions.type_repr
   unixListener.TypeAssumptions.underlying
   unixListener.TypeAssumptions.isUnderlying
+  unixListener.TypeAssumptions.method_set
+  unixListener.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   keepaliveListener_instance : keepaliveListener.TypeAssumptions

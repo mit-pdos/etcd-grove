@@ -208,6 +208,8 @@ class Versions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_Cluster : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Cluster") (PairV #x #y) (Val #(({ x with Cluster' := y } : Versions)))
   get_Storage : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Storage") #x (Val #(x.Storage'))
   set_Storage : ∀ (x : Versions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Versions.underlying go!"Storage") (PairV #x #y) (Val #(({ x with Storage' := y } : Versions)))
+  method_set : go.MethodSetIs Versions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Versions.ty) []
 
 attribute [instance] Versions.TypeAssumptions.type_repr
   Versions.TypeAssumptions.underlying
@@ -217,6 +219,8 @@ attribute [instance] Versions.TypeAssumptions.type_repr
   Versions.TypeAssumptions.set_Cluster
   Versions.TypeAssumptions.get_Storage
   Versions.TypeAssumptions.set_Storage
+  Versions.TypeAssumptions.method_set
+  Versions.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Versions_instance : Versions.TypeAssumptions

@@ -90,8 +90,12 @@ abbrev Capability [FfiSyntax] : Type := GoString
 
 class Capability.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Capability.ty Capability.underlying
+  method_set : go.MethodSetIs Capability.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Capability.ty) []
 
 attribute [instance] Capability.TypeAssumptions.underlying
+  Capability.TypeAssumptions.method_set
+  Capability.TypeAssumptions.ptr_method_set
 
 abbrev Cluster [FfiSyntax] : Type := GoInterface
 
@@ -100,8 +104,12 @@ abbrev Cluster [FfiSyntax] : Type := GoInterface
 
 class Cluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Cluster.ty Cluster.underlying
+  method_set : go.MethodSetIs Cluster.ty [(go!"ClientURLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"Member", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)]))), (go!"Members", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))]))), (go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cluster.ty) []
 
 attribute [instance] Cluster.TypeAssumptions.underlying
+  Cluster.TypeAssumptions.method_set
+  Cluster.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Capability_instance : Capability.TypeAssumptions

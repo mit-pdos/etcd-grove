@@ -64,8 +64,12 @@ abbrev PerRPCCredentialsBundle [FfiSyntax] : Type := GoInterface
 
 class PerRPCCredentialsBundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PerRPCCredentialsBundle.ty PerRPCCredentialsBundle.underlying
+  method_set : go.MethodSetIs PerRPCCredentialsBundle.ty [(go!"PerRPCCredentials", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PerRPCCredentialsBundle.ty) []
 
 attribute [instance] PerRPCCredentialsBundle.TypeAssumptions.underlying
+  PerRPCCredentialsBundle.TypeAssumptions.method_set
+  PerRPCCredentialsBundle.TypeAssumptions.ptr_method_set
 
 structure perRPCCredentialBundle [FfiSyntax] where
   mk ::
@@ -92,11 +96,15 @@ class perRPCCredentialBundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLo
   underlying : go.UnderlyingDirectedEq perRPCCredentialBundle.ty perRPCCredentialBundle.underlying
   get_rc : ∀ (x : perRPCCredentialBundle), go.IsGoStepPureDetTagged under (StructFieldGet perRPCCredentialBundle.underlying go!"rc") #x (Val #(x.rc'))
   set_rc : ∀ (x : perRPCCredentialBundle) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet perRPCCredentialBundle.underlying go!"rc") (PairV #x #y) (Val #(({ x with rc' := y } : perRPCCredentialBundle)))
+  method_set : go.MethodSetIs perRPCCredentialBundle.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType perRPCCredentialBundle.ty) [(go!"PerRPCCredentials", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials.ty]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] perRPCCredentialBundle.TypeAssumptions.type_repr
   perRPCCredentialBundle.TypeAssumptions.underlying
   perRPCCredentialBundle.TypeAssumptions.get_rc
   perRPCCredentialBundle.TypeAssumptions.set_rc
+  perRPCCredentialBundle.TypeAssumptions.method_set
+  perRPCCredentialBundle.TypeAssumptions.ptr_method_set
 
 axiom perRPCCredential : Type
 axiom perRPCCredential.zero_val : ZeroVal perRPCCredential
@@ -106,10 +114,14 @@ class perRPCCredential.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying perRPCCredential.underlying perRPCCredential
   underlying : go.UnderlyingDirectedEq perRPCCredential.ty perRPCCredential.underlying
   isUnderlying : go.IsUnderlying perRPCCredential.underlying perRPCCredential.underlying
+  method_set : go.MethodSetIs perRPCCredential.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType perRPCCredential.ty) [(go!"GetRequestMetadata", none), (go!"RequireTransportSecurity", (some (go.signature.Signature [] false [go.bool]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] perRPCCredential.TypeAssumptions.type_repr
   perRPCCredential.TypeAssumptions.underlying
   perRPCCredential.TypeAssumptions.isUnderlying
+  perRPCCredential.TypeAssumptions.method_set
+  perRPCCredential.TypeAssumptions.ptr_method_set
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PerRPCCredentialsBundle_instance : PerRPCCredentialsBundle.TypeAssumptions

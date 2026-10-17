@@ -6,9 +6,9 @@
 initializes its imports (`context`, `time`, raft, `raftpb`, `encoding/binary`, `sync`, and since
 raft v3.7 (stage R6b) protobuf-go's `proto`, whose initializer is a `sorry` as raft's premises
 say) and
-then the package (no package-level variable), and gives its `isPkgInit`. It takes raft's
-premises (`Proof/go_etcd_io/raft/v3/Init.lean`): the method-set facts
-`context.ErrorStringIsError`, `context.DeadlineExceededIsError` and the model of `log.New`, `log.NewModel`.
+then the package (no package-level variable), and gives its `isPkgInit`. It takes no premise
+beyond the packages' `Assumptions`: the method-set facts `context`'s initializer needs and
+`log.New`, which raft's initializer calls, are Perennial's (since Perennial `5f111b9a8`).
 -/
 module
 
@@ -33,7 +33,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
-variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
 
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.register
