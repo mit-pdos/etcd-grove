@@ -5,7 +5,8 @@
 
 **The premises.**
 * `bootstrap`'s contract (`bootstrapContract`, `InvBoot.lean`; D13b): a premise, not an axiom
-  (etcd's `raftConfig` sets `CheckQuorum`, which the raft start result needs off).
+  (etcd's `raftConfig` sets `PreVote` on by default, which the raft start result still needs off;
+  `CheckQuorum`, also set, is covered since 2026-10-17).
 * The cluster's ghost state, as `NodeStartSpec`'s: raft's names `γ` with this node's ghost state
   at the bootstrap log's state, the committed bootstrap log, raft's commit invariant, the budget;
   and the outputs of `allocClientBoot`'s continuation for this server (the client's half of the

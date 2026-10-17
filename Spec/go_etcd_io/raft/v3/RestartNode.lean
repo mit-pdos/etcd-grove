@@ -51,7 +51,6 @@ abbrev RestartNode.spec : Prop :=
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
   -- `ReadOnlySafe` (2026-10-12)
   cv.ReadOnlyOption' = W64 0 →

@@ -61,7 +61,7 @@ macro "w32_ne" : tactic =>
       Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
       Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
       Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
-      Perennial.EtcdGrove.MsgTimeoutNow,
+      Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum,
       ne_eq]; word))
 
 /-- `m.Type' ≠ MsgSnap` from a hypothesis `h` naming `m.Type'` (one type, or a disjunction of
@@ -79,7 +79,7 @@ macro_rules
         Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
         Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
         Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
-        Perennial.EtcdGrove.MsgTimeoutNow, _root_.or_false, _root_.false_or,
+        Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum, _root_.or_false, _root_.false_or,
         _root_.or_self]; word))
 
 /-- `RFrame s s'` (`StepLemmasR.lean`) for a branch's end state `s'` built from `s` by record
@@ -124,7 +124,8 @@ theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NSt
 end cfg_eq
 
 example [FfiSyntax] (m : MessageM)
-    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) :
+    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
 example [FfiSyntax] (m : MessageM) (Hty : m.Type' = MsgHeartbeat) :
     m.Type' ≠ MsgSnap := by nonsnap Hty

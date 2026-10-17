@@ -46,7 +46,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 set_option maxHeartbeats 4000000 in
-/-- `MsgPreVote` with `m.Term > r.Term`: the lease check passes (`checkQuorum` is off),
+/-- `MsgPreVote` with `m.Term > r.Term`: the lease check passes (2026-10-17: or, with `checkQuorum` on, ignores it),
 and a pre-vote **never** steps the node down. `canVote` holds by its third disjunct
 (`MsgPreVote` for a future term). The answer is a `MsgPreVoteResp`: granted at `m.Term`
 if the candidate's log is up to date, else rejected at `r.Term`; nothing is recorded
@@ -111,25 +111,16 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_gets
   rw [Hy17]
   wp_auto
-  -- `force` is false (not a leader transfer) and `inLease` is false (no check-quorum),
-  -- so the lease check does not drop the message
+  -- the lease check (2026-10-17: `inLease` needs `checkQuorum`)
   wp_gets
   wp_apply PB.GetContext.1 $$ [$Hm] as %cs ⟨#Hctx_sl, Hm⟩
   wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
   wp_apply bytes.wp_Equal _ _ DFrac.discard (DFrac.own 1) ctx (go!"CampaignTransfer")
       $$ [$Hctx_sl $ct_sl] as ⟨-, -⟩
   wp_gets
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  -- `force` (2026-10-13): a leader transfer's vote request or not; either way
-  -- `!force && inLease` is false, `inLease` being false without check-quorum
-  by_cases Hforce : ctx = go!"CampaignTransfer"
-  wp_gets
-  rw [decide_eq_true Hforce]
-  try wp_auto
-  rotate_left
-  wp_gets
-  rw [decide_eq_false Hforce]
-  try wp_auto
+  -- `force` (2026-10-13): a leader transfer's vote request or not; (2026-10-17) with
+  -- `checkQuorum` on, a request within the lease that is not forced is ignored
+  wp_lease_check ctx
   all_goals
     -- the step-down switch: `MsgPreVote`, so nothing
     wp_gets

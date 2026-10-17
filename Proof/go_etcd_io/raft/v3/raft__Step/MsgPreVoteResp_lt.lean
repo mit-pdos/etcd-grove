@@ -87,15 +87,12 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [decide_eq_true Hlt]
   try wp_auto
   wp_gets
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn20 : decide (m.Type' = W32 20) = false := decide_eq_false (by rw [Hty]; w32_ne)
-  -- `checkQuorum` is off; with pre-vote on the type test runs and is false
-  cases s.prevote <;> try wp_auto
+  wp_cq_pv
+  -- with `checkQuorum` or pre-vote on the type test runs and is false
   all_goals try (wp_gets; rw [Hn8]; try wp_auto; wp_gets; rw [Hn3]; try wp_auto)
   all_goals
     wp_gets

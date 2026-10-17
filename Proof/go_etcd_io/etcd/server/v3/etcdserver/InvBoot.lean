@@ -130,7 +130,7 @@ def bootOk (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (b : Lo
     "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
       cv.Storage' = memStorIface bv.storage' ∧
-      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧ cv.CheckQuorum' = false ∧
+      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
       cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
       cv.DisableConfChangeValidation' = false ∧
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧

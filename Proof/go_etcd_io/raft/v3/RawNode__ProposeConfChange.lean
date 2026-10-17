@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [propMsgM, MsgProp, MsgHup, MsgVote,
-  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,
+  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum,
   MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp,
   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 

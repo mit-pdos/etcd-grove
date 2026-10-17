@@ -40,7 +40,7 @@ macro "mtype_simp" : tactic =>
       Perennial.EtcdGrove.MsgHup, Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgApp,
       Perennial.EtcdGrove.MsgAppResp, Perennial.EtcdGrove.MsgVote,
       Perennial.EtcdGrove.MsgVoteResp, Perennial.EtcdGrove.MsgSnap,
-      Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,
+      Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,MsgCheckQuorum,
       Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
       or_false, false_or, false_and, and_false, ↓reduceIte, Bool.false_eq_true] at *)
 
@@ -70,7 +70,9 @@ theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResultC at Hres
   rw [Hty] at Hres
-  rcases Hres with ⟨-, Hres⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rcases Hres with ⟨-, Hres⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ | ⟨Hc7, -⟩
+  rotate_right
+  · exfalso; first | (rw [Hty] at Hc7; exact absurd Hc7 (by w32_ne)) | (rcases Hty with h' | h' <;> rw [h'] at Hc7 <;> exact absurd Hc7 (by w32_ne)) | exact absurd Hc7 (by w32_ne)
   rotate_right
   · exfalso
     rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> exact absurd h6 (by w32_ne)

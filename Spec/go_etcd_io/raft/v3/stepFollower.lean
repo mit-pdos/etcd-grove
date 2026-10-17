@@ -100,7 +100,8 @@ def FollowerStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
     dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
   else if m.Type' = MsgHeartbeat then
     dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
-  else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
+  else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum then
     dropped = false ∧ s' = s
   else if m.Type' = MsgSnap then
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
@@ -144,7 +145,8 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
        dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
      else if m.Type' = MsgHeartbeat then
        dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
-     else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
+     else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum then
        dropped = false ∧ s' = s
      else if m.Type' = MsgSnap then
        dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
@@ -218,7 +220,8 @@ abbrev stepFollower.spec : Prop :=
     (ents : List EntryM) (sn : Option SnapshotM) (rs : List Loc) (sv : SnapshotM) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
-   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum) ∨
    m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
    m.Type' = MsgReadIndex ∨
    (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨

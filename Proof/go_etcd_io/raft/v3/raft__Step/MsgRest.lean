@@ -62,7 +62,7 @@ theorem followerStepResult_forget (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : 
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
     MsgForgetLeader, W32] at H
   simpa using H
 
@@ -76,7 +76,7 @@ theorem followerStepResult_rnoop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w
   replace H := H.2
   rcases Hty with h | h | h <;>
   simp only [h, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
     MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, W32] at H <;>
   simpa using H
 
@@ -89,7 +89,7 @@ theorem followerStepResult_timeout (c : CfgM) {scfg : CSLists} {c' : CfgM} (id :
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
     MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32] at H
   simpa using H
 
@@ -104,7 +104,7 @@ theorem candidateStepResult_rest (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w
   replace H := H.2
   rcases Hty with h | h | h | h | h <;>
   simp only [h, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
-    MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+    MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
     MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32] at H <;>
   simpa using H
 
@@ -124,8 +124,8 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   obtain ⟨rfl, Hres⟩ := H
   unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ |
-    ⟨-, lt', ms, pvs, rfl, Hms, Hpm⟩
-  rotate_right
+    ⟨-, lt', ms, pvs, rfl, Hms, Hpm⟩ | ⟨Hc, -⟩
+  rotate_right 2
   · refine ⟨rfl, Hwf, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
     rw [toPState_prvals (sendMsgs { s with lt := lt' } ms) pvs (fun _ => Hpm), toPState_sendMsgs]
@@ -500,10 +500,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     rw [decide_eq_true Hlt]
     wp_auto
     wp_gets
-    wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-    wp_gets
-    wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
-    cases s.prevote <;> wp_auto
+    wp_cq_pv
     all_goals iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     all_goals
       wp_gets
@@ -672,10 +669,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rw [decide_eq_true Hlt]
     wp_auto
     wp_gets
-    wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-    wp_gets
-    wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
-    cases s.prevote <;> wp_auto
+    wp_cq_pv
     all_goals iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     all_goals
       wp_gets

@@ -967,7 +967,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iintro %h
     exfalso
     simp [psendMsgs, padoptLeader] at h
-  | stepDown r h1 h2 =>
+  | stepDown r h1 =>
     iintro Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
@@ -978,7 +978,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.stepDown r h1 h2) noApp0 HI)
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.stepDown r h1) noApp0 HI)
     iintro %h
     exfalso
     revert h

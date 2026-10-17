@@ -7,7 +7,7 @@ B3).
 the code has as `ownRaftPhys`'s `Hvoter`), updates the ghost state as `StepC` does: by
 `stepR_static` it is a `StepC (CfgM.simple γ.reCfg ∅)` derivation of the protocol states, which
 `ownRaftGhost_stepC` takes. The new rules are stuttering steps for the ghost (`advance`,
-`applySnap`, `applyConf`, `propDrop` change no `PState`; `stepDown` cannot fire). The ghost
+`applySnap`, `applyConf`, `propDrop` change no `PState`; `stepDown` is `StepC.stepDown`). The ghost
 state is unchanged: it holds the `PState` only (`RState.p`).
 -/
 module

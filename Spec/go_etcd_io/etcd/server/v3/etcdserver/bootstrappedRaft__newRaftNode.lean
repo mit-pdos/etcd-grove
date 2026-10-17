@@ -16,10 +16,11 @@ over `cl.IsIDRemoved` (a contract on the cluster: `isRNIDRemoved`).
 **The premises on `b.config`** are `StartNode.spec`'s (`NewRawNode`'s on a new cluster's
 config, the storage `b.storage` a fresh `MemoryStorage`: `NewMemoryStorage`'s `memStorEmpty`, as
 raft's `ownStorage (memStorIface ms)` under the `MemoryStorage` instance, which the composition
-holds with the registry; raft owns it from the call on). **Among them `CheckQuorum = false` and `PreVote = false`: etcd's
-`raftConfig` (`bootstrap.go`) sets `CheckQuorum: true` and `PreVote` on by default, so this
-theorem does not cover etcd's own configuration** (`MsgCheckQuorum` and pre-vote are out of the
-model's scope: the user's decision, D12). The `InitialState` closure premise is `StartNode.spec`'s
+holds with the registry; raft owns it from the call on). **Among them `PreVote = false`: etcd's
+`raftConfig` (`bootstrap.go`) sets `PreVote` on by default, so this theorem does not cover
+etcd's own configuration** (pre-vote at the `RawNode` layer is the remaining stage of
+notes/STATUS.md, "Raft: CheckQuorum and PreVote on"; `CheckQuorum` is covered since 2026-10-17,
+until then it was required `false` too: D12). The `InitialState` closure premise is `StartNode.spec`'s
 (D7's shape; a fresh `MemoryStorage`'s conf state is empty).
 
 **The ghost state** is the cluster's, allocated before (`ownRaftGhost_alloc_boot`): this node's
@@ -68,12 +69,12 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   bv.lg' ≠ null →
   bv.heartbeat' ≠ W64 0 →
   -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
-  -- `MemoryStorage`); **`CheckQuorum` and `PreVote` off: not etcd's own configuration**
+  -- `MemoryStorage`); **`PreVote` off: not etcd's own configuration** (`CheckQuorum` either
+  -- way since 2026-10-17)
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = memStorIface bv.storage' →
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
   cv.ReadOnlyOption' = W64 0 →
   cv.DisableConfChangeValidation' = false →

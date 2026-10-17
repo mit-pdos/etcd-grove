@@ -92,7 +92,7 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
     wp_drive _Q
     -- not `MsgHeartbeat`/`MsgApp`, not `MsgPreVote`: the `MsgStorageAppendResp` arm
     wp_drive _Q
-    cases s.prevote <;> (try wp_auto) <;> wp_drive _Q
+    cq_split _Q
     all_goals
       by_cases Hi0 : m.Index' = W64 0
       all_goals first

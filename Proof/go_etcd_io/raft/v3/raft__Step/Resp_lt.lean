@@ -81,7 +81,8 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_true Hlt]
   wp_auto
   wp_drive _Q
-  rcases Hty with Hty | Hty <;> cases s.prevote <;> try wp_auto
+  -- (2026-10-17) `checkQuorum`, then (off) the pre-vote flag; the type test is false either way
+  rcases Hty with Hty | Hty <;> cq_split _Q
   all_goals
     wp_drive _Q
     wp_raft_logC

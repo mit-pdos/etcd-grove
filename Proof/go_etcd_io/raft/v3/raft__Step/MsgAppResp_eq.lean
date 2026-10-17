@@ -70,7 +70,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hteq Hfnz Hrej Hwf
-  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp :=
+  have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
+    m.Type' = MsgCheckQuorum :=
     .inr (.inl Hty)
   wp_start as H
   iNamed H

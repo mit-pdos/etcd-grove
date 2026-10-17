@@ -352,15 +352,19 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type a network message is not: vacuous. -/
-local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
-  (rw [h] at Hty; simp [netStepTypes,
-  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgHup,
+local macro "not_net" : tactic => `(tactic| (intro h; first
+  | (obtain h | h := h <;> (first | exact h.elim | (rw [h] at Hty; simp [netStepTypes,
+  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgHup,
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
   MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
+  | (first | exact h.elim | (rw [h] at Hty; simp [netStepTypes,
+  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgHup,
+  MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty))))
 
 /-- A stamped type is not one of the unstamped ones. -/
 local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
-  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
+  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp,
   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
 
 /-- `r.Step(m)` on a message from the network, `r` the node's raft struct: the tail of
@@ -409,7 +413,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
   have P4 : m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
       m.From' ≠ id := by not_net
-  have P5 : m.Type' = MsgBeat → m.Term' = W64 0 := by not_net
+  have P5 : m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0 := by not_net
   have P6 : m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id) := by
     not_net
   have P7 : m.Type' = MsgStorageAppendResp → sn = none ∧
@@ -484,14 +488,14 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
 
 /-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
-  MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
+  MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum, MsgSnap,
   MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, propMsgM, MsgProp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 set_option hygiene false in
 /-- A premise of `Step` about another message type, for a message of type `MsgProp`
 (`Hty` in context). -/
 local macro "msg_ne'" : tactic => `(tactic| (intro Hc; rw [Hty] at Hc; simp [MsgHup, MsgVote,
-  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,
+  MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum,
   MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgReadIndex,
   MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
@@ -800,7 +804,6 @@ theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} 
       have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
       have Hrl : (rOf s1 g).p.role = .leader := by simp [rOf, toPState, Hl1, proleRole]
       have HR2 := StepR.stepDown (Adm := Adm) (dec := dec) (id := id) (rOf s1 g) Hrl
-        (by simp only [rOf]; rw [hc]; exact Hv)
       have Ht1 : s1.term = s.term := by rw [← Hs1]
       have e : RState.mk (pbecomeFollower (rOf s1 g).p (rOf s1 g).p.term (W64 0))
           (rOf s1 g).applied (W64 0) (rOf s1 g).snap (rOf s1 g).cidx (rOf s1 g).cfg (rOf s1 g).fp =

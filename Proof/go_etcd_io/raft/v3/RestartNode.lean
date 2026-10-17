@@ -34,7 +34,7 @@ theorem RestartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -49,7 +49,7 @@ theorem RestartNode.wp_proof
       iapply ownRaftGhost_inv_md $$ Hg
   wp_auto
   wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P10 P11 P12 P13 P14 P15 P16 P17 P19 P20 P21 P22 P23 P24 P25
+    P10 P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24
     $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
@@ -74,13 +74,13 @@ theorem RestartNode.wp_proof
       · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro h; cases h
       ihave Hphys := ownRaftPhysC_toS $$ Hphys
       ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' cv.ID' s $$ [Hphys]
-      · rw [P26]; iexact Hphys
+      · rw [P25]; iexact Hphys
       iapply ownRawNode_intro_static γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
             storage := interface.ok si, mode := .static,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s initPState rnv sv hprev [] rfl Hrel
-          (by rw [P26]; exact (GMap.elem_of_list_to_set _ _).2 P27) Hasync
+          (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hpvoff (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _)
@@ -93,7 +93,7 @@ theorem RestartNode.wp_proof
       obtain ⟨HD, rfl⟩ := HD
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft'
           (RNMode.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1) $$ []
-      · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro _; rw [Hsdr]; exact P28 rfl
+      · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro _; rw [Hsdr]; exact P27 rfl
       have Hro : rOf s ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩ =
           rinit (cfgState (GMap.listToSet csm.Voters') ∅) := by
         unfold rOf rinit pciR

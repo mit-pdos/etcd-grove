@@ -100,10 +100,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: false either way
   wp_gets
-  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  wp_gets
-  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
-  cases s.prevote <;> wp_auto
+  wp_cq_pv
   all_goals try (wp_gets; rw [Hn8]; wp_auto; wp_gets; rw [Hn3]; wp_auto)
   -- `MsgPreVote`: reject at `r.Term`
   all_goals

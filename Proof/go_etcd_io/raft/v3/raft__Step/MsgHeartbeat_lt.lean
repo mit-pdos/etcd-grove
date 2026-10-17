@@ -84,7 +84,14 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   rw [decide_eq_true Hlt]
   wp_auto
   wp_drive _Q
-  cases Hpv : s.prevote
+  cases Hcq : s.cq
+  -- `checkQuorum` off: the pre-vote flag is read; the goals are then pre-vote off, pre-vote
+  -- on, and `checkQuorum` on, the last two answered alike
+  all_goals try (
+    have _ : s.cq = false := Hcq
+    wp_auto
+    wp_drive _Q
+    cases Hpv : s.prevote)
   · -- not MsgPreVote, not MsgStorageAppendResp: only the log line
     wp_auto
     wp_drive _Q
@@ -94,7 +101,8 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
-  · -- with pre-vote on, a stale leader message is answered with a bare `MsgAppResp`
+  all_goals -- with pre-vote or `checkQuorum` on, a stale leader message is answered with a
+    -- bare `MsgAppResp` at the node's term (2026-10-04, 2026-10-17)
     -- at the node's term (2026-10-04)
     wp_auto
     wp_drive _Q

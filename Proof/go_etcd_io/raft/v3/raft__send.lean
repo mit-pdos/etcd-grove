@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Two message types differ. -/
 local macro "tyne" : tactic => `(tactic| simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp,
-  MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp,
+  MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndexResp,
   MsgSnap, MsgTransferLeader])
 
 set_option hygiene false in
@@ -47,7 +47,7 @@ set_option hygiene false in
 local macro "tyfact " h:term : tactic => `(tactic| (
   have Hty' := Hty
   simp only [$h:term] at Hty'
-  simp only [Hty1, $h:term, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at Hty' ⊢
+  simp only [Hty1, $h:term, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at Hty' ⊢
   first | exact Hty' | decide | tyne))
 
 set_option hygiene false in
@@ -57,21 +57,21 @@ local macro "getters" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(
   repeat (first
     | (wp_apply wp_GetType.1 $$ [Hm] as Hm
        (· iexact Hm)
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
     | (wp_apply wp_GetTerm.1 $$ [Hm] as Hm
        (· iexact Hm)
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
     | (wp_apply wp_GetTo.1 $$ [Hm] as Hm
        (· iexact Hm)
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
     | (wp_apply raft.wp_load_idC $$ Hphys as Hphys
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
     | (wp_apply raft.wp_load_TermC $$ Hphys as Hphys
        imod cellRO_alloc $$ «$r0» with #cTe
        icases msgPtsC_store_Term _ _ _ _ $$ Hm with ⟨%pte, HTe, HbackT⟩
        wp_auto
        ihave Hm := HbackT $$ %_ %s.term HTe cTe
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
     | wp_auto)))
 
 set_option hygiene false in
@@ -207,16 +207,16 @@ theorem raft.send.wp_proof
     send_tail ownRaftPhysC_msgs
     ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] []
     · ipureintro
-      exact Or.inr (Or.inr ⟨sv, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; rfl, rfl, rfl⟩)
+      exact Or.inr (Or.inr ⟨sv, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; rfl, rfl, rfl⟩)
     · ipureintro
-      exact fun _ => ⟨Int.le_refl _, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; tyne⟩
+      exact fun _ => ⟨Int.le_refl _, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; tyne⟩
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of
     -- the abstract outbox.
     obtain ⟨HnProp, HnA, HnAR, HnV, HnVR, HnS, HnH, HnHR, HnRI, HnRIR, HnPV, HnPVR⟩ :=
       mtypeOf_None_ne _ Hty
-    simp only [MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at HnProp HnAR HnV HnVR HnRI HnPV HnPVR
+    simp only [MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at HnProp HnAR HnV HnVR HnRI HnPV HnPVR
     getters [Hmterm, Hself, HnProp, HnAR, HnV, HnVR, HnRI, HnPV, HnPVR]
     send_tail ownRaftPhysC_msgs
     ihave Hphys := Hback $$ %q' %ml %_ %none Hf Hq Hq_cap Hm [] []
@@ -234,14 +234,14 @@ theorem raft.send.wp_proof
     send_tail ownRaftPhysC_msgsAA
     ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] []
     · ipureintro
-      exact Or.inr (Or.inl ⟨.appResp, by simp only [Hty1, HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; rfl, by decide, rfl⟩)
+      exact Or.inr (Or.inl ⟨.appResp, by simp only [Hty1, HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; rfl, by decide, rfl⟩)
     · ipureintro
       subst Hm1
-      refine ⟨by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp], rfl, fun Hto => ?_⟩
+      refine ⟨by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp], rfl, fun Hto => ?_⟩
       obtain ⟨He, Hc, Hnz, Hrj⟩ := Hself2 (by simpa using Hto)
-      exact ⟨Hnz, He, Hc, fun _ => Hrj, by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
+      exact ⟨Hnz, He, Hc, fun _ => Hrj, by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
     · ipureintro
-      exact fun _ => ⟨Int.le_refl _, by simp [Hty1, HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
+      exact fun _ => ⟨Int.le_refl _, by simp [Hty1, HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (e) a forwarded proposal: `Term` stays zero; not a response

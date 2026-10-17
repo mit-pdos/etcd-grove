@@ -93,7 +93,7 @@ theorem node.ReadIndex.wp_proof
         fun h => ?_, fun h => ?_, fun h => ?_⟩
       · exfalso
         rcases h with h | h | h | h <;>
-          simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp] at h
+          simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndexResp] at h
       · exfalso; simp [MsgAppResp] at h
       · exfalso; simp [MsgTransferLeader] at h
     isplitr

@@ -8132,3 +8132,38 @@ expands it by eye.
   as its own change (CLAUDE.md, "Changes to Perennial"); then `frameH` goes.
 - *Rejected:* a global macro per block (they are one proof's), and an auxiliary lemma for every
   continuation (the statements, long Iris contexts, would be longer than the blocks).
+
+## `CheckQuorum` on: one model rule for a leader's step-down at its term
+
+**2026-10-17 · adopted** (branch `raft-checkquorum`, the user's decision "(a)": etcd's own
+`raftConfig`)
+
+`MsgCheckQuorum` makes a leader that heard from no quorum within the election timeout a follower
+at its own term (`becomeFollower(r.Term, None)`). The model had no such step for a leader
+(`Step.abandon` is a non-leader's).
+
+**Decision:** one rule `stepDown` (a leader becomes `pbecomeFollower s s.term 0`) in `Step` and
+`StepC`, and `StepR.stepDown` without its premise `id ∉ cfg.voters`, so that the reconfiguration
+step-down (`switchToConfig` with `StepDownOnRemoval`) and the quorum check are the same rule. Its
+ghost update is the one stage B5 proved for the removal step-down (`ownRaftGhost_step_stepDown`):
+the leader voted for itself at its term, so it neither votes nor campaigns there again, and the
+known-leaders table keeps its entry. `QuorumActive`'s answer is not related to the abstract state
+(`RecentActive` is in no `Progress` record), so `stepLeader`'s spec allows either outcome; that is
+all safety needs. `r.checkQuorum` is recorded (`NState.cq`), like `r.preVote` and
+`r.stepDownOnRemoval`, rather than pinned.
+
+- *Rejected:* dropping `Step.abandon`'s `role ≠ leader` premise instead of a new rule: the static
+  ghost lemma for `abandon` uses it (`leaderWit`, `ownLogGhost_mono` for a non-leader), and the
+  removal step-down already had its own rule in `StepR`.
+- `ReadOnlyLeaseBased` (which `CheckQuorum` would make a legal configuration) stays out of scope:
+  `ReadOnlyOption = ReadOnlySafe` remains a premise; etcd uses `ReadOnlySafe`.
+
+**Pre-vote at the `RawNode` layer (not adopted, waiting for the user):** `readyWithoutAccept`'s
+`∀ m ∈ ms, m.Term ≤ rs.term` is false with pre-vote on (a `MsgPreVote` is at `term + 1`, a granted
+`MsgPreVoteResp` at the requester's term). The proposal: a ghost term ceiling `tc` in `NGhost`,
+raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), exposed as
+`RNState.tc`; `Ready`'s bound becomes `m.Term ≤ max rs.term rs.tc`, and `node.go`'s budget holds
+`termLB` of the ceiling. A pre-candidate's win on a stale grant of its own term raises the term to
+`term + 1` past the message's, so `ownRawNode` must keep `preCandidate → term + 1 ≤ tc`, which
+needs a new `raft.Step` postcondition (`ownRaftPhys` cannot keep it: `reset` stores the term while
+the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and PreVote on".
