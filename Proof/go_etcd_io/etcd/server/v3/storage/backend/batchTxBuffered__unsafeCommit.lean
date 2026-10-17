@@ -46,6 +46,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   · iframe #
   icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t2, %rt2, %db1, %lg2, #-, #Hrt2, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
+  ihave #Hbc := isBackend_beginCtx γ P W Pk b $$ Hb
   icombine Hrt Hrt2 gives %Heq
   subst Heq
   unfold batchLockedW batchGhostW
@@ -147,7 +148,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases Hw with ⟨Htxf, Hpend, Hwtx⟩
       rw [HA.1]
       wp_auto
-      wp_apply (hBegin γ P W Pk b db st'.C false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
+      wp_apply (hBegin γ.db b db st'.C false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
@@ -181,7 +182,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrest with ⟨Hwtx, #Htxdb'⟩
       wp_auto
-      wp_apply (hBegin γ P W Pk b db st'.S false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
+      wp_apply (hBegin γ.db b db st'.S false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
