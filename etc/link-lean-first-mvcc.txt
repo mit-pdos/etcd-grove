@@ -145,7 +145,7 @@ eventBatch__add:
 watcherBatch__add: eventBatch__add
 newWatcherBatch: watcherGroup__watcherSetByKey watcherBatch__add
 watcherGroup__chooseAll:
-watcherGroup__choose: newWatcherGroup watcherGroup__add watcherGroup__chooseAll
+watcherGroup__choose: newWatcherGroup watcherGroup__add watcherGroup__delete watcherGroup__chooseAll
 # The client's watch stream (watcher.go) over the `watchable` contract, see InvWatchStream.lean;
 # opentelemetry's `SpanFromContext` is the trust boundary (an axiom).
 trace_SpanFromContext:

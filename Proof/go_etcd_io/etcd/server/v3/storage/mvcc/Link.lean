@@ -440,13 +440,25 @@ theorem mvcc.watcherGroup.wp_add :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Insert
 
+theorem mvcc.watcherSet.wp_delete :
+    mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSet.delete.wp_proof
+
+theorem mvcc.watcherSetByKey.wp_delete :
+    mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSetByKey.delete.wp_proof
+
+theorem mvcc.watcherGroup.wp_delete :
+    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
+
 theorem mvcc.watcherGroup.wp_chooseAll :
     mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.chooseAll.wp_proof
 
 theorem mvcc.watcherGroup.wp_choose :
     mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_chooseAll
+  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_delete mvcc.watcherGroup.wp_chooseAll
 
 theorem mvcc.watcherSet.wp_union :
     mvcc.watcherSet.union.spec (GF := GF) (hG := hG) :=
@@ -467,18 +479,6 @@ theorem mvcc.wp_newWatcherBatch :
 theorem verify.wp_Verify :
     verify.Verify.spec (GF := GF) (hG := hG) :=
   verify.Verify.wp_proof
-
-theorem mvcc.watcherSet.wp_delete :
-    mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSet.delete.wp_proof
-
-theorem mvcc.watcherSetByKey.wp_delete :
-    mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSetByKey.delete.wp_proof
-
-theorem mvcc.watcherGroup.wp_delete :
-    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
 
 theorem mvcc.wp_newKVHasher :
     mvcc.newKVHasher.spec (GF := GF) (hG := hG) :=

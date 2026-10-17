@@ -6972,11 +6972,49 @@ noncomputable def watcherGroup.choose.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve newWatcherGroup []))) (Val #())) (Val #()))
   (Let "ret" (App (Val (GoInstruction (GoAlloc watcherGroup.ty))) (App (Val (GoInstruction (GoZeroVal watcherGroup.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType (go.GoType.PointerType watcher.ty))]))) (Val #())) (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "maxWatchers")))
+  (Let "selected" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "curRev"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactRev"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherGroup.ty) go!"chooseAll"))) (Var "ret")) (Var "$a0")) (Var "$a1"))))
+  (Let "minRev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (Var "ret") (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "curRev"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "compactRev"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherGroup.ty) go!"chooseAll"))) (Var "ret")) (Var "$a0")) (Var "$a1"))))))))
+  (Pair (Var "ret") (App (Val (GoInstruction (GoLoad go.int64))) (Var "minRev"))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (Var "selected"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcher.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType watcher.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 (go.GoType.PointerType watcher.ty) (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad watcherSet.ty))) (App (Val (GoInstruction (StructFieldRef watcherGroup.ty go!"watchers"))) (Var "ret")))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherGroup.ty) go!"delete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherGroup.ty)))) (Var "wg"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "w") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "minRev") (Var "$r0")))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad watcherSet.ty))) (App (Val (GoInstruction (StructFieldRef watcherGroup.ty go!"watchers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherGroup.ty)))) (Var "wg"))))
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType watcher.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType watcher.ty)))) (Val #())))
   (App (App (Val (map.forRange (go.GoType.PointerType watcher.ty) (go.GoType.StructType []))) (Var "$range"))
@@ -6985,9 +7023,16 @@ noncomputable def watcherGroup.choose.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (Var "selected"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType watcher.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType watcher.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (Pair (Var "selected") (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherGroup.ty) go!"add"))) (Var "ret")) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcherGroup.ty) go!"add"))) (Var "ret")) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "maxWatchers") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "maxWatchers")) (Val #(W64 1))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "maxWatchers")) (Val #(W64 0)))))
@@ -6996,6 +7041,8 @@ noncomputable def watcherGroup.choose.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "w") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType watcher.ty))))) (Pair (Var "selected") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore watcherGroup.ty))) (Pair (Var "ret") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad watcherSet.ty))) (App (Val (GoInstruction (StructFieldRef watcherGroup.ty go!"watchers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherGroup.ty)))) (Var "wg"))))
@@ -7007,7 +7054,7 @@ noncomputable def watcherGroup.choose.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: watcher_group.go:241:25 -/
+/-- go: watcher_group.go:253:25 -/
 noncomputable def watcherGroup.chooseAll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "curRev"
@@ -7077,7 +7124,7 @@ noncomputable def watcherGroup.chooseAll.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- watcherSetByKey gets the set of watchers that receive events on the given key.
 
-    go: watcher_group.go:273:25 -/
+    go: watcher_group.go:285:25 -/
 noncomputable def watcherGroup.watcherSetByKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "key"

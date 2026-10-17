@@ -1,0 +1,4 @@
+=== RUN   TestWatcherGroupChooseCappedMix
+--- PASS: TestWatcherGroupChooseCappedMix (0.06s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/storage/mvcc	0.087s

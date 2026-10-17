@@ -170,7 +170,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     $$ [$Hunsynced Hstu] as %g %minRev ⟨Hstu, Hch⟩
   · iunfold mvcc.ownStates; iframe Hstu
     ipureintro
-    refine ⟨⟨fun w hw => ?_, fun w st hw => ?_⟩, by have := Hok.wu_size; omega⟩
+    refine ⟨⟨fun w hw => ?_, fun w st hw => ?_⟩, by have := Hok.wu_size; omega, by decide⟩
     · rw [hSTu, if_pos hw]; exact Hok.live_st w (Or.inr (Or.inl hw))
     · rw [hSTu] at hw
       split at hw

@@ -1,0 +1,6 @@
+        	            	actual  : 4
+        	Test:       	TestWatcherGroupChooseCappedMix
+--- FAIL: TestWatcherGroupChooseCappedMix (0.06s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.099s
+FAIL

@@ -239,6 +239,79 @@ theorem takeMembers_succ (W : GMap Loc WatchRange) (keys : List Loc) (n : Nat) (
   · unfold takeMembers
     simp [GMap.lookup_filter, hnot]
 
+theorem takeMembers_isSome (W : GMap Loc WatchRange) (keys : List Loc) (n : Nat)
+    (hk : ∀ k, k ∈ keys → (W !! k).isSome) (k : Loc) :
+    (takeMembers W keys n !! k).isSome ↔ k ∈ keys.take n := by
+  unfold takeMembers
+  rw [GMap.lookup_filter]
+  by_cases hm : k ∈ keys.take n
+  · have := hk k (List.mem_of_mem_take hm)
+    cases hW : W !! k with
+    | none => rw [hW] at this; cases this
+    | some r => simp [hm]
+  · cases W !! k <;> simp [hm]
+
+/-- The group `W` after `choose` took the members `W'` of it into a fresh group and that group's
+`chooseAll` kept `K` of them: the members not taken, and the taken ones kept (etcd-io/etcd#22295:
+`choose` retires from `W` the members `chooseAll` retired from the fresh group). -/
+def retireChosen (W W' K : GMap Loc WatchRange) : GMap Loc WatchRange :=
+  GMap.filter (fun k _ => decide ((W' !! k).isNone ∨ (K !! k).isSome)) W
+
+theorem retireChosen_self (W W' : GMap Loc WatchRange) : retireChosen W W' W' = W := by
+  refine GMap.ext (fun k => ?_)
+  show (retireChosen W W' W') !! k = W !! k
+  unfold retireChosen
+  rw [GMap.lookup_filter]
+  cases W !! k <;> cases W' !! k <;> simp
+
+/-- `retireChosen` along `choose`'s second loop: after the first `n` taken members `sel`. -/
+def retirePrefix (W K : GMap Loc WatchRange) (sel : List Loc) (n : Nat) : GMap Loc WatchRange :=
+  GMap.filter (fun k _ => decide (k ∉ sel.take n ∨ (K !! k).isSome)) W
+
+theorem retirePrefix_zero (W K : GMap Loc WatchRange) (sel : List Loc) :
+    retirePrefix W K sel 0 = W := by
+  refine GMap.ext (fun k => ?_)
+  show (retirePrefix W K sel 0) !! k = W !! k
+  unfold retirePrefix
+  rw [GMap.lookup_filter]
+  cases W !! k <;> simp
+
+theorem retirePrefix_keep (W K : GMap Loc WatchRange) (sel : List Loc) (n : Nat) (w : Loc)
+    (hw : sel[n]? = some w) (hK : (K !! w).isSome) :
+    retirePrefix W K sel (n + 1) = retirePrefix W K sel n := by
+  refine GMap.ext (fun k => ?_)
+  show (retirePrefix W K sel (n + 1)) !! k = (retirePrefix W K sel n) !! k
+  unfold retirePrefix
+  rw [GMap.lookup_filter, GMap.lookup_filter, List.take_add_one, hw]
+  by_cases hk : k = w
+  · subst hk; cases W !! k <;> simp [hK]
+  · cases W !! k <;> simp [hk]
+
+theorem retirePrefix_del (W K : GMap Loc WatchRange) (sel : List Loc) (n : Nat) (w : Loc)
+    (hw : sel[n]? = some w) (hK : K !! w = none) :
+    retirePrefix W K sel (n + 1) = GMap.delete w (retirePrefix W K sel n) := by
+  refine GMap.ext (fun k => ?_)
+  show (retirePrefix W K sel (n + 1)) !! k = (GMap.delete w (retirePrefix W K sel n)) !! k
+  unfold retirePrefix
+  rw [GMap.lookup_filter, List.take_add_one, hw]
+  by_cases hk : k = w
+  · subst hk; rw [GMap.lookup_delete]; cases W !! k <;> simp [hK]
+  · rw [GMap.lookup_delete_ne _ (Ne.symm hk), GMap.lookup_filter]
+    cases W !! k <;> simp [hk]
+
+theorem retirePrefix_full (W W' K : GMap Loc WatchRange) (sel : List Loc)
+    (hsel : ∀ k, (W' !! k).isSome ↔ k ∈ sel) :
+    retirePrefix W K sel sel.length = retireChosen W W' K := by
+  refine GMap.ext (fun k => ?_)
+  show (retirePrefix W K sel sel.length) !! k = (retireChosen W W' K) !! k
+  unfold retirePrefix retireChosen
+  rw [GMap.lookup_filter, GMap.lookup_filter, List.take_length]
+  have h := hsel k
+  cases W !! k with
+  | none => rfl
+  | some r =>
+    cases hW' : W' !! k <;> simp_all
+
 /-! ## Ownership -/
 
 section reprs

@@ -1,0 +1,22 @@
+# etcd-io/etcd#22295 (mvcc: remove compacted watchers from the unsynced group when capped),
+# verified on branch pr-verify/etcd-22295 (notes/pr-verify/etcd-22295.md): `watcherGroup.choose`'s
+# compaction-aware result (`mvcc_watcherGroup_choose_compact`, mvcc/Results.lean) and the roots
+# that reach `choose` through `syncWatchers` (the watchable store's sync loop).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22295.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bmvcc_watcherGroup_choose_compact$
+roots watcherGroup__choose
+roots watchableStore__syncWatchers
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom proto.Unmarshal.wp_proof
+axiom time.NewTicker.wp_proof
+axiom time.Since.wp_proof
+axiom time.Ticker.Reset.wp_proof
+axiom time.Ticker.Stop.wp_proof
+axiom verify.Verify.wp_proof

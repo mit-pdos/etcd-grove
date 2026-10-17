@@ -1,0 +1,8 @@
+=== RUN   TestWatchCompactedWatcherRemovedFromUnsyncedWhenCapped
+--- PASS: TestWatchCompactedWatcherRemovedFromUnsyncedWhenCapped (0.04s)
+=== RUN   TestWatcherGroupChooseNegativeMax
+    watcher_group_choose_negative_test.go:28: choose(-1, ...) panicked: runtime error: makeslice: cap out of range
+--- FAIL: TestWatcherGroupChooseNegativeMax (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.072s
+FAIL

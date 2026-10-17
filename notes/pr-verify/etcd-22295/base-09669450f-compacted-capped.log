@@ -1,0 +1,11 @@
+--- FAIL: TestWatchCompactedWatcherRemovedFromUnsyncedWhenCapped (0.03s)
+    watchable_store_test.go:589: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-22295-scratch/base/server/storage/mvcc/watchable_store_test.go:589
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 2
+        	Test:       	TestWatchCompactedWatcherRemovedFromUnsyncedWhenCapped
+        	Messages:   	compacted watchers should be removed from the unsynced group
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/storage/mvcc	0.048s
+FAIL

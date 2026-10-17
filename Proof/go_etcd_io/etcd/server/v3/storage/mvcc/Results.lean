@@ -505,6 +505,13 @@ theorem mvcc_readView_FirstRev_frozen : mvcc.readView.FirstRev.specFrozen (GF :=
 theorem mvcc_store_Rev_frozen : mvcc.store.Rev.specFrozen (GF := GF) (hG := hG) :=
   mvcc.store.Rev.spec_frozen mvcc.store.wp_Rev
 
+/-- **`choose` over a compacting `chooseAll`, linked** (etcd-io/etcd#22295): whatever `chooseAll`
+retires from the fresh group is retired from the chosen-from group too (`choose.specC`; relative
+to `chooseAll.specG`, its hypothesis, which `chooseAll.spec` meets with nothing retired). -/
+theorem mvcc_watcherGroup_choose_compact : mvcc.watcherGroup.choose.specC (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.choose.wp_proofC mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add
+    mvcc.watcherGroup.wp_delete
+
 end readers
 
 end EtcdGrove
@@ -520,6 +527,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.mvcc_metricsTxnWrite_FirstRev
 #print axioms Perennial.EtcdGrove.mvcc_readView_Range
 #print axioms Perennial.EtcdGrove.mvcc_readView_FirstRev
+#print axioms Perennial.EtcdGrove.mvcc_watcherGroup_choose_compact
 #print axioms Perennial.EtcdGrove.mvcc_store_Read_frozen
 #print axioms Perennial.EtcdGrove.mvcc_store_Write_frozen
 #print axioms Perennial.EtcdGrove.mvcc_storeTxnCommon_Range_frozen

@@ -45,6 +45,20 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification etcd-io/etcd#22295: `watcherGroup.choose` retires compacted watchers when capped (2026-10-17, branch `pr-verify/etcd-22295`)
+
+The PR applied to the fork as `pr-etcd-22295-goose-lean` (`6f4851754`, not the pin), mvcc re-translated.
+- `choose.spec` now needs `0 ≤ maxWatchers` (the PR's `make` panics on a negative capacity), and
+  `syncWatchers` passes 512. Its proof is now a corollary of the new `choose.specC`, which is stated
+  over the abstract `chooseAll.specG` (what `chooseAll` keeps) and proved with `wp_proofC`. In the
+  capped branch `wg` ends at `retireChosen W W' K` (`InvWatchBatch.lean`).
+- The exported result is `mvcc_watcherGroup_choose_compact` (`mvcc/Results.lean`). It adds no
+  axioms or `sorry`s.
+- Open: no proved instance of `chooseAll.specG` retires a watcher, because the compaction send is
+  unmodelled and the store is verified frozen.
+- The bug in the pinned code is recorded in `issues/etcd-watch-choose-capped-compacted-stays-unsynced.md`.
+- The report is `notes/pr-verify/etcd-22295.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",
