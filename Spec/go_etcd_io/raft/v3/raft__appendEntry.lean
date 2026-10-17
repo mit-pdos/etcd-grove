@@ -165,6 +165,9 @@ abbrev raft.appendEntry.spec : Prop :=
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
+  -- (raft#139) the log's leader term is not above the node's: `raftLog.append(r.Term, ...)`
+  -- would silently drop the batch
+  uint.Z s.logst.leaderTerm ≤ uint.Z s.term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
@@ -177,10 +180,10 @@ abbrev raft.appendEntry.spec : Prop :=
         ownRaftPhysCV c c.voters r id
           (sendMsgs
             { s with logst :=
-                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+                logAppendLT s.logst s.term (ents.mapIdx (stamp s.term (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppendLT s.logst s.term (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
         -- dropped: `Warningf` and `return false`, nothing written
         ownRaftPhysCV c c.voters r id s }}
@@ -192,6 +195,7 @@ abbrev raft.appendEntry.specS : Prop :=
     (ents : List EntryM) (dq : DFrac),
   (ents.length : Int) < 2^61 →
   s.term ≠ W64 0 →
+  uint.Z s.logst.leaderTerm ≤ uint.Z s.term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
       "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
@@ -202,10 +206,10 @@ abbrev raft.appendEntry.specS : Prop :=
         ownRaftPhys cfg r id
           (sendMsgs
             { s with logst :=
-                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+                logAppendLT s.logst s.term (ents.mapIdx (stamp s.term (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppendLT s.logst s.term (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
         ownRaftPhys cfg r id s }}
 
@@ -213,10 +217,10 @@ open Iris.ProofMode in
 theorem raft.appendEntry.spec_simple
     (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents dq Hlen Ht
+  intro cfg r id s es ents dq Hlen Ht Hlt
   iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s es ents dq Hlen Ht $$ [$Hpkg $Hphys $Hes]
+  iapply H _ r id s es ents dq Hlen Ht Hlt $$ [$Hpkg $Hphys $Hes]
   inext
   iintro %acc ⟨%Hacc, Hes, Hphys⟩
   iapply HΦ $$ %acc

@@ -76,6 +76,8 @@ everything, `MajQ`). The old statement (`id ∈ cfg`, `CommitOk cfg`) is
 abbrev raft.maybeCommit.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
+  -- (raft#139) a leader's log is at its term (`becomeLeader` sets it; `NStateWf`'s `LtInv`)
+  s.logst.leaderTerm = s.term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
@@ -89,6 +91,7 @@ derived from `raft.maybeCommit.spec` by `raft.maybeCommit.spec_simple`. -/
 abbrev raft.maybeCommit.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
+  s.logst.leaderTerm = s.term →
   id ∈ cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -102,12 +105,12 @@ open Iris.ProofMode in
 theorem raft.maybeCommit.spec_simple
     (H : raft.maybeCommit.spec (GF := GF) (hG := hG)) :
     raft.maybeCommit.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hlead Hid
+  intro cfg r id s Hlead Hltt Hid
   have Hne : cfg ≠ ∅ := by
     intro h; rw [h] at Hid; exact GMap.not_elem_of_empty _ Hid
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hlead $$ [$Hpkg $Hphys]
+  iapply H _ r id s Hlead Hltt $$ [$Hpkg $Hphys]
   inext
   iintro %b %N ⟨Hphys, %Hok⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

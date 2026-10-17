@@ -764,6 +764,24 @@ def nextUnstable (ls : LogState) : List EntryM :=
 def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
   { ls with uents := ls.uents ++ ents }
 
+/-- (raft#139) `raftLog.append(t, ents)` at the end of the log, at a current leader term `t`:
+`logAppend`, and the log's leader term is `t` once anything is appended. -/
+def logAppendLT (ls : LogState) (t : w64) (ents : List EntryM) : LogState :=
+  match ents with
+  | [] => ls
+  | _ :: _ => { logAppend ls ents with leaderTerm := t }
+
+/-- At the log's own leader term, `logAppendLT` is `logAppend`. -/
+theorem logAppendLT_eq (ls : LogState) (t : w64) (ents : List EntryM) (h : ls.leaderTerm = t) :
+    logAppendLT ls t ents = logAppend ls ents := by
+  cases ents with
+  | nil => simp only [logAppendLT, logAppend, List.append_nil]
+  | cons e es => subst h; rfl
+
+theorem logAppendLT_leaderTerm (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).leaderTerm = (if ents = [] then ls.leaderTerm else t) := by
+  cases ents <;> rfl
+
 /-- A snapshot's id, `(Metadata.Term, Metadata.Index)` -- what `raft.restore` builds as
 `id := entryID{term, index}`. -/
 def snapId (sv : SnapshotM) : entryID :=
@@ -1103,10 +1121,12 @@ def selfAck (id : w64) (s : NState) : Msg :=
   Msg.mk .appResp id id s.term false (logLast s.logst) (W64 0) (W64 0) (W64 0) []
 
 /-- `becomeLeader` up to `appendEntry`'s `send`: `becomeLeaderPre`, `pendingConfIndex` at
-the last index (2026-10-13), then the empty entry appended. -/
+the last index (2026-10-13), then the empty entry appended (raft#139: at the leader's term,
+which is then the log's leader term: `appendEntry`'s `append(r.Term, ...)`, and
+`becomeLeader`'s own `r.raftLog.leaderTerm = r.Term`). -/
 def becomeLeaderLog (id : w64) (s : NState) : NState :=
   { becomeLeaderPre id s with pci := logLast s.logst,
-                              logst := logAppend s.logst [leaderEntry s] }
+                              logst := logAppendLT s.logst s.term [leaderEntry s] }
 
 /-- `becomeLeader`: the empty entry appended and self-acknowledged. -/
 def becomeLeader (id : w64) (s : NState) : NState :=

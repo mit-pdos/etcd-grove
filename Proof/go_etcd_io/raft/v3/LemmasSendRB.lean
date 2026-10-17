@@ -45,6 +45,64 @@ theorem msgPtsC_From_lend (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
 
+/-- (raft#139) The `Snapshot` and `Term` fields of a message, lent together (`handleSnapshot`
+reads `m.GetSnapshot()` and then `m.GetTerm()` while the snapshot is out). -/
+theorem msgPtsC_SnapTerm_lend (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢
+      ∃ ps pte : Loc, ⌜l ≠ null⌝ ∗
+        l.[raftpb.Message, go!"Snapshot"] ↦{dq} ps ∗ snapOpt ps dq ms.snap ∗
+        l.[raftpb.Message, go!"Term"] ↦{dq} pte ∗ cellRO pte ms.msg.Term' ∗
+        (l.[raftpb.Message, go!"Snapshot"] ↦{dq} ps -∗ snapOpt ps dq ms.snap -∗
+          l.[raftpb.Message, go!"Term"] ↦{dq} pte -∗ msgPtsC l dq dqe cap ms) := by
+  iintro H
+  iunfold msgPtsC at H
+  iNamed H
+  iexists ps, pte
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HSn Hsn HTe cTe
+  iintro HSn Hsn HTe
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- (raft#139) `m.GetSnapshot()` on the lent field. -/
+theorem wp_Message_GetSnapshot_field (l ps : Loc) (dq : DFrac) (Hnn : l ≠ null) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
+        l.[raftpb.Message, go!"Snapshot"] ↦{dq} ps }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetSnapshot")) (Val #()))
+    {{ RET #ps; l.[raftpb.Message, go!"Snapshot"] ↦{dq} ps }} := by
+  wp_start as HSn
+  wp_auto
+  wp_if_destruct
+  · exact absurd rfl Hnn
+  · iapply HΦ
+    iframe HSn
+
+/-- (raft#139) `m.GetTerm()` on the lent field. -/
+theorem wp_Message_GetTerm_field (l pte : Loc) (v : w64) (dq : DFrac) (Hnn : l ≠ null) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
+        l.[raftpb.Message, go!"Term"] ↦{dq} pte ∗ cellRO pte v }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.Message.ty @!! go!"GetTerm")) (Val #()))
+    {{ RET #v; l.[raftpb.Message, go!"Term"] ↦{dq} pte }} := by
+  wp_start as ⟨HT, #cT⟩
+  wp_auto
+  wp_if_destruct
+  · exact absurd rfl Hnn
+  ihave (⟨%Hq, %Hv⟩ | ⟨#Hq, %Hqn⟩) := cellRO_cases $$ cT
+  · subst Hq
+    wp_auto
+    rw [show (W64 0) = v from Hv.symm]
+    iapply HΦ
+    iframe
+  · wp_if_destruct
+    · exact absurd rfl Hqn
+    · iapply HΦ
+      iframe
+
 /-- A metadata pointer known not `nil`: owned. -/
 theorem smOpt_not_null (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) (Hnn : p ≠ null) :
     smOpt (GF := GF) p dq md ⊢ smPts p dq md := by

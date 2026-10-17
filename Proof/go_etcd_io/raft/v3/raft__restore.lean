@@ -254,7 +254,7 @@ theorem raft.restore.wp_proof
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope
+  intro c r id s lt sp sv cl Hrole Hvotes Hcl Hidv Hscope
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, Hidx61⟩ := Hscope
   wp_start as H
@@ -446,7 +446,9 @@ theorem raft.restore.wp_proof
     wp_apply wp_SnapshotMetadata_GetIndex_field pm pi _ _ Hpmn $$ [$HI $cI] as HI
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
-    wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
+    icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx0, Hlog⟩
+    wp_apply wp_raftLog_commitTo _ _ lt sv.Metadata'.Index' $$ [$Hlog] as Hlog
+    rw [logCommitTo_le_last s.logst lt sv.Metadata'.Index' Hidx0 Hle]
     ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     try wp_auto
@@ -459,7 +461,9 @@ theorem raft.restore.wp_proof
     ipureintro
     refine .inr (.inl ⟨by simp only [snapId]; omega, Hm, rfl, ?_⟩)
     simp only [plogCommitTo, snapId] at *
-    rw [ite_eq_left (by omega)]
+    split
+    · rw [ite_eq_left (by omega)]
+    · rfl
   · rw [Hb, decide_eq_false Hm]
     wp_auto
     -- `r.raftLog.restore(s)`, on half of the snapshot: the other half keeps the pointers `pm` and

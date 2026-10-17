@@ -705,6 +705,19 @@ theorem LogGhOk.append {s : NState} (ents : List EntryM) (H : LogGhOk s s.logst)
     exact (List.append_eq_nil_iff.mp Hn).1
   · right; exact H
 
+/-- (raft#139) The log's leader term is not something `LogGhOk` reads. -/
+theorem LogGhOk.leaderTerm {s : NState} {ls : LogState} (t : w64) (H : LogGhOk s ls) :
+    LogGhOk s { ls with leaderTerm := t } := by
+  unfold LogGhOk nextUnstable logOffset at *
+  exact H
+
+/-- (raft#139) `logAppendLT`, as `LogGhOk.append`. -/
+theorem LogGhOk.appendLT {s : NState} (t : w64) (ents : List EntryM) (H : LogGhOk s s.logst) :
+    LogGhOk s (logAppendLT s.logst t ents) := by
+  cases ents with
+  | nil => exact H
+  | cons e es => exact LogGhOk.leaderTerm t (LogGhOk.append _ H)
+
 -- `nextUnstable_truncateAppend_ne` (`truncateAndAppend` of a non-empty batch at or below the end
 -- of the log leaves the batch's entries still to be handed out) is in `LemmasRaftlogW.lean`
 -- (ported early, stage R3, for `raftLog.maybeAppend`).

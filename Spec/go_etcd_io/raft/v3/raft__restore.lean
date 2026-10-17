@@ -77,7 +77,8 @@ the configuration it denotes, otherwise still at `c` (`restoreCfg`). (Until B8 t
 was non-joint with the voters `cfg`, `SnapScope cfg sv voters learners`, and a statement
 `specS` with the node's own voters; `specS` had no caller and is gone.) -/
 abbrev raft.restore.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (lt : w64) (sp : Loc) (sv : SnapshotM)
+    (cl : CSLists),
   s.role = .follower →
   s.votes = ∅ →
   cl = sv.Metadata'.ConfState'.lists →
@@ -86,11 +87,12 @@ abbrev raft.restore.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv }}
-    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sp))
+    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #lt))
+      (Val #sp))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
       ownSnapE sp (DFrac.own 1) sv ∗
-      ⌜RestoreResult s sv cl b s'⌝ }}
+      ⌜RestoreResult s lt sv cl b s'⌝ }}
 
 end spec
 

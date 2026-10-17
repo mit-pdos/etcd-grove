@@ -69,7 +69,8 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
 - stale: the reply carries `committed`;
 - accept: the log is `maybeAppend`'s new log -- `prev` and `applied` unchanged, the
   entries `plogMaybeAppend`'s, `committed` raised to `min(m.Commit, lastnewi)`
-  (`plogCommitTo`), `applying`, the pending snapshot and `unpersisted` unchanged
+  (`plogCommitTo`) if the log's leader term is then `m.Term` (raft#139: the append, when it
+  wrote anything, set it to `m.Term`; otherwise it is unchanged), `applying`, the pending snapshot and `unpersisted` unchanged
   (2026-10-09) -- and the reply carries `lastnewi`. `ls'` is existential because
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
@@ -90,9 +91,15 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
      ls'.prev = ls.prev ∧
      ls'.sents ++ ls'.uents = es' ∧
      ls'.applied = ls.applied ∧
+     -- (raft#139) the leader term moves to the message's when the append wrote anything,
+     -- and the commit index moves only at the log's (new) leader term
+     ls'.leaderTerm =
+       (if plogFindConflict ls.prev es ents = W64 0 then ls.leaderTerm else m.Term') ∧
      ls'.committed =
-       plogCommitTo ls.committed
-         (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi) ∧
+       (if m.Term' = ls'.leaderTerm then
+         plogCommitTo ls.committed
+           (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi)
+        else ls.committed) ∧
      (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted ∧
       ls'.prev = ls.prev ∧ ls'.stored = ls.stored ∧ ls'.storage = ls.storage) ∧
      s' = sendMsgs { s with logst := ls' }
@@ -153,6 +160,12 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   -- (2026-10-16, stage R8a, D11) not at a leader: `maybeAppend` may truncate the log, and a
   -- leader's log only grows (`PrvalsOk`); a leader never handles a `MsgApp` of its term
   s.role ≠ .leader →
+  -- (raft#139) the log's leader term is not above the message's (`maybeAppend` refuses an
+  -- outdated leader, which the model's `appReject` does not allow: a refusal of a matching
+  -- append), and no entry of the batch is of a higher term (`append`'s new `Panicf`;
+  -- `app_entries_term_le`)
+  uint.Z s.logst.leaderTerm ≤ uint.Z m.Term' →
+  (∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -177,6 +190,8 @@ abbrev raft.handleAppendEntries.specS : Prop :=
   m.From' ≠ id →
   m.Type' = MsgApp →
   s.role ≠ .leader →
+  uint.Z s.logst.leaderTerm ≤ uint.Z m.Term' →
+  (∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z m.Term') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -188,10 +203,10 @@ open Iris.ProofMode in
 theorem raft.handleAppendEntries.spec_simple
     (H : raft.handleAppendEntries.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl
+  intro cfg r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl Hlt Hts
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl $$ [$Hpkg $Hphys $Hm]
+  iapply H _ r id s ml m ents sn ctx rs Hwf Hb Hc Hfrom Hty Hnl Hlt Hts $$ [$Hpkg $Hphys $Hm]
   inext
   iintro %s' ⟨Hphys, %Hres⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

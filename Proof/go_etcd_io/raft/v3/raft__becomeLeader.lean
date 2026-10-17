@@ -51,7 +51,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnz
+  intro c r id s Hrole Hnz Hltt
   wp_start as Hphys
   -- the node is a voter (`ownRaftPhysC`'s `Hvoter`: it is not a follower), so tracked
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hv, Hphys⟩
@@ -150,7 +150,7 @@ theorem raft.becomeLeader.wp_proof
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
   wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1)
-      (by simp) (by subst hs1; exact Hnz)
+      (by simp) (by subst hs1; exact Hnz) (by subst hs1; exact Hltt)
       $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
@@ -158,6 +158,16 @@ theorem raft.becomeLeader.wp_proof
   subst Hacc'
   simp only [↓reduceIte]
   wp_auto
+  -- (raft#139) `r.raftLog.leaderTerm = r.Term`: already the log's (the append set it)
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh2, Hlogback⟩
+  have HlogEq : ∀ (x : NState) (ms : List Msg), (sendMsgs x ms).log = x.log := fun _ _ => rfl
+  simp only [HlogEq]
+  wp_apply (ownRaftLog_setLeaderTerm s1.log _ s1.term) $$ [$Hlog] as Hlog
+  ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.leaderTerm _ Hgh2)
+    %(fun _ => logLast_le_of_fields rfl rfl rfl)
+  try wp_auto
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
   ihave Hphys : ownRaftPhysCV c c.voters r id
       { becomeLeader id s with

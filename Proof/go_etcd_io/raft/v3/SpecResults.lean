@@ -122,8 +122,8 @@ abbrev snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
   csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'
 
 /-- The three exits of `restore`; see the file header. -/
-def RestoreResult (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool) (s' : NState) :
-    Prop :=
+def RestoreResult (s : NState) (lt : w64) (sv : SnapshotM) (cl : CSLists) (b : Bool)
+    (s' : NState) : Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let sid := snapId sv
@@ -132,7 +132,9 @@ def RestoreResult (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool) (s' : 
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    PlogMatches ls.prev es sid ∧ b = false ∧
-   s' = { s with logst := { ls with committed := sid.index' } })
+   -- (raft#139) `commitTo(leaderTerm, Index)`: only at the log's leader term
+   s' = { s with logst := { ls with
+            committed := if lt = ls.leaderTerm then sid.index' else ls.committed } })
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧

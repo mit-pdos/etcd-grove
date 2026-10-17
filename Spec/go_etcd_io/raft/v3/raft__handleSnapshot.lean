@@ -57,14 +57,20 @@ def HandleSnapResult (id : w64) (s : NState) (m : MessageM)
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    PlogMatches ls.prev es sid ∧
-   s' = sendMsgs { s with logst := { ls with committed := sid.index' } }
-          [appResp id s dst false sid.index' (W64 0) (W64 0)])
+   -- (raft#139) the fast-forward commits only at the log's leader term; the reply carries the
+   -- commit index either way
+   s' = sendMsgs { s with logst := { ls with
+            committed := if m.Term' = ls.leaderTerm then sid.index' else ls.committed } }
+          [appResp id s dst false
+            (if m.Term' = ls.leaderTerm then sid.index' else ls.committed) (W64 0) (W64 0)])
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧
    ∃ prs pvs il,
+     -- (raft#139) and the log's leader term is the message's
      s' = sendMsgs { s with progress := prs, prvals := pvs,
-                            logst := logRestore ls (snapTrip sv cl), isLearner := il }
+                            logst := { logRestore ls (snapTrip sv cl) with leaderTerm := m.Term' },
+                            isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
 
 /-- Whether `restore` restored the snapshot (its third exit): newer than the commit index, and

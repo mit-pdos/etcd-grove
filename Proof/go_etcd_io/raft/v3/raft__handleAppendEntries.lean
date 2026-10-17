@@ -108,7 +108,7 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl
+  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl Hltm Hts
   wp_start as Hpre
   iNamed Hpre
   simp only [msgIn, needsCap_of_eq Htyapp]
@@ -155,9 +155,10 @@ theorem raft.handleAppendEntries.wp_proof
     icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_maybeAppend _ s.logst
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') es) ents m.Commit'
-        Hwf Hnw (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hcap]
+        Hwf Hnw (fun Hm => Hconf (by omega) Hm) Hts $$ [$Hlog $Hcap]
       as %lastnewi %ok %ls' ⟨Hlog, %Hma, %Hmagh⟩
     · simp only [named, entsPts]; iexists els; iframe Hes Hents
+    simp only [if_neg (show ¬ uint.Z m.Term' < uint.Z s.logst.leaderTerm by omega)] at Hma
     ihave Hphys := Hlogback $$ %ls' Hlog
       %(fun h => (Hgh0 h).elim (fun h1 => .inl (Hmagh.2 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)))
       %(fun h => absurd h Hnl)
@@ -167,7 +168,7 @@ theorem raft.handleAppendEntries.wp_proof
       -- accepted
       obtain ⟨lni, es'⟩ := res
       rw [Hpm] at Hma
-      obtain ⟨rfl, rfl, Hprev, Hes', Happ, Hcm', Ha', Hsn', Hu', Hst'⟩ := Hma
+      obtain ⟨rfl, rfl, Hprev, Hes', Happ, Hlt', Hcm', Ha', Hsn', Hu', Hst'⟩ := Hma
       wp_auto
       reply_head
       imod cellRO_alloc $$ «$v2» with #cIx
@@ -181,7 +182,7 @@ theorem raft.handleAppendEntries.wp_proof
       iapply HΦ
       iframe
       ipureintro
-      exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
+      exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hlt', Hcm',
         ⟨Ha', Hsn', Hu', Hprev, Hst'⟩, rfl⟩)
     | none =>
       -- rejected: `a.prev` does not match

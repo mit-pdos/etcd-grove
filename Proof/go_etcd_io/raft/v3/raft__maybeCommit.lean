@@ -92,10 +92,12 @@ theorem raft.maybeCommit.wp_proof
     (wp_ProgressTracker_Committed : tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG))
     (wp_raftLog_maybeCommit : raftLog.maybeCommit.spec (GF := GF) (hG := hG)) :
     raft.maybeCommit.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead
+  intro c r id s Hlead Hltt
   wp_start as H
   iNamed H
   wp_apply wp_with_defer as %defer defer
+  -- (raft#139) `maybeCommit(r.Term, ...)`
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_Committed $$ [$Htrkf $Htrk] as %N ⟨Htrkf, Htrk, %Hq⟩
@@ -103,6 +105,7 @@ theorem raft.maybeCommit.wp_proof
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
   wp_apply wp_raftLog_maybeCommit $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
+  simp only [Hltt, and_true]
   ihave Hphys := Hlogback $$ %_ Hlog
     %(by cases b <;> exact LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(by cases b <;> exact fun _ => logLast_le_of_fields rfl rfl rfl)

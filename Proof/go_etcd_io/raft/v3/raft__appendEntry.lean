@@ -110,6 +110,29 @@ private theorem stamped_mem (tm li : w64) (ents : List EntryM) (P : EntryM → P
   obtain ⟨i, hi, rfl⟩ := List.mem_mapIdx.1 He
   exact Hst _ _ (HP _ (List.getElem_mem hi))
 
+/-- (raft#139) `append(t, ents)` of a batch that continues the log, at a current leader term:
+`logAppendLT`. -/
+private theorem logAppendAt_cont (ls : LogState) (t : w64) (ents : List EntryM)
+    (Hge : uint.Z ls.leaderTerm ≤ uint.Z t)
+    (Htac : logTruncateAppend ls ents = logAppend ls ents) :
+    logAppendAt ls t ents = logAppendLT ls t ents := by
+  unfold logAppendAt
+  rw [if_neg (by omega)]
+  cases ents with
+  | nil => rfl
+  | cons e es => rw [logTruncateAppendAt_cons, Htac]; rfl
+
+private theorem logAppendLT_ents (ls : LogState) (t : w64) (ents : List EntryM) :
+    (logAppendLT ls t ents).prev = (logAppend ls ents).prev ∧
+    (logAppendLT ls t ents).sents = (logAppend ls ents).sents ∧
+    (logAppendLT ls t ents).uents = (logAppend ls ents).uents := by
+  cases ents <;> simp [logAppendLT, logAppend]
+
+private theorem logAppendLT_logLast (ls : LogState) (t : w64) (ents : List EntryM) :
+    logLast (logAppendLT ls t ents) = logLast (logAppend ls ents) := by
+  obtain ⟨h1, h2, h3⟩ := logAppendLT_ents ls t ents
+  unfold logLast; rw [h1, h2, h3]
+
 /-- The stamped batch continues the log's index sequence. -/
 private theorem stamped_indices (tm li : w64) (prev : entryID) (pre ents : List EntryM)
     (Hpre : LogIndicesOk prev pre)
@@ -151,7 +174,7 @@ theorem raft.appendEntry.wp_proof
     (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro c r id s es ents dq Hsmall Hnz
+  intro c r id s es ents dq Hsmall Hnz Hltt
   wp_start as ⟨Hphys, Hes⟩
   wp_auto
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -296,6 +319,8 @@ theorem raft.appendEntry.wp_proof
       iframe
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     wp_apply wp_traceReplicate
+    -- (raft#139) `r.raftLog.append(r.Term, ...)`
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev
@@ -326,12 +351,23 @@ theorem raft.appendEntry.wp_proof
       push_cast at H0
       refine ⟨⟨by omega, by omega⟩, fun k e Hk => by rw [Hk2 k e Hk, H0]; omega, ?_⟩
       rw [List.length_mapIdx]; omega
-    wp_apply wp_raftLog_append _ _ _ _ _ Hpre $$ [$Hlog $Hcl]
+    have Hlastt : ∀ e, (ents.mapIdx (stamp s.term li)).getLast? = some e →
+        uint.Z s.logst.leaderTerm ≤ uint.Z s.term → uint.Z e.Term' ≤ uint.Z s.term := by
+      intro e He _
+      have Hm := List.mem_of_getLast? He
+      obtain ⟨i, hi, rfl⟩ := List.mem_mapIdx.1 Hm
+      simp only [stamp]; omega
+    wp_apply wp_raftLog_append _ _ s.term _ _ _ Hpre Hlastt $$ [$Hlog $Hcl]
       as %li2 ⟨Hlog, Hcl, %Hsplit2, %Hli2⟩
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
-    rw [Hado, Htac] at *
+    have HA := logAppendAt_cont s.logst s.term (ents.mapIdx (stamp s.term li)) Hltt Htac
+    rw [Hado] at *
+    rw [HA] at Hli2 Hsplit2 ⊢
     simp only [Bool.false_eq_true, ↓reduceIte]
-    have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
+    obtain ⟨-, HLs, HLu⟩ := logAppendLT_ents s.logst s.term (ents.mapIdx (stamp s.term li))
+    rw [HLs, HLu] at Hli2
+    have Hlast2 : logLast (logAppendLT s.logst s.term (ents.mapIdx (stamp s.term li))) = li2 := by
+      rw [logAppendLT_logLast]
       unfold logLast
       unfold logAppend at Hli2 ⊢
       simp only [List.length_append, List.length_mapIdx] at Hli2 ⊢
@@ -339,14 +375,16 @@ theorem raft.appendEntry.wp_proof
       word
     -- (stage R8a) a leader's log only grows: the last index is not lower
     have Hle2 : s.role = .leader → uint.Z (logLast s.logst) ≤
-        uint.Z (logLast (logAppend s.logst (ents.mapIdx (stamp s.term li)))) := by
+        uint.Z (logLast (logAppendLT s.logst s.term (ents.mapIdx (stamp s.term li)))) := by
       intro _
       rw [Hlast2, Hlast]
       unfold logAppend at Hli2
       simp only [List.length_append, List.length_mapIdx] at Hli2
       push_cast at Hli2
       word
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.append _ Hgh0) %Hle2
+    have Hgh2 : LogGhOk s (logAppendLT s.logst s.term (ents.mapIdx (stamp s.term li))) :=
+      LogGhOk.appendLT _ _ Hgh0
+    ihave Hphys := Hlogback $$ %_ Hlog %Hgh2 %Hle2
     -- the self-acknowledgement: `SendOk`'s `MsgAppResp` clause, with no entries
     try wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -365,7 +403,7 @@ theorem raft.appendEntry.wp_proof
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       msg_nulls
-    let s' : NState := { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term li)) }
+    let s' : NState := { s with logst := logAppendLT s.logst s.term (ents.mapIdx (stamp s.term li)) }
     wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hr] as Hphys
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))

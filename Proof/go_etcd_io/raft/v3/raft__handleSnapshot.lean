@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raft__restore
 public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
@@ -55,6 +56,7 @@ theorem raft.handleSnapshot.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_GetSnapshot : raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG))
+    (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
@@ -65,7 +67,9 @@ theorem raft.handleSnapshot.wp_proof
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_GetSnapshot.1 $$ [$Hm] as %ps ⟨Hsnap, Hmback⟩
+  -- (raft#139) the snapshot and the term, lent: `m.GetTerm()` is read with the snapshot out
+  icases msgPtsC_SnapTerm_lend _ _ _ _ _ $$ Hm with ⟨%ps, %pte, %Hmnn, HSn, Hsnap, HTe, #cTe, Hmback⟩
+  wp_apply wp_Message_GetSnapshot_field _ _ _ Hmnn $$ [$HSn] as HSn
   ihave %Hps : ⌜ps ≠ null⌝ $$ [Hsnap]
   · simp only [snapOpt]; iunfold ownSnapM at Hsnap; iNamed Hsnap; ipureintro; exact Hnn
   wp_apply wp_EnsureSnapshot $$ [$Hsnap] as %sp ⟨Hsnap, %Hsp⟩
@@ -83,10 +87,11 @@ theorem raft.handleSnapshot.wp_proof
   · iunfold smOpt; iright; iexact Hmd
   ihave Hsnap := Hsback $$ [Hmd]
   · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
-  wp_auto
-  wp_apply wp_raft_restore c _ _ _ sp sv cl Hrole Hvotes Hcl Hin Hscope
+  try wp_auto
+  wp_apply wp_Message_GetTerm_field _ _ _ _ Hmnn $$ [$HTe $cTe] as HTe
+  wp_apply wp_raft_restore c _ _ _ m.Term' sp sv cl Hrole Hvotes Hcl Hin Hscope
     $$ [$Hphys $Hsnap] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
-  ihave Hm := Hmback $$ [Hsnap]
+  ihave Hm := Hmback $$ HSn [Hsnap] HTe
   · simp only [snapOpt]; iapply ownSnapE_weaken $$ Hsnap
   generalize Hc1 : restoreCfg c sv cl b = c1
   rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hmt, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, il, rfl⟩
@@ -168,7 +173,7 @@ theorem raft.handleSnapshot.wp_proof
       msg_nulls
     rw [Hlv2.1]
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
-      (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
+      (appResp_sendOk id _ m.From' _ Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
     iapply HΦ $$ %_ %c1
     iframe Hphys
@@ -188,6 +193,14 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_logC
+    -- (raft#139) `r.raftLog.leaderTerm = m.GetTerm()`
+    wp_apply wp_GetTerm.1 $$ [$Hm] as Hm
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
+    wp_apply (ownRaftLog_setLeaderTerm _ _ m.Term') $$ [$Hlog] as Hlog
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+      %(fun h => absurd h (by rw [Hrole]; decide))
+    try wp_auto
     icases msgPtsC_From_lend _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
     wp_auto
     ihave Hm := HmB $$ HFr

@@ -6,14 +6,18 @@
     r.raftLog.commitTo(m.Commit)
     r.send(pb.Message{To: m.From, Type: pb.MsgHeartbeatResp, Context: m.Context})
 
-Two exits that are not `return`: `commitTo` `Panicf`s when `m.Commit > lastIndex()`, and
-`send` `Panicf`s on a self-addressed `MsgHeartbeatResp` (it goes onto `r.msgs`). Each is
-ruled out by a premise: the first is the protocol fact `heartbeat_commit_le_last`
-(`Protocol/Facts.lean`) that `Step` supplies, stated on the log as `ownRaftPhys`
-records it; the second is that the sender is not this node.
+One exit that is not `return`: `send` `Panicf`s on a self-addressed `MsgHeartbeatResp` (it
+goes onto `r.msgs`), ruled out by the premise that the sender is not this node.
+
+**raft#139** (`notes/pr-verify/raft-139.md`): `r.raftLog.commitTo(m.Term, m.Commit)`. Until
+then `commitTo(m.Commit)` `Panicf`ed when `m.Commit > lastIndex()`, and a premise ruled that
+out with the protocol fact `heartbeat_commit_le_last` (`Protocol/Facts.lean`); the new
+`commitTo` cuts the commit index at the last index and moves it only at the log's leader term
+(`logCommitTo`), so the premise is gone.
 
 The postcondition is the follower's half of `Step.heartbeat`: `committed` becomes
-`plogCommitTo committed m.Commit` (it never moves back) and the outbox grows by exactly
+`logCommitTo logst m.Term m.Commit` (raft#139; until then `plogCommitTo committed m.Commit`; it
+never moves back) and the outbox grows by exactly
 the `HeartbeatResp` the model's rule names, `Msg.plain .heartbeatResp id m.From s.term
 false`. That is what `SendOk`'s clause (b) makes of the literal: `send` stamps `From :=
 r.id` and `Term := r.Term`; the literal sets only `To`/`Type`/`Context`, so `Reject` is
@@ -60,7 +64,7 @@ def heartbeatResult (id : w64) (s : NState) (m : MessageM) (cl : List w8 := []) 
     NState :=
   sendMsgs
     { s with logst :=
-        { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
+        { s.logst with committed := logCommitTo s.logst m.Term' m.Commit' } }
     [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]
 
 end heartbeat_result
@@ -76,7 +80,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev raft.handleHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
     (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
-  uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -90,7 +93,6 @@ derived from `raft.handleHeartbeat.spec` by `raft.handleHeartbeat.spec_simple`. 
 abbrev raft.handleHeartbeat.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dq dqe : DFrac) (cap : Bool)
     (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (cl : List w8) (rs : List Loc),
-  uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
@@ -103,10 +105,10 @@ open Iris.ProofMode in
 theorem raft.handleHeartbeat.spec_simple
     (H : raft.handleHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s ml dq dqe cap m ents sn cl rs Hc Hfrom
+  intro cfg r id s ml dq dqe cap m ents sn cl rs Hfrom
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s ml dq dqe cap m ents sn cl rs Hc Hfrom $$ [$Hpkg $Hphys $Hm]
+  iapply H _ r id s ml dq dqe cap m ents sn cl rs Hfrom $$ [$Hpkg $Hphys $Hm]
   inext
   iintro ⟨Hphys, Hm⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

@@ -1194,6 +1194,21 @@ theorem ownRaftLog_setCommitted (l : Loc) (ls : LogState) (n : w64)
     | word
     | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ (by word) (Hssnap Hs))
 
+/-- (raft#139) The raw store `l.leaderTerm = t` (`becomeLeader`'s `r.raftLog.leaderTerm = r.Term`,
+`handleSnapshot`'s `r.raftLog.leaderTerm = m.Term`): nothing else in `ownRaftLog` mentions the
+leader term. Stated on the field store as `wp_auto` leaves it after loading the `raftLog`
+pointer. -/
+theorem ownRaftLog_setLeaderTerm (l : Loc) (ls : LogState) (t : w64) (Φ : val → IProp GF) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      (ownRaftLog l { ls with leaderTerm := t } -∗ Φ #()) -∗
+      WP (App (Val (GoInstruction (GoStore go.uint64)))
+            (Val (PairV #(l.[raftLog, go!"leaderTerm"]) #t))) {{ Φ }} := by
+  iintro Hlog HΦ
+  iNamed Hlog
+  wp_auto
+  iapply HΦ
+  reseal_raftLog
+
 end setCommitted
 
 set_option hygiene false in

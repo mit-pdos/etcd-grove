@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
+public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
@@ -35,18 +36,20 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.handleHeartbeat.wp_proof
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+    (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetCommit : raftpb.Message.GetCommit.spec (GF := GF) (hG := hG))
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom
+  intro c r id s ml dq dqe cap m ents sn cl rs Hfrom
   wp_start as H
   iNamed H
   wp_auto
+  wp_apply wp_GetTerm.1 $$ [$Hm] as Hm
   wp_apply wp_GetCommit.1 $$ [$Hm] as Hm
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
-  wp_apply wp_raftLog_commitTo _ _ _ Hcommit $$ [$Hlog] as Hlog
+  wp_apply wp_raftLog_commitTo _ _ _ _ $$ [$Hlog] as Hlog
   ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   try wp_auto

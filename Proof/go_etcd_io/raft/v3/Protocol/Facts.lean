@@ -164,6 +164,32 @@ theorem app_no_conflict_below_commit (γ : RaftNames) (id : w64) (ps : PState) (
   simp only at this
   omega
 
+/-- (raft#139) No entry of a received `app` is of a term above the message's: the batch is a
+piece of the sending leader's log (`isMessage`'s `leadPrefix`), whose full log has no term
+above the leader's (`lpfull`). `raftLog.append(m.Term, ents)`'s new `Panicf` (on a last entry
+of a higher term) is dead by it. -/
+theorem app_entries_term_le (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
+    m.ty = .app →
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
+      ⌜∀ e ∈ m.entries, uint.Z e.Term' ≤ uint.Z m.term⌝ := by
+  intro Hty
+  iintro - #Hm
+  icases isMessage_app_inv γ m Hty $$ Hm with ⟨-, -, ⟨%bL, %l, %fp, -, %Hpl, #Hpf, -⟩, -⟩
+  icases lpfull_fp $$ Hpf with ⟨-, %Hfp⟩
+  obtain ⟨Hfull, Hwf, Ht⟩ := Hfp
+  ipureintro
+  intro e He
+  have He' : e ∈ l := by
+    have := Hpl.2.subset He
+    unfold plogFrom at this
+    exact List.mem_of_mem_drop this
+  obtain ⟨k, Hk⟩ := List.getElem?_of_mem He'
+  have Hi := Hwf k e Hk
+  have H1 := plogTermAt_lookup bL l e.Index' k e Hk Hi
+  have H2 := full_term_at bL fp l e.Index' Hfull (by omega)
+  rw [← H2] at H1
+  exact Ht _ _ H1
+
 /-! ### Replication safety
 
 The three properties replication is for, as entailments between the ghost states of
