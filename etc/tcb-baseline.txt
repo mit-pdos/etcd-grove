@@ -15,7 +15,6 @@ axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
 axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
-axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.raftRequestAlarm.wp_proof
 axiom EtcdServer.revokeExpiredLeases.wp_proof
@@ -97,6 +96,7 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
+axiom fmt.SprintfStruct.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof

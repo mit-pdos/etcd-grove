@@ -1,0 +1,15 @@
+    server_publish_probe_test.go:88: rejections in 100ms with applyWait ahead of s.appliedIndex: 22275
+--- PASS: TestPublishV3ProbeApplyWaitAheadOfAppliedIndex (0.12s)
+--- PASS: TestPublishV3ProbeStopDuringWait (0.00s)
+    server_publish_probe_test.go:145: rejections in 200ms with a 20ms timeout: 10
+--- PASS: TestPublishV3ProbeTimeoutRetries (0.20s)
+    server_publish_reviewer_test.go:70: rejections in 100ms: 18432
+    server_publish_reviewer_test.go:72: publishV3 still retries in a tight loop: 18432 rejections in 100ms
+--- FAIL: TestReviewerPublishV3SpinsAfterSnapshotTrigger (0.11s)
+    server_publish_reviewer_test.go:98: rejections over 200 apply batches: 20
+    server_publish_reviewer_test.go:100: wait ended with the limit still exceeded 20 times
+--- FAIL: TestReviewerPublishV3RejectedOncePerApplyBatch (0.22s)
+--- PASS: TestPublishV3WaitsForApplyAfterTooManyRequests (0.10s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.770s
+FAIL

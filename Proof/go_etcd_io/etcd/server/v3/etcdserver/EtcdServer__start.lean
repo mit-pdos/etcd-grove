@@ -495,10 +495,16 @@ theorem EtcdServer.start.wp_proof
     iunfold srvReadReader
     iexists rd
     iframe Hr Hslot
-  iapply replicate_map _ _ (srvLeaderChangedAddr s ↦□ lcn) $$ [$Hlc $Hlcslots]
-  iintro ⟨#Hl, Hslot⟩
-  iexists lcn
-  iframe Hl Hslot
+  isplitl [Hlcslots]
+  · iapply replicate_map _ _ (srvLeaderChangedAddr s ↦□ lcn) $$ [$Hlc $Hlcslots]
+    iintro ⟨#Hl, Hslot⟩
+    iexists lcn
+    iframe Hl Hslot
+  -- the publisher's (etcd-io/etcd#22527, branch `pr-verify/etcd-22527`)
+  iframe Hpub
+  iexists cctx
+  iexists _
+  iframe Hctx Hcctx
 
 end proof
 

@@ -56,6 +56,10 @@ section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 abbrev srvSnapCountAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCount"
 abbrev srvSnapCatchUpAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCatchUpEntries"
+/-- The address of `s.attributes` (etcd-io/etcd#22527, branch `pr-verify/etcd-22527`: `publishV3`'s). -/
+abbrev srvAttrAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"attributes" s
+/-- The address of `s.readych` (`publishV3` closes it). -/
+abbrev srvReadychAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"readych" s
 end addrs
 
 section defs
@@ -174,6 +178,20 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗
     srvForceSnapAddr s ↦ f)
 
+/-- **The publisher's part of the construction premise** (etcd-io/etcd#22527, branch
+`pr-verify/etcd-22527`: `publishV3` is translated with its body): `NewServer`'s `s.attributes`
+(`membership.Attributes{Name: cfg.Name, ClientURLs: cfg.ClientURLs.StringSlice()}`, never written
+again: read-only, its fresh `ClientURLs` slice too) and `s.readych` (`make(chan struct{})`, which
+only `publishV3` closes and no one sends on: a broadcast channel, pending, its closer's view), and
+the publisher goroutine's own reader slots (`s.leadTimeMu`'s, `s.lgMu`'s) and the auth store's
+reader resource (`E.RD`), as each request goroutine's. -/
+def srvPublishBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ (av : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes)
+      (urls : List GoString) (rc : Loc) (γrc : ChanNames),
+    srvAttrAddr s ↦□ av ∗ av.ClientURLs' ↦*□ urls ∗
+    srvReadychAddr s ↦□ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
+    srvLeadTimeReader s ∗ E.RD ∗ srvLgReader s)
+
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/
 def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -229,7 +247,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
     -- the write budget
-    "HWB" ∷ txn.storeWTs E.γ N)
+    "HWB" ∷ txn.storeWTs E.γ N ∗
+    -- the publisher's part (etcd-io/etcd#22527, branch `pr-verify/etcd-22527`)
+    "Hpub" ∷ srvPublishBuilt s E)
 
 /-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
 `Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the
@@ -237,7 +257,7 @@ reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`),
 (`srvWgReader`), `s.leaderChanged`'s; and (2026-10-16, stage R7b) that the request path's read
 names are `γr` (`isServerBuilt`'s premise, which the read server's discharge takes,
 `isReadServer_of_server`). -/
-def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
+def srvStarted (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : IProp GF :=
   iprop("%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
@@ -249,7 +269,12 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
     "Hwgs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
       srvWgReader s) ∗
     "Hlcs" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-      ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n))
+      ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) ∗
+    -- the publisher's (etcd-io/etcd#22527, branch `pr-verify/etcd-22527`): its part of the
+    -- construction premise, and `s.ctx`, the context `start` made
+    "Hpub" ∷ srvPublishBuilt s E ∗
+    "#Hctxp" ∷ (∃ (c : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+      srvCtxAddr s ↦□ (GoInterface.ok c) ∗ context.isContext c cd))
 
 end defs
 

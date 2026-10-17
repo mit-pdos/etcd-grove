@@ -82,6 +82,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__waitApplyWithinRequestLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
@@ -147,6 +148,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
+public import Proof.fmt.SprintfStruct
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Push
@@ -532,6 +534,10 @@ theorem proto.wp_Clone :
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
   zap.Logger.Fatal.wp_proof
+
+theorem fmt.wp_SprintfStruct :
+    fmt.SprintfStruct.spec (GF := GF) (hG := hG) :=
+  fmt.SprintfStruct.wp_proof
 
 theorem TxnRequest.wp_GetCompare :
     TxnRequest.GetCompare.spec (GF := GF) (hG := hG) :=
@@ -1120,9 +1126,13 @@ theorem EtcdServer.wp_adjustTicks :
     EtcdServer.adjustTicks.spec (GF := GF) (hG := hG) :=
   EtcdServer.adjustTicks.wp_proof
 
+theorem EtcdServer.wp_waitApplyWithinRequestLimit :
+    EtcdServer.waitApplyWithinRequestLimit.spec (GF := GF) (hG := hG) :=
+  EtcdServer.waitApplyWithinRequestLimit.wp_proof EtcdServer.wp_getCommittedIndex
+
 theorem EtcdServer.wp_publishV3 :
     EtcdServer.publishV3.spec (GF := GF) (hG := hG) :=
-  EtcdServer.publishV3.wp_proof
+  EtcdServer.publishV3.wp_proof EtcdServer.wp_raftRequest EtcdServer.wp_waitApplyWithinRequestLimit EtcdServer.wp_MemberID EtcdServer.wp_Logger types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.wp_Duration zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn fmt.wp_SprintfStruct errors.wp_Is
 
 theorem EtcdServer.wp_purgeFile :
     EtcdServer.purgeFile.spec (GF := GF) (hG := hG) :=

@@ -91,16 +91,29 @@ theorem EtcdServer.Start.wp_proof
     wp_apply hAdj s
     iapply HΦ'
     try itrivial
-  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
+  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }` (etcd-io/etcd#22527, branch
+  -- `pr-verify/etcd-22527`: `publishV3` with its body, over the publisher's resources)
+  iunfold srvPublishBuilt at Hpub
+  icases Hpub with ⟨%av, %urls, %rc, %γrc, #Hav, #Hurls, #Hrcf, Hrc, Hplt, HpRD, Hplg⟩
+  icases Hctxp with ⟨%cc, %ccd, #Hccf, #Hccx⟩
+  ihave #Hrd2 := Hrd
+  iunfold isServerRead at Hrd2
+  icases Hrd2 with ⟨%vd2, #Hvd2⟩
+  iunfold srvReadFieldsAt at Hvd2
+  icases Hvd2 with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%log₀, #Hlog₀, -⟩, -⟩
+  wp_apply hGA s _ (srvPublishRes s E { ρ with wait := γw } rc γrc) $$ [Hgr Hlg Hrc Hplt HpRD Hplg]
+    as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg
-    isplitr
-    · itrivial
-    iintro !> %Φ' - HΦ'
+    isplitl [Hrc Hplt HpRD Hplg]
+    · iunfold srvPublishRes
+      iexists av, urls, cc, ccd, log₀
+      iframe # Hrc Hplt HpRD Hplg
+    iintro !> %Φ' HP HΦ'
     wp_auto
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
-    wp_apply hPub s
+    wp_apply hPub s E { ρ with wait := γw } γr rc γrc d $$ [HP] as -
+    · iframe # HP
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`

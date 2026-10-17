@@ -38,7 +38,7 @@ abbrev EtcdServer.start.spec : Prop :=
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
-      srvStarted s γr ρ Er.RQ }}
+      srvStarted s E γr ρ Er.RQ }}
 
 end spec
 

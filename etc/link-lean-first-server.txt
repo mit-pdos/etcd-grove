@@ -329,7 +329,12 @@ Version__String:
 version_Cluster:
 prometheus_GaugeVec__With:
 EtcdServer__adjustTicks:
-EtcdServer__publishV3:
+# etcd-io/etcd#22527 (branch `pr-verify/etcd-22527`): `publishV3` with its body and the PR's
+# wait for apply after a "too many requests" rejection; the trust boundary: `fmt.Sprintf` of the
+# member's `membership.Attributes` (`fmt_SprintfStruct`, a methodless struct).
+fmt_SprintfStruct:
+EtcdServer__waitApplyWithinRequestLimit: EtcdServer__getCommittedIndex
+EtcdServer__publishV3: EtcdServer__raftRequest EtcdServer__waitApplyWithinRequestLimit EtcdServer__MemberID EtcdServer__Logger types_ID__String membership_RaftCluster__ID zap_String zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn fmt_SprintfStruct errors_Is
 EtcdServer__purgeFile:
 monitorFileDescriptor:
 EtcdServer__monitorClusterVersions:

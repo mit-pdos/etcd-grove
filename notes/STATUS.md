@@ -13434,3 +13434,23 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/etcd#22527 (branch `pr-verify/etcd-22527`, not for `lean`)
+
+The publish loop of the server, with the PR's wait for apply after a "too many requests"
+rejection. The branch translates the code of the fork branch `pr-etcd-22527-goose-lean`, which is
+`goose-lean` with the PR applied; the pin in `etc/goose.py` is unchanged, so `--check` fails on
+this branch. The report is `notes/pr-verify/etcd-22527.md`.
+
+- `EtcdServer.waitApplyWithinRequestLimit` (new) is translated and proved.
+- `EtcdServer.publishV3` was names-only, an axiom. It is now translated with its body and proved
+  against a new spec over the publisher's resources (`srvPublishRes`).
+- The construction premise `isServerBuilt` gains `Hpub` (`srvPublishBuilt`). `srvStarted` takes
+  `E` and hands on `Hpub` and `s.ctx`'s context (`Hctxp`). `start`'s and `Start`'s proofs are
+  adapted.
+- **Perennial limitation**: `fmt.wp_Sprintf` admits only arguments of predeclared basic types, and
+  `publishV3` logs `fmt.Sprintf("%+v", s.attributes)` with a struct argument. The workaround is a
+  local trust-boundary axiom, `fmt.SprintfStruct` (`Spec/fmt/SprintfStruct.lean`), for
+  `membership.Attributes` only, with its `ClientURLs` read-only. The general fix is a Perennial
+  spec of `Sprintf` for methodless structs whose fields are basic types or slices of them, given
+  read access to the slices.

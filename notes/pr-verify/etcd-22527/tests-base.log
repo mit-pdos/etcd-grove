@@ -1,0 +1,9 @@
+    server_publish_probe_test.go:88: rejections in 100ms with applyWait ahead of s.appliedIndex: 6092
+--- PASS: TestPublishV3ProbeApplyWaitAheadOfAppliedIndex (0.11s)
+--- PASS: TestPublishV3ProbeStopDuringWait (0.00s)
+    server_publish_probe_test.go:145: rejections in 200ms with a 20ms timeout: 5632
+    server_publish_probe_test.go:147: expected about 10 rejections, got 5632
+--- FAIL: TestPublishV3ProbeTimeoutRetries (0.25s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.413s
+FAIL
