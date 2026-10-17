@@ -1851,6 +1851,63 @@ instance watchableStore_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3
 end def_
 end watchableStore
 
+namespace revCohort
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+instance revCohort_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.revCohort where
+  typedPointstoDef l v dq := iprop(
+    "minRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"minRev" l) v.minRev' dq ∗
+    "wg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"wg" l) v.wg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance revCohort_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go_etcd_io.etcd.server.v3.storage.mvcc.revCohort.underlying := by
+  solve_into_val_typed_struct
+
+instance revCohort_access_load_minRev (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revCohort) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"minRev" l) v.minRev' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"minRev" l) v.minRev' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance revCohort_access_store_minRev (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revCohort) (minRev' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"minRev" l) v.minRev' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"minRev" l) minRev' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minRev' := minRev' } : go_etcd_io.etcd.server.v3.storage.mvcc.revCohort) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance revCohort_access_load_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revCohort) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"wg" l) v.wg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"wg" l) v.wg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance revCohort_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.revCohort) (wg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"wg" l) v.wg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.revCohort go!"wg" l) wg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := wg' } : go_etcd_io.etcd.server.v3.storage.mvcc.revCohort) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end revCohort
+
 namespace watcher
 section def_
 
