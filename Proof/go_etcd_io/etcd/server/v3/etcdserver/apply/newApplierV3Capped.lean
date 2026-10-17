@@ -155,29 +155,9 @@ theorem apply.newApplierV3Capped.wp_proof
     wp_auto
     iunfold apply.revokePre at Hpre
     icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-    ihave #Hcp := apply.certPre_capped _ _ _ _ (by rw [Hk.2]; rfl) $$ Hcp
-    iunfold apply.mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
-    ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ applierV3 Hres
-    iapply HRev $$ %r %rq %id %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
-    · iunfold apply.revokePre
-      iunfold apply.mPre
-      iframe
-      iframe #
-      ipureintro; exact Hk
-    inext
-    iintro %resp %err Hpost
-    iapply HΦ'
-    iunfold apply.kvPost at Hpost
-    iunfold apply.kvPost
-    icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
-    iexists oc
-    iframe HR Hkv HPP
-    isplitr
-    · ipureintro
-      simp only [apply.chainStep, apply.cappedRejects, Hk.2]
-      simpa using Hst
-    iapply apply.chainRes_capped_in c p (.ok bi) $$ applierV3 Hres
+    -- D14h: no lease revocation in the workload
+    have hF := Hk.2.2
+    simp only [apply.rqOk, Hk.2.1] at hF
   isplitr
   · -- the methods that leave the log as it is: `LeaseGrant` the capped applier's, the others
     -- the inner applier's (promoted)

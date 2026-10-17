@@ -240,14 +240,19 @@ def rangeOk (log : mvcc.Log) (o : OpFull) : Prop :=
 /-- **The per-request premise** of `rq` at the sole writer's log `log`, by what `dispatch` does
 with it: the txn package's for a KV request (`TxnPre` for a transaction); a lease checkpoint
 request with at most one checkpoint (each checkpoint is its own critical section of the batch
-lock: `issues/etcd-apply-lease-checkpoint-sections.md`); a cluster version that parses. -/
+lock: `issues/etcd-apply-lease-checkpoint-sections.md`; until 2026-10-17); a cluster version that
+parses. **No lease request** (D14h, 2026-10-17, the user's decision): the workload has no
+`LeaseGrant`, `LeaseRevoke` or `LeaseCheckpoint` (with no lease granted none expires, so the
+lessor proposes no revocation and no checkpoint); `lessor.Revoke` is not specified (unit T3). -/
 def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
   | .txn => ∀ t, rq.txn = some t → txn.TxnPre log t
-  | .leaseCheckpoint => ∀ cs, rq.leaseCheckpoint = some cs → cs.length ≤ 1
+  | .leaseGrant => False
+  | .leaseRevoke => False
+  | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v
   -- unit N4, D14g (2026-10-17): a new user's or role's name is a bbolt key, within its bound
   -- (`issues/etcd-auth-useradd-long-name-fatal.md`)
@@ -614,7 +619,8 @@ def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
 /-- `LeaseRevoke(r)`'s precondition. -/
 def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke⌝ ∗ certPre E c rq log ∗
+  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ rqOk log rq⌝ ∗
+    certPre E c rq log ∗
     leaseRevokeIs r id ∗
     mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 

@@ -35,49 +35,9 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.revokePre at Hpre
   icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
-  ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
-  iunfold apply.authInfoOwn at Hinfo
-  icases Hinfo with ⟨%info, Hinfo⟩
-  ihave #Hin := Hinner
-  iunfold apply.applierSpec at Hin
-  icases Hin with ⟨%bi, %Hbi, #Ht⟩
-  subst Hbi
-  iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, #HI, -⟩
-  have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2]; rfl
-  ihave #Hr' := Hr
-  iunfold apply.leaseRevokeIs at Hr'
-  icases Hr' with ⟨%Hrn, #HID⟩
-  wp_auto
-  ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ $$ Hle
-  wp_apply (hLP st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) id) $$ [$Hst $HleA $Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -⟩
-  ihave Hkv := Hkv $$ Hard
-  cases err with
-  | ok e' =>
-    wp_auto
-    iapply HΦ
-    iapply apply.auth_reject_kvPost E E.authOn c p (.ok bi) rq log _ Pre Q Post hk (Or.inr (Or.inr (by rw [Hk.2]; decide))) $$ Happ [] Hkv [Hinfo]
-      Hres Hcs
-    · simp only [apply.revokeOutcomeIs, apply.rejErrIs]
-      isplitr
-      · ipureintro; trivial
-      · iframe HeI; ipureintro; simp
-    · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
-  | nil =>
-  wp_auto
-  wp_apply HI $$ %r %rq %id %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %err Hpost
-  · iunfold apply.revokePre
-    iunfold apply.mPre
-    iframe
-    iframe #
-    ipureintro; exact Hk
-  iapply HΦ
-  iapply apply.auth_pass_kvPost E E.authOn c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
-  iunfold apply.authInfoOwn; iexists info; iexact Hinfo
+  -- D14h: no lease revocation in the workload
+  have hF := Hk.2.2
+  simp only [apply.rqOk, Hk.2.1] at hF
 
 end proof
 

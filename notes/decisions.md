@@ -7915,3 +7915,20 @@ constructor contracts false. D14 settles the three.
   *Rejected:* raising the backend's `2 ^ 40` cap (it bounds the buffers' counters too,
   `cnt.e ≤ hookMax * (2 ^ 40 + 2)`; a `2 ^ 64` budget would still not cover `start`'s old premise
   with the construction's seven).
+
+- **D14h (adopted 2026-10-17, the user's choice 1A): leases outside the workload for now.** The
+  workload premise excludes lease requests: `apply.rqOk` is `False` for `LeaseGrant`,
+  `LeaseRevoke` and `LeaseCheckpoint` (with no lease granted none expires, so the lessor's loop
+  proposes no revocation and calls no checkpointer). So the `Revoke` clause of
+  `apply.isApplyLessor` is never used: it is stated vacuously (`⌜False⌝` in its precondition), and
+  `revokePre` carries `rqOk` (the `LeaseRevoke` appliers close by it); `lessor.Revoke` is not
+  specified (no false spec of it), its proof with the range deleter recorded in the lessor's
+  invariant stays with unit T3 (leases). `isApplyLessor`'s `Lookup` clause, called on every put
+  by the auth layer's `checkLeasePuts` (`Lookup(0)` included), cannot be excluded with them: it
+  is part of `lease.NewLessor`'s axiom (the lessor's lock read-locked; the model's reader slots
+  aside, the Go `RWMutex` bounds readers by `2 ^ 30`). Leased puts and transactions need not be
+  excluded: with no lease granted, `checkLeasePuts` finds none and the txn package's check fails
+  with `ErrLeaseNotFound`, both in the model. `ckptEffectsOk` stays a premise of `NewLessor`'s
+  axiom (a statement about the Go code, whatever the workload); under D14h it is never exercised.
+  `NewUberApplier.spec` names the raft status and the snapshot server (the server itself) in its
+  premise, which was undischargeable.

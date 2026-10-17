@@ -283,8 +283,11 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
             (⌜err ≠ GoInterface.nil⌝ ∨
               (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗
+    -- `Revoke` (D14h, 2026-10-17): vacuous (`⌜False⌝`): the workload has no lease request
+    -- (`rqOk`), and `lessor.Revoke` is not specified (unit T3: it needs the lessor's invariant to
+    -- record the store's range deleter)
     □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
+      {{ ⌜False⌝ ∗ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
           lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
           (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
             mvcc.certOkNext γ log pend) }}

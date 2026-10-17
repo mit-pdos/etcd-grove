@@ -51,7 +51,13 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   backend open (a share of `bOpen`, in the reader's token `mvcc.bkRTx`, lent) and runs the frozen
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
   `initAndRecover`; a hook bucket, `bridgeParams`, so the readers' view is unchanged) of an
-  8-byte key never fails; `Unlock` writes back at most once (`wbTok`). -/
+  8-byte key never fails; `Unlock` writes back at most once (`wbTok`).
+* `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of
+  `isApplyLessor_of_lessorInv` until then): it read-locks the lessor's `mu` and returns the map's
+  lease or `nil`; a lease's `ID` is never written after `NewLease`, its `TTL()` and `Keys()` take the
+  lease's own lock and return. The proved `lessor.Lookup.spec` takes a reader slot of `mu` (the
+  model's `RWMutex` bounds its readers by the slots); the Go `RWMutex` panics only beyond `2 ^ 30`
+  concurrent readers, which no etcd process reaches: the clause takes no slot. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp),
@@ -67,7 +73,11 @@ abbrev lease.NewLessor.spec : Prop :=
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
       lease.lessorExpiredC lp ∗ lease.lessorRdOf γl ∗ lease.leaseOwn γl [] ∗ lessorCkptOk l ∗
       □ (∀ f : GoFunc, backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-        lease.lessorBackend lp Pk #f (backend.wbTok d.γB) (mvcc.bkRTx d.γB d.P d.be)) }}
+        lease.lessorBackend lp Pk #f (backend.wbTok d.γB) (mvcc.bkRTx d.γB d.P d.be)) ∗
+      □ (∀ id : w64,
+        {{ True }} (App (Val (lp @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}) }}
 
 end spec
 

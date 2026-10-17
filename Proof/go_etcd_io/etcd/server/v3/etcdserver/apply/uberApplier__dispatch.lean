@@ -434,16 +434,6 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseGrant := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"LeaseGrant" %lLG %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iexists x; iframe HR
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zLeaseGrant : rq.leaseGrant = none := nLG.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseRevoke
@@ -453,19 +443,6 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseRevoke := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HRev $$ %lLR %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %err Hpost
-    · iunfold apply.revokePre
-      isplitr
-      · ipureintro; exact ⟨hs, hk⟩
-      iframe HR Hcp
-      iunfold apply.mPre
-      iframe
-    iunfold apply.kvPost at Hpost
-    icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
-    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.revokeOutcomeIs_errIs _ _ _) $$ [$Hev $Hans]
-    join_ar
-    fin_kv
-    iexists resp; iframe Hans; ipureintro; rfl
   have zLeaseRevoke : rq.leaseRevoke = none := nLR.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseCheckpoint
@@ -475,16 +452,6 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseCheckpoint := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"LeaseCheckpoint" %lLC %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iexists x; iframe HR; ipureintro; exact hok x hs
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zLeaseCheckpoint : rq.leaseCheckpoint = none := nLC.1 (by simpa using Hif)
   wp_if_destruct
   · -- Alarm: the uber-applier's (`restoreAlarms` on an `ACTIVATE` or `DEACTIVATE`)

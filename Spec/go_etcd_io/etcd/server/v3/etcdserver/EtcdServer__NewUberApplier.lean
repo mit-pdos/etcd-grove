@@ -28,7 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.NewUberApplier()`: `apply.NewUberApplier`'s result in the environment `E`, over the options
 it builds of the server's fields (read-only), for which `apply.NewUberApplier.spec`'s premise
 holds (`backendOptsOk`, at whatever `TxnModeWriteWithSharedBuffer` the feature gate answers and
-with the server itself as the raft status and the snapshot server), with the auth store's reader
+with the server itself as the raft status and the snapshot server: named in the premise since
+unit N4, 2026-10-17, unconstrained before, so the premise could not be discharged), with the auth store's reader
 resource. (`backendOptsOk` asks `isApplyKV` of `s.kv`: since unit N4 either store,
 `server_kv_watchable`; its lessor, alarm-store, auth-store and cluster contracts are the
 trust boundary, `notes/STATUS.md`, unit N4.) -/
@@ -46,7 +47,10 @@ abbrev EtcdServer.NewUberApplier.spec : Prop :=
         ⌜opts.Logger' = lg ∧ opts.KV' = kv ∧ opts.AlarmStore' = a ∧ opts.AuthStore' = au ∧
           opts.Lessor' = le ∧ opts.Cluster' = cl ∧ opts.ConsistentIndex' = ci ∧
           opts.Backend' = be ∧ opts.QuotaBackendBytesCfg' = quota ∧
-          opts.WarningApplyDuration' = wad⌝ -∗ apply.backendOptsOk E opts) ∗
+          opts.WarningApplyDuration' = wad ∧
+          opts.RaftStatus' = interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s ∧
+          opts.SnapshotServer' = interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s⌝ -∗
+        apply.backendOptsOk E opts) ∗
       E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"NewUberApplier")) (Val #()))
   {{ (ua : GoInterface), RET #ua; ∃ (p : Loc) (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions),
