@@ -1,0 +1,60 @@
+===== upstream (eb347e2b4): cd server && go test ./etcdserver/api/v3rpc/ -run 'TestCheckIntervalsFromKeyDelete|TestCheckIntervalsClearAndReseed|TestCheckIntervalsOpenEndedDeleteRange' -v
+--- PASS: TestCheckIntervalsFromKeyDelete (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_of_the_key (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_of_a_greater_key (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_before_the_delete (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_in_a_nested_txn (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/delete_in_a_nested_txn (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/delete_of_every_key (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_of_a_smaller_key (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_of_a_smaller_key_in_a_nested_txn (0.00s)
+--- PASS: TestCheckIntervalsClearAndReseed (0.00s)
+--- PASS: TestCheckIntervalsOpenEndedDeleteRange (0.00s)
+    --- PASS: TestCheckIntervalsOpenEndedDeleteRange/finite_range_delete_overlapping_a_put (0.00s)
+    --- PASS: TestCheckIntervalsOpenEndedDeleteRange/finite_range_delete_not_overlapping_a_put (0.00s)
+    --- PASS: TestCheckIntervalsOpenEndedDeleteRange/open_ended_delete_overlapping_a_put_above_the_start_key (0.00s)
+    --- PASS: TestCheckIntervalsOpenEndedDeleteRange/open_ended_delete_over_the_whole_keyspace_overlapping_a_put (0.00s)
+    --- PASS: TestCheckIntervalsOpenEndedDeleteRange/open_ended_delete_not_overlapping_a_put_below_the_start_key (0.00s)
+ok  	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.091s
+===== upstream (eb347e2b4): cd server && go test ./proxy/grpcproxy/cache/ -run TestCacheFromKeyInvalidate -v
+    store_fromkey_test.go:34: cached range [a, +inf) still served after a put of b
+    store_fromkey_test.go:43: cached range [b, z) still served after a delete of [a, +inf)
+--- FAIL: TestCacheFromKeyInvalidate (0.00s)
+    --- FAIL: TestCacheFromKeyInvalidate/cached_from-key_range,_put_of_a_key_in_it (0.00s)
+    --- FAIL: TestCacheFromKeyInvalidate/cached_range,_from-key_delete_over_it (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/proxy/grpcproxy/cache	0.033s
+FAIL
+===== base (d848b43ae): cd server && go test ./etcdserver/api/v3rpc/ -run 'TestCheckIntervalsFromKeyDelete|TestCheckIntervalsClearAndReseed|TestCheckIntervalsOpenEndedDeleteRange' -v
+    key_fromkey_test.go:64: checkIntervals: got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+    key_fromkey_test.go:64: checkIntervals: got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+    key_fromkey_test.go:64: checkIntervals: got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+    key_fromkey_test.go:64: checkIntervals: got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+    key_fromkey_test.go:64: checkIntervals: got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+    key_fromkey_test.go:64: checkIntervals: got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+--- FAIL: TestCheckIntervalsFromKeyDelete (0.00s)
+    --- FAIL: TestCheckIntervalsFromKeyDelete/put_of_the_key (0.00s)
+    --- FAIL: TestCheckIntervalsFromKeyDelete/put_of_a_greater_key (0.00s)
+    --- FAIL: TestCheckIntervalsFromKeyDelete/put_before_the_delete (0.00s)
+    --- FAIL: TestCheckIntervalsFromKeyDelete/put_in_a_nested_txn (0.00s)
+    --- FAIL: TestCheckIntervalsFromKeyDelete/delete_in_a_nested_txn (0.00s)
+    --- FAIL: TestCheckIntervalsFromKeyDelete/delete_of_every_key (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_of_a_smaller_key (0.00s)
+    --- PASS: TestCheckIntervalsFromKeyDelete/put_of_a_smaller_key_in_a_nested_txn (0.00s)
+    key_fromkey_test.go:81: checkIntervals(delete all, put cfg): got <nil>, want rpc error: code = InvalidArgument desc = etcdserver: duplicate key given in txn request
+--- FAIL: TestCheckIntervalsClearAndReseed (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc	0.029s
+FAIL
+===== base (d848b43ae): cd server && go test ./proxy/grpcproxy/cache/ -run TestCacheFromKeyInvalidate -v
+    store_fromkey_test.go:34: cached range [a, +inf) still served after a put of b
+    store_fromkey_test.go:43: cached range [b, z) still served after a delete of [a, +inf)
+--- FAIL: TestCacheFromKeyInvalidate (0.02s)
+    --- FAIL: TestCacheFromKeyInvalidate/cached_from-key_range,_put_of_a_key_in_it (0.02s)
+    --- FAIL: TestCacheFromKeyInvalidate/cached_range,_from-key_delete_over_it (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/proxy/grpcproxy/cache	0.063s
+FAIL
+===== upstream (eb347e2b4): cd tests && go test ./integration/clientv3/ -run TestTxnDeleteFromKeyThenIgnorePut -v
+--- PASS: TestTxnDeleteFromKeyThenIgnorePut (0.55s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3	0.639s

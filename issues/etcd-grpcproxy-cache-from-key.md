@@ -33,7 +33,8 @@ and invalidates it on each put, delete and txn it forwards (lines 83, 91, 102, 1
 - A from-key delete `DeleteRange("a", WithFromKey())` through the proxy invalidates only the cached
   ranges containing the point `a`: a cached `[b, z)` is still served, with the deleted keys.
 
-Reproduction (a Go test in package `cache` next to `store.go`, importing
+Reproduction (`notes/pr-verify/etcd-22395/server/proxy/grpcproxy/cache/store_fromkey_test.go` on
+branch `pr-verify/etcd-22395`; a Go test in package `cache` next to `store.go`, importing
 `pb "go.etcd.io/etcd/api/v3/etcdserverpb"`; both subtests fail at the PR head eb347e2b4, whose
 `store.go` is upstream `main` d848b43ae's):
 
