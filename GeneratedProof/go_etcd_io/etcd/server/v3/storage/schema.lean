@@ -3,8 +3,11 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.encoding.binary
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
+public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import GeneratedProof.go_uber_org.zap
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage.schema
 
@@ -151,25 +154,6 @@ instance deleteKeyAction_access_store_FieldName (l : Loc) (v : go_etcd_io.etcd.s
 end def_
 end deleteKeyAction
 
-namespace AlarmBackend
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
-
-instance AlarmBackend_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend :=
-  sorry -- axiomatized type
-
-instance AlarmBackend_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AlarmBackend
-
 namespace alarmBackend
 section def_
 
@@ -179,12 +163,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance alarmBackend_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.alarmBackend :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.alarmBackend where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l) v.lg' dq ∗
+    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) v.be' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance alarmBackend_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go_etcd_io.etcd.server.v3.storage.schema.alarmBackend.underlying := by
+  solve_into_val_typed_struct
+
+instance alarmBackend_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance alarmBackend_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance alarmBackend_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) v.be' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance alarmBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) be' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end alarmBackend
@@ -198,12 +220,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance authBackend_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBackend :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBackend where
+  typedPointstoDef l v dq := iprop(
+    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) v.be' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" l) v.lg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance authBackend_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBackend go_etcd_io.etcd.server.v3.storage.schema.authBackend.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBackend go_etcd_io.etcd.server.v3.storage.schema.authBackend.underlying := by
+  solve_into_val_typed_struct
+
+instance authBackend_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) v.be' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) be' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authBackend_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authBackend_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end authBackend
@@ -217,12 +277,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance authReadTx_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authReadTx :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authReadTx where
+  typedPointstoDef l v dq := iprop(
+    "tx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) v.tx' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"lg" l) v.lg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance authReadTx_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authReadTx go_etcd_io.etcd.server.v3.storage.schema.authReadTx.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authReadTx go_etcd_io.etcd.server.v3.storage.schema.authReadTx.underlying := by
+  solve_into_val_typed_struct
+
+instance authReadTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) v.tx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) v.tx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (tx' : go_etcd_io.etcd.server.v3.storage.backend.ReadTx) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) v.tx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) tx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tx' := tx' } : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authReadTx_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authReadTx_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end authReadTx
@@ -236,12 +334,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance authBatchTx_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBatchTx :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBatchTx where
+  typedPointstoDef l v dq := iprop(
+    "tx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) v.tx' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"lg" l) v.lg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance authBatchTx_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.underlying := by
+  solve_into_val_typed_struct
+
+instance authBatchTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) v.tx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) v.tx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authBatchTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (tx' : go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) v.tx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) tx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tx' := tx' } : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authBatchTx_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authBatchTx_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end authBatchTx
@@ -386,12 +522,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance membershipBackend_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.membershipBackend :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.membershipBackend where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" l) v.lg' dq ∗
+    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) v.be' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance membershipBackend_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.underlying := by
+  solve_into_val_typed_struct
+
+instance membershipBackend_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance membershipBackend_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance membershipBackend_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) v.be' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance membershipBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) be' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end membershipBackend

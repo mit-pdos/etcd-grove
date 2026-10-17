@@ -394,8 +394,9 @@ bootstrappedRaft__newRaftNode: StartNode newRaftNode
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
 # the trust boundary (`axiom … .wp_proof`): the names-only callees whose contracts only say they
 # return (the stats, the cluster's `String`/`SetVersionChangedNotifier`, `URLs.StringSlice`,
-# `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, schema's auth and alarm
-# backends, mvcc's `store.HashStorage`, `math.Ceil`); pending (`?`, hypotheses of the linked
+# `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
+# `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
+# their bodies since unit N4, 2026-10-17); pending (`?`, hypotheses of the linked
 # result until unit N1 settles them): the constructors' contracts (`lease.NewLessor`,
 # `auth.NewTokenProvider`, `auth.NewAuthStore`, `v3compactor.New`, `v3alarm.NewAlarmStore`,
 # `rafthttp.Transport`'s `Start`/`AddRemote`/`AddPeer`). `bootstrap`'s contract is a premise of
