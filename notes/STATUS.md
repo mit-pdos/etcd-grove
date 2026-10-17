@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22496, apply jobs decoupled from the raft log's array (2026-10-17, branch `pr-verify/etcd-22496`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22496-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. The new `cloneCommittedEntries` is translated
+(`etcdserver.toml`) and proved (a fully owned copy: a new array); `raftNode.start` (the Ready loop
+queues the copy) and `EtcdServer.run` (it sets the gauge `applyBatchPending` to `sched.Pending()`)
+keep their specs, proofs adapted. New trust base: the axiom `schedule.Scheduler.Pending.wp_proof`
+(the FIFO scheduler's methods are names-only) and the package fact `srvRunInit` (`applyBatchPending`
+a fixed gauge). The PR's other change, `fifo.executeJob` clearing the popped slot, is outside the
+translation (the scheduler is the trust boundary) and only about garbage collection, which Goose does
+not model; a Go probe shows it. Report: `notes/pr-verify/etcd-22496.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

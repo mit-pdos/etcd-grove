@@ -4,7 +4,7 @@
 # KV entry points (v3_server.go: Range, Put, DeleteRange,
 # Txn, the proposal and its wait, the serialized read) with what they call. The rest of
 # the package is names only.
-translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.MemberID", "EtcdServer.Lead", "EtcdServer.getLead", "EtcdServer.getTxPostLockInsideApplyHook", "EtcdServer.apply", "EtcdServer.applyEntryNormal", "EtcdServer.applyEntries", "EtcdServer.setAppliedIndex", "EtcdServer.setTerm", "EtcdServer", "raftNode", "raftNodeConfig", "etcdProgress", "toApply",
+translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.MemberID", "EtcdServer.Lead", "EtcdServer.getLead", "EtcdServer.getTxPostLockInsideApplyHook", "EtcdServer.apply", "EtcdServer.applyEntryNormal", "EtcdServer.applyEntries", "EtcdServer.setAppliedIndex", "EtcdServer.setTerm", "EtcdServer", "raftNode", "raftNodeConfig", "etcdProgress", "toApply", "cloneCommittedEntries",
   # the raft wrapper (raft.go): the Ready loop and its helpers
   "raftReadyHandler", "raftNode.tick", "raftNode.getLatestTickTs", "raftNode.start",
   "updateCommittedIndex", "raftNode.processMessages", "raftNode.apply", "raftNode.stop",

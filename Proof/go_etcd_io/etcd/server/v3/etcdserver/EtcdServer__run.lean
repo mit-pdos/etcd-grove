@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
+public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Pending
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setLead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
@@ -260,10 +261,16 @@ theorem EtcdServer.run.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
-    (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG)) :
+    (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
+    (hPend : schedule.Scheduler.Pending.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ N HN
   wp_start as Hpre
+  -- the gauge `applyBatchPending` (etcd-io/etcd#22496), from the package's facts
+  ihave Hinit : (srvInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hinit with ⟨-, -, -, ⟨%gbp, #Hgbp, #Hgbps⟩⟩
+  iunfold gaugeSetSpec at Hgbps
   iunfold isServerRun at Hpre
   iNamed Hpre
   obtain ⟨HEC, HEγr⟩ := HEr
@@ -628,6 +635,12 @@ theorem EtcdServer.run.wp_proof
       iunfold named at Hq
       iexact Hq
     simp only [schedule.schedPost]
+    (try wp_auto)
+    -- `applyBatchPending.Set(float64(sched.Pending()))` (etcd-io/etcd#22496): a metric
+    wp_apply hPend sci γs $$ [] as %np -
+    · iframe #
+    (try wp_auto)
+    wp_apply Hgbps
     (try wp_auto)
     wp_for_post
     iframe

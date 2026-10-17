@@ -1,0 +1,4 @@
+    schedule_retention_test.go:66: the finished job is still reachable while the next job is pending
+FAIL
+FAIL	go.etcd.io/etcd/pkg/v3/schedule	1.091s
+FAIL

@@ -334,12 +334,18 @@ abbrev srvApplyLoopInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl))
 
+/-- The server's `run` loop's part of the server's package facts (2026-10-17, etcd-io/etcd#22496,
+which adds the metric): `applyBatchPending` holds a fixed gauge (`Set`; `run` sets it to the
+scheduler's `Pending()` after each `Schedule`). -/
+abbrev srvRunInit : IProp GF :=
+  iprop(∃ g : GoInterfaceOk, globalAddr applyBatchPending ↦□ GoInterface.ok g ∗ gaugeSetSpec g)
+
 /-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's
-(`srvReqInit`), merged 2026-10-12, and the apply loop's (`srvApplyLoopInit`, 2026-10-13). All are
-abbreviations, so `icases` sees through them: a proof destructs `srvInit` as `⟨⟨raft wrapper's⟩,
-⟨request path's⟩, ⟨apply loop's⟩⟩`. -/
+(`srvReqInit`), merged 2026-10-12, the apply loop's (`srvApplyLoopInit`, 2026-10-13) and `run`'s
+(`srvRunInit`, 2026-10-17). All are abbreviations, so `icases` sees through them: a proof
+destructs `srvInit` as `⟨⟨raft wrapper's⟩, ⟨request path's⟩, ⟨apply loop's⟩, ⟨run's⟩⟩`. -/
 abbrev srvInit : IProp GF :=
-  iprop(srvRaftInit ∗ srvReqInit ∗ srvApplyLoopInit)
+  iprop(srvRaftInit ∗ srvReqInit ∗ srvApplyLoopInit ∗ srvRunInit)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
   define_is_pkg_init srvInit

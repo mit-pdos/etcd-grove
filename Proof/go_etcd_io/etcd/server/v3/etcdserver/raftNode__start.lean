@@ -18,6 +18,7 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cloneCommittedEntries
 
 @[expose] public section
 
@@ -52,7 +53,8 @@ theorem raftNode.start.wp_proof
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Fatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
-    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (wp_cloneCommittedEntries : cloneCommittedEntries.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
   have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap
   have wp_IsEmptyHardState := wp_hardStateAt_IsEmptyHardState wp_IsEmptyHardState
@@ -320,6 +322,12 @@ theorem raftNode.start.wp_proof
         itrivial
       subst Hv
       wp_auto_lc 3
+      -- `cloneCommittedEntries(rd.CommittedEntries)` (etcd-io/etcd#22496): a copy in a new array,
+      -- read-only from here on (as the original)
+      wp_apply wp_cloneCommittedEntries rd.CommittedEntries' ceL DFrac.discard $$ [$Hpkg $Hce]
+        as %cp ⟨-, Hcp, -, -⟩
+      imod ownSlice_persist $$ Hcp with #Hcp
+      (try wp_auto)
       -- `notifyc`, `raftAdvancedC`: unit bags
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc ⟨#Hncch, -, Hncown⟩
       · ipureintro; decide
@@ -348,7 +356,7 @@ theorem raftNode.start.wp_proof
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
         (Val #ap_ptr)) (Val #rh))
-      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr) $$ [HR]
+      iapply (wp_updateCommittedIndex ap_ptr rh cp ceL L' ce R E.γr) $$ [HR]
       · iframe HR; iframe #
         ipureintro; exact HidxOk
       inext
@@ -376,7 +384,7 @@ theorem raftNode.start.wp_proof
         · iunfold rnApP
           iexists L', ce, ceL
           simp only [Int.toNat_natCast]
-          iframe Hcn Hcn1 Hce Hcea HC
+          iframe Hcn Hcn1 Hcp Hcea HC
           isplitr
           · ipureintro; trivial
           isplitr
