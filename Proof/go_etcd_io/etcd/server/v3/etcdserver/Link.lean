@@ -125,6 +125,8 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper__addSimpleToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.simpleTokenTTLKeeper__deleteSimpleToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
@@ -644,6 +646,14 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.simpleTokenTTLKeeper.wp_addSimpleToken :
+    auth.simpleTokenTTLKeeper.addSimpleToken.spec (GF := GF) (hG := hG) :=
+  auth.simpleTokenTTLKeeper.addSimpleToken.wp_proof zap.wp_Int' zap.wp_Duration zap.Logger.wp_Warn
+
+theorem auth.simpleTokenTTLKeeper.wp_deleteSimpleToken :
+    auth.simpleTokenTTLKeeper.deleteSimpleToken.spec (GF := GF) (hG := hG) :=
+  auth.simpleTokenTTLKeeper.deleteSimpleToken.wp_proof
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
