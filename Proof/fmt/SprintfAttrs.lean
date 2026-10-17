@@ -24,9 +24,8 @@ variable [sem : go.Semantics]
 /-- **The trust boundary**: Go's `fmt` formats a struct with `%+v` by reflection over its fields
 (here a `string` and a `[]string`, whose elements it reads); `membership.Attributes` has no
 methods (`Error`, `String`, `Format`, `GoString`: `server/etcdserver/api/membership/member.go`),
-so `Sprintf` calls no code of etcd's, neither panics nor writes memory, and returns a string. The
-caller owns no part of the URL slice's elements here; the server's `attributes` field is written
-once, by `NewServer`, before any goroutine reads it. -/
+so `Sprintf` calls no code of etcd's, neither panics nor writes memory, and returns a string; it
+reads the URL slice's elements, which the precondition owns (a fraction or read-only). -/
 axiom fmt.SprintfAttrs.wp_proof : fmt.SprintfAttrs.spec (GF := GF) (hG := hG)
 
 end proof

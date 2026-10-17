@@ -25,16 +25,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `fmt.Sprintf(format, a)` with one argument, a `membership.Attributes` value (a struct of a
-`string` and a `[]string`, with no methods), returns some string and gives the arguments' slice
-back. -/
+`string` and a `[]string`, with no methods), returns some string and gives back the arguments'
+slice and the URL slice's elements (`%+v` reads them). -/
 abbrev fmt.SprintfAttrs.spec : Prop :=
   ∀ (format : GoString) (args : GoSlice) (a : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes)
-    (dq : DFrac),
+    (urls : List GoString) (dq dq' : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
-      args ↦*{dq} [interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.ty #a] }}
+      args ↦*{dq} [interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.ty #a] ∗
+      a.ClientURLs' ↦*{dq'} urls }}
     (App (App (Val #(functions _root_.Perennial.fmt.Sprintf [])) (Val #format)) (Val #args))
   {{ (s : GoString), RET #s;
-      args ↦*{dq} [interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.ty #a] }}
+      args ↦*{dq} [interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.ty #a] ∗
+      a.ClientURLs' ↦*{dq'} urls }}
 
 end spec
 
