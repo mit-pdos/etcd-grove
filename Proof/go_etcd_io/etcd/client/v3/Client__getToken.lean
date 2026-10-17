@@ -22,7 +22,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **Trust boundary**: the client's `getToken` (its auth part) returns `nil` or a client error. -/
+/-- **Trust boundary**: the client's `getToken` (its auth part) returns `nil` or a client error;
+`nil` with no user name (`if c.Token != "" {...; return nil}; if c.Username == "" || c.Password ==
+"" {return nil}`). -/
 axiom Client.getToken.wp_proof : Client.getToken.spec (GF := GF) (hG := hG)
 
 end proof

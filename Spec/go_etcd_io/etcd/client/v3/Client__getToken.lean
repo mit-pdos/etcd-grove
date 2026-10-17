@@ -2,7 +2,9 @@
 `c.getToken(ctx)` (`client/v3/client.go`, names only; unit P3a): the client's auth part (the
 retry interceptor's `refreshToken`): with a token, `c.authTokenBundle.UpdateAuthToken(c.Token)`;
 with a user name and password, `c.Auth.Authenticate` (a gRPC call through the same connection, its
-retry interceptor included) and the bundle's update.
+retry interceptor included) and the bundle's update. (Item 5, client construction, 2026-10-17:
+with no user name, `nil`: `newClient` calls it with no credentials and closes the client on an
+error.)
 -/
 module
 
@@ -34,7 +36,11 @@ abbrev Client.getToken.spec : Prop :=
       ctxOk ctx cd }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"getToken"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; clientErrOk err }}
+  {{ (err : GoInterface), RET #err; clientErrOk err ∗
+      -- (item 5) with no user name (read-only), `nil`: a token is set without a call, and no
+      -- token and no user name returns at once
+      □ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"Username" c ↦□ ([] : GoString) -∗
+        ⌜err = GoInterface.nil⌝) }}
 
 end spec
 
