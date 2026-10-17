@@ -7872,3 +7872,21 @@ constructor contracts false. D14 settles the three.
 - **Staging.** N4a (D14a: the abstraction, the txn/apply/server proofs over it, `server_kv_backend`
   for `mvcc.New`); N4b (D14b); N4c (D14c-e: `bootOk`, the contracts); N4d (`NewServer.wp_proof`,
   `srvBuildGap` without the KV rows).
+
+**Addendum (2026-10-17, unit N4 stopped at N4c; proposed, for the lead).**
+
+- **D14f: the write contracts of the names-only stores take the backend's write budget.** Making
+  the constructors' contracts true (D14d) found that every apply-side clause that writes the backend
+  under its batch lock without going through the store -- `isApplyLessor`'s `Grant`/`Checkpoint`
+  (`lease.leaseBackend`), `isAlarmStore`'s `Activate`/`Deactivate`, `isAuthStore`'s enable/disable
+  and admin requests, `isCluster`'s writes -- asks only `csContract P f`, while the real backend's
+  `LockInsideApply` needs an open share (`bOpen`) and its `Unlock` a write-back token (`wbTok`,
+  the read buffer's `uint64` version). As stated they are not true of the model over the real
+  backend, so the constructors cannot promise them. Proposal: `dispatch` hands its one write token
+  per entry (`mvcc.storeWT E.γ`, today the KV methods') to every write method, whose contract
+  clauses take it and lend the reader's open share (`mvcc.storeRT E.γ`, from `kvOwn`'s reader);
+  `leaseBackend`'s `LockInsideApply` takes the same. Then D14d's constructor contracts (axioms of
+  `NewLessor`, `NewAuthStore`, `NewAlarmStore` at the real `Pk` and `plHookRO`) are true. Independent
+  of it: `schema.alarmBackend`/`authBackend` are axiomatized types (`schema.toml`), so no contract
+  can say that `NewAlarmBackend(lg, be)` wraps the real backend; translate them with their fields
+  (and `NewAlarmBackend`/`NewAuthBackend` with bodies), or state the link with abstract predicates.
