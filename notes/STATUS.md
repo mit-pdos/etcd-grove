@@ -6337,6 +6337,11 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     (`watchUp`); the client's `Watch` takes both (`sr`), the cache supplies them from its `Get`
     (`etcdReadAt`/`etcdRead`, new in the clients' model; `startRead_of_etcdRead` converts at the
     server's model). Election, leasing, `waitDelete` and the recipes pass `false`. No Go change.
+  - **A flaw in the cache's watch contract (found 2026-10-17, fixed)**: `watchRespOk`'s progress
+    case asked for `EtcdStep c p pfx []` with `c ≤ p`; at `c = p` (a progress at the revision of
+    the last event received, the usual case) that says revision `p` has no event under the prefix,
+    false when the cache just got one. Now `c = p ∨ EtcdStep c p pfx []`; the cache's proof needed
+    the step only to extend its tail to `p`, trivial at `c = p` (`Cache__watchEvents.lean`).
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`

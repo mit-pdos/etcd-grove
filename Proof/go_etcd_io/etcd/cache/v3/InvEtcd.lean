@@ -851,7 +851,7 @@ def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.Wat
     ((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
      (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev⌝ ∗
-       EtcdStep c r.hdrRev pfx [] ∗ etcdReached r.hdrRev) ∨
+       (⌜c = r.hdrRev⌝ ∨ EtcdStep c r.hdrRev pfx []) ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
         (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
         r.events.getLast?.map EvModel.rev = some c'⌝ ∗

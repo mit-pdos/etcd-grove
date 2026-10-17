@@ -113,7 +113,7 @@ theorem watchEvents_after (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : Resp
     (k k' rev : w64) (hinv' : DemuxInv cap (updResp cap c r))
     (hle : sint.Z (rev - W64 1) ≤ sint.Z k) (hcase : WatchCase pfx k k' r) :
     WriterOk (GF := GF) pfx c ∗ CursorOk pfx c k ∗ CursorOk pfx c (rev - W64 1) ∗
-      □ (⌜r.isProgressNotify = true⌝ -∗ EtcdStep k r.hdrRev pfx []) ⊢
+      □ (⌜r.isProgressNotify = true⌝ -∗ ⌜k = r.hdrRev⌝ ∨ EtcdStep k r.hdrRev pfx []) ⊢
     WriterOk pfx (updResp cap c r) ∗ CursorOk pfx (updResp cap c r) k' ∗
       CursorOk pfx (updResp cap c r) (rev - W64 1) ∗ ⌜sint.Z (rev - W64 1) ≤ sint.Z k'⌝ := by
   iintro ⟨#Hw, #Hk, #H0, #Hst⟩
@@ -135,7 +135,10 @@ theorem watchEvents_after (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : Resp
     iunfold CursorOk at Hk H0
     icases Hk with ⟨-, #Ht⟩
     icases H0 with ⟨-, #Ht0⟩
-    ihave #Ht' := tailOk_step pfx c.lastRev k r.hdrRev $$ [$Ht $Hs]
+    ihave #Ht' : TailOk (GF := GF) pfx c.lastRev r.hdrRev $$ []
+    · icases Hs with (%he | #Hs)
+      · rw [← he]; iexact Ht
+      · iapply tailOk_step pfx c.lastRev k r.hdrRev $$ [$Ht $Hs]
     unfold WriterOk CursorOk
     rw [hl]
     isplitl
@@ -249,7 +252,7 @@ theorem watchRespOk_case (pfx : GoString) (k k' : w64)
     watchRespOk (GF := GF) pfx k k' v r ⊢
       ⌜WatchCase pfx k k' r⌝ ∗ watchChain pfx k (splitBatches r.events) ∗
         □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) ∗
-        □ (⌜r.isProgressNotify = true⌝ -∗ EtcdStep k r.hdrRev pfx []) := by
+        □ (⌜r.isProgressNotify = true⌝ -∗ ⌜k = r.hdrRev⌝ ∨ EtcdStep k r.hdrRev pfx []) := by
   unfold watchRespOk
   iintro ⟨%Hh, (⟨%H, -⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hs, #Hre⟩ | ⟨%H, #Hc⟩)⟩
   · exact absurd H.1 hne
