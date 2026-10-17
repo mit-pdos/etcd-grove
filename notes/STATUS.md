@@ -4997,18 +4997,36 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     `run`'s substreams along `substreams`, `bigSepM_choice_inj` gives `dispatchEvent` its
     functions); `dispatchEvent` returns `true` for a broadcast. The content is still the weak one
     (no events, the cursor as it was).
-  - **Next (K2c–e), larger than planned**: `serveSubstream` moves the substream's resume revision
-    (`initReq.rev`) to a response's header revision + 1 (or the last event's + 1), and a resumed
-    substream re-creates its watcher from there on a new gRPC stream (new server stream, new
-    `γs`). The client contract today is sound, not complete (`rangeWatchRespOk`), so skipping is
-    harmless now; the cache's `watchChain` needs completeness, which must hold across resumes:
-    (c) the no-cancel invariant (a cancel for a registered id implies its substream stopped);
-    (d) `run` keeps `createdAfter`, the `ctrlWatcher` snapshot and `mvccCov` (it drops them now);
-    (e) the substream contract gains completeness (each response's events are the range's events
-    of the revisions after the cursor up to the next one, `watchEvents`, as `WatchContent.lean`
-    proves per stream) and progress (cursor to the header revision, `EtcdStep c p pfx []` from
-    `covFact`), carried across a resume by the resume revision. Then `isEtcdWatcher`,
-    `RequestProgress` (`isEtcdProgressNotifier`), K3.
+  - **K2c (done)**: `wsElem` carries `noCancelOk`: for a registered substream of id X, no cancel
+    request for X was sent, or its goroutine stopped (`γx`). `run` cancels a registered id only
+    after a dispatch to it failed (`post_gx` keeps the stop `sendFail` publishes; the failed
+    substream's element is folded back after the cancel); a fresh id has no cancel (a cancel's id
+    is registered). `wsElem_mono` takes the new request list's cancels (`cancels_of_snoc`,
+    `create_or`).
+  - **No resume**: `run`'s `errc` case is refuted by the transport premise
+    `noRetryableStreamErr` (`watchConnFacts`), so a watch never moves to another gRPC stream;
+    completeness is per stream (`serveSubstream`'s resume revision is never used).
+  - **K2e design (open; the user's decision pending, 2026-10-17)**. What the cache's
+    `watchRespOk` needs beyond the client's `rangeWatchRespOk`, and what is missing:
+    1. *Cursor semantics*: the client's cursor (`γ.cur`, `rangeWatchRespOk`'s `c'`) is the last
+       event's revision, kept on an event-less response; the cache's moves to a progress
+       response's revision. The client contract's consumers (recipes `waitEvents`, Election
+       `observe`, leasing `waitRescind`/`monitorLease`, `waitDelete`) destructure
+       `rangeWatchElem` (10 slots) and `rangeWatchRespOk` (2 slots, `Hsort.2.2`), so changing it
+       ripples into them; a separate predicate and cursor avoids that.
+    2. *Progress at `p` with the cursor `c ≤ p`*: needs that a progress response's revision is
+       exactly the notified one (`progressIfSync` reads `rev()` under `s.mu.RLock`, and `End`
+       notifies and commits in one `s.mu` critical section; the proof only knows the revision's
+       log is a prefix of the notified one: `rev()` must take the lock body's committed-log
+       fraction) and that a watcher's response revisions on the channel never decrease.
+    3. *Event completeness*: derivable from `cursorOk`'s cumulative cut (`WatchContent.lean`
+       `cut_step`, `watchEvents_mid`, v3rpc `WatchStep.lean` `srvStep_of_watch`), not exported by
+       `dispatch_content`; exact cover (`rg.covers k ↔ pfx <+: k`) is needed (only covers ⇒
+       inRange exists; `inRange_prefix` gives the prefix case).
+    4. *Broadcast coverage*: `regFacts` must keep `createdAfter` and the `Created` snapshot
+       (`run` drops them), and `mvccOk` must say every announced watcher's responses before a
+       response were sent down before it (`SendInv.noPend`), for `covFact` to meet `cursorOk`.
+    Then `isEtcdWatcher` from `isClientWatcher`, `RequestProgress`, K3.
 - **K2 (the client: progress requests, completeness).** `RequestProgress` specified; `run` sends
   progress requests and broadcasts id `-1` responses (W-C's invariant: every substream in
   `substreams` has an open `recvc`, by K0); `rangeWatchRespOk` gains completeness (the events
