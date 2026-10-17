@@ -1038,6 +1038,8 @@ theorem mvcc.watchableStore.notify.wp_proof
       isplitr
       · iapply mvcc.covPre_nil
       isplitr
+      · ipureintro; intro h; exact absurd h hwEne
+      isplitr
       · itrivial
       isplitr
       · ileft; ipureintro; rfl

@@ -390,6 +390,10 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       · itrivial
       isplitr
       · iapply BigSepL.bigSepL_nil.2; iempintro
+      isplitr
+      · ipureintro; intro _
+        rw [Hcsw]
+        exact List.mem_filterMap.2 ⟨key, (Hkset key).2 (by rw [Hu]; rfl), Hu⟩
       ipureintro
       simp
     ihave Hmu : mvcc.memberRes γ sync.rfrac σ u st0 $$ [Hevs Hlv]

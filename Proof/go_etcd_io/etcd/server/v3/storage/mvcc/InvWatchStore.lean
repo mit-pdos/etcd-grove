@@ -595,7 +595,8 @@ instance respCompl_persistent (γc : WatchChanNames) (x : RespM) :
   unfold respCompl; infer_instance
 
 def respCov (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) : IProp GF :=
-  iprop((□ ∀ w' : Loc, ⌜w' ∈ x.cov⌝ -∗ covFact γ γc pre w' x.rev) ∗ respCompl γc x)
+  iprop((□ ∀ w' : Loc, ⌜w' ∈ x.cov⌝ -∗ covFact γ γc pre w' x.rev) ∗ respCompl γc x ∗
+    ⌜x.evs = [] → x.w ∈ x.cov⌝)
 
 instance respCov_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM) :
     Persistent (respCov (GF := GF) γ γc pre x) := by
@@ -995,12 +996,15 @@ theorem cov_list (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : L
 open Iris.ProofMode in
 /-- The coverage of a response whose covered watchers are `cs`'s. -/
 theorem respCov_of_list (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (x : RespM)
-    (cs : List CovArg) (hcov : x.cov = cs.map CovArg.w) :
+    (cs : List CovArg) (hcov : x.cov = cs.map CovArg.w) (hown : x.evs = [] → x.w ∈ x.cov) :
     □ ([∗list] c ∈ cs, covFact (GF := GF) γ γc pre c.w x.rev) ∗ respCompl γc x ⊢
       respCov γ γc pre x := by
   iintro ⟨#H, #Hc⟩
   iunfold respCov
   iframe Hc
+  isplitr
+  rotate_left
+  · ipureintro; exact hown
   iintro !> %w' %hw'
   rw [hcov] at hw'
   obtain ⟨c, hc, rfl⟩ := List.mem_map.1 hw'

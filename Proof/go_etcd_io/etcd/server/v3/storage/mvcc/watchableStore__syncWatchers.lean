@@ -486,6 +486,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           isplitr
           · iapply mvcc.covPre_nil
           isplitr
+          · ipureintro; intro h; exact absurd h hBne
+          isplitr
           · itrivial
           isplitr
           · ileft; ipureintro; rfl
@@ -631,6 +633,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
           isplitr
           · iapply mvcc.covPre_nil
+          isplitr
+          · ipureintro; intro h; exact absurd h hBne
           isplitr
           · itrivial
           isplitr

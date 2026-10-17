@@ -274,12 +274,37 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       have hrev : sint.Z (stw.minRev - W64 1) = sint.Z stw.minRev - 1 := by
         have : (0 : Int) ≤ γw.lo := by omega
         word
+      -- an empty batch covers its own watcher (K1b): delivered up to `minRev`
+      ihave #Hlb0 := monoListLbOwn_get _ _ _ $$ Hev
+      let cs : List mvcc.CovArg :=
+        if b.evs = [] then [⟨key, γw, r, fcs, evsw, sint.nat stw.minRev⟩] else []
+      ihave #Hcp : mvcc.covPre γ γw.wc (stw.minRev - W64 1) cs $$ []
+      · by_cases he : b.evs = []
+        · simp only [cs, he, ↓reduceIte]
+          iunfold mvcc.covPre
+          iapply BigSepL.bigSepL_cons.2
+          isplitl
+          · iunfold mvcc.covEntry
+            ihave #Hc' := Hc
+            iunfold mvcc.watcherChan at Hc'
+            icases Hc' with ⟨-, -, #Hreg⟩
+            irevert Hwf; try simp only [List.append_nil]; iintro #Hwf
+            iframe Hm Hf Hlb0 Hwf Hreg
+            ipureintro
+            rw [hrev]
+            show _ ≤ (((sint.Z stw.minRev).toNat : Nat) : Int)
+            omega
+          iapply BigSepL.bigSepL_nil.2; iempintro
+        · simp only [cs, he, ↓reduceIte]
+          iapply mvcc.covPre_nil
       icases mvcc.mv_ev_pre γ γw r evsw b.evs (sint.nat stw.minRev) $$ [$Hev $Hwf] with ⟨HevS, HevK⟩
       wp_apply (hSend γ key γw r fcs stw.ch (1 : Qp).half (1 : Qp).half evsw (sint.nat stw.minRev) _ ps
-          b.evs (DFrac.own 1) [] iprop(True)) $$ [Hchf Hl HevS Hsl] as %ok ⟨Hchf, Hl, Hsl, HevS, -⟩
+          b.evs (DFrac.own 1) cs iprop(True)) $$ [Hchf Hl HevS Hsl] as %ok ⟨Hchf, Hl, Hsl, HevS, -⟩
       · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB
         isplitr
-        · iapply mvcc.covPre_nil
+        · iexact Hcp
+        isplitr
+        · ipureintro; intro h; simp [cs, h]
         isplitr
         · itrivial
         isplitr
@@ -480,7 +505,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       cases hnk : NV' !! key with
       | some x =>
         -- failed: skipped (its batch in `newVictim`)
-        simp only [Option.isSome_some, decide_true]
+        simp only [Option.isSome_some, _root_.decide_true]
         wp_auto
         unfold forMapPostcondition
         ileft

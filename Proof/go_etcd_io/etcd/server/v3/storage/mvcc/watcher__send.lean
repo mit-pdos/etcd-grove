@@ -334,7 +334,8 @@ end mvcc
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
   intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs CS
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hidp, #Hidc, %Hpure⟩
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, %Hown, Hidp, #Hidc,
+    %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
@@ -682,7 +683,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               · iright; iexact h
             ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length⟩ : mvcc.RespM)
-              cs rfl $$ [$Hcf $Hcx]
+              cs rfl (fun h => Hown (Classical.byContradiction fun hne => hA ⟨hne, h⟩))
+              $$ [$Hcf $Hcx]
             iexists s
             iframe Hch
             have hpre := Hpre.length_le
