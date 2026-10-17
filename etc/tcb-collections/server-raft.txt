@@ -9,6 +9,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots raftNode\.wp_
 roots \bwp_updateCommittedIndex$
+axiom backend.optsAt
 axiom proto.Clone.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
