@@ -1,0 +1,13 @@
+=== RUN   TestProbeRaft47InconsistentStorage
+    raft47_probe_test.go:43: no panic: state StateLeader at term 2, log terms [1 2 3 2]
+--- FAIL: TestProbeRaft47InconsistentStorage (0.00s)
+=== RUN   TestProbeRaft47SnapshotHigherTerm
+    raft47_probe_test.go:62: 
+        	Error Trace:	/tmp/claude-0/-shared-etcd-grove/6101526d-6539-4872-a190-a0b4b0fe455b/scratchpad/raft-47/base/raft47_probe_test.go:62
+        	Error:      	Should be false
+        	Test:       	TestProbeRaft47SnapshotHigherTerm
+        	Messages:   	restored at term 2, log last term 11
+--- FAIL: TestProbeRaft47SnapshotHigherTerm (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.026s
+FAIL

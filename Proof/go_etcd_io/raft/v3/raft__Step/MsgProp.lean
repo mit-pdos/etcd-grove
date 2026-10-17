@@ -133,6 +133,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.lead ≠ id) →
     -- a leader's term is nonzero (2026-10-10, `ownRaftGhost_term_nz`)
     (s.role = .leader → s.term ≠ W64 0) →
+    -- (raft#47) `appendEntry`'s premise (`ownRaftGhost_lastTerm_le`)
+    LastTermLe s →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -157,7 +159,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
               StepCD c id m s recv s'⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf
+  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz HLT Hwf
   wp_start as ⟨Hphys, Hm, #Hcc⟩
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
@@ -271,7 +273,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hne, Hlen, Hlnz Hrole⟩)
+        (fun _ => ⟨Hne, Hlen, Hlnz Hrole, HLT⟩)
         (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

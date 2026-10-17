@@ -55,6 +55,8 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
     sn = some sv →
     scfg = sv.Metadata'.ConfState'.lists →
+    -- (raft#47) the snapshot is of a term at most the message's (`isMessage_absSnap_term_le`)
+    uint.Z sv.Metadata'.Term' ≤ uint.Z m.Term' →
     -- this file: the current term
     m.Term' = s.term →
     -- not a leader: the sender leads this term (`isLeader_unique`)
@@ -73,7 +75,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hteq Hnl Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hsterm Hteq Hnl Hvotes
   wp_start as H
   iNamed H
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -106,7 +108,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hsn, Hscl, Hscope, Hrole, Hvs, Hcfg, Hfid⟩)
+        (fun _ => ⟨Hsn, Hscl, Hscope, Hrole, Hvs, Hcfg, Hfid, Hteq ▸ Hsterm⟩)
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -127,11 +129,11 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c scfg r id s ml m ents sn rs sv ctx
-        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm, fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)⟩) (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hsn, Hscl, Hscope, Hcfg, Hfid⟩)
+        (fun _ => ⟨Hsn, Hscl, Hscope, Hcfg, Hfid, Hteq ▸ Hsterm⟩)
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -157,11 +159,11 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `handleSnapshot`
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c scfg r id s ml m ents sn rs sv ctx
-        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
+        (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm, fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)⟩) (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hsn, Hscl, Hscope, Hcfg, Hfid⟩)
+        (fun _ => ⟨Hsn, Hscl, Hscope, Hcfg, Hfid, Hteq ▸ Hsterm⟩)
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres

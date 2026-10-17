@@ -68,6 +68,8 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
     sn = some sv →
     scfg = sv.Metadata'.ConfState'.lists →
+    -- (raft#47) the snapshot is of a term at most the message's (`isMessage_absSnap_term_le`)
+    uint.Z sv.Metadata'.Term' ≤ uint.Z m.Term' →
     -- protocol facts the dispatch derives from the ghost state: at the current term
     -- the receiver is not a leader (`isLeader_unique`), and a follower's tally is
     -- empty (`FollowerVotesOk`)
@@ -85,10 +87,10 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hnl Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hsterm Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
-      Hwf Hscope Hsn Hscl Hgt
+      Hwf Hscope Hsn Hscl Hsterm Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_start_folded as ⟨Hphys, Hm⟩
       iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys $Hm]
@@ -100,7 +102,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact ⟨Or.inl rfl, Hwf', Href, Herr⟩
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
-        Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes
+        Hwf Hscope Hsn Hscl Hsterm Hteq (Hnl Hteq) Hvotes
 
 end StepProof
 

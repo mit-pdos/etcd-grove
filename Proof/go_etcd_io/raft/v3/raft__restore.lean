@@ -28,6 +28,7 @@ public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.go_etcd_io.raft.v3.InvApplyConfC
 public import Proof.go_etcd_io.raft.v3.LemmasSendRD
 public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 
 @[expose] public section
 
@@ -252,7 +253,8 @@ theorem raft.restore.wp_proof
     (wp_confchange_Restore : confchange.Restore.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
-    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG))
+    (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
   intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope
   subst Hcl
@@ -284,13 +286,39 @@ theorem raft.restore.wp_proof
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    exact .inl ⟨Hst, rfl, rfl⟩
+    exact .inr ⟨.inl Hst, .inl ⟨Hst, rfl, rfl⟩⟩
   rw [decide_eq_false Hst]
   wp_auto
   -- `r.state != StateFollower`: a follower
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   rw [Hrole, decide_eq_true (show stateW64 PRole.follower = W64 0 from rfl)]
   wp_auto
+  -- (raft#47) `if s.GetMetadata().GetTerm() > r.Term`: a snapshot of a later term; step down to
+  -- it (`becomeFollower(s.Metadata.Term, None)`) and refuse it
+  wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
+  wp_apply wp_SnapshotMetadata_GetTerm_field pm pt _ _ Hpmn $$ [$HT $cT] as HT
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  try wp_auto
+  wp_if_destruct
+  · wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
+    wp_apply wp_SnapshotMetadata_GetTerm_field pm pt _ _ Hpmn $$ [$HT $cT] as HT
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_raft_logC
+    wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
+    wp_apply wp_SnapshotMetadata_GetTerm_field pm pt _ _ Hpmn $$ [$HT $cT] as HT
+    try wp_auto
+    wp_apply wp_raft_becomeFollower c r id s sv.Metadata'.Term' (W64 0) (by word) $$ [$Hphys]
+      as %pvs Hphys
+    try wp_auto
+    snap_close
+    iapply HΦ $$ %false %_
+    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
+    iframe Hphys Hsnap
+    ipureintro
+    exact .inl ⟨by omega, by word, rfl, pvs, rfl⟩
+  have Hsterm : uint.Z sv.Metadata'.Term' ≤ uint.Z s.term := by word
+  try wp_auto
   -- `cs := pb.EnsureConfState(s.GetMetadata().GetConfState())`: the snapshot's conf state, which
   -- is set (it has `id`), its `AutoLeave` made non-`nil`
   wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
@@ -457,7 +485,7 @@ theorem raft.restore.wp_proof
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    refine .inr (.inl ⟨by simp only [snapId]; omega, Hm, rfl, ?_⟩)
+    refine .inr ⟨.inr Hsterm, .inr (.inl ⟨by simp only [snapId]; omega, Hm, rfl, ?_⟩)⟩
     simp only [plogCommitTo, snapId] at *
     rw [ite_eq_left (by omega)]
   · rw [Hb, decide_eq_false Hm]
@@ -596,8 +624,8 @@ theorem raft.restore.wp_proof
     simp only [restoreCfg, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs,
-      learnerOfC (snapCfg sv sv.Metadata'.ConfState'.lists) id, ?_⟩)
+    refine .inr ⟨.inr Hsterm, .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs,
+      learnerOfC (snapCfg sv sv.Metadata'.ConfState'.lists) id, ?_⟩)⟩
     subst HS1
     obtain ⟨⟩ := s
     simp only at Hvotes

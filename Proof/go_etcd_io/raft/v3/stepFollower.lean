@@ -180,7 +180,7 @@ theorem stepFollower.wp_proof
       simp [FollowerStepResultC, MsgSnap, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
         MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
-    obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsnap Hty
+    obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hcfg, Hfid, Hsterm⟩ := Hsnap Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgSnap, MsgProp]]
     simp only [Hty, MsgSnap]
@@ -189,7 +189,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
-        Hrole Hvotes Hsn Hscfg Hcfg Hscope Hfid $$ [$Hphys $Hm]
+        Hrole Hvotes Hsn Hscfg Hcfg Hscope Hfid Hsterm $$ [$Hphys $Hm]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe

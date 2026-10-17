@@ -106,6 +106,10 @@ abbrev raft.handleSnapshot.spec : Prop :=
   SnapScope sv cl →
   -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
   m.From' ≠ id →
+  -- (raft#47, 2026-10-16) the snapshot's term is at most the node's: `restore`'s new step-down
+  -- exit is dead (`raft.restore.specT`). `Step` has raised the node's term to the message's,
+  -- and the leader's snapshot is of a term at most its own (`isMessage_snap_term_le`)
+  uint.Z sv.Metadata'.Term' ≤ uint.Z s.term →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}

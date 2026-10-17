@@ -1,0 +1,7 @@
+=== RUN   TestReview47MsgAppEntryTermAboveMsgTerm
+    review47_msgapp_test.go:19: after MsgApp: term 2, last entry {term:5 index:1}
+    review47_msgapp_test.go:30: state StateLeader term 3 panic <nil>
+    review47_msgapp_test.go:36: no panic, log terms [5 3]
+--- PASS: TestReview47MsgAppEntryTermAboveMsgTerm (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.008s

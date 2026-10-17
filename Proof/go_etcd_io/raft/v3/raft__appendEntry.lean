@@ -11,7 +11,7 @@ untouched. The self-acknowledgement is built owned (`msgOwn_lit0`).
 module
 
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import Spec.go_etcd_io.raft.v3.raft__increaseUncommittedSize
 public import Spec.go_etcd_io.raft.v3.traceReplicate
 public import Spec.go_etcd_io.raft.v3.raftLog__append
@@ -143,7 +143,7 @@ both stated at `s`'s log state, and the calls in between (`r.Term` loads,
 `increaseUncommittedSize`) leave it alone. The loop's invariant: the first `n` slots of `cloned`
 hold the frozen stamped clones of the first `n` entries, the rest `nil`. -/
 theorem raft.appendEntry.wp_proof
-    (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
+    (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_raft_increaseUncommittedSize : raft.increaseUncommittedSize.spec (GF := GF) (hG := hG))
     (wp_traceReplicate : traceReplicate.spec (GF := GF) (hG := hG))
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
@@ -151,15 +151,29 @@ theorem raft.appendEntry.wp_proof
     (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro c r id s es ents dq Hsmall Hnz
+  intro c r id s es ents dq Hsmall Hnz Hlt
   wp_start as ⟨Hphys, Hes⟩
   wp_auto
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_facts _ _ $$ Hlog with ⟨%Hfacts, Hlog⟩
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
-  wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  -- (raft#47) `last := r.raftLog.lastEntryID()`, `li := last.index`
+  wp_apply wp_raftLog_lastEntryID _ _ $$ [$Hlog] as %last ⟨Hlog, %Hlast⟩
   ihave Hphys := Hlogback $$ Hlog
+  have Hli : uint.Z last.index' = uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
+      + (s.logst.uents.length : Int) := by
+    rw [Hlast, plogLast_index _ _ Hidx]
+    simp only [plogLastIndexZ, List.length_append]; push_cast; omega
+  have Hlt' : uint.Z last.term' ≤ uint.Z s.term := by rw [Hlast]; exact Hlt
+  try wp_auto
+  -- (raft#47) `if r.Term < last.term { Panicf }`: dead, by `LastTermLe`
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  try wp_auto
+  wp_if_destruct
+  · exfalso; word
+  try wp_auto
+  generalize last.index' = li at Hli ⊢
   iunfold entsPts at Hes
   icases Hes with ⟨%lsE, Hes, #Hents⟩
   ihave %Hlen := ownSlice_len $$ Hes

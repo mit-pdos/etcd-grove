@@ -42,6 +42,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import Proof.go_etcd_io.raft.v3.StepLemmas
 
 @[expose] public section
@@ -285,7 +286,10 @@ abbrev stepCandidate.spec : Prop :=
     m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
-   m.Term' = s.term ∧ m.Term' ≠ W64 0) →
+   m.Term' = s.term ∧ m.Term' ≠ W64 0 ∧
+   -- (raft#47) a won election appends the leader's empty entry: the log's last term is not
+   -- above the node's (`becomeLeader`'s premise, from the ghost state)
+   (m.Type' = MsgVoteResp → LastTermLe s)) →
   s.role = .candidate ∨ s.role = .preCandidate →
   (m.Type' = MsgApp →
      PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
@@ -306,7 +310,9 @@ abbrev stepCandidate.spec : Prop :=
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ scfg.Has id ∧ m.From' ≠ id) →
+     SnapScope sv scfg ∧ scfg.Has id ∧ m.From' ≠ id ∧
+     -- (raft#47) the snapshot's term is at most the node's (`handleSnapshot`'s premise)
+     uint.Z sv.Metadata'.Term' ≤ uint.Z s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the

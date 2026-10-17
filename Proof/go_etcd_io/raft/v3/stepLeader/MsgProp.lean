@@ -101,7 +101,8 @@ theorem wp_stepLeader_prop
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option CCMsg))
     (Hty : m.Type' = MsgProp) (Hid : id ∈ c.voters) (Hne : ents ≠ [])
-    (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader) :
+    (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader)
+    (Hltl : LastTermLe s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
@@ -774,7 +775,7 @@ theorem wp_stepLeader_prop
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
-        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) Hlen' Hnz $$ [$Hphys Hes]
+        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) Hlen' Hnz Hltl $$ [$Hphys Hes]
       as %acc ⟨-, -, Hphys⟩
     · iunfold entsPts
       iexists els

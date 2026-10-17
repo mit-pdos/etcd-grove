@@ -103,6 +103,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     -- `stepCandidate` needs it; `Step` is the outermost caller
     NStateWf s →
+    -- (raft#47) a won election's `becomeLeader` needs it (`ownRaftGhost_lastTerm_le`)
+    LastTermLe s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -117,7 +119,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hwf
+  intro Hty Hto Hterm Hwf HLT
   have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; w32_ne
   have Hnprop : m.Type' ≠ MsgProp := by rw [Hty]; w32_ne
   wp_start as ⟨Hphys, Hm⟩
@@ -283,7 +285,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         ihave Hphys := Hback $$ Hlog
         wp_gets
         wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
-            (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
+            (fun _ => ⟨Hteq, Hterm, fun _ => HLT⟩) (.inl Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hrole] at Hc; exact absurd Hc (by decide))
@@ -421,7 +423,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         simp only [stepFuncOf]
         wp_gets
         wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
-            (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
+            (fun _ => ⟨Hteq, Hterm, fun _ => HLT⟩) (.inr Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

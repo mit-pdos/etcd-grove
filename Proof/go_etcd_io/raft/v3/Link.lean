@@ -1026,7 +1026,7 @@ theorem proto.wp_CloneEntry :
 
 theorem raft.wp_appendEntry [StorageModel GF] :
     raft.appendEntry.spec (GF := GF) (hG := hG) :=
-  raft.appendEntry.wp_proof raftLog.wp_lastIndex raft.wp_increaseUncommittedSize wp_traceReplicate raftLog.wp_append raft.wp_send proto.wp_CloneEntry raftpb.MessageType.wp_Enum
+  raft.appendEntry.wp_proof raftLog.wp_lastEntryID raft.wp_increaseUncommittedSize wp_traceReplicate raftLog.wp_append raft.wp_send proto.wp_CloneEntry raftpb.MessageType.wp_Enum
 
 theorem tracker.Progress.wp_BecomeReplicate :
     tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG) :=
@@ -1098,7 +1098,7 @@ theorem raftLog.wp_restore [StorageModel GF] :
 
 theorem raft.wp_restore [StorageModel GF] :
     raft.restore.spec (GF := GF) (hG := hG) :=
-  raft.restore.wp_proof raftLog.wp_matchTerm raftLog.wp_lastEntryID raftLog.wp_commitTo raftLog.wp_lastIndex raftLog.wp_restore tracker.wp_MakeProgressTracker confchange.wp_Restore raft.wp_switchToConfig wp_assertConfStatesEquivalent raftpb.wp_EnsureConfState
+  raft.restore.wp_proof raftLog.wp_matchTerm raftLog.wp_lastEntryID raftLog.wp_commitTo raftLog.wp_lastIndex raftLog.wp_restore tracker.wp_MakeProgressTracker confchange.wp_Restore raft.wp_switchToConfig wp_assertConfStatesEquivalent raftpb.wp_EnsureConfState raft.wp_becomeFollower
 
 theorem raftpb.Message.wp_GetSnapshot :
     raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG) :=

@@ -51,7 +51,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnz
+  intro c r id s Hrole Hnz Hlt
   wp_start as Hphys
   -- the node is a voter (`ownRaftPhysC`'s `Hvoter`: it is not a follower), so tracked
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hv, Hphys⟩
@@ -150,7 +150,7 @@ theorem raft.becomeLeader.wp_proof
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
   wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1)
-      (by simp) (by subst hs1; exact Hnz)
+      (by simp) (by subst hs1; exact Hnz) (by subst hs1; exact Hlt)
       $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it

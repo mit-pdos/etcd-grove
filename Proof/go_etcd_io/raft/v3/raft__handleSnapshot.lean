@@ -60,7 +60,8 @@ theorem raft.handleSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hin Hscope Hfid
+  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hin Hscope Hfid Hsterm
+  have wp_raft_restoreT := raft.restore.specT_of_spec wp_raft_restore
   subst Hsn
   wp_start as H
   iNamed H
@@ -84,7 +85,7 @@ theorem raft.handleSnapshot.wp_proof
   ihave Hsnap := Hsback $$ [Hmd]
   · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
   wp_auto
-  wp_apply wp_raft_restore c _ _ _ sp sv cl Hrole Hvotes Hcl Hin Hscope
+  wp_apply wp_raft_restoreT c _ _ _ sp sv cl Hrole Hvotes Hcl Hin Hscope Hsterm
     $$ [$Hphys $Hsnap] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
   ihave Hm := Hmback $$ [Hsnap]
   · simp only [snapOpt]; iapply ownSnapE_weaken $$ Hsnap

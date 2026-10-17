@@ -1,0 +1,7 @@
+=== RUN   TestProbeRaft47InconsistentStorage
+    raft47_probe_test.go:45: panicked: 1 appending out-of-order term: 2 < 3
+--- PASS: TestProbeRaft47InconsistentStorage (0.00s)
+=== RUN   TestProbeRaft47SnapshotHigherTerm
+--- PASS: TestProbeRaft47SnapshotHigherTerm (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	(cached)

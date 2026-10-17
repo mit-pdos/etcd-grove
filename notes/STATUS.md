@@ -45,6 +45,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/raft#47, out-of-order terms (2026-10-16, branch `pr-verify/raft-47`, not for `lean`)
+
+The PR's two checks, on the Goose fork's `pr-raft-47-goose-lean` (`59be9c1e4`, not pushed;
+`etc/goose.py --check` fails on this branch by design): `appendEntry` gains the premise
+`LastTermLe` (its new `Panicf`), `restore` a step-down exit (`RestoreResultG`; the old statement plus
+a term premise is `restore.specT`, derived). The premises go up through `becomeLeader`,
+`stepCandidate`, `stepLeader`, `handleSnapshot`, `stepFollower` to `raft.Step`, whose spec is
+unchanged: it discharges them from `TermsLe` and `isMessage`'s snapshot case
+(`Proof/go_etcd_io/raft/v3/raft__Step/TermLe.lean`). No axiom or `sorry` added. Report:
+`notes/pr-verify/raft-47.md`; finding `issues/raft-storage-hardstate-term-below-log.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

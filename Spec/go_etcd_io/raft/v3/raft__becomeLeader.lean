@@ -7,6 +7,7 @@ written out.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 
 @[expose] public section
 
@@ -37,6 +38,8 @@ abbrev raft.becomeLeader.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role ≠ .follower →
   s.term ≠ W64 0 →
+  -- (raft#47) the log's last term is not above the node's: `appendEntry`'s new `Panicf`
+  LastTermLe s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();
@@ -52,6 +55,7 @@ abbrev raft.becomeLeader.specS : Prop :=
   s.role ≠ .follower →
   id ∈ cfg →
   s.term ≠ W64 0 →
+  LastTermLe s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();
@@ -62,10 +66,10 @@ open Iris.ProofMode in
 theorem raft.becomeLeader.spec_simple
     (H : raft.becomeLeader.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hrole _ Hnz
+  intro cfg r id s Hrole _ Hnz Hlt
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hrole Hnz $$ [$Hpkg $Hphys]
+  iapply H _ r id s Hrole Hnz Hlt $$ [$Hpkg $Hphys]
   inext
   iintro %pvs ⟨Hphys, %Hm⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

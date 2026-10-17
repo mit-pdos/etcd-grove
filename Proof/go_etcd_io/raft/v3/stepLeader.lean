@@ -84,7 +84,7 @@ theorem stepLeader.wp_proof
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
   have Hid : id ∈ c.voters := Hvoter (by rw [Hlead]; decide)
   by_cases Hp : m.Type' = MsgProp
-  · obtain ⟨Hne, Hsmall, Hnz⟩ := Hprop Hp
+  · obtain ⟨Hne, Hsmall, Hnz, Hlt⟩ := Hprop Hp
     icases Hcc $$ %Hp with ⟨%cs, #Hcc⟩
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.own 1 from
       if_pos Hp]
@@ -92,7 +92,7 @@ theorem stepLeader.wp_proof
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
       wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs Hp Hid
-      Hne Hsmall Hnz Hlead $$ [Hphys Hm]
+      Hne Hsmall Hnz Hlead Hlt $$ [Hphys Hm]
     · iframe
       iframe Hinit Hcc
     inext

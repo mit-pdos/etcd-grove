@@ -23,6 +23,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (raft#47, 2026-10-16) The log's last term is at most the node's term: `lastEntryID().term
+<= r.Term`. raft#47 makes `appendEntry` panic otherwise (`"appending out-of-order term"`): a
+leader that appended entries of its term after entries of a later term would send `MsgApp`s
+whose entries' terms go down. `ownRaftPhys` does not exclude it (it admits a persisted log ahead
+of the persisted term, see `raft.Step.spec`'s pre-vote premise); the ghost state does
+(`TermsLe`: no term in a node's full log is above its own), and `raft.Step` discharges it from
+there (`ownRaftGhost_lastTerm_le`). -/
+def LastTermLe (s : NState) : Prop :=
+  uint.Z (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)).term' ≤ uint.Z s.term
+
 /-- `appendEntry` stamps the current term and the next indices into the caller's batch,
 charges it against the uncommitted-entry budget, appends it to the log and then queues
 a self-addressed `MsgAppResp` at the new last index (`raft.appendEntry.impl`,
@@ -156,7 +166,14 @@ A clone holds the same record (`proto.CloneEntry.spec`,
 same bytes, and since D6 the record's `Data'` is the bytes), so the log grows by
 `ents.mapIdx (stamp ...)`, as before the retarget, when the batch itself was stamped in place
 and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
-`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.) -/
+`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.)
+
+### raft#47 (2026-10-16, `notes/pr-verify/raft-47.md`)
+
+The body reads `last := r.raftLog.lastEntryID()` (instead of `lastIndex()`) and panics when
+`r.Term < last.term`; `li` is `last.index`. The premise `LastTermLe s` makes the panic dead. The
+statement before raft#47 (without it) does not hold of the new code: `ownRaftPhys` admits a log
+whose last term is above the node's. -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List EntryM) (dq : DFrac),
@@ -165,6 +182,9 @@ abbrev raft.appendEntry.spec : Prop :=
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
+  -- (raft#47) the log's last term is not above the node's: the new `Panicf` (see
+  -- `LastTermLe`)
+  LastTermLe s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
@@ -192,6 +212,7 @@ abbrev raft.appendEntry.specS : Prop :=
     (ents : List EntryM) (dq : DFrac),
   (ents.length : Int) < 2^61 →
   s.term ≠ W64 0 →
+  LastTermLe s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
       "Hes" ∷ entsPts es dq ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
@@ -213,10 +234,10 @@ open Iris.ProofMode in
 theorem raft.appendEntry.spec_simple
     (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents dq Hlen Ht
+  intro cfg r id s es ents dq Hlen Ht Hlt
   iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s es ents dq Hlen Ht $$ [$Hpkg $Hphys $Hes]
+  iapply H _ r id s es ents dq Hlen Ht Hlt $$ [$Hpkg $Hphys $Hes]
   inext
   iintro %acc ⟨%Hacc, Hes, Hphys⟩
   iapply HΦ $$ %acc

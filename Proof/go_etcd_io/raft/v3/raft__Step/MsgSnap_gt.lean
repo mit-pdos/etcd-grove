@@ -55,6 +55,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
     sn = some sv →
     scfg = sv.Metadata'.ConfState'.lists →
+    -- (raft#47) the snapshot is of a term at most the message's (`isMessage_absSnap_term_le`)
+    uint.Z sv.Metadata'.Term' ≤ uint.Z m.Term' →
     -- this file: the incoming term is higher
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -69,7 +71,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hsterm Hgt
   wp_start as H
   iNamed H
   icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -106,7 +108,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid⟩)
+      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid, Hsterm⟩)
     $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres

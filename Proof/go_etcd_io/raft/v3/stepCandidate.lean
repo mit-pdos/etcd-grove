@@ -108,7 +108,7 @@ theorem stepCandidate.wp_proof
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: none of `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`, so it falls
     -- through to `myVoteRespType`
-    obtain ⟨Hterm', Hmnz⟩ := Hterm (Or.inl Hty)
+    obtain ⟨Hterm', Hmnz, Hlt⟩ := Hterm (Or.inl Hty)
     simp only [Hty, MsgVoteResp]
     wp_auto
     rcases Hrole with Hrole | Hrole
@@ -146,7 +146,7 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide)
-          (by exact Hterm' ▸ Hmnz) $$ [$Hphys]
+          (by exact Hterm' ▸ Hmnz) (by exact Hlt Hty) $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
@@ -296,7 +296,7 @@ theorem stepCandidate.wp_proof
           MsgAppResp, MsgHeartbeatResp]
   · -- `MsgSnap`: `becomeFollower(m.Term, m.From)`, then `handleSnapshot`
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inr Hty)))).1
-    obtain ⟨Hsn, Hscfg, Hscope, Hcfg', Hfid⟩ := Hsnap Hty
+    obtain ⟨Hsn, Hscfg, Hscope, Hcfg', Hfid, Hsterm⟩ := Hsnap Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgSnap, MsgProp]]
     simp only [Hty, MsgSnap]
@@ -308,7 +308,8 @@ theorem stepCandidate.wp_proof
       as %pvs Hphys
     -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
     wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-        ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hcfg' Hscope Hfid $$ [$Hphys $Hm]
+        ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hcfg' Hscope Hfid
+        (by show uint.Z _ ≤ uint.Z m.Term'; rw [Hterm']; exact Hsterm) $$ [$Hphys $Hm]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe Hphys

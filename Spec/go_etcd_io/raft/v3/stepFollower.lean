@@ -257,7 +257,9 @@ abbrev stepFollower.spec : Prop :=
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id) →
+     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id ∧
+     -- (raft#47) the snapshot's term is at most the node's (`handleSnapshot`'s premise)
+     uint.Z sv.Metadata'.Term' ≤ uint.Z s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a

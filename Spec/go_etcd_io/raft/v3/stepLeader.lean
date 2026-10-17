@@ -331,7 +331,10 @@ abbrev stepLeader.spec : Prop :=
    (ents.length : Int) < 2^61 ∧
    -- the leader's term is nonzero (2026-10-10; `appendEntry`'s premise, from the
    -- ghost state: `ownRaftGhost_term_nz`)
-   s.term ≠ W64 0) →
+   s.term ≠ W64 0 ∧
+   -- (raft#47) the log's last term is not above the leader's (`appendEntry`'s premise, from
+   -- the ghost state: `ownRaftGhost_lastTerm_le`)
+   LastTermLe s) →
   -- read-index (2026-10-12): the read-only state as the ghost state keeps it, the
   -- leader's term nonzero (`committedEntryInCurrentTerm`), a request with entries, and a
   -- heartbeat response's context a position sent (eight bytes)

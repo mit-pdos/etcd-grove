@@ -53,6 +53,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgRest
+public import Proof.go_etcd_io.raft.v3.raft__Step.TermLe
 
 @[expose] public section
 
@@ -387,8 +388,10 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
+  -- (raft#47) the snapshot is of a term at most the message's
+  ihave %Hsterm := isMessage_absSnap_term_le γ m sv scfg $$ Hm
   wp_apply (wp_Step_MsgSnap P Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid
-      Hid Hwf Hscope Hsn Hcl Hnl Hfv) $$ [$Hphys $Hmsg]
+      Hid Hwf Hscope Hsn Hcl Hsterm Hnl Hfv) $$ [$Hphys $Hmsg]
     as %err %s' %c1 ⟨Hphys, %Hc1, %Hwf', %Hst, %Herr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- the received messages, each the snapshot message, none a read-index request
@@ -616,8 +619,10 @@ theorem raft.Step.wp_proof
         ipureintro; exact fun _ => H
       · ipureintro; exact fun h => absurd h hl
     ihave %Hlnz := Hlnz_lem $$ Hghost
+    -- (raft#47) the log's last term is not above the node's (`appendEntry`'s new check)
+    ihave %HLT := ownRaftGhost_lastTerm_le γ id (toPState s) $$ Hghost
     -- `Hents` is owned: the `by_cases` above reduced its `if m.Type' = MsgProp`
-    wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs Hty Hterm Hfrom Hne Hlen Hlok Hlnz
+    wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs Hty Hterm Hfrom Hne Hlen Hlok Hlnz HLT
       Hwf)
       $$ [$Hphys $Hmi $Hcc] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -771,7 +776,10 @@ theorem raft.Step.wp_proof
   · -- MsgVoteResp: tally the vote, possibly winning or losing.
     obtain ⟨Hto, Hterm⟩ := Hvoteresp Hty
     ihave #Hm' := Hmsg $$ %MsgType.voteResp %(by rw [Hty]; exact mtypeOf_MsgVoteResp) %(And.intro (by decide) (by decide))
-    wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hwf) $$ [$Hphys $Hmi]
+    -- (raft#47) the log's last term is not above the node's (`becomeLeader` on a won election)
+    ihave %HLT := ownRaftGhost_lastTerm_le γ id (toPState s) $$ Hghost
+    wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hwf HLT)
+      $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

@@ -123,7 +123,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
-        (fun _ => ⟨Hteq, Hterm⟩)
+        (fun _ => ⟨Hteq, Hterm, fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)⟩)
         (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -173,7 +173,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
-        (fun _ => ⟨Hteq, Hterm⟩)
+        (fun _ => ⟨Hteq, Hterm, fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)⟩)
         (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

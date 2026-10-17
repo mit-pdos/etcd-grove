@@ -1,0 +1,23 @@
+# etcd-io/raft#47 ("raft: fix out-of-order terms", notes/pr-verify/raft-47.md): the functions it
+# changes (appendEntry, restore) and the callers whose specs or proofs changed with them, up to
+# raft.Step, whose spec is unchanged.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-raft-47.txt --check
+roots raft\.wp_appendEntry$
+roots raft\.wp_restore$
+roots raft\.wp_handleSnapshot$
+roots raft\.wp_becomeLeader$
+roots wp_stepCandidate$
+roots wp_stepFollower$
+roots wp_stepLeader$
+roots raft\.wp_Step$
+axiom DescribeConfChange.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof

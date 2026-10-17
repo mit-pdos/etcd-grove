@@ -62,6 +62,25 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+section results47
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The exits of `restore` since raft#47 (2026-10-16): `RestoreResult`'s three when the snapshot's
+term is not above the node's (or the snapshot is obsolete, which is checked first), and a fourth:
+a snapshot past the commit index at a term above the node's is refused (`false`) after
+`becomeFollower(s.Metadata.Term, None)`. -/
+def RestoreResultG (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool) (s' : NState) :
+    Prop :=
+  (uint.Z s.logst.committed < uint.Z sv.Metadata'.Index' ∧
+   uint.Z s.term < uint.Z sv.Metadata'.Term' ∧ b = false ∧
+   ∃ pvs, s' = { becomeFollower s sv.Metadata'.Term' (W64 0) with prvals := pvs })
+  ∨
+  ((uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed ∨
+    uint.Z sv.Metadata'.Term' ≤ uint.Z s.term) ∧
+   RestoreResult s sv cl b s')
+
+end results47
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -75,7 +94,14 @@ snapshot's `ConfState` any well-formed one, joint included (`SnapScope`, its fou
 read-only, `ownCSL`), with the node one of its ids (`CSLists.Has`); after a restore the node is at
 the configuration it denotes, otherwise still at `c` (`restoreCfg`). (Until B8 the `ConfState`
 was non-joint with the voters `cfg`, `SnapScope cfg sv voters learners`, and a statement
-`specS` with the node's own voters; `specS` had no caller and is gone.) -/
+`specS` with the node's own voters; `specS` had no caller and is gone.)
+
+raft#47 (2026-10-16): the new check `s.Metadata.Term > r.Term` after the role check, so the result
+is `RestoreResultG`, with the step-down exit; the statement before raft#47 is `specT` below, with the
+premise that the snapshot's term is at most the node's, derived (`raft.restore.specT_of_spec`).
+Neither statement holds of the other version of the code: without the check, a snapshot of a
+higher term is restored (`true`), which `RestoreResultG` excludes; with it, such a snapshot changes
+the term and returns `false`, which `RestoreResult` excludes. -/
 abbrev raft.restore.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
   s.role = .follower →
@@ -90,7 +116,44 @@ abbrev raft.restore.spec : Prop :=
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
       ownSnapE sp (DFrac.own 1) sv ∗
+      ⌜RestoreResultG s sv cl b s'⌝ }}
+
+/-- The statement before raft#47, at a snapshot whose term is at most the node's (what
+`handleSnapshot` restores: `Step` has raised the node's term to the message's, and a leader's
+snapshot is of a term at most its own). -/
+abbrev raft.restore.specT : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sp : Loc) (sv : SnapshotM) (cl : CSLists),
+  s.role = .follower →
+  s.votes = ∅ →
+  cl = sv.Metadata'.ConfState'.lists →
+  cl.Has id →
+  SnapScope sv cl →
+  uint.Z sv.Metadata'.Term' ≤ uint.Z s.term →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sp))
+  {{ (b : Bool) (s' : NState), RET #b;
+      ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗
+      ownSnapE sp (DFrac.own 1) sv ∗
       ⌜RestoreResult s sv cl b s'⌝ }}
+
+open Iris.ProofMode in
+/-- At a snapshot of a term at most the node's the step-down exit is dead. -/
+theorem raft.restore.specT_of_spec
+    (H : raft.restore.spec (GF := GF) (hG := hG)) :
+    raft.restore.specT (GF := GF) (hG := hG) := by
+  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hterm
+  iintro %Φ ⟨#Hpkg, Hphys, Hsnap⟩ HΦ
+  iapply H c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope $$ [$Hpkg $Hphys $Hsnap]
+  inext
+  iintro %b %s' ⟨Hphys, Hsnap, %Hres⟩
+  iapply HΦ $$ %b %s'
+  iframe Hphys Hsnap
+  ipureintro
+  rcases Hres with ⟨-, Hlt, -⟩ | ⟨-, Hres⟩
+  · exact absurd Hterm (by omega)
+  · exact Hres
 
 end spec
 
