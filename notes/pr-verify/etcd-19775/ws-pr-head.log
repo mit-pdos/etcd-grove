@@ -1,0 +1,5 @@
+    ws_bearer_review_test.go:61: Sec-WebSocket-Protocol "Bearer, dummy.1": authorization md ["Bearer dummy.1"], user foo, err <nil>
+    ws_bearer_review_test.go:61: Sec-WebSocket-Protocol "Bearer,dummy.1": authorization md ["Bearer dummy.1"], user foo, err <nil>
+--- PASS: TestReviewWebsocketBearer (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/auth	0.036s

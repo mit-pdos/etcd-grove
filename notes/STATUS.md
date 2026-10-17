@@ -45,6 +45,23 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification etcd-io/etcd#19775: the bearer prefix of auth tokens (2026-10-17, branch `pr-verify/etcd-19775`)
+
+etcd-io/etcd#19775 strips one leading `"Bearer "` from the request token in
+`authStore.AuthInfoFromCtx`, with `HasPrefix` and a slice. `main` and the pin already do this with
+`strings.TrimPrefix` (etcd-io/etcd#21910), so at the pin the PR is a refactor. The existing spec is
+re-proved unchanged, and the proof shows that the token is `strings.trimPrefix v0 "Bearer "` in
+both branches. The spec does not say which token is checked; a way to make it say so is in the
+report. Report: `notes/pr-verify/etcd-19775.md`.
+
+- **A Perennial limitation**: there is no semantics for Go string slicing. Goose translates
+  `s[i:]` to `Slice go.string`, which has no step rule, so a proof is stuck there. The fork
+  rewrites the slice as `string([]byte(s)[i:])`, the form Perennial's `strings.TrimPrefix` model
+  uses. The general fix is a `Slice go.string` rule with a `wp` lemma (`s.drop lo |>.take
+  (hi - lo)`, panicking out of bounds), to be proposed to Perennial on its own.
+- **`issues/`**: `etcd-auth-simple-token-delete-logs-token.md` (a plaintext token in a Debug log,
+  missed by #20934; not in the verified code).
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

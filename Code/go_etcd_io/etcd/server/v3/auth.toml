@@ -1,12 +1,12 @@
-# Types and names only, except the auth store's request side (store.go, range_perm_cache.go;
-# unit P2), with bodies: `IsAuthEnabled`, `Revision`, the permission checks the KV path calls
+# Types and names only, except the auth store's request side (store.go, range_perm_cache.go; unit
+# P2), with bodies: `IsAuthEnabled`, `Revision`, the permission checks the KV path calls
 # (`IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted` through `isOpPermitted`,
 # `isRangeOpPermitted` and the permission cache's `checkKeyPoint`/`checkKeyInterval`), and
-# `IsAdminPermitted`; `AuthInfoFromCtx` (with `authInfoFromToken`), and the error variables
-# they return. Names only: `AuthInfoFromTLS` (its peer's `credentials.TLSInfo` and the x509
-# chains are axiomatized types), `hasRootRole` (`u.Roles` of the axiomatized protobuf
-# `authpb.User`), `redactToken` (`crypto/sha256`) and the rest (the admin requests, the token
-# providers, `NewAuthStore`).
+# `IsAdminPermitted`; `AuthInfoFromCtx` (with `authInfoFromToken`, and the constant
+# `bearerPrefix` of etcd-io/etcd#19775), and the error variables they return. Names only:
+# `AuthInfoFromTLS` (its peer's `credentials.TLSInfo` and the x509 chains are axiomatized types),
+# `hasRootRole` (`u.Roles` of the axiomatized protobuf `authpb.User`), `redactToken`
+# (`crypto/sha256`) and the rest (the admin requests, the token providers, `NewAuthStore`).
 # AuthStore is an interface (the server's apply package calls its methods, and its value is a
 # field of `ApplierOptions` and of the auth applier), so the packages its methods' signatures
 # name are imported (`Authenticate`'s context and the requests and responses, `Recover`'s
@@ -20,7 +20,7 @@ translate = ["!*", "AuthInfo",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
-  "ErrInvalidAuthToken"]
+  "ErrInvalidAuthToken", "bearerPrefix"]
 imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
   "go.uber.org/zap", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",

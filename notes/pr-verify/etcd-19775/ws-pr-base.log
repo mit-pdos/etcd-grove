@@ -1,0 +1,8 @@
+    ws_bearer_review_test.go:61: Sec-WebSocket-Protocol "Bearer, dummy.1": authorization md ["Bearer dummy.1"], user <nil>, err auth: invalid auth token
+    ws_bearer_review_test.go:63: not authenticated
+    ws_bearer_review_test.go:61: Sec-WebSocket-Protocol "Bearer,dummy.1": authorization md ["Bearer dummy.1"], user <nil>, err auth: invalid auth token
+    ws_bearer_review_test.go:63: not authenticated
+--- FAIL: TestReviewWebsocketBearer (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/auth	0.018s
+FAIL

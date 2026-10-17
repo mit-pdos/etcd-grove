@@ -1,0 +1,13 @@
+# etcd#19775 (Add bearer support for authorization headers), branch pr-verify/etcd-19775: the one
+# function it changes, auth's authStore.AuthInfoFromCtx, and the server's getter over it.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-19775.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots authStore__AuthInfoFromCtx
+roots EtcdServer__AuthInfoFromCtx
+axiom auth.redactToken.wp_proof
+axiom metadata.FromIncomingContext.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof

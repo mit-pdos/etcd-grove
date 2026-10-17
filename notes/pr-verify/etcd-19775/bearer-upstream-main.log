@@ -1,0 +1,4 @@
+--- PASS: TestBearerSchemeForms (0.00s)
+--- PASS: TestAuthInfoFromCtx (0.00s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/auth	0.018s
