@@ -500,7 +500,9 @@ theorem RawNode.acceptReady.wp_proof
     wp_method_call
     wp_call
     wp_auto
+    -- raft#37: `!asyncStorageWrites || asyncStorageWritesNonLocalQuorum`, `true` here
     rw [Hasync]
+    wp_auto
     have Hlast := Hceok e He
     wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
       ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega⟩

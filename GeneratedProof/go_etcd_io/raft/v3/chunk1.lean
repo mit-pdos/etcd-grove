@@ -629,6 +629,7 @@ instance RawNode_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "raft" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"raft" l) v.raft' dq ∗
     "asyncStorageWrites" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) v.asyncStorageWrites' dq ∗
+    "asyncStorageWritesNonLocalQuorum" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWritesNonLocalQuorum" l) v.asyncStorageWritesNonLocalQuorum' dq ∗
     "prevSoftSt" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevSoftSt" l) v.prevSoftSt' dq ∗
     "prevHardSt" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"prevHardSt" l) v.prevHardSt' dq ∗
     "stepsOnAdvance" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"stepsOnAdvance" l) v.stepsOnAdvance' dq ∗
@@ -670,6 +671,22 @@ instance RawNode_access_store_asyncStorageWrites (l : Loc) (v : go_etcd_io.raft.
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) v.asyncStorageWrites' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWrites" l) asyncStorageWrites' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncStorageWrites' := asyncStorageWrites' } : go_etcd_io.raft.v3.RawNode) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance RawNode_access_load_asyncStorageWritesNonLocalQuorum (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWritesNonLocalQuorum" l) v.asyncStorageWritesNonLocalQuorum' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWritesNonLocalQuorum" l) v.asyncStorageWritesNonLocalQuorum' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance RawNode_access_store_asyncStorageWritesNonLocalQuorum (l : Loc) (v : go_etcd_io.raft.v3.RawNode) (asyncStorageWritesNonLocalQuorum' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWritesNonLocalQuorum" l) v.asyncStorageWritesNonLocalQuorum' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.RawNode go!"asyncStorageWritesNonLocalQuorum" l) asyncStorageWritesNonLocalQuorum' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncStorageWritesNonLocalQuorum' := asyncStorageWritesNonLocalQuorum' } : go_etcd_io.raft.v3.RawNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

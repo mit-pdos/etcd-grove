@@ -1,0 +1,9 @@
+=== RUN   TestNonLocalQuorumRestartAboveDurableLog
+    rawnode_nonlocal_quorum_test.go:162: node 1: applied 12; durable log last index 11, durable commit 11
+    rawnode_nonlocal_quorum_test.go:179: restart with Applied=12: "applied(12) is out of range [prevApplied(10), committed(11)]"
+--- PASS: TestNonLocalQuorumRestartAboveDurableLog (0.00s)
+=== RUN   TestNonLocalQuorumFollowerAppliesUnstable
+    rawnode_nonlocal_quorum_test.go:201: follower 3: applied 12; durable log last index 11
+--- PASS: TestNonLocalQuorumFollowerAppliesUnstable (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	(cached)

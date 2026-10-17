@@ -250,7 +250,8 @@ theorem take_succ_of_getElem? (l : List w64) (n : Nat) (x : w64) (h : l[n]? = so
 abbrev nodeConfig (id : w64) (st : Loc) : Config :=
   { ID' := id, ElectionTick' := W64 10, HeartbeatTick' := W64 1,
     Storage' := interface.mkOk (go.GoType.PointerType rStorageTy) #st,
-    Applied' := 0, AsyncStorageWrites' := false, MaxSizePerMsg' := W64 1048576,
+    Applied' := 0, AsyncStorageWrites' := false,
+    AsyncStorageWritesNonLocalQuorum' := false, MaxSizePerMsg' := W64 1048576,
     MaxCommittedSizePerReady' := 0, MaxUncommittedEntriesSize' := 0,
     MaxInflightMsgs' := W64 256, MaxInflightBytes' := 0, CheckQuorum' := false,
     PreVote' := false, ReadOnlyOption' := 0,

@@ -1,0 +1,9 @@
+=== RUN   TestReviewBaseAsyncRestartAboveDurableCommit
+    rawnode_async_base_review_test.go:38: node 1: applied 12; durable last 12, durable commit 11
+    rawnode_async_base_review_test.go:55: restart with Applied=12: "applied(12) is out of range [prevApplied(10), committed(11)]"
+--- PASS: TestReviewBaseAsyncRestartAboveDurableCommit (0.00s)
+=== RUN   TestReviewNLQSnapshotAboveDurableLog
+    rawnode_async_base_review_test.go:84: CreateSnapshot(12): "snapshot 12 is out of bound lastindex(11)"
+--- PASS: TestReviewNLQSnapshotAboveDurableLog (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.009s

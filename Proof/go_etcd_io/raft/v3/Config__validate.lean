@@ -27,7 +27,12 @@ theorem Config.validate.wp_proof
     Config.validate.spec (GF := GF) (hG := hG) := by
   intro c cv Hvalid
   wp_start as Hc
-  obtain ⟨Hid, Hid1, Hid2, Hticks, Hst, Hinfl, Hib, Hlog, Hro⟩ := Hvalid
+  obtain ⟨Hid, Hid1, Hid2, Hticks, Hst, Hinfl, Hib, Hlog, Hro, Hnlq⟩ := Hvalid
+  -- raft#37: `!AsyncStorageWrites && AsyncStorageWritesNonLocalQuorum` is false
+  have Hnlq' : cv.AsyncStorageWrites' = false → cv.AsyncStorageWritesNonLocalQuorum' = false := by
+    intro h; rcases Hnlq with h' | h'
+    · rw [h] at h'; contradiction
+    · exact h'
   wp_auto
   rw [decide_eq_false Hid]
   wp_auto
@@ -59,12 +64,15 @@ theorem Config.validate.wp_proof
   all_goals wp_auto
   all_goals wp_if_destruct
   all_goals try (rw [Hcq Hif]; wp_auto)
+  all_goals (cases Ha : cv.AsyncStorageWrites' <;> simp only [Bool.not_true, Bool.not_false] <;> wp_auto)
+  -- raft#37: with `AsyncStorageWrites` unset, `AsyncStorageWritesNonLocalQuorum` is false
+  all_goals try (simp only [Hnlq' Ha]; wp_auto)
   all_goals iapply HΦ
   all_goals iframe Hc
   all_goals ipureintro
   all_goals
-    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, ?_, ?_, rfl, ?_, rfl, rfl⟩ <;>
-      first | rfl | exact Hlv.symm | exact (Hcq Hif).symm | (split <;> simp_all)
+    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, ?_, ?_, ?_, ?_, rfl, rfl⟩ <;>
+      first | rfl | exact Ha.symm | exact Hlv.symm | exact (Hcq Hif).symm | (split <;> simp_all)
 
 end proof
 

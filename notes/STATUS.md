@@ -13434,3 +13434,10 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/raft#37 (branch `pr-verify/raft-37`, not for `lean`)
+
+2026-10-16: `AsyncStorageWritesNonLocalQuorum` translated (fork `pr-raft-37-goose-lean`
+`b0e4435b4`); `ConfigValid` gains the PR's `validate` check, `rawNodeOwn` the new field; all proofs
+rebuilt, trust base unchanged. Report: `notes/pr-verify/raft-37.md`; the pre-existing async
+restart finding: `issues/raft-async-applied-above-durable-commit.md`.

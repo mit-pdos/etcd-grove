@@ -28,7 +28,10 @@ def ConfigValid (cv : Config) : Prop :=
   0 < sint.Z cv.MaxInflightMsgs' ∧
   (cv.MaxInflightBytes' = W64 0 ∨ uint.Z cv.MaxSizePerMsg' ≤ uint.Z cv.MaxInflightBytes') ∧
   cv.Logger' ≠ interface.nil ∧
-  (cv.ReadOnlyOption' = W64 0 ∨ cv.CheckQuorum' = true)
+  (cv.ReadOnlyOption' = W64 0 ∨ cv.CheckQuorum' = true) ∧
+  -- raft#37 (`notes/pr-verify/raft-37.md`): `AsyncStorageWritesNonLocalQuorum` only with
+  -- `AsyncStorageWrites`
+  (cv.AsyncStorageWrites' = true ∨ cv.AsyncStorageWritesNonLocalQuorum' = false)
 
 /-- `validate` writes defaults into up to four fields (`MaxUncommittedEntriesSize`,
 `MaxCommittedSizePerReady`, `MaxInflightBytes`, and `Logger` when nil). The

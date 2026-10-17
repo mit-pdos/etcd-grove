@@ -125,7 +125,9 @@ local macro "rest" : tactic => `(tactic| (
       wp_method_call
       wp_call
       wp_auto
+      -- raft#37: `!asyncStorageWrites || asyncStorageWritesNonLocalQuorum`, `true` here
       rw [Hasync]
+      wp_auto
       wp_apply wp_raftLog_hasNextCommittedEnts $$ [Hlog] as %bce ⟨Hlog, _⟩
       · iframe Hlog
       cases bce

@@ -133,11 +133,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog
-  -- `rn.applyUnstableEntries()` is `!asyncStorageWrites`
+  -- `rn.applyUnstableEntries()` is `!asyncStorageWrites || asyncStorageWritesNonLocalQuorum`
   wp_method_call
   wp_call
   wp_auto
+  -- raft#37: `!asyncStorageWrites || asyncStorageWritesNonLocalQuorum`, `true` here
   rw [Hasync]
+  wp_auto
   wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, -⟩
   · iframe Hlog
   have Hsoft_iff : (s.lead = sv.Lead' ∧ stateW64 s.role = sv.RaftState') ↔

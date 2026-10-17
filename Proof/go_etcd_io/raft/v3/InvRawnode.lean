@@ -800,6 +800,10 @@ stage R5: `prevHardSt` is a `*pb.HardState`, `stepsOnAdvance` a `[]*pb.Message`.
 def rawNodeOwn (l : Loc) (v : RawNode) : IProp GF :=
   iprop("#H_raft" ∷ l.[RawNode, go!"raft"] ↦□ v.raft' ∗
     "H_asyncStorageWrites" ∷ l.[RawNode, go!"asyncStorageWrites"] ↦ v.asyncStorageWrites' ∗
+    -- raft#37 (`notes/pr-verify/raft-37.md`): not constrained; read only with
+    -- `asyncStorageWrites` set, outside the proof's scope
+    "H_asyncStorageWritesNonLocalQuorum" ∷
+      l.[RawNode, go!"asyncStorageWritesNonLocalQuorum"] ↦ v.asyncStorageWritesNonLocalQuorum' ∗
     "H_prevSoftSt" ∷ l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt' ∗
     "H_prevHardSt" ∷ l.[RawNode, go!"prevHardSt"] ↦ v.prevHardSt' ∗
     "H_stepsOnAdvance" ∷ l.[RawNode, go!"stepsOnAdvance"] ↦ v.stepsOnAdvance')
@@ -857,6 +861,16 @@ scoped instance (priority := high) rawNodeOwn_access_store_asyncStorageWrites (l
     AccessStrict (PROP := IProp GF) (l.[RawNode, go!"asyncStorageWrites"] ↦ v.asyncStorageWrites') (l.[RawNode, go!"asyncStorageWrites"] ↦ x)
       (rawNodeOwn l v) (rawNodeOwn l { v with asyncStorageWrites' := x }) := by
   rawNodeOwn_access H_asyncStorageWrites
+
+scoped instance (priority := high) rawNodeOwn_access_load_asyncStorageWritesNonLocalQuorum (l : Loc) (v : RawNode) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"asyncStorageWritesNonLocalQuorum"] ↦ v.asyncStorageWritesNonLocalQuorum') (l.[RawNode, go!"asyncStorageWritesNonLocalQuorum"] ↦ v.asyncStorageWritesNonLocalQuorum')
+      (rawNodeOwn l v) (rawNodeOwn l v) := by
+  rawNodeOwn_access H_asyncStorageWritesNonLocalQuorum
+
+scoped instance (priority := high) rawNodeOwn_access_store_asyncStorageWritesNonLocalQuorum (l : Loc) (v : RawNode) (x : Bool) :
+    AccessStrict (PROP := IProp GF) (l.[RawNode, go!"asyncStorageWritesNonLocalQuorum"] ↦ v.asyncStorageWritesNonLocalQuorum') (l.[RawNode, go!"asyncStorageWritesNonLocalQuorum"] ↦ x)
+      (rawNodeOwn l v) (rawNodeOwn l { v with asyncStorageWritesNonLocalQuorum' := x }) := by
+  rawNodeOwn_access H_asyncStorageWritesNonLocalQuorum
 
 scoped instance (priority := high) rawNodeOwn_access_load_prevSoftSt (l : Loc) (v : RawNode) :
     AccessStrict (PROP := IProp GF) (l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt') (l.[RawNode, go!"prevSoftSt"] ↦ v.prevSoftSt')
