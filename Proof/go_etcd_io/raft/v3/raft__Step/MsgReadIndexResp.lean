@@ -217,7 +217,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         simp only [stepFuncOf]
         wp_apply _P.stepLeader c r id s ml m [e] sn ctx rs
             (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))))
-            Hrole
+            Hrole (Hwf.2.2.2 Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by
               exfalso; rw [Hty] at Hc

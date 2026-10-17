@@ -1,0 +1,19 @@
+=== RUN   TestProbeLeaderEmptyEntryDropped
+    leaderterm_probe_test.go:25: term=1 lastIndex=2 lastTerm=1
+--- PASS: TestProbeLeaderEmptyEntryDropped (0.00s)
+=== RUN   TestProbeMsgAppEntryAboveMsgTerm
+    leaderterm_probe_test.go:45: lastIndex=1
+--- PASS: TestProbeMsgAppEntryAboveMsgTerm (0.00s)
+=== RUN   TestProbeSnapshotFastForwardSkipped
+    leaderterm_probe_test.go:61: committed=2 replies=[{MsgAppResp 2 1 3 0 2 [] 0 0 <nil> false 0 [] []}]
+--- PASS: TestProbeSnapshotFastForwardSkipped (0.00s)
+=== RUN   TestReviewSnapFastForwardStall
+    review_snapstall_test.go:50: after MsgSnap: follower committed=1, leader's progress of 2: StateProbe match=0 next=2 inactive
+    review_snapstall_test.go:56: after traffic: follower committed=8 lastIndex=8, leader committed=8 lastIndex=8, progress StateReplicate match=8 next=9
+    review_snapstall_test.go:67: after MsgSnapStatus: follower committed=8 lastIndex=8, progress StateReplicate match=8 next=9
+--- PASS: TestReviewSnapFastForwardStall (0.00s)
+=== RUN   TestReviewNoConflictAppendNoCommit
+    review_snapstall_test.go:83: committed=2 leaderTerm(PR only)
+--- PASS: TestReviewNoConflictAppendNoCommit (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.019s

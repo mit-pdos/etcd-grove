@@ -1,0 +1,25 @@
+=== RUN   TestProbeLeaderEmptyEntryDropped
+    leaderterm_probe_test.go:25: term=1 lastIndex=1 lastTerm=3
+    leaderterm_probe_test.go:27: the new leader's empty entry was not appended: lastIndex = 1, want 2
+--- FAIL: TestProbeLeaderEmptyEntryDropped (0.00s)
+=== RUN   TestProbeMsgAppEntryAboveMsgTerm
+    leaderterm_probe_test.go:40: panic: leader at term 2 tries to append a higher term 3
+--- FAIL: TestProbeMsgAppEntryAboveMsgTerm (0.00s)
+=== RUN   TestProbeSnapshotFastForwardSkipped
+    leaderterm_probe_test.go:61: committed=0 replies=[{MsgAppResp 2 1 3 0 0 [] 0 0 <nil> false 0 [] []}]
+    leaderterm_probe_test.go:63: committed = 0, want 2 (the snapshot's index)
+--- FAIL: TestProbeSnapshotFastForwardSkipped (0.00s)
+=== RUN   TestReviewSnapFastForwardStall
+    review_snapstall_test.go:50: after MsgSnap: follower committed=1, leader's progress of 2: StateProbe match=0 next=2 inactive
+    review_snapstall_test.go:56: after traffic: follower committed=1 lastIndex=3, leader committed=2 lastIndex=8, progress StateSnapshot match=1 next=2 paused pendingSnap=2
+    review_snapstall_test.go:59: the leader's progress of the follower is stuck in StateSnapshot
+    review_snapstall_test.go:62: the follower's commit index is stuck at 1
+    review_snapstall_test.go:67: after MsgSnapStatus: follower committed=8 lastIndex=8, progress StateReplicate match=8 next=9
+--- FAIL: TestReviewSnapFastForwardStall (0.00s)
+=== RUN   TestReviewNoConflictAppendNoCommit
+    review_snapstall_test.go:83: committed=0 leaderTerm(PR only)
+    review_snapstall_test.go:85: committed = 0, want 2
+--- FAIL: TestReviewNoConflictAppendNoCommit (0.00s)
+FAIL
+FAIL	go.etcd.io/raft/v3	0.020s
+FAIL

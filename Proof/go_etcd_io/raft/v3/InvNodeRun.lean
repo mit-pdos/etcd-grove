@@ -947,6 +947,7 @@ theorem wp_applyConf_dyn
         rcases h with h | h
         · exact absurd h Hnc
         · exact absurd h Hpf.1)
+      (fun hl => Hwf.2.2.2 hl)
     $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp⟩
@@ -1086,7 +1087,7 @@ theorem wp_rn_raft_applyConfChange
   icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
   obtain ⟨lrn', Hd', Hsz', Hn'⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
-      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn'
+      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' (fun hl => Hrel.2.2.2.2 hl)
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok

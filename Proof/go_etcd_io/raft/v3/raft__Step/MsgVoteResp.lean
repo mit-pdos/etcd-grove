@@ -372,7 +372,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
                   pci := plastIndex (toPState s) } := by
               unfold rOf pciR
               simp [voteRespResult, becomeLeader, becomeLeaderLog, becomeLeaderPre, sendMsgs,
-                resetTo, resetTo0, plastIndex_toPState]
+                resetTo, resetTo0, plastIndex_toPState, logAppendLT]
             wp_gets
             rw [Hr, toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
             unfold pvoteRespResult
