@@ -1591,7 +1591,8 @@ theorem ownLogGhost_hbResp (γ : RaftNames) (v : w64) (s : PState) (kl : Option 
 /-- `Step.heartbeat`: back to follower of `m.src`; the new commit index is the old one or
 the heartbeat's, which carries `isCommittedIdx` and which the rule's premise puts within
 the log. -/
-theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
+theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
+    (K : w64) (HK : K = m.commit ∨ K = W64 0) :
     m.ty = .heartbeat →
     m.dst = id →
     m.term = s.term →
@@ -1602,7 +1603,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
       ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs
-           { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
+           { padoptLeader s m.src with commit := plogCommitTo s.commit K }
            [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) md := by
   intro Hty Hto Hterm Hfid Hrole Hcm
   iintro #Hm Hown
@@ -1630,10 +1631,14 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
       (by exact plogCommitTo_ge _ _)
       (by exact Or.inl ⟨rfl, rfl, fun h => h, fun h => by cases h⟩)
       (by
-        show plogCommitTo s.commit m.commit = s.commit ∨
-          uint.Z (plogCommitTo s.commit m.commit) ≤ plogLastIndexZ s.base s.log
+        show plogCommitTo s.commit K = s.commit ∨
+          uint.Z (plogCommitTo s.commit K) ≤ plogLastIndexZ s.base s.log
         unfold plogCommitTo; split
-        · exact Or.inr Hcm
+        · rename_i Hlt0
+          rcases HK with rfl | rfl
+          · exact Or.inr Hcm
+          · exfalso; have := uint_Z_nonneg s.commit
+            simp only [show uint.Z (W64 0) = 0 from rfl] at Hlt0; omega
         · exact Or.inl rfl)
       $$ Hlg [] [] []
     · iapply matchedOk_nonleader γ _ (by intro h; cases h)
@@ -1641,6 +1646,10 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
       simp only [psendMsgs, padoptLeader, plogCommitTo]
       split
       · rename_i Hlt
+        rcases HK with rfl | rfl
+        case inr =>
+          exfalso; have := uint_Z_nonneg s.commit
+          simp only [show uint.Z (W64 0) = 0 from rfl] at Hlt; omega
         have Hci : uint.Z s.commit < uint.Z i := by omega
         ihave #Ha := Hagree $$ %(⟨Hrole, Hci⟩)
         icases ackAgree_full γ s.base s.log fp s.term i Hf (by have := Hok.2.1; omega) $$ Ha with
@@ -1684,6 +1693,10 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
       simp only [cprefix, psendMsgs, padoptLeader, plogCommitTo]
       split
       · rename_i Hlt
+        rcases HK with rfl | rfl
+        case inr =>
+          exfalso; have := uint_Z_nonneg s.commit
+          simp only [show uint.Z (W64 0) = 0 from rfl] at Hlt; omega
         have Hci : uint.Z s.commit < uint.Z i := by omega
         ihave #Ha := Hagree $$ %(⟨Hrole, Hci⟩)
         icases ackAgree_full γ s.base s.log fp s.term i Hf (by have := Hok.2.1; omega) $$ Ha with
@@ -1740,7 +1753,8 @@ term is below the cut (`ackAgree_term`: the old log agrees with the leader there
 the cut is where it does not); and the new acknowledgement of `lastnewi` is justified by
 the batch itself. -/
 theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
-    (lastnewi : w64) (es' : List EntryM) :
+    (lastnewi : w64) (es' : List EntryM) (K : w64)
+    (HKl : uint.Z K ≤ uint.Z lastnewi) (HKm : uint.Z K ≤ uint.Z m.commit) :
     m.ty = .app →
     m.src ≠ id →
     m.term = s.term →
@@ -1755,9 +1769,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
         (psendMsgs
            { padoptLeader s m.src with
                log := es',
-               commit := plogCommitTo s.commit
-                           (if uint.Z m.commit < uint.Z lastnewi
-                            then m.commit else lastnewi) }
+               commit := plogCommitTo s.commit K }
            [Msg.mk .appResp id m.src s.term false lastnewi
               (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hcidx Happ
@@ -1793,15 +1805,15 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
     refine ⟨rfl, plogTermAt_in_range _ _ _ ⟨Hj1, ?_⟩⟩
     unfold plogLastIndexZ; exact Hj2
   have Hc'1 : uint.Z s.commit ≤ uint.Z (plogCommitTo s.commit
-      (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)) := plogCommitTo_ge _ _
+      K) := plogCommitTo_ge _ _
   have Hc'2 : uint.Z (plogCommitTo s.commit
-      (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)) ≤ uint.Z lastnewi ∨
+      K) ≤ uint.Z lastnewi ∨
       plogCommitTo s.commit
-      (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = s.commit := by
+      K = s.commit := by
     unfold plogCommitTo
     by_cases h : uint.Z s.commit <
-        uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)
-    · simp only [h, ↓reduceIte]; left; split <;> omega
+        uint.Z K
+    · simp only [h, ↓reduceIte]; left; omega
     · simp only [h, ↓reduceIte]; right; trivial
   have HbZ := uint_Z_nonneg s.base.index'
   have HmZ := uint_Z_lt m.index
@@ -1861,7 +1873,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
   -- every justified acknowledgement of this term is below the cut
   ihave #Hkeep : □ (⌜s.term = s.term⌝ -∗ ∀ i,
       ⌜uint.Z (plogCommitTo s.commit
-        (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)) < uint.Z i⌝ -∗
+        K) < uint.Z i⌝ -∗
       ackAgree γ s.base s.log s.term i -∗ ackAgree γ s.base es' s.term i) $$ []
   · imodintro
     iintro - %i %Hi #Ha
@@ -1941,7 +1953,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
       { padoptLeader s m.src with
           log := es',
           commit := plogCommitTo s.commit
-            (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+            K }
       (some m.src) (some m.src)
       (by intro h; cases h) (by intro _ h; exact absurd h Hrole) (by intro h; cases h)
       (Int.le_refl _) Hc'1
@@ -2001,11 +2013,11 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
         omega
     isplitr
     · iexact Hfr
-    have HXle : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z lastnewi := by split <;> omega
-    have HXm : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z m.commit := by split <;> omega
+    have HXle : uint.Z K ≤ uint.Z lastnewi := HKl
+    have HXm : uint.Z K ≤ uint.Z m.commit := HKm
     isplitr
     · simp only [padoptLeader, plogCommitTo]
-      generalize (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X at HXle HXm ⊢
+      generalize K = X at HXle HXm ⊢
       split
       · iapply commitIn_move γ (fpL ++ l') (fp ++ es') X s.term s.term (Int.le_refl _)
           HwLf.1 HwF' (full_term_at_some _ _ lastnewi Hsli HXle) (HmL X HXle).symm $$ HrLf HrF'
@@ -2016,7 +2028,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
           (Hlow s.commit Hcidx) $$ HrF HrF' Hc
     isplitr
     · simp only [cprefix, plogCommitTo]
-      generalize (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X at HXle HXm ⊢
+      generalize K = X at HXle HXm ⊢
       split
       · ihave %Htk := full_take_eq γ (fpL ++ l') (fp ++ es') X HwLf.1 HwF'
           (full_term_at_some _ _ lastnewi Hsli HXle) (HmL X HXle) $$ HrLf HrF'
@@ -2059,7 +2071,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
       { padoptLeader s m.src with
           log := es',
           commit := plogCommitTo s.commit
-            (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+            K }
       (some m.src) lastnewi (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
       $$ [] [] Hlg with ⟨Hlg, #Hack⟩
   · unfold ackOk
@@ -2109,7 +2121,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
       { padoptLeader s m.src with
           log := es',
           commit := plogCommitTo s.commit
-            (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) } _ (some m.src)
+            K } _ (some m.src)
       (by rfl) (by rfl) (by rfl)
       (by intro h; cases h) (by intro h; cases h) (by intro h; cases h) (by rfl) (by exact fun h => h)
       $$ Hlg
@@ -4296,10 +4308,17 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     exact regs_frame γ (ownRaftGhost_step_lose γ c id s Hrole Hnq)
   | drain s o' Hsub =>
     exact regs_frame γ (ownRaftGhost_step_drain γ id s o' Hsub)
-  | appAccept m s lastnewi es' Hty _ Hfid Hterm Hrole Hcm Happ _ =>
+  | appAccept m s lastnewi es' cm Hty _ Hfid Hterm Hrole Hcm Happ _ _ =>
     iintro Hregs Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_app_accept γ id s m lastnewi es' Hty Hfid Hterm Hrole Hcm Happ $$ Hm Hown with Hown
+    rw [plogCommitTo_ite]
+    have HKb := (ite_cm_cases cm (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)).2
+    imod ownRaftGhost_step_app_accept γ id s m lastnewi es' (if cm = true then (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) else W64 0)
+      (by have : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z lastnewi := by split <;> omega
+          omega)
+      (by have : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z m.commit := by split <;> omega
+          omega)
+      Hty Hfid Hterm Hrole Hcm Happ $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
   | appStale m s Hty _ Hfid Hterm Hrole _ =>
     iintro Hregs Hrecv - Hown
@@ -4311,10 +4330,12 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_reject γ id s m hint hintterm Hty Hfid Hrole $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
-  | heartbeat m s Hty Hto Hfid Hterm Hrole Hcm =>
+  | heartbeat m s cm Hty Hto Hfid Hterm Hrole Hcm =>
     iintro Hregs Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_heartbeat γ id s m Hty Hto Hterm Hfid Hrole Hcm $$ Hm Hown with Hown
+    rw [plogCommitTo_ite]
+    imod ownRaftGhost_step_heartbeat γ id s m _ (ite_cm_cases cm m.commit).1 Hty Hto Hterm Hfid
+      Hrole Hcm $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
   | beat s ms Hrole Hms Hctx =>
     iintro Hregs _ - Hown
@@ -4358,9 +4379,17 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_snap_restore γ id s m Hty Hfid Hterm Hrole Hlt Hnm $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
-  | snapFastfwd m s Hty _ Hfid Hterm Hrole Hlt Hmt =>
+  | snapFastfwd m s cm Hty _ Hfid Hterm Hrole Hlt Hmt =>
     iintro Hregs Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
+    cases cm
+    · -- (raft#139) not committed: the stale snapshot's acknowledgement of the commit index
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [show ({ padoptLeader s m.src with commit := s.commit } : PState) = padoptLeader s m.src
+        from rfl]
+      imod ownRaftGhost_step_snap_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown
+      imodintro; iframe Hregs Hown
+    simp only [↓reduceIte]
     imod ownRaftGhost_step_snap_fastfwd γ id s m Hty Hfid Hterm Hrole Hlt Hmt $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
   | snapStale m s Hty _ Hfid Hterm Hrole _ =>

@@ -181,7 +181,7 @@ inductive StepR : RState → List Msg → RState → Prop where
   | drain (r : RState) (o' : List Msg) :
       o'.Subperm r.p.outbox →
       StepR r [] { r with p := { r.p with outbox := o' } }
-  | appAccept (m : Msg) (r : RState) (lastnewi : w64) (es' : List EntryM) :
+  | appAccept (m : Msg) (r : RState) (lastnewi : w64) (es' : List EntryM) (cm : Bool) :
       m.ty = .app →
       m.dst = id →
       m.src ≠ id →
@@ -192,12 +192,15 @@ inductive StepR : RState → List Msg → RState → Prop where
         = some (lastnewi, es') →
       (plogFindConflict r.p.base r.p.log m.entries = W64 0 ∨
         uint.Z r.p.commit < uint.Z (plogFindConflict r.p.base r.p.log m.entries)) →
+      -- (raft#139) the commit is skipped only when nothing was appended: an append sets the
+      -- log's leader term to the message's
+      (cm = false → plogFindConflict r.p.base r.p.log m.entries = W64 0) →
       StepR r [m] { r with
         p := psendMsgs
           { padoptLeader r.p m.src with
               log := es',
-              commit := plogCommitTo r.p.commit
-                          (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+              commit := if cm then plogCommitTo r.p.commit
+                          (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) else r.p.commit }
           [Msg.mk .appResp id m.src r.p.term false lastnewi (W64 0) (W64 0) (W64 0) []] }
   | appStale (m : Msg) (r : RState) :
       m.ty = .app →
@@ -220,7 +223,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [m] { r with
         p := psendMsgs (padoptLeader r.p m.src)
           [Msg.mk .appResp id m.src r.p.term true m.index hintterm (W64 0) hint []] }
-  | heartbeat (m : Msg) (r : RState) :
+  | heartbeat (m : Msg) (r : RState) (cm : Bool) :
       m.ty = .heartbeat →
       m.dst = id →
       m.src ≠ id →
@@ -229,7 +232,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       uint.Z m.commit ≤ plogLastIndexZ r.p.base r.p.log →
       StepR r [m] { r with
         p := psendMsgs
-          { padoptLeader r.p m.src with commit := plogCommitTo r.p.commit m.commit }
+          { padoptLeader r.p m.src with commit := if cm then plogCommitTo r.p.commit m.commit else r.p.commit }
           [{ Msg.plain .heartbeatResp id m.src r.p.term false with ctx := m.ctx }] }
   | beat (r : RState) (ms : List Msg) :
       r.p.role = .leader →
@@ -302,7 +305,7 @@ inductive StepR : RState → List Msg → RState → Prop where
         cidx := uint.nat m.index
         cfg := cs'
         fp := fp' }
-  | snapFastfwd (m : Msg) (r : RState) :
+  | snapFastfwd (m : Msg) (r : RState) (cm : Bool) :
       m.ty = .snap →
       m.dst = id →
       m.src ≠ id →
@@ -311,8 +314,9 @@ inductive StepR : RState → List Msg → RState → Prop where
       uint.Z r.p.commit < uint.Z m.index →
       PlogMatches r.p.base r.p.log (entryID.mk m.logterm m.index) →
       StepR r [m] { r with
-        p := psendMsgs { padoptLeader r.p m.src with commit := m.index }
-          [Msg.mk .appResp id m.src r.p.term false m.index (W64 0) (W64 0) (W64 0) []] }
+        p := psendMsgs { padoptLeader r.p m.src with commit := if cm then m.index else r.p.commit }
+          [Msg.mk .appResp id m.src r.p.term false (if cm then m.index else r.p.commit)
+            (W64 0) (W64 0) (W64 0) []] }
   | snapStale (m : Msg) (r : RState) :
       m.ty = .snap →
       m.dst = id →

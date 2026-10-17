@@ -1696,11 +1696,14 @@ theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
   induction H with
   | refl => exact Int.le_refl _
   | trans _ _ _ _ _ _ _ ih1 ih2 => omega
-  | appAccept => exact plogCommitTo_ge _ _
-  | heartbeat => exact plogCommitTo_ge _ _
+  | appAccept _ _ _ _ cm =>
+    simp only [psendMsgs]; rw [plogCommitTo_ite]; exact plogCommitTo_ge _ _
+  | heartbeat _ _ cm =>
+    simp only [psendMsgs]; rw [plogCommitTo_ite]; exact plogCommitTo_ge _ _
   | commit _ _ _ h => exact Int.le_of_lt h
   | snapRestore _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
-  | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | snapFastfwd _ _ cm _ _ _ _ _ h =>
+    cases cm <;> simp only [psendMsgs, Bool.false_eq_true, ↓reduceIte] <;> omega
   | readAck m s N =>
     obtain ⟨o, r, h⟩ := preadRespondAll_eq id
       ({ s with rd := { s.rd with

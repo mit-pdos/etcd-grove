@@ -522,19 +522,21 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
       | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
-  | heartbeat m r h1 h2 h3 h4 h5 h6 =>
+  | heartbeat m r cm h1 h2 h3 h4 h5 h6 =>
     iintro Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
-    imod ownRaftGhost_step_heartbeat γ id r.p m h1 h2 h4 h3 h5 h6 $$ Hm Hg with Hg
+    have HRI := (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.heartbeat m r cm h1 h2 h3 h4 h5 h6) (noApp1 (by rw [h1]; decide)) HI)
+    rw [plogCommitTo_ite] at HRI ⊢
+    imod ownRaftGhost_step_heartbeat γ id r.p m _ (ite_cm_cases cm m.commit).1 h1 h2 h4 h3 h5 h6 $$ Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.heartbeat m r h1 h2 h3 h4 h5 h6) (noApp1 (by rw [h1]; decide)) HI)
+    · ipureintro; exact HRI
     iintro %h
     exfalso
     revert h
@@ -572,19 +574,39 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.propForward m r h1 h2 h3) (noApp1 (by rw [h1]; decide)) HI)
     dsimp only [psendMsgs, RState.full, pappend]
     iexact Hc
-  | snapFastfwd m r h1 h2 h3 h4 h5 h6 h7 =>
+  | snapFastfwd m r cm h1 h2 h3 h4 h5 h6 h7 =>
     iintro Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
+    have HRI := (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.snapFastfwd m r cm h1 h2 h3 h4 h5 h6 h7) (noApp1 (by rw [h1]; decide)) HI)
+    cases cm
+    · -- (raft#139) not committed: the stale snapshot's acknowledgement of the commit index
+      simp only [Bool.false_eq_true, ↓reduceIte] at HRI ⊢
+      rw [show ({ padoptLeader r.p m.src with commit := r.p.commit } : PState) = padoptLeader r.p m.src
+        from rfl] at HRI ⊢
+      imod ownRaftGhost_step_snap_stale γ id r.p m h1 h3 h4 h5 $$ Hm Hg with Hg
+      imodintro
+      iunfold ownRaftGhostR
+      iframe Hg Hfr
+      isplitr
+      · ipureintro; exact HRI
+      iintro %h
+      exfalso
+      revert h
+      first
+        | (simp [psendMsgs, padoptLeader]; done)
+        | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
+        | (intro h; simp_all)
+    simp only [↓reduceIte] at HRI ⊢
     imod ownRaftGhost_step_snap_fastfwd γ id r.p m h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.snapFastfwd m r h1 h2 h3 h4 h5 h6 h7) (noApp1 (by rw [h1]; decide)) HI)
+    · ipureintro; exact HRI
     iintro %h
     exfalso
     revert h
@@ -946,7 +968,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
         (noApp1 (by rw [h1]; decide)) HI
     iintro %h
     simp [psendMsgs, padoptLeader] at h
-  | appAccept m r lastnewi es' h1 h2 h3 h4 h5 h6 h7 h8 =>
+  | appAccept m r lastnewi es' cm h1 h2 h3 h4 h5 h6 h7 h8 h9 =>
     iintro Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
@@ -958,12 +980,22 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     ihave #HrR : logRecs γ base0 r.full $$ []
     · unfold RState.full; iapply logRecs_full γ r.p.base r.fp r.p.log HI.full $$ Hfr HrL
     icases appKnow_of_msg γ r m h1 (reDyn_of HD) (full_wf _ _ _ HI.full HwL) $$ Hm HrR with %HK
-    imod ownRaftGhost_step_app_accept γ id r.p m lastnewi es' h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
+    rw [plogCommitTo_ite]
+    have hb := (ite_cm_cases cm (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)).2
+    have hb1 : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z m.commit := by split <;> omega
+    have hb2 : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z lastnewi := by split <;> omega
+    imod ownRaftGhost_step_app_accept γ id r.p m lastnewi es' (if cm = true then (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) else W64 0)
+      (by omega) (by omega)
+      h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact RInv_appAccept m lastnewi es' _ HI h7 h8 HK
+    · ipureintro; exact RInv_appAccept m lastnewi es' _ HI _ ⟨by omega, by omega⟩
+        (fun hne => by
+          cases cm
+          · exact absurd (h9 rfl) hne
+          · simp only [↓reduceIte]; split <;> omega) h7 h8 HK
     iintro %h
     exfalso
     simp [psendMsgs, padoptLeader] at h

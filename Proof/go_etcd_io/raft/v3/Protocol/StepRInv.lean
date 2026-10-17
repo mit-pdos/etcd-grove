@@ -621,11 +621,15 @@ theorem RInv_heartbeat {r : RState} (src cm : w64) (ms : List Msg) (H : RInv dec
 
 theorem RInv_snapFastfwd {r : RState} (m : Msg) (ms : List Msg) (H : RInv dec c0 r)
     (hc : uint.Z r.p.commit < uint.Z m.index)
-    (hm : PlogMatches r.p.base r.p.log (entryID.mk m.logterm m.index)) :
-    RInv dec c0 { r with p := (psendMsgs { padoptLeader r.p m.src with commit := m.index } ms) } :=
-  H.commitUp rfl rfl rfl (show uint.Z r.p.commit ≤ uint.Z m.index by omega)
-    (plogTermAt_some_range _ _ _ _ hm).2 rfl rfl rfl rfl
-    (Or.inl rfl)
+    (hm : PlogMatches r.p.base r.p.log (entryID.mk m.logterm m.index)) (cm : Bool) :
+    RInv dec c0 { r with p := (psendMsgs
+      { padoptLeader r.p m.src with commit := if cm = true then m.index else r.p.commit } ms) } := by
+  have := H.commit_last
+  cases cm
+  · exact H.commitUp rfl rfl rfl (Int.le_refl _) this rfl rfl rfl rfl (Or.inl rfl)
+  · exact H.commitUp rfl rfl rfl (show uint.Z r.p.commit ≤ uint.Z m.index by omega)
+      (plogTermAt_some_range _ _ _ _ hm).2 rfl rfl rfl rfl
+      (Or.inl rfl)
 
 /-- A snapshot restored: the node's full log is the snapshot's prefix, its configuration the
 snapshot's, which is the prefix's fold (`hcfg`, A3: the message's knowledge). -/
@@ -795,7 +799,10 @@ within it. With a conflict (above the commit index), the new full log is the sen
 (log matching below the conflict), whose I1 at the message's commit index gives I1 at the new
 commit index; the prefix up to the configuration index is untouched. -/
 theorem RInv_appAccept {r : RState} (m : Msg) (lastnewi : w64) (es' : List EntryM)
-    (ms : List Msg) (H : RInv dec c0 r)
+    (ms : List Msg) (H : RInv dec c0 r) (X : w64)
+    (hXb : uint.Z X ≤ uint.Z m.commit ∧ uint.Z X ≤ uint.Z lastnewi)
+    (hXc : plogFindConflict r.p.base r.p.log m.entries ≠ W64 0 →
+      uint.Z X = min (uint.Z m.commit) (uint.Z lastnewi))
     (hma : plogMaybeAppend r.p.base r.p.log (entryID.mk m.logterm m.index) m.entries
       = some (lastnewi, es'))
     (hcf : plogFindConflict r.p.base r.p.log m.entries = W64 0 ∨
@@ -804,17 +811,14 @@ theorem RInv_appAccept {r : RState} (m : Msg) (lastnewi : w64) (es' : List Entry
     RInv dec c0 { r with p := (psendMsgs
       { padoptLeader r.p m.src with
           log := es',
-          commit := plogCommitTo r.p.commit
-                      (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+          commit := plogCommitTo r.p.commit X }
       ms) } := by
   obtain ⟨⟨hwf, hnw⟩, G, hGl, hGd, hGi, hGp, hLM⟩ := hk
   have hlast := plogMaybeAppend_last _ _ _ _ _ _ hwf hnw hma
   obtain ⟨hm, hln, hcase⟩ := plogMaybeAppend_inv _ _ _ _ _ _ hwf hnw hma
   have ⟨hbm, _⟩ := plogTermAt_some_range _ _ _ _ hm
   simp only at hnw hln hbm
-  generalize hXd : (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X
-  have hx : uint.Z X = min (uint.Z m.commit) (uint.Z lastnewi) := by
-    rw [← hXd]; split <;> omega
+  have hx' := hXb
   have hc1 : uint.Z r.p.commit ≤ uint.Z (plogCommitTo r.p.commit X) := by
     unfold plogCommitTo; split <;> omega
   have hc2 : uint.Z X ≤ uint.Z (plogCommitTo r.p.commit X) := by
@@ -830,6 +834,7 @@ theorem RInv_appAccept {r : RState} (m : Msg) (lastnewi : w64) (es' : List Entry
   · simp only at hei hend
     -- the conflict is the first unmatched entry, above the commit index
     have hfc := plogFindConflict_first _ _ _ d e hd hnm hbef
+    have hx := hXc (by rw [hfc]; exact batch_index_nz _ _ hwf d e hd)
     have hce : uint.Z r.p.commit < uint.Z e.Index' := by
       rcases hcf with h0 | h
       · rw [hfc] at h0; exact absurd h0 (batch_index_nz _ _ hwf d e hd)
@@ -950,15 +955,27 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
   | higherTerm => exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
   | campaign r peers cl _ _ hs hg _ _ => exact RInv_campaign id _ H hs hg
   | win r mt ms h1 _ h3 _ _ _ => exact RInv_win id mt _ H h1 h3
-  | appAccept m r lastnewi es' h1 _ _ _ _ _ h7 h8 =>
-    exact RInv_appAccept m lastnewi es' _ H h7 h8 (hK r m List.mem_cons_self h1 H)
-  | heartbeat m r _ _ _ _ _ h6 => exact RInv_heartbeat m.src m.commit _ H h6
+  | appAccept m r lastnewi es' cm h1 _ _ _ _ _ h7 h8 h9 =>
+    rw [plogCommitTo_ite]
+    have hb := (ite_cm_cases cm (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi)).2
+    have h1' : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z m.commit := by split <;> omega
+    have h2' : uint.Z (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) ≤ uint.Z lastnewi := by split <;> omega
+    exact RInv_appAccept m lastnewi es' _ H _ ⟨by omega, by omega⟩
+      (fun hne => by
+        cases cm
+        · exact absurd (h9 rfl) hne
+        · simp only [↓reduceIte]; split <;> omega) h7 h8
+      (hK r m List.mem_cons_self h1 H)
+  | heartbeat m r cm _ _ _ _ _ h6 =>
+    rw [plogCommitTo_ite]
+    have hb := (ite_cm_cases cm m.commit).2
+    exact RInv_heartbeat m.src _ _ H (by omega)
   | commit r n h1 h2 h3 _ _ => exact RInv_commit n H h1 h2 h3
   | propose m r cs _ h2 h3 h4 => exact RInv_propose id m cs _ H h2 h3 h4
   | propDrop m r cs _ h2 h3 h4 => exact RInv_propDrop m cs H h2 h3 h4
   | snapRestore m r fp' cs' _ _ _ _ _ h6 _ h8 _ h10 =>
     exact RInv_snapRestore m fp' cs' _ H h6 h8 (hAdm _ _ h10)
-  | snapFastfwd m r _ _ _ _ _ h6 h7 => exact RInv_snapFastfwd m _ H h6 h7
+  | snapFastfwd m r cm _ _ _ _ _ h6 h7 => exact RInv_snapFastfwd m _ H h6 h7 cm
   | readAck m r N =>
     have := preadRespondAll_fields id
       ({ r.p with rd := { r.p.rd with

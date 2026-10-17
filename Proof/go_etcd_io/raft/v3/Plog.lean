@@ -130,6 +130,28 @@ def plogMaybeAppend (b : entryID) (es : List EntryM) (prev : entryID)
 def plogCommitTo (committed tocommit : w64) : w64 :=
   if uint.Z committed < uint.Z tocommit then tocommit else committed
 
+/-- (raft#139) A commit that may not happen (`if cm`) is a commit to `0` when it does not:
+the model's rules with a commit flag (`Step.heartbeat`, `Step.appAccept`) read as
+`plogCommitTo` of one index. -/
+theorem plogCommitTo_ite (cm : Bool) (c X : w64) :
+    (if cm = true then plogCommitTo c X else c) =
+      plogCommitTo c (if cm = true then X else W64 0) := by
+  cases cm
+  · show c = plogCommitTo c (W64 0)
+    unfold plogCommitTo
+    rw [if_neg (by have := uint_Z_nonneg c; simp only [show uint.Z (W64 0) = 0 from rfl]; omega)]
+  · rfl
+
+/-- (raft#139) `if cm then T else 0` is `T` or `0`, and at most `T`. -/
+theorem ite_cm_cases (cm : Bool) (T : w64) :
+    ((if cm = true then T else W64 0) = T ∨ (if cm = true then T else W64 0) = W64 0) ∧
+    uint.Z (if cm = true then T else W64 0) ≤ uint.Z T := by
+  cases cm
+  · refine ⟨.inr rfl, ?_⟩
+    have := uint_Z_nonneg T; simp only [Bool.false_eq_true, ↓reduceIte,
+      show uint.Z (W64 0) = 0 from rfl]; omega
+  · exact ⟨.inl rfl, Int.le_refl _⟩
+
 /-- `isUpToDate(their)`: `their` is at least as recent as our last entry. -/
 def plogUpToDate (b : entryID) (es : List EntryM) (their : entryID) : Bool :=
   let l := plogLast b es

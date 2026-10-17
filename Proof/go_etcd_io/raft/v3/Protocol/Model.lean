@@ -1699,7 +1699,7 @@ inductive Step : PState → List Msg → PState → Prop where
   `let ci := plogFindConflict … in ci = W64 0 ∨ …`, inlined) is what makes
   `maybeAppend`'s `Panicf` dead; `app_no_conflict_below_commit` is the protocol
   fact. -/
-  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List EntryM) :
+  | appAccept (m : Msg) (s : PState) (lastnewi : w64) (es' : List EntryM) (cm : Bool) :
       m.ty = .app →
       m.dst = id →
       m.src ≠ id →
@@ -1710,12 +1710,15 @@ inductive Step : PState → List Msg → PState → Prop where
         = some (lastnewi, es') →
       (plogFindConflict s.base s.log m.entries = W64 0 ∨
         uint.Z s.commit < uint.Z (plogFindConflict s.base s.log m.entries)) →
+      -- (raft#139) the commit is skipped only when nothing was appended: an append sets the
+      -- log's leader term to the message's
+      (cm = false → plogFindConflict s.base s.log m.entries = W64 0) →
       Step s [m]
         (psendMsgs
           { padoptLeader s m.src with
               log := es',
-              commit := plogCommitTo s.commit
-                          (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
+              commit := if cm then plogCommitTo s.commit
+                          (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) else s.commit }
           [Msg.mk .appResp id m.src s.term false lastnewi (W64 0) (W64 0) (W64 0) []])
   /-- `handleAppendEntries`, `a.prev.index < committed`: acknowledge the commit
   index. -/
@@ -1745,7 +1748,7 @@ inductive Step : PState → List Msg → PState → Prop where
   /-- `handleHeartbeat`: `commitTo(m.Commit)`, whose `Panicf` the premise rules out
   (`heartbeat_commit_le_last`). The response echoes the heartbeat's context (2026-10-12):
   a read-index position, which the leader counts as an acknowledgement. -/
-  | heartbeat (m : Msg) (s : PState) :
+  | heartbeat (m : Msg) (s : PState) (cm : Bool) :
       m.ty = .heartbeat →
       m.dst = id →
       m.src ≠ id →
@@ -1754,7 +1757,7 @@ inductive Step : PState → List Msg → PState → Prop where
       uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
       Step s [m]
         (psendMsgs
-          { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
+          { padoptLeader s m.src with commit := if cm then plogCommitTo s.commit m.commit else s.commit }
           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
   /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows, with the read-only
   object's context (2026-10-13). -/
@@ -1850,7 +1853,7 @@ inductive Step : PState → List Msg → PState → Prop where
               base := entryID.mk m.logterm m.index, log := [], commit := m.index }
           [Msg.mk .appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
   /-- The log already has the snapshot's last entry: `commitTo(Index)` only. -/
-  | snapFastfwd (m : Msg) (s : PState) :
+  | snapFastfwd (m : Msg) (s : PState) (cm : Bool) :
       m.ty = .snap →
       m.dst = id →
       m.src ≠ id →
@@ -1859,8 +1862,9 @@ inductive Step : PState → List Msg → PState → Prop where
       uint.Z s.commit < uint.Z m.index →
       PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
       Step s [m]
-        (psendMsgs { padoptLeader s m.src with commit := m.index }
-          [Msg.mk .appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
+        (psendMsgs { padoptLeader s m.src with commit := if cm then m.index else s.commit }
+          [Msg.mk .appResp id m.src s.term false (if cm then m.index else s.commit)
+            (W64 0) (W64 0) (W64 0) []])
   /-- An obsolete snapshot: acknowledge the commit index. -/
   | snapStale (m : Msg) (s : PState) :
       m.ty = .snap →
