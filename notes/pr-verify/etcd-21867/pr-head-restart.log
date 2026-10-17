@@ -1,0 +1,6 @@
+2026-10-17T12:01:17.739-0400	ERROR	m0	Validation on configuration change failed	{"member": "m0", "shouldApplyV3": true, "error": "membership: ID removed"}
+2026-10-17T12:01:17.739-0400	ERROR	m0	Validation on configuration change failed	{"member": "m0", "shouldApplyV3": true, "error": "membership: ID removed"}
+    force_new_cluster_restart_test.go:50: after force-new-cluster: dials=80
+    force_new_cluster_restart_test.go:59: after plain restart: dials=0
+--- PASS: TestForceNewClusterThenPlainRestartDials (6.32s)
+ok  	go.etcd.io/etcd/tests/v3/integration	6.354s

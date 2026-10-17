@@ -45,6 +45,29 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21867, stale members removed in force-new-cluster's `Finalize` (2026-10-17, branch `pr-verify/etcd-21867`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-21867-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `bootstrappedCluster.Finalize` is translated
+(`etcdserver.toml`, with the bootstrap structs) and proved over an abstract membership
+(`InvFinalize.lean`: `ClusterSt`, the PR loop `removeOthers`, `FinalizedSt`); the cluster's
+names-only methods (`SetID`, `SetBackend`, `Recover`, `Members` at bootstrap, `RemoveMember`) and
+the other names-only callees are **contracts, premises of the spec** (`fzClusterOk`,
+`fzCalleesOk`), not axioms. `finalize_force_rejects_removal` (pure, on a transcription of
+`ValidateConfigurationChange`'s `RemoveNode` case) states the PR's side effect: the
+force-new-cluster removal entries are then rejected with `ErrIDRemoved`, so `applyConfChange`
+skips `RemovePeer` (shown by a Go test: the node keeps dialing the removed peers when their
+`AddNode` entries are still in the WAL). Pre-existing bug found: a backend-only member makes
+`--force-new-cluster` unable to elect (`issues/etcd-force-new-cluster-stale-backend-member.md`).
+
+**A Perennial/Goose limitation met**: `Finalize` takes `cfg config.ServerConfig` by value, and
+Goose's copy (`GoAlloc ServerConfig.ty`) needs `ServerConfig`'s typed points-to, which is a
+generated `sorry -- axiomatized type` instance (its fields include axiomatized types:
+`transport.TLSInfo`, `types.URLs`, ...). So `Finalize.wp_proof` depends on `sorryAx`, the first
+linked result to reach such an instance. A general fix (a typed points-to for structs whose
+axiomatized fields are only copied, not read) would be a Perennial change; not attempted.
+Report: `notes/pr-verify/etcd-21867.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

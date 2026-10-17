@@ -1,0 +1,2 @@
+--- PASS: TestForceNewClusterWithStaleBackendMember (1.22s)
+ok  	go.etcd.io/etcd/tests/v3/integration	1.255s

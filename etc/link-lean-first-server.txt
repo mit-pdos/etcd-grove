@@ -389,3 +389,8 @@ auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromInco
 StartNode: @
 newRaftNode:
 bootstrappedRaft__newRaftNode: StartNode newRaftNode
+# The cluster's bootstrap finalization (bootstrap.go; etcd-io/etcd#21867, pr-verify 2026-10-17),
+# see InvFinalize.lean: the cluster's names-only methods are contracts in its spec; zap's Info,
+# and fmt's Errorf (`@`: the trust boundary, linked in fmt's Link.lean).
+fmt_Errorf: @
+bootstrappedCluster__Finalize: zap_Logger__Info fmt_Errorf

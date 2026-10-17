@@ -1,0 +1,3 @@
+--- PASS: TestForceNewClusterStopsDialingRemovedPeers (3.35s)
+--- PASS: TestForceNewClusterStopsDialingRemovedPeersAfterSnapshot (3.43s)
+ok  	go.etcd.io/etcd/tests/v3/integration	6.810s

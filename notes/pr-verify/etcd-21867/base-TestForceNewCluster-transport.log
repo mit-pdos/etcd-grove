@@ -1,0 +1,12 @@
+2026-10-17T08:45:29.152-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "1c28b590725e7af0", "remote-peer-id": "3e23af26a240b72c", "remote-peer-urls": ["unix://127.0.0.1:210084100215"]}
+2026-10-17T08:45:29.152-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "1c28b590725e7af0", "remote-peer-id": "552f60e2673a2cbb", "remote-peer-urls": ["unix://127.0.0.1:210054100215"]}
+2026-10-17T08:45:29.345-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "3e23af26a240b72c"}
+2026-10-17T08:45:29.346-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "552f60e2673a2cbb"}
+2026-10-17T08:45:29.408-0400	INFO	m0	forcing restart member	{"member": "m0", "cluster-id": "c5208cee4b57fdd7", "local-member-id": "1c28b590725e7af0", "wal-commit-index": 9, "commit-index": 11}
+2026-10-17T08:45:29.409-0400	INFO	m0	Constructed a new raft snapshot from v3 state	{"member": "m0", "index": 0, "term": 0, "confState": "voters:4477615035002173228  voters:6138231342640016571  voters:2029071264129121008"
+2026-10-17T08:45:29.425-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "1c28b590725e7af0", "remote-peer-id": "3e23af26a240b72c", "remote-peer-urls": ["unix://127.0.0.1:210084100215"]}
+2026-10-17T08:45:29.425-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "1c28b590725e7af0", "remote-peer-id": "552f60e2673a2cbb", "remote-peer-urls": ["unix://127.0.0.1:210054100215"]}
+2026-10-17T08:45:29.429-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "3e23af26a240b72c"}
+2026-10-17T08:45:29.429-0400	INFO	m0	removed remote peer	{"member": "m0", "local-member-id": "1c28b590725e7af0", "removed-remote-peer-id": "3e23af26a240b72c"}
+2026-10-17T08:45:29.431-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "552f60e2673a2cbb"}
+2026-10-17T08:45:29.432-0400	INFO	m0	removed remote peer	{"member": "m0", "local-member-id": "1c28b590725e7af0", "removed-remote-peer-id": "552f60e2673a2cbb"}

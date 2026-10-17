@@ -1,0 +1,6 @@
+        	Messages:   	the force-new-cluster member still dials removed peers (80 connections in 2s)
+--- FAIL: TestForceNewClusterStopsDialingRemovedPeers (3.24s)
+--- PASS: TestForceNewClusterStopsDialingRemovedPeersAfterSnapshot (3.42s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	6.686s
+FAIL

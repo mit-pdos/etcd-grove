@@ -39,6 +39,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import GeneratedProof.go_etcd_io.raft.v3
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
@@ -48,6 +49,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.log
 public import GeneratedProof.net.http
+public import Perennial.GeneratedProof.os
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic

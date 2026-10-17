@@ -1,0 +1,13 @@
+panic: test timed out after 2m0s
+FAIL	go.etcd.io/etcd/tests/v3/integration	120.057s
+FAIL
+2026-10-17T08:48:18.845-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=()	{"member": "m0"}
+2026-10-17T08:48:18.845-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(456b3f7378cc0091)	{"member": "m0"}
+2026-10-17T08:48:18.846-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(456b3f7378cc0091 88fc862cf9440b25)	{"member": "m0"}
+2026-10-17T08:48:18.846-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(456b3f7378cc0091 88fc862cf9440b25 91e578ee602d6980)	{"member": "m0"}
+2026-10-17T08:48:18.865-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(456b3f7378cc0091 88fc862cf9440b25 91e578ee602d6980)	{"member": "m0"}
+2026-10-17T08:48:18.866-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(456b3f7378cc0091 88fc862cf9440b25 91e578ee602d6980)	{"member": "m0"}
+2026-10-17T08:48:18.867-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(456b3f7378cc0091 88fc862cf9440b25 91e578ee602d6980)	{"member": "m0"}
+2026-10-17T08:48:18.990-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(42 456b3f7378cc0091 88fc862cf9440b25 91e578ee602d6980)	{"member": "m0"}
+2026-10-17T08:48:19.004-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(42 456b3f7378cc0091 91e578ee602d6980)	{"member": "m0"}
+2026-10-17T08:48:19.007-0400	INFO	m0.raft	456b3f7378cc0091 switched to configuration voters=(42 456b3f7378cc0091)	{"member": "m0"}

@@ -1,0 +1,12 @@
+2026-10-17T08:45:11.698-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "cf12ad8f2db2b4f9", "remote-peer-id": "727d00b8b67c8b89", "remote-peer-urls": ["unix://127.0.0.1:210054096032"]}
+2026-10-17T08:45:11.698-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "cf12ad8f2db2b4f9", "remote-peer-id": "ec8eff87c9b68f38", "remote-peer-urls": ["unix://127.0.0.1:210084096032"]}
+2026-10-17T08:45:11.794-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "727d00b8b67c8b89"}
+2026-10-17T08:45:11.794-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "ec8eff87c9b68f38"}
+2026-10-17T08:45:11.886-0400	INFO	m0	forcing restart member	{"member": "m0", "cluster-id": "4a900a0a780839c3", "local-member-id": "cf12ad8f2db2b4f9", "wal-commit-index": 9, "commit-index": 11}
+2026-10-17T08:45:11.897-0400	INFO	m0	Constructed a new raft snapshot from v3 state	{"member": "m0", "index": 0, "term": 0, "confState": "voters:14921179345890489593"}
+2026-10-17T08:45:11.908-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "cf12ad8f2db2b4f9", "remote-peer-id": "727d00b8b67c8b89", "remote-peer-urls": ["unix://127.0.0.1:210054096032"]}
+2026-10-17T08:45:11.908-0400	INFO	m0	added remote peer	{"member": "m0", "local-member-id": "cf12ad8f2db2b4f9", "remote-peer-id": "ec8eff87c9b68f38", "remote-peer-urls": ["unix://127.0.0.1:210084096032"]}
+2026-10-17T08:45:11.908-0400	ERROR	m0	Validation on configuration change failed	{"member": "m0", "shouldApplyV3": true, "error": "membership: ID removed"}
+2026-10-17T08:45:11.909-0400	ERROR	m0	Validation on configuration change failed	{"member": "m0", "shouldApplyV3": true, "error": "membership: ID removed"}
+2026-10-17T08:45:12.909-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "727d00b8b67c8b89"}
+2026-10-17T08:45:12.910-0400	INFO	m0	stopping remote peer	{"member": "m0", "remote-peer-id": "ec8eff87c9b68f38"}

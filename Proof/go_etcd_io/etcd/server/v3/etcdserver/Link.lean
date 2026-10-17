@@ -126,6 +126,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedCluster__Finalize
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
@@ -249,6 +250,7 @@ public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.context.Link
+public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Link
@@ -644,6 +646,10 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem bootstrappedCluster.wp_Finalize :
+    bootstrappedCluster.Finalize.spec (GF := GF) (hG := hG) :=
+  bootstrappedCluster.Finalize.wp_proof zap.Logger.wp_Info fmt.wp_Errorf
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=

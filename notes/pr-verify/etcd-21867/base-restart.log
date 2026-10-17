@@ -1,0 +1,4 @@
+    force_new_cluster_restart_test.go:50: after force-new-cluster: dials=0
+    force_new_cluster_restart_test.go:59: after plain restart: dials=0
+--- PASS: TestForceNewClusterThenPlainRestartDials (6.41s)
+ok  	go.etcd.io/etcd/tests/v3/integration	6.436s
