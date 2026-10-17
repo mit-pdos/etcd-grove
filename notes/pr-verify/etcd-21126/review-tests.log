@@ -1,0 +1,23 @@
+##### fork (ee79336e9)
+--- PASS: TestReview21126MixedSecondLeaderLoss (0.00s)
+--- PASS: TestReview21126MixedCancelPlain (0.01s)
+--- PASS: TestReview21126AllRequireLeaderDeleted (0.00s)
+--- PASS: TestReview21126DeletedThenResubscribe (0.10s)
+ok  	go.etcd.io/etcd/client/v3	0.147s
+##### head (15e720e9c)
+--- PASS: TestReview21126MixedSecondLeaderLoss (0.00s)
+--- PASS: TestReview21126MixedCancelPlain (0.01s)
+--- PASS: TestReview21126AllRequireLeaderDeleted (0.00s)
+--- PASS: TestReview21126DeletedThenResubscribe (0.10s)
+ok  	go.etcd.io/etcd/client/v3	0.152s
+##### base (34141c24b)
+    lease_closerequireleader_review21126_internal_test.go:63: second leader loss closed the plain subscriber (ctx/ch mispairing)
+--- FAIL: TestReview21126MixedSecondLeaderLoss (0.00s)
+    lease_closerequireleader_review21126_internal_test.go:82: plain subscriber's channel not closed after its ctx was canceled
+--- FAIL: TestReview21126MixedCancelPlain (2.00s)
+    lease_closerequireleader_review21126_internal_test.go:111: entry with no subscribers left in keepAlives
+--- FAIL: TestReview21126AllRequireLeaderDeleted (0.00s)
+--- PASS: TestReview21126DeletedThenResubscribe (0.10s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	2.125s
+FAIL

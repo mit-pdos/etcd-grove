@@ -1,0 +1,42 @@
+##### fork pin 09669450f + PR (pr-etcd-21126-goose-lean) (ee79336e9)
+--- PASS: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_internal_test.go:78: cancelable: orphan entry after closeRequireLeader: false
+    lease_requireleader_ctxcloser_review_internal_test.go:82: cancelable: entry after its context's closer ran: false
+--- PASS: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+--- PASS: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+--- PASS: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+ok  	go.etcd.io/etcd/client/v3	0.046s
+##### upstream PR head (15e720e9c)
+--- PASS: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_internal_test.go:78: cancelable: orphan entry after closeRequireLeader: false
+    lease_requireleader_ctxcloser_review_internal_test.go:82: cancelable: entry after its context's closer ran: false
+--- PASS: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+--- PASS: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+--- PASS: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+ok  	go.etcd.io/etcd/client/v3	0.014s
+##### upstream base (34141c24b)
+    lease_requireleader_ctxcloser_review_internal_test.go:54: canceling A's context closed B's channel
+--- FAIL: TestReviewCtxCloserAfterCloseRequireLeader (0.00s)
+    lease_requireleader_ctxcloser_review_internal_test.go:78: cancelable: orphan entry after closeRequireLeader: true
+    lease_requireleader_ctxcloser_review_internal_test.go:82: cancelable: entry after its context's closer ran: false
+    lease_requireleader_ctxcloser_review_internal_test.go:94: orphan entry with no subscription left in the map (no closer will reap it): chs=0 ctxs=0
+--- FAIL: TestReviewOrphanReapedOnlyByCtxCloser (0.00s)
+    lease_requireleader_internal_test.go:48: expected orphaned keepAlive entry to be removed from l.keepAlives, got 1 entr(y/ies): map[1:0xc0001d3490]
+--- FAIL: TestLessorCloseRequireLeaderRemovesOrphanedKeepAlive (0.00s)
+    lease_requireleader_pairing_internal_test.go:52: after the first leader loss B's channel is paired with the wrong context (ctxs[0]==ctxA: true)
+    lease_requireleader_pairing_internal_test.go:57: second leader loss closed B's channel, whose context does not require a leader (remaining entry: &{[] [] {0 0 <nil>} {0 0 <nil>} <nil>})
+--- FAIL: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.014s
+FAIL
+##### upstream base 34141c24b with the PR's lease_test.go: integration
+    lease_test.go:829: 
+        	Error:      	Not equal: 
+        	            	expected: -1
+        	Messages:   	lease should have expired (TTL=-1), got TTL=8
+--- FAIL: TestLeaseKeepAliveAndExpirationWithNoLeader (14.75s)
+    --- PASS: TestLeaseKeepAliveAndExpirationWithNoLeader/lease_stays_alive_with_mixed_keepAlives (3.46s)
+    --- FAIL: TestLeaseKeepAliveAndExpirationWithNoLeader/lease_expires_when_both_keepAlives_require_leader (11.09s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	14.799s
+FAIL

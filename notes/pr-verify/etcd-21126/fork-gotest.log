@@ -1,0 +1,8 @@
+ok  	go.etcd.io/etcd/client/v3	1.056s
+=== RUN   TestLeaseKeepAliveAndExpirationWithNoLeader
+=== RUN   TestLeaseKeepAliveAndExpirationWithNoLeader/lease_stays_alive_with_mixed_keepAlives
+=== RUN   TestLeaseKeepAliveAndExpirationWithNoLeader/lease_expires_when_both_keepAlives_require_leader
+--- PASS: TestLeaseKeepAliveAndExpirationWithNoLeader (14.74s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/lease	14.818s
+EXIT 0

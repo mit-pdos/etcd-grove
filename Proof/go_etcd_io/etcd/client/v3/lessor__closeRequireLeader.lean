@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean` (etcd#22291). Lean-first
+Proof of `Spec/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean` (etcd#22291; etcd#21126's code). Lean-first
 (no Rocq counterpart).
 -/
 module
@@ -58,11 +58,11 @@ theorem lessor.closeRequireLeader.wp_proof
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range_mut_keys (fun (_keys : List w64) (_i : Nat) (m' : GMap w64 Loc) =>
-      iprop(∃ (x : Loc) (y : w64), "ka" ∷ ka_ptr ↦ x ∗ "id" ∷ id_ptr ↦ y ∗
+      iprop(∃ (x : Loc) (y : w64), "ka" ∷ ka_ptr ↦ x ∗ "leaseID" ∷ leaseID_ptr ↦ y ∗
         "Hkas" ∷ structFieldRef go_etcd_io.etcd.client.v3.lessor go!"keepAlives" l ↦ mp ∗
         "HM" ∷ [∗map] _k ↦ ka ∈ m', lessor.kaOwn R ka)) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [ka id Hkas HM]
+  isplitl [ka leaseID Hkas HM]
   · iexists _, _
     simp only [named]
     iframe
@@ -234,7 +234,7 @@ theorem lessor.closeRequireLeader.wp_proof
           · ipureintro; rfl
           iexists Std.delete m' key
           iframe Hm
-          isplitl [ka id Hkas HM]
+          isplitl [ka leaseID Hkas HM]
           · iexists v, key
             simp only [named]
             iframe

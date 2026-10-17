@@ -2055,7 +2055,7 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
   (Let "ka" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType keepAlive.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType keepAlive.ty)))) (Val #())))
-  (Let "id" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal LeaseID.ty))) (Val #())))
+  (Let "leaseID" (App (Val (GoInstruction (GoAlloc LeaseID.ty))) (App (Val (GoInstruction (GoZeroVal LeaseID.ty))) (Val #())))
   (App (App (Val (map.forRange LeaseID.ty (go.GoType.PointerType keepAlive.ty))) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
@@ -2125,7 +2125,7 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doContinue) (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))))) (App (Val (GoInstruction (StructFieldRef lessor.ty go!"keepAlives"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType lessor.ty)))) (Var "l"))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad LeaseID.ty))) (Var "leaseID"))
   (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType LeaseID.ty (go.GoType.PointerType keepAlive.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #()))))))
@@ -2188,7 +2188,7 @@ noncomputable def lessor.closeRequireLeader.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "reqIdxs") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore LeaseID.ty))) (Pair (Var "id") (Var "$key")))))))
+  (App (Val (GoInstruction (GoStore LeaseID.ty))) (Pair (Var "leaseID") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keepAlive.ty)))) (Pair (Var "ka") (Var "$value")))))))))))))
   (App (Val doExecute)

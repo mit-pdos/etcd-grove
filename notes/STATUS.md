@@ -45,6 +45,15 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#21126, `closeRequireLeader` deletes all-require-leader keep-alives and keeps each channel's context (2026-10-17, branch `pr-verify/etcd-21126`)
+
+Not for `lean` (translation of the fork branch `pr-etcd-21126-goose-lean`, the pin plus the PR).
+The PR's `closeRequireLeader` is the code of etcd#22087 with etcd#22291 on top, up to a local's name:
+this branch is `lean` plus #22291's commits and #22087's proof of the combined code (dc2bb0753 on
+`pr-verify/etcd-22087`), retranslated; the spec (no re-pairing premise, non-empty entries) is
+re-proved unchanged, the proof only renaming `id` to `leaseID`. No `sorry`, no new axiom. Report:
+`notes/pr-verify/etcd-21126.md`.
+
 ## PR verification: etcd-io/etcd#22291, `closeRequireLeader` without orphaned keep-alives (2026-10-17, branch `pr-verify/etcd-22291`)
 
 Not for `lean`: the translation is of the fork branch `pr-etcd-22291-goose-lean` (the pin plus the

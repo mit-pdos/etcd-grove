@@ -1,6 +1,6 @@
 /-
-`(*lessor).closeRequireLeader()` (`client/v3/lease.go`; etcd#22291 with etcd#22087). Lean-first (no Rocq
-counterpart).
+`(*lessor).closeRequireLeader()` (`client/v3/lease.go`; etcd#22291 with etcd#22087, the same code
+as etcd#21126). Lean-first (no Rocq counterpart).
 -/
 module
 

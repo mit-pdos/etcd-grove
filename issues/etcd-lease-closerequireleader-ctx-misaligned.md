@@ -3,8 +3,9 @@ upstream: known
 checked: 2026-10-17
 links:
   - etcd-io/etcd#22081 issue open: this issue
-  - etcd-io/etcd#22087 pr open: fix (`ka.ctxs[i]` for `ka.ctxs[newIdx]`)
+  - etcd-io/etcd#22087 pr open: fix (`ka.ctxs[i]` for `ka.ctxs[newIdx]`); verified in pr-verify/etcd-22087 (the spec without the re-pairing premise, alone and with #22291)
   - etcd-io/etcd#22291 pr open: does not fix it; with it, the second leader loss also deletes the entry, so the plain subscriber's lease stops being renewed
+  - etcd-io/etcd#21126 pr open: fix (the same `ka.ctxs[i]` as #22087, together with #22291's delete); verified in pr-verify/etcd-21126
 ---
 
 # client/v3: closeRequireLeader pairs a kept channel with another subscriber's context
@@ -33,6 +34,9 @@ links:
   `Proof/go_etcd_io/etcd/client/v3/InvLease.lean`), and `closeRequireLeader` may close a channel only
   through `R ch ctx` with `ctx` requiring a leader. Its spec (`Spec/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean`)
   has the premise `□ ∀ ch c c', R ch c -∗ R ch c'` (the pairing does not matter), used only in the
-  compaction branch: that premise is this bug. A fix like #22087's lets the proof drop it.
-- **Possible fixes**: etcd-io/etcd#22087 (`ka.ctxs[i]`).
+  compaction branch: that premise is this bug. On `pr-verify/etcd-22087` the spec is proved without it
+  of #22087's code, alone and with #22291 on top (`notes/pr-verify/etcd-22087.md`).
+- **Possible fixes**: etcd-io/etcd#22087 (`ka.ctxs[i]`), verified on `pr-verify/etcd-22087`; its test
+  `TestLessorCloseRequireLeaderKeepsSurvivorsPairedWithOwnContext` and the pairing test above pass at
+  its head 41ee0c1e2.
 - **Found**: 2026-10-17, verifying etcd-io/etcd#22291 (the reviewer comment on the PR points at it).
