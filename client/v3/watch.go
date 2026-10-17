@@ -577,7 +577,10 @@ func (w *watchGRPCStream) run() {
 				}
 				// Set warning threshold at 80% of max buffer size
 				if ws.maxBufferSize > 0 {
-					ws.bufferWarningThreshold = int(float64(ws.maxBufferSize) * 0.8)
+					// goose-lean: integer arithmetic for int(float64(ws.maxBufferSize) * 0.8)
+					// (Perennial has no float64-to-int conversion; the two agree for every
+					// limit in 1..1e8)
+					ws.bufferWarningThreshold = ws.maxBufferSize * 4 / 5
 				}
 				if ws.initReq.watchBufLogEnabled {
 					ws.bufLogger = w.newWatcherStreamBufLogger(ws, time.Now)
