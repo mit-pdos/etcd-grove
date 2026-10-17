@@ -183,18 +183,7 @@ func (s *store) hashByRev(rev int64) (hash KeyValueHash, currentRev int64, err e
 	if rev == 0 {
 		rev = currentRev
 	}
-	keep := s.kvindex.Keep(rev)
-	// With an empty keep, the hasher includes every stored revision at or
-	// below compactRev. After the compaction finishes, these are the
-	// revisions in Keep(compactRev), plus tombstones at compactRev that the
-	// hasher skips. Before it finishes, older revisions are still stored.
-	// Filter by Keep(compactRev), so that the hash is the same before and
-	// after the compaction finishes, and equal to the hash of older versions
-	// after it finishes.
-	exactKeep := false
-	if len(keep) == 0 && compactRev > 0 {
-		keep, exactKeep = s.kvindex.Keep(compactRev), true
-	}
+	keep, exactKeep := hashByRevKeep(s.kvindex, rev, compactRev)
 
 	tx := s.b.ReadTx()
 	tx.RLock()
@@ -203,6 +192,25 @@ func (s *store) hashByRev(rev int64) (hash KeyValueHash, currentRev int64, err e
 	hash, err = unsafeHashByRev(tx, compactRev, rev, keep, exactKeep)
 	hashRevSec.Observe(time.Since(start).Seconds())
 	return hash, currentRev, err
+}
+
+// hashByRevKeep returns the kept set hashByRev hashes revision rev with, at
+// compaction revision compactRev, and whether the hasher applies it even when
+// empty (hashByRev's choice, split out for Goose).
+//
+// With an empty keep, the hasher includes every stored revision at or
+// below compactRev. After the compaction finishes, these are the
+// revisions in Keep(compactRev), plus tombstones at compactRev that the
+// hasher skips. Before it finishes, older revisions are still stored.
+// Filter by Keep(compactRev), so that the hash is the same before and
+// after the compaction finishes, and equal to the hash of older versions
+// after it finishes.
+func hashByRevKeep(idx index, rev, compactRev int64) (map[Revision]struct{}, bool) {
+	keep := idx.Keep(rev)
+	if len(keep) == 0 && compactRev > 0 {
+		return idx.Keep(compactRev), true
+	}
+	return keep, false
 }
 
 func (s *store) updateCompactRev(rev int64) (<-chan struct{}, int64, error) {
