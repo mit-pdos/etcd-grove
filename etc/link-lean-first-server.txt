@@ -415,7 +415,7 @@ schema_NewAlarmBackend:
 mvcc_store__HashStorage:
 math_Ceil:
 lease_NewLessor: ?
-auth_NewTokenProvider: ?
+auth_NewTokenProvider:
 auth_NewAuthStore: ?
 v3compactor_New: ?
 v3alarm_NewAlarmStore: ?

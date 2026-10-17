@@ -113,6 +113,7 @@ public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.auth.NewTokenProvider
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
@@ -264,7 +265,6 @@ public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
 public import Spec.go_etcd_io.etcd.server.v3.auth.NewAuthStore
-public import Spec.go_etcd_io.etcd.server.v3.auth.NewTokenProvider
 public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
@@ -1271,6 +1271,10 @@ theorem membership.RaftCluster.wp_SetVersionChangedNotifier :
     membership.RaftCluster.SetVersionChangedNotifier.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 
+theorem auth.wp_NewTokenProvider :
+    auth.NewTokenProvider.spec (GF := GF) (hG := hG) :=
+  auth.NewTokenProvider.wp_proof
+
 theorem wp_newCorruptionChecker :
     newCorruptionChecker.spec (GF := GF) (hG := hG) :=
   newCorruptionChecker.wp_proof
@@ -1330,14 +1334,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable (h_auth_NewAuthStore : auth.NewAuthStore.spec (GF := GF) (hG := hG))
-variable (h_auth_NewTokenProvider : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
 variable (h_lease_NewLessor : lease.NewLessor.spec (GF := GF) (hG := hG))
 variable (h_rafthttp_Transport__AddPeer : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
 variable (h_rafthttp_Transport__AddRemote : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
 variable (h_rafthttp_Transport__Start : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
 variable (h_v3alarm_NewAlarmStore : v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG))
 variable (h_v3compactor_New : v3compactor.New.spec (GF := GF) (hG := hG))
-include h_auth_NewAuthStore h_auth_NewTokenProvider h_lease_NewLessor h_rafthttp_Transport__AddPeer h_rafthttp_Transport__AddRemote h_rafthttp_Transport__Start h_v3alarm_NewAlarmStore h_v3compactor_New
+include h_auth_NewAuthStore h_lease_NewLessor h_rafthttp_Transport__AddPeer h_rafthttp_Transport__AddRemote h_rafthttp_Transport__Start h_v3alarm_NewAlarmStore h_v3compactor_New
 
 theorem EtcdServer.wp_restoreAlarms :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) :=
@@ -1345,7 +1348,7 @@ theorem EtcdServer.wp_restoreAlarms :
 
 theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] :
     NewServer.spec (GF := GF) (hG := hG) :=
-  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds math.wp_Ceil h_lease_NewLessor h_auth_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend h_auth_NewAuthStore h_v3compactor_New (EtcdServer.wp_restoreAlarms h_auth_NewAuthStore h_auth_NewTokenProvider h_lease_NewLessor h_rafthttp_Transport__AddPeer h_rafthttp_Transport__AddRemote h_rafthttp_Transport__Start h_v3alarm_NewAlarmStore h_v3compactor_New) EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID h_rafthttp_Transport__Start h_rafthttp_Transport__AddRemote membership.RaftCluster.wp_Members h_rafthttp_Transport__AddPeer mvcc.watchableStore.wp_Close
+  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds math.wp_Ceil h_lease_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend h_auth_NewAuthStore h_v3compactor_New (EtcdServer.wp_restoreAlarms h_auth_NewAuthStore h_lease_NewLessor h_rafthttp_Transport__AddPeer h_rafthttp_Transport__AddRemote h_rafthttp_Transport__Start h_v3alarm_NewAlarmStore h_v3compactor_New) EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID h_rafthttp_Transport__Start h_rafthttp_Transport__AddRemote membership.RaftCluster.wp_Members h_rafthttp_Transport__AddPeer mvcc.watchableStore.wp_Close
 
 end links_pending
 
