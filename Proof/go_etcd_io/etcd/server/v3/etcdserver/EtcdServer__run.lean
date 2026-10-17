@@ -184,7 +184,7 @@ local macro "ul_tail" : tactic => `(tactic| (
 set_option hygiene false in
 /-- `run`'s deferred shutdown (after its loop returns): `stopping` closed under `wgMu`'s write
 lock (`GoAttach`'s protocol closed, its "no waiters" taken), the context cancelled, the scheduler
-stopped, `GoAttach`'s goroutines waited for, raft stopped, `Cleanup`, `done` closed. -/
+stopped, `GoAttach`'s goroutines waited for, raft stopped, `Cleanup` (with `stopping`'s done view, from the close), `done` closed. -/
 local macro "run_shutdown" : tactic => `(tactic| (
   ihave #Htrue : iprop(True) $$ []
   · itrivial
@@ -227,7 +227,10 @@ local macro "run_shutdown" : tactic => `(tactic| (
   wp_apply hRStop Er γn (srvRAddr s) $$ []
   · iframe #
   (try wp_auto)
-  wp_apply hCl s $$ []
+  ihave #HdV : ownStopChan gch γg.ch iprop(True) .Done $$ []
+  · iunfold ownStopChan; iexists γg.chi; iframe Hgint Hdisc
+  wp_apply hCl s gch γg.ch $$ [Hcln]
+  · iframe Hcln Hgstf HdV
   (try wp_auto)
   wp_apply wp_broadcast_chan_close (ty := go.ChannelType go.ChanDir.sendrecv (go.StructType []))
     v.done γd iprop(True) $$ [Hdc]

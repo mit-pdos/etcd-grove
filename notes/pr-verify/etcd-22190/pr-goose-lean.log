@@ -1,0 +1,33 @@
+## fork pr-etcd-22190-goose-lean f150c16f9 (PR applied): go test ./etcdserver/ -run '^TestStorageVersionDuringStopCopy$' (both subtests) -count=1 -v
+=== RUN   TestStorageVersionDuringStopCopy
+=== RUN   TestStorageVersionDuringStopCopy/AfterCleanup
+=== RUN   TestStorageVersionDuringStopCopy/ConcurrentWithCleanup
+--- PASS: TestStorageVersionDuringStopCopy (0.02s)
+    --- PASS: TestStorageVersionDuringStopCopy/AfterCleanup (0.02s)
+    --- PASS: TestStorageVersionDuringStopCopy/ConcurrentWithCleanup (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.046s
+## fork pr-etcd-22190-goose-lean f150c16f9 (PR applied): go test ./etcdserver/ -run '^TestStorageVersionDuringStopCopy$' (both subtests, again) -count=1 -v
+=== RUN   TestStorageVersionDuringStopCopy
+=== RUN   TestStorageVersionDuringStopCopy/AfterCleanup
+=== RUN   TestStorageVersionDuringStopCopy/ConcurrentWithCleanup
+--- PASS: TestStorageVersionDuringStopCopy (0.02s)
+    --- PASS: TestStorageVersionDuringStopCopy/AfterCleanup (0.01s)
+    --- PASS: TestStorageVersionDuringStopCopy/ConcurrentWithCleanup (0.01s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.030s
+## fork pr-etcd-22190-goose-lean f150c16f9 (PR applied): go test ./etcdserver/ -run 'TestProbeStorageVersionAfterCleanup' -count=1 -v
+=== RUN   TestProbeStorageVersionAfterCleanup
+--- PASS: TestProbeStorageVersionAfterCleanup (0.02s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.038s
+## fork pr-etcd-22190-goose-lean f150c16f9 (PR applied): go test ./etcdserver/ -run 'TestProbeDefragmentAfterCleanup' -count=1 -v
+=== RUN   TestProbeDefragmentAfterCleanup
+FATAL	failed to commit tx	{"error": "tx closed"}
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.027s
+FAIL
+## fork pr-etcd-22190-goose-lean f150c16f9 (PR applied): go test ./etcdserver/ -run 'TestProbeForceCommitAfterCleanup' -count=1 -v
+=== RUN   TestProbeForceCommitAfterCleanup
+FATAL	failed to begin tx	{"error": "database not open"}
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.031s
+FAIL

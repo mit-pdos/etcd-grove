@@ -39,6 +39,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTime
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StorageVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Watchable
@@ -201,6 +202,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessag
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.DetectSchemaVersion
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
@@ -1159,6 +1161,14 @@ theorem EtcdServer.wp_Start :
 theorem EtcdServer.wp_StoppingNotify :
     EtcdServer.StoppingNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.StoppingNotify.wp_proof
+
+theorem schema.wp_DetectSchemaVersion :
+    schema.DetectSchemaVersion.spec (GF := GF) (hG := hG) :=
+  schema.DetectSchemaVersion.wp_proof
+
+theorem EtcdServer.wp_StorageVersion :
+    EtcdServer.StorageVersion.spec (GF := GF) (hG := hG) :=
+  EtcdServer.StorageVersion.wp_proof schema.wp_DetectSchemaVersion zap.wp_Error zap.Logger.wp_Warn
 
 theorem EtcdServer.wp_getTerm :
     EtcdServer.getTerm.spec (GF := GF) (hG := hG) :=

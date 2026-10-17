@@ -392,10 +392,10 @@ theorem EtcdServer.start.wp_proof
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
   -- `go s.run()`
-  wp_apply wp_fork $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr HWB]
+  wp_apply wp_fork $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr HWB Hcln]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ N hN
-      $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr HWB]
+      $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr HWB Hcln]
     · iunfold isServerRun
       iframe
       iframe #

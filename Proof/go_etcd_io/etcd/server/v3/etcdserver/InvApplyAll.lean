@@ -15,11 +15,14 @@ thread's `isServer`): the applied index's waiters (`applyWait`, a `WaitTime` for
 **The apply thread's own snapshot state** (`srvSnapState s ep`): `ep.diskSnapshotIndex`,
 `ep.memorySnapshotIndex`, `s.forceDiskSnapshot` (the apply thread's: `ForceSnapshot` is called by
 the apply package, `snapshot` resets it), and a reader slot of `s.bemu` (`Backend` read-locks it;
-`applySnapshot`, the writer, does not run: raft's contract hands over no snapshot).
+`applySnapshot`, the writer, does not run: raft's contract hands over no snapshot). `bemu`'s lock
+invariant (`bemuP`, `srvBemuReader`) is `InvBackendLife.lean`'s (since etcd PR #22190's
+verification: the backend's open token, or the backend shut with `stopping` closed).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBackendLife
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
@@ -36,8 +39,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-abbrev srvBemuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"bemu" s
-abbrev srvBeAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"be" s
 abbrev srvForceSnapAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"forceDiskSnapshot" s
 abbrev epDiskSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"diskSnapshotIndex" ep
 abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memorySnapshotIndex" ep
@@ -51,14 +52,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- `s.bemu`'s lock invariant at fraction `q`: `s.be`. -/
-def bemuP (s : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q} b)
-
-/-- **A reader slot of `s.bemu`** (the apply thread's, for `Backend`). -/
-def srvBemuReader (s : Loc) : IProp GF :=
-  sync.ownRWMutex (srvBemuAddr s) (bemuP s)
 
 /-- **The server, as `applyAll` sees it** (persistent; see the file header). -/
 def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=

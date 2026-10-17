@@ -3,7 +3,6 @@ axiom Client.Endpoints.wp_proof
 axiom Client.getToken.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.Alarm.wp_proof
-axiom EtcdServer.Cleanup.wp_proof
 axiom EtcdServer.IsLearner.wp_proof
 axiom EtcdServer.IsMemberExist.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
@@ -165,6 +164,7 @@ axiom reflect.ValueOf.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schedule.Scheduler.Stop.wp_proof
+axiom schema.DetectSchemaVersion.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof

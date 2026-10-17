@@ -363,7 +363,8 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
 fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
 at the empty log; the committed index's writer half; the right to close `done` and `stopping`;
-the apply thread's resources at the start; `run`'s own logger slot; the write budget. -/
+the apply thread's resources at the start; `run`'s own logger slot; the write budget; what
+`Cleanup` needs (`srvCleanupRes`). -/
 def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
@@ -381,7 +382,9 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "HWB" ∷ txn.storeWTs E.γ N)
+    "HWB" ∷ txn.storeWTs E.γ N ∗
+    -- what the shutdown's `Cleanup` needs (etcd PR #22190's verification, `InvBackendLife.lean`)
+    "Hcln" ∷ srvCleanupRes s)
 
 end defs
 

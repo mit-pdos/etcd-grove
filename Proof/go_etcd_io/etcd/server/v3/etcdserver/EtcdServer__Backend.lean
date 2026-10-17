@@ -32,16 +32,18 @@ theorem EtcdServer.Backend.wp_proof : EtcdServer.Backend.spec (GF := GF) (hG := 
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold srvBemuReader at Hrd
+  icases Hrd with ⟨%L, Hrd⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold bemuP at HP
-  icases HP with ⟨%b, Hb⟩
+  icases HP with ⟨%b, Hb, Hok, Hst⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb] as Hrd
-  · inext; iunfold bemuP; iexists b; iexact Hb
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hb Hok Hst] as Hrd
+  · inext; iunfold bemuP; iexists b; iframe Hb Hok Hst
   iapply HΦ
   iunfold srvBemuReader
+  iexists L
   iexact Hrd
 
 end proof

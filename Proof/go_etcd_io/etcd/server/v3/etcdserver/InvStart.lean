@@ -229,7 +229,11 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
     -- the write budget
-    "HWB" ∷ txn.storeWTs E.γ N)
+    "HWB" ∷ txn.storeWTs E.γ N ∗
+    -- what `run`'s shutdown's `Cleanup` needs: a slot of `bemu`, the backend's closer flag, the
+    -- apply thread's half of `s.be`, the closed fields' contracts (etcd PR #22190's
+    -- verification, `InvBackendLife.lean`)
+    "Hcln" ∷ srvCleanupRes s)
 
 /-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
 `Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the

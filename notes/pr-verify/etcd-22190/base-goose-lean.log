@@ -1,0 +1,29 @@
+## fork goose-lean 09669450f (base): go test ./etcdserver/ -run '^TestStorageVersionDuringStopCopy$' (both subtests) -count=1 -v
+=== RUN   TestStorageVersionDuringStopCopy
+=== RUN   TestStorageVersionDuringStopCopy/AfterCleanup   (fails: assert.NotPanics, the same nil dereference; its trace lines are filtered)
+=== RUN   TestStorageVersionDuringStopCopy/ConcurrentWithCleanup
+    storageversion_during_stop_test.go:44: StorageVersion panicked: runtime error: invalid memory address or nil pointer dereference
+(then hangs until the 300 s timeout: the panic leaves txMu held, as the PR says)
+## fork goose-lean 09669450f (base): go test ./etcdserver/ -run '^TestStorageVersionDuringStopCopy$' (both subtests, again) -count=1 -v
+=== RUN   TestStorageVersionDuringStopCopy
+=== RUN   TestStorageVersionDuringStopCopy/AfterCleanup   (fails: assert.NotPanics, the same nil dereference; its trace lines are filtered)
+=== RUN   TestStorageVersionDuringStopCopy/ConcurrentWithCleanup
+    storageversion_during_stop_test.go:44: StorageVersion panicked: runtime error: invalid memory address or nil pointer dereference
+(then hangs until the 300 s timeout: the panic leaves txMu held, as the PR says)
+## fork goose-lean 09669450f (base): go test ./etcdserver/ -run 'TestProbeStorageVersionAfterCleanup' -count=1 -v
+=== RUN   TestProbeStorageVersionAfterCleanup
+    closed_backend_probe_test.go:30: StorageVersion after Cleanup panicked: runtime error: invalid memory address or nil pointer dereference
+--- FAIL: TestProbeStorageVersionAfterCleanup (0.01s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.028s
+FAIL
+## fork goose-lean 09669450f (base): go test ./etcdserver/ -run 'TestProbeDefragmentAfterCleanup' -count=1 -v
+=== RUN   TestProbeDefragmentAfterCleanup
+FATAL	failed to commit tx	{"error": "tx closed"}
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.052s
+FAIL
+## fork goose-lean 09669450f (base): go test ./etcdserver/ -run 'TestProbeForceCommitAfterCleanup' -count=1 -v
+=== RUN   TestProbeForceCommitAfterCleanup
+FATAL	failed to begin tx	{"error": "database not open"}
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.028s
+FAIL
