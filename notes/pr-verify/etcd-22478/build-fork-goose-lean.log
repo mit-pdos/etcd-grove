@@ -1,0 +1,2 @@
+# go.etcd.io/etcd/server/v3/etcdserver
+etcdserver/bootstrap.go:182:13: s.beHooks.lg undefined (cannot refer to unexported field lg)
