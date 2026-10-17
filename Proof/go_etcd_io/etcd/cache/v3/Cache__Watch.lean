@@ -300,9 +300,10 @@ theorem Cache.Watch.wp_proof
         rotate_left
         · -- `progressTimer = c.clock.NewTimer(...)`, `defer progressTimer.Stop()`, its channel
           ihave #Hclk := HisClock
-          iunfold isClock at Hclk
+          iunfold isClockFor at Hclk
           wp_auto
           wp_apply Hclk as %t #Ht
+          · ipureintro; right; rfl
           ihave #Ht' := Ht
           iunfold isTimer at Ht'
           icases Ht' with ⟨#HtChan, #HtReset, #HtStop⟩

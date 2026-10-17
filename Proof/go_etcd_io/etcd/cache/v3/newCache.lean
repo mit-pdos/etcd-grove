@@ -10,6 +10,8 @@ public import Spec.go_etcd_io.etcd.cache.v3.newConditionalProgressRequestor
 public import Spec.go_etcd_io.etcd.cache.v3.NewDemux
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__getWatchLoop
 public import Spec.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__run
+public import Spec.fmt.Errorf
+public import Spec.time.Duration__String
 
 @[expose] public section
 
@@ -34,7 +36,9 @@ theorem newCache.wp_proof
     (wp_newCPR : newConditionalProgressRequestor.spec (GF := GF) (hG := hG))
     (wp_NewDemux : NewDemux.spec (GF := GF) (hG := hG))
     (wp_getWatchLoop : Cache.getWatchLoop.spec (GF := GF) (hG := hG))
-    (wp_run : conditionalProgressRequestor.run.spec (GF := GF) (hG := hG)) :
+    (wp_run : conditionalProgressRequestor.run.spec (GF := GF) (hG := hG))
+    (wp_Errorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG))
+    (wp_DurStr : EtcdGrove.time.Duration.String.spec (GF := GF) (hG := hG)) :
     newCache.spec (GF := GF) (hG := hG) := fun client pfx cfg clk => by
   wp_start as ⟨#Hcci, #Hcl, #Hclk, %Hcfg, %Hthr⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -61,8 +65,8 @@ theorem newCache.wp_proof
         | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
         | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
     iapply HΦ
-    unfold newCacheResult CfgValid
-    have hn : ¬ (0 < sint.Z cfg.HistoryWindowSize' ∧ 2 ≤ sint.Z cfg.BTreeDegree') := by omega
+    unfold newCacheResult
+    have hn : ¬ CfgValid cfg := by unfold CfgValid; omega
     simp only [hn, ↓reduceIte]
     ipureintro
     exact ⟨trivial, fun h => by cases h⟩
@@ -81,12 +85,66 @@ theorem newCache.wp_proof
         | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
         | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
     iapply HΦ
-    unfold newCacheResult CfgValid
-    have hn : ¬ (0 < sint.Z cfg.HistoryWindowSize' ∧ 2 ≤ sint.Z cfg.BTreeDegree') := by omega
+    unfold newCacheResult
+    have hn : ¬ CfgValid cfg := by unfold CfgValid; omega
     simp only [hn, ↓reduceIte]
     ipureintro
     exact ⟨trivial, fun h => by cases h⟩
-  have hvalid : CfgValid cfg := ⟨by omega, by omega⟩
+  wp_if_destruct
+  · -- `InitialBackoff <= 0`
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    wp_apply wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    · try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+      try simp only [List.set_cons_succ, List.set_cons_zero]
+      simp only [EtcdGrove.fmt.argsOk]
+      repeat' (isplitr; · iapply EtcdGrove.time.Duration.String.argOk wp_DurStr)
+      itrivial
+    iapply HΦ
+    unfold newCacheResult
+    have hn : ¬ CfgValid cfg := by unfold CfgValid; omega
+    simp only [hn, ↓reduceIte]
+    ipureintro
+    exact ⟨trivial, fun h => by cases h⟩
+  wp_if_destruct
+  · -- `MaxBackoff < InitialBackoff`
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    wp_apply wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    · try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+      try simp only [List.set_cons_succ, List.set_cons_zero]
+      simp only [EtcdGrove.fmt.argsOk]
+      repeat' (isplitr; · iapply EtcdGrove.time.Duration.String.argOk wp_DurStr)
+      itrivial
+    iapply HΦ
+    unfold newCacheResult
+    have hn : ¬ CfgValid cfg := by unfold CfgValid; omega
+    simp only [hn, ↓reduceIte]
+    ipureintro
+    exact ⟨trivial, fun h => by cases h⟩
+  wp_if_destruct
+  · -- `GetTimeout <= 0`
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    wp_apply wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    · try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+      try simp only [List.set_cons_succ, List.set_cons_zero]
+      simp only [EtcdGrove.fmt.argsOk]
+      repeat' (isplitr; · iapply EtcdGrove.time.Duration.String.argOk wp_DurStr)
+      itrivial
+    iapply HΦ
+    unfold newCacheResult
+    have hn : ¬ CfgValid cfg := by unfold CfgValid; omega
+    simp only [hn, ↓reduceIte]
+    ipureintro
+    exact ⟨trivial, fun h => by cases h⟩
+  have hvalid : CfgValid cfg := by unfold CfgValid; omega
   obtain ⟨hH, hB, hP⟩ := Hcfg hvalid
   -- the revision bound, at `0`
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γb, Hba, -⟩
@@ -201,6 +259,8 @@ theorem newCache.wp_proof
     hγwo, hγwc, hstop, hγop, hγb⟩ := hf
   rw [eInv, eOpen, eCert, eRev]
   -- the cache's predicate
+  ihave #HclkFor : isClockFor clk (cacheClockOk cfg) $$ []
+  · iapply isClock_isClockFor $$ Hclk
   ihave #HisCF : isCacheFields «$r0_ptr» cf γr γd (sint.nat cfg.HistoryWindowSize') $$ []
   · unfold isCacheFields
     rw [hpfx, hcfg, hrd, hd, hst, hγs, hscap, hkv, hpr, hw, hictx, hclk, hγwg, hstop]
@@ -210,7 +270,8 @@ theorem newCache.wp_proof
       isplitl []
       · iexact Hictx
       · iexact Hcc
-    ipureintro; exact ⟨hP, Hthr⟩
+    ipureintro
+    exact ⟨⟨hP.1, hP.2.1⟩, ⟨hvalid.2.2.1, hvalid.2.2.2.1, hP.2.2⟩, Hthr⟩
   ihave #HwgInv' : inv cacheWgN (cacheWgInv cf) $$ [HwgInv]
   · iexact HwgInv
   ihave #HisWg' : sync.isWaitGroup (cacheWgAddr «$r0_ptr») cf.γwg cacheWgWGN $$ []

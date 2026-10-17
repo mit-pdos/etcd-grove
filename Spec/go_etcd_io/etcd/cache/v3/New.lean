@@ -29,7 +29,7 @@ the options applied in order (`cfgApply gs defaultConfigVal`); if it is rejected
 cache for the prefix and the configuration with its handles (`newCacheResult`: `isCacheFields`,
 the readers of `Get`, the slots of `Watch`, the handles of `WaitForNextResync`, the token of
 `Close`), its resync loop, watch loop and progress requestor running on the real clock
-(`realClock`). An accepted configuration must be `CfgBounded` (finding 5). It takes
+(`realClock`). An accepted configuration must be `CfgBounded` (finding 5; since etcd#22408 also `MaxBackoff < 2^62`). It takes
 `context.isClosedchanInit`, `context`'s package-init fact about `closedchan` (persistent; a
 program's `main` has it once `context` is initialized), which the internal context's
 `WithCancel(Background())` needs. -/

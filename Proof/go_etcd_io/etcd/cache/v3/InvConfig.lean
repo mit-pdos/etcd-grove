@@ -47,9 +47,12 @@ theorem cfgApply_take_succ [FfiSyntax] (gs : List (Config → Config)) (c : Conf
   rw [List.take_add_one, h]
   simp
 
-/-- `newCache`'s validation: `HistoryWindowSize > 0` and `BTreeDegree >= 2`. -/
+/-- `newCache`'s validation: `HistoryWindowSize > 0`, `BTreeDegree >= 2`, and (etcd#22408)
+`InitialBackoff > 0`, `MaxBackoff >= InitialBackoff` and `GetTimeout > 0`. -/
 def CfgValid [FfiSyntax] (c : Config) : Prop :=
-  0 < sint.Z c.HistoryWindowSize' ∧ 2 ≤ sint.Z c.BTreeDegree'
+  0 < sint.Z c.HistoryWindowSize' ∧ 2 ≤ sint.Z c.BTreeDegree' ∧
+    0 < sint.Z c.InitialBackoff' ∧ sint.Z c.InitialBackoff' ≤ sint.Z c.MaxBackoff' ∧
+    0 < sint.Z c.GetTimeout'
 
 instance CfgValid.decidable [FfiSyntax] (c : Config) : Decidable (CfgValid c) := by
   unfold CfgValid; infer_instance
@@ -62,7 +65,21 @@ below `2^32` (the bound below which Perennial's `make(chan T, n)` is defined: a 
 size makes `makechan` panic). -/
 def CfgBounded [FfiSyntax] (c : Config) : Prop :=
   sint.Z c.HistoryWindowSize' ≤ 2 ^ 61 ∧ sint.Z c.BTreeDegree' ≤ 2 ^ 62 ∧
-    0 ≤ sint.Z c.PerWatcherBufferSize' ∧ sint.Z c.PerWatcherBufferSize' < 2 ^ 32
+    0 ≤ sint.Z c.PerWatcherBufferSize' ∧ sint.Z c.PerWatcherBufferSize' < 2 ^ 32 ∧
+    sint.Z c.MaxBackoff' < 2 ^ 62
+
+/-- The watch loop's backoff stays in `[InitialBackoff, MaxBackoff]` (etcd#22408): `newCache`
+checks the first two, the third is `CfgBounded`'s (the PR's doubling wraps above `2^62`,
+`backoffAt_wraps`). -/
+def BackoffOk [FfiSyntax] (c : Config) : Prop :=
+  0 < sint.Z c.InitialBackoff' ∧ sint.Z c.InitialBackoff' ≤ sint.Z c.MaxBackoff' ∧
+    sint.Z c.MaxBackoff' < 2 ^ 62
+
+/-- The durations the cache asks its `Clock` for: the watch loop's backoff, in
+`[InitialBackoff, MaxBackoff]`, and `Watch`'s `ProgressNotifyInterval` (etcd#22408). -/
+def cacheClockOk [FfiSyntax] (c : Config) (d : w64) : Prop :=
+  (sint.Z c.InitialBackoff' ≤ sint.Z d ∧ sint.Z d ≤ sint.Z c.MaxBackoff') ∨
+    d = c.ProgressNotifyInterval'
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -97,7 +97,8 @@ def cacheHandles (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (γn : Notifi
     notifierLb γn 0 ∗ cacheOpen cf 1)
 
 /-- What `newCache`/`New` return for the prefix `pfx` and the configuration `cfg`: if `cfg` is
-rejected (`HistoryWindowSize ≤ 0` or `BTreeDegree < 2`), `nil` and a non-nil error; otherwise a
+rejected (`¬ CfgValid cfg`: `HistoryWindowSize ≤ 0`, `BTreeDegree < 2`, `InitialBackoff ≤ 0`,
+`MaxBackoff < InitialBackoff` or `GetTimeout ≤ 0`), `nil` and a non-nil error; otherwise a
 `*Cache` `c` and `nil`, with `c` a cache (`isCacheFields`, every field) for the prefix and the
 configuration, a history of capacity `HistoryWindowSize`, and its handles (`cacheHandles`). -/
 def newCacheResult (pfx : GoString) (cfg : Config) (c : Loc) (err : GoInterface) : IProp GF :=

@@ -1,0 +1,5 @@
+=== RUN   TestCacheBootstrapsWithSlowGet
+    backoff_probe_test.go:121: bootstrap Gets: 1 started, 1 completed
+--- PASS: TestCacheBootstrapsWithSlowGet (0.00s)
+PASS
+ok  	go.etcd.io/etcd/cache/v3	0.021s

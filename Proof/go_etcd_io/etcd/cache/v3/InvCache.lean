@@ -29,6 +29,7 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.InvDemux
 public import Proof.go_etcd_io.etcd.cache.v3.InvReady
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcd
+public import Proof.go_etcd_io.etcd.cache.v3.InvConfig
 
 @[expose] public section
 
@@ -249,6 +250,27 @@ def isClock (clk : GoInterfaceOk) : IProp GF :=
 
 instance isClock_persistent (clk : GoInterfaceOk) : Persistent (isClock (GF := GF) clk) := by
   unfold isClock; infer_instance
+
+/-- `clk` is a `Clock` as the cache may use it: `NewTimer(d)` returns a timer for a duration `d`
+with `P d`. A proof against `isClockFor clk P` shows that the code asks the clock only for
+durations with `P` (etcd#22408: the watch loop's backoff). Any `Clock` (`isClock`) is one, for any
+`P` (`isClock_isClockFor`). -/
+def isClockFor (clk : GoInterfaceOk) (P : time.Duration → Prop) : IProp GF :=
+  iprop(∀ d : time.Duration, {{ ⌜P d⌝ }} (App (Val #(methods clk.ty go!"NewTimer" clk.v)) (Val #d))
+    {{ (t : GoInterfaceOk), RET #(GoInterface.ok t); isTimer t }})
+
+instance isClockFor_persistent (clk : GoInterfaceOk) (P : time.Duration → Prop) :
+    Persistent (isClockFor (GF := GF) clk P) := by
+  unfold isClockFor; infer_instance
+
+theorem isClock_isClockFor (clk : GoInterfaceOk) (P : time.Duration → Prop) :
+    isClock (GF := GF) clk ⊢ isClockFor clk P := by
+  unfold isClock isClockFor
+  iintro #H %d
+  imodintro
+  iintro %Φ - HΦ
+  iapply H $$ %d [] HΦ
+  itrivial
 
 /-- `r` is a `*realTimer` (`cache/clock.go`, persistent): its `timer` is, for good, a `*time.Timer`
 made by `time.NewTimer` (Perennial's `time.isTimer`, the trust boundary of the timers). -/
@@ -1345,13 +1367,14 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#HisICtx" ∷ (∃ ics : context.ContextDesc (IProp GF),
       context.isContext cf.ictx ics ∗ context.isCancelCtxCtx cf.ictx ics) ∗
     "#Hclock" ∷ cacheClockAddr c ↦□ GoInterface.ok cf.clock ∗
-    "#HisClock" ∷ isClock cf.clock ∗
+    "#HisClock" ∷ isClockFor cf.clock (cacheClockOk cf.cfg) ∗
     "#HisWg" ∷ sync.isWaitGroup (cacheWgAddr c) cf.γwg cacheWgWGN ∗
     "#HwgInv" ∷ inv cacheWgN (cacheWgInv cf) ∗
     "#Hstop" ∷ cacheStopAddr c ↦□ cf.stop ∗
     "#HisStop" ∷ □ (∀ Φ : val → IProp GF, □ (True : IProp GF) -∗ ▷ (True -∗ Φ #()) -∗
       WP (App (Val #cf.stop) (Val #())) {{ Φ }}) ∗
     "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize' ∧ sint.Z cf.cfg.PerWatcherBufferSize' < 2 ^ 32⌝ ∗
+    "%Hbackoff" ∷ ⌜BackoffOk cf.cfg⌝ ∗
     "%Hthreads" ∷ ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝)
 
 instance isCacheFields_persistent (c : Loc) (cf : CacheFields) (γr : ReadyNames)

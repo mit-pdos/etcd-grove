@@ -694,13 +694,9 @@ theorem Cache.wp_getWatch :
     Cache.getWatch.spec (GF := GF) (hG := hG) :=
   Cache.getWatch.wp_proof Cache.wp_get Cache.wp_watch
 
-theorem wp_defaultConfig :
-    defaultConfig.spec (GF := GF) (hG := hG) :=
-  defaultConfig.wp_proof
-
 theorem Cache.wp_getWatchLoop :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) :=
-  Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch fmt.wp_Printf time.Duration.wp_String
+  Cache.getWatchLoop.wp_proof Cache.wp_getWatch fmt.wp_Printf time.Duration.wp_String
 
 theorem wp_newNotifier :
     newNotifier.spec (GF := GF) (hG := hG) :=
@@ -738,6 +734,10 @@ theorem conditionalProgressRequestor.wp_run :
     conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
   conditionalProgressRequestor.run.wp_proof fmt.wp_Printf
 
+theorem wp_defaultConfig :
+    defaultConfig.spec (GF := GF) (hG := hG) :=
+  defaultConfig.wp_proof
+
 theorem demux.wp_Compact :
     demux.Compact.spec (GF := GF) (hG := hG) :=
   demux.Compact.wp_proof demux.wp_purge
@@ -760,7 +760,7 @@ theorem wp_newConditionalProgressRequestor :
 
 theorem wp_newCache :
     newCache.spec (GF := GF) (hG := hG) :=
-  newCache.wp_proof wp_newStore wp_newReady wp_newConditionalProgressRequestor wp_NewDemux Cache.wp_getWatchLoop conditionalProgressRequestor.wp_run
+  newCache.wp_proof wp_newStore wp_newReady wp_newConditionalProgressRequestor wp_NewDemux Cache.wp_getWatchLoop conditionalProgressRequestor.wp_run fmt.wp_Errorf time.Duration.wp_String
 
 theorem ready.wp_WaitNotReady :
     ready.WaitNotReady.spec (GF := GF) (hG := hG) :=

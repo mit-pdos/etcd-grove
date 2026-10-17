@@ -164,7 +164,7 @@ Cache__watchEvents: WithPrefix WithRev WithProgressNotify WithCreatedNotify read
 Cache__watch: demux__Init newWatcher demux__Register Cache__applyStorage Cache__watchEvents demux__Unregister
 Cache__getWatch: Cache__get Cache__watch
 defaultConfig:
-Cache__getWatchLoop: defaultConfig Cache__getWatch fmt_Printf time_Duration__String
+Cache__getWatchLoop: Cache__getWatch fmt_Printf time_Duration__String
 Cache__Watch: Cache__WaitReady OpWatch Op__Rev Cache__validateWatch newWatcher demux__Register Op__IsProgressNotify demux__BroadcastProgressTo demux__Unregister
 # The rest of the package (2026-10-09): the configuration's options (cache/config.go, see
 # InvConfig.lean), the real clock (cache/clock.go; Perennial's time.NewTimer, Timer.Stop,
@@ -192,5 +192,5 @@ demux__WaitForNextResync: notifier__wait
 NewDemux: newDemux demux__resyncLoop
 Cache__WaitForNextResync: demux__WaitForNextResync
 Cache__Close:
-newCache: newStore newReady newConditionalProgressRequestor NewDemux Cache__getWatchLoop conditionalProgressRequestor__run
+newCache: newStore newReady newConditionalProgressRequestor NewDemux Cache__getWatchLoop conditionalProgressRequestor__run fmt_Errorf time_Duration__String
 v3_New: defaultConfig newCache realClock__NewTimer

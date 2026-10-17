@@ -127,6 +127,9 @@ theorem cacheBound_dom (cf : CacheFields) (r : w64) (hr : 0 ≤ sint.Z r) :
       omega
     · omega
 
+-- `wp_load` from a persistent struct points-to (see `Cache__waitTillRevision.lean`).
+attribute [-instance] Config.Config_access_store_GetTimeout
+
 theorem Cache.get.wp_proof
     (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
     (wp_Restore : store.Restore.spec (GF := GF) (hG := hG)) :
@@ -139,7 +142,15 @@ theorem Cache.get.wp_proof
   · iPkgInit
   unfold isCacheFields
   iNamed Hc
-  wp_auto
+  ihave #Hcfg' := Hcfg
+  iStructNamedPrefix Hcfg' "Cfg"
+  ihave #Hctxpkg : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  wp_apply wp_with_defer as %defer defer
+  try wp_auto
+  -- `ctx, cancel := context.WithTimeout(ctx, c.cfg.GetTimeout)` (etcd#22408), `defer cancel()`
+  wp_apply context.wp_WithTimeout $$ [$Hctx] as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx'⟩
+  try wp_auto
   wp_apply wp_WithPrefix as %f1 #Hf1
   wp_apply wp_slice_literal
   isplitr
@@ -160,9 +171,9 @@ theorem Cache.get.wp_proof
     · cases Hf; cases Hg; iexact Hf1
     · simp at Hf
   iunfold isEtcdKVE at HisKV
-  ihave #HG := HisKV $$ %ctx %s %cf.pfx %optsSl %([withPrefixM] : List (OpFull → OpFull)) %B
+  ihave #HG := HisKV $$ %ctx' %_ %cf.pfx %optsSl %([withPrefixM] : List (OpFull → OpFull)) %B
   wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
-  · iframe Hctx Hopts HRB
+  · iframe Hctx' Hopts HRB
     ipureintro
     refine ⟨?_, opGetModel_withPrefix_t cf.pfx⟩
     rintro ⟨-, h⟩
@@ -174,6 +185,9 @@ theorem Cache.get.wp_proof
       | nil => exact absurd rfl Herr
       | ok e => exact ⟨e, rfl⟩
     wp_auto
+    -- the deferred `cancel()`
+    wp_apply Hcancel
+    try wp_auto
     iapply HΦ
     ileft
     isplitr
@@ -210,6 +224,9 @@ theorem Cache.get.wp_proof
         rw [restoreMap_sorted m Hsorted]
         iexact Hm
       iexact HRr
+    -- the deferred `cancel()`
+    wp_apply Hcancel
+    try wp_auto
     iapply HΦ
     iright
     isplitr

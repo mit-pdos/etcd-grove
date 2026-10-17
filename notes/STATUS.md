@@ -45,6 +45,18 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## PR verification: etcd-io/etcd#22408, the cache's configured back-off and Get timeout (2026-10-17, branch `pr-verify/etcd-22408`)
+
+Not for `lean`: the translation is of the fork branch `pr-etcd-22408-goose-lean` (the pin plus the
+PR), so `etc/goose.py --check` fails here. `CfgValid` gains the PR's three checks (`newCache` and
+`New` reject them); `CfgBounded` gains `MaxBackoff < 2^62` (the PR's doubling wraps above it,
+`backoffAt_wraps`); `isCacheFields` now holds the clock as `isClockFor clock (cacheClockOk cfg)`
+(`NewTimer` only for a backoff in `[InitialBackoff, MaxBackoff]` or `ProgressNotifyInterval`) and
+`BackoffOk cfg`, so `getWatchLoop`'s proof shows every retry timer is in range (the schedule
+`backoffAt` is its loop invariant); `get`'s proof goes through `context.WithTimeout`. No new
+axiom or `sorry`. The pinned code's bug the PR fixes: `issues/etcd-cache-config-retry-unread.md`.
+Report: `notes/pr-verify/etcd-22408.md`.
+
 ## Retargeting raft to v3.7, stage R8b: the new cluster's start, `StartNode` and the server's raft wrapper (2026-10-16, branch `raft-retarget`)
 
 Stage R8b (`notes/decisions.md`, "The new cluster's start: the bootstrap log in raft's model",

@@ -1,0 +1,20 @@
+--- FAIL: TestCacheRetriesUpstreamWatchWithConfiguredBackoff (0.00s)
+    cache_test.go:1083: retry schedule differs (-want +got):
+          []time.Duration{
+        - 	100000000, 200000000, 400000000, 400000000,
+        + 	50000000, 50000000, 50000000, 50000000, 50000000, 50000000, 50000000, 50000000,
+        + 	50000000, 50000000, 50000000, 50000000, 50000000, 50000000, 50000000, 50000000,
+        + 	50000000, 50000000, 50000000, 50000000, 50000000, 50000000,
+          }
+--- FAIL: TestCacheBoundsBootstrapGetByGetTimeout (0.00s)
+    cache_test.go:1110: bootstrap Get was held for 1s, want GetTimeout 250ms
+--- FAIL: TestNewCacheRejectsUnusableRetrySettings (0.00s)
+    --- FAIL: TestNewCacheRejectsUnusableRetrySettings/zero_InitialBackoff (0.00s)
+        cache_test.go:1130: expected an error, got none
+    --- FAIL: TestNewCacheRejectsUnusableRetrySettings/MaxBackoff_below_InitialBackoff (0.00s)
+        cache_test.go:1130: expected an error, got none
+    --- FAIL: TestNewCacheRejectsUnusableRetrySettings/zero_GetTimeout (0.00s)
+        cache_test.go:1130: expected an error, got none
+FAIL
+FAIL	go.etcd.io/etcd/cache/v3	0.029s
+FAIL

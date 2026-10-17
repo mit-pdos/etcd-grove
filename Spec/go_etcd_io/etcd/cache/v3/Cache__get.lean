@@ -24,7 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `c.get(ctx)`, by the holder of the cache's revision bound (`cacheBound`, at `B`): the client's
-prefix get, then `store.Restore(resp.Kvs, resp.Header.Revision)`. Either the client's error and
+prefix get (on `context.WithTimeout(ctx, c.cfg.GetTimeout)` since etcd#22408, cancelled on return;
+a timeout is one more way for the get to fail, which the triple already allows), then `store.Restore(resp.Kvs, resp.Header.Revision)`. Either the client's error and
 `nil` (nothing changed; the error's `Error()` returns some string, `errStrOk`), or the response and `nil`: the header revision `R` is at least `B` and
 below `2 ^ 63 - 1`, the bound is now `R`, and the store's latest revision and newest snapshot are
 at least `R` (the newest snapshot, its latest map, etcd's state at it: the store's certificate).

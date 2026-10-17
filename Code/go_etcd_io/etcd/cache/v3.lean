@@ -308,6 +308,9 @@ noncomputable def newCache.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "client" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "client"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -395,6 +398,31 @@ noncomputable def newCache.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "internalCtx") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"GetTimeout"))) (Var "cfg"))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Cache.ty)))) (Val UntypedNil)) (Let "$a0" (Val #(go!"invalid GetTimeout %v (must be > 0)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"GetTimeout"))) (Var "cfg"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxBackoff"))) (Var "cfg"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"InitialBackoff"))) (Var "cfg"))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Cache.ty)))) (Val UntypedNil)) (Let "$a0" (Val #(go!"invalid MaxBackoff %v (must be >= InitialBackoff %v)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxBackoff"))) (Var "cfg"))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"InitialBackoff"))) (Var "cfg"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"InitialBackoff"))) (Var "cfg"))) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Cache.ty)))) (Val UntypedNil)) (Let "$a0" (Val #(go!"invalid InitialBackoff %v (must be > 0)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"InitialBackoff"))) (Var "cfg"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"BTreeDegree"))) (Var "cfg"))) (Val #(W64 2)))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Cache.ty)))) (Val UntypedNil)) (Let "$a0" (Val #(go!"invalid BTreeDegree %d (must be >= 2)"))
@@ -412,7 +440,7 @@ noncomputable def newCache.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: cache.go:109:17 -/
+/-- go: cache.go:118:17 -/
 noncomputable def Cache.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -427,7 +455,7 @@ noncomputable def Cache.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : val
 /-- Watch registers a cache-backed watcher for a given key or prefix.
     It returns a WatchChan that streams WatchResponses containing events.
 
-    go: cache.go:116:17 -/
+    go: cache.go:125:17 -/
 noncomputable def Cache.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -661,7 +689,7 @@ noncomputable def Cache.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))))
 
-/-- go: cache.go:192:17 -/
+/-- go: cache.go:201:17 -/
 noncomputable def Cache.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -808,7 +836,7 @@ noncomputable def Cache.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Ready returns true if the snapshot has been loaded and the first watch has been confirmed.
 
-    go: cache.go:234:17 -/
+    go: cache.go:243:17 -/
 noncomputable def Cache.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -819,7 +847,7 @@ noncomputable def Cache.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- WaitReady blocks until the cache is ready or the ctx is cancelled.
 
-    go: cache.go:239:17 -/
+    go: cache.go:248:17 -/
 noncomputable def Cache.WaitReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -830,7 +858,7 @@ noncomputable def Cache.WaitReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ready.ty) go!"WaitReady"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ready.ty)))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"ready"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))))) (Var "$a0")))))))))
 
-/-- go: cache.go:243:17 -/
+/-- go: cache.go:252:17 -/
 noncomputable def Cache.WaitForRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -859,7 +887,7 @@ noncomputable def Cache.WaitForRevision.impl [FfiSyntax] [GoGlobalContext] : val
   (Lam BAnon
   (Val #()))))))))))
 
-/-- go: cache.go:256:17 -/
+/-- go: cache.go:265:17 -/
 noncomputable def Cache.serverRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -906,7 +934,7 @@ noncomputable def Cache.serverRevision.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$r0"))))))))))))
 
-/-- go: cache.go:268:17 -/
+/-- go: cache.go:277:17 -/
 noncomputable def Cache.waitTillRevision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -995,7 +1023,7 @@ noncomputable def Cache.waitTillRevision.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- Close cancels the private context and blocks until all goroutines return.
 
-    go: cache.go:307:17 -/
+    go: cache.go:316:17 -/
 noncomputable def Cache.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1010,7 +1038,7 @@ noncomputable def Cache.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c")))) (Val #())))))))))
 
-/-- go: cache.go:312:17 -/
+/-- go: cache.go:321:17 -/
 noncomputable def Cache.getWatchLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1019,28 +1047,43 @@ noncomputable def Cache.getWatchLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve defaultConfig []))) (Val #())) (Val #()))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"internalCtx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"InitialBackoff"))) (Var "cfg")))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"InitialBackoff"))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c")))))
   (Let "backoff" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff"))
+  (App (App (Val (GoInstruction (MethodResolve Clock.ty go!"NewTimer"))) (App (Val (GoInstruction (GoLoad Clock.ty))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))))) (Var "$a0")))
+  (Let "timer" (App (Val (GoInstruction (GoAlloc Timer.ty))) (App (Val (GoInstruction (GoZeroVal Timer.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxBackoff"))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxBackoff"))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff")) (Val #(W64 2))))))))))
   (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
-  (Let "$ch1" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "backoff"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve Timer.ty go!"Chan"))) (App (Val (GoInstruction (GoLoad Timer.ty))) (Var "timer"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #())))),
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve Timer.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad Timer.ty))) (Var "timer"))) (Val #())))))),
   (CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch1")) (Lam "$recvVal"
   (App (Val doExecute)
-  (Val #()))))]))))))
+  (Val #()))))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Timer.ty))) (Pair (Var "timer") (Var "$r0")))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cache.ty) go!"getWatch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))) (Val #()))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1070,11 +1113,9 @@ noncomputable def Cache.getWatchLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "backoff") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
 
-/-- go: cache.go:331:17 -/
+/-- go: cache.go:345:17 -/
 noncomputable def Cache.getWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1104,13 +1145,25 @@ noncomputable def Cache.getWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "getResp") (Var "$r0"))))))))))))))))
 
-/-- go: cache.go:339:17 -/
+/-- go: cache.go:353:17 -/
 noncomputable def Cache.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
-  (App (Val exceptionDo)
+  (App (Val wrapDefer)
+  (Lam "$defer"
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cache.ty)))) (Var "c"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"GetTimeout"))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"prefix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))))
   (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithPrefix []))) (Val #())) (Val #()))
@@ -1140,9 +1193,19 @@ noncomputable def Cache.get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel"))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))
 
-/-- go: cache.go:348:17 -/
+/-- go: cache.go:365:17 -/
 noncomputable def Cache.watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "rev"
@@ -1235,7 +1298,7 @@ noncomputable def Cache.watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType demux.ty) go!"Init"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType demux.ty)))) (App (Val (GoInstruction (StructFieldRef Cache.ty go!"demux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cache.ty)))) (Var "c"))))) (Var "$a0"))))))))))
 
-/-- go: cache.go:375:17 -/
+/-- go: cache.go:392:17 -/
 noncomputable def Cache.applyStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "storeW"
@@ -1283,7 +1346,7 @@ noncomputable def Cache.applyStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #()))))))))
 
-/-- go: cache.go:391:17 -/
+/-- go: cache.go:408:17 -/
 noncomputable def Cache.watchEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "rev"
@@ -1381,7 +1444,7 @@ noncomputable def Cache.watchEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Pair (Var "watchCh") (Var "$r0"))))))))))))))))
 
-/-- go: cache.go:425:17 -/
+/-- go: cache.go:442:17 -/
 noncomputable def Cache.validateWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1454,7 +1517,7 @@ noncomputable def Cache.validateWatch.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #()))))))))))))))))))
 
-/-- go: cache.go:448:17 -/
+/-- go: cache.go:465:17 -/
 noncomputable def Cache.validateGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -1548,7 +1611,7 @@ noncomputable def Cache.validateGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))))))))))
 
-/-- go: cache.go:478:17 -/
+/-- go: cache.go:495:17 -/
 noncomputable def Cache.validateRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "startKey"
@@ -1638,7 +1701,7 @@ noncomputable def Cache.validateRange.impl [FfiSyntax] [GoGlobalContext] : val :
 
 /-- WaitForNextResync blocks until the next resync loop iteration is complete.
 
-    go: cache.go:516:17 -/
+    go: cache.go:533:17 -/
 noncomputable def Cache.WaitForNextResync.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"

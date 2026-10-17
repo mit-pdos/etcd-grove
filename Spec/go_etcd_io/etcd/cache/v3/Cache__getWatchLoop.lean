@@ -25,8 +25,15 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `c.getWatchLoop()`, by the demux's writer (`cacheWriter`, any state, with the revision bound)
 in a goroutine of the cache's wait group: until the internal context is done, it runs `getWatch`
-(a `get` and a `watch`), prints its error (`fmt.Printf`), and waits for the backoff (`time.After`)
-or the internal context. It returns once the internal context is done, with the wait-group token
+(a `get` and a `watch`), prints its error (`fmt.Printf`), and waits for the backoff (a timer of
+the cache's `Clock`, stopped if the internal context ends first) or the internal context.
+
+The backoff (etcd#22408): the cache's clock is `isClockFor cf.clock (cacheClockOk cf.cfg)`
+(`isCacheFields`), so the proof shows that every retry timer is in
+`[InitialBackoff, MaxBackoff]`, given `BackoffOk cf.cfg` (`isCacheFields`: `newCache`'s checks and
+`CfgBounded`'s `MaxBackoff < 2^62`, without which the doubling wraps, `backoffAt_wraps`). The
+exact schedule, `min(InitialBackoff·2^k, MaxBackoff)`, is the proof's loop invariant (`backoffAt`,
+`backoffAt_eq_min` in `Proof/.../Cache__getWatchLoop.lean`), not part of this triple. It returns once the internal context is done, with the wait-group token
 and the demux's writer, in some state.
 
 The store has several writers: each `watch` iteration's `applyStorage` goroutine may outlive its
