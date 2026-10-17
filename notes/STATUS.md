@@ -5053,6 +5053,11 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     before the commit; `notify`'s spec says both hold at `N + 1` after it. The `Wo` bound is what
     lets `moveVictims` move a victim back to synced within it (the mover's batch needs no ghost);
     the monotone `γ.wlog` (K2e-2) is not used by it, kept for (c) below.
+  - **K2e-4 (done)**: `covFact` says the covered watcher's deliveries stop at the response's
+    revision (`d ≤ p + 1`, or none: `d ≤ lo`). `send` is lent a fraction of each covered watcher's
+    delivered-events authority (`covAuth`), so in `cov_one` the channel's events are the sender's;
+    `progressIfSync` lends them from the lock's shares (`members_lend`, the map's watchers
+    deduplicated). Item (b) below is done; (c) remains.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
