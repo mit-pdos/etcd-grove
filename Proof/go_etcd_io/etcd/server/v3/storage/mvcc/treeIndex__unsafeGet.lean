@@ -33,7 +33,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
   wp_auto
   iStructNamedPrefix «$r0» "K"
   ipersist Kkey
-  wp_apply (hKeyIndex ti t L q «$r0_ptr» k) $$ [$Htr] as %p ⟨Htr, %Hp⟩
+  wp_apply (hKeyIndex ti t L lf q «$r0_ptr» k) $$ [$Htr] as %p ⟨Htr, %Hp⟩
   · iframe Htree
     iunfold mvcc.kiItemIs
     isplitl []
@@ -50,9 +50,10 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     simp only [Option.map_none, Option.getD_none] at Hp Hidx
     subst Hp
     wp_auto
-    have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
+    have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) lf atRev
         (GoInterface.ok e) =
-        PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) := by
+        PairV (PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(W64 0))
+          #(GoInterface.ok e) := by
       rw [Hidx]; rfl
     rw [← h]
     iapply HΦ
@@ -66,31 +67,33 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     subst Hp
     obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
     -- the key index's key (`ki.get` reads it to log a panic)
-    ihave Htr : iprop(mvcc.ownTree t L q) $$ [Ht Hkis]
+    ihave Htr : iprop(mvcc.ownTree t L lf q) $$ [Ht Hkis]
     · iunfold mvcc.ownTree; iframe Ht Hkis; ipureintro; exact Hsorted
     icases mvcc.ownTree_entry t L _ q z (List.mem_of_getElem? hi) $$ Htr with ⟨Htr, -, #HzKey⟩
     iunfold mvcc.ownTree at Htr
     icases Htr with ⟨-, Ht, Hkis⟩
-    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z q) hi |>.1 $$ Hkis
+    icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z lf q) hi |>.1 $$ Hkis
       with ⟨Hz, Hback⟩
     iunfold mvcc.ownEntry at Hz
     icases Hz with ⟨%Hn, %gs, Hki⟩
     wp_if_destruct
     · exact absurd Hif Hn
-    wp_apply (hGet z.1 gs z.2.2 z.2.1 (DFrac.own q) lg atRev e) $$ [$HzKey $Hki $Herr] as %r Hr
+    wp_apply (hGet z.1 gs z.2.2 lf z.2.1 (DFrac.own q) lg atRev e) $$ [$HzKey $Hki $Herr] as %r Hr
     · ipureintro; exact Hlgnn
     simp only [Hne z (List.mem_of_getElem? hi), Bool.false_eq_true, ↓reduceIte]
     icases Hr with ⟨%Hr, Hki⟩
     subst Hr
     cases hg : mvcc.kiGet z.2.2 atRev with
     | none =>
-      rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) =
-        PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e)
+      rw [show mvcc.kiGetVal z.2.2 lf atRev (GoInterface.ok e) =
+        PairV (PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(W64 0))
+          #(GoInterface.ok e)
         from by simp only [mvcc.kiGetVal, hg]]
       wp_auto
-      have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
+      have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) lf atRev
           (GoInterface.ok e) =
-          PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) := by
+          PairV (PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(W64 0))
+          #(GoInterface.ok e) := by
         rw [Hidx]; simp only [Option.getD_some, mvcc.kiGetVal, hg]
       rw [← h]
       iapply HΦ
@@ -103,8 +106,8 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
       have hset : L.set i z = L := by
         obtain ⟨h, e⟩ := List.getElem?_eq_some_iff.1 hi
         rw [← e]; exact List.set_getElem_self h
-      have hset' : ([∗list] z' ∈ L.set i z, mvcc.ownEntry (GF := GF) z' q) =
-          ([∗list] z' ∈ L, mvcc.ownEntry (GF := GF) z' q) := by rw [hset]
+      have hset' : ([∗list] z' ∈ L.set i z, mvcc.ownEntry (GF := GF) z' lf q) =
+          ([∗list] z' ∈ L, mvcc.ownEntry (GF := GF) z' lf q) := by rw [hset]
       rw [← hset']
       iapply Hback
       iunfold mvcc.ownEntry
@@ -114,13 +117,13 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
 
     | some r =>
       obtain ⟨m, c, v⟩ := r
-      rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) =
-        PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal c)) #v) #GoInterface.nil
+      rw [show mvcc.kiGetVal z.2.2 lf atRev (GoInterface.ok e) =
+        PairV (PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal c)) #v) #(lf m)) #GoInterface.nil
         from by simp only [mvcc.kiGetVal, hg]]
       wp_auto
-      have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
+      have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) lf atRev
           (GoInterface.ok e) =
-          PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal c)) #v) #GoInterface.nil := by
+          PairV (PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal c)) #v) #(lf m)) #GoInterface.nil := by
         rw [Hidx]; simp only [Option.getD_some, mvcc.kiGetVal, hg]
       rw [← h]
       iapply HΦ
@@ -133,8 +136,8 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
       have hset : L.set i z = L := by
         obtain ⟨h, e⟩ := List.getElem?_eq_some_iff.1 hi
         rw [← e]; exact List.set_getElem_self h
-      have hset' : ([∗list] z' ∈ L.set i z, mvcc.ownEntry (GF := GF) z' q) =
-          ([∗list] z' ∈ L, mvcc.ownEntry (GF := GF) z' q) := by rw [hset]
+      have hset' : ([∗list] z' ∈ L.set i z, mvcc.ownEntry (GF := GF) z' lf q) =
+          ([∗list] z' ∈ L, mvcc.ownEntry (GF := GF) z' lf q) := by rw [hset]
       rw [← hset']
       iapply Hback
       iunfold mvcc.ownEntry

@@ -54,6 +54,13 @@ def kiGetVal (ki : KeyIndex) (lf : Rev → w64) (atRev : w64) (e : GoInterface) 
   | none => PairV (PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0))
       #(W64 0)) #e
 
+/-- What `treeIndex.Get` returns (`modified, created, ver, err`: `keyIndex.get`'s results but the
+lease). -/
+def kiGetVal4 (ki : KeyIndex) (atRev : w64) (e : GoInterface) : val :=
+  match kiGet ki atRev with
+  | some (m, c, v) => PairV (PairV (PairV #(revVal m) #(revVal c)) #v) #(GoInterface.nil)
+  | none => PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #e
+
 end defs
 
 section addrs

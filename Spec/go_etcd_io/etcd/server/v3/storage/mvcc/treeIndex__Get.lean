@@ -37,7 +37,7 @@ abbrev mvcc.treeIndex.Get.spec : Prop :=
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}
     (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Get")) (Val #key))
       (Val #atRev))
-  {{ RET (mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf kn.log) k) atRev (GoInterface.ok e));
+  {{ RET (mvcc.kiGetVal4 (mvcc.kiOfKey (mvcc.evsOf kn.log) k) atRev (GoInterface.ok e));
       mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗ key ↦*□ k }}
 
 end spec

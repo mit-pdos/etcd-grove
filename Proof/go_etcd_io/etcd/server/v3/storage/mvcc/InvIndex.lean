@@ -824,6 +824,62 @@ theorem idxCmpOwn_combine (γ : IdxNames) (L : List IdxEntry) (c1 c2 : Int) (q1 
     iframe H1 H2
   ipureintro; exact Hp1
 
+/-! ### The leases of the index's revisions (`evLease`) -/
+
+/-- The lease of a revision some event has does not change with later events. -/
+theorem evLease_append_of_mem {evs : List Ev} {r : Rev} (h : ∃ e ∈ evs, e.rev = r)
+    (evs' : List Ev) : evLease (evs ++ evs') r = evLease evs r := by
+  unfold evLease
+  rw [List.find?_append]
+  obtain ⟨e, he, hr⟩ := h
+  cases hf : evs.find? (fun e => decide (e.rev = r)) with
+  | none =>
+    exact absurd (List.find?_eq_none.1 hf e he) (by simp [hr])
+  | some x => rfl
+
+/-- A revision of a key index of the tree is an event's (compaction only drops revisions). -/
+theorem IdxCRep.rev_mem {cmax : Int} {evs : List Ev} {L : List IdxEntry}
+    (h : IdxCRep cmax evs (idxOfEntries L)) {z : IdxEntry} (hz : z ∈ L) {r : Rev}
+    (hr : r ∈ kiRevs z.2.2) : ∃ e ∈ evs, e.rev = r := by
+  have hmem : (z.2.1, z.2.2) ∈ idxOfEntries L := by
+    unfold idxOfEntries; exact List.mem_map_of_mem hz
+  have hg := idxGet_of_mem _ h.1 _ hmem
+  obtain ⟨c, -, -, hc, -⟩ := IdxCRep.get_some h hg
+  rw [hc] at hr
+  obtain ⟨e, he, h1, -⟩ := kiRevs_kiOfKey (kiRevs_kiCompact hr)
+  exact ⟨e, he, h1⟩
+
+/-- The tree's leases are unchanged by later events, at its revisions. -/
+theorem IdxCRep.evLease_append {cmax : Int} {evs : List Ev} {L : List IdxEntry}
+    (h : IdxCRep cmax evs (idxOfEntries L)) (evs' : List Ev) :
+    ∀ z ∈ L, ∀ r ∈ kiRevs z.2.2, evLease evs r = evLease (evs ++ evs') r :=
+  fun _ hz _ hr => (evLease_append_of_mem (h.rev_mem hz hr) evs').symm
+
+/-- A new event's lease, at its revision (no earlier event has it). -/
+theorem evLease_append_new {evs : List Ev} {ev : Ev} (h : ∀ e ∈ evs, e.rev ≠ ev.rev) :
+    evLease (evs ++ [ev]) ev.rev = ev.change.lease := by
+  unfold evLease
+  rw [List.find?_append]
+  have : evs.find? (fun e => decide (e.rev = ev.rev)) = none :=
+    List.find?_eq_none.2 fun e he => by simpa using h e he
+  rw [this]
+  simp
+
+/-- The pending revision's next change: its lease at its revision. -/
+theorem evLease_next (ilog : Log) (pend : List Change) (c : Change) (hlen : ilog.length < 2 ^ 63)
+    (hpend : pend.length < 2 ^ 63) :
+    evLease (evsOf (ilog ++ [pend ++ [c]])) ⟨W64 ilog.length, W64 pend.length⟩ = c.lease := by
+  rw [evsOf_append_change]
+  exact evLease_append_new (ev := evOfChange ilog.length pend.length c)
+    fun e he heq => Rev.lt_irrefl _ (heq ▸ evsOf_rev_lt ilog pend hlen hpend e he)
+
+/-- The tree's leases at its revisions are unchanged by the pending revision's next change. -/
+theorem IdxCRep.evLease_next {cmax : Int} {ilog : Log} {pend : List Change} {L : List IdxEntry}
+    (h : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L)) (c : Change) :
+    ∀ z ∈ L, ∀ r ∈ kiRevs z.2.2,
+      evLease (evsOf (ilog ++ [pend])) r = evLease (evsOf (ilog ++ [pend ++ [c]])) r := by
+  rw [evsOf_append_change]; exact h.evLease_append _
+
 /-- A key's index of any events is well formed (its fold from `kiEmpty`). -/
 theorem kiOfKey_KiWf_inv (evs : List Ev) (k : GoString) : KiWf (kiOfKey evs k) := by
   unfold kiOfKey
