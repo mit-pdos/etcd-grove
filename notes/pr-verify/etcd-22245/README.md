@@ -2,7 +2,7 @@
 
 Revisions: PR head `ab44f11fdf9bc05910e4a5045666857c32f1b9e9` (upstream base `ee043b39e`); fork branch
 `mit-pdos/etcd-grove` branch `pr-etcd-22245-goose-lean` (`3aacc0e73` the PR's non-test code onto
-`goose-lean` `09669450f`, `33d0a8fc9` its mvcc unit tests).
+`goose-lean` `09669450f`, `4294e7305` its mvcc unit tests).
 
 | File | What it shows | Runs against | Command |
 |---|---|---|---|
