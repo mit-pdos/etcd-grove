@@ -7998,6 +7998,31 @@ constructor contracts false. D14 settles the three.
   axiom (a statement about the Go code, whatever the workload); under D14h it is never exercised.
   `NewUberApplier.spec` names the raft status and the snapshot server (the server itself) in its
   premise, which was undischargeable.
+- **D14i (adopted 2026-10-17, the user's approval): the applier contracts carry the apply
+  thread's ownership.** Two of `apply.backendOptsOk`'s contracts hid resources only the apply
+  thread has, so no caller could establish them: `ForceSnapshot` writes `s.forceDiskSnapshot` (a
+  plain store), and `ConsistentIndex` reads `ci.be` with the owner's share and may load the index
+  (`SetConsistentIndex` from the backend). Now `apply.AEnv` has `FS` (the right to
+  `ForceSnapshot`, the server's `srvFS s`) and `ciC` (the kind of resource `ConsistentIndex` reads
+  under, the server's `srvCiC γ ci`: the apply protocol's state, not pending, with
+  `applyBackend`); `isSnapshotServer ss E.FS` is `{{ E.FS }} ForceSnapshot {{ E.FS }}` and
+  `isConsistentIndexer ci E.ciC` is, for every `C` with `E.ciC C`, `{{ C }} ConsistentIndex
+  {{ C }}`. They are threaded as D14f threaded the write token: `E.FS` in the cluster methods'
+  clause, `dispatch`, the uber-applier's `Apply`, `apply.Apply` and the server's apply thread
+  (`applyEntryNormal`, `apply`, `applyEntries` take `srvFS s`; `applyAll` lends it out of its
+  snapshot state); the consistent index's resources are lent out of the critical section's
+  precondition `Pre` (`ciSplit E Pre`: `Pre` holds such a `C`, given back), a premise of the
+  response methods' clause and, under `shouldApplyV3` (the only case they are called), of
+  `dispatch`/`Apply`; the server's `Pre` (`applyEntryNormal`'s) holds `applyThread ∗
+  applyBackend`. The server's fields record `srvEnvOk s γ ci E` (`E.FS = srvFS s`, `E.ciC = srvCiC
+  γ ci`). The contract over the real index holds for a fresh cluster (`γ.m0 = (0, 0)`:
+  `stLoaded` is the identity, the index loads `0`). With it, `NewServer` gives the uber-applier's
+  rows (`applierFor`, `applyKV` at `bootKV`), with three constructor axioms strengthened, each
+  true of the Go code: `NewAlarmStore` over a fresh alarm bucket gives `alarmFresh a`, under which
+  `Get` returns no alarm, and its apply contract (`Activate`, the map's only writer) for the token,
+  so `restoreAlarms` leaves the base alarm chain; `NewAuthStore` gives the enabled lock's reader
+  slots (one for the auth applier, one for the KV's resources); `NewLessor` the lessor lock's
+  reader slots (one for the store, one for the apply thread's lease owner).
 
 ## The client's construction: grpc's dial as descriptors, a trusted body (item 5, 2026-10-17)
 
