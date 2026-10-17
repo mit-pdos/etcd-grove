@@ -85,7 +85,7 @@ abbrev RawNode.Step.spec : Prop :=
   -- which takes no `MsgSnap` in either mode; a separate premise so that B8 can drop it.)
   DynNoSnap rs st.msg →
   -- (2026-10-13) a `MsgTimeoutNow`'s campaign does not wrap the term (`raft.Step`'s)
-  (st.msg.Type' = MsgTimeoutNow → uint.Z rs.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64) →
+  (st.msg.Type' = MsgTimeoutNow → uint.Z rs.term + 2 ^ 16 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 2 ^ 16 < 2 ^ 64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then
@@ -101,7 +101,7 @@ abbrev RawNode.Step.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
       "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧
                uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
-                 (if st.msg.Type' = MsgTimeoutNow then 1 else 0)⌝ }}
+                 (if st.msg.Type' = MsgTimeoutNow then 2 ^ 17 else 0)⌝ }}
 
 end spec
 

@@ -253,7 +253,7 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         ents = [] ∧ cl = []) ∧
-     (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
+     (m.Type' = MsgTimeoutNow → uint.Z s.term + 2 ^ 16 < 2 ^ 64 ∧ NStateWf s)) →
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧

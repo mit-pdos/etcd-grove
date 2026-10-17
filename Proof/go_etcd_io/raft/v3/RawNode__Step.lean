@@ -109,14 +109,14 @@ theorem RawNode.Step.wp_proof
       have HnP : m.Type' ≠ MsgProp := by not_net
       have Hsm : StepMsg m := netStepTypes_stepMsg Hty
       have Hrest : RestMsgOk s m ents ctx := Hok.restMsgOk (by rw [← Htrm]; exact Htn)
-      have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
+      have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 2 ^ 16 < 2 ^ 64 := by not_net
       have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
             (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) ∧
           s.prevote = true := by
         not_net
       have P3 : m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
-          (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
+          (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64) := by not_net
       have P4 : m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id := by not_net
       have P5 : m.Type' = MsgBeat → m.Term' = W64 0 := by not_net
@@ -175,7 +175,7 @@ theorem RawNode.Step.wp_proof
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
       have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
-          (if m.Type' = MsgTimeoutNow then 1 else 0) := by
+          (if m.Type' = MsgTimeoutNow then 2 ^ 17 else 0) := by
         by_cases h : m.Type' = MsgTimeoutNow
         · rw [ite_eq_left h]; exact Ht5 h
         · rw [ite_eq_right h]; have := Ht3 (by not_net) (by not_net) h; omega

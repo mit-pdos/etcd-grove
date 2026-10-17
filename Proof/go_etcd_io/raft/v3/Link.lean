@@ -188,6 +188,7 @@ public import Proof.go_etcd_io.raft.v3.raft__loadState
 public import Proof.go_etcd_io.raft.v3.raft__maybeCommit
 public import Proof.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Proof.go_etcd_io.raft.v3.raft__maybeSendSnapshot
+public import Proof.go_etcd_io.raft.v3.raft__nextTerm
 public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
 public import Proof.go_etcd_io.raft.v3.raft__poll
 public import Proof.go_etcd_io.raft.v3.raft__promotable
@@ -936,13 +937,17 @@ theorem raft.wp_hardState [StorageModel GF] :
     raft.hardState.spec (GF := GF) (hG := hG) :=
   raft.hardState.wp_proof
 
+theorem raft.wp_nextTerm [StorageModel GF] :
+    raft.nextTerm.spec (GF := GF) (hG := hG) :=
+  raft.nextTerm.wp_proof lockedRand.wp_Intn
+
 theorem wp_traceBecomeCandidate [StorageModel GF] :
     traceBecomeCandidate.spec (GF := GF) (hG := hG) :=
   traceBecomeCandidate.wp_proof
 
 theorem raft.wp_becomeCandidate [StorageModel GF] :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) :=
-  raft.becomeCandidate.wp_proof raft.wp_reset wp_traceBecomeCandidate
+  raft.becomeCandidate.wp_proof raft.wp_nextTerm raft.wp_reset wp_traceBecomeCandidate
 
 theorem raft.wp_becomePreCandidate [StorageModel GF] :
     raft.becomePreCandidate.spec (GF := GF) (hG := hG) :=
@@ -982,7 +987,7 @@ theorem raft.wp_promotable [StorageModel GF] :
 
 theorem raft.wp_campaign [StorageModel GF] :
     raft.campaign.spec (GF := GF) (hG := hG) :=
-  raft.campaign.wp_proof raft.wp_becomeCandidate raft.wp_becomePreCandidate raft.wp_poll raft.wp_send wp_voteRespMsgType raft.wp_promotable quorum.JointConfig.wp_IDs raftLog.wp_lastEntryID slices.wp_Sort raftpb.MessageType.wp_Enum
+  raft.campaign.wp_proof raft.wp_nextTerm raft.wp_becomeCandidate raft.wp_becomePreCandidate raft.wp_poll raft.wp_send wp_voteRespMsgType raft.wp_promotable quorum.JointConfig.wp_IDs raftLog.wp_lastEntryID slices.wp_Sort raftpb.MessageType.wp_Enum
 
 theorem raftLog.wp_scan [StorageModel GF] :
     raftLog.scan.spec (GF := GF) (hG := hG) :=

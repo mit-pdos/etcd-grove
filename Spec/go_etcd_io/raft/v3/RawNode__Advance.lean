@@ -78,7 +78,7 @@ entries, a non-rejecting `MsgAppResp`, a term bound). They are recorded now:
 abbrev RawNode.Advance.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
   rs.unpersisted = [] →
-  uint.Z rs.term + 1 < 2 ^ 64 →
+  uint.Z rs.term + 2 ^ 16 < 2 ^ 64 →
   rs.unst = false →
   -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
   -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
@@ -89,7 +89,7 @@ abbrev RawNode.Advance.spec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
       ownRawNode γ rn id { rs with steps := [], term := t, capplied := ca } ∗
-      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
+      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 2 ^ 17⌝ ∗
       -- with pre-vote off (`ownRawNode`'s scope) the term is kept (2026-10-10)
       ⌜t = rs.term⌝ ∗
       -- (2026-10-14) the configuration index moves up, to at most the committed log handed

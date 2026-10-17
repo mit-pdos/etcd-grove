@@ -24,9 +24,10 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 /-- What a tick does to the physical state beyond the protocol: the log as `NetFrame`
-keeps it, the term up by at most one (a campaign), `offsetInProgress` not back. -/
+keeps it, the term up by at most `2^17` (a campaign, at `nextTerm()`: PR raft#86; until then by
+at most one), `offsetInProgress` not back. -/
 def TickStep [FfiSyntax] (s s' : NState) : Prop :=
-  NetFrame s s' ∧ uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ uint.Z s.term + 1 ∧
+  NetFrame s s' ∧ uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ uint.Z s.term + 2 ^ 17 ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress
 
 theorem TickStep.refl [FfiSyntax] (s : NState) : TickStep s s :=
@@ -43,8 +44,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev raft.tickElection.spec : Prop :=
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
-  -- a campaign increments the term; `send` panics if it wraps
-  uint.Z s.term + 1 < 2 ^ 64 →
+  -- a campaign moves the term to `nextTerm()`; `send` panics if it wraps (PR raft#86: the
+  -- last epoch)
+  uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
   NStateWf s →
   -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s); the dynamic one
   -- excludes a pre-candidate (`GMode.Pre`)

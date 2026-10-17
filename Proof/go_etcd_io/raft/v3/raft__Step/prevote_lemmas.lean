@@ -80,18 +80,18 @@ theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
 /-- A pre-candidate's tally keeps the log, and the term or moves it one up (a win's
 `campaign`). -/
 theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (peers : List w64) (pvs : GMap w64 Progress) (m : MessageM)
-    (Hty : m.Type' = MsgPreVoteResp) (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
-    NetFrame s { prevoteRespResult id s src reject won lost peers with prvals := pvs } ∧
-    TermStep m s { prevoteRespResult id s src reject won lost peers with prvals := pvs } := by
-  have H : ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+    (peers : List w64) (pvs : GMap w64 Progress) (T : w64) (m : MessageM)
+    (Hty : m.Type' = MsgPreVoteResp) (HT : uint.Z s.term < uint.Z T) :
+    NetFrame s { prevoteRespResult id s src reject won lost peers T with prvals := pvs } ∧
+    TermStep m s { prevoteRespResult id s src reject won lost peers T with prvals := pvs } := by
+  have H : ({ prevoteRespResult id s src reject won lost peers T with prvals := pvs } :
         NState).logst = s.logst ∧
       uint.Z s.term ≤
-        uint.Z ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+        uint.Z ({ prevoteRespResult id s src reject won lost peers T with prvals := pvs } :
           NState).term ∧
-      ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+      ({ prevoteRespResult id s src reject won lost peers T with prvals := pvs } :
           NState).prevote = s.prevote ∧
-      ({ prevoteRespResult id s src reject won lost peers with prvals := pvs } :
+      ({ prevoteRespResult id s src reject won lost peers T with prvals := pvs } :
           NState).gh = s.gh := by
     unfold prevoteRespResult
     split
@@ -112,10 +112,10 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
 (the term does not wrap) -- a loss steps down at the same term, and otherwise it stays a
 pre-candidate at the same term. -/
 theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (peers : List w64) (pvs : GMap w64 Progress) (m : MessageM)
+    (peers : List w64) (pvs : GMap w64 Progress) (T : w64) (m : MessageM)
     (Hty : m.Type' = MsgPreVoteResp) (Hp : s.role = .preCandidate)
-    (Hnw : uint.Z s.term + 1 < 2 ^ 64) :
-    RespStep m s { prevoteRespResult id s src reject won lost peers with prvals := pvs } := by
+    (HT : uint.Z s.term < uint.Z T ∧ uint.Z T < uint.Z s.term + 2 ^ 17) :
+    RespStep m s { prevoteRespResult id s src reject won lost peers T with prvals := pvs } := by
   refine ⟨fun h => by rcases h with h | h <;> rw [Hty] at h <;> exact absurd h (by w32_ne),
     fun _ => ?_⟩
   unfold prevoteRespResult
@@ -138,7 +138,7 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
     m.Type' = MsgPreVoteResp →
     (s.role = .candidate ∨ s.role = .preCandidate) →
     id ∈ c.voters →
-    (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
+    (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
     NStateWf s →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' →
     c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
@@ -153,11 +153,14 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
   refine ⟨rfl, ?_⟩
   by_cases Hp : s.role = .preCandidate
   · simp only [Hp, ↓reduceIte] at Hres
-    obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
-    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
-      prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
-      prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
-    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
+    obtain ⟨won, lost, peers, pvs, x, Hw, -, rfl⟩ := Hres
+    -- (PR raft#86) a win campaigns at `nextTerm()`'s term, later by less than `2^17`
+    have HT := nextTermOf_bounds s.term x (Hnw Hp)
+    generalize nextTermOf s.term x = T at HT ⊢
+    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ _ Hwf), ?_,
+      prevoteRespResult_resp id s _ _ won lost peers pvs T m Hty Hp HT,
+      prevoteRespResult_frame id s _ _ won lost peers pvs T m Hty HT.1⟩
+    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs T Hp Hin HT.1
       (fun Hwon => (Hw Hwon).2)) (.inr Hp)
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres

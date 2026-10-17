@@ -63,7 +63,7 @@ private def SelfStep (pv : Bool) (t : w64) (s s' : NState) : Prop :=
   (pv = false → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z t) ∧
       (uint.Z t < uint.Z s.term → s'.role = s.role)) ∧
   (pv = true → (uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z t) ∨
-        (s.role = .preCandidate ∧ uint.Z s'.term = uint.Z s.term + 1)) ∧
+        (s.role = .preCandidate ∧ uint.Z s'.term ≤ uint.Z s.term + 2 ^ 17)) ∧
       (s'.role = .preCandidate → s.role = .preCandidate ∧ s'.term = s.term))
 
 /-- What one pending step does to the term: a storage acknowledgement keeps it
@@ -76,13 +76,13 @@ private def PendStep (p : Pending) (s s' : NState) : Prop :=
 /-- The self-addressed responses of a queue are no later than `s`'s term (one later for
 a pre-vote response). -/
 private def SelfBound (s : NState) (rest : List Pending) : Prop :=
-  ∀ pv t, Pending.self pv t ∈ rest → uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0) ∧
+  ∀ pv t, Pending.self pv t ∈ rest → uint.Z t ≤ uint.Z s.term + (if pv then 2 ^ 17 else 0) ∧
     (s.prevote = false → pv = false)
 
 /-- The loop's term invariant (see the file header): from `s` to `s1`, up by at most
 one; and while self-addressed responses remain, a pre-candidate is still at `s`'s term. -/
 private def TermInv (s s1 : NState) (rest : List Pending) : Prop :=
-  uint.Z s.term ≤ uint.Z s1.term ∧ uint.Z s1.term ≤ uint.Z s.term + 1 ∧
+  uint.Z s.term ≤ uint.Z s1.term ∧ uint.Z s1.term ≤ uint.Z s.term + 2 ^ 17 ∧
   ((∃ pv t, Pending.self pv t ∈ rest) → s1.role = .preCandidate →
     uint.Z s1.term = uint.Z s.term) ∧
   -- with pre-vote off the term does not move (2026-10-10)
@@ -130,7 +130,7 @@ private theorem termInv_step (s s1 s2 : NState) (p : Pending) (rest : List Pendi
     | true =>
       obtain ⟨Hab, Hrole⟩ := Hps.2 rfl
       simp only [↓reduceIte] at Hb
-      have Hhi2 : uint.Z s2.term ≤ uint.Z s.term + 1 := by
+      have Hhi2 : uint.Z s2.term ≤ uint.Z s.term + 2 ^ 17 := by
         rcases Hab with Hle | ⟨Hr1, Heq⟩
         · exact Int.le_trans Hle (Int.max_le.2 ⟨Hhi, Hb⟩)
         · have := Hpre1 Hr1; omega
@@ -200,7 +200,7 @@ private theorem wp_step_pending
     (ml : Loc) (st : MsgSt) (p : Pending)
     (Hwf : NStateWf s) (Hok : PendingOk s p) (Hal : c.autoLeave = false)
     (Hsnap : s.logst.snap = none) (Hunp : s.logst.unpersisted = [])
-    (Hnw : ∀ pv t, p = .self pv t → s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)
+    (Hnw : ∀ pv t, p = .self pv t → s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64)
     (Hghoff : s.gh.unst = false) (Hpf : PreFacts s)
     (Hpre : ∀ ce (m' : MessageM), p = .applyAck ce → m'.Type' = MsgStorageApplyResp →
       md.Pre m' ce s) :
@@ -393,7 +393,7 @@ theorem RawNode.Advance.wp_proof
   iNamed H
   iNamed Hrn
   have Hunp' : s.logst.unpersisted = [] := Hunp ▸ Hunp0
-  have Hterm0' : uint.Z s.term + 1 < 2 ^ 64 := by rw [← Htrm]; exact Hterm0
+  have Hterm0' : uint.Z s.term + 2 ^ 16 < 2 ^ 64 := by rw [← Htrm]; exact Hterm0
   wp_auto
   rw [Hasync]
   wp_auto
@@ -461,7 +461,7 @@ theorem RawNode.Advance.wp_proof
     obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1
     -- a pre-candidate stepping its own pre-vote response is at `s`'s term
     have Hnw1 : ∀ pv t, p = .self pv t → s1.role = .preCandidate →
-        uint.Z s1.term + 1 < 2 ^ 64 := by
+        uint.Z s1.term + 2 ^ 16 < 2 ^ 64 := by
       intro pv t hp hr
       have := Hti1.2.2.1 ⟨pv, t, by rw [hp]; exact List.mem_cons_self⟩ hr
       omega

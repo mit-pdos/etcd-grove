@@ -81,14 +81,16 @@ def CandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : MessageM)
 /-- The `MsgPreVoteResp` case at a pre-candidate (2026-10-04), `prevoteRespResult`
 (`StepLemmas.lean`): `poll`'s facts as for `CandVoteRespResult`, and on a win the peers
 `campaign` sent its `MsgVote`s to. The protocol needs only the latter: winning a
-pre-vote proves nothing, it only starts the election (`step_prevoteRespResult`). -/
+pre-vote proves nothing, it only starts the election (`step_prevoteRespResult`), at the term
+`nextTerm()` draws (PR raft#86: `nextTermOf s.term x`, a draw `x`). -/
 def PrecandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : MessageM)
     (s' : NState) : Prop :=
-  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
+  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress) (x : w64),
     let votes' := recordVote s.votes m.From' (!m.Reject')
     (won = true → IsQuorum cfg (granted votes') ∧ peers ≡ₚ elements (cfg \ {[id]})) ∧
     (lost = true → ¬ IsQuorum cfg (cfg \ rejected votes')) ∧
-    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
+    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers (nextTermOf s.term x)
+        with prvals := pvs }
 
 /-- What `stepCandidate` does with `m`, by type; `dropped` as in `FollowerStepResult`
 (`Spec/stepFollower.lean`). For `MsgApp` the `Progress` values `becomeFollower`'s
@@ -144,11 +146,12 @@ def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
 `campaign` asked, the other voters of either half. -/
 def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (s' : NState) : Prop :=
-  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
+  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress) (x : w64),
     let votes' := recordVote s.votes m.From' (!m.Reject')
     (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (c.voters \ {[id]})) ∧
     (lost = true → JLost c votes') ∧
-    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
+    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers (nextTermOf s.term x)
+        with prvals := pvs }
 
 /-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
 configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap` that
@@ -199,8 +202,8 @@ theorem CandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m
 theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : MessageM}
     {s' : NState} (hne : cfg ≠ ∅) (h : PrecandVoteRespResultC (CfgM.simple cfg L) id s m s') :
     PrecandVoteRespResult cfg id s m s' := by
-  obtain ⟨won, lost, peers, pvs, h1, h2, h3⟩ := h
-  refine ⟨won, lost, peers, pvs, fun hw => ?_, fun hl => ?_, h3⟩
+  obtain ⟨won, lost, peers, pvs, x, h1, h2, h3⟩ := h
+  refine ⟨won, lost, peers, pvs, x, fun hw => ?_, fun hl => ?_, h3⟩
   · obtain ⟨a, b⟩ := h1 hw
     refine ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, ?_⟩
     rw [CfgM.voters_simple] at b; exact b
@@ -302,7 +305,7 @@ abbrev stepCandidate.spec : Prop :=
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →
   (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
-   uint.Z s.term + 1 < 2 ^ 64) →
+   uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧

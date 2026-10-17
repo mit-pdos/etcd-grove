@@ -36,13 +36,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev RawNode.Tick.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
-  uint.Z rs.term + 1 < 2 ^ 64 →
+  uint.Z rs.term + 2 ^ 16 < 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))
   {{ (t : w64), RET #();
       "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
-      "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }}
+      "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 2 ^ 17⌝ }}
 
 end spec
 

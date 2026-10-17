@@ -89,7 +89,7 @@ def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
     Prop :=
   ((m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
      m.Term' = W64 0) ∧
-  (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) ∧
+  (m.Type' = MsgTimeoutNow → uint.Z s.term + 2 ^ 16 < 2 ^ 64 ∧ uint.Z m.Term' + 2 ^ 16 < 2 ^ 64) ∧
   (m.Type' = MsgTransferLeader →
      ents = [] ∧ ctx = [] ∧
      (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0))
@@ -177,20 +177,20 @@ theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
     NetFrame s s' := by
   unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
-/-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
-up (a campaign); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
+/-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most `2^17`
+up (a campaign: `nextTerm()`, PR raft#86; until then one up); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
 `MsgTimeoutNow`, which may also campaign) at most to the message's term. And
 `offsetInProgress` does not move back but by a `MsgApp`, whose append may truncate the
 in-progress entries. And (2026-10-13, for `node.go`'s term budget) a `MsgTimeoutNow` at most
-one past the larger of the node's and the message's term: a step-down to the message's
+`2^17` (PR raft#86; one before) past the larger of the node's and the message's term: a step-down to the message's
 term, then a campaign. -/
 def TermStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
-  (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
+  (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 2 ^ 17) ∧
   (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp → m.Type' ≠ MsgTimeoutNow →
      uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term')) ∧
   (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) ∧
-  (m.Type' = MsgTimeoutNow → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') + 1)
+  (m.Type' = MsgTimeoutNow → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') + 2 ^ 17)
 
 /-- A step that keeps the term. -/
 theorem TermStep.of_term [FfiSyntax] {m : MessageM} {s s' : NState}
@@ -232,7 +232,8 @@ def RespStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
      uint.Z m.Term' < uint.Z s.term → s'.role = s.role) ∧
   (m.Type' = MsgPreVoteResp →
      (uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') ∨
-      (s.role = .preCandidate ∧ uint.Z s'.term = uint.Z s.term + 1)) ∧
+      -- (PR raft#86) a pre-vote win campaigns at `nextTerm()`: until then `= s.term + 1`
+      (s.role = .preCandidate ∧ uint.Z s'.term ≤ uint.Z s.term + 2 ^ 17)) ∧
      (s'.role = .preCandidate → s.role = .preCandidate ∧ s'.term = s.term))
 
 theorem RespStep.refl [FfiSyntax] (m : MessageM) (s : NState) : RespStep m s s :=
@@ -303,7 +304,7 @@ abbrev raft.Step.spec : Prop :=
   -- term; `send` panics if that wraps to zero.
   (m.Type' = MsgHup →
      m.Term' = W64 0 ∧
-     uint.Z s.term + 1 < 2 ^ 64) →
+     uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
   (m.Type' = MsgVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0) →
@@ -337,7 +338,7 @@ abbrev raft.Step.spec : Prop :=
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧
-     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)) →
+     (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64)) →
   -- The replication types, by what the transport and the peers guarantee (Go checks
   -- none of it). A leader's `MsgApp`/`MsgHeartbeat`, and a `MsgHeartbeatResp`, come
   -- from another node: `send` never queues them to oneself. An accepting
@@ -529,7 +530,7 @@ abbrev raft.Step.specS : Prop :=
   -- term; `send` panics if that wraps to zero.
   (m.Type' = MsgHup →
      m.Term' = W64 0 ∧
-     uint.Z s.term + 1 < 2 ^ 64) →
+     uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
   (m.Type' = MsgVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0) →
@@ -563,7 +564,7 @@ abbrev raft.Step.specS : Prop :=
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧
-     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)) →
+     (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64)) →
   -- The replication types, by what the transport and the peers guarantee (Go checks
   -- none of it). A leader's `MsgApp`/`MsgHeartbeat`, and a `MsgHeartbeatResp`, come
   -- from another node: `send` never queues them to oneself. An accepting

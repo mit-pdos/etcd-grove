@@ -297,7 +297,7 @@ the storage holds (`stored`, 2026-10-10: the log of the `Ready` that queued it);
 truncating `MsgApp` breaks, so `RawNode.Step` took a `MsgApp` only with an empty queue. -/
 def PendingOk (s : NState) (p : Pending) : Prop :=
   match p with
-  | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0) ∧
+  | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 2 ^ 17 else 0) ∧
       -- (2026-10-10) with pre-vote off, not a pre-vote response (`OutTermOk`)
       (s.prevote = false → pv = false)
   | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ plogLast s.logst.prev s.logst.stored = e
@@ -511,7 +511,7 @@ theorem netStepTypes_stepMsg {m : MessageM} (h : m.Type' ∈ netStepTypes) : Ste
 theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     (h : NetMsgOk id st)
     (ht : st.msg.Type' = MsgTimeoutNow →
-      uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64) :
+      uint.Z s.term + 2 ^ 16 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 2 ^ 16 < 2 ^ 64) :
     RestMsgOk s st.msg st.ents st.ctx := by
   obtain ⟨-, -, Hun, -, -, Htl⟩ := h
   refine ⟨fun h' => Hun ?_, ht, fun h' => ⟨(Htl h').1, (Htl h').2, fun hz => ?_⟩⟩

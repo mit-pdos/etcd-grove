@@ -100,7 +100,7 @@ private theorem candidateStepResult_prevoteresp' (c : CfgM) {scfg : CSLists} {c'
     m.Type' = MsgPreVoteResp →
     (s.role = .candidate ∨ s.role = .preCandidate) →
     id ∈ c.voters →
-    (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
+    (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
     NStateWf s →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
     c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
@@ -115,11 +115,14 @@ private theorem candidateStepResult_prevoteresp' (c : CfgM) {scfg : CSLists} {c'
   refine ⟨rfl, ?_⟩
   by_cases Hp : s.role = .preCandidate
   · simp only [Hp, ↓reduceIte] at Hres
-    obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
-    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
-      prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
-      prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
-    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
+    obtain ⟨won, lost, peers, pvs, x, Hw, -, rfl⟩ := Hres
+    -- (PR raft#86) a win campaigns at `nextTerm()`'s term, later by less than `2^17`
+    have HT := nextTermOf_bounds s.term x (Hnw Hp)
+    generalize nextTermOf s.term x = T at HT ⊢
+    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ _ Hwf), ?_,
+      prevoteRespResult_resp id s _ _ won lost peers pvs T m Hty Hp HT,
+      prevoteRespResult_frame id s _ _ won lost peers pvs T m Hty HT.1⟩
+    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs T Hp Hin HT.1
       (fun Hwon => (Hw Hwon).2)) (.inr Hp)
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres
@@ -260,7 +263,7 @@ theorem wp_Step_MsgPreVoteResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := h
     m.Term' ≠ W64 0 →
     -- this file: the same term
     m.Term' = s.term →
-    (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
+    (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗

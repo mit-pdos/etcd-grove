@@ -351,20 +351,21 @@ theorem stepCandidate.wp_proof
       wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_raft_logC
       have Hres_pv : ∀ (s' : NState) (won lost : Bool) (peers : List w64)
-          (pvs : GMap w64 Progress),
+          (pvs : GMap w64 Progress) (x : w64),
           (won = true → JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∧
             peers ≡ₚ elements (c.voters \ {[id]})) →
           (lost = true →
             JLost c (recordVote s.votes m.From' (!m.Reject'))) →
-          s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } →
+          s' = { prevoteRespResult id s m.From' m.Reject' won lost peers (nextTermOf s.term x)
+            with prvals := pvs } →
           CandidateStepResultC c scfg id s m ents sv false s' c cl := by
-        intro s' won lost peers pvs Hw Hl Hs'
+        intro s' won lost peers pvs x Hw Hl Hs'
         unfold CandidateStepResultC
         refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
         simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
           MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, Hrole]
         simp
-        exact ⟨won, lost, peers, pvs, Hw, Hl, Hs'⟩
+        exact ⟨won, lost, peers, pvs, x, Hw, Hl, Hs'⟩
       rcases Hres with rfl | rfl | rfl
       · -- `quorum.VoteWon`: the real election, `campaign(campaignElection)`
         simp only [VoteWon]
@@ -381,13 +382,13 @@ theorem stepCandidate.wp_proof
               have := congrArg List.length h
               simp [campaignElection, campaignPreElection] at this)
             $$ [$Hphys]
-          as %peers %pvs ⟨%Hpeers, Hphys⟩
+          as %peers %pvs %xr ⟨%Hpeers, Hphys⟩
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
+        refine Hres_pv _ true false peers pvs xr (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
           (fun h => absurd h (by decide)) ?_
         have Htc : transferCtx campaignElection = [] := by
           simp (config := {decide := true}) [transferCtx, campaignElection, campaignTransfer]
@@ -404,7 +405,7 @@ theorem stepCandidate.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
+        exact Hres_pv _ false true [] pvs (W64 0) (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
       · -- `quorum.VotePending`: keep waiting
         simp only [VotePending]
         wp_auto
@@ -413,7 +414,7 @@ theorem stepCandidate.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        refine Hres_pv _ false false [] s.prvals (fun h => absurd h (by decide))
+        refine Hres_pv _ false false [] s.prvals (W64 0) (fun h => absurd h (by decide))
           (fun h => absurd h (by decide)) ?_
         cases s; rfl
 

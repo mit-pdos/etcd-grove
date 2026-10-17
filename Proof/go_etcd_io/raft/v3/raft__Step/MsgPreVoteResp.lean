@@ -47,7 +47,7 @@ theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.To' = id →
     m.Term' ≠ W64 0 →
     -- a pre-candidate's term does not wrap (a won pre-vote campaigns)
-    (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
+    (s.role = .preCandidate → uint.Z s.term + 2 ^ 16 < 2 ^ 64) →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗

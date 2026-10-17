@@ -287,7 +287,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
   obtain ⟨rfl, rfl, Hok⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
-  have HCD := stepCD_hup (m := m) Hok Hnw Hlogf
+  have HCD := stepCD_hup (m := m) Hok Hlogf
   obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
@@ -543,8 +543,8 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
     m.Type' = MsgTimeoutNow →
-    uint.Z s.term + 1 < 2 ^ 64 →
-    uint.Z m.Term' + 1 < 2 ^ 64 →
+    uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
+    uint.Z m.Term' + 2 ^ 16 < 2 ^ 64 →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
@@ -636,7 +636,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rw [if_neg (by rw [Hty]; w32_ne)]
       iexact Hm
     obtain ⟨rfl, rfl, Hok⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
-    have HCD := stepCD_hup (m := m) Hok Hnwm Hlogf
+    have HCD := stepCD_hup (m := m) Hok Hlogf
     obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn

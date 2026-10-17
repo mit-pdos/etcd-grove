@@ -49,7 +49,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Type' = MsgHup →
     m.Term' = W64 0 →
     -- an election increments the term; `send` panics if that wraps to zero
-    uint.Z s.term + 1 < 2 ^ 64 →
+    uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
     -- `r.step` matches the role
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -102,12 +102,12 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignPreElection] at this
-    have HCD := stepCD_hup (m := m) Hok Hnowrap Hlogf
+    have HCD := stepCD_hup (m := m) Hok Hlogf
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
+    exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Int.le_of_lt Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
       fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩
 

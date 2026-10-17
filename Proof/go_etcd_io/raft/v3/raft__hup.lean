@@ -98,13 +98,16 @@ theorem raft.hup.wp_proof
       wp_apply raft.wp_load_TermC $$ Hphys as Hphys
       wp_raft_logC
       wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv $$ [$Hphys]
-        as %peers %pvs ⟨%Hpeers, Hphys⟩
+        as %peers %pvs %xr ⟨%Hpeers, Hphys⟩
       iapply HΦ
       iframe Hphys
       ipureintro
-      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
-        stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
-        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩
+      -- (PR raft#86) the new term, `nextTerm()`'s, as an atom with its bounds
+      have HT := nextTermOf_bounds s.term xr Hnowrap
+      generalize nextTermOf s.term xr = T at HT ⊢
+      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _ _),
+        stepC_campaignState c _ _ _ _ _ T Hrl Hin HT.1 Hpeers _, ?_, fun h => absurd Hin h,
+        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, T, Hpeers, HT.1, rfl⟩⟩
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
       split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo, resetTo0] <;>

@@ -43,9 +43,9 @@ At any configuration since 2026-10-13 (reconfiguration stage A2): the post is `H
 at a node that is not a voter. The old statement is `raft.hup.specS`. -/
 abbrev raft.hup.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
-  -- `hup` may reach `campaign`, which increments the term -- see the note on
+  -- `hup` may reach `campaign`, which moves the term to `nextTerm()` (PR raft#86) -- see the note on
   -- `raft.campaign.spec`.
-  uint.Z s.term + 1 < 2 ^ 64 →
+  uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
   -- a pre-election only with pre-vote on (2026-10-10; see `raft.campaign.spec`)
   (t = campaignPreElection → s.prevote = true) →
   -- `r.step` matches the role; kept by the call
@@ -59,7 +59,7 @@ abbrev raft.hup.spec : Prop :=
 derived from `raft.hup.spec` by `raft.hup.spec_simple`. -/
 abbrev raft.hup.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (t : CampaignType),
-  uint.Z s.term + 1 < 2 ^ 64 →
+  uint.Z s.term + 2 ^ 16 < 2 ^ 64 →
   (t = campaignPreElection → s.prevote = true) →
   NStateWf s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
@@ -68,7 +68,7 @@ abbrev raft.hup.specS : Prop :=
       ownRaftPhys cfg r id s' ∗ ⌜NStateWf s'⌝ ∗
       ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
       ⌜s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-       uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh⌝ }}
+       uint.Z s'.term < uint.Z s.term + 2 ^ 17 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh⌝ }}
 
 open Iris.ProofMode in
 theorem raft.hup.spec_simple
