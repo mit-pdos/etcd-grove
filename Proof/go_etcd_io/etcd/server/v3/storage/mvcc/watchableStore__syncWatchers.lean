@@ -479,10 +479,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length
           (Nat.le_refl _)
         rw [← hevB] at hmodB
-        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw C.length _ eps B.evs (DFrac.own 1))
+        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw C.length _ eps B.evs (DFrac.own 1) [])
           $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
+          isplitr
+          · iapply mvcc.covPre_nil
           isplitr
           · ileft; ipureintro; rfl
           ipureintro
@@ -621,10 +623,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M
           (by omega)
         rw [← hevB] at hmodB
-        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw M _ eps B.evs (DFrac.own 1))
+        wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw M _ eps B.evs (DFrac.own 1) [])
           $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha⟩
         · rw [if_neg hBne]
           iframe Hmeta Hfx Hfo Hch Hchf Hlv Ha Hwf' Hsl HevB
+          isplitr
+          · iapply mvcc.covPre_nil
           isplitr
           · ileft; ipureintro; rfl
           ipureintro

@@ -147,8 +147,10 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
       iframe Hsl
       iexists ∅
       iframe Hri
-      ipureintro
-      exact ⟨fun w h => by simp [GMap.lookup_empty] at h, fun w n h => by simp [GMap.lookup_empty] at h⟩
+      isplitr
+      · ipureintro
+        exact ⟨fun w h => by simp [GMap.lookup_empty] at h, fun w n h => by simp [GMap.lookup_empty] at h⟩
+      iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩

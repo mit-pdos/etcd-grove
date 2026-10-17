@@ -520,7 +520,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
   -- the registration index (unit W-K)
-  imod mvcc.sentAuth_register γc sent L w HwL $$ Hsentl with ⟨Hsentl, #Hrega⟩
+  imod mvcc.sentAuth_register _ γc sent L w HwL $$ Hsentl with ⟨Hsentl, #Hrega⟩
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2 Hsentl] with -
   · inext
     iunfold mvcc.watchChanInv

@@ -39,7 +39,7 @@ theorem mvcc.watchableStore.progress.wp_proof
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %mp Hmp
   wp_apply wp_mapInsert WatchID.ty mp ∅ r.id w $$ [$Hmp] as Hmp
   (try wp_auto)
-  wp_apply (hPIS s st γ mp (DFrac.own 1) (<[r.id := w]> ∅) r.id) $$ [$Hws $Hmp $HR] as %b ⟨-, HR⟩
+  wp_apply (hPIS s st γ mp (DFrac.own 1) (<[r.id := w]> ∅) r.id γw.wc) $$ [$Hws $Hmp $HR] as %b ⟨-, HR⟩
   · imodintro
     iintro %id %w' %Hl
     by_cases h : id = r.id
@@ -51,6 +51,8 @@ theorem mvcc.watchableStore.progress.wp_proof
         ipureintro; exact Hsr
       iexists γw, r, fcs
       iframe #
+      isplitr
+      · ipureintro; rfl
       ileft; ipureintro; rfl
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_empty] at Hl; cases Hl
   (try wp_auto)

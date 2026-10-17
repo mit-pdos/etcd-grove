@@ -30,7 +30,7 @@ theorem mvcc.watchableStore.progressAll.wp_proof
   intro s st γ m dq M γc
   wp_start as ⟨#Hws, Hm, #HM, #Hpf, HR⟩
   wp_auto
-  wp_apply (hPIS s st γ m dq M _) $$ [$Hws $Hm $HR] as %b ⟨Hm, HR⟩
+  wp_apply (hPIS s st γ m dq M _ γc) $$ [$Hws $Hm $HR] as %b ⟨Hm, HR⟩
   · iintro !> %id %w %hw
     icases HM $$ %id %w %hw with ⟨#HIW, #HOC⟩
     iframe HIW
@@ -39,6 +39,8 @@ theorem mvcc.watchableStore.progressAll.wp_proof
     icases HIW with ⟨%γw', %r, %fcs, -, #Hf, -⟩
     iexists γw, r, fcs
     iframe Hm Hf
+    isplitr
+    · ipureintro; exact Hwc
     iright
     rw [Hwc]
     iexact Hpf

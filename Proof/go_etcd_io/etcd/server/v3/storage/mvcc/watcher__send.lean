@@ -333,8 +333,8 @@ end mvcc
 
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
-  intro γ w γw r fcs ch qc ql evsw d wr es evm dq
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hidp, %Hpure⟩
+  intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, #Hidp, %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
@@ -598,10 +598,10 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
     have hds : Deliv.sent (evm, mvcc.filtered fs evm) = false := by
       simp [Deliv.sent, hA.1, hA.2]
     imod mvcc.entries_deliver γ γw.wc (mvcc.chanIsClosed s) sent L w γw r fcs fs evsw d evm
-      (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ Hnd.1 Hwl rfl rfl rfl
+      (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ Hnd.1 Hwl rfl rfl rfl
       $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
     have hsent : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
-        [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ : mvcc.RespM)] else []) = sent := by
+        [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ : mvcc.RespM)] else []) = sent := by
       rw [hds]; simp
     irevert Hws; rw [hsent]; iintro Hws
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
@@ -660,6 +660,12 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             iunfold mvcc.watchChanInv at Hi
             iNamed Hi
             ihave %Hwl := mvcc.reg_mem _ _ _ $$ Hreg Hregw
+            -- what the response covers (K1b): the channel's entries before the send
+            icases mvcc.cov_list γ γw.wc (mvcc.chanIsClosed s) sent L wr.Revision' cs
+              $$ [$Hcov $Hreg $Hws] with ⟨Hreg, Hws, #Hcf⟩
+            ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
+              (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ : mvcc.RespM)
+              cs rfl $$ Hcf
             -- the response's id: `w`'s own (not `-1`: the registration), or with the progress fact
             ihave #Hpnew : iprop(⌜wr.WatchID' = W64 (-1)⌝ → mvcc.progFact γw.wc.prog) $$ []
             · icases Hidp with (%Heq | #Hp)
@@ -685,14 +691,14 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               iintro Hchan
               imod ownSlice_persist $$ Hsl2 with #Hsl2p
               ihave #Hresp : mvcc.respIs { wr with Events' := evs2 }
-                  ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ $$ []
+                  ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ $$ []
               · iunfold mvcc.respIs
                 isplitr
                 · ipureintro; exact ⟨rfl, rfl, Hcomp⟩
                 iexists es2
                 iframe Hsl2p Hes2
                 ipureintro; exact Hl2
-              ihave #Hrok : mvcc.respOk (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ : mvcc.RespM)
+              ihave #Hrok : mvcc.respOk (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ : mvcc.RespM)
                   $$ []
               · iunfold mvcc.respOk
                 isplitr
@@ -703,23 +709,23 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 intro hne
                 exact Hid (fun h => hne (by rw [h]; rfl))
               imod mvcc.entries_deliver γ γw.wc _ sent L w γw r fcs fs evsw d evm
-                (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ Hnd.1 Hwl
+                (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ Hnd.1 Hwl
                 rfl rfl rfl $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
               have hs2 : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
-                  [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ : mvcc.RespM)] else []) =
-                  sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩] := by
+                  [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ : mvcc.RespM)] else []) =
+                  sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩] := by
                 rw [hsend]; rfl
               irevert Hws; rw [hs2]; iintro Hws
               ihave #Hvs' := mvcc.respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
               icases Hback with ⟨-, Hb⟩
               imod Hb $$ Hsl2p with #Hsl
-              imod mvcc.sentAuth_snoc γw.wc sent L (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ :
-                mvcc.RespM) $$ Hsentl with Hsentl
+              imod mvcc.sentAuth_snoc γ γw.wc sent L (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩ :
+                mvcc.RespM) $$ Hsentl Hrc with Hsentl
               imod Hmask with -
               imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl] with -
               · inext
                 iunfold mvcc.watchChanInv
-                iexists _, sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩], recv,
+                iexists _, sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w⟩], recv,
                   vs ++ [{ wr with Events' := evs2 }], L
                 simp only [named]
                 isplitl [Hchan]

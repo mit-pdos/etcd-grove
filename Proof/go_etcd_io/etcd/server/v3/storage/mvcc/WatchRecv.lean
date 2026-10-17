@@ -572,8 +572,8 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     icases Hvs' with ⟨%Hvl, -⟩
     have hd : sent.drop received.length = [] := List.drop_eq_nil_of_le (by simp at Hvl; omega)
     have hrs : sent = received := (prefix_drop_nil' Hpre hd).symm
-    icases mvcc.sentAuth_lb_valid γc sent L l0 $$ [$Hsentl $Hl0] with ⟨Hsentl, %Hlb⟩
-    icases mvcc.sentAuth_lb γc sent L $$ Hsentl with ⟨Hsentl, #Hsnap⟩
+    icases mvcc.sentAuth_lb_valid _ γc sent L l0 $$ [$Hsentl $Hl0] with ⟨Hsentl, %Hlb⟩
+    icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hsnap⟩
     imod Hmask with -
     imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
     · inext
@@ -670,7 +670,7 @@ theorem chan_sent_snapshot (γ : WsNames) (ch : Loc) (γc : WatchChanNames) :
   iunfold watchChanInv at Hi
   icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
   iNamed Hi
-  icases mvcc.sentAuth_lb γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
   · inext
     iunfold watchChanInv
@@ -697,7 +697,7 @@ theorem watch_sent_received (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rc
   unfold watchConsumer
   ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hcons Hrecv
   subst Heq
-  icases mvcc.sentAuth_lb γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
+  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
   iunfold chanSentLb at Hlb
   ihave #Hlb' := monoListLbOwn_le (γ := γc.sentl) rcv Hpre $$ Hlb
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
