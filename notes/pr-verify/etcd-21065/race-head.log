@@ -1,0 +1,5 @@
+      2 --- FAIL: TestWatchCancelStormLeaksServerWatchers (1.54s)
+      1 --- FAIL: TestWatchCancelStormLeaksServerWatchers (1.56s)
+      3 --- FAIL: TestWatchRequestProgressDroppedWhenQueueFull (2.73s)
+      2 FAIL
+      1 FAIL	go.etcd.io/etcd/client/v3	25.129s

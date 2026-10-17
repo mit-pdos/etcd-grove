@@ -24,3 +24,12 @@ Upstream checkouts build with `GOTOOLCHAIN=go1.26.4` and the fork with `go1.27.1
 
 The leak counts vary from run to run: in-process, 1393 to 1560 left at the PR head over several
 runs; over gRPC, 496 to 1033.
+
+The reviewer's files:
+
+| File | What it shows | Runs against | Command |
+|---|---|---|---|
+| `v3_watch_inprocess_cancel_storm_persist_test.go` | The integration test (same test names, so use it instead of `v3_watch_inprocess_cancel_storm_test.go`, not beside it), plus: it waits 12 s, sends a second event to every closed watch, and counts again. The leak does not shrink. | PR head | as for `v3_watch_inprocess_cancel_storm_test.go` |
+| `integ-head-persist.log` | PR head: 1435 server watchers left in-process and 293 over gRPC, after both rounds of events. | PR head | as above |
+| `watch_send_reorder_test.go` | `TestWatchProgressOvertakesCreate`: whether a progress request issued after `Watch` returned can overtake the create. It never does (0 of 40): `Watch` returns only after its `Created`. Needs `watch_send_queue_test.go` beside it. | PR head | `cp watch_send_queue_test.go watch_send_reorder_test.go <checkout>/client/v3/ && go test -count=1 -v -run TestWatchProgressOvertakesCreate .` |
+| `race-head.log`, `race-head-reconnect.log` | `go test -race -count=3` of the client's watch tests and of the reconnect/resume integration tests at the PR head: clean (no race on the queue fields). | PR head | `go test -race -count=3 -run Watch .` in `client/v3` (with `watch_send_queue_test.go`, whose two tests fail as expected), and `go test -race -count=3 -run 'TestWatchRecon\|TestWatchResume\|TestWatchStressResumeClose\|TestWatchOverlap' ./integration/clientv3/watch/` in `tests` |

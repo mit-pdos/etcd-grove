@@ -106,6 +106,15 @@ func (s *sqStream) liveWatches() map[int64]string {
 	return m
 }
 
+// liveIDs: the ids of the watches the server holds (used by watch_send_reorder_test.go).
+func (s *sqStream) liveIDs() []int64 {
+	var ids []int64
+	for id := range s.liveWatches() {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 func (s *sqStream) counts() (int, int, int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

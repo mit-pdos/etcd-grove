@@ -1,0 +1,15 @@
+    logger.go:146: 2026-10-17T13:47:57.588-0400	INFO	m0	opened backend db	{"member": "m0", "path": "/shared/etcd-grove-pr/etcd-21065-scratch/tmp/TestV3WatchInProcessCancelStormServerWatchers3524207501/002/etcd2417370345/member/snap/db", "took": "7.740244ms"}
+    logger.go:146: 2026-10-17T13:47:57.601-0400	WARN	m0	simple token is not cryptographically signed	{"member": "m0"}
+    v3_watch_inprocess_cancel_storm_test.go:77: server watchers with all 2001 watches open: 2001
+    v3_watch_inprocess_cancel_storm_test.go:122: REVIEW: 12s later, after a second event for each: 1435 server watchers
+    v3_watch_inprocess_cancel_storm_test.go:123: server watchers 5s after closing 2000 watches: 1435; after an event for each: 1435 (want 1, the keeper); keeper gets its event: true; a new watch is created: true
+--- FAIL: TestV3WatchInProcessCancelStormServerWatchers (29.96s)
+    logger.go:146: 2026-10-17T13:48:27.542-0400	INFO	m0	opened backend db	{"member": "m0", "path": "/shared/etcd-grove-pr/etcd-21065-scratch/tmp/TestV3WatchGRPCCancelStormServerWatchers2209985167/002/etcd2337747194/member/snap/db", "took": "3.90833ms"}
+    logger.go:146: 2026-10-17T13:48:27.557-0400	WARN	m0	simple token is not cryptographically signed	{"member": "m0"}
+    v3_watch_inprocess_cancel_storm_test.go:77: server watchers with all 2001 watches open: 2001
+    v3_watch_inprocess_cancel_storm_test.go:122: REVIEW: 12s later, after a second event for each: 293 server watchers
+    v3_watch_inprocess_cancel_storm_test.go:123: server watchers 5s after closing 2000 watches: 293; after an event for each: 293 (want 1, the keeper); keeper gets its event: true; a new watch is created: true
+--- FAIL: TestV3WatchGRPCCancelStormServerWatchers (31.04s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration	61.079s
+FAIL
