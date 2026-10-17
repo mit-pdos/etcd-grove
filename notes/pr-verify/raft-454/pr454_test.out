@@ -1,0 +1,6 @@
+=== RUN   TestPR454MixedBatchRejectedButAppended
+--- PASS: TestPR454MixedBatchRejectedButAppended (0.00s)
+=== RUN   TestPR454NodeProposeConfChangeNoError
+--- PASS: TestPR454NodeProposeConfChangeNoError (0.00s)
+PASS
+ok  	go.etcd.io/raft/v3	0.044s

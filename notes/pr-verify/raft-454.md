@@ -114,7 +114,7 @@ refusal's log line.
 ## Findings
 
 These are about the PR, not the pinned code, so they are not in `issues/`. Reproductions:
-`/tmp/claude-0/-shared-etcd-grove/6101526d-6539-4872-a190-a0b4b0fe455b/scratchpad/tests/pr454_test.go`,
+`notes/pr-verify/raft-454/pr454_test.go` (see its `README.md`),
 run against the PR head (both pass, showing the behavior).
 
 1. **Mixed batch** (`TestPR454MixedBatchRejectedButAppended`): a `MsgProp` with a normal entry and
