@@ -1,0 +1,3 @@
+Perennial.EtcdGrove.concurrency.election_Resign: 655 axioms in all (Lean's three, Perennial's, the axiomatized Go types of names-only packages); repository axioms: ['Perennial.EtcdGrove.proto.Clone.wp_proof']; sorryAx: False
+Perennial.EtcdGrove.concurrency.election_Campaign: 658 axioms in all (Lean's three, Perennial's, the axiomatized Go types of names-only packages); repository axioms: ['Perennial.EtcdGrove.fmt.SprintfNamed.wp_proof', 'Perennial.EtcdGrove.proto.Clone.wp_proof', 'Perennial.EtcdGrove.status.Error.wp_proof', 'Perennial.EtcdGrove.status.FromError.wp_proof']; sorryAx: False
+lean 51547df02: identical output (diff empty)

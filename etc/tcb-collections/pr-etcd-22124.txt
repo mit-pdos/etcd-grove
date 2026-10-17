@@ -1,0 +1,13 @@
+# etcd-io/etcd#22124 (client/v3/concurrency: preserve leadership state on failed Resign; the same code change as #22211):
+# the linked results of the function it changes, Election.Resign, and of its caller
+# Election.Campaign (notes/pr-verify/etcd-22124.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22124.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Spec/go_etcd_io/etcd/client/v3/concurrency/(Election__Resign|Election__Campaign)\.lean$
+axiom fmt.SprintfNamed.wp_proof
+axiom proto.Clone.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof

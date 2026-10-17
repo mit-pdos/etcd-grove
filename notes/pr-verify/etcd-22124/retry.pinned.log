@@ -1,0 +1,23 @@
+--- FAIL: TestElectionResignCanRetryAfterError (0.05s)
+    logger.go:146: 2026-10-17T06:24:27.651-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x1f12c8b10a00/localhost:m0", "method": "/etcdserverpb.Lease/LeaseGrant", "attempt": 0}
+    logger.go:146: 2026-10-17T06:24:27.653-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x1f12c8b10a00/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:24:27.654-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x1f12c8b10a00/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-17T06:24:27.655-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x1f12c8b10a00/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:24:27.655-0400	WARN	client	retrying of unary invoker failed	{"target": "etcd-endpoints://0x1f12c8b10a00/localhost:m0", "peer": "Peer{Addr: <nil>, LocalAddr: <nil>, AuthInfo: <nil>}", "method": "/etcdserverpb.KV/Txn", "attempt": 0, "error": "rpc error: code = Canceled desc = context canceled"}
+    election_resign_test.go:47: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-22124-scratch/pinned/tests/integration/clientv3/concurrency/election_resign_test.go:47
+        	Error:      	Not equal: 
+        	            	expected: "/resign-retry/4befa1496439ee03"
+        	            	actual  : ""
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-/resign-retry/4befa1496439ee03
+        	            	+
+        	Test:       	TestElectionResignCanRetryAfterError
+    logger.go:146: 2026-10-17T06:24:27.655-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x1f12c8b10a00/localhost:m0", "method": "/etcdserverpb.Lease/LeaseRevoke", "attempt": 0}
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.138s
+FAIL

@@ -211,7 +211,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
       isplitr
       · ipureintro; exact ⟨Hnn, Hne⟩
       iframe
-      ipureintro; simp
+      ipureintro; exact Hsess
     subst Heq
     iunfold txnRespAt at Hresp
     icases Hresp with ⟨%hdr, %rsl, %ps, #HH, %Hhdr, #HRev, -⟩
@@ -244,7 +244,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
       isplitr
       · ipureintro; exact ⟨Hnn, Hne⟩
       iframe
-      ipureintro; simp
+      ipureintro; exact Hsess
     subst Heq
     wp_auto
     iapply HΦ

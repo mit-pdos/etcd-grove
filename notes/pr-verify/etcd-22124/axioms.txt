@@ -1,0 +1,5 @@
+`#print axioms` of Perennial.EtcdGrove.concurrency.election_Resign and .election_Campaign on
+pr-verify/etcd-22124 (repository axioms only; Lean's three, Perennial's and axiomatized Go types omitted):
+election_Resign: 655 axioms in all; repository axioms: proto.Clone.wp_proof; sorryAx: no
+election_Campaign: 658 axioms in all; repository axioms: fmt.SprintfNamed.wp_proof, proto.Clone.wp_proof, status.Error.wp_proof, status.FromError.wp_proof; sorryAx: no
+Identical to pr-verify/etcd-22211 (notes/pr-verify/etcd-22211/axioms.txt), itself identical to lean 51547df02.

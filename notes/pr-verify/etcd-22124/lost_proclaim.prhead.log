@@ -1,0 +1,29 @@
+go: downloading golang.org/x/crypto v0.53.0
+go: downloading golang.org/x/net v0.56.0
+go: downloading golang.org/x/text v0.38.0
+=== RUN   TestElectionResignAfterLostProclaim
+    logger.go:146: 2026-10-17T06:25:55.011-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.Lease/LeaseGrant", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.013-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.014-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/Range", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.015-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/DeleteRange", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.015-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.016-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.016-0400	WARN	client	retrying of unary invoker failed	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "peer": "Peer{Addr: 'localhost:m0', LocalAddr: '@', AuthInfo: 'insecure'}", "method": "/etcdserverpb.KV/Txn", "attempt": 0, "error": "rpc error: code = InvalidArgument desc = etcdserver: key is not provided"}
+    election_resign_lost_proclaim_test.go:56: Resign #0: etcdserver: key is not provided
+    logger.go:146: 2026-10-17T06:25:55.017-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.017-0400	WARN	client	retrying of unary invoker failed	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "peer": "Peer{Addr: 'localhost:m0', LocalAddr: '@', AuthInfo: 'insecure'}", "method": "/etcdserverpb.KV/Txn", "attempt": 0, "error": "rpc error: code = InvalidArgument desc = etcdserver: key is not provided"}
+    election_resign_lost_proclaim_test.go:56: Resign #1: etcdserver: key is not provided
+    logger.go:146: 2026-10-17T06:25:55.017-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.KV/Txn", "attempt": 0}
+    logger.go:146: 2026-10-17T06:25:55.017-0400	WARN	client	retrying of unary invoker failed	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "peer": "Peer{Addr: 'localhost:m0', LocalAddr: '@', AuthInfo: 'insecure'}", "method": "/etcdserverpb.KV/Txn", "attempt": 0, "error": "rpc error: code = InvalidArgument desc = etcdserver: key is not provided"}
+    election_resign_lost_proclaim_test.go:56: Resign #2: etcdserver: key is not provided
+    election_resign_lost_proclaim_test.go:58: 
+        	Error Trace:	/shared/etcd-grove-pr/etcd-22124-scratch/prhead/tests/integration/clientv3/concurrency/election_resign_lost_proclaim_test.go:58
+        	Error:      	Received unexpected error:
+        	            	etcdserver: key is not provided
+        	Test:       	TestElectionResignAfterLostProclaim
+        	Messages:   	Resign should not fail forever once the leader key is gone
+    logger.go:146: 2026-10-17T06:25:55.018-0400	DEBUG	client	retrying of unary invoker	{"target": "etcd-endpoints://0x10f1507bc200/localhost:m0", "method": "/etcdserverpb.Lease/LeaseRevoke", "attempt": 0}
+--- FAIL: TestElectionResignAfterLostProclaim (0.12s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.171s
+FAIL

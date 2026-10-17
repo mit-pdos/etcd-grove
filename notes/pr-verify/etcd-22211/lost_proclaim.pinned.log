@@ -1,0 +1,5 @@
+    election_resign_lost_proclaim_test.go:56: Resign #0: etcdserver: key is not provided
+    election_resign_lost_proclaim_test.go:56: Resign #1: <nil>
+    election_resign_lost_proclaim_test.go:56: Resign #2: <nil>
+--- PASS: TestElectionResignAfterLostProclaim (0.15s)
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.389s

@@ -1,0 +1,9 @@
+    election_resign_lost_proclaim_test.go:56: Resign #0: etcdserver: key is not provided
+    election_resign_lost_proclaim_test.go:56: Resign #1: etcdserver: key is not provided
+    election_resign_lost_proclaim_test.go:56: Resign #2: etcdserver: key is not provided
+        	Error:      	Received unexpected error:
+        	Messages:   	Resign should not fail forever once the leader key is gone
+--- FAIL: TestElectionResignAfterLostProclaim (0.14s)
+FAIL
+FAIL	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.211s
+FAIL

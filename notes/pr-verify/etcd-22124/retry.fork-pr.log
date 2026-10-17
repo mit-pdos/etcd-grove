@@ -1,0 +1,4 @@
+=== RUN   TestElectionResignCanRetryAfterError
+--- PASS: TestElectionResignCanRetryAfterError (0.13s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.206s
