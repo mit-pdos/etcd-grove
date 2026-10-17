@@ -492,7 +492,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           · iframe #
           wp_apply hHdr $$ [] as %h ⟨%t, %ld, #Hh⟩
           · iframe #
-          wp_auto_lc 3
+          wp_auto_lc 4
+          -- the channel's sent list, after the registration (unit W-K)
+          imod mvcc.chan_sent_snapshot r.srv.γ r.ch r.γc $$ Hlc4 Hchinv with ⟨%l0, #Hl0⟩
           irename «$r0» => Hwr
           ihave %Hwrn := typedPointsto_not_null _ _ _ $$ Hwr
           ipersist Hwr
@@ -544,6 +546,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
               iframe HIWF
               iframe Hia Hit Hfl
+              iexists l0
+              iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2).1 $$ Hl0
             iintro !> Hprod
             wp_auto
             recv_next

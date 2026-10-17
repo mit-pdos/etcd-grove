@@ -580,6 +580,18 @@ instance chanSentLb_persistent (γc : WatchChanNames) (l : List RespM) :
     Persistent (chanSentLb (GF := GF) γc l) := by
   unfold chanSentLb; infer_instance
 
+/-- **The stream's channel had sent `l` (at least)** (persistent; unit W-K): `chanSentLb`, named
+through the stream's names (`γo.sentl = γc.sentl`, `isWatchStream`). -/
+def streamSentLb (γo : WsStreamNames) (l : List RespM) : IProp GF := monoListLbOwn γo.sentl l
+
+instance streamSentLb_persistent (γo : WsStreamNames) (l : List RespM) :
+    Persistent (streamSentLb (GF := GF) γo l) := by
+  unfold streamSentLb; infer_instance
+
+theorem chanSentLb_stream (γo : WsStreamNames) (γc : WatchChanNames) (l : List RespM)
+    (h : γo.sentl = γc.sentl) : chanSentLb (GF := GF) γc l ⊣⊢ streamSentLb γo l := by
+  unfold chanSentLb streamSentLb; rw [h]; exact .rfl
+
 /-- The consumer's view: it has received `received`. -/
 def watchConsumer (γc : WatchChanNames) (received : List RespM) : IProp GF :=
   ghostVar γc.recv (1 : Qp).half received

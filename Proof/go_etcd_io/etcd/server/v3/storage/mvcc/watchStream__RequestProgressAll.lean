@@ -29,7 +29,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
   wp_start as ⟨Hws, #Hpf, HPR⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
-  irevert Hpf; rw [Hγc.2]; iintro #Hpf
+  irevert Hpf; rw [Hγc.2.1]; iintro #Hpf
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -275,13 +275,13 @@ theorem ansPool_mint (γa : GName) (n : Nat) :
 /-- The ghost names a watch run publishes in its stream's auxiliary name (`streamAuxIs`): its
 mvcc watch stream's (`γo`) and its answers' (`γa`). -/
 def auxOf (γo : mvcc.WsStreamNames) (γa : GName) : List GName :=
-  [γo.tok, γo.ids, γo.fresh, γo.prog, γa]
+  [γo.tok, γo.ids, γo.fresh, γo.prog, γo.sentl, γa]
 
 theorem auxOf_inj {γo γo' : mvcc.WsStreamNames} {γa γa' : GName}
     (h : auxOf γo γa = auxOf γo' γa') : γo = γo' ∧ γa = γa' := by
   unfold auxOf at h
   simp only [List.cons.injEq, and_true] at h
-  obtain ⟨h1, h2, h3, h5, h4⟩ := h
+  obtain ⟨h1, h2, h3, h5, h6, h4⟩ := h
   cases γo; cases γo'
   simp_all
 
@@ -464,8 +464,10 @@ the store registered for it (`mvcc.watcherIs`: its names, its fixed range `r`, t
 key, range and start revision with the response's id, `createRangeOk c m.watchId r`, its
 filters, its first revision `lo`: `c.startRev`, or for `0` the length of a committed log at the
 registration; no filter: `fcs` holds none, as `watchReqOk` asks), the stream `γo` having assigned the id to it (`mvcc.idAssigned`, persistent) and
-the id's token (`mvcc.idTok`, exclusive: a stream announces an id once); nothing for any other
-answer. -/
+the id's token (`mvcc.idTok`, exclusive: a stream announces an id once), and (unit W-K) a
+snapshot of the stream's channel's sent list taken after the registration (`streamSentLb`: the
+point of the channel's order the response is sent after, so `sendLoop` sends every response of
+id `-1` queued before it first); nothing for any other answer. -/
 def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM) (m : WatchRespM) :
     IProp GF :=
   match req with
@@ -473,7 +475,8 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
       iprop(∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
-        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId)
+        mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
+        ∃ l : List mvcc.RespM, mvcc.streamSentLb γo l)
   | _ => iprop(True)
 
 /-- **A control response** `m`: it answers the request `req` the client sent at some position `i`

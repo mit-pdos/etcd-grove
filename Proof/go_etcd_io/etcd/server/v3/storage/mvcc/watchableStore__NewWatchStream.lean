@@ -147,7 +147,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
-  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp⟩
+  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp, γsl⟩
   imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γc γo) ⊤
     (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids Hidf]
     with #Hmu
@@ -193,13 +193,13 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iframe Htok Hrecv2 Hch Hinv ch Hsp
   isplitr
   rotate_left
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
   iunfold mvcc.isWatchStream
   iexists ch, γc
   simp only [named]
   iframe watchable ch Hwable Hmu
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
   isplitr
   · simp only [mvcc.storeWatchParams]; itrivial
   iintro !> %L !> %Φ' H HΦ'

@@ -589,7 +589,7 @@ drain's (`rcv`, `D`, `drained`): `k` gives the loop's witnesses for the response
 local macro "watch_resp" k:tactic : tactic => `(tactic| (
   icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP⟩
   -- what the response says of the stream (unit W-M2)
-  imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x Hγoc $$ [Haux Hsp HrO HrF HrP]
+  imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x ⟨Hγoc.1, Hγoc.2.1⟩ $$ [Haux Hsp HrO HrF HrP]
     with #HrX
   · iframe Haux Hsp HrO HrF HrP
   iunfold v3rpc.sendSt at HS

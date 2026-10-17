@@ -296,6 +296,9 @@ structure WsStreamNames where
   fresh : GName
   /-- the channel's progress fact's name (unit W-M2: `γ.prog = γc.prog`, `isWatchStream`) -/
   prog : GName
+  /-- the channel's sent list's name (unit W-K: `γ.sentl = γc.sentl`, `isWatchStream`), so that
+  what names the stream names the points of its channel's order -/
+  sentl : GName
 
 /-- The token of an open stream: `NewWatchStream` returns it, `Close` consumes it. -/
 def watchStreamOpen (γ : WsStreamNames) : IProp GF := token γ.tok
@@ -434,7 +437,7 @@ def watchStreamInv (ws : Loc) (P : WatchParams GF) (ch : GoChan) (γc : WatchCha
 def isWatchStream (ws : Loc) (wa : GoInterface) (P : WatchParams GF) (γ : WsStreamNames) :
     IProp GF :=
   iprop(∃ (ch : GoChan) (γc : WatchChanNames),
-    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog⌝ ∗
+    "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl⌝ ∗
     "#Hwa" ∷ ws.[watchStream, go!"watchable"] ↦□ wa ∗
     "#Hch" ∷ ws.[watchStream, go!"ch"] ↦□ ch ∗
     "#HC" ∷ P.C ch ∗
