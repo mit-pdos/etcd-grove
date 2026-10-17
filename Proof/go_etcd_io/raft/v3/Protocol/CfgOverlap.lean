@@ -97,12 +97,6 @@ variable [FfiSyntax]
 def CfgOk (s : CCState) : Prop :=
   CfgInv s ∧ s.cfg.incoming ≠ ∅ ∧ GMap.size s.cfg.ids < 2 ^ 62
 
-theorem checkedM_some {s s' : CCState} (h : checkedM s = some s') : s' = s ∧ CfgInv s := by
-  unfold checkedM at h
-  split at h
-  · rename_i hc; cases h; exact ⟨rfl, hc⟩
-  · cases h
-
 theorem applyM_incoming {ccs : List ConfChangeSingleM} {s s' : CCState}
     (h : applyM ccs s = some s') : s'.cfg.incoming ≠ ∅ := by
   unfold applyM at h

@@ -121,11 +121,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 
-/-- `ownTracker` at two indices that are equal (by computation: a state reached by
-record updates). -/
-private theorem ownTracker_cast (c : CfgM) (tv : tracker.ProgressTracker) (t t' : Trk)
-    (h : t = t') : ownTrackerC (GF := GF) c tv t ⊢ ownTrackerC c tv t' := h ▸ .rfl
-
 /-- `reset term` clears the vote iff the term changes, clears `lead` and the vote tally,
 and re-initialises everything the model does not see: the two tick counters, the
 randomised election timeout, the leader-transfer target, every peer's `Progress`, the
@@ -230,7 +225,7 @@ theorem raft.reset.wp_proof
     -- `r.trk.MaxInflight`, `r.trk.MaxInflightBytes` through the tracker field, then
     -- `pr.IsLearner` and the store through `pr`
     icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv2, Htrkf, Htrk, HI⟩
-    ihave Htrk := ownTracker_cast c tv2 _
+    ihave Htrk := ownTrackerC_cast c tv2 _
       ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
     · rfl
     icases ownTrackerC_maxinflight $$ Htrk with ⟨%HmaxI2, Htrk⟩
@@ -265,7 +260,7 @@ theorem raft.reset.wp_proof
       fun I => PrOk.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl
     ihave Hphys := HI $$ Htrkf [Htrk]
       %(PrvalsOk.insert (pvs := <[i := p]> pvs0) Hok1 (fun _ => Hfresh _))
-    · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
+    · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Htrk
       rfl
     -- the bound of what is now written, for the node's own second write
     icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok2, -, Hphys⟩
@@ -281,7 +276,7 @@ theorem raft.reset.wp_proof
       ihave Hphys := Hphys $$ Hlog
       -- `pr.Match = lastIndex()`: borrow `pr` once more
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
-      ihave Htrk := ownTracker_cast c tv3 _
+      ihave Htrk := ownTrackerC_cast c tv3 _
         ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ ?_ $$ Htrk
       · rfl
       icases ownTrackerC_lookup c tv3 ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ i pr
@@ -306,10 +301,10 @@ theorem raft.reset.wp_proof
           (.inr (by simp only [progressOf]; exact Hli2'))
           (by simp only [progressOf]; rw [Habs2.2.2.2.2.2.1, ← Option.some.inj Hp2]; rfl)
       ihave Hphys := HI $$ Htrkf [Htrk] %(PrvalsOk.insert Hok2 (fun _ => Hown _))
-      · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
+      · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Htrk
         rfl
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
-      ihave Htrk := ownTracker_cast c tv3 _
+      ihave Htrk := ownTrackerC_cast c tv3 _
         ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
@@ -327,13 +322,13 @@ theorem raft.reset.wp_proof
         · simp only [progressOf]; rw [← Option.some.inj Hp2]; rfl
       iintro %tvx %pvsx Hf Ht %Hokx
       ihave Hphys := HI $$ %tvx %pvsx Hf [Ht] %Hokx
-      · iapply ownTracker_cast _ _ _ _ ?_ $$ Ht
+      · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
     · rw [decide_eq_false Hii]
       wp_auto
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
-      ihave Htrk := ownTracker_cast c tv3 _
+      ihave Htrk := ownTrackerC_cast c tv3 _
         ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
@@ -348,12 +343,12 @@ theorem raft.reset.wp_proof
         · simp only [progressOf, ite_eq_right Hii]
       iintro %tvx %pvsx Hf Ht %Hokx
       ihave Hphys := HI $$ %tvx %pvsx Hf [Ht] %Hokx
-      · iapply ownTracker_cast _ _ _ _ ?_ $$ Ht
+      · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by rfl) $$ Hphys
   -- `Visit` hands the field and the tracker back
   ihave Hphys := HI $$ %tvfin %pvsfin Htrkf [Htrk] %(resetInv_prvalsOk _ _ _ _ _ Hinv Hok0 Hnw)
-  · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
+  · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Htrk
     rfl
   -- `pendingConfIndex := 0`, `uncommittedSize := 0`
   try wp_auto

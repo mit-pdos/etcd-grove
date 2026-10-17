@@ -1687,9 +1687,6 @@ Every rule of `Step` keeps `commit` or raises it: `plogCommitTo` (`appAccept`,
 it to carry a queued `MsgStorageApplyResp`'s "its entries are committed" across the
 steps before it. (Until 2026-10-09 `PstepCommitMono`, a premise of `Advance`'s spec.) -/
 
-theorem plogCommitTo_ge [FfiSyntax] (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
-  unfold plogCommitTo; split <;> omega
-
 theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
     {recv : List Msg} {ps' : PState} (H : Step cfg id ps recv ps') :
     uint.Z ps.commit ≤ uint.Z ps'.commit := by

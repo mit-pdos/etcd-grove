@@ -57,7 +57,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   intro Hty Hterm Hwf
   wp_start as H
   iNamed H
-  icases msgPtsC_not_null _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto

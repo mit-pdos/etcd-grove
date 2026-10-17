@@ -57,24 +57,6 @@ theorem ownTrackerC_incoming (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
   iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
     $$ Hvotes Hprs Hprogs Hcfg
 
-/-- `array_acc`, putting back the same element. -/
-theorem array_acc_same {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
-    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
-    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
-    typedPointsto (GF := GF) p a dq ⊢
-      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
-        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
-  have hset : a.arr.set i.toNat v = a.arr := by
-    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
-    exact List.set_getElem_self h
-  iintro Ha
-  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
-  iframe Hv
-  iintro Hv
-  ihave Ha := Ha $$ %v Hv
-  rw [hset]
-  iexact Ha
-
 end helpers
 
 section proof

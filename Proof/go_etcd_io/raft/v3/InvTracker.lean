@@ -1331,7 +1331,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `min` on `uint64`; the framework has `wp_max2_uint64` but no `min`. -/
+/-- `min` on `uint64` (Rocq: the framework's `wp_min2_uint64`, which the Lean port lacks). -/
 theorem wp_min2_uint64 (x y : w64) :
     {{ (True : IProp GF) }}
       (App (App (Val #(functions go.min [go.uint64, go.uint64])) (Val #x)) (Val #y))
@@ -1341,6 +1341,36 @@ theorem wp_min2_uint64 (x y : w64) :
   · rw [show w64Min x y = x by unfold w64Min; simp_all]
     iapply HΦ; itrivial
   · rw [show w64Min x y = y by unfold w64Min; rw [ite_eq_right (by omega)]]
+    iapply HΦ; itrivial
+
+/-- `array_acc`, putting back the same element. -/
+theorem array_acc_same {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
+    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
+    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
+    typedPointsto (GF := GF) p a dq ⊢
+      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
+        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
+  have hset : a.arr.set i.toNat v = a.arr := by
+    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
+    exact List.set_getElem_self h
+  iintro Ha
+  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
+  iframe Hv
+  iintro Hv
+  ihave Ha := Ha $$ %v Hv
+  rw [hset]
+  iexact Ha
+
+/-- `max` on `uint64` (Rocq: the framework's `wp_max2_uint64`, which the Lean port lacks). -/
+theorem wp_max2_uint64 (x y : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (Val #(functions go.max [go.uint64, go.uint64])) (Val #x)) (Val #y))
+    {{ RET #(w64Max x y); True }} := by
+  wp_start
+  wp_if_destruct
+  · rw [show w64Max x y = x by unfold w64Max; simp_all]
+    iapply HΦ; itrivial
+  · rw [show w64Max x y = y by unfold w64Max; rw [ite_eq_right (by omega)]]
     iapply HΦ; itrivial
 
 /-- The progress *map* with the `Progress` objects it points at -- the object a

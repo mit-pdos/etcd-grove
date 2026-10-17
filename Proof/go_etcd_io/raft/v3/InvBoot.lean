@@ -133,21 +133,12 @@ end defs
 section pure
 variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
-/-- `applyConfChange`'s model of a single change with the `Auto` transition is `Simple`. -/
-theorem ccApplyM_one (c : ConfChangeSingleM) (s : CCState) :
-    ccApplyM (W32 0) [c] s = simpleM [c] s := by
-  unfold ccApplyM
-  rw [ite_eq_right (by simp)]
-  have He : enterJointOf (W32 0) [c].length = some (false, false) := by
-    simp [enterJointOf]
-  rw [He]
-
 /-- `Bootstrap`'s change of the peer `p` (`AddNode p` as `(&pb.ConfChange{...}).AsV2()` renders
 it) at the voters `V`, `p` not a voter yet: `p` joins the voters, no learner. -/
 theorem bootCC_apply (V : GSet w64) (p : w64) (hp : p ≠ W64 0) :
     ccApplyM (W32 0) [addNodeCC p] (cfgStateC (CfgM.simple V ∅)) =
       some (cfgState (<[p := ()]> V) ∅) := by
-  rw [cfgStateC_simple, ccApplyM_one]
+  rw [cfgStateC_simple, ccApplyM_single_simple]
   exact simpleM_cfgState_addNode V ∅ p hp (GMap.not_elem_of_empty _)
     (fun k hk => absurd hk (GMap.not_elem_of_empty _))
 

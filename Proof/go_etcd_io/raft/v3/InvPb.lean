@@ -596,6 +596,36 @@ theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E 
   iframe Voters Hv Learners Hl VotersOutgoing Ho LearnersNext Hn AutoLeave cA Hpb
   ipureintro; intro h; simpa using h
 
+/-- A message's pointer is not `nil` (kept). -/
+theorem msgPtsC_nn (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢ ⌜l ≠ null⌝ ∗ msgPtsC l dq dqe cap ms := by
+  iintro H
+  ihave %Hnn : ⌜l ≠ null⌝ $$ [H]
+  · iunfold msgPtsC at H
+    iNamed H
+    ipureintro; exact Hnn
+  iframe H
+  ipureintro; exact Hnn
+
+/-- The `From` field of a message, lent (`&pb.Message{To: m.From, ...}` reads the pointer: the new
+message shares the read-only cell). -/
+theorem msgPtsC_From_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l dq dqe cap ms ⊢
+      ∃ p : Loc, l.[raftpb.Message, go!"From"] ↦{dq} p ∗ cellRO p ms.msg.From' ∗
+        (l.[raftpb.Message, go!"From"] ↦{dq} p -∗ msgPtsC l dq dqe cap ms) := by
+  iintro H
+  iunfold msgPtsC at H
+  iNamed H
+  iexists pfr
+  iframe HFr cFr
+  iintro HFr
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
 theorem csPts_nn (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     csPts (GF := GF) p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝ := by
   iintro H

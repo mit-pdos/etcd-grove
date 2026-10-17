@@ -21,30 +21,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The builtin `min` on `uint64` (Rocq `wp_min2_uint64`): its body is `w64Min`'s `if`. -/
-private theorem wp_min_u64 (a b : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.min [go.uint64, go.uint64])) (Val #a)) (Val #b))
-    {{ RET #(w64Min a b); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Min a b = a from ite_eq_left Hif]
-    iapply HΦ; itrivial
-  · rw [show w64Min a b = b from ite_eq_right Hif]
-    iapply HΦ; itrivial
-
-/-- The builtin `max` on `uint64` (Rocq `wp_max2_uint64`). -/
-private theorem wp_max_u64 (a b : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.max [go.uint64, go.uint64])) (Val #a)) (Val #b))
-    {{ RET #(w64Max a b); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Max a b = a from ite_eq_left Hif]
-    iapply HΦ; itrivial
-  · rw [show w64Max a b = b from ite_eq_right Hif]
-    iapply HΦ; itrivial
-
 theorem tracker.Progress.MaybeDecrTo.wp_proof :
     tracker.Progress.MaybeDecrTo.spec (GF := GF) (hG := hG) := by
   intro pr p rejected matchHint
@@ -72,7 +48,7 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
         simp only [progressMaybeDecrTo, Hs, ite_true]
         rw [ite_eq_right (by rw [← h3]; exact Hif)]
       rw [Hp]
-      wp_apply wp_min_u64
+      wp_apply wp_min2_uint64
       iapply HΦ
       iapply ownProgress_intro pr _ _ $$ Hpv [Hinfl]
       · dsimp only
@@ -85,9 +61,9 @@ theorem tracker.Progress.MaybeDecrTo.wp_proof :
       intro Hc; apply Hif; rw [h2, Hc]; rfl
     wp_if_destruct
     · -- exit 4: a genuine rejection while probing
-      wp_apply wp_min_u64
-      wp_apply wp_max_u64
-      wp_apply wp_min_u64
+      wp_apply wp_min2_uint64
+      wp_apply wp_max2_uint64
+      wp_apply wp_min2_uint64
       have Hp : progressMaybeDecrTo p (pv.Next' - W64 1) matchHint =
           (true, { p with next := w64Max (w64Min (pv.Next' - W64 1) (matchHint + W64 1)) (p.matched + W64 1),
                           sentCommit := w64Min p.sentCommit

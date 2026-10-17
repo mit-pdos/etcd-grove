@@ -77,18 +77,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 
-/-- The builtin `min` on `uint64` (Rocq unfolds `minⁱᵐᵖˡ` in place). -/
-private theorem wp_min_u64 (a b : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.min [go.uint64, go.uint64])) (Val #a)) (Val #b))
-    {{ RET #(w64Min a b); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Min a b = a from ite_eq_left Hif]
-    iapply HΦ; itrivial
-  · rw [show w64Min a b = b from ite_eq_right Hif]
-    iapply HΦ; itrivial
-
 end proof0
 
 section proof
@@ -180,7 +168,7 @@ theorem raftLog.maybeAppend.wp_proof
           have : 0 < ents.length := List.length_pos_iff.2 Hne
           rw [show ents.length - 1 + 1 = ents.length by omega] at *
           omega
-      wp_apply wp_min_u64
+      wp_apply wp_min2_uint64
       wp_apply wp_raftLog_commitTo _ ls _ ?_ $$ [$Hlog] as Hlog
       · simp only [plogLastIndexZ, List.length_append, w64Min]
         split <;> word
@@ -287,7 +275,7 @@ theorem raftLog.maybeAppend.wp_proof
           List.length_cons, List.length_drop] at HL
         push_cast at *
         omega
-      wp_apply wp_min_u64
+      wp_apply wp_min2_uint64
       wp_apply wp_raftLog_commitTo _ ls1 _ ?_ $$ [$Hlog] as Hlog
       · rw [Hp1]
         simp only [plogLastIndexZ, List.length_append, w64Min]

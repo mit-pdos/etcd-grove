@@ -2,7 +2,7 @@
 
 Lean notes: the Rocq helper `wp_bcast` is inlined in the theorem (it was the whole
 proof). The Rocq `Local Lemma send_msgs_app` is not needed (the state equations are
-closed by `cases s; simp [sendMsgs]`). `ownTracker_cast` is a local helper. 
+closed by `cases s; simp [sendMsgs]`). `ownTrackerC_cast` is a local helper. 
 raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
@@ -26,11 +26,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- `ownTracker` at two indices that are equal (by computation: a state reached by
-record updates). -/
-private theorem ownTracker_cast (c : CfgM) (tv : tracker.ProgressTracker) (t t' : Trk)
-    (h : t = t') : ownTrackerC (GF := GF) c tv t ⊢ ownTrackerC c tv t' := h ▸ .rfl
 
 /-- `bcastAppend`
 
@@ -116,7 +111,7 @@ theorem raft.bcastAppend.wp_proof
       rw [decide_eq_true Hii]
       wp_auto
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
-      ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
+      ihave Htrk := ownTrackerC_cast c tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv1, _
@@ -132,7 +127,7 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hok
       iintro %tvx %pvsx Hf Ht %Hok'
       ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %Hok'
-      · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
+      · iapply ownTrackerC_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
@@ -143,7 +138,7 @@ theorem raft.bcastAppend.wp_proof
       try wp_auto
       icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
-      ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
+      ihave Htrk := ownTrackerC_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv1, _
@@ -160,7 +155,7 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; exact Hok'.of_fields rfl rfl rfl
       iintro %tvx %pvsx Hf Ht %Hok''
       ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
-      · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
+      · iapply ownTrackerC_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
       iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
   iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩

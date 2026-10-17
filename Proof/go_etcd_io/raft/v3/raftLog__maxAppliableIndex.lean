@@ -1,7 +1,6 @@
 /- Port of election_proof/proof_raftLog__maxAppliableIndex.v (857d09190).
 
-Lean notes: Rocq's `wp_min2_uint64` is the local `wp_min_u64` (as in
-`Proof/Progress__MaybeDecrTo.lean`). -/
+Lean notes: Rocq's `wp_min2_uint64` is `InvTracker.lean`'s. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
@@ -22,18 +21,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The builtin `min` on `uint64` (Rocq `wp_min2_uint64`): its body is `w64Min`'s `if`. -/
-private theorem wp_min_u64 (a b : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.min [go.uint64, go.uint64])) (Val #a)) (Val #b))
-    {{ RET #(w64Min a b); True }} := by
-  wp_start
-  wp_if_destruct
-  · rw [show w64Min a b = a from ite_eq_left Hif]
-    iapply HΦ; itrivial
-  · rw [show w64Min a b = b from ite_eq_right Hif]
-    iapply HΦ; itrivial
-
 theorem raftLog.maxAppliableIndex.wp_proof :
     raftLog.maxAppliableIndex.spec (GF := GF) (hG := hG) := by
   intro l ls au
@@ -43,7 +30,7 @@ theorem raftLog.maxAppliableIndex.wp_proof :
   wp_auto
   cases au
   · wp_auto
-    wp_apply wp_min_u64
+    wp_apply wp_min2_uint64
     iapply HΦ
     isplitl
     · reseal_raftLog

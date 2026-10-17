@@ -100,7 +100,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_logC
-    icases msgPtsC_From_lend _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
+    icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
     wp_auto
     ihave Hm := HmB $$ HFr
     rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
@@ -144,7 +144,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_logC
-    icases msgPtsC_From_lend _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
+    icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
     wp_auto
     ihave Hm := HmB $$ HFr
     rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
@@ -188,7 +188,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_logC
-    icases msgPtsC_From_lend _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
+    icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
     wp_auto
     ihave Hm := HmB $$ HFr
     rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]

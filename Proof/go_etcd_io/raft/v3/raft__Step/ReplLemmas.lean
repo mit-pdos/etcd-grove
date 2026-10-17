@@ -62,36 +62,6 @@ structure raft.Step.ReplPbPostulates : Prop where
 
 namespace StepProof
 
-/-- A message's pointer is not `nil` (kept). -/
-theorem msgPtsC_not_null (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l dq dqe cap ms ⊢ ⌜l ≠ null⌝ ∗ msgPtsC l dq dqe cap ms := by
-  iintro H
-  ihave %Hnn : ⌜l ≠ null⌝ $$ [H]
-  · iunfold msgPtsC at H
-    iNamed H
-    ipureintro; exact Hnn
-  iframe H
-  ipureintro; exact Hnn
-
-/-- The `From` field of a message, lent (`&pb.Message{To: m.From, ...}` reads the pointer: the new
-message shares the read-only cell). -/
-theorem msgPtsC_From_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l dq dqe cap ms ⊢
-      ∃ p : Loc, l.[raftpb.Message, go!"From"] ↦{dq} p ∗ cellRO p ms.msg.From' ∗
-        (l.[raftpb.Message, go!"From"] ↦{dq} p -∗ msgPtsC l dq dqe cap ms) := by
-  iintro H
-  iunfold msgPtsC at H
-  iNamed H
-  iexists pfr
-  iframe HFr cFr
-  iintro HFr
-  iunfold msgPtsC
-  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs, uf
-  isplitr
-  · ipureintro; exact Hnn
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
-
 /-- A message `Step` received, off a proposal, as the `stepX` specs take it. (Over any
 capacity flag `cap`, `msgIn`'s `needsCap st.msg`, so that it applies to a `msgIn` unfolded by a
 generic `msgPtsC` lemma.) -/

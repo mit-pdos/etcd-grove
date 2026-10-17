@@ -8,7 +8,7 @@ Each lemma takes a `stepX` result relation apart for `MsgPreVoteResp`, outside a
 where the `decide` chains are cheap. Only files in this directory may `Require` it.
 
 Lean notes: Rocq's section variable `c` is an explicit first argument of every lemma
-that uses it. Rocq's `case_decide … w32_ne` chains are the local macro `mtype_simp`
+that uses it. Rocq's `case_decide … w32_ne` chains are the macro `mtype_simp`
 (unfold the message-type constants, decide the equalities between them).
 -/
 module
@@ -35,7 +35,7 @@ namespace StepProof
 
 /-- Unfold the message-type constants and decide the equalities between them (the
 `case_decide … w32_ne` chains of the Rocq proofs). -/
-local macro "mtype_simp" : tactic =>
+macro "mtype_simp" : tactic =>
   `(tactic| simp (config := { decide := true }) only [Perennial.EtcdGrove.MsgBeat,
       Perennial.EtcdGrove.MsgHup, Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgApp,
       Perennial.EtcdGrove.MsgAppResp, Perennial.EtcdGrove.MsgVote,
@@ -46,9 +46,9 @@ local macro "mtype_simp" : tactic =>
 
 /-- `stepFollower` has no `MsgPreVoteResp` arm. -/
 theorem followerStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : MessageM)
-    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
+    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) (cl : List w8) :
     m.Type' = MsgPreVoteResp →
-    FollowerStepResultC c scfg id s m ents sv dropped s' c' → c = c' ∧ dropped = false ∧ s' = s := by
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' cl → c = c' ∧ dropped = false ∧ s' = s := by
   intro Hty H
   unfold FollowerStepResultC at H
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
@@ -59,9 +59,9 @@ theorem followerStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (
 
 /-- `stepLeader` has none either. -/
 theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
-    (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState) :
+    (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState) (ctx : List w8) :
     m.Type' = MsgPreVoteResp →
-    LeaderStepResultC c id s m ents dropped s' → dropped = false ∧ s' = s := by
+    LeaderStepResultC c id s m ents dropped s' ctx → dropped = false ∧ s' = s := by
   intro Hty H
   unfold LeaderStepResultC at H
   rw [Hty] at H
@@ -134,13 +134,13 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
 the tally and then win / lose / wait, which is `stepC_prevoteRespResult`. -/
 theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (sv : SnapshotM) (dropped : Bool)
-    (s' : NState) :
+    (s' : NState) (cl : List w8) :
     m.Type' = MsgPreVoteResp →
     (s.role = .candidate ∨ s.role = .preCandidate) →
     id ∈ c.voters →
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
-    CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
     c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
       RespStep m s s' ∧ NetFrame s s' ∧ TermStep m s s' := by
   intro Hty Hrole Hin Hnw Hwf H

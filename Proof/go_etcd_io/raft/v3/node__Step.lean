@@ -40,7 +40,7 @@ theorem node.Step.wp_proof
   intro γ id n m ctx cd
   wp_start as ⟨#Hnode, #Hctx, Hstep⟩
   icases stepP_split γ id m $$ Hstep with ⟨%dqe, %st, Hm, %Hty, Hclose⟩
-  icases msgPtsC_nonnull $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   wp_if_destruct
   · exact absurd rfl Hnn
