@@ -25,8 +25,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 /-- **`lm.Unlock()`** (`NewLocker`'s `sync.Locker`): `Mutex.Unlock(client.Ctx())` on the wrapped
-mutex `m`, knowing etcd has reached `lo`: `Mutex.Unlock`'s `nil` case (the key absent at some
-`R ≥ lo`, the mutex released); or, on any error (`ErrLockReleased` for a mutex without a key, or
+mutex `m`, knowing etcd has reached `lo`: `Mutex.Unlock`'s `nil` case (at some `R ≥ lo` the
+fenced delete removed the incarnation `(myKey, myRev)`, or found it gone and deleted nothing:
+`unlockedAt`; the mutex released); or, on any error (`ErrLockReleased` for a mutex without a key, or
 a client error), the panic `panic(err)`, with the mutex unchanged. -/
 abbrev lockerMutex.Unlock.spec : Prop :=
   ∀ (lm m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
@@ -38,7 +39,7 @@ abbrev lockerMutex.Unlock.spec : Prop :=
     (App (Val (lm @!! go.GoType.PointerType lockerMutex.ty @!! go!"Unlock")) (Val #()))
   {{ (r : val), RET r; structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
       ((⌜r = #()⌝ ∗ ∃ R : w64, mutexState m (MutexSt.released st.hdr) ∗
-        etcdReached R ∗ etcdAbsent pfx st.key R ∗
+        etcdReached R ∗ unlockedAt pfx st.key st.rev R ∗
         ⌜¬ st.noKey ∧ pfx <+: st.key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (∃ err : GoInterface, ⌜err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗ mutexState m st)) }}
 

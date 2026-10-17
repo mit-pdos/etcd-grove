@@ -1,0 +1,5 @@
+=== RUN   TestProbeTryLockDeleteUnfenced
+    mutex_trylock_unfenced_probe_test.go:111: B's Lock returned mutex: session is expired after its key was deleted by A's TryLock
+--- PASS: TestProbeTryLockDeleteUnfenced (0.13s)
+PASS
+ok  	go.etcd.io/etcd/tests/v3/integration/clientv3/concurrency	0.193s

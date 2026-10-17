@@ -396,7 +396,7 @@ theorem Mutex.wp_tryAcquire :
 
 theorem Mutex.wp_Unlock :
     EtcdGrove.concurrency.Mutex.Unlock.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Mutex.Unlock.wp_proof Session.wp_Client
+  EtcdGrove.concurrency.Mutex.Unlock.wp_proof Session.wp_Client Mutex.wp_IsOwner v3.wp_OpDelete
 
 theorem Mutex.wp_Lock :
     EtcdGrove.concurrency.Mutex.Lock.spec (GF := GF) (hG := hG) :=

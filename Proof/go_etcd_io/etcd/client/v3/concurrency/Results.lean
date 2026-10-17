@@ -9,7 +9,11 @@ base of each printed in the build log (`#print axioms`). Every function of `mute
 * **`Lock`** (`mutex_Lock`): `nil` means `lockedAt pfx key rev R` at the revision `R` of its last
   `Get` — or that the key was deleted and re-created since `rev` (`keyRecreated`), which `Lock`'s
   last check (the key exists) cannot tell apart (see `Mutex__Lock`'s spec).
-* **`Unlock`** (`mutex_Unlock`): `nil` means the key is gone.
+* **`Unlock`** (`mutex_Unlock`): `nil` means the incarnation the mutex acquired (key and create
+  revision) is gone, and no later incarnation of the key was deleted (`unlockedAt`; etcd-io/etcd#22115).
+* **A stale `Unlock` deletes nothing** (`mutex_stale_unlock`, etcd-io/etcd#22082): once a later
+  incarnation of the key has been seen at some `r2 ≤ R`, `Unlock`'s commit at `R` cannot have been
+  a delete.
 * **`NewLocker`'s `Lock`/`Unlock`** (`locker_Lock`, `locker_Unlock`): `Mutex.Lock`/`Unlock` with
   the client's context; any error is a panic (`panic(err)`), the specs' panic outcome.
 * **Mutual exclusion** (`mutex_exclusion`): two holders of the lock on one prefix, with
@@ -95,6 +99,16 @@ theorem locker_Lock : lockerMutex.Lock.spec (GF := GF) (hG := hG) := lockerMutex
 /-- `lm.Unlock()` of `NewLocker`'s locker
 (`Spec/go_etcd_io/etcd/client/v3/concurrency/lockerMutex__Unlock.lean`). -/
 theorem locker_Unlock : lockerMutex.Unlock.spec (GF := GF) (hG := hG) := lockerMutex.wp_Unlock
+
+/-- **A stale `Unlock` deletes nothing** (etcd-io/etcd#22082, fixed by etcd-io/etcd#22115): if
+etcd's state at some `r2 ≤ R` (sorted) has a later incarnation `(key, c')`, `c < c'`, of the key a
+mutex acquired at `c`, the mutex's `Unlock` whose `nil` came with `unlockedAt pfx key c R` did not
+delete at `R` (`unlockDeleted` is impossible), so it left the later incarnation alone. -/
+theorem mutex_stale_unlock (pfx key : GoString) (c c' r2 R : w64) (s2 : List EtcdKv)
+    (hlt : sint.Z c < sint.Z c') (hr : sint.Z r2 ≤ sint.Z R)
+    (hwf : (s2.map EtcdKv.key).Pairwise go.GoStringLt) (hk : HasKeyAt key c' s2) :
+    unlockDeleted (GF := GF) pfx key c R ∗ etcdState r2 pfx s2 ⊢ False :=
+  unlockDeleted_not_later pfx key c c' r2 R s2 hlt hr hwf hk
 
 /-- **Mutual exclusion.** Two holders of the lock on `pfx` (what `TryLock` and `Lock` return on
 `nil`), `(k1, c1)` at `R1` and `(k2, c2)` at `R2`, with different create revisions, are never both
@@ -221,6 +235,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.concurrency.mutex_TryLock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Lock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_Unlock
+#print axioms Perennial.EtcdGrove.concurrency.mutex_stale_unlock
 #print axioms Perennial.EtcdGrove.concurrency.locker_Lock
 #print axioms Perennial.EtcdGrove.concurrency.locker_Unlock
 #print axioms Perennial.EtcdGrove.concurrency.mutex_exclusion

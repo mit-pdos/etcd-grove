@@ -80,7 +80,7 @@ waitDeletes: WithLastCreate WithMaxCreateRev waitDelete
 # `Proof/fmt/SprintfNamed.lean`).
 fmt_SprintfNamed:
 Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange fmt_SprintfNamed
-Mutex__Unlock: Session__Client
+Mutex__Unlock: Session__Client Mutex__IsOwner OpDelete
 Mutex__TryLock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client
 Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock
 lockerMutex__Lock: Session__Client Client__Ctx Mutex__Lock

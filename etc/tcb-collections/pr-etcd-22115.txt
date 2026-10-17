@@ -1,0 +1,14 @@
+# etcd-io/etcd#22115 (fenced Mutex.Unlock): the results of Mutex.Unlock and its translated
+# callers (Mutex.Lock, the Locker's Unlock), and the fencing theorem.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22115.txt [--check [--update]]
+roots concurrency\.Mutex\.wp_Unlock$
+roots concurrency\.Mutex\.wp_Lock$
+roots lockerMutex\.wp_Unlock$
+roots lockerMutex\.wp_Lock$
+roots concurrency\.mutex_(Unlock|Lock|stale_unlock)$
+roots concurrency\.locker_(Unlock|Lock)$
+axiom fmt.SprintfNamed.wp_proof
+axiom proto.Clone.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
