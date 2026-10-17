@@ -61,33 +61,6 @@ end net.http
 -- zap, zapcore, protoreflect and proto: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (clientv3
 -- imports them too).
 
-namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc :=
-  build_get_is_pkg_init_wf
-
-end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
-
-namespace go_etcd_io.etcd.client.pkg.v3.transport
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.transport
-
-namespace go_etcd_io.etcd.pkg.v3.featuregate
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.featuregate
-
 -- names only (stage R8b of the raft v3.7 retarget, 2026-10-16): the packages the raft wrapper's
 -- construction names (`newRaftNode`'s dead logger branch, the WAL `bootstrappedRaft.newRaftNode`
 -- wraps).
@@ -108,33 +81,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.storage.wal
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
-
-namespace go_etcd_io.etcd.server.v3.config
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.config
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
