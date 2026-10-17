@@ -607,7 +607,7 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     rw [List.length_append]; push_cast
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hlt Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
       Huents_cap Hl_logger Hu_logger
 

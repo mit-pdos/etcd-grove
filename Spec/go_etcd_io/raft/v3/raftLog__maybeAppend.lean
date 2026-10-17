@@ -74,7 +74,18 @@ Premises, one per way the body could go wrong:
 returned: `append` may adopt `a.entries[ci-offset:]` as `u.entries`
 (`Spec/raftLog__append.lean`), after which raft's own later `append`s write into its
 slack. So the caller must own that slack (for a `MsgApp` handed to `Step`, the
-message's `Entries` buffer). -/
+message's `Entries` buffer).
+
+**raft#139** (`notes/pr-verify/raft-139.md`): the append's leader term is `a.term`. A first
+check refuses an outdated leader (`(0, false)`, the log unchanged, as a mismatch), the
+batch is appended at `a.term` (`append(a.term, ...)`, which sets `leaderTerm := a.term`), and
+the commit is `commitTo(a.term, min(committed, lastnewi))`: it moves `committed` only when
+the log's leader term is then `a.term`. With a conflict the append sets it; with none
+(every entry already in the log, or no entries) the log keeps its leader term, and the
+commit happens only if that was already `a.term`. The new premise, that the batch has no
+entry of a term above `a.term`, is `append`'s (it makes its new `Panicf` dead).
+Until raft#139 the post's commit was `plogCommitTo ls.committed (min committed lni)`
+unconditionally, and there was no outdated-leader case. -/
 abbrev raftLog.maybeAppend.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (a : logSlice) (ents : List EntryM) (committed : w64),
   PlogWf a.prev' ents →
@@ -82,6 +93,7 @@ abbrev raftLog.maybeAppend.spec : Prop :=
   (PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' →
    plogFindConflict ls.prev (ls.sents ++ ls.uents) ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev (ls.sents ++ ls.uents) ents)) →
+  (∀ e ∈ ents, uint.Z e.Term' ≤ uint.Z a.term') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "#Hents" ∷ entsRO a.entries' ents ∗
       "Hcap" ∷ ownSliceCap Loc a.entries' (DFrac.own 1) }}
@@ -89,16 +101,22 @@ abbrev raftLog.maybeAppend.spec : Prop :=
       (Val #a)) (Val #committed))
   {{ (lastnewi : w64) (ok : Bool) (ls' : LogState), RET (PairV #lastnewi #ok);
       ownRaftLog l ls' ∗
-      ⌜match plogMaybeAppend ls.prev (ls.sents ++ ls.uents) a.prev' ents with
+      ⌜match (if uint.Z a.term' < uint.Z ls.leaderTerm then none
+              else plogMaybeAppend ls.prev (ls.sents ++ ls.uents) a.prev' ents) with
         | none => ok = false ∧ lastnewi = W64 0 ∧ ls' = ls
         | some (lni, es') =>
             ok = true ∧ lastnewi = lni ∧
             ls'.prev = ls.prev ∧
             ls'.sents ++ ls'.uents = es' ∧
             ls'.applied = ls.applied ∧
+            ls'.leaderTerm =
+              (if plogFindConflict ls.prev (ls.sents ++ ls.uents) ents = W64 0
+               then ls.leaderTerm else a.term') ∧
             ls'.committed =
-              plogCommitTo ls.committed
-                (if uint.Z committed < uint.Z lni then committed else lni) ∧
+              (if a.term' = ls'.leaderTerm
+               then plogCommitTo ls.committed
+                 (if uint.Z committed < uint.Z lni then committed else lni)
+               else ls.committed) ∧
             ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧
             ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored ∧
             ls'.storage = ls.storage⌝ ∗

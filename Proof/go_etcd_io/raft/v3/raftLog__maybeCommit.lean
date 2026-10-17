@@ -27,7 +27,7 @@ theorem raftLog.maybeCommit.wp_proof
     (wp_raftLog_matchTerm : raftLog.matchTerm.spec (GF := GF) (hG := hG))
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG)) :
     raftLog.maybeCommit.spec (GF := GF) (hG := hG) := by
-  intro l ls aid
+  intro l ls lt aid
   wp_start as H
   iNamed H
   icases ownRaftLog_struct l ls $$ Hlog with ⟨%lv, Hl, %Hlv, Hback⟩
@@ -38,7 +38,7 @@ theorem raftLog.maybeCommit.wp_proof
     rw [decide_eq_true Ht0]
     wp_auto
     iapply HΦ
-    simp only [Bool.false_eq_true, ↓reduceIte]
+    simp only [Bool.false_eq_true, false_and, ↓reduceIte]
     isplitl
     · iapply Hback $$ Hl
     ipureintro
@@ -55,7 +55,7 @@ theorem raftLog.maybeCommit.wp_proof
     rw [decide_eq_false Hlt]
     wp_auto
     iapply HΦ
-    simp only [Bool.false_eq_true, ↓reduceIte]
+    simp only [Bool.false_eq_true, false_and, ↓reduceIte]
     isplitl
     · iapply Hback $$ Hl
     ipureintro
@@ -73,9 +73,19 @@ theorem raftLog.maybeCommit.wp_proof
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) aid := of_decide_eq_true Hb.symm
     have Hrange := plogTermAt_some_range _ _ _ _ Hm
     wp_auto
-    wp_apply wp_raftLog_commitTo _ ls aid.index' Hrange.2 $$ [$Hlog] as Hlog
+    icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+    wp_apply wp_raftLog_commitTo _ ls lt aid.index' $$ [$Hlog] as Hlog
     iapply HΦ
-    rw [show plogCommitTo ls.committed aid.index' = aid.index' by simp [plogCommitTo, Hlt]]
+    rw [logCommitTo_le_last _ _ _ Hidx Hrange.2]
+    simp only [true_and]
+    by_cases Heq : lt = ls.leaderTerm
+    · rw [if_pos Heq, if_pos Heq,
+        show plogCommitTo ls.committed aid.index' = aid.index' by simp [plogCommitTo, Hlt]]
+      iframe
+      ipureintro
+      symm
+      exact decide_eq_true ⟨Ht0, Hlt, Hm⟩
+    rw [if_neg Heq, if_neg Heq, show ({ ls with committed := ls.committed } : LogState) = ls from rfl]
     iframe
     ipureintro
     symm
@@ -83,7 +93,7 @@ theorem raftLog.maybeCommit.wp_proof
   | false =>
     wp_auto
     iapply HΦ
-    simp only [Bool.false_eq_true, ↓reduceIte]
+    simp only [Bool.false_eq_true, false_and, ↓reduceIte]
     iframe
     ipureintro
     symm

@@ -34,6 +34,24 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   wp_apply HFirstIndex $$ HStorage as %fi ⟨%Hfi, HStorage⟩
   wp_apply HLastIndex $$ [$HStorage] as %li ⟨%Hli, HStorage⟩
   · ipureintro; exact Hpe
+  -- (raft#139) the last stored entry's term
+  wp_apply HTerm $$ %σ %li [$HStorage] as %t ⟨%Ht, HStorage⟩
+  · iframe
+    ipureintro
+    refine ⟨⟨by word, by word⟩, ?_⟩
+    intro e0 He0; rw [Hpe] at He0; cases He0
+  have Hlast : t = (plogLast σ.prev σ.ents).term' := by
+    have H1 := plogTermAt_last σ.prev σ.ents Hidx
+    have H2 := plogLast_index σ.prev σ.ents Hidx
+    have Hli' : (plogLast σ.prev σ.ents).index' = li := by
+      apply uint_Z_inj.1; rw [H2]; unfold plogLastIndexZ; omega
+    rw [Hli'] at H1
+    have H3 : plogTermAt σ.prev σ.ents li = termAt σ.prev σ.ents li := by
+      unfold plogTermAt termAt
+      rw [if_neg (by omega)]
+      try (split <;> simp_all)
+    rw [H3, Ht] at H1
+    exact Option.some.inj H1
   wp_alloc l as Hl
   wp_auto
   iapply HΦ
@@ -49,6 +67,8 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; apply BitVec.eq_of_toNat_eq; word
     isplitr
     · ipureintro; apply BitVec.eq_of_toNat_eq; word
+    isplitr
+    · ipureintro; exact Hlast
     isplitr
     · ipureintro; apply BitVec.eq_of_toNat_eq; word
     isplitr

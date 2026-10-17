@@ -339,6 +339,11 @@ structure LogState [FfiSyntax] where
   in it (`ownRaftLog`'s `Hsksn`, `Hpksn`), so `raftLog.snapshot` returns one of them. Only a
   restore (`logRestore`) adds to it. The protocol does not read it (`toPState`). -/
   ksn : List SnapTrip
+  /-- `l.leaderTerm` (raft#139, `notes/pr-verify/raft-139.md`): the term of the leader the
+  log is known to be a prefix of. `commitTo` moves `committed` only for a leader of this
+  term; `append` refuses a lower term and sets it to the appending leader's.
+  `newLogWithSize` starts it at the last stored entry's term. -/
+  leaderTerm : w64
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -771,7 +776,7 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 (its id, lists and `AutoLeave`) joins the ones the node may send (`ksn`). -/
 def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k]⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.leaderTerm⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/

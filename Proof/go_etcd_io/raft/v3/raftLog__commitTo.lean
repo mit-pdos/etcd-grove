@@ -1,4 +1,5 @@
-/- Port of election_proof/proof_raftLog__commitTo.v. -/
+/- Port of election_proof/proof_raftLog__commitTo.v; raft#139's `commitTo(leaderTerm, tocommit)`
+(`notes/pr-verify/raft-139.md`). -/
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
@@ -24,31 +25,49 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.commitTo.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG)) :
     raftLog.commitTo.spec (GF := GF) (hG := hG) := by
-  intro l ls tocommit Hle
-  simp only [plogLastIndexZ, List.length_append] at Hle
+  intro l ls lt tocommit
   wp_start as H
   iNamed H
-  icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv0, Hl, %Hcmap, Hback⟩
-  obtain ⟨Hcm, Hap⟩ := Hcmap
+  icases ownRaftLog_struct_lt _ _ $$ Hlog with ⟨%lv0, Hl, %Hcl, Hback⟩
+  obtain ⟨Hcm0, Hlt0⟩ := Hcl
   wp_auto
-  wp_if_destruct
-  · have Hlt : uint.Z ls.committed < uint.Z tocommit := Hcm ▸ Hif
-    clear Hif Hcm Hap
-    ihave Hlog := Hback $$ Hl
-    wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-    wp_if_destruct
-    · exfalso; word
-    iNamed Hlog
+  by_cases Heq : lt = ls.leaderTerm
+  case neg =>
+    -- another leader term: nothing changes
+    rw [decide_eq_false (show ¬ lt = lv0.leaderTerm' by rw [Hlt0]; exact Heq)]
     wp_auto
     iapply HΦ
-    rw [plogCommitTo, ite_eq_left Hlt]
+    rw [logCommitTo_other _ _ _ Heq]
+    iapply Hback $$ Hl
+  rw [decide_eq_true (show lt = lv0.leaderTerm' by rw [Hlt0]; exact Heq)]
+  wp_auto
+  ihave Hlog := Hback $$ Hl
+  icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+  wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  have Hlast : (plogLast ls.prev (ls.sents ++ ls.uents)).index' = li := by
+    apply uint_Z_inj.1
+    rw [plogLast_index _ _ Hidx, Hli]
+    simp only [plogLastIndexZ, List.length_append]; push_cast; omega
+  wp_apply wp_go_min_u64
+  have Hc : logCommitTo ls lt tocommit = plogCommitTo ls.committed (w64Min tocommit li) := by
+    unfold logCommitTo; rw [if_pos Heq, Hlast]
+  rw [Hc]
+  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
+  icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
+  have Hmin := w64Min_spec tocommit li
+  iNamed Hlog
+  wp_auto
+  wp_if_destruct
+  · have Hlt : uint.Z ls.committed < uint.Z (w64Min tocommit li) := by rw [← Hcm]; exact Hif
+    iapply HΦ
+    rw [plogCommitTo, if_pos Hlt]
     reseal_raftLog
     all_goals first
       | word
       | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ (by word) (Hssnap Hs))
   · iapply HΦ
     rw [plogCommitTo, ite_eq_right (by rw [← Hcm]; exact Hif)]
-    iapply Hback $$ Hl
+    reseal_raftLog
 
 end proof
 

@@ -7,6 +7,7 @@ public import Spec.go_etcd_io.raft.v3.raftLog__append
 public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 
 @[expose] public section
 
@@ -82,6 +83,7 @@ private theorem append_persistOk (σ : StorState)
     · have := Hk3 (by omega); omega
   · intro Hnil; simp at Hnil
 
+set_option maxHeartbeats 1600000 in
 /-- Two exits. An empty batch returns `lastIndex()` with the log untouched. Otherwise
 the `Panicf` is dead by the `committed` premise, `truncateAndAppend` gets the
 `unstable` field (its offset is `prev.index + |sents| + 1`, `Hoffset`), and the log is
@@ -90,11 +92,33 @@ re-sealed at `logTruncateAppend`: same storage state `σ`, the visible stable pa
 theorem raftLog.append.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_unstable_truncateAndAppend : unstable.truncateAndAppend.spec (GF := GF) (hG := hG))
-    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
+    (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     raftLog.append.spec (GF := GF) (hG := hG) := by
-  intro l ls ents es dq Hpre
+  intro l ls lt ents es dq Hpre Hlastt
   wp_start as H
   iNamed H
+  icases ownRaftLog_struct_lt _ _ $$ Hlog with ⟨%lv0, Hl, %Hcl, Hback⟩
+  obtain ⟨-, Hlt0⟩ := Hcl
+  try wp_auto
+  by_cases Hold : uint.Z lt < uint.Z ls.leaderTerm
+  · -- (raft#139) an outdated leader term: the log is untouched
+    rw [decide_eq_true (show uint.Z lt < uint.Z lv0.leaderTerm' by rw [Hlt0]; exact Hold)]
+    wp_auto
+    ihave Hlog := Hback $$ Hl
+    wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+    iapply HΦ $$ %li
+    simp only [logAppendAt, if_pos Hold]
+    iframe Hlog
+    isplitl [Hes]
+    · split
+      · itrivial
+      · iexact Hes
+    ipureintro; exact ⟨fun h => absurd h (by omega), Hli⟩
+  have Hge : uint.Z ls.leaderTerm ≤ uint.Z lt := by omega
+  rw [decide_eq_false (show ¬ uint.Z lt < uint.Z lv0.leaderTerm' by rw [Hlt0]; exact Hold)]
+  ihave Hlog := Hback $$ Hl
+  simp only [logAppendAt, if_neg (show ¬ uint.Z lt < uint.Z ls.leaderTerm by omega)]
   wp_auto
   ihave %Hlen := entsPts_len _ _ _ $$ Hes
   cases ents with
@@ -106,11 +130,11 @@ theorem raftLog.append.wp_proof
     wp_auto
     wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
     iapply HΦ $$ %li
-    simp only [logTruncateAppend, logAdopts, plogTruncateAppend, Bool.false_eq_true,
+    simp only [logTruncateAppendAt, logAdopts, plogTruncateAppend, Bool.false_eq_true,
       ite_false]
     iframe Hlog Hes
     ipureintro
-    exact ⟨trivial, Hli⟩
+    exact ⟨by simp, Hli⟩
   | cons e0 ents' =>
     -- the batch is non-empty: `ents[0]` exists
     have He0 : (e0 :: ents')[0]? = some e0 := rfl
@@ -127,15 +151,35 @@ theorem raftLog.append.wp_proof
       ipureintro
       exact Hlp
     wp_apply wp_Entry_GetIndex.1 lp DFrac.discard e0 $$ [$He] as -
-    ihave Hes : entsPts es dq (e0 :: ents') $$ [Hs]
-    · iunfold entsPts
-      iexists lps
-      iframe Hs Hb
     -- the `Panicf`: `after = e0.Index - 1 >= committed`
     iNamed Hlog
     wp_auto
     rw [decide_eq_false (by rw [Hcm]; word)]
     wp_auto
+    -- (raft#139) the last entry's term is at most `lt`
+    obtain ⟨eL, HeL⟩ : ∃ eL, (e0 :: ents').getLast? = some eL :=
+      ⟨_, List.getLast?_eq_some_getLast (List.cons_ne_nil _ _)⟩
+    have HkL := getLast?_some_getElem? _ _ HeL
+    simp only [List.length_cons, Nat.add_sub_cancel] at HkL
+    have HtL := Hlastt eL HeL Hge
+    icases entsBig_lookup lps (e0 :: ents') ents'.length eL HkL $$ Hb with ⟨%lpL, %HlpL, #HeL⟩
+    have HiL : es.len - W64 1 = W64 (ents'.length : Int) := by word
+    rw [HiL]
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 (ents'.length : Int)) ∧
+      sint.Z (W64 (ents'.length : Int)) < sint.Z es.len by word)]
+    wp_apply wp_load_slice_index es (sint.Z (W64 (ents'.length : Int))) lps dq lpL (by word)
+        $$ [Hs] with Hs
+    · iframe
+      ipureintro
+      rw [show (sint.Z (W64 (ents'.length : Int))).toNat = ents'.length by word]
+      exact HlpL
+    wp_apply wp_Entry_GetTerm.1 lpL DFrac.discard eL $$ [$HeL] as -
+    rw [decide_eq_false (by word)]
+    wp_auto
+    ihave Hes : entsPts es dq (e0 :: ents') $$ [Hs]
+    · iunfold entsPts
+      iexists lps
+      iframe Hs Hb
     -- hand the `unstable` field to `truncateAndAppend`
     have Hle' : uint.Z e0.Index' ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by
       omega
@@ -147,17 +191,19 @@ theorem raftLog.append.wp_proof
       simp only [logAdopts, decide_eq_true_eq, Hoffset]
       apply propext; omega
     simp only [Hadopt_eq]
-    lend_unstable
-    wp_apply wp_unstable_truncateAndAppend _ (unstableOf lv ls) _ _ _ _ He0 Hle' Hnw'
+    icases raftLog_lend_unstable _ { lv with leaderTerm' := lt } _ Hip $$ Hl Huents_cap Huents
+      Husnap Hpksn Hu_logger with ⟨Hun, Hlback⟩
+    wp_apply wp_unstable_truncateAndAppend _ (unstableOf { lv with leaderTerm' := lt } ls) _ _ _ _ He0 Hle' Hnw'
         $$ [$Hun $Hes Hadopt] as ⟨Hun, Hes⟩
     · iexact Hadopt
     iclear Husnap Hpksn Hu_logger
     icases ownUnstable_reopen _ _ _ $$ Hlback Hun
       with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hpksn, #Hu_logger, %Hoffm, %Hoip'⟩
+    simp only [unstableOf] at Hoffm Hoip'
     have Hoff' : uint.Z uv'.offset' = min (uint.Z e0.Index') (uint.Z lv.unstable'.offset') := by
       rw [Hoffm, w64Min_spec]
     -- the new state
-    have Hm : (uint.Z e0.Index' - uint.Z (unstableOf lv ls).offset).toNat =
+    have Hm : (uint.Z e0.Index' - uint.Z (unstableOf { lv with leaderTerm' := lt } ls).offset).toNat =
         (uint.Z e0.Index' - uint.Z ls.prev.index' - 1 - (ls.sents.length : Int)).toNat := by
       simp only
       omega
@@ -257,16 +303,16 @@ theorem raftLog.append.wp_proof
         Hst0
         (by omega) Hprev (by omega) Hk1 Hk2 Hk3
     -- the storage's pending batch is above the (shorter) stable part (2026-10-10)
-    have Hpend2 : PendLogOk σ (logTruncateAppend ls (e0 :: ents')) := by
+    have Hpend2 : PendLogOk σ (logTruncateAppendAt ls lt (e0 :: ents')) := by
       refine ⟨Hpend.1, fun Hs e1 He1 => ?_⟩
       have := Hpend.2 Hs e1 He1
-      simp only [logTruncateAppend, List.length_take] at this ⊢
+      simp only [logTruncateAppendAt, List.length_take] at this ⊢
       omega
-    ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
+    ihave Hlog : ownRaftLog l (logTruncateAppendAt ls lt (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
-    · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
-          (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
-          Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
+    · iapply ownRaftLog_intro l { lv with leaderTerm' := lt, unstable' := uv' } lv.storage' σ _ _
+          (logTruncateAppendAt ls lt (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
+          Happlied Hpapplied Hcm2 Hss2 Hapg rfl Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
           Hstor Hpend2 Hsksn ?_ ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
@@ -274,7 +320,7 @@ theorem raftLog.append.wp_proof
     iapply HΦ $$ %li
     iframe Hlog Hes
     ipureintro
-    exact ⟨Hsplit, Hli⟩
+    exact ⟨fun _ => Hsplit, Hli⟩
 
 end proof
 

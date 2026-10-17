@@ -51,6 +51,7 @@ instance raftLog_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "storage" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq ∗
     "unstable" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq ∗
+    "leaderTerm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"leaderTerm" l) v.leaderTerm' dq ∗
     "committed" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq ∗
     "applying" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq ∗
     "applied" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq ∗
@@ -96,6 +97,22 @@ instance raftLog_access_store_unstable (l : Loc) (v : go_etcd_io.raft.v3.raftLog
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) unstable' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unstable' := unstable' } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftLog_access_load_leaderTerm (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"leaderTerm" l) v.leaderTerm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"leaderTerm" l) v.leaderTerm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance raftLog_access_store_leaderTerm (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (leaderTerm' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"leaderTerm" l) v.leaderTerm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"leaderTerm" l) leaderTerm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderTerm' := leaderTerm' } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

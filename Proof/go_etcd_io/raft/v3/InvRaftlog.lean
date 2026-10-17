@@ -512,6 +512,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "Hl" ∷ l ↦ lv ∗
   "%Hcm" ∷ ⌜lv.committed' = ls.committed⌝ ∗
   "%Hap" ∷ ⌜lv.applied' = ls.applied⌝ ∗
+  "%Hlt" ∷ ⌜lv.leaderTerm' = ls.leaderTerm⌝ ∗
   "%Hapg" ∷ ⌜lv.applying' = ls.applying⌝ ∗
   "%Hip" ∷ ⌜lv.unstable'.offsetInProgress' = ls.inprogress⌝ ∗
   "%Hasz" ∷ ⌜lv.applyingEntsSize' = ls.apsize⌝ ∗
@@ -585,6 +586,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       + (ls.uents.length : Int) →
     (ls.snap = none → StoredSnapOk σ ls.committed ls.prev (ls.sents ++ ls.uents)) →
     lv.applying' = ls.applying →
+    lv.leaderTerm' = ls.leaderTerm →
     lv.unstable'.offsetInProgress' = ls.inprogress →
     uint.Z lv.unstable'.offset' ≤ uint.Z ls.inprogress ∧
       uint.Z ls.inprogress ≤ uint.Z lv.unstable'.offset' + (ls.uents.length : Int) →
@@ -612,7 +614,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       isLoggerVal lv.unstable'.logger' -∗
       ownRaftLog l ls := by
   intro Hst Hcm Hap Hidx Hnowrap Hstore Hoffset Happlied Hpapplied
-    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hsksn Hsnap
+    Hcommitted Hssnap Hapg Hlt Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hsksn Hsnap
     Huents HK
   subst Hst Hsnap Huents HK
   iintro Hl #HisStorage HStorage #Husnap #Hpksn #Huents Huents_cap #Hl_logger #Hu_logger
@@ -621,7 +623,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
   simp only [named]
   iframe Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
   ipureintro
-  exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hsksn, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend⟩
+  exact ⟨Hcm, Hap, Hlt, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hsksn, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend⟩
 
 /-- The struct, for a field read. `committed` and `applied` are what the state says
 they are. -/
@@ -638,7 +640,25 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   · ipureintro; exact ⟨Hcm, Hap⟩
   · iintro Hl
     iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hlt Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
+      Hu_logger
+
+/-- The struct, for a read of `committed` and `leaderTerm` (raft#139: `commitTo`). -/
+theorem ownRaftLog_struct_lt (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ∃ lv : raftLog, l ↦ lv ∗
+            ⌜lv.committed' = ls.committed ∧ lv.leaderTerm' = ls.leaderTerm⌝ ∗
+            (l ↦ lv -∗ ownRaftLog l ls) := by
+  iintro H
+  iNamed H
+  iexists lv
+  iframe Hl
+  isplitr
+  · ipureintro; exact ⟨Hcm, Hlt⟩
+  · iintro Hl
+    iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hlt Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
 
@@ -667,7 +687,7 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
     exact H lv σ Hidx Hnowrap Hstore Hoffset Happlied Hpapplied Hcommitted
       Hipb Happlying
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hlt Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
 
@@ -737,7 +757,7 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
   have Hpend' : PendLogOk (storAbsorb σ) { ls with unpersisted := [] } :=
     ⟨rfl, fun _ e0 He0 => by simp at He0⟩
   iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
-    Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
+    Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hlt Hip Hipb
     Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
     Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
 
@@ -849,6 +869,89 @@ def logTruncateAppend (ls : LogState) (ents : List EntryM) : LogState :=
           uents := ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
                                    - (ls.sents.length : Int)).toNat ++ ents,
           inprogress := logTruncInprogress ls e0.Index' }
+
+/-! ## The leader term (raft#139)
+
+`commitTo(lt, c)` moves `committed` only when `lt` is the log's `leaderTerm`, and then to
+`min(c, lastIndex())`, never down. `append(lt, ents)` refuses an `lt` below `leaderTerm` (the
+log unchanged), and otherwise appends `ents` (if any) and sets `leaderTerm` to `lt`. -/
+
+/-- The commit index `commitTo(lt, c)` leaves. -/
+def logCommitTo (ls : LogState) (lt c : w64) : w64 :=
+  if lt = ls.leaderTerm
+  then plogCommitTo ls.committed (w64Min c (plogLast ls.prev (ls.sents ++ ls.uents)).index')
+  else ls.committed
+
+omit [GoGlobalContext] in
+/-- At the log's leader term, with `c` within the log, `commitTo(lt, c)` is the old
+`commitTo(c)`. -/
+theorem logCommitTo_at_term (ls : LogState) (lt c : w64) (Heq : lt = ls.leaderTerm)
+    (Hwf : PlogWf ls.prev (ls.sents ++ ls.uents))
+    (Hle : uint.Z c ≤ plogLastIndexZ ls.prev (ls.sents ++ ls.uents)) :
+    logCommitTo ls lt c = plogCommitTo ls.committed c := by
+  have Hl := plogLast_index _ _ Hwf
+  unfold logCommitTo
+  rw [if_pos Heq]
+  congr 1
+  unfold w64Min
+  split
+  · rfl
+  · apply uint_Z_inj.1; omega
+
+omit [GoGlobalContext] in
+/-- At another term, `commitTo(lt, c)` leaves `committed` alone. -/
+theorem logCommitTo_other (ls : LogState) (lt c : w64) (Hne : lt ≠ ls.leaderTerm) :
+    logCommitTo ls lt c = ls.committed := by
+  unfold logCommitTo; rw [if_neg Hne]
+
+omit [GoGlobalContext] in
+/-- `commitTo(lt, c)` either leaves `committed` or is `commitTo(c')` for a `c' ≤ c` within the
+log, at the log's leader term. -/
+theorem logCommitTo_cases (ls : LogState) (lt c : w64) :
+    logCommitTo ls lt c = ls.committed ∨
+    (lt = ls.leaderTerm ∧ ∃ c', uint.Z c' ≤ uint.Z c ∧
+       uint.Z c' ≤ uint.Z (plogLast ls.prev (ls.sents ++ ls.uents)).index' ∧
+       logCommitTo ls lt c = plogCommitTo ls.committed c') := by
+  unfold logCommitTo
+  split
+  · rename_i Heq
+    refine .inr ⟨Heq, _, ?_, ?_, rfl⟩ <;> rw [w64Min_spec] <;> omega
+  · exact .inl rfl
+
+omit [GoGlobalContext] in
+/-- `commitTo(lt, c)` for a `c` within the log: the old `commitTo(c)` at the log's leader
+term, nothing at another. -/
+theorem logCommitTo_le_last (ls : LogState) (lt c : w64)
+    (Hwf : PlogWf ls.prev (ls.sents ++ ls.uents))
+    (Hle : uint.Z c ≤ plogLastIndexZ ls.prev (ls.sents ++ ls.uents)) :
+    logCommitTo ls lt c =
+      if lt = ls.leaderTerm then plogCommitTo ls.committed c else ls.committed := by
+  split
+  · rename_i Heq; exact logCommitTo_at_term ls lt c Heq Hwf Hle
+  · rename_i Hne; exact logCommitTo_other ls lt c Hne
+
+/-- `logTruncateAppend` at the leader term `lt`: what `append(lt, ents)` leaves for a current
+`lt` (`logAppendAt`). An empty batch changes nothing, the leader term included. -/
+def logTruncateAppendAt (ls : LogState) (lt : w64) (ents : List EntryM) : LogState :=
+  match ents with
+  | [] => ls
+  | e0 :: _ =>
+      { ls with
+          sents := ls.sents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1).toNat,
+          uents := ls.uents.take (uint.Z e0.Index' - uint.Z ls.prev.index' - 1
+                                   - (ls.sents.length : Int)).toNat ++ ents,
+          inprogress := logTruncInprogress ls e0.Index',
+          leaderTerm := lt }
+
+omit [GoGlobalContext] in
+theorem logTruncateAppendAt_cons (ls : LogState) (lt : w64) (e0 : EntryM) (ents' : List EntryM) :
+    logTruncateAppendAt ls lt (e0 :: ents')
+      = { logTruncateAppend ls (e0 :: ents') with leaderTerm := lt } := rfl
+
+/-- The state `append(lt, ents)` leaves: unchanged for an outdated leader term, otherwise
+`logTruncateAppendAt`. -/
+def logAppendAt (ls : LogState) (lt : w64) (ents : List EntryM) : LogState :=
+  if uint.Z lt < uint.Z ls.leaderTerm then ls else logTruncateAppendAt ls lt ents
 
 /-- Whether `unstable.truncateAndAppend` takes its replace arm and adopts the caller's
 slice as `u.entries`: the batch starts at or below `u.offset` and does not simply
@@ -1039,6 +1142,27 @@ macro "reseal_raftLog" : tactic =>
                -- the storage and its pending batch (2026-10-10), for a state that
                -- keeps the fields they are stated on
                | exact Hstor | exact Hpend))
+
+section goMin
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+
+open Iris.ProofMode in
+/-- The builtin `min` on `uint64` (raft#139: `commitTo`; `maybeAppend` has a private copy). -/
+theorem wp_go_min_u64 (a b : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (Val #(functions go.min [go.uint64, go.uint64])) (Val #a)) (Val #b))
+    {{ RET #(w64Min a b); True }} := by
+  wp_start
+  wp_if_destruct
+  · rw [show w64Min a b = a from ite_eq_left Hif]
+    iapply HΦ; itrivial
+  · rw [show w64Min a b = b from ite_eq_right Hif]
+    iapply HΦ; itrivial
+
+end goMin
 
 section setCommitted
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

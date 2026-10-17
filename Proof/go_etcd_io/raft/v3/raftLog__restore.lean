@@ -40,7 +40,7 @@ theorem raftLog.restore.wp_proof
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG)) :
     raftLog.restore.spec (GF := GF) (hG := hG) := by
-  intro l ls sp dq sv Hcmlt Hlt
+  intro l ls sp dq sv Hcmlt Hsnlt
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -71,10 +71,10 @@ theorem raftLog.restore.wp_proof
   iapply HΦ
   iframe Hsnap
   rw [← Hlg]
-  simp only [snapId] at Hcmlt Hlt
+  simp only [snapId] at Hcmlt Hsnlt
   iapply ownRaftLog_intro l { lv with committed' := sv.Metadata'.Index', unstable' := uv' }
       lv.storage' σ _ _ (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
-      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
+      rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
       (fun h => List.mem_append_left _ (Hsksn h)) ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hents Hents_cap Hl_logger Hu_logger
@@ -88,6 +88,7 @@ theorem raftLog.restore.wp_proof
   · intro h; cases h
   · omega
   · intro h; cases h
+  · exact Hlt
   · exact Hoip'
   · rw [Hoff']; word
   · intro h; cases h

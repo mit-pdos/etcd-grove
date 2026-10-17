@@ -66,9 +66,23 @@ below the unstable offset without continuing the suffix -- in which case
 `truncateAndAppend` adopts the slice itself as `u.entries`, and the caller hands it
 over read-only with its capacity (`Spec/unstable__truncateAndAppend.lean`).
 `appendEntry`'s batch continues the log, so for it `logAdopts` is `false`
-(`logTruncateAppend_cont`). -/
+(`logTruncateAppend_cont`).
+
+**raft#139** (`notes/pr-verify/raft-139.md`): `append(leaderTerm, ents)`. Two more steps,
+before and after the ones above:
+
+    if leaderTerm < l.leaderTerm { return l.lastIndex() }   // first
+    ...
+    if lastTerm := ents[len(ents)-1].Term; lastTerm > leaderTerm { l.logger.Panicf(...) }
+    l.leaderTerm = leaderTerm                               // before truncateAndAppend
+
+The new state is `logAppendAt ls lt ents` (`InvRaftlog.lean`): the log unchanged for an
+outdated `lt` or an empty batch, else the old `logTruncateAppend ls ents` at
+`leaderTerm := lt`. The new premise makes the second `Panicf` dead: the batch's last entry
+is of term `lt` or lower (when the first check passes). For an outdated `lt` the call is a
+silent no-op that returns the last index; a caller that does not rule it out cannot tell. -/
 abbrev raftLog.append.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (ents : List EntryM) (es : GoSlice) (dq : DFrac),
+  ∀ (l : Loc) (ls : LogState) (lt : w64) (ents : List EntryM) (es : GoSlice) (dq : DFrac),
   (∀ e0, ents[0]? = some e0 →
      (uint.Z ls.committed < uint.Z e0.Index' ∧
       uint.Z e0.Index' ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
@@ -76,20 +90,24 @@ abbrev raftLog.append.spec : Prop :=
      (∀ (k : Nat) e, ents[k]? = some e →
         uint.Z e.Index' = uint.Z e0.Index' + (k : Int)) ∧
      uint.Z e0.Index' + (ents.length : Int) < 2^64) →
+  (∀ e, ents.getLast? = some e → uint.Z ls.leaderTerm ≤ uint.Z lt →
+     uint.Z e.Term' ≤ uint.Z lt) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "Hes" ∷ entsPts es dq ents ∗
       "Hadopt" ∷ (if logAdopts ls ents
                   then iprop(⌜dq = DFrac.discard⌝ ∗ ownSliceCap Loc es (DFrac.own 1))
                   else iprop(True)) }}
-    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"append")) (Val #es))
+    (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"append")) (Val #lt))
+      (Val #es))
   {{ (li : w64), RET #li;
-      ownRaftLog l (logTruncateAppend ls ents) ∗
+      ownRaftLog l (logAppendAt ls lt ents) ∗
       (if logAdopts ls ents then iprop(True) else iprop(entsPts es dq ents)) ∗
-      ⌜(logTruncateAppend ls ents).sents ++ (logTruncateAppend ls ents).uents
-          = plogTruncateAppend ls.prev (ls.sents ++ ls.uents) ents ∧
+      ⌜(uint.Z ls.leaderTerm ≤ uint.Z lt →
+          (logAppendAt ls lt ents).sents ++ (logAppendAt ls lt ents).uents
+            = plogTruncateAppend ls.prev (ls.sents ++ ls.uents) ents) ∧
         uint.Z li = uint.Z ls.prev.index'
-                    + ((logTruncateAppend ls ents).sents.length : Int)
-                    + ((logTruncateAppend ls ents).uents.length : Int)⌝ }}
+                    + ((logAppendAt ls lt ents).sents.length : Int)
+                    + ((logAppendAt ls lt ents).uents.length : Int)⌝ }}
 
 end spec
 

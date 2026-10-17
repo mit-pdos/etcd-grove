@@ -63,6 +63,18 @@ private theorem logTruncateAppend_fields (ls : LogState) (ents : List EntryM) :
     (logTruncateAppend ls ents).storage = ls.storage := by
   cases ents <;> exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- (raft#139) `append(lt, ents)` at a current leader term, of a non-empty batch, moves only
+the entry lists and the leader term. -/
+private theorem logAppendAt_fields (ls : LogState) (lt : w64) (ents : List EntryM)
+    (Hge : uint.Z ls.leaderTerm ≤ uint.Z lt) (Hne : ents ≠ []) :
+    logAppendAt ls lt ents = { logTruncateAppend ls ents with leaderTerm := lt } := by
+  cases ents with
+  | nil => exact absurd rfl Hne
+  | cons e ents' =>
+    unfold logAppendAt
+    rw [if_neg (show ¬ uint.Z lt < uint.Z ls.leaderTerm by omega)]
+    rfl
+
 /-- A matched entry is inside the log. -/
 private theorem matches_le_last (b : entryID) (es : List EntryM) (id : entryID) :
     PlogMatches b es id →
@@ -118,10 +130,27 @@ theorem raftLog.maybeAppend.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG)) :
     raftLog.maybeAppend.spec (GF := GF) (hG := hG) := by
-  intro l ls a ents committed Hwf Hnw Hci
+  intro l ls a ents committed Hwf Hnw Hci Hterms
   wp_start as H
   iNamed H
+  icases ownRaftLog_struct_lt _ _ $$ Hlog with ⟨%lv0, Hl, %Hcl, Hback⟩
+  obtain ⟨-, Hlt0⟩ := Hcl
   wp_auto
+  wp_if_destruct
+  · -- (raft#139) an outdated leader: `(0, false)`
+    have Hold : uint.Z a.term' < uint.Z ls.leaderTerm := by rw [← Hlt0]; exact Hif
+    ihave Hlog := Hback $$ Hl
+    iapply HΦ
+    iframe
+    isplitr
+    · ipureintro
+      simp [Hold]
+    ipureintro; exact ⟨rfl, id⟩
+  have HgeT : uint.Z ls.leaderTerm ≤ uint.Z a.term' := by rw [← Hlt0]; omega
+  clear Hif
+  ihave Hlog := Hback $$ Hl
+  simp only [if_neg (show ¬ uint.Z a.term' < uint.Z ls.leaderTerm by omega)]
+  try wp_auto
   ihave %Hlen := entsPts_len _ _ _ $$ Hents
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
@@ -181,14 +210,16 @@ theorem raftLog.maybeAppend.wp_proof
           rw [show ents.length - 1 + 1 = ents.length by omega] at *
           omega
       wp_apply wp_min_u64
-      wp_apply wp_raftLog_commitTo _ ls _ ?_ $$ [$Hlog] as Hlog
-      · simp only [plogLastIndexZ, List.length_append, w64Min]
-        split <;> word
+      wp_apply wp_raftLog_commitTo _ ls _ _ $$ [$Hlog] as Hlog
+      have Hc := logCommitTo_le_last ls a.term'
+        (w64Min committed (W64 (uint.Z a.prev'.index' + (ents.length : Int)))) Hidx
+        (by simp only [plogLastIndexZ, List.length_append, w64Min]; push_cast; split <;> word)
+      rw [Hc]
       iapply HΦ
       iframe
       isplitr
       · ipureintro
-        simp only [w64Min, and_self, ite_true]
+        simp only [w64Min, ite_true, true_and]
       ipureintro; exact ⟨rfl, id⟩
     · -- a conflict at `ci = ents[k].Index = a.prev.index + 1 + k`
       have Hke := Hwf k e Hk
@@ -268,17 +299,45 @@ theorem raftLog.maybeAppend.wp_proof
       icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
       have Hnu := nextUnstable_truncateAppend_ne ls (ents.drop k) e He2 Hrw.1.1 Hrw.1.2
         (by omega) Hcile
-      wp_apply wp_raftLog_append _ ls (ents.drop k) _ _
-          Happ_pre $$ [$Hlog $Hdrop $Hadopt]
+      have Hlast_pre : ∀ e', (ents.drop k).getLast? = some e' →
+          uint.Z ls.leaderTerm ≤ uint.Z a.term' → uint.Z e'.Term' ≤ uint.Z a.term' :=
+        fun e' He' _ => Hterms e' (List.mem_of_mem_drop (List.mem_of_getLast? He'))
+      wp_apply wp_raftLog_append _ ls a.term' (ents.drop k) _ _
+          Happ_pre Hlast_pre $$ [$Hlog $Hdrop $Hadopt]
         as %li ⟨Hlog, -, %Hsplit, %Hli⟩
-      obtain ⟨Hp1, Hc1, Ha1, Hag1, Hsn1, Hun1, Hst1, Hsg1⟩ := logTruncateAppend_fields ls
-        (ents.drop k)
-      generalize Hls1 : logTruncateAppend ls (ents.drop k) = ls1
-        at Hsplit Hli Hp1 Hc1 Ha1 Hag1 Hsn1 Hun1 Hst1 Hsg1 Hnu ⊢
-      -- the new log reaches exactly `lastnewi`
+      have Hsplit := Hsplit HgeT
       have Hdk : ents.drop k = e :: ents.drop (k + 1) := by
         rw [List.drop_eq_getElem_cons Hklt]
         rw [(List.getElem?_eq_some_iff.1 Hk).2]
+      rw [logAppendAt_fields ls a.term' (ents.drop k) HgeT (by rw [Hdk]; simp)] at Hsplit Hli ⊢
+      obtain ⟨Hp1, Hc1, Ha1, Hag1, Hsn1, Hun1, Hst1, Hsg1⟩ := logTruncateAppend_fields ls
+        (ents.drop k)
+      have Hlt1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).leaderTerm
+          = a.term' := rfl
+      have Hnu' : nextUnstable ls ≠ [] →
+          nextUnstable { logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' } ≠ [] :=
+        fun _ => Hnu
+      clear Hnu
+      replace Hp1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).prev
+          = ls.prev := Hp1
+      replace Hc1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).committed
+          = ls.committed := Hc1
+      replace Ha1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).applied
+          = ls.applied := Ha1
+      replace Hag1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).applying
+          = ls.applying := Hag1
+      replace Hsn1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).snap
+          = ls.snap := Hsn1
+      replace Hun1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).unpersisted
+          = ls.unpersisted := Hun1
+      replace Hst1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).stored
+          = ls.stored := Hst1
+      replace Hsg1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }).storage
+          = ls.storage := Hsg1
+      generalize Hls1 : ({ logTruncateAppend ls (ents.drop k) with leaderTerm := a.term' }
+          : LogState) = ls1
+        at Hsplit Hli Hp1 Hc1 Ha1 Hag1 Hsn1 Hun1 Hst1 Hsg1 Hnu' Hlt1 ⊢
+      -- the new log reaches exactly `lastnewi`
       have Hlast1 : uint.Z ls.prev.index' + (ls1.sents.length : Int) + (ls1.uents.length : Int)
           = uint.Z a.prev'.index' + (ents.length : Int) := by
         have HL := congrArg List.length Hsplit
@@ -287,21 +346,23 @@ theorem raftLog.maybeAppend.wp_proof
           List.length_cons, List.length_drop] at HL
         push_cast at *
         omega
+      icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx1, Hlog⟩
       wp_apply wp_min_u64
-      wp_apply wp_raftLog_commitTo _ ls1 _ ?_ $$ [$Hlog] as Hlog
-      · rw [Hp1]
-        simp only [plogLastIndexZ, List.length_append, w64Min]
-        push_cast
-        split <;> word
+      wp_apply wp_raftLog_commitTo _ ls1 _ _ $$ [$Hlog] as Hlog
+      have Hc := logCommitTo_le_last ls1 a.term'
+        (w64Min committed (W64 (uint.Z a.prev'.index' + (ents.length : Int)))) Hidx1
+        (by rw [Hp1]; simp only [plogLastIndexZ, List.length_append, w64Min]; push_cast
+            split <;> word)
+      rw [Hc, if_pos Hlt1.symm]
       iapply HΦ
       iframe
       isplitr
       · ipureintro
         have Hkd : (uint.Z e.Index' - uint.Z a.prev'.index' - 1).toNat = k := by
           push_cast at Hke; omega
-        simp only [Hkd, ite_false, w64Min, true_and]
+        simp only [Hkd, ite_false, w64Min, _root_.true_and, Hcine, Hlt1, ite_true]
         exact ⟨Hp1, Hsplit, Ha1, by rw [Hc1], Hag1, Hsn1, Hun1, Hst1, Hsg1⟩
-      ipureintro; exact ⟨Hsn1, fun _ => Hnu⟩
+      ipureintro; exact ⟨Hsn1, fun h => Hnu' h⟩
 
 end proof
 

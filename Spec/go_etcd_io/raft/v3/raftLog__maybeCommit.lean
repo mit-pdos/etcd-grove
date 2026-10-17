@@ -37,13 +37,20 @@ The result `b` is exactly the guard, and the log moves to `committed := at.index
 it is `true`. `commitTo`'s premise (`at.index <= lastIndex()`) is not a premise here:
 `matchTerm` put `at.index` inside the log (`plogTermAt_some_range`), so its `Panicf` is
 dead with no help from the caller. The leader's `raft.maybeCommit` calls this with
-`at = (trk.Committed(), r.Term)`. -/
+`at = (trk.Committed(), r.Term)`.
+
+**raft#139** (`notes/pr-verify/raft-139.md`): `maybeCommit(leaderTerm, at)` passes
+`leaderTerm` on to `commitTo(leaderTerm, at.index)`, so the log moves only when `leaderTerm`
+is also the log's leader term; the result is still the guard alone (`true` with nothing
+committed at another leader term). The leader calls it with `leaderTerm = r.Term`. -/
 abbrev raftLog.maybeCommit.spec : Prop :=
-  ∀ (l : Loc) (ls : LogState) (aid : entryID),
+  ∀ (l : Loc) (ls : LogState) (lt : w64) (aid : entryID),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
-    (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"maybeCommit")) (Val #aid))
+    (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"maybeCommit")) (Val #lt))
+      (Val #aid))
   {{ (b : Bool), RET #b;
-      ownRaftLog l (if b then { ls with committed := aid.index' } else ls) ∗
+      ownRaftLog l (if b = true ∧ lt = ls.leaderTerm then { ls with committed := aid.index' }
+                    else ls) ∗
       ⌜b = decide (aid.term' ≠ W64 0 ∧
                    uint.Z ls.committed < uint.Z aid.index' ∧
                    PlogMatches ls.prev (ls.sents ++ ls.uents) aid)⌝ }}

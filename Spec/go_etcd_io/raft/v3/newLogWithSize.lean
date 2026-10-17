@@ -53,7 +53,12 @@ the principled fix would be a `storage` field in `LogState`, notes/STATUS.md.)
 
 The `Logger` is a non-nil one with `isLogger` (since 2026-10-01): `ownRaftLog` carries
 it, for the `Infof`s of `findConflict` and `unstable.truncateAndAppend`, and the struct
-literal installs it as both `l.logger` and `l.unstable.logger`. -/
+literal installs it as both `l.logger` and `l.unstable.logger`.
+
+**raft#139** (`notes/pr-verify/raft-139.md`): the log's `leaderTerm` starts at the last stored
+entry's term, read with `storage.Term(lastIndex)` (whose `panic` on an error is dead:
+`lastIndex` is in the storage's range). -/
+
 abbrev newLogWithSize.spec : Prop :=
   ∀ (st : Storage) (lg : Logger) (maxSize : w64)
     (σ : StorState) (lok : GoInterfaceOk),
@@ -78,7 +83,8 @@ abbrev newLogWithSize.spec : Prop :=
          { prev := σ.prev, sents := σ.ents, uents := [], committed := σ.prev.index',
            applied := σ.prev.index', snap := none, inprogress := ip,
            applying := σ.prev.index', unpersisted := [], stored := σ.ents, apsize := W64 0,
-           apmax := maxSize, storage := st, ksn := initKsn σ }) }}
+           apmax := maxSize, storage := st, ksn := initKsn σ,
+           leaderTerm := (plogLast σ.prev σ.ents).term' }) }}
 
 end spec
 
