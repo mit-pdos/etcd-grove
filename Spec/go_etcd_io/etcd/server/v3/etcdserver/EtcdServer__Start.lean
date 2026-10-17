@@ -26,7 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 slots of `s.lgMu` (one for its `GoAttach`es, given back; one for `monitorFileDescriptor`'s
 goroutine, which calls `Logger()`): `start`, then the read loop (`LinearizableReadLoop`, verified)
 and nine names-only monitors (trust-boundary contracts) attached; it returns the server's views and
-the slots left for request goroutines. -/
+the slots left for request goroutines. Since etcd-io/etcd#22525 (`publishV3` verified), the publish
+goroutine's request resources too: a third `lgMu` slot, a `leadTimeMu` slot and the auth reader
+`E.RD` (as a request goroutine's). -/
 abbrev EtcdServer.Start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
@@ -34,7 +36,8 @@ abbrev EtcdServer.Start.spec : Prop :=
   2 ^ 64 ≤ N →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ threadTok ∗
-      srvLgReader s ∗ srvLgReader s }}
+      srvLgReader s ∗ srvLgReader s ∗
+      srvLgReader s ∗ srvLeadTimeReader s ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
       srvGoRes s ∗ srvLgReader s ∗

@@ -60,7 +60,7 @@ theorem EtcdServer.Start.wp_proof
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hN
-  wp_start as ⟨Hb, Htok, Hlg, Hlgm⟩
+  wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hlgp, Hltp, Hrdp⟩
   wp_auto
   wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hN $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, Hst⟩
@@ -74,13 +74,37 @@ theorem EtcdServer.Start.wp_proof
   iunfold isServerReq at Hreq'
   icases Hreq' with ⟨%vq, #Hvq⟩
   iunfold srvReqFieldsAt at Hvq
-  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, %Hcfg⟩
+  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, #Hclq, -, #Hpq, -, -, -,
+    %Hcfg⟩
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
   icases Hrd' with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAt at Hvd
-  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, -, -, -, -, -, -, -,
-    #Hstpf, -⟩
+  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, ⟨%log₀, #Hcert₀, -⟩, -, -, -,
+    -, -, -, -, #Hstpf, #Hstpc⟩
+  -- `publishV3`'s view of the server (etcd-io/etcd#22525)
+  icases Hsas with ⟨%san, #Hsaf, -, Hsaslots⟩
+  iunfold srvPubBuilt at Hpub
+  icases Hpub with ⟨%pc, %pid, %pa, %pcus, #Hma, Hready⟩
+  ihave #Hma' := Hma
+  iunfold srvMemberAttrs at Hma'
+  icases Hma' with ⟨-, #Hpcf, -, -, -⟩
+  icombine Hpcf Hclq gives %Hpceq
+  iunfold srvPeersOk at Hpq
+  icases Hpq with ⟨#Hcidq, -, -⟩
+  icases Hctxs with ⟨%sctx, %scd, #Hsctxf, #Hsctx⟩
+  ihave #Hpf : srvPubFields s E { ρ with wait := γw } pc pid pa pcus san $$ []
+  · iunfold srvPubFields
+    iframe Hma Hsctxf Hsctx Hsaf HNR
+    isplitr
+    · iexists vq.cid; rw [Hpceq]; iexact Hcidq
+    isplitr
+    · iexists vd.lg; iframe Hlgf; ipureintro; exact Hlgn
+    isplitr
+    · iexists vd.stopping; iframe Hstpf Hstpc
+    isplitr
+    · iexists log₀; iexact Hcert₀
+    ipureintro; exact Hrdbound
   -- `func() { s.adjustTicks() }`
   wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg
@@ -91,16 +115,19 @@ theorem EtcdServer.Start.wp_proof
     wp_apply hAdj s
     iapply HΦ'
     try itrivial
-  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
-    isplitr
-    · itrivial
-    iintro !> %Φ' - HΦ'
+  -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }` (verified since etcd-io/etcd#22525)
+  wp_apply hGA s _ iprop(srvLgReader s ∗ srvLeadTimeReader s ∗ E.RD ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), notifyReader san) ∗
+      srvReady s iprop(⌜pubDone pc pid pa pcus⌝) .Pending)
+    $$ [Hgr Hlg Hlgp Hltp Hrdp Hsaslots Hready] as ⟨Hgr, Hlg⟩
+  · iframe Hgr Hlg Hlgp Hltp Hrdp Hsaslots Hready
+    iintro !> %Φ' ⟨Hlgp, Hltp, Hrdp, Hsaslots, Hready⟩ HΦ'
     wp_auto
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
-    wp_apply hPub s
+    wp_apply hPub s E { ρ with wait := γw } pc pid pa pcus san d
+      $$ [Hlgp Hltp Hrdp Hsaslots Hready] as -
+    · iframe # Hlgp Hltp Hrdp Hsaslots Hready
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`

@@ -57,6 +57,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommitte
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__hasPublishedAttributes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorClusterVersions
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__monitorCompactHash
@@ -147,6 +148,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
+public import Proof.fmt.SprintfAttrs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Push
@@ -180,6 +182,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Member
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
@@ -208,6 +211,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.slices.EqualString
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
@@ -532,6 +536,18 @@ theorem proto.wp_Clone :
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
   zap.Logger.Fatal.wp_proof
+
+theorem membership.RaftCluster.wp_Member :
+    membership.RaftCluster.Member.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.Member.wp_proof
+
+theorem slices.wp_EqualString :
+    slices.EqualString.spec (GF := GF) (hG := hG) :=
+  slices.EqualString.wp_proof
+
+theorem fmt.wp_SprintfAttrs :
+    fmt.SprintfAttrs.spec (GF := GF) (hG := hG) :=
+  fmt.SprintfAttrs.wp_proof
 
 theorem TxnRequest.wp_GetCompare :
     TxnRequest.GetCompare.spec (GF := GF) (hG := hG) :=
@@ -1120,9 +1136,13 @@ theorem EtcdServer.wp_adjustTicks :
     EtcdServer.adjustTicks.spec (GF := GF) (hG := hG) :=
   EtcdServer.adjustTicks.wp_proof
 
+theorem EtcdServer.wp_hasPublishedAttributes :
+    EtcdServer.hasPublishedAttributes.spec (GF := GF) (hG := hG) :=
+  EtcdServer.hasPublishedAttributes.wp_proof EtcdServer.wp_MemberID membership.RaftCluster.wp_Member slices.wp_EqualString
+
 theorem EtcdServer.wp_publishV3 :
     EtcdServer.publishV3.spec (GF := GF) (hG := hG) :=
-  EtcdServer.publishV3.wp_proof
+  EtcdServer.publishV3.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Logger notify.Notifier.wp_Receive EtcdServer.wp_hasPublishedAttributes EtcdServer.wp_raftRequest membership.RaftCluster.wp_ID types.ID.wp_String zap.wp_String zap.wp_Duration zap.wp_Error zap.Logger.wp_Warn zap.Logger.wp_Info fmt.wp_SprintfAttrs
 
 theorem EtcdServer.wp_purgeFile :
     EtcdServer.purgeFile.spec (GF := GF) (hG := hG) :=

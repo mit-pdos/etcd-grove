@@ -329,7 +329,14 @@ Version__String:
 version_Cluster:
 prometheus_GaugeVec__With:
 EtcdServer__adjustTicks:
-EtcdServer__publishV3:
+# etcd-io/etcd#22525 (pr-verify): the publish loop and its snapshot check, with bodies; the trust
+# boundary (`axiom … .wp_proof`): membership's `RaftCluster.Member` (names-only), `slices.Equal` on
+# `[]string` (not translated by Perennial), `fmt.Sprintf` of a `membership.Attributes`.
+membership_RaftCluster__Member:
+slices_EqualString:
+fmt_SprintfAttrs:
+EtcdServer__hasPublishedAttributes: EtcdServer__MemberID membership_RaftCluster__Member slices_EqualString
+EtcdServer__publishV3: EtcdServer__MemberID EtcdServer__Logger Notifier__Receive EtcdServer__hasPublishedAttributes EtcdServer__raftRequest membership_RaftCluster__ID types_ID__String zap_String zap_Duration zap_Error zap_Logger__Warn zap_Logger__Info fmt_SprintfAttrs
 EtcdServer__purgeFile:
 monitorFileDescriptor:
 EtcdServer__monitorClusterVersions:

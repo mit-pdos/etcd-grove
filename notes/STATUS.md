@@ -13434,3 +13434,24 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## PR verification: etcd-io/etcd#22525 (branch `pr-verify/etcd-22525`, 2026-10-17)
+
+Not for `lean` (the translation is of unmerged code; `etc/goose.py --check` fails here by design).
+The PR's `publishV3` (with its snapshot check) and the new `hasPublishedAttributes` are translated
+with bodies and proved (`InvPublish.lean`, `PublishPool.lean`); `publishV3` was an axiom before.
+`start` is re-proved over the new `snapshotApplied` field; `Start` over `publishV3`'s new spec (three
+more resources in its precondition). New trust-boundary axioms: `RaftCluster.Member` (with the
+uninterpreted `membership.attrsHeld`), `slices.Equal` on `[]string`, `fmt.Sprintf` of a
+`membership.Attributes`. The report: `notes/pr-verify/etcd-22525.md`.
+
+Two things learned on the way, for later work on the server:
+* **Unjoined goroutines that read-lock.** Perennial's `RWMutex` has `actualMaxReaders` reader slots;
+  a loop that starts a goroutine per iteration, each `Receive`-ing on a `notify.Notifier`, needs a
+  slot per live goroutine. Done with a pool invariant (`pubPoolInv`) a goroutine draws from by
+  depositing its thread token (`wp_fork_tok_body`), under the premise `threadBound GF <
+  actualMaxReaders` (`isServerBuilt`'s `Hrdbound`).
+* **`iinv` under an atomic update.** Opening an invariant of a namespace `nroot.@"…"` in the goal
+  `|={⊤,∅}=> …` of Perennial's `atomic.Bool.Load`/`Store` specs leaves the side condition
+  `↑N ⊆ ⊤` as a goal (`iSolveSidecondition` does not close it there); `all_goals try exact
+  CoPset.subseteq_top` after the `iinv` does.

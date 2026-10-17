@@ -505,8 +505,14 @@ theorem EtcdServer.start.wp_proof
     iintro ⟨#Hl, Hslot⟩
     iexists lcn
     iframe Hl Hslot
-  iexists san
-  iframe Hsnapa Hsan Hsaslots
+  isplitl [Hsaslots]
+  · iexists san
+    iframe Hsnapa Hsan Hsaslots
+  iframe Hpub
+  isplitr
+  · ipureintro; exact Hrdbound
+  iexists cctx, _
+  iframe Hctx Hcctx
 
 end proof
 

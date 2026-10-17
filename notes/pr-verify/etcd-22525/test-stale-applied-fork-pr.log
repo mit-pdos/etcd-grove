@@ -1,0 +1,4 @@
+=== RUN   TestReadyBySnapshotWithStaleAppliedIndex
+--- PASS: TestReadyBySnapshotWithStaleAppliedIndex (0.02s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.066s

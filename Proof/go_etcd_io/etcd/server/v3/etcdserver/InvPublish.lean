@@ -31,7 +31,8 @@ though its `raftRequest` failed.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 
@@ -55,6 +56,9 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 abbrev srvAttrsAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"attributes" s
 /-- The address of `s.readych`. -/
 abbrev srvReadychAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"readych" s
+/-- The address of `s.snapshotApplied` (etcd-io/etcd#22525: `start` sets it, `applySnapshot`
+notifies it, `publishV3`'s snapshot check receives from it). -/
+abbrev srvSnapAppliedAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"snapshotApplied" s
 
 end addrs
 
@@ -153,87 +157,16 @@ def pubFlagInv (f c : Loc) (id : w64)
   iprop(∃ b : Bool, sync.atomic.ownBool f (DFrac.own 1) b ∗
     ⌜b = true → membership.attrsHeld c id a.Name' cus⌝)
 
+/-- **The construction premise's part for `publishV3`** (`isServerBuilt`'s `Hpub`): the
+member's identity and attributes as `NewServer` set them, and the right to close `s.readych`
+(a fresh channel, never closed but by `publishV3`). -/
+def srvPubBuilt (s : Loc) : IProp GF :=
+  iprop(∃ (c : Loc) (id : w64) (a : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes)
+      (cus : List GoString),
+    srvMemberAttrs s c id a cus ∗ srvReady s iprop(⌜pubDone c id a cus⌝) .Pending)
+
 end defs
 
-section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **The pool, set up** with `K` slots. -/
-theorem pub_pool_alloc (n : Loc) (K : Nat) :
-    ([∗list] _x ∈ List.replicate K (), notifyReader (GF := GF) n) ⊢
-      |={⊤}=> ∃ γ : GName, inv pubPoolN (pubPoolInv n γ K) := by
-  iintro Hs
-  imod ownTokAuth_alloc (GF := GF) with ⟨%γ, Hauth⟩
-  imod inv_alloc pubPoolN ⊤ (pubPoolInv n γ K) $$ [Hs Hauth] with #Hinv
-  · inext
-    iunfold pubPoolInv
-    iexists 0
-    iframe Hauth
-    isplitr
-    · ipureintro; omega
-    isplitr
-    · iapply threadToks_zero
-    rw [Nat.sub_zero]; iexact Hs
-  imodintro
-  iexists γ
-  iexact Hinv
-
-/-- **A goroutine draws a slot** with its thread token (fewer live threads than slots), getting a
-receipt. -/
-theorem pub_pool_take (n : Loc) (γ : GName) (K : Nat) (hK : threadBound GF ≤ K) :
-    inv pubPoolN (pubPoolInv (GF := GF) n γ K) ∗ threadTok ∗ £ 1 ⊢
-      |={⊤}=> notifyReader n ∗ ownToks γ 1 := by
-  iintro ⟨#Hinv, Htok, Hlc⟩
-  iinv Hinv with Hi Hclose
-  imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  iunfold pubPoolInv at Hi
-  icases Hi with ⟨%k, %Hk, Hks, Hauth, Hs⟩
-  icases threadToks_add_one_lt k $$ [$Htok $Hks] with ⟨%Hlt, Hks⟩
-  icases replicate_take1 _ (K - k) (by omega) $$ Hs with ⟨Hr, Hs⟩
-  imod ownTokAuth_S γ k $$ Hauth with ⟨Hauth, Hrc⟩
-  imod Hclose $$ [Hks Hauth Hs] with -
-  · inext
-    iunfold pubPoolInv
-    iexists k + 1
-    iframe Hks Hauth
-    isplitr
-    · ipureintro; omega
-    rw [show K - (k + 1) = K - k - 1 by omega]
-    iexact Hs
-  imodintro
-  iframe Hr Hrc
-
-/-- **A goroutine gives its slot back** with its receipt, getting its thread token. -/
-theorem pub_pool_give (n : Loc) (γ : GName) (K : Nat) :
-    inv pubPoolN (pubPoolInv (GF := GF) n γ K) ∗ notifyReader n ∗ ownToks γ 1 ∗ £ 1 ⊢
-      |={⊤}=> threadTok := by
-  iintro ⟨#Hinv, Hr, Hrc, Hlc⟩
-  iinv Hinv with Hi Hclose
-  imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  iunfold pubPoolInv at Hi
-  icases Hi with ⟨%k, %Hk, Hks, Hauth, Hs⟩
-  icombine Hauth Hrc gives %Hle
-  obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
-  icases (threadToks_add k' 1).1 $$ Hks with ⟨Hks, Htok⟩
-  imod ownTokAuth_delete_S γ k' $$ Hauth Hrc with Hauth
-  imod Hclose $$ [Hks Hauth Hs Hr] with -
-  · inext
-    iunfold pubPoolInv
-    iexists k'
-    iframe Hks Hauth
-    isplitr
-    · ipureintro; omega
-    rw [show K - k' = (K - (k' + 1)) + 1 by omega, List.replicate_succ]
-    iapply BigSepL.bigSepL_cons.2
-    iframe Hr Hs
-  imodintro
-  iexact Htok
-
-end lemmas
 
 end EtcdGrove
 end Perennial

@@ -35,6 +35,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvPublish
 
 @[expose] public section
 
@@ -56,9 +57,6 @@ section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 abbrev srvSnapCountAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCount"
 abbrev srvSnapCatchUpAddr (s : Loc) : Loc := srvCfgFieldAddr s go!"SnapshotCatchUpEntries"
-/-- The address of `s.snapshotApplied` (etcd-io/etcd#22525: `start` sets it, `applySnapshot`
-notifies it, `publishV3`'s snapshot check receives from it). -/
-abbrev srvSnapAppliedAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"snapshotApplied" s
 end addrs
 
 section defs
@@ -209,6 +207,10 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hcci" ∷ context.isClosedchanInit ∗
     "#Hwci" ∷ waitClosecInit ∗
     "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+    -- etcd-io/etcd#22525: fewer live threads than a notifier's reader slots (`publishV3`'s
+    -- snapshot check, `InvPublish.lean`), and `publishV3`'s view of the member and `readych`
+    "%Hrdbound" ∷ ⌜threadBound GF < Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
+    "Hpub" ∷ srvPubBuilt s ∗
     -- the fields `start` sets
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
@@ -257,7 +259,11 @@ def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 →
     -- etcd-io/etcd#22525: the snapshot notifier, its writer guard (for the apply thread's
     -- `applySnapshot`) and all its reader slots (for `publishV3`)
     "Hsas" ∷ (∃ n : Loc, srvSnapAppliedAddr s ↦□ n ∗ isNotifier n ∗
-      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), notifyReader n))
+      [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), notifyReader n) ∗
+    "%Hrdbound" ∷ ⌜threadBound GF < Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
+    "Hpub" ∷ srvPubBuilt s ∗
+    "#Hctxs" ∷ (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+      srvCtxAddr s ↦□ (GoInterface.ok ctx) ∗ context.isContext ctx cd))
 
 end defs
 

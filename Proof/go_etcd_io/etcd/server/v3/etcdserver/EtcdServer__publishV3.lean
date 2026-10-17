@@ -19,6 +19,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.fmt.SprintfAttrs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.PublishPool
 
 @[expose] public section
 

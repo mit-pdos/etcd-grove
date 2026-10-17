@@ -1,0 +1,12 @@
+# etcd-io/etcd#22525 (branch pr-verify/etcd-22525): the functions the PR changes and the callers
+# checked: publishV3, hasPublishedAttributes, start, applySnapshot, and Start.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22525.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots EtcdServer__publishV3
+roots EtcdServer__hasPublishedAttributes
+roots EtcdServer__start\b
+roots EtcdServer__Start\b
+roots EtcdServer__applySnapshot
