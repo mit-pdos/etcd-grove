@@ -6,3 +6,6 @@
 # server's reuses it from here).
 context_Err:
 context_ErrDone:
+# `context.AfterFunc` (`Proof/context/AfterFunc.lean`, an axiom; the cache's Link takes it as an `@`
+# callee: etcd-io/etcd#21600's `store.waitForRev` and `Cache.Watch`, 2026-10-17).
+context_AfterFunc:

@@ -130,9 +130,9 @@ def OpModel.getUnsupported (o : OpModel) : Bool :=
     o.minModRev ≠ W64 0 ∨ o.maxModRev ≠ W64 0 ∨ o.minCreateRev ≠ W64 0 ∨
     o.maxCreateRev ≠ W64 0)
 
-/-- `validateWatch`'s unsupported options. -/
+/-- `validateWatch`'s unsupported options (`prevKV` is supported since etcd-io/etcd#21600). -/
 def OpModel.watchUnsupported (o : OpModel) : Bool :=
-  decide (o.prevKV = true ∨ o.fragment = true ∨ o.createdNotify = true ∨ o.filterPut = true ∨
+  decide (o.fragment = true ∨ o.createdNotify = true ∨ o.filterPut = true ∨
     o.filterDelete = true)
 
 /-- The pure part of `opAt`: the scalar fields. -/

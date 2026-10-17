@@ -4,7 +4,6 @@ Proof of `Spec/Cache__validateWatch.lean`. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__validateWatch
-public import Spec.go_etcd_io.etcd.client.v3.Op__IsPrevKV
 public import Spec.go_etcd_io.etcd.client.v3.Op__IsFragment
 public import Spec.go_etcd_io.etcd.client.v3.Op__IsCreatedNotify
 public import Spec.go_etcd_io.etcd.client.v3.Op__IsFilterPut
@@ -34,7 +33,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem Cache.validateWatch.wp_proof
-    (wp_IsPrevKV : Op.IsPrevKV.spec (GF := GF) (hG := hG))
     (wp_IsFragment : Op.IsFragment.spec (GF := GF) (hG := hG))
     (wp_IsCreatedNotify : Op.IsCreatedNotify.spec (GF := GF) (hG := hG))
     (wp_IsFilterPut : Op.IsFilterPut.spec (GF := GF) (hG := hG))
@@ -55,24 +53,6 @@ theorem Cache.validateWatch.wp_proof
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_IsPrevKV $$ [$op $Ho] as op
-  wp_if_destruct
-  · wp_apply wp_slice_literal
-    isplitr
-    · ipureintro; rfl
-    iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
-    · fmt_args_ok
-    iapply HΦ
-    have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
-    simp only [validateResult, hu, ↓reduceIte]
-    isplitr
-    · ipureintro; simp
-    iexists e
-    isplitr
-    · ipureintro; simp
-    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
-  have HprevKV : o.prevKV = false := by simpa using Hif
   wp_apply wp_IsFragment $$ [$op $Ho] as op
   wp_if_destruct
   · wp_apply wp_slice_literal
@@ -145,7 +125,7 @@ theorem Cache.validateWatch.wp_proof
     · ipureintro; simp
     rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HfilterDelete : o.filterDelete = false := by simpa using Hif
-  have hu : o.watchUnsupported = false := by simp [OpModel.watchUnsupported, HprevKV, Hfragment, HcreatedNotify, HfilterPut, HfilterDelete]
+  have hu : o.watchUnsupported = false := by simp [OpModel.watchUnsupported, Hfragment, HcreatedNotify, HfilterPut, HfilterDelete]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩
   ipersist Hssl
   wp_apply wp_RangeBytes $$ [$op $Ho] as %esl ⟨op, #Hesl⟩

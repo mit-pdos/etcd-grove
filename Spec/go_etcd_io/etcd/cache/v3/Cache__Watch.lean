@@ -24,6 +24,11 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
+/-- The `PrevKv` mode of a `Watch` request `o` on a cache of prefix `pfx`: `some pfx` for
+`WithPrevKV` (`o.prevKV`, supported since etcd-io/etcd#21600), else `none`. -/
+def watchPK (o : OpModel) (pfx : GoString) : Option GoString :=
+  if o.prevKV then some pfx else none
+
 /-- `c.Watch(ctx, key, opts...)`, with options whose closures have the model transformers `gs`
 (`optsAt`; `OpWatch` must not panic), a demux token and a goroutine slot (`cacheWatchSlot`,
 kept by the watch's goroutine), and a fraction `q` of the "open" token (`cacheOpen`, given back:
@@ -33,8 +38,11 @@ on `rc` is, with those before it, a `cacheWatchLog` for the key filter
 `keyPredForRange key o.rangeEnd` and the start revision `o.rev`: the `i`-th response of a log the
 demux delivered to the watch's watcher (with its delivery facts and the certificates of etcd's
 steps: `cacheWatch_delivery`), or the compaction's cancel response after all of it, or the single
-cancel response of a rejected request (`validateWatch`); if `WaitReady` fails, `rc` is closed
-with nothing in it. -/
+cancel response of a rejected request (`validateWatch`), or, with `WithPrevKV`, the delivered log
+up to a response whose `PrevKv` lookup failed, that response replaced by a cancel response. With
+`WithPrevKV` (`watchPK o cf.pfx = some cf.pfx`), each response's events carry their `PrevKv`
+(`respPK`, `prevKvOk`: `nil` or a key-value of the key in etcd's state at a revision before the
+event's); if `WaitReady` fails, `rc` is closed with nothing in it. -/
 abbrev Cache.Watch.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
@@ -47,10 +55,10 @@ abbrev Cache.Watch.spec : Prop :=
   {{ (rc : Loc), RET #rc; cacheOpen cf q ∗ threadTok ∗ ∃ γ : CacheWatchNames,
       isCacheWatchChan rc γ (etcdStepCert cf.pfx)
         (some (keyPredForRange key (opWatchModel key gs).base.rangeEnd))
-        (opWatchModel key gs).base.rev ∗
+        (opWatchModel key gs).base.rev (watchPK (opWatchModel key gs).base cf.pfx) ∗
       cacheWatchConsumer γ (etcdStepCert cf.pfx)
         (some (keyPredForRange key (opWatchModel key gs).base.rangeEnd))
-        (opWatchModel key gs).base.rev [] }}
+        (opWatchModel key gs).base.rev (watchPK (opWatchModel key gs).base cf.pfx) [] }}
 
 end spec
 

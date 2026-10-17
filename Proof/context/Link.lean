@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.context.AfterFunc
 public import Proof.context.Err
 public import Proof.context.ErrDone
 
@@ -37,6 +38,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.context.Assumptions]
+
+theorem context.wp_AfterFunc :
+    context.AfterFunc.spec (GF := GF) (hG := hG) :=
+  context.AfterFunc.wp_proof
 
 theorem context.wp_Err :
     context.Err.spec (GF := GF) (hG := hG) :=

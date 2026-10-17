@@ -1086,19 +1086,112 @@ def cacheWriter (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (c : DemuxCore
   iprop(demuxWriter cf.demux γd cap (cacheCert cf) c ∗ WriterOk cf.pfx c ∗
     ∃ B : w64, cacheBound cf B)
 
+/-- The event's key-value's `CreateRevision` is `cr`, read-only for good (on the field, as
+`eventAt`). `eventAt` does not have it: the store never reads it; `isCreateEvent`
+(etcd-io/etcd#21600) does. -/
+def eventCreateRevAt (e : EvModel) (cr : w64) : IProp GF :=
+  iprop(structFieldRef mvccpb.KeyValue go!"CreateRevision" e.kv ↦□ cr)
+
+instance eventCreateRevAt_persistent (e : EvModel) (cr : w64) :
+    Persistent (eventCreateRevAt (GF := GF) e cr) := by
+  unfold eventCreateRevAt; infer_instance
+
+/-- `isCreateEvent`'s answer for an event modelled by `e` whose `CreateRevision` is `cr`: a put
+(`Event_PUT`, `0`) whose key-value was created at its own revision. -/
+def isCreateModel (e : EvModel) (cr : w64) : Bool :=
+  decide (e.typ = W32 0) && decide (cr = e.rev)
+
+/-- The slice `sl` of events modelled by `evs`: every event's `CreateRevision` readable
+(`eventCreateRevAt`). -/
+def eventsCreateRevAt (sl : GoSlice) (evs : List EvModel) : IProp GF :=
+  iprop(∃ ls : List Loc, sl ↦*□ ls ∗ ⌜ls.length = evs.length⌝ ∗
+    □ (∀ (i : Nat) (ev : Loc) (e : EvModel), ⌜ls[i]? = some ev⌝ -∗ ⌜evs[i]? = some e⌝ -∗
+      ∃ cr : w64, eventCreateRevAt e cr))
+
+instance eventsCreateRevAt_persistent (sl : GoSlice) (evs : List EvModel) :
+    Persistent (eventsCreateRevAt (GF := GF) sl evs) := by
+  unfold eventsCreateRevAt; infer_instance
+
+/-- **The `PrevKv` of an event** `ev` (modelled by `e`) of a `WithPrevKV` watch on a cache of
+prefix `pfx` (etcd-io/etcd#21600's `attachPrevKV`): either `ev` is a create event
+(`isCreateModel`: the event as the demux delivered it, nothing attached), or its `PrevKv` field
+is `p`, read-only, and `p` is `nil` or a key-value of `e`'s key in etcd's state at some revision
+`r` (`isEtcdKvs`, the store's snapshot certificate) that is at most `e.rev - 1` (for
+`e.rev - 1 ≠ 0`; the store reads revision `0` as its latest). Not said: that `r`'s value of the
+key is the one at `e.rev - 1` (the store's history between `r` and `e.rev - 1` is not tied to
+etcd's), nor when `p` is `nil` (the lookup's snapshot is gone from the store's history, or the key
+was absent at `r`). -/
+def prevKvOk (pfx : GoString) (ev : Loc) (e : EvModel) : IProp GF :=
+  iprop((∃ cr : w64, eventCreateRevAt e cr ∗ ⌜isCreateModel e cr = true⌝) ∨
+    ∃ p : Loc, structFieldRef mvccpb.Event go!"PrevKv" ev ↦□ p ∗
+      (⌜p = null⌝ ∨ ∃ (r : w64) (m : KvMap), □ isEtcdKvs r pfx m ∗
+        ⌜(e.key, p) ∈ m ∧
+          (e.rev - W64 1 = W64 0 ∨ sint.Z r ≤ sint.Z (e.rev - W64 1))⌝))
+
+instance prevKvOk_persistent (pfx : GoString) (ev : Loc) (e : EvModel) :
+    Persistent (prevKvOk (GF := GF) pfx ev e) := by
+  unfold prevKvOk; infer_instance
+
+/-- Every event of the response `v` (modelled by `r`) has its `PrevKv` (`prevKvOk`). -/
+def respPrevKvs (pfx : GoString) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    IProp GF :=
+  iprop(∃ ls : List Loc, v.Events' ↦*□ ls ∗ ⌜ls.length = r.events.length⌝ ∗
+    □ (∀ (i : Nat) (ev : Loc) (e : EvModel), ⌜ls[i]? = some ev⌝ -∗ ⌜r.events[i]? = some e⌝ -∗
+      prevKvOk pfx ev e))
+
+instance respPrevKvs_persistent (pfx : GoString) (v : go_etcd_io.etcd.client.v3.WatchResponse)
+    (r : RespModel) : Persistent (respPrevKvs (GF := GF) pfx v r) := by
+  unfold respPrevKvs; infer_instance
+
+/-- What a `Watch` response says of its events' `PrevKv`s: nothing without `WithPrevKV`
+(`pk = none`); with it (`pk = some pfx`, the cache's prefix), `respPrevKvs`. -/
+def respPK (pk : Option GoString) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    IProp GF :=
+  match pk with
+  | none => iprop(True)
+  | some pfx => respPrevKvs pfx v r
+
+instance respPK_persistent (pk : Option GoString) (v : go_etcd_io.etcd.client.v3.WatchResponse)
+    (r : RespModel) : Persistent (respPK (GF := GF) pk v r) := by
+  cases pk <;> unfold respPK <;> infer_instance
+
+/-- A response with no events has every event's `PrevKv`. -/
+theorem respPK_of_no_events (pk : Option GoString) (v : go_etcd_io.etcd.client.v3.WatchResponse)
+    (r : RespModel) (h : r.events = []) : respAt v r ⊢ respPK (GF := GF) pk v r := by
+  iintro #Hr
+  cases pk with
+  | none => unfold respPK; itrivial
+  | some pfx =>
+    unfold respPK respPrevKvs
+    iunfold respAt at Hr
+    iunfold eventsAt at Hr
+    icases Hr with ⟨⟨%ls, #Hsl, %Hlen, -⟩, -⟩
+    iexists ls
+    iframe Hsl
+    isplitr
+    · ipureintro; exact Hlen
+    imodintro
+    iintro %i %ev %e %_ %He
+    rw [h] at He
+    simp at He
+
 /-- What a log `L` of responses on `Cache.Watch`'s channel is: a log the watcher's producer had,
 with its delivery facts and certificates (`demuxPubBody … none`); or such a log closed by a
 compaction at `n` followed by the compaction's cancel response; or the single cancel response of
-a request `validateWatch` rejected. -/
+a request `validateWatch` rejected; or, for a `WithPrevKV` watch (`pk ≠ none`, etcd-io/etcd#21600),
+a log the producer had up to a response `r0` whose `PrevKv` lookup failed, with `r0` replaced by a
+cancel response with no events. -/
 def cacheWatchLog (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
-    (L : List RespModel) : IProp GF :=
+    (pk : Option GoString) (L : List RespModel) : IProp GF :=
   iprop(demuxPubBody C pred sr none L ∨
     (∃ (L0 : List RespModel) (n : w64), ⌜L = L0 ++ [cancelModel n]⌝ ∗
       demuxPubBody C pred sr (some (some n)) L0) ∨
-    ⌜∃ r, L = [r] ∧ r.canceled = true ∧ r.events = []⌝)
+    ⌜∃ r, L = [r] ∧ r.canceled = true ∧ r.events = []⌝ ∨
+    (∃ (L0 : List RespModel) (r0 r : RespModel), ⌜pk ≠ none ∧ L = L0 ++ [r] ∧
+      r.canceled = true ∧ r.events = []⌝ ∗ demuxPubBody C pred sr none (L0 ++ [r0])))
 
 instance cacheWatchLog_persistent (C : DemuxCert GF) (pred : Option (GoString → Bool)) (sr : w64)
-    (L : List RespModel) : Persistent (cacheWatchLog C pred sr L) := by
+    (pk : Option GoString) (L : List RespModel) : Persistent (cacheWatchLog C pred sr pk L) := by
   unfold cacheWatchLog; infer_instance
 
 /-- Certificate chains are monotone in the certificate. -/
@@ -1137,30 +1230,31 @@ theorem demuxPubBody_cacheCert (cf : CacheFields) (pred : Option (GoString → B
   demuxPubBody_mono _ _ (cacheCert_cert cf) (cacheCert_prog cf) pred sr oc L
 
 /-- The `i`-th response `v` on `Cache.Watch`'s channel: modelled by `r`, the `i`-th of a log `L`
-(of the monotone log `fwd`) that is a `cacheWatchLog`. -/
+(of the monotone log `fwd`) that is a `cacheWatchLog`, with its events' `PrevKv`s (`respPK`). -/
 def cacheWatchElem (γ : CacheWatchNames) (C : DemuxCert GF) (pred : Option (GoString → Bool))
-    (sr : w64) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
-  iprop(∃ (L : List RespModel) (r : RespModel), respAt v r ∗
+    (sr : w64) (pk : Option GoString) (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    IProp GF :=
+  iprop(∃ (L : List RespModel) (r : RespModel), respAt v r ∗ respPK pk v r ∗
     ⌜L.length = i.toNat + 1 ∧ L[i.toNat]? = some r⌝ ∗ monoListLbOwn γ.fwd L ∗
-    cacheWatchLog C pred sr L)
+    cacheWatchLog C pred sr pk L)
 
 /-- `rc` is a channel `Cache.Watch` returned (persistent), for certificates `C`, key filter
-`pred` and start revision `sr`. -/
+`pred`, start revision `sr` and `PrevKv` mode `pk`. -/
 def isCacheWatchChan (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert GF)
-    (pred : Option (GoString → Bool)) (sr : w64) : IProp GF :=
-  isSpsc γ.spsc rc (cacheWatchElem γ C pred sr) (fun _ => iprop(True))
+    (pred : Option (GoString → Bool)) (sr : w64) (pk : Option GoString) : IProp GF :=
+  isSpsc γ.spsc rc (cacheWatchElem γ C pred sr pk) (fun _ => iprop(True))
 
 instance isCacheWatchChan_persistent (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert GF)
-    (pred : Option (GoString → Bool)) (sr : w64) :
-    Persistent (isCacheWatchChan (GF := GF) rc γ C pred sr) := by
+    (pred : Option (GoString → Bool)) (sr : w64) (pk : Option GoString) :
+    Persistent (isCacheWatchChan (GF := GF) rc γ C pred sr pk) := by
   unfold isCacheWatchChan; infer_instance
 
 /-- The consumer of `Cache.Watch`'s channel: it has received the responses `rs`, a
 `cacheWatchLog` (when not empty). -/
 def cacheWatchConsumer (γ : CacheWatchNames) (C : DemuxCert GF) (pred : Option (GoString → Bool))
-    (sr : w64) (rs : List RespModel) : IProp GF :=
+    (sr : w64) (pk : Option GoString) (rs : List RespModel) : IProp GF :=
   iprop(∃ vs : List go_etcd_io.etcd.client.v3.WatchResponse, spscConsumer γ.spsc vs ∗
-    ⌜vs.length = rs.length⌝ ∗ monoListLbOwn γ.fwd rs ∗ (⌜rs = []⌝ ∨ cacheWatchLog C pred sr rs))
+    ⌜vs.length = rs.length⌝ ∗ monoListLbOwn γ.fwd rs ∗ (⌜rs = []⌝ ∨ cacheWatchLog C pred sr pk rs))
 
 /-- What `Cache.Watch`'s caller needs: one of the demux's tokens (the watch's goroutine registers,
 sends progress notifications and unregisters with it) and a goroutine slot of the cache's wait
@@ -1186,20 +1280,21 @@ theorem demuxPubBody_nil (C : DemuxCert GF) (pred : Option (GoString → Bool)) 
   · iapply certChain_nil
   · imodintro; iapply C.prog_zero
 
-/-- **Receiving** on `Cache.Watch`'s channel: with `ok`, the next response, the received log
-(`rs ++ [r]`) still a `cacheWatchLog`; without, the channel was closed. -/
+/-- **Receiving** on `Cache.Watch`'s channel: with `ok`, the next response, with its events'
+`PrevKv`s (`respPK`), the received log (`rs ++ [r]`) still a `cacheWatchLog`; without, the channel was closed. -/
 theorem wp_cacheWatch_receive (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert GF)
-    (pred : Option (GoString → Bool)) (sr : w64) (rs : List RespModel) :
-    {{ isCacheWatchChan rc γ C pred sr ∗ cacheWatchConsumer γ C pred sr rs }}
+    (pred : Option (GoString → Bool)) (sr : w64) (pk : Option GoString) (rs : List RespModel) :
+    {{ isCacheWatchChan rc γ C pred sr pk ∗ cacheWatchConsumer γ C pred sr pk rs }}
       (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #rc))
     {{ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool), RET (PairV #v #ok);
-        if ok then iprop(∃ r : RespModel, respAt v r ∗ cacheWatchConsumer γ C pred sr (rs ++ [r]))
+        if ok then iprop(∃ r : RespModel, respAt v r ∗ respPK pk v r ∗
+          cacheWatchConsumer γ C pred sr pk (rs ++ [r]))
         else iprop(⌜v = zero_val go_etcd_io.etcd.client.v3.WatchResponse⌝) }} := by
   iintro %Φ ⟨#Hch, Hcons⟩ HΦ
   unfold cacheWatchConsumer
   icases Hcons with ⟨%vs, Hcons, %Hlen, #Hlb, #Hlog⟩
   unfold isCacheWatchChan
-  iapply wp_spsc_receive γ.spsc rc (cacheWatchElem γ C pred sr) (fun _ => iprop(True)) vs
+  iapply wp_spsc_receive γ.spsc rc (cacheWatchElem γ C pred sr pk) (fun _ => iprop(True)) vs
     $$ [$Hch $Hcons]
   inext
   iintro %v %ok H
@@ -1212,7 +1307,7 @@ theorem wp_cacheWatch_receive (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert G
   · simp only [↓reduceIte]
     icases H with ⟨HP, Hcons⟩
     unfold cacheWatchElem
-    icases HP with ⟨%L, %r, #Hr, %HL, #HlbL, #HlogL⟩
+    icases HP with ⟨%L, %r, #Hr, #Hpk, %HL, #HlbL, #HlogL⟩
     have hi : ((vs.length : Int)).toNat = rs.length := by rw [Hlen]; simp
     rw [hi] at HL
     ihave %Hpre := mono_list_lb_valid γ.fwd rs L $$ Hlb HlbL
@@ -1234,7 +1329,7 @@ theorem wp_cacheWatch_receive (rc : Loc) (γ : CacheWatchNames) (C : DemuxCert G
     iapply HΦ
     simp only [↓reduceIte]
     iexists r
-    iframe Hr
+    iframe Hr Hpk
     iexists vs ++ [v]
     iframe Hcons
     iframe HlbL
