@@ -14,6 +14,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.credentials
+public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.status
 public import GeneratedProof.google_golang_org.protobuf.proto
@@ -23,7 +24,7 @@ public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk1
-public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk2
+public import GeneratedProof.go_etcd_io.etcd.client.v3.chunk3
 
 @[expose] public section
 

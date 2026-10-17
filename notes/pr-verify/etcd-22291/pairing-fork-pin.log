@@ -1,0 +1,6 @@
+    lease_requireleader_pairing_internal_test.go:52: after the first leader loss B's channel is paired with the wrong context (ctxs[0]==ctxA: true)
+    lease_requireleader_pairing_internal_test.go:57: second leader loss closed B's channel, whose context does not require a leader (remaining entry: &{[] [] {0 0 <nil>} {0 0 <nil>} <nil>})
+--- FAIL: TestLessorCloseRequireLeaderKeepsPairing (0.00s)
+FAIL
+FAIL	go.etcd.io/etcd/client/v3	0.018s
+FAIL
