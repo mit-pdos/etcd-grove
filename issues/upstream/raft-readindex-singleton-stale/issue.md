@@ -2,7 +2,14 @@ Title: A new leader of a single-voter configuration answers ReadIndex with a sta
 
 ### What happened?
 
-Of two voters 1 and 2, leader 2 removes itself (index 2) and commits `x` (index 3), and node 1 learns only that index 2 is committed. Node 1 becomes leader of the configuration `{1}` and, with `ReadOnlySafe`, answers a read index request at once with index 2, which misses `x` (output trimmed):
+With `ReadOnlySafe`, a read index can miss a committed entry once a removal leaves a single voter:
+
+1. Nodes 1 and 2 are the voters; node 2 leads.
+2. Node 2 commits its own removal (index 2), then an entry `x` (index 3).
+3. Node 1 learns that index 2 is committed, but not index 3, and becomes leader as the only voter.
+4. Node 1 answers a read index request at once with index 2, which misses `x`.
+
+The test below runs these steps (output trimmed):
 
 ```
 --- FAIL: TestReadOnlyForNewSingleVoterLeader (0.00s)
@@ -11,11 +18,11 @@ Of two voters 1 and 2, leader 2 removes itself (index 2) and commits `x` (index 
         	            	actual  : []raft.ReadState{raft.ReadState{Index:0x2, RequestCtx:[]uint8{0x63, 0x74, 0x78}}}
 ```
 
-This affects any application serving linearizable reads through `ReadIndex` whose configuration a removal reduced to one voter that missed the previous leader's last commit index.
+This affects any application that serves linearizable reads through `ReadIndex` after a removal leaves a single voter.
 
 ### What did you expect to happen?
 
-Node 1 answers the read only after it commits an entry at its term (index 4), as a new leader with more voters does (`TestReadOnlyForNewLeader`).
+Node 1 answers only after committing an entry in its own term, as a new leader with more voters does (`TestReadOnlyForNewLeader`): read index 4, which includes `x`.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
@@ -23,7 +30,7 @@ Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/
 
 ### Anything else we need to know?
 
-In the same start, if leader 2 applies its removal and is then partitioned from node 1 (with `StepDownOnRemoval` unset), node 2 still answers read index requests at once with index 2 after node 1 has been elected in a later term and committed a new entry at index 4 (reproduced with a test that is not on the branch). Setting `StepDownOnRemoval` avoids this case only.
+A leader that removed itself has the same problem: unless `StepDownOnRemoval` is set, node 2 stays leader after its removal, and if partitioned from node 1 it keeps answering at once with index 2 after node 1 has committed newer entries (reproduced with a test not on the branch). `StepDownOnRemoval` avoids only this second case.
 
 I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
 
