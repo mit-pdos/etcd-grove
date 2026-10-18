@@ -8508,8 +8508,12 @@ the theorem says nothing.
   (derived from it already); `rnLogFits` is raft's, with the raft stage. Stage 4 (done): raft's
   tick/term budget (`budgetInv` holds receipts for the term bound, `tickCred bud n := ⧗ n` taken
   by a tick's caller from its own step, the ticker's payload `True`: `rnTickerOk` mints nothing).
-  Left: `rnLogFits` (a receipt per entry raft appends: a raft model change) and mvcc compaction's
-  `2 ^ 62` premise.
+  Left: `rnLogFits` (a receipt per entry raft appends: a raft model change). mvcc compaction's
+  `2 ^ 62` premise (`CompactSmall`) done 2026-10-18 with no new receipt: the certificate the
+  compaction's caller already passes (`idxCert`) carries stage 3's `logCh log < receiptBound GF`,
+  and `isStore` the store's `receiptBound GF ≤ 2 ^ 48`, so the compaction job derives it
+  (`CompactSmall_of_cert`); `store.Compact`, `updateCompactRev`, `compactLockfree` and
+  `compactJobPre` lost it (no server caller of `store.Compact` took it: the compactor is off).
   *`rnLogFits` (stage 5, 2026-10-18): stopped for a decision.* What it bounds: a `Ready`'s
   unstable entries `es` (`e0.Index + |es| ≤ 2 ^ 61`, `MemoryStorage.Append`'s premise) and its
   committed log (`|d ++ ce| + 1 < 2 ^ 64`); both are positions in a node's log, which grows by its
