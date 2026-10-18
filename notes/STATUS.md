@@ -6885,7 +6885,7 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     `client_watcher_progressNotifier` (`isEtcdProgressNotifier`).
   - **K3 (done, 2026-10-18): the cache over etcd's client and server**
     (`cache_end_to_end_client`, cache/v3/Results.lean; trust base `etc/tcb-collections/cache-client.txt`:
-    34 axioms, no `sorry`).
+    34 axioms, no `sorry`; 84 with `etcd_cache_served`, which reaches the server's request path).
     - *The cache asks of its client only what it uses* (K3a): `isEtcdClient` lost `isEtcdTxnKV`
       and `isEtcdLeaseClient`; `isEtcdKVE`'s gets are exact (`getExact`, the cache's two gets
       are), its result `kvGetResultC`: etcd's state with the key-values (`isEtcdKvs`) only for
