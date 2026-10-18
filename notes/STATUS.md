@@ -158,7 +158,7 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
   allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
   `sort.Sort` an axiom.
-- the root package (224, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+- the root package (237, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
   `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
   freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
   `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
@@ -202,14 +202,20 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `Bucket.node`, `Cursor.node`, the cursor's descent by a key (`Cursor.seek`/`search`: Perennial's
   `sort.Search` spec restated with the index it last evaluated), `Put`, `Delete`,
   `Bucket.Bucket`, `CreateBucket(IfNotExists)`, `Set`/`NextSequence`, the `Tx` wrappers, the shape
-  at `Begin`. In progress (agents): rebalance, spill, `Commit`'s database side, `Open` of a new
-  file.
+  at `Begin`; the rebalance (`Rebalance*.lean`: its post `txShapeR`/`rblTxOK`, weaker key bounds,
+  acyclic parents, uniform leaf depth). In progress: the spill.
+- `Commit`'s database side: `Tx.write` (dirty pages through `db.ops.writeAt`, `ownDB`'s `%Hops`;
+  `dbOK` kept by writes to unseen slots, `DBWrite.lean`), `writeMeta`, `commitFreelist`, the
+  writer's `rollback` (`dbOK` now records the current freelist page, `flCurOK`, and readers'
+  high-water marks); a failed remap keeps the transaction, the database lost (`DBLost.lean`).
+- `Open` of a new (empty) file too (`DBOpenInit.lean`: `fileWF (initBytes ps) ps`).
 - The hashMap freelist (every function, its interface contract; `hashMap.Init([])` keeps a stale
   cache, so not `InitSpec`); `Reload` of a page holding pending ids; the logger's methods,
   `DB.Stats`, `DB.Sync`, `panicked.Error` (new trust-boundary axioms: `fmt.Sprint`, `os.Exit`,
-  `log.Logger.Flags`/`SetFlags`, `sort.SliceIsSorted`, `reflect.DeepEqual` of page-id sets; the
+  `log.Logger.Flags`/`SetFlags`, `sort.SliceIsSorted`, `reflect.DeepEqual` of page-id sets,
+  `sort.Sort` of page slices; the
   TCB baseline is not updated yet). `safelyCall` needs `recover`, which Perennial does not model.
-- Coverage (bbolt v1.5.0's non-test files): 316 of 378 functions, 3284 of 4811 lines; the freelist
+- Coverage (bbolt v1.5.0's non-test files): 323 of 378 functions, 3485 of 4811 lines; the freelist
   complete; left in the root package mostly `Commit` and its pieces (`tx.go`), the spill and
   rebalance (`bucket.go`, `node.go`), `Update`/`Batch`, `Check` (`tx_check.go`), `Compact`.
 - the errors bbolt compares with its error variables are well-formed (`Proof/os/ErrWF.lean`:
@@ -232,7 +238,11 @@ mark or above (`node.spill` panics), a page running past the high-water mark. A 
 remap (the `mmap` system call) leaves `db.data` nil: the next `Begin` dereferences it. If the
 first meta page cannot be read (an I/O error), `getPageSize` probes the file at `1024 << i`
 for any valid meta: a value holding a forged one (a valid checksum) at such an offset sets
-the page size (`Open` will assume the file's valid metas agree on it).
+the page size (`Open` will assume the file's valid metas agree on it). `Tx.write` panics for a page size
+above `MaxAllocSize` (2^31 - 1; `UnsafeByteSlice` when it gives single pages back to the pool).
+If `writeMeta`'s write reaches the file and then fails (a short write past the meta's 80 bytes,
+or `fdatasync` failing), `Commit` rolls back over a database whose newest valid meta is the new
+one: `Reload` frees the pages the transaction freed while open readers may still see them.
 
 **Perennial** (`goose-bbolt`, `793297d`): `delete` and `clear` take any type whose underlying
 type is a map, as `len` does (`hashMap`'s `pidSet` was stuck); `io`'s initialization gives
