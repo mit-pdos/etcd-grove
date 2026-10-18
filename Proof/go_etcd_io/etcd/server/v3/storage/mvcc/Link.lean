@@ -17,6 +17,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact
@@ -263,6 +264,10 @@ theorem schema.wp_UnsafeCreateMetaBucket :
 theorem mvcc.store.wp_restore :
     mvcc.store.restore.spec (GF := GF) (hG := hG) :=
   mvcc.store.restore.wp_proof
+
+theorem mvcc.wp_ReportEventReceived :
+    mvcc.ReportEventReceived.spec (GF := GF) (hG := hG) :=
+  mvcc.ReportEventReceived.wp_proof
 
 theorem mvcc.wp_newBucketKey :
     mvcc.newBucketKey.spec (GF := GF) (hG := hG) :=

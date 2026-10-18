@@ -442,8 +442,20 @@ for x in _RERRS:
 for x, v in _RKEYS.items():
     _R['custom'][x] = dict(doc=f'/-- `{x} = "{v}"` (`metadatafields.go`): a string. -/',
                            post=f'∃ k : GoString, globalAddr {x} ↦ k', pat='⟨%k@, H@⟩')
-_R['finish'] = [f'ipersist H{x}' for x in _RERRS + list(_RKEYS)] + _R['finish']
-_R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`.", "the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors\n`v3rpc`'s checks and interceptors return and its metadata keys.")
+# (D19j, 2026-10-18) the `ErrGRPC*` errors `v3rpc`'s watch server returns or reports: `status.Error`
+# values whose `Error()` returns
+_RWERRS = {'ErrGRPCInvalidAuthToken': ('Unauthenticated', 'etcdserver: invalid auth token'),
+           'ErrGRPCAuthOldRevision': ('InvalidArgument', 'etcdserver: revision of auth store is old'),
+           'ErrGRPCUserEmpty': ('InvalidArgument', 'etcdserver: user name is empty'),
+           'ErrGRPCPermissionDenied': ('PermissionDenied', 'etcdserver: permission denied'),
+           'ErrGRPCWatchCanceled': ('Canceled', 'etcdserver: watch canceled')}
+for x, (c, m) in _RWERRS.items():
+    _R['custom'][x] = dict(
+        doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/',
+        post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
+        pat='⟨%e@, H@, #S@⟩')
+_R['finish'] = [f'ipersist H{x}' for x in _RERRS + list(_RKEYS) + list(_RWERRS)] + _R['finish']
+_R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`.", "the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors\n`v3rpc`'s checks and interceptors return and its metadata keys, and (D19j) the `ErrGRPC*` errors its\nwatch server returns, whose `Error()` returns.")
 
 _P = SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb']
 _P['doc'] = """Its fact (`etcdserverpbInit`, `cache/v3/Base.lean`): the sort enumerations' name maps. Its
@@ -640,7 +652,7 @@ errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
              '  iexact HLNF0',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd18',
-             'icases Hmi with ⟨' + '-, ' * 30 + '#NMC, #NMF⟩',
+             'icases Hmi with ⟨' + '-, ' * 30 + '#NMC, #NMF, -⟩',
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +
             FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars', 'iframe #']),
@@ -706,6 +718,10 @@ package's initializer.""",
 _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
            'ErrGRPCTooManyOps', 'ErrGRPCDuplicateKey', 'ErrGRPCKeyNotFound', 'ErrGRPCNoSpace',
            'ErrGRPCNotCapable', 'ErrGRPCInvalidClientAPIVersion', 'ErrGRPCNoLeader']
+_V_HIST = ['watchSendLoopWatchStreamDuration', 'watchSendLoopWatchStreamDurationPerEvent',
+           'watchSendLoopControlStreamDuration', 'watchSendLoopProgressDuration']
+_V_WERRS = ['ErrGRPCInvalidAuthToken', 'ErrGRPCAuthOldRevision', 'ErrGRPCUserEmpty',
+            'ErrGRPCPermissionDenied', 'ErrGRPCWatchCanceled']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'] = dict(
     doc="""Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
 `clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
@@ -714,7 +730,13 @@ metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDe
 facts), and `context.Canceled` a
 pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
 fact lacks it). Its precondition has the read package's registration rights
-(`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.""",
+(`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
+(D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
+errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` and the four
+`watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
+`traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
+`progressReportInterval` (`10 * time.Minute`: `intervalP`).""",
+    imports=['Proof.Lib.Sync'],
     alloc_types={'progressReportIntervalMu': '_root_.Perennial.sync.RWMutex',
                  'progressReportInterval': 'w64', 'metricsServerCached': 'Loc',
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
@@ -726,12 +748,21 @@ fact lacks it). Its precondition has the read package's registration rights
         'clientRequests': dict(
             doc='/-- `clientRequests = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/',
             post='∃ cv : Loc, globalAddr clientRequests ↦ cv', pat='⟨%cv@, H@⟩'),
+        # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
+        'streamFailures': dict(
+            doc='/-- `streamFailures = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/',
+            post='∃ cv : Loc, globalAddr streamFailures ↦ cv', pat='⟨%cv@, H@⟩'),
+        **{x: dict(
+            doc=f'/-- `{x} = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
+            post=f'∃ h : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{{{ True }}}} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{{{ RET #(); True }}}})',
+            pat='⟨%h@, H@, #S@⟩') for x in _V_HIST},
     },
     finish=(['ipersist HtoGRPCErrorMap', 'ipersist HclientRequests',
              'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd22',
-             'icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
-             ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + '⟩',
+             'icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
+             ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + ', ' +
+             ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + '⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
              'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
@@ -758,9 +789,44 @@ fact lacks it). Its precondition has the read package's registration rights
              '  iframe HK HL HC HA HM',
              '  iexists ws',
              '  iframe HW',
-             '  ipureintro; exact HWp'] +
+             '  ipureintro; exact HWp',
+             '-- (D19j) what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`\'s errors',
+             'ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []',
+             '· iapply isPkgInit_access $$ Hd3',
+             'icases Hai with ⟨#AUE, -, #APD, #AAO, #AIA, -⟩',
+             'ihave #WUE := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AUE',
+             'ihave #WPD := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ APD',
+             'ihave #WAO := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AAO',
+             'ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA',
+             '-- mvcc\'s',
+             'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
+             '· iapply isPkgInit_access $$ Hd36',
+             'icases Hmi with ⟨' + '-, ' * 32 + '#NEWR, #NWDI⟩',
+             'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
+             'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
+             '-- `rpctypes`\'',
+             'ihave #MCP := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RCP'] +
+            [f'ihave #MRW{i} := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW{i}' for i in range(len(_V_WERRS))] +
+            ['-- the metrics',
+             'ipersist HstreamFailures'] +
+            [f'ipersist H{x}' for x in _V_HIST] +
+            [f'ihave #WH{i} : (EtcdGrove.v3rpc.histVar {x} : IProp GF) $$ []\n  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe H{x} S{x}'
+             for i, x in enumerate(_V_HIST)] +
+            ['-- `traceutil.Tracer`',
+             'ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []',
+             '· iapply isPkgInit_access $$ Hd43',
+             'icases Hti with #HTR',
+             '-- the progress interval\'s lock and what it guards (`progressReportInterval`, `10 * time.Minute`)',
+             'imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS',
+             '· inext',
+             '  unfold EtcdGrove.v3rpc.intervalP',
+             '  iexists _',
+             '  iframe HprogressReportInterval',
+             '  ipureintro',
+             '  first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word',
+             'ihave ⟨-, #HIG⟩ := EtcdGrove.guard_of_slots _ _ $$ HIS'] +
             FIN_PRE[:6] +
-            ['imodintro', 'unfold v3rpcInit grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
+            ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),
 )
 

@@ -184,7 +184,8 @@ and its own facts are the consistent index's), and the compaction metrics (`metr
 histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs`, whose
 `Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`); and
 (item 8, 2026-10-17) `ErrCompacted` and `ErrFutureRev` as the `errors.New` errors they are, which
-the apply package's facts take from here. -/
+the apply package's facts take from here; and (D19j, 2026-10-18) `ErrEmptyWatcherRange` and
+`ErrWatcherDuplicateID` as theirs, which `v3rpc`'s facts take from here. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -219,7 +220,10 @@ abbrev mvccInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
-    EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision")
+    EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision" ∗
+    EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗
+    EtcdGrove.errorsNewVar ErrWatcherDuplicateID
+      go!"mvcc: duplicate watch ID provided on the WatchStream")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit
