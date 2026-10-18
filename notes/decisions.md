@@ -8454,6 +8454,26 @@ the theorem says nothing.
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
   contracts then say what they propose) -- proved as an invariant on raft's committed log.
+  **2026-10-18: adopted by the user, attempted, stopped** (`notes/STATUS.md`, "D19c: unit N3
+  stopped"). The clause is not provable from the ghost allocations, and not as stated:
+  (1) every committed normal entry after the boot log is fired by a deposit of `kv_prop_au`
+  (`reqPropOk`) or `kv_noop_au` (`kvInv` holds the server's half of the log), so `entriesOk`
+  must come from the proposals, and `reqPropOk` carries none of `rqOk`: `EtcdServer.Txn.spec`
+  admits `Txn{Then: [DeleteRange [a, c), Put b IgnoreValue]}` (`txnPermit`: plain, no `[0]` range
+  end), whose `TxnPre` fails at every state where `b` exists (`IgnOk`), and which panics the Go
+  apply loop (only v3rpc's `checkIntervals` keeps it out; `issues/etcd-txn-delete-then-ignore-put.md`);
+  the length/count clauses (`putOk`, `delOk`, `TxnPre`'s `< 2 ^ 56`) need the committed log's
+  length bound inside `kvInv`'s updates (D19b's receipts). (2) `batchWaitOk` of the boot log's
+  conf changes (id `0`, raft's `Bootstrap`; the log is the server's `L`, start index `0`) needs
+  id `0` never claimed, which `idGen` allows when the prefix is `0`
+  (`issues/etcd-request-id-zero-bootstrap-confchange.md`). (3) `publishV3`/`monitorClusterVersions`
+  are names-only with `True` posts: their real proposals are outside the model. Options for the
+  user: (a) a per-request premise "`rqOk` at every state and `dispatchOk`" in `reqPropOk` (new
+  premises of `EtcdServer.Put`/`DeleteRange`/`Txn`, discharged at v3rpc from `checkIntervals` and
+  `txnNoZeroEnd`) with `idClaim` and the bound from receipts, the facts kept in `kvInv` (which then
+  takes `ρ.ids`, `E`); plus a pure premise `uint16(memberID) ≠ 0` from `bootstrapContract`;
+  (b) keep the clause a premise of `NewServer` and state the adequacy theorem for the workload
+  that satisfies it, as a pure property of the requests (out of D19a's rule as now written).
 - **D19d: program-start resources once** (`nameFree`, `netAddrFree`). Options: (1) Perennial's
   `wp_package_init` gives the body a once-per-package token (D16's proposed general fix), from which
   a package takes what was allocated for it at program start: covers `nameFree`, not `netAddrFree`;
