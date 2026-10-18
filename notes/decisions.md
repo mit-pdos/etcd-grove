@@ -9856,3 +9856,18 @@ does not let the server refute a `MsgSnap`. Options:
 * *(C) A premise "no `MsgSnap`"* on the run.
 
 *Recommendation:* (A). Not started: a design decision (the user's (A) assumed voters only).
+
+**(A) adopted (the user, 2026-10-18); carrying it out stopped on the file boundary.** The fact
+`dst ∈ T` cannot be proved from `raft.go`'s send path and the protocol files alone:
+`maybeSendSnapshot` knows `to ∈ domSet s.progress`, but nothing at the `raft.go` level bounds the
+progress keys. The protocol's static configuration (`CfgStatic γ c`: `c.incoming = γ.reCfg`, no
+outgoing) leaves the learners free (`CfgStatic.simple γ lrn` for any `lrn`), and every code proof
+of a step builds `CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)` from whatever the tracker
+holds. Bounding it needs `domSet s.progress ⊆ T` as an invariant of the node in the static mode,
+kept by `RawNode.ApplyConfChange` (whose static scope, `CCShrink`, only drops learners) and handed
+to every `raft.Step` (`ownRawNode`, `InvRawnode`/`InvNode`, `RawNode__ApplyConfChange`): either
+as a conjunct of `CfgStatic` (learners `⊆ T`, so every step proof discharges it from the node
+state) or as a premise threaded from `RawNode.Step` down to `maybeSendSnapshot`. Both are in
+`RawNode`'s files, which D19i part 1 is changing; so it waits for D19i part 1, with the server half.
+The protocol half alone (`reTracked` in `RaftNames`, the `.snap` clause, the allocation's
+argument) would leave the clause unprovable at its only send site, so it was not started either.
