@@ -14,6 +14,7 @@ server's facts (`isServerRead`, `isWatchServer`).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
+public import Spec.go_etcd_io.etcd.client.v3.watcher__RequestProgress
 public import Spec.go_etcd_io.etcd.client.v3.NewWatcher
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.client.v3.PrefixRange
@@ -185,6 +186,26 @@ theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
   iexists []
   iframe Hc Hi2
   ipureintro; rfl
+
+/-- **etcd's client's watcher is the cache's progress notifier** (K2e-9): `RequestProgress`
+returns an error whose `Error()` gives a string (grpc's `status` accepts it). -/
+theorem isEtcdProgressNotifier_of_watcher
+    (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (V : WEnv GF) (w : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
+    isEtcdProgressNotifier (watcherIfaceOf w) := by
+  iintro ⟨#P1, #P2, #P3, #Hw⟩
+  unfold isEtcdProgressNotifier
+  iintro !> %ctx %cs %Φ !> #Hctx HΦ
+  iapply (wp_RP V w ctx cs) $$ [] [HΦ]
+  · iframe #
+  inext
+  iintro %err #Hse
+  iapply HΦ
+  ihave #Hs := errStrOk_of_statusErrOk err $$ Hse
+  iunfold errStrOk at Hs
+  iexact Hs
 
 /-- The server's sealed logs are small (the read side's `storeSmall`), so `srvLogsSmall`. -/
 theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)

@@ -62,9 +62,10 @@ consumer's resources, `retcP`).
   client's `status` and `errors` calls accept (`eofOk`, `errorsNewOk`, `ctxErrClientAllW`), and
   `watch.go`'s package variables (`clientWatchVars`).
 
-**What is not covered**: `RequestProgress` (its calls can make `run` panic:
-`issues/etcd-watch-progress-closed-substream.md`): the client verified here never sends a
-progress request.
+**Progress requests** (`RequestProgress`, unit K2e-9): a `*progressRequest` on `reqc` (`reqP`),
+which `run` forwards; the server's `-1` answer is broadcast to every registered substream (its
+panic on a canceled substream's closed `recvc`, `issues/etcd-watch-progress-closed-substream.md`,
+is fixed in the verified fork).
 -/
 module
 

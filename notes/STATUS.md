@@ -6878,8 +6878,13 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     - `etcdWatchElem_of_rangeWatchElem`: a response of a prefix watch with `cpl` set is etcd's at
       `γ.cur2`. `etcdRead` lost its free `r ≤ 0` case, which no producer used.
     - Premise: the cache's prefix is not all `0xff` (non-empty comes from `watchConnFacts`).
-    - **Next**: `RequestProgress`'s spec (`isEtcdProgressNotifier` of the client's watcher), then
-      K3, the cache bundle over etcd's client.
+    **K2e-9 (done, 2026-10-18): `RequestProgress`** (`watcher__RequestProgress.lean`): sends a
+    `*progressRequest` on the stream's `reqc` (`reqP`'s second case) and returns an error `status`
+    accepts: `nil`, `ctx.Err()` (`ctxErrClientAllW`), the stream's close error (`closeErrPub`) or
+    `errors.New`'s (`errorsNewOk`); the retry after a dropped stream is Löb induction. Exported:
+    `client_watcher_progressNotifier` (`isEtcdProgressNotifier`).
+    - **Next**: K3, the cache bundle over etcd's client (`client_watcher_etcdWatcher`,
+      `client_watcher_progressNotifier`, the KV's `isEtcdKV`).
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`

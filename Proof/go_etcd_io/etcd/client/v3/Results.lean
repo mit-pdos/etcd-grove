@@ -2563,6 +2563,16 @@ theorem client_watcher_etcdWatcher (V : WEnv GF) (w : Loc) (hff : prefixRangeEnd
     isEtcdWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx :=
   isEtcdWatcher_of_watcher v3.watcher.wp_Watch V w hff
 
+/-- **etcd's client's watcher is the cache's progress notifier** (K2e-9): `RequestProgress`
+(linked) returns an error whose `Error()` gives a string; the progress notification itself shows
+up on the watch channels (`client_watcher_etcdWatcher`). -/
+theorem client_watcher_progressNotifier (V : WEnv GF) (w : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
+    isEtcdProgressNotifier (watcherIfaceOf w) :=
+  isEtcdProgressNotifier_of_watcher v3.watcher.wp_RequestProgress V w
+
 /-- **`NewWatcher(c)` returns a range watcher** (unit W-C): over a client `c` whose connection
 satisfies `watchConnFacts V`, `NewWatcher` (linked) returns the `Watcher` interface of a
 `*watcher` meeting the clients' closable range-watch contract at the server's model. -/
@@ -2704,6 +2714,7 @@ end client
 #print axioms Perennial.EtcdGrove.client.watchClient_Watch
 #print axioms Perennial.EtcdGrove.client.client_watcher_rangeWatcher
 #print axioms Perennial.EtcdGrove.client.client_watcher_etcdWatcher
+#print axioms Perennial.EtcdGrove.client.client_watcher_progressNotifier
 #print axioms Perennial.EtcdGrove.client.client_newWatcher_rangeWatcher
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Put
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Get
