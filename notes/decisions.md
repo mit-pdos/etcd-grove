@@ -8902,6 +8902,88 @@ the theorem says nothing.
     needs a decision before the closed theorem: define it from the cluster's members map and
     prove it for a single-member cluster, or keep it as the closed theorem's named
     assumption. Also the tracer options' slice (`↦*□`; `Main` passes `nil`).
+- **D19i: the application's writes to raft's storage and to the backend's `meta` bucket**
+  (audit phase B2, 2026-10-18; **proposed, needs a decision**). The three false axioms of B2
+  (`notes/audit.md`) cannot be restated as true triples over the current model; each needs a
+  model change. Nothing was changed in Lean.
+  - *`EtcdServer.snapshot` and `EtcdServer.compactRaftLog`.* Go: every `memorySnapshotCount =
+    100` applied entries the apply thread calls `MemoryStorage.CreateSnapshot(appliedi,
+    confState, nil)` (the storage's snapshot becomes the applied index's) and `Compact(compacti)`
+    (`compacti = 1` until `snapi` passes `SnapshotCatchUpEntries`, 5000 by default, so the
+    first call drops entry 1 and later ones answer `ErrCompacted` until then), both under
+    `ms.Lock()`, while raft's node goroutine keeps reading the storage. Raft copes in Go:
+    `raftLog.firstIndex` asks `FirstIndex()` anew, `raftLog.term` returns `ErrCompacted` below
+    it, `maybeSendAppend` falls back to a snapshot. The model does not: raft's view
+    `ownMemoryStorage ms γs σ` is exact (`MemView`: the contents agree with `σ` on the boundary
+    and the snapshot), `isStorage`'s `FirstIndex` answers `σ.prev.index + 1` and `Term`/`Entries`
+    succeed on `[σ.prev, last]`, and raft's log predicate uses that exactness (`ownRaftLog`'s
+    `LogStoreOk` `σ.prev = ls.prev`, `StoredSnapOk`, `Hsksn`, `LogPersistOk`). D17d's key sets
+    let the application *read* the snapshot under the lock with its token; a *write* needs all
+    three parts of the snapshot's ghost value (`memSnap_update`), the owner's among them. So any
+    true spec of `CreateSnapshot`/`Compact` takes `ownMemoryStorage`, which the apply thread
+    cannot have. (`KV().Commit()` is covered by `applyBackend`/`srvApplyKV`; the WAL's
+    `SaveSnap`/`Release` by the WAL's model, which is stateless, `isRNWal`: they would be two more
+    persistent triples there.)
+    - *(A) Compaction under the lock, raft's view a lower bound.* The storage's boundary and
+      snapshot move under the lock, as D17d moved the snapshot, and the application (its token,
+      extended) may advance them, never above a floor raft publishes (a monotone lower bound of
+      what raft has handed out to apply, which etcd's `appliedi` never exceeds) and only to
+      snapshots raft may send (`ksn`, the A3 obligation `SnapObl` on the conf state). The
+      `Storage` contract changes: `FirstIndex` answers at least the view's, `Term`/`Entries` may
+      answer `ErrCompacted` below the current boundary, and raft's log layer is re-proved for
+      that (`raftLog.firstIndex`/`term`/`slice`/`snapshot` and their callers: `maybeSendAppend`,
+      `matchTerm`, `findConflictByTerm`, the scans of `hasUnappliedConfChanges`, ...; some 20
+      files use `firstIndex`, 18 `LogStoreOk`), with `ownRaftLog`'s clauses restated against a
+      boundary that only rises. Then the server: the token `memSnapTok` threaded from `run`'s
+      one `Snapshot()` (`rnSnapOnce`; the call gives it back) to the apply thread
+      (`applyBuilt`), `ep.confState` known to be the applied prefix's configuration, `appliedi`
+      below the floor; `snapshot`/`compactRaftLog` restated (names-only: their bodies call the
+      untranslated `verifyConsistentIndexIsLatest` and the WAL). Cost: large, raft first (its
+      own unit, the write side of D17d). Gain: faithful; the server's theorems cover long runs.
+    - *(B) The snapshot branch dead in the runs covered.* `snapshotIfNeededAndCompactRaftLog`
+      returns at once while `appliedi ≤ memorySnapshotIndex + 100` and
+      `appliedi - diskSnapshotIndex ≤ SnapshotCount` and no disk snapshot is forced. The first
+      bound is a bound on the committed log: D19's rule rejects it as a hypothesis (a ghost fact,
+      not a statement on the initial configuration; why `clusterLogBound` went), so it must be
+      proved for putget from its proposers (the bootstrap's conf change, one empty entry per
+      leader term, `publishV3`, the cluster version, the client's two requests), with the number
+      of terms of a single voter bounded; and `forceDiskSnapshot` stays false only while the
+      cluster version never goes down (`ForceSnapshot` on a downgrade, `apply/backend.go:283`),
+      which `clusterVersionMono` does not say. Cost: a counting proof specific to putget. Loss:
+      the server's specs take a premise that fails on any run of more than 100 entries; the two
+      axioms leave the link (dead branch).
+    - *(C) Leave both false and recorded* (the status quo): not sound for a closed theorem, the
+      branch is within the model's reach.
+    - *Recommendation:* (A), raft's side first.
+  - *`EtcdServer.monitorStorageVersion`.* The model admits another goroutine's write under the
+    batch lock: `LockOutsideApply` hands out the client's `W ∗ Pk` (the store's `lateW`/
+    `writerRes`, the hook's `batchLockInv`/`metaTM`), as for mvcc's compaction, and none of them
+    tracks `meta/storageVersion` (the hook's keys are the consistent index and term; the store's,
+    the key bucket and `meta`'s compaction keys). A restatement would take a `bemu` reader slot,
+    the backend's `isBackend` at the server's `W`/`Pk` with a `bOpen` fraction, a `ReadTx` reader
+    token (`StorageVersion()`), a reader of `clusterVersionChanged`, a logger slot, and the
+    cluster's and the WAL's persistent contracts, threaded through `NewServer.spec`'s
+    postcondition and `Start`'s precondition. **But the Go body breaks the backend model's
+    premise:** the migration from v3.5 to v3.7 puts `meta/storageVersion` three times in one lock
+    session (`""`, `"3.6.0"`, `"3.7.0"`), which `UnsafePut`'s `wbDupOk` excludes, and in Go the
+    read buffer then keeps all three and a `ReadTx` reads the first: confirmed at the pin
+    (`issues/etcd-backend-duplicate-put-stale-read.md`, "An etcd caller"). So an axiom saying the
+    body keeps the backend's invariants (`rtRes`: the read buffer's view is the newest value)
+    would be false of the model itself.
+    - *(A) Fix the Go code in the fork* (as the raft read-index fix): `writeback` deduplicates a
+      non-sequential bucket on both branches (upstream etcd-io/etcd#21987 or #22298, open), the
+      backend re-translated and `txWriteBuffer.writeback`'s proof redone; `wbDupOk` leaves
+      `UnsafePut`'s premise (a simplification: `CindexBackend.lean`'s hook-window argument goes
+      too). Then the restatement above, with the threading. Cost: one fork commit, the
+      write-back's proofs, one threading round through `NewServer`/`Start`.
+    - *(B) Model the duplicates:* the read buffer may hold several entries of a key, the
+      readers' view the first, a stale value until the next commit; the backend's write-back
+      and merge proofs and the view's clients restated. Then the restatement. Cost: larger than
+      (A), and the stale view leaks into every reader's spec of a non-sequential bucket.
+    - *(C) Restrict the monitor* to runs where it does not migrate: not available, putget's run
+      migrates (the storage version is detected as 3.5 on a new backend).
+    - *Recommendation:* (A): it fixes a real (if mild) Go bug with an open upstream fix and
+      simplifies the backend's premise.
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for

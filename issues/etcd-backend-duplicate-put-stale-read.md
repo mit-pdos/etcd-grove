@@ -10,8 +10,9 @@ links:
 
 # The read buffer keeps both puts of one key: `ReadTx` returns the older value
 
-- **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut`; no etcd
-  caller is known to break it.
+- **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut`. Since
+  2026-10-18 one etcd caller is known to break it: the storage-version migration
+  (`EtcdServer.monitorStorageVersion`), below, "An etcd caller".
 - **Where**: `server/storage/backend/tx_buffer.go` at the etcd pin of `etc/goose.py`
   (`bc8b52a50`): `txWriteBuffer.writeback` (`sort.Sort(wb)` under "assume no duplicate keys"),
   `bucketBuffer.merge` (it returns without `dedupe` when the read buffer's entry was empty,
@@ -101,6 +102,69 @@ links:
   consistent-index hook's re-puts at every commit are proved harmless
   (`Proof/go_etcd_io/etcd/server/v3/etcdserver/CindexBackend.lean`); a client's duplicate put
   into a bucket the read buffer has is still excluded, as the reproduction shows it must be.
+- **An etcd caller** (2026-10-18, audit B2, `notes/decisions.md` D19i): the storage-version
+  monitor (`server.go`'s `monitorStorageVersion`, `version/monitor.go`'s
+  `UpdateStorageVersionIfNeeded`, `adapters.go`'s `UpdateStorageVersion`) migrates the
+  backend under one `LockOutsideApply` session with `schema.UnsafeMigrate`. From v3.5 (no
+  `storageVersion` key, a non-zero term: `UnsafeDetectSchemaVersion`) to v3.7 the plan has two
+  steps, and the session puts `meta/storageVersion` three times: `""` (the v3.6 step's
+  `addNewField`, a `setKeyAction`), `"3.6.0"` and `"3.7.0"` (`UnsafeSetStorageVersion` after
+  each step, `migration.go:101`). `meta` is not sequential, and its read-buffer entry is
+  present and empty after a commit that follows a write-back into it (as in the reproduction;
+  in a running server the consistent index's and term's puts write into it, so whether the
+  monitor's session meets that state depends on when the backend commits). Then `Unlock`'s
+  write-back keeps all three, and a `ReadTx` reads
+  `""`: `EtcdServer.StorageVersion()` (`schema.DetectSchemaVersion` over `s.be.ReadTx()`) fails
+  to parse it and falls back to the term, answering 3.5.0 until the next commit (at most the
+  batch interval, 100 ms by default), while the batch transaction reads 3.7.0. The monitor's
+  next round then migrates again (a no-op plan), and a `Status` call in that window reports the
+  old storage version. It can happen on every new cluster: the monitor migrates once the
+  cluster version is set (the putget example reaches the migration). Reproduction at the pin (both revisions of
+  the fork agree on `server/storage` and the monitor), `server/storage/schema/
+  migrate_stale_read_test.go`, which fails with `ReadTx: 3.5.0 (err <nil>); BatchTx: 3.7.0`:
+
+  ```go
+  package schema
+
+  import (
+  	"testing"
+  	"time"
+
+  	"go.uber.org/zap/zaptest"
+
+  	"go.etcd.io/etcd/api/v3/version"
+  	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
+  )
+
+  func TestMigrateStaleRead(t *testing.T) {
+  	lg := zaptest.NewLogger(t)
+  	be, _ := betesting.NewTmpBackend(t, time.Hour, 10000)
+  	defer betesting.Close(t, be)
+
+  	tx := be.BatchTx()
+  	tx.LockOutsideApply()
+  	UnsafeCreateMetaBucket(tx)
+  	UnsafeUpdateConsistentIndex(tx, 1, 1)
+  	tx.Unlock()
+  	be.ForceCommit()
+
+  	tx.LockOutsideApply()
+  	if err := UnsafeMigrate(lg, tx, nil, version.V3_7); err != nil {
+  		t.Fatal(err)
+  	}
+  	tx.Unlock()
+
+  	rv, rerr := DetectSchemaVersion(lg, be.ReadTx())
+  	tx.LockOutsideApply()
+  	bv := UnsafeReadStorageVersion(tx)
+  	tx.Unlock()
+  	if rerr != nil || bv == nil || rv.String() != bv.String() {
+  		t.Fatalf("ReadTx: %v (err %v); BatchTx: %v", rv, rerr, bv)
+  	}
+  }
+  ```
+
+  Either fix below repairs it, as would `UnsafeMigrate` putting the key once per session.
 - **Possible fixes**: in `writeback`, deduplicate a non-sequential bucket's buffer on both
   branches (`wb.dedupe()` in place of `sort.Sort(wb)`; `dedupe` sorts stably and keeps the
   newest); or make `merge` deduplicate whenever the source is not known to be duplicate-free.
