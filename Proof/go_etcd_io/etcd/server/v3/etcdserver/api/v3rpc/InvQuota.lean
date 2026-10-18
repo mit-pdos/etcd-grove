@@ -13,7 +13,7 @@ embedded service's (promoted). Lean-first (no Rocq counterpart).
   `KVServer` the value `kv`, its alarmer `quotaAlarmerAt`.
 * `quotaKVServer_is_KVServer`: `*quotaKVServer` implements `pb.KVServer` (`NewQuotaKVServer`
   converts a `*quotaKVServer` to `pb.KVServer`): from the method sets of the packages'
-  `Assumptions` (`go_type_set`; an assumed class until Perennial `5f111b9a8`).
+  `Assumptions` (`go_type_set`; an assumed class until Perennial `5c21792e8`).
 * `learnerReqOk req` (persistent): what the unary interceptor's learner check
   (`isRPCSupportedForLearner`) reads of a request: an interface holding a pointer (or `nil`),
   and, for a `*RangeRequest`, its `Serializable` read-only.

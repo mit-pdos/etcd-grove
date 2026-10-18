@@ -222,8 +222,10 @@ without touching `.lake/packages/perennial`, which other worktrees share;
 
 ## Changes to Perennial
 
-Until the pin returns to `lean`, a Perennial change this repository needs is made on a branch
-off `lean-temp` and merged into `lean-temp`, which the pin then follows.
+`lean-temp` is Perennial's primary branch for now (its `etc/primary-branch`): a Perennial
+change this repository needs is developed on a branch off `lean-temp` and landed on it with
+Perennial's workflow (`AGENTS.md` there; `etc/land.sh`, which targets the primary branch), and
+the pin follows it.
 
 Perennial (the Go framework, its standard-library models and Goose) is a shared,
 general-purpose dependency. Do not change it to unblock a particular proof: no model

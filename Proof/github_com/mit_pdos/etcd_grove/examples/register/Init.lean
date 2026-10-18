@@ -8,7 +8,7 @@ raft v3.7 (stage R6b) protobuf-go's `proto`, whose initializer is a `sorry` as r
 say) and
 then the package (no package-level variable), and gives its `isPkgInit`. It takes no premise
 beyond the packages' `Assumptions`: the method-set facts `context`'s initializer needs and
-`log.New`, which raft's initializer calls, are Perennial's (since Perennial `5f111b9a8`).
+`log.New`, which raft's initializer calls, are Perennial's (since Perennial `db43721cf`, branch `lean-temp`).
 -/
 module
 
