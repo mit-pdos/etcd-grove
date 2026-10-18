@@ -100,7 +100,8 @@ theorem EtcdServer.Start.wp_proof
     wp_auto
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
-    wp_apply hPub s
+    wp_apply hPub s _ E { wait := γw, rd := ρ.rd } $$ []
+    · iframe #; iapply srvMonitorPermit_of $$ Hreq
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`
@@ -128,7 +129,8 @@ theorem EtcdServer.Start.wp_proof
     isplitr
     · itrivial
     iintro !> %Φ' - HΦ'
-    wp_apply hMCV s
+    wp_apply hMCV s E { wait := γw, rd := ρ.rd } $$ []
+    · iframe #; iapply srvMonitorPermit_of $$ Hreq
     iapply HΦ'
     try itrivial
   wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩

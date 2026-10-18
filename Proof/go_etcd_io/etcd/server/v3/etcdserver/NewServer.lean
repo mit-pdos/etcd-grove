@@ -234,7 +234,7 @@ theorem NewServer.wp_proof
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hmid Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
@@ -322,6 +322,13 @@ theorem NewServer.wp_proof
   wp_apply time.wp_Now as %now -
   wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen ⟨#Hgen, HNZ⟩
   · iframe #; iframe Hids
+  -- the reserved id `0` (D19c): the member id's 16 low bits are not `0`
+  ihave #HNZ0 := HNZ $$ %(by
+    intro h
+    apply Hmid
+    rw [← Hid]
+    have := congrArg (fun w : w16 => uint.Z w) h
+    word)
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
   wp_apply h15 as %cvn ⟨#Hcvn, Hcvnr⟩
@@ -756,7 +763,8 @@ theorem NewServer.wp_proof
   · simp only [Hlog0]; rw [Hγw.2.2.2.1]; iexact Hcert0
   -- the KV invariants
   imod (kvInv_alloc_boot ρ.rd.raft ρ.rd.kv γ.reCCOk ps bootLog ⊤ (by rw [HρRaft]) (by rw [HρRaft])
-      Hrbok Hc0 Hch0 (by rw [Hlog0]; simp)) $$ [HrLog] Hkst with ⟨#Hkvinv, Hetcd⟩
+      Hrbok (fun ty d h => (Hpol ty d (by rw [HρRaft]; exact h)).2.2) Hc0 Hch0
+      (by rw [Hlog0]; simp)) $$ [HrLog] Hkst with ⟨#Hkvinv, Hetcd⟩
   · rw [HρRaft]; iexact HrLog
   imod (kvCertInv_alloc ρ.rd.raft ρ.rd.kv ⊤ (by rw [Hlog0]; simp)) $$ [Hcok] Hkhi1 Hrlb
     with #Hkci
@@ -786,7 +794,9 @@ theorem NewServer.wp_proof
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
       Hrn4 (by rw [Hrn3, Hrn7]) Hrn2)
-    iframe Hkvinv Hrli Hwork
+    iframe Hkvinv Hrli
+    iapply clusterWorkloadOk_of ρ E₀ (W64 0) bootKV
+    iframe Hkvinv Hrli Hlogb HNZ0
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
     [Henv] [Hcmi] [r] [Htrall] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, #Htrf⟩
   · iexact Henv

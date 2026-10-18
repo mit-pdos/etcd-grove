@@ -41,6 +41,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClust
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckPure
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckShape
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
@@ -182,6 +183,17 @@ def txnModelOf (cs : List CmpModel) (ts es : List ReqOp) : Option TxnModel :=
   | some ts', some es' => some { cmps := cs, thenOps := ts', elseOps := es' }
   | _, _ => none
 
+/-- The branches' models of a transaction model built from operations. -/
+theorem txnModelOf_ops {cs : List CmpModel} {ts es : List ReqOp} {t : TxnModel}
+    (h : txnModelOf cs ts es = some t) :
+    ReqOp.toTxnOps ts = some t.thenOps ∧ ReqOp.toTxnOps es = some t.elseOps := by
+  unfold txnModelOf at h
+  split at h
+  · rename_i ts' es' h1 h2
+    simp only [Option.some.injEq] at h; subst h
+    exact ⟨h1, h2⟩
+  · cases h
+
 /-- **A transaction request within the txn package's model** (`srvKVAns`' `pre`, a premise):
 if read-only, each of its gets reads the transaction's revision (`0`) and is not a sort cut early
 by a limit (`txn.cutEarly`, `issues/etcd-range-sort-none-limit.md`): `txn.txnGetsOk` but for the
@@ -266,14 +278,19 @@ def rangeDepQ (γk : KVNames) : KVDep GF → List EntryModel → IProp GF
 /-- **What a request must be under the deposit** (2026-10-15, unit T2): a put, a delete or a
 writing transaction the deposited write's operation (a put with no lease; a delete with its range
 end not `[0]`; a plain transaction, `txn.txnPlain`, no range end `[0]`: `txnNoZeroEnd`); a range
-linearizable if a read is deposited. -/
+linearizable if a read is deposited. Since D19c (2026-10-18) a writing transaction also has no
+nested transaction putting a key a later sibling deletes (`ReqOp.siblingSafeL`) and no get, at any
+depth, sorting cut by a limit (`txn.OpsNoCut`): with the checks they give its apply's shape
+(`txnShape_of_check`, `CheckShape.lean`). -/
 def kvDepPre (d : KVDep GF) : KVReq → Prop
   | .put o => (∃ Q, d = .op (.put o) Q) ∧ o.leaseID = W64 0
   | .range o => ∀ Q, d = .read Q → o.base.serializable = false
   | .deleteRange o => (∃ Q, d = .op (.deleteRange o) Q) ∧ o.base.rangeEnd ≠ [W8 0]
   | .txn cs ts es => ∀ t, txnModelOf cs ts es = some t →
       (txn.txnReadonly t = true ∧ ∀ Q, d = .read Q → txn.txnSerializable t = false) ∨
-      ((∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t)
+      ((∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
+        ReqOp.siblingSafeL ts ∧ ReqOp.siblingSafeL es ∧ txn.OpsNoCut t.thenOps ∧
+        txn.OpsNoCut t.elseOps)
 
 /-- **The server's parameters of `raftKV`** (see the file header), with the caller's floor `F`
 (the vertical slice's unit V2) and the client's deposit `d` (2026-10-14, unit T1). -/
@@ -346,14 +363,14 @@ theorem deletePermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (o 
 open Iris.ProofMode in
 /-- A writing transaction's permit (`txnPermit`) from its deposit. -/
 theorem txnPermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (t : TxnModel)
-    (hd : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t) :
+    (hd : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t) (hs : txn.txnShape t) :
     kvDepOwn ρ γr d ⊢ txnPermit ρ.kv t (opDepQ d) := by
   iintro H
   iunfold txnPermit
   obtain ⟨⟨Q, rfl⟩, hp, hz⟩ := hd
   isimp only [kvDepOwn] at H
   isplitr
-  · ipureintro; exact ⟨hp, hz⟩
+  · ipureintro; exact ⟨hp, hz, hs⟩
   simp only [opDepQ]
   iexact H
 
@@ -704,7 +721,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
   iunfold kvTxnOk
   iintro %ctx %r %cs %ts %es %n !> %Φ ⟨Hcall, #Hr, %Hok⟩ HΦ
-  obtain ⟨Hck, -, -, Hin, Hro⟩ := Hok
+  obtain ⟨Hck, HivT, HivE, Hin, Hro⟩ := Hok
   obtain ⟨ts', es', hts, hes, hm⟩ := txnModelOf_of_check Hck
   simp only [srvKVAns] at Hin ⊢
   simp only [kvDepPre] at Hro
@@ -718,11 +735,18 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   have hT := hTxn s E ρ γr c ci cd r t (opDepQ d) (rangeDepQ γr.kv d) none false F
   cases hro : txn.txnReadonly t
   · -- a writing transaction: through raft, as `Put`
-    have hdp : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t := by
+    have hdp' : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
+        ReqOp.siblingSafeL ts ∧ ReqOp.siblingSafeL es ∧ txn.OpsNoCut t.thenOps ∧
+        txn.OpsNoCut t.elseOps := by
       rcases Hro t hm with ⟨h, -⟩ | h
       · rw [hro] at h; cases h
       · exact h
-    ihave Hdep := txnPermit_of_dep ρ γr d t hdp $$ Hdep
+    obtain ⟨hq, hpl, hz, hsT, hsE, hnT, hnE⟩ := hdp'
+    have hsh : txn.txnShape t := by
+      subst ht
+      exact txnShape_of_check n cs ts es ts' es' hts hes Hck HivT HivE ⟨hz.2.1, hz.2.2⟩
+        ⟨hsT, hsE⟩ hpl ⟨hnT, hnE⟩
+    ihave Hdep := txnPermit_of_dep ρ γr d t ⟨hq, hpl, hz⟩ hsh $$ Hdep
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc Hdep] as %resp %err ⟨Hlt, Hrc, Hres⟩
     · iframe #; iframe Hlt Hcred Hrc

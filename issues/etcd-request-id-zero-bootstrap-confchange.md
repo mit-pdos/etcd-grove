@@ -61,10 +61,10 @@ func TestProbeIdZero(t *testing.T) {
 - **How the proof handles it**: the apply side of the raft contract asks, of every committed
   conf change, that no KV request is registered under its id (`entryWaitOk`,
   `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRequest.lean:1671`), a part of the workload
-  clause `clusterWorkloadOk` (`InvBuild.lean`), a premise of `NewServer.spec`. The generator's
-  spec (`idGen`, `pkg/v3/idutil/Defs.lean`) allows id `0`, so the clause cannot be proved for the
-  bootstrap entries without a premise that the generator's prefix is not `0` (the member id's low
-  16 bits).
+  clause `clusterWorkloadOk` (`InvBuild.lean`). Since D19c (2026-10-18) a generator whose prefix
+  is not `0` reserves the id `0` (`idReserved`, `idNoZero`, `pkg/v3/idutil/Defs.lean`), and
+  `NewServer.spec` takes the premise `uint.Z id % 2 ^ 16 ≠ 0` (the member id's low 16 bits), with
+  a conf-change policy (`srvCCPolicy`) of id-`0` conf changes only.
 - **Possible fixes**: skip `0` in `Next` (and the prefix's wrap generally); or give the bootstrap
   conf changes no wait trigger (`Trigger` only for an id the member registered: the registry
   ignores unknown ids already, the collision is with a registered `0`).

@@ -181,8 +181,8 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold raftPropose at Hprop
     icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose⟩
     ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
-    imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec ⊤
-      CoPset.subseteq_top $$ Hclog HokW with #Hau
+    imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec id γf Hidrq ⊤
+      CoPset.subseteq_top $$ Hclog Hclaim HokW with #Hau
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]

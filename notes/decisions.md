@@ -8505,6 +8505,43 @@ the theorem says nothing.
   takes `ρ.ids`, `E`); plus a pure premise `uint16(memberID) ≠ 0` from `bootstrapContract`;
   (b) keep the clause a premise of `NewServer` and state the adequacy theorem for the workload
   that satisfies it, as a pure property of the requests (out of D19a's rule as now written).
+  **2026-10-18: option (a) adopted by the user and carried out** (`notes/STATUS.md`, "D19c:
+  option (a), the workload clause proved but its size bound"):
+  - The apply premise split (`WorkloadDefs.lean`): `rqSmall log rq`, the size clauses (room for a
+    revision, a delete's range and a transaction's changes below `2 ^ 56`, the sorts' small logs
+    and selections, `txn.txnSmall`/`txn.OpsSort`), and `rqShape rq` (`dispatchOk` in any auth
+    mode, `rqOk` at every log where the size clauses hold; for a transaction `txn.txnShape`: its
+    `IgnoreValue` puts find their keys unless missing at the start, its gets at revision `0` with
+    valid sort targets and no limit-cut sort, `txn.OpsIG`). `rqOk_of`-style lemmas
+    (`rqShape_of_plain`, `rqShape_of_txn`, `txn.TxnPre_of`), and a transaction's shape from its
+    run's put keys none of which it deletes (`txn.opsIG_of`).
+  - `reqPropOk` carries `rqShape` (both cases; the non-write case also no `[0]` range end);
+    `txnPermit` carries `txn.txnShape`; put and delete permits give their shapes outright.
+  - v3rpc discharges a writing transaction's shape (`CheckShape.lean`, `txnShape_of_check`) from
+    `checkRequestOp` (sort targets), `checkIntervals` (`check_gives_nodup`), `txnNoZeroEnd` (no
+    from-key delete) and the server permit's plainness, with two client premises added to
+    `kvDepPre`: `ReqOp.siblingSafeL` of both branches (`check_gives_nodup`'s; stronger than
+    `IgnoreValue` needs, which meets earlier deletes only) and `txn.OpsNoCut` (no get at any
+    depth sorting cut by a limit). The client's `etcdTxnSpec` gives both for its transactions
+    (`TxnModel.plain`: no nested transactions; `txnModelIn` now of every transaction, not only a
+    read-only one).
+  - `kvInv` keeps `kvWork γk L` of the committed log (`logShape L`: every entry's shape, a conf
+    change's id `0`; every request's id claimed, `entryClaim`); `KVNames` has the ids' names
+    (`ids`), `ReqNames.ids` is `ρ.rd.kv.ids`. `kv_prop_au` takes the proposal's `idClaim`;
+    `kv_noop_au` and `kvInv_alloc_boot` keep `kvWork` (raft's own entries claim nothing).
+  - The id `0`: `idGen` reserves it in the issued map for a prefix not `0` (`idReserved`,
+    `idNoZero`, `idClaim_noZero`); `NewGenerator.spec` gives `⌜memberID ≠ 0⌝ -∗ idNoZero`;
+    `NewServer.spec` takes the pure premise `uint.Z id % 2 ^ 16 ≠ 0`; `srvCCPolicy` (and
+    `srvNoopEntry`) admit conf changes of id `0` only (the bootstrap's; a one-member cluster with
+    no membership change of its own).
+  - `publishV3`'s and `monitorClusterVersions`' contracts take `srvMonitorPermit`
+    (`InvMonitors.lean`): the request path and `reqPropOk` for a member's attributes or a valid
+    cluster version only, what their Go code proposes.
+  - `clusterWorkloadOk` is restated at an update (`□ ∀ L, srvRLogLb L ={⊤}=∗ …`) and proved
+    (`clusterWorkloadOk_of`, `BuildGap.lean`) from `kvInv`, `idNoZero` and the residual
+    `clusterLogBound ρ c₀ x₀ := □ ∀ L, srvRLogLb L -∗ ⌜entriesSmall c₀ L x₀⌝` (`InvBuild.lean`),
+    which replaces it among `NewServer.spec`'s premises. The residual is for D19b's receipts
+    (stage 3): a bound on the store's changes, keys and revisions at every reachable state.
 - **D19d: program-start resources once** (`nameFree`, `netAddrFree`). Options: (1) Perennial's
   `wp_package_init` gives the body a once-per-package token (D16's proposed general fix), from which
   a package takes what was allocated for it at program start: covers `nameFree`, not `netAddrFree`;

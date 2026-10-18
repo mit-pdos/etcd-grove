@@ -261,9 +261,12 @@ theorem srvRLogLb_mono (γ : ServerRaftNames) (A B : List EntryModel) (h : A <+:
 
 /-- **The application's policy on the conf changes raft may commit** (raft's `reCCOk`,
 `Protocol/Ghost.lean`): a v1 conf change, its bytes a `ConfChange` encoding (the server's
-`srvIdxOk` admits no other). -/
+`srvIdxOk` admits no other), of id `0` (D19c, 2026-10-18: raft's `Bootstrap`'s, whose apply
+triggers the wait at `0`, which no request claims, `idNoZero`; the cluster admits no membership
+change of its own: a one-member cluster). -/
 def srvCCPolicy (γ : ServerRaftNames) : Prop :=
-  ∀ (ty : w32) (d : List w8), γ.raft.reCCOk ty d → ty = W32 1 ∧ isConfChangeEncoding d
+  ∀ (ty : w32) (d : List w8), γ.raft.reCCOk ty d →
+    ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0
 
 /-- **Raft's committed log** (the contract's ghost interface): raft's commit invariant, the
 start log committed, the start index its length, and the conf-change policy. -/
@@ -364,7 +367,8 @@ instance srvPropAu_persistent (γ : ServerRaftNames) (d : List w8)
 /-- An entry of raft's own: an empty normal entry, or a v1 conf change (what raft's
 `entDataIs … none` says under `srvCCPolicy`). -/
 def srvNoopEntry (e : EntryModel) : Prop :=
-  (e.typ = W32 0 ∧ e.data = []) ∨ (e.typ = W32 1 ∧ isConfChangeEncoding e.data)
+  (e.typ = W32 0 ∧ e.data = []) ∨
+    (e.typ = W32 1 ∧ isConfChangeEncoding e.data ∧ ccIdOf e.data = W64 0)
 
 /-- **The standing update for raft's own entries** (empty entries, conf changes; 2026-10-14, unit
 T1): the server gives it to raft at the node's start (`kv_noop_au`). (2026-10-16, stage R7b: one
@@ -940,7 +944,9 @@ variable (`st`, halves: `etcdKV`'s and the KV invariant's), the consistent index
 `ch0` and the log `log0` of the state the server started at; and the KV logs' certificates
 (`cok`: mvcc's `certOk` map, `kvCertInv`) with the longest certified log's length (`hi`, a ghost
 variable whose halves the certificates' invariant and the apply thread hold). 2026-10-15 (unit
-T2): `st` replaces T1's points-to map and the non-plain credit's token. -/
+T2): `st` replaces T1's points-to map and the non-plain credit's token. 2026-10-18 (D19c): the
+request ids' names `ids` (the generator's: `ReqNames.ids` is this), under which the KV invariant
+keeps every committed request's id claimed. -/
 structure KVNames where
   st : GName
   c0 : w64
@@ -948,6 +954,7 @@ structure KVNames where
   log0 : mvcc.Log
   cok : GName
   hi : GName
+  ids : IdNames
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -971,15 +978,46 @@ instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF :
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
 
+/-- **A committed entry's id claimed** (persistent; D19c): a normal entry whose data decode to a
+request with an id was claimed for its data under that id (`idClaim`, the generator's names
+`γi`). -/
+def entryClaim (γi : IdNames) (m : EntryModel) : IProp GF :=
+  iprop(⌜m.typ ≠ W32 0 ∨ m.data = []⌝ ∨
+    ∃ (rq : apply.IRRModel) (id : w64) (γf : GName),
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf)
+
+instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
+    Persistent (entryClaim (GF := GF) γi m) := by
+  unfold entryClaim; infer_instance
+
+instance entryClaim_timeless (γi : IdNames) (m : EntryModel) :
+    Timeless (entryClaim (GF := GF) γi m) := by
+  unfold entryClaim idClaim; infer_instance
+
+/-- **The workload facts of the committed log `L`** (persistent; D19c): every entry of a good
+shape (`logShape`: a request's premise at every log but for its size clauses; a conf change's id
+`0`) and its id claimed. -/
+def kvWork (γk : KVNames) (L : List EntryModel) : IProp GF :=
+  iprop(⌜logShape L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
+
+instance kvWork_persistent (γk : KVNames) (L : List EntryModel) :
+    Persistent (kvWork (GF := GF) γk L) := by
+  unfold kvWork; infer_instance
+
+instance kvWork_timeless (γk : KVNames) (L : List EntryModel) :
+    Timeless (kvWork (GF := GF) γk L) := by
+  unfold kvWork; infer_instance
+
 /-- **The KV invariant** (see the section header): the server's half of the committed log `L`
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
-with auth disabled and no alarm, the start log not empty. -/
+with auth disabled and no alarm, the start log not empty; and (D19c, 2026-10-18) the workload
+facts of `L` (`kvWork`), which every update the server hands raft checks of its entry. -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
     ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝)
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
@@ -1083,20 +1121,24 @@ def txnNoZeroEnd (t : TxnModel) : Prop :=
 
 /-- **What a writing transaction `t` needs** (2026-10-15, unit T2): plain (`txn.txnPlain`: its
 gets at revision `0`, its puts with no lease and no `IgnoreLease`), no range end `[0]`, and its
-client's update. -/
+client's update; since D19c (2026-10-18) its shape (`txn.txnShape`: the apply's premise but for
+its size clauses, which the gRPC layer's checks give, `v3rpc.txnShape_of_check`). -/
 def txnPermit (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗ kvOpAu γk (.txn t) Q)
+  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗ kvOpAu γk (.txn t) Q)
 
 /-- **What a proposal of `rq` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: every plain
 write), with the result `Qr` its update gives: a plain request with no KV write (no put, no
 delete, no transaction: `Qr` trivial); or a plain request of the KV operation `op` (`reqKVOp`),
 no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
-the client's `□ Q` at the state of `L`'s model). -/
+the client's `□ Q` at the state of `L`'s model). Since D19c (2026-10-18) either of a good shape
+(`rqShape`: the apply's premise at every log but for its size clauses) and, the first, with no
+range end `[0]` either. -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ Qr = fun _ => iprop(True)⌝) ∨
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+      Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
-        irrNoZeroEnd rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
+        irrNoZeroEnd rq ∧ rqShape rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q))
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
@@ -1378,7 +1420,6 @@ ids' (`isWait`'s `γw`), and (2026-10-14, unit C2a) the read names the apply thr
 stated at (`rd`: a result carries the read names' witness of its log, `resultIsW`; the apply
 thread's view `isServer` has them the read side's). -/
 structure ReqNames where
-  ids : IdNames
   wait : GName
   rd : ReadNames
 
@@ -1387,6 +1428,10 @@ abbrev ReqNames.raft (ρ : ReqNames) : ServerRaftNames := ρ.rd.raft
 
 /-- The KV ghost state's names: the read names' (2026-10-14, unit T1). -/
 abbrev ReqNames.kv (ρ : ReqNames) : KVNames := ρ.rd.kv
+
+/-- The request ids' names: the KV ghost state's (D19c, 2026-10-18: until then a field), under
+which the KV invariant keeps the committed requests' claims. -/
+abbrev ReqNames.ids (ρ : ReqNames) : IdNames := ρ.rd.kv.ids
 
 
 /-! ### The revisions' tokens (the vertical slice's unit V1) -/

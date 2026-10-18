@@ -18,8 +18,11 @@
   fresh), the store's index names and certificate map and the revisions' map (fresh), which the
   stand-in environment `E₀` carries (the construction's apply environment agrees with it,
   `envAgree`).
-* The workload clause `clusterWorkloadOk` at `E₀` (D13c), the start `bootKV` at the consistent
-  index `0`; the lifetime bounds (D14g, D17, D19b): `storeSmall` (the store's sealed logs small), the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
+* The workload clause's residual size bound `clusterLogBound` (D19c; until then the whole clause
+  `clusterWorkloadOk` at `E₀`, D13c, now proved: `clusterWorkloadOk_of`), the start `bootKV` at
+  the consistent index `0`; the member id's 16 low bits not `0` and the conf-change policy
+  `srvCCPolicy` admitting id-`0` conf changes only (D19c: no request claims the id `0` of raft's
+  bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): `storeSmall` (the store's sealed logs small), the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
   and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
   a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`) and
   `receiptBound GF ≤ N + 1` (D19b: `start` puts the `N` write tokens in a receipt-backed budget,
@@ -78,6 +81,10 @@ abbrev NewServer.spec : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- the member id's 16 low bits not `0` (D19c: the request ids' prefix is not, so no request
+  -- claims the id `0` of raft's bootstrap conf changes,
+  -- `issues/etcd-request-id-zero-bootstrap-confchange.md`)
+  uint.Z id % 2 ^ 16 ≠ 0 →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -97,8 +104,8 @@ abbrev NewServer.spec : Prop :=
       "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFresh ρ.rd (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) ∗
-      -- the workload clause (D13c)
-      "#Hwork" ∷ clusterWorkloadOk ρ E₀ (W64 0) bootKV ∗
+      -- the workload clause's residual size bound (D19c; the clause itself until then, D13c)
+      "#Hlogb" ∷ clusterLogBound ρ (W64 0) bootKV ∗
       -- the other lifetime bound (D17): every sealed log of the store at most `2 ^ 62` changes
       "#Hsmall" ∷ storeSmall E₀.γ ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the background

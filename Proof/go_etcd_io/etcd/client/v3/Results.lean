@@ -749,18 +749,58 @@ end resp
 /-! ## What a transaction's reply tells the client -/
 
 /-- **A transaction within the txn package's model** (`v3rpc.txnInModel` of the model; a
-premise): if read-only, each of its gets reads the transaction's revision and is not a sort cut
-early by a limit (`txn.cutEarly`, `issues/etcd-range-sort-none-limit.md`). -/
+premise): each of its gets reads the transaction's revision and is not a sort cut early by a limit
+(`txn.cutEarly`, `issues/etcd-range-sort-none-limit.md`). Until D19c (2026-10-18) of a read-only
+transaction only; a writing one's gets are its apply's premise (`txn.txnShape`), which the KV
+invariant now keeps of every committed entry. -/
 def txnModelIn (t : TxnModel) : Prop :=
-  txn.txnReadonly t = true →
-    ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rev = W64 0 ∧ ¬ txn.cutEarly o
+  ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rev = W64 0 ∧ ¬ txn.cutEarly o
 
 theorem txnInModel_of (t : TxnModel) (cs : List CmpModel) (ts es : List v3rpc.ReqOp)
     (h : txnModelIn t) (hm : v3rpc.txnModelOf cs ts es = some t) : v3rpc.txnInModel cs ts es := by
   intro t' ht'
   rw [hm] at ht'
   cases ht'
-  exact h
+  exact fun _ => h
+
+/-- No get of a list of operations, none nested, sorts cut by a limit (D19c). -/
+theorem opsNoCut_of_flat (ops : List TxnOp) (hp : ∀ op ∈ ops, TxnOp.plain op)
+    (hc : ∀ o : OpFull, TxnOp.get o ∈ ops → ¬ txn.cutEarly o) : txn.OpsNoCut ops := by
+  induction ops with
+  | nil => trivial
+  | cons op ops ih =>
+    refine ⟨?_, ih (fun op' h => hp op' (List.mem_cons_of_mem _ h))
+      (fun o h => hc o (List.mem_cons_of_mem _ h))⟩
+    cases op with
+    | get o => exact hc o List.mem_cons_self
+    | txn _ _ _ => exact (hp _ List.mem_cons_self).elim
+    | _ => trivial
+
+/-- Operations whose model has no nested transaction are sibling-safe (D19c). -/
+theorem siblingSafeL_of_flat : ∀ (us : List v3rpc.ReqOp) (ts : List TxnOp),
+    v3rpc.ReqOp.toTxnOps us = some ts → (∀ op ∈ ts, TxnOp.plain op) → v3rpc.ReqOp.siblingSafeL us
+  | [], _, _, _ => trivial
+  | u :: us, ts, h, hp => by
+    simp only [v3rpc.ReqOp.toTxnOps] at h
+    split at h
+    · rename_i t ts' h1 h2
+      simp only [Option.some.injEq] at h; subst h
+      have hu : ∀ cs ts0 es0, u ≠ .txn cs ts0 es0 := by
+        rintro cs ts0 es0 rfl
+        simp only [v3rpc.ReqOp.toTxnOp] at h1
+        split at h1
+        · simp only [Option.some.injEq] at h1; subst h1
+          exact hp _ List.mem_cons_self
+        · cases h1
+      refine ⟨fun v _ => ?_, ?_, siblingSafeL_of_flat us ts' h2
+        (fun op h' => hp op (List.mem_cons_of_mem _ h'))⟩
+      · cases u with
+        | txn cs ts0 es0 => exact absurd rfl (hu cs ts0 es0)
+        | _ => trivial
+      · cases u with
+        | txn cs ts0 es0 => exact absurd rfl (hu cs ts0 es0)
+        | _ => trivial
+    · cases h
 
 theorem txnWireOf_plain (t : TxnModel) (h : TxnModel.plain t) : TxnModel.plain (txnWireOf t) := by
   refine ⟨?_, ?_⟩
@@ -1647,7 +1687,13 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       intro t' ht'
       rw [Hmod] at ht'
       cases ht'
-      right; exact ⟨⟨Q, rfl⟩, Hw.2⟩
+      right
+      have hfl := v3rpc.txnModelOf_ops Hmod
+      exact ⟨⟨Q, rfl⟩, Hw.2.1, Hw.2.2,
+        siblingSafeL_of_flat ts t.thenOps hfl.1 hp.1,
+        siblingSafeL_of_flat es t.elseOps hfl.2 hp.2,
+        opsNoCut_of_flat _ hp.1 (fun o h => (hin o (List.mem_append_left _ h)).2),
+        opsNoCut_of_flat _ hp.2 (fun o h => (hin o (List.mem_append_right _ h)).2)⟩
   rw [kvServerAt_srvKVAns p s E ρ γr (W64 0) c cid mid n [] F .none d]
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩

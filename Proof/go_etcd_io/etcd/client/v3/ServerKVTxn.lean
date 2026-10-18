@@ -877,7 +877,7 @@ theorem txnNoZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t) (hx : t.exactGe
 /-! ## The builder -/
 
 theorem txnModelIn_wire (t : TxnModel) (hx : t.exactGets) : txnModelIn (txnWireOf t) := by
-  intro _ o ho
+  intro o ho
   simp only [txnWireOf, ← List.map_append, List.mem_map] at ho
   obtain ⟨op, hop, he⟩ := ho
   cases op with

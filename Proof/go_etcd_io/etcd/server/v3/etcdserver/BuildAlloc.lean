@@ -59,9 +59,10 @@ private theorem buildMonoNatHalves (γ : GName) (n : Nat) :
 `log0`), the KV names' certificate map `cok` (the store's, chosen before `mvcc.New`), and the KV
 state's variable at `σ`. -/
 theorem srvReadNamesFresh_alloc (raft : ServerRaftNames) (c0 : w64) (ch0 : apply.Chain)
-    (log0 : mvcc.Log) (cok : GName) (σ : KVState) :
+    (log0 : mvcc.Log) (cok : GName) (ids : IdNames) (σ : KVState) :
     ⊢ |==> ∃ γr : ReadNames,
-      ⌜γr.raft = raft ∧ γr.kv.c0 = c0 ∧ γr.kv.ch0 = ch0 ∧ γr.kv.log0 = log0 ∧ γr.kv.cok = cok⌝ ∗
+      ⌜γr.raft = raft ∧ γr.kv.c0 = c0 ∧ γr.kv.ch0 = ch0 ∧ γr.kv.log0 = log0 ∧ γr.kv.cok = cok ∧
+        γr.kv.ids = ids⌝ ∗
       srvReadNamesFresh (GF := GF) γr σ := by
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
@@ -71,13 +72,27 @@ theorem srvReadNamesFresh_alloc (raft : ServerRaftNames) (c0 : w64) (ch0 : apply
   imod ghostVar_alloc (GF := GF) σ with ⟨%γst, Hst⟩
   imod ghostVar_alloc (GF := GF) log0.length with ⟨%γhi, Hhi⟩
   imodintro
-  iexists ⟨γa, γc, γn, γl, γp, raft, ⟨γst, c0, ch0, log0, cok, γhi⟩⟩
+  iexists ⟨γa, γc, γn, γl, γp, raft, ⟨γst, c0, ch0, log0, cok, γhi, ids⟩⟩
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   unfold srvReadNamesFresh
   iframe Ha Hc Hl Hp Hst Hhi
   iexists _
   iexact Hn
+
+/-- Conf-change entries claim nothing (D19c). -/
+theorem entryClaims_conf (γi : IdNames) :
+    ∀ l : List EntryModel, (∀ m ∈ l, m.typ ≠ W32 0) →
+      ⊢ [∗list] m ∈ l, entryClaim (GF := GF) γi m
+  | [], _ => by
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | m :: l, h => by
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold entryClaim
+      ileft; ipureintro; left; exact h m (by simp)
+    · iapply entryClaims_conf γi l (fun m' hm => h m' (by simp [hm]))
 
 /-- **The KV invariant at the bootstrap log** (a new cluster: the server's start log empty, its
 start index `0`, the consistent index `0`, the base chain, a non-empty start log): from the
@@ -86,6 +101,7 @@ log's model, the invariant and the client's `etcdKV`. -/
 theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (E : CoPset)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : BootLogOk ccOk ps bootLog)
+    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0)
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
     (hlog : γk.log0 ≠ []) :
     ⊢ rLog (GF := GF) γs.raft bootLog -∗
@@ -95,26 +111,28 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
   icases buildGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
   have hsl : srvLogOf γs (bootEntries bootLog) = bootLog := by
     unfold srvLogOf bootEntries; rw [hpre, List.nil_append, EntryModel.map_toM_ofM]
+  have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
+      uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data ∧
+        ccIdOf m.data = W64 0 := by
+    obtain ⟨-, -, hk⟩ := hboot
+    intro n m hm
+    unfold bootEntries at hm
+    rw [List.getElem?_map] at hm
+    cases he : bootLog[n]? with
+    | none => rw [he] at hm; simp at hm
+    | some e =>
+      rw [he] at hm
+      simp only [Option.map_some, Option.some.injEq] at hm
+      subst hm
+      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, hok⟩ := hk n e he
+      refine ⟨hi, ht, ?_, hcc _ _ hok⟩
+      unfold isConfChangeEncoding
+      show (ccDecodeV1 e.Data').isSome = true
+      rw [hd]; rfl
+  have hent' := hent
   have hok : plainLog (bootEntries bootLog) ∧ srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 + (bootEntries bootLog).length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
-    obtain ⟨-, -, hk⟩ := hboot
-    have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
-        uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data := by
-      intro n m hm
-      unfold bootEntries at hm
-      rw [List.getElem?_map] at hm
-      cases he : bootLog[n]? with
-      | none => rw [he] at hm; simp at hm
-      | some e =>
-        rw [he] at hm
-        simp only [Option.map_some, Option.some.injEq] at hm
-        subst hm
-        obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, -⟩ := hk n e he
-        refine ⟨hi, ht, ?_⟩
-        unfold isConfChangeEncoding
-        show (ccDecodeV1 e.Data').isSome = true
-        rw [hd]; rfl
     refine ⟨?_, ?_, ?_, hch, hlog⟩
     · intro m hm
       obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
@@ -123,21 +141,37 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       rw [ht] at h0
       exact absurd h0 (by decide)
     · intro n m hm
-      obtain ⟨hi, ht, hc⟩ := hent n m hm
+      obtain ⟨hi, ht, hc, -⟩ := hent n m hm
       refine ⟨?_, Or.inr ⟨ht, hc⟩⟩
       rw [hai, hi]; word
     · rw [hc0, hai]; word
+  -- the workload facts of the boot log (D19c): conf changes of id `0`, nothing claimed
+  have hshape : logShape (bootEntries bootLog) := by
+    intro m hm
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    obtain ⟨-, ht, -, hid⟩ := hent' n m hn
+    refine ⟨fun h0 => ?_, fun _ => hid⟩
+    rw [ht] at h0; exact absurd h0 (by decide)
+  ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    obtain ⟨-, ht, -, -⟩ := hent' n m hn
+    rw [ht]; decide)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
       ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝)) $$ [HL Hv1] with #Hinv
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γk L))
+    $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
     iframe Hv1
     isplitl [HL]
     · iunfold srvRLog; rw [hsl]; iexact HL
-    ipureintro; exact hok
+    isplitr
+    · ipureintro; exact hok
+    iunfold kvWork
+    iframe Hcl
+    ipureintro; exact hshape
   imodintro
   iframe Hinv
   iunfold etcdKV; iexact Hv2

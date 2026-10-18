@@ -133,11 +133,11 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
   imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ; ipureintro; exact Hok
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
   exact ⟨fun m hm => Hok.1 m (Hp.subset hm), Hok.2.2.2.1⟩
@@ -251,7 +251,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
   ihave #HkI' := HkI
   iunfold kvInv at HkI'
   iinv HkI' with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ', %Hok'⟩
+  icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw⟩
   iunfold etcdKV at Hσ
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ' Hσ
   have hlen := (kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L).length_le
@@ -265,7 +265,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
       unfold kvModel at hA ⊢; rw [← hA]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ'] with -
-  · inext; iexists L; iframe HL Hσ'; ipureintro; exact Hok'
+  · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'
   imodintro
   iunfold etcdKV
   iframe Hσ

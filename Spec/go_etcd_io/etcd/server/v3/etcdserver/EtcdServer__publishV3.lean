@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 
 @[expose] public section
 
@@ -22,10 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.publishV3(timeout)` returns (names-only: it publishes the member's attributes through raft
-until it succeeds or `stopping` is closed). -/
+until it succeeds or `stopping` is closed). It proposes, through `s.raftRequest`, only
+`ClusterMemberAttrSet` requests (`server.go`: `req := pb.InternalRaftRequest{ClusterMemberAttrSet:
+…}`), with the permission `srvMonitorPermit` gives (D19c, 2026-10-18, `InvMonitors.lean`; until
+then the contract took only the package's initialization, and its proposals were outside the
+model). -/
 abbrev EtcdServer.publishV3.spec : Prop :=
-  ∀ (s : Loc) (d : _root_.Perennial.time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
+  ∀ (s : Loc) (d : _root_.Perennial.time.Duration) (E : apply.AEnv GF) (ρ : ReqNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvMonitorPermit s E ρ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"publishV3")) (Val #d))
   {{ RET #(); True }}
 
