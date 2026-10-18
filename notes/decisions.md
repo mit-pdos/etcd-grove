@@ -9960,6 +9960,13 @@ proved.
 
 ## D19p carried out: raft's tracked bound; `createMergedSnapshotMessage` and `sendMergedSnap` removed (2026-10-18)
 
+**The one-member restriction (the user, 2026-10-18):** kept for now (`bootOk`'s `reTracked = some
+{id}`, a premise of `NewServer.spec`), until a first end-to-end result is closed (putget's adequacy
+theorem). Then generalizing the server's proofs to a multi-member cluster is a priority: a real
+`MsgSnap` path (`createMergedSnapshotMessage`/`sendMergedSnap` with true specs, raft's snapshot
+receive), learners and membership changes beyond `ccApplyOk`'s add-an-existing-member, peers in
+`transportEffectsOk`'s scope.
+
 The user chose D19p (A); carried out after D19i part 1 landed, all of it (raft, protocol, server).
 
 * **The protocol.** `RaftNames` gains `reTracked : Option (GSet w64)` and `reTracked_ok` (a bound
