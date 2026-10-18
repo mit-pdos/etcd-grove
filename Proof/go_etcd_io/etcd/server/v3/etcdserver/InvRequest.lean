@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.Protocol.ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
 public import Perennial.Ghost.SavedProp
@@ -568,9 +569,9 @@ theorem srvRdFreshInv_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) 
   iexact Hi
 
 /-- The unclaimed ids of a list are issued ids of the generator's map `I`. -/
-theorem idFresh_issued (γi : IdNames) (I : GMap w64 (Option (List w8 × GName))) (U : List w64) :
-    ⊢ ghostMapAuth γi.issued 1 I -∗ ([∗list] id ∈ U, idFresh (GF := GF) γi id) -∗
-      ⌜∀ id ∈ U, I !! id = some none⌝ := by
+theorem idFresh_issued (γi : IdNames) (S : GMap w64 Unit) (U : List w64) :
+    ⊢ ghostMapAuth γi.slot 1 S -∗ ([∗list] id ∈ U, idFresh (GF := GF) γi id) -∗
+      ⌜∀ id ∈ U, S !! id = some ()⌝ := by
   induction U with
   | nil =>
     iintro - -
@@ -581,8 +582,8 @@ theorem idFresh_issued (γi : IdNames) (I : GMap w64 (Option (List w8 × GName))
     iintro Ha Hus
     icases BigSepL.bigSepL_cons.1 $$ Hus with ⟨Hf, Hus⟩
     iunfold idFresh at Hf
-    icases Hf with ⟨Hu, -⟩
-    iunfold idUnclaimed at Hu
+    icases Hf with ⟨-, Hu⟩
+    iunfold idSlot at Hu
     ihave %Hl := ghost_map_lookup $$ Ha Hu
     ihave %Hrest := ih $$ Ha Hus
     ipureintro
@@ -622,9 +623,9 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   imod receipt_snapshot k $$ Hcred with ⟨Hcred, #Hpk⟩
   ihave %Hkb := preceipt_lt k $$ Hpk
   have Hk : k ≤ 2 ^ 48 - 1 := by omega
-  ihave %Hiss := idFresh_issued γi I U $$ HI Hus
+  ihave %Hiss := idFresh_issued γi S U $$ HS Hus
   have Hlen : U.length ≤ k := idIssued_length_le pfx s0 k U Hnd
-    (fun id' hid' => (HIS id').1.1 (by rw [Hiss id' hid']; rfl))
+    (fun id' hid' => (HIS id').2.1 (by rw [Hiss id' hid']; rfl))
   imod Hclose2 $$ [Hsuf Hcred HI HS Hfacts] with -
   · inext
     iexists k, I, S

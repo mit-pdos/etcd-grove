@@ -61,6 +61,28 @@ structure IdNames where
 def idIssued (pfx s0 : w64) (k : Nat) (id : w64) : Prop :=
   ∃ j : Nat, 1 ≤ j ∧ j ≤ k ∧ id = pfx ||| ((s0 + W64 (j : Int)) &&& W64 (2 ^ 48 - 1))
 
+/-- **The id `0` is reserved** in a generator of prefix `pfx` that is not `0` (D19c,
+2026-10-18): such a generator never issues `0` (`idutil_or_ne_zero`), and its issued ids' map
+holds `0 ↦ none`, read-only (`idNoZero`), so that no request claims `0`, the id of raft's
+bootstrap conf changes (`issues/etcd-request-id-zero-bootstrap-confchange.md`: a generator of
+prefix `0` does issue it). -/
+def idReserved (pfx id : w64) : Prop := id = W64 0 ∧ pfx ≠ W64 0
+
+/-- An id of a prefix that is not `0` is not `0`. -/
+theorem idutil_or_ne_zero (pfx x : w64) (h : pfx ≠ W64 0) : pfx ||| x ≠ W64 0 := by
+  intro h'
+  apply h
+  have := congrArg (fun y : w64 => pfx &&& y) h'
+  simp only [BitVec.and_or_distrib_left, BitVec.and_self] at this
+  apply BitVec.eq_of_toNat_eq
+  have h1 := congrArg BitVec.toNat this
+  rw [BitVec.toNat_or] at h1
+  simp only [BitVec.toNat_and] at h1
+  have : (W64 0).toNat = 0 := rfl
+  rw [this] at h1 ⊢
+  simp only [Nat.and_zero] at h1
+  exact Nat.eq_zero_of_le_zero (h1 ▸ Nat.left_le_or)
+
 def idN : Namespace := nroot .@ "idutil"
 
 /-- The `n` low bits of `x`, as a number. -/
@@ -110,6 +132,15 @@ instance idClaim_persistent (γi : IdNames) (id : w64) (d : List w8) (γf : GNam
     Persistent (idClaim (GF := GF) γi id d γf) := by
   unfold idClaim; infer_instance
 
+/-- **No request claims the id `0`** (persistent; D19c): the issued ids' map holds `0 ↦ none`,
+read-only. `NewGenerator` gives it for a member id whose 16 low bits are not `0`
+(`idReserved`). -/
+def idNoZero (γi : IdNames) : IProp GF :=
+  (W64 0) ↪[γi.issued]□ (none : Option (List w8 × GName))
+
+instance idNoZero_persistent (γi : IdNames) : Persistent (idNoZero (GF := GF) γi) := by
+  unfold idNoZero; infer_instance
+
 /-- The claimer's fact of the id `id`'s entry `v` (nothing if unclaimed). -/
 def idClaimFact (Φ : w64 → List w8 → GName → IProp GF) (id : w64)
     (v : Option (List w8 × GName)) : IProp GF :=
@@ -134,7 +165,7 @@ def idFresh (γi : IdNames) (id : w64) : IProp GF :=
 member id shifted by 48, so ids of distinct suffixes differ), its `suffix` (a plain `uint64` field
 the code updates with `atomic.AddUint64`) in an
 invariant with the issued ids' count `k`, backed by `k` time receipts (D19b; from D17 a
-monotone counter, before it the credits' authority, `2 ^ 48 - 1` less `k`) and the issued ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps), and the
+monotone counter, before it the credits' authority, `2 ^ 48 - 1` less `k`) and the issued ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps; since D19c the issued map also holds the reserved id `0` of a prefix not `0`, `idReserved`), and the
 claimers' facts `Φ` of the claimed ones (unit V2). `NewGenerator`
 establishes it; `Next`, under the receipts' bound (`idCred`), counts one more id and returns an
 `idFresh` id. -/
@@ -147,7 +178,8 @@ def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF
         (s0 + W64 (k : Int)) ∗
       ⧗ k ∗
       ghostMapAuth γi.issued 1 I ∗ ghostMapAuth γi.slot 1 S ∗
-      ⌜∀ id, ((I !! id).isSome ↔ idIssued pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued pfx s0 k id)⌝ ∗
+      ⌜∀ id, ((I !! id).isSome ↔ idIssued pfx s0 k id ∨ idReserved pfx id) ∧
+        ((S !! id).isSome ↔ idIssued pfx s0 k id)⌝ ∗
       idClaimsFacts Φ I))
 
 instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) :

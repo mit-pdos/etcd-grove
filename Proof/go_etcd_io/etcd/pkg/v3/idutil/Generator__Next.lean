@@ -129,10 +129,17 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   have Hk1 : k + 1 < 2 ^ 48 := Nat.lt_of_lt_of_le Hlt Hb
   have Hnew := idIssued_not_new pfx s0 k Hs0 Hpl Hk1
   generalize hid : pfx ||| ((s0 + W64 ((k + 1 : Nat) : Int)) &&& W64 (2 ^ 48 - 1)) = nid at Hnew
+  have Hnr : ¬ idReserved pfx nid := by
+    rintro ⟨h0, hp⟩
+    rw [← hid] at h0
+    exact idutil_or_ne_zero pfx _ hp h0
   have HIn : I !! nid = none := by
     cases h : I !! nid with
     | none => rfl
-    | some _ => exact absurd ((Hdom nid).1.mp (by simp [h])) Hnew
+    | some _ =>
+      rcases (Hdom nid).1.mp (by simp [h]) with h' | h'
+      · exact absurd h' Hnew
+      · exact absurd h' Hnr
   have HSn : S !! nid = none := by
     cases h : S !! nid with
     | none => rfl
@@ -150,16 +157,18 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
     isplitr
     · ipureintro
       refine fun id' => ⟨?_, ?_⟩
-      · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').1, hid]
+      · rw [GMap.lookup_insert_is_Some, idIssued_succ, (Hdom id').1, hid]
         by_cases h : nid = id'
         · subst h; simp
         · constructor
-          · rintro (h' | ⟨_, h'⟩)
+          · rintro (h' | ⟨_, h' | h'⟩)
             · exact absurd h' h
-            · exact Or.inl h'
-          · rintro (h' | h')
-            · exact Or.inr ⟨h, h'⟩
+            · exact Or.inl (Or.inl h')
+            · exact Or.inr h'
+          · rintro ((h' | h') | h')
+            · exact Or.inr ⟨h, Or.inl h'⟩
             · exact absurd h'.symm h
+            · exact Or.inr ⟨h, Or.inr h'⟩
       · rw [GMap.lookup_insert_is_Some, idIssued_succ, ← (Hdom id').2, hid]
         by_cases h : nid = id'
         · subst h; simp

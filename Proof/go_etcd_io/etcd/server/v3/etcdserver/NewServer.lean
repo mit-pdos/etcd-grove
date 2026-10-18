@@ -322,7 +322,7 @@ theorem NewServer.wp_proof
   ihave #Hnpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
   · iPkgInit
   wp_apply time.wp_Now as %now -
-  wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen #Hgen
+  wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen ⟨#Hgen, HNZ⟩
   · iframe #; iframe Hids
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩

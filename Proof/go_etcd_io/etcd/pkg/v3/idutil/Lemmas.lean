@@ -107,6 +107,15 @@ theorem idClaim_unclaimed (γi : IdNames) (id : w64) (d : List w8) (γf : GName)
   icombine H1 H2 gives %Heq
   cases Heq.2
 
+/-- **The reserved id `0` is claimed by no request** (D19c). -/
+theorem idClaim_noZero (γi : IdNames) (d : List w8) (γf : GName) :
+    ⊢ idNoZero (GF := GF) γi -∗ idClaim γi (W64 0) d γf -∗ False := by
+  iintro H1 H2
+  iunfold idNoZero at H1
+  iunfold idClaim at H2
+  icombine H1 H2 gives %Heq
+  cases Heq.2
+
 theorem idSlot_excl (γi : IdNames) (id : w64) :
     ⊢ idSlot (GF := GF) γi id -∗ idSlot γi id -∗ False := by
   iintro H1 H2
