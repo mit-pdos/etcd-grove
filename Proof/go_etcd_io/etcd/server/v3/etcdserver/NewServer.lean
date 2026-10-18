@@ -236,7 +236,8 @@ theorem NewServer.wp_proof
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hmid Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hboot
+    Hmid Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
@@ -308,8 +309,9 @@ theorem NewServer.wp_proof
     iframe Hghost
     iframe #
     iintro %γw' %hw
-    iapply Hfits
-    ipureintro; exact ⟨hw.1, hw.2.1, hw.2.2.2.1⟩
+    -- (D19b stage 5) the run's premise on the `Ready`s, from the receipt bound
+    iunfold rnLogFits
+    ipureintro; rw [hw.1]; omega
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg

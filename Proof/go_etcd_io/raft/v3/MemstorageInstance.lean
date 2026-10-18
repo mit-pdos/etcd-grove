@@ -520,7 +520,7 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
 the right in (`appendRight`, `RawNode.Ready`'s), the receipt out (`appendReceipt`, what
 `node.Advance` takes back), the slice of read-only entries lent. Under `MemoryStorage.Append`'s
 premise, which is the caller's to establish (the register checks it in Go, `fits`; etcd's
-server carries it as a premise on the run, `rnLogFits`): the batch's last index is at most
+server derives it from a `Ready`'s `readyIdx` and the time-receipt bound, `rnLogFits`): the batch's last index is at most
 `2^61`, i.e. `e0.Index + |p| ≤ 2^61` for its first entry `e0`. -/
 theorem memStorage_Append (ms : Loc) (γs : MemStorNames) (p : List EntryM) (s : GoSlice)
     (dq : DFrac)

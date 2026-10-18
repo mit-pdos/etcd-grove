@@ -30,7 +30,8 @@ its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok
   evaluates `newRaftNode` inside the `EtcdServer` literal, before the server `s` exists); the names
   `E.γr.raft = ⟨γ, [], 0⟩` and the conf-change policy `srvCCPolicy` (the server's choice at the
   allocation), premises of the call;
-* trust-boundary premises: `rnLogFits` (D10: raft's `Ready`s fit the `MemoryStorage`), `rnStopOk`
+* premises: `rnLogFits` (pure since D19b stage 5: the receipt bound past the bootstrap log, so
+  raft's `Ready`s fit the `MemoryStorage`; D10 until then), `rnStopOk`
   (`Stop` returns), `rnTickerOk`/`isRNTicker` (Perennial models no ticker), the `InitialState`
   closure in `StartNode.spec`'s `□` shape (a `MemoryStorage`'s `InitialState` consumes
   `memStorMeta`, which is not persistent: `MemoryStorage.InitialState.spec` cannot be the `□`

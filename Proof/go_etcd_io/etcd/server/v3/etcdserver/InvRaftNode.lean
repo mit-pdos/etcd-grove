@@ -20,8 +20,9 @@ node contract is to be discharged from raft's specs.
   and is busy (`rnBusy`, raft's `nodeDriverBusy`) until `Advance()`, which takes the append
   receipt of the `Ready`'s entries (the `MemoryStorage`'s, `rnAppendReceipt`). Receiving a
   `Ready` (`rn_ready_recv`) derives the server's view of its data (`rnReadyData`: the messages
-  persisted, `E.C` from the committed log) under the run's premises `rnLogFits` (every `Ready`'s
-  entries fit `Append`'s index bound, and the committed index fits) and the read states' bridge
+  persisted, `E.C` from the committed log) under the run's premises `rnLogFits` (pure since
+  2026-10-18, D19b stage 5: the receipt bound past the bootstrap log, from which every `Ready`'s
+  entries fit `Append`'s index bound and the committed index fits) and the read states' bridge
   (`rnReadStateBridge`, `srvReadStateOk_of_raft`).
 - **`applyc`** is an SPSC channel (`isSpsc`) of `toApply`s; the `k`th payload carries the
   mono-list `cum`'s elements `k` and `k + 1` (the log forwarded before and after it), so the

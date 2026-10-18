@@ -35,7 +35,10 @@
   first also bounds the store's sealed logs (`storeSmall_of_receipts`: mvcc's index writer holds
   a receipt per change; until D19b the premise `storeSmall`) and, given to the store
   (`mvcc.NewStore`'s premise, D19c's move), a write transaction's changes and the log the apply
-  thread meets (until then the premise `clusterLogBound`).
+  thread meets (until then the premise `clusterLogBound`); with the bootstrap log (the initial
+  peers) shorter than `2 ^ 60` (D19b stage 5) it also bounds every index raft's `Ready`s hand out
+  below `MemoryStorage.Append`'s `2 ^ 61` (until then the premise `rnLogFits`, an Iris statement
+  on every `Ready`).
 * `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
   server's raft environment `srvEr`), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
@@ -96,6 +99,9 @@ abbrev NewServer.spec : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
+  -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
+  γ.reBoot.length ≤ 2 ^ 60 →
   -- the member id's 16 low bits not `0` (D19c: the request ids' prefix is not, so no request
   -- claims the id `0` of raft's bootstrap conf changes,
   -- `issues/etcd-request-id-zero-bootstrap-confchange.md`)
@@ -128,8 +134,6 @@ abbrev NewServer.spec : Prop :=
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗ "#Hrs" ∷ rnRaftStatusOk ∗
       "#Hns" ∷ rnNewStorageOk ∗
-      "#Hfits" ∷ (∀ γw : RNNames,
-        ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.mode = RNMode.static⌝ -∗ rnLogFits γw) ∗
       "#Hstop" ∷ (∀ n : Loc, rnStopOk n) ∗
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit ∗ "#Hwci" ∷ waitClosecInit }}
