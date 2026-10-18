@@ -116,6 +116,18 @@ The user chose D19c's option (a) (`notes/decisions.md`, D19c, for the design). W
   changes from which they follow. The transaction premise `ReqOp.siblingSafeL` is stronger than
   needed (only earlier deletes matter to an `IgnoreValue` put; `check_gives_nodup` proves the
   stronger no-put-deleted fact): a weaker form needs an ordered variant of its `level` lemma.
+- **`clusterLogBound` is not derivable from D19b's counters as stated** (checked after receipts'
+  stage 3, `a1d4fb0856`, 2026-10-18; stopped for a decision): the counter bounds the store's
+  *sealed* logs (`idxSealed`/`idxCert` carry `logCh log < receiptBound GF`), i.e. work already
+  executed, while `clusterLogBound` is asked at `NewServer` of every log raft *will* commit, before
+  the apply thread runs it, and of every run of `batchStep` (a relation), not only the run the
+  apply thread takes; and a transaction's own change count (`< 2 ^ 56`) or a delete's range is
+  known only once it runs. The size clauses would have to move from the raft contract's `E.C`
+  (premises on committed logs) to the apply thread at execution: `rqSmall` at the actual,
+  certified log before the entry (`log.length ≤ logCh log + 2`: revisions after `NewStore`'s two
+  are non-empty, `commitLog`), and the txn package's change-count premises replaced by receipts
+  taken per change as the run produces them (the txn and apply specs change). A design change of
+  the txn/apply specs; the user decides.
 - Gates (full build, every `gen-link` mode, `gen-btree-link`, `gen-init --check`, `goose.py
   --check`, `tcb-report --check` and every collection): unchanged; the trust base did not move (no
   axiom added; `publishV3`'s and `monitorClusterVersions`' axioms have stronger premises).
