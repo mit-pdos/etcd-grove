@@ -167,15 +167,23 @@ initializer runs its variables' untranslated initializers (`version.go`): string
     finish=['ipersist HVersion', 'ipersist HV3_6'] + FIN_PRE[:6],
 )
 
+def promvec(x, kind, labels, file='metrics.go'):
+    """A metric vector `x = prometheus.New<kind>Vec(opts, labels)` (D19l (iii), 2026-10-18): a
+    fixed pointer with its label names (`EtcdGrove.prometheus.vecLabels`)."""
+    ls = '[' + ', '.join(f'go!"{l}"' for l in labels) + ']'
+    golist = ', '.join(f'"{l}"' for l in labels)
+    return dict(
+        doc=f'/-- `{x} = prometheus.New{kind}Vec(..., []string{{{golist}}})`\n(`{file}`): a `*{kind}Vec` with those label names (`vecLabels`). -/',
+        post=f'∃ v : Loc, globalAddr {x} ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v {ls}⌝',
+        pat='⟨%v@, H@, #L@⟩')
+
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer
-(a `*prometheus.GaugeVec`). Its initializer initializes its imports and runs its variables'
+(a `*prometheus.GaugeVec`, with its label names: D19l (iii)). Its initializer initializes its imports and runs its variables'
 untranslated initializers; the trust-boundary axiom `ClusterVersionMetrics_init` states the one
 the fact reads (`metrics.go`: `prometheus.NewGaugeVec(...)`), `opaqueInitsOk` the others.''',
     custom={
-        'ClusterVersionMetrics': dict(
-            doc='/-- `ClusterVersionMetrics = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/',
-            post='∃ gv : Loc, globalAddr ClusterVersionMetrics ↦ gv', pat='⟨%gv@, H@⟩'),
+        'ClusterVersionMetrics': promvec('ClusterVersionMetrics', 'Gauge', ['cluster_version']),
     },
     finish=['ipersist HClusterVersionMetrics'] + FIN_PRE[:6],
 )
@@ -661,13 +669,11 @@ def _noSpaceApart():
                   'mvcc: required revision has been compacted', 'MC')]
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.apply'] = dict(
-    doc="""Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` (`metrics.go`, untranslated:
-the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
+    doc="""Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` with its label names
+(`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
 (`applyErrVars`), from their packages' facts (`etcdserver/errors`', `lease`'s, `mvcc`'s), leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
-    custom={'alarms': dict(
-        doc='/-- `alarms = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/',
-        post='∃ gv : Loc, globalAddr alarms ↦ gv', pat='⟨%gv@, H@⟩')},
+    custom={'alarms': promvec('alarms', 'Gauge', ['server_id', 'alarm_type'])},
     pre=_ERRLEAF_PRE,
     finish=(['ipersist Halarms'] +
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrCorrupt', 'etcdserver: corrupt cluster', 'Hd19', 'COR') +
@@ -700,17 +706,13 @@ _srv_custom = {x: _metric(x, 'gauge', ['gaugeSetSpec']) for x in ['hasLeader', '
 _srv_custom.update({x: _metric(x, 'counter', ['go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec'])
                     for x in ['leaderChanges', 'heartbeatSendFailures', 'proposalsFailed']})
 _srv_custom['proposalsPending'] = _metric('proposalsPending', 'gauge', ['go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec'])
-for _gv in ['serverFeatureEnabled', 'serverID']:
-    # the construction's gauge vectors (unit N4, 2026-10-17: `NewServer` reads them)
-    _srv_custom[_gv] = dict(
-        doc=f'/-- `{_gv} = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/',
-        post=f'∃ gv : Loc, globalAddr {_gv} ↦ gv', pat='⟨%gv@, H@⟩')
-_srv_custom['requestDurationSec'] = dict(
-    doc='/-- `requestDurationSec = prometheus.NewHistogramVec(...)` (`metrics.go`): a `*HistogramVec`. -/',
-    post='∃ hv : Loc, globalAddr requestDurationSec ↦ hv', pat='⟨%hv@, H@⟩')
+# the construction's gauge vectors (unit N4, 2026-10-17: `NewServer` reads them)
+_srv_custom['serverFeatureEnabled'] = promvec('serverFeatureEnabled', 'Gauge', ['name', 'stage'])
+_srv_custom['serverID'] = promvec('serverID', 'Gauge', ['server_id'])
+_srv_custom['requestDurationSec'] = promvec('requestDurationSec', 'Histogram', ['type', 'success'])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver'] = dict(
     doc="""Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
-trust-boundary axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
+trust-boundary axioms `<X>_init`; the vectors with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
@@ -755,7 +757,7 @@ _V_WERRS = ['ErrGRPCInvalidAuthToken', 'ErrGRPCAuthOldRevision', 'ErrGRPCUserEmp
             'ErrGRPCPermissionDenied', 'ErrGRPCWatchCanceled']
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'] = dict(
     doc="""Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
+`clientRequests` with its label names (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
@@ -763,7 +765,8 @@ pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Pere
 fact lacks it). Its precondition has the read package's registration rights
 (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
-errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` and the four
+errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` (with its label
+names) and the four
 `watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
 `progressReportInterval` (`10 * time.Minute`: `intervalP`).""",
@@ -776,13 +779,9 @@ errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` 
             doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil. -/',
             post='∃ (mp : Loc) (M : GMap GoInterface GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝',
             pat='⟨%mp@, %M@, H@, #S@, %P@⟩'),
-        'clientRequests': dict(
-            doc='/-- `clientRequests = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/',
-            post='∃ cv : Loc, globalAddr clientRequests ↦ cv', pat='⟨%cv@, H@⟩'),
+        'clientRequests': promvec('clientRequests', 'Counter', ['type', 'client_api_version']),
         # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
-        'streamFailures': dict(
-            doc='/-- `streamFailures = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/',
-            post='∃ cv : Loc, globalAddr streamFailures ↦ cv', pat='⟨%cv@, H@⟩'),
+        'streamFailures': promvec('streamFailures', 'Counter', ['Type', 'API']),
         **{x: dict(
             doc=f'/-- `{x} = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
             post=f'∃ h : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{{{ True }}}} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{{{ RET #(); True }}}})',

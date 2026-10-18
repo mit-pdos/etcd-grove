@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -20,14 +21,15 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `(*p).String()` (`m.Alarm.String()`, through the field's address) returns some string,
-reading `*p`. -/
+/-- `(*p).String()` (`m.Alarm.String()`, through the field's address) returns an ASCII
+string (`protoimpl.X.EnumStringOf`: the value's name in the enum's descriptor, else its number in
+decimal; D19l (iii), 2026-10-18: until then some string), reading `*p`. -/
 abbrev etcdserverpb.AlarmType.String.spec : Prop :=
   ∀ (p : Loc) (a : w32) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ p ↦{dq} a }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty
       @!! go!"String")) (Val #()))
-  {{ (s : GoString), RET #s; p ↦{dq} a }}
+  {{ (s : GoString), RET #s; p ↦{dq} a ∗ ⌜asciiStr s⌝ }}
 
 end spec
 

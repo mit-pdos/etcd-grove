@@ -124,7 +124,8 @@ def interceptorVars : IProp GF :=
     (∃ k : GoString,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ k) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k) ∗
-    (∃ cv : Loc, globalAddr clientRequests ↦□ cv))
+    (∃ cv : Loc, globalAddr clientRequests ↦□ cv ∗
+      ⌜EtcdGrove.prometheus.vecLabels cv [go!"type", go!"client_api_version"]⌝))
 
 instance interceptorVars_persistent : Persistent (interceptorVars (GF := GF)) := by
   unfold interceptorVars; infer_instance
@@ -158,7 +159,8 @@ def _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars : IProp GF :=
     EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty ∗
     EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ∗
     EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ∗
-    (∃ cv : Loc, globalAddr streamFailures ↦□ cv) ∗
+    (∃ cv : Loc, globalAddr streamFailures ↦□ cv ∗
+      ⌜EtcdGrove.prometheus.vecLabels cv [go!"Type", go!"API"]⌝) ∗
     EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDuration ∗
     EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDurationPerEvent ∗
     EtcdGrove.v3rpc.histVar watchSendLoopControlStreamDuration ∗

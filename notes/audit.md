@@ -6,6 +6,10 @@ axioms, 12 `sorry`s) has grown one names-only spec at a time. An axiom here is a
 code that nobody checked mechanically; a false one can make the closed theorem prove something
 false of Go. This file records each axiom's verdict, the reason, and the fix.
 
+**D19l (iii) (2026-10-18):** the four prometheus label specs restated with arity and UTF-8 premises
+against each vector's label names (`vecLabels`, opaque, stated by the seven vectors' `<X>_init`,
+restated via `gen-init.py`), and seven value-only specs restated with what they return, for the
+nine call sites (rows in "Restated by D19l (iii)"); no axiom added or removed.
 **D19l (i), (ii) (2026-10-18):** the fork carries the two fixes (etcd-io/etcd#22297; the checked
 `TLSInfo` assertion): `time.Since`'s local axiom deleted (Perennial's `time.wp_Since` used),
 `AuthInfoFromTLS` true as stated; one axiom fewer. **Since phase A:** `membership.localKept` and `localKept_persistent` removed (2026-10-18:
@@ -81,7 +85,8 @@ false axioms, most important for putget (`examples/putget`, item 9) first:
    session's fix on `lean`; the rest stopped, D19l):
    - `time.Since`: assumes a positive result (known, filed). Stopped, D19l (i).
    - `grpc.ClientConn.NewStream`: a retrying server stream.
-   - The four prometheus `WithLabelValues`/`With`: label count and UTF-8. Stopped, D19l (iii).
+   - The four prometheus `WithLabelValues`/`With`: label count and UTF-8. Stopped, D19l (iii);
+     fixed (D19l (iii) carried out, 2026-10-18).
    - bbolt's `wBkt`/`wBkt_persistent`/`DeleteBucket_kv` (stopped, D19l (iv)), `Cursor_kvw`,
      `DB.Info_kv` (fixed).
    - `auth.authStore.AuthInfoFromTLS` (known, filed). Stopped, D19l (ii).
@@ -296,7 +301,7 @@ the constructor's spec returns. Its idealisations are the two suspects and `NewS
 | axiom | verdict | reason |
 |---|---|---|
 | `grpc.ClientConn.NewStream` | **false** (latent); **fixed (2026-10-18)** | Stated for any stream description and retry option. For a server-streaming method with `max > 0` etcd's interceptor returns a `serverStreamingRetryingStream` (`client/v3/retry_interceptor.go:129-146`) that, when the first `RecvMsg` fails, opens a new stream and replays the buffered sends (231-255): the handler runs twice, which the client's one `γ` cannot describe. The one caller, `Watch`, is bidirectional with `max = 0` (`client.go:269`). Fix: require `desc.ClientStreams` or no retry with `max > 0`. **Fixed:** the spec takes a client-streaming descriptor (`d.ClientStreams' = true`); the `Watch` stub's `&Watch_ServiceDesc.Streams[0]` is one (`watchDescOk`, from `etcdserverpb`'s fact `etcdserverpbDescs`, which records the `Watch` stream's `ClientStreams`). Still an axiom, restated. |
-| `prometheus.CounterVec.WithLabelValues`, `GaugeVec.WithLabelValues`, `HistogramVec.WithLabelValues`, `GaugeVec.With` (4) | **false** (latent) | Return for any labels; Go panics on a wrong label count or a value that is not UTF-8 (`counter.go:283`, `gauge.go:249`, `labels.go:166`). Every call site passes the right number of constants, ids or versions (`v3rpc/interceptor.go:63,234` checks the client version with `utf8.ValidString`). Fix: arity and UTF-8 premises. **B4b (2026-10-18):** stopped, D19l (iii): no fact states a vector's label names (untranslated initializers); options a per-vector init fact via `gen-init.py` (recommended, after D19j) or per-vector axioms. |
+| `prometheus.CounterVec.WithLabelValues`, `GaugeVec.WithLabelValues`, `HistogramVec.WithLabelValues`, `GaugeVec.With` (4) | **false** (latent) | Return for any labels; Go panics on a wrong label count or a value that is not UTF-8 (`counter.go:283`, `gauge.go:249`, `labels.go:166`). Every call site passes the right number of constants, ids or versions (`v3rpc/interceptor.go:63,234` checks the client version with `utf8.ValidString`). Fix: arity and UTF-8 premises. **B4b (2026-10-18):** stopped, D19l (iii): no fact states a vector's label names (untranslated initializers); options a per-vector init fact via `gen-init.py` (recommended, after D19j) or per-vector axioms. **Fixed (D19l (iii), 2026-10-18):** premises `⌜vecLabels v ls ∧ labelValuesOk ls vs⌝` (`With`: `labelMapOk ls M`) with the values' slice (map) held; the vectors' label names from their `<X>_init`; all nine call sites discharge them. Now true of Go. |
 | `grpc.serve` | suspect | Runs at most `n` handlers at once (each run takes one of `n` copies of `S`, `InvGrpc.lean:461`); grpc-go starts a goroutine per stream with only a per-connection `MaxConcurrentStreams`. Sound while the slots stand for a bound Go cannot reach (about 2^30 concurrent runs, `notes/decisions.md`). Checked 2026-10-18 with `serveStream`'s restatement: a unary run gives its copy back when it ends (the bound is on concurrent runs already); no change. |
 | `grpc.serveStream` | suspect; **restated (2026-10-18), half fixed** | A stream run keeps its copy of `S` for good (`InvGrpcStream.lean:936`), so the model starts at most `n` Watch streams **in a run**, while Go starts every one: a long run exceeds any fixed `n`. Fix: give the slot back when the stream ends. Not on putget's path (no Watch). **Restated:** the `n` copies are a pool (`grpcSlotPool S`, an invariant) the runtime takes a copy from per stream, and each run is given it (`grpcStreamMethodOkR`) to return its copy from whichever thread frees it last (`grpcSlotPool_return`; not at the handler's return: `Watch` returns while its `recvLoop` goroutine may still hold its reader slots), so the bound is on runs holding a slot at once. The watch handler's proof still uses the old contract (`grpcStreamMethodOk_R`: a run that keeps its slot) and does not return its slots yet; that half waits on D19j (v3rpc's watch files). |
 | `grpc.ClientConn.Invoke` | ok | `call.go`; one attempt runs the handler at most once (no retry policy in the service config; transparent retry only when the server never saw the call). |
@@ -348,3 +353,22 @@ the constructor's spec returns. Its idealisations are the two suspects and `NewS
 | `v3rpc.watchSendLoop{WatchStream,WatchStreamPerEvent,ControlStream,Progress}Duration_init` (4) | ok | `prometheus.NewHistogram(...)` (`metrics.go:56-102`): a `Histogram`; its `Observe(float64)` returns for any value (it records into buckets; no panic). |
 | `rpctypes.ErrGRPC{InvalidAuthToken,AuthOldRevision,UserEmpty,PermissionDenied,WatchCanceled}_init` (5) | ok | `status.Error(codes.X, "...")` (`error.go:40,62,69,73,75`) with a code other than `OK`: a non-nil `*status.Error` whose `Error()` returns its formatted message (`errorStringSpec`). |
 | `mvcc.ReportEventReceived.wp_proof` | ok | `metrics.go:318-321`: `pendingEventsGauge.Sub(float64(n))` (a gauge: any value) and `totalEventsCounter.Add(float64(n))` (a counter: panics on a negative value, hence the premise `0 ≤ n`). Replaces the package fact `reportEventOk`, stated for every `n` (false for a negative one; the watch server passes slice lengths). |
+
+### Restated by D19l (iii) (2026-10-18; Go: client_golang v1.24.1 `counter.go:283`, `gauge.go:237,249`, `histogram.go:1263`, `labels.go:148-185`, `vec.go:252-300`; etcd `metrics.go` of each package)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `membership.ClusterVersionMetrics_init` | ok | `prometheus.NewGaugeVec(..., []string{"cluster_version"})` (`membership/metrics.go:20-28`): a `*GaugeVec` whose variable labels are `["cluster_version"]` (`vecLabels`); uncurried, unconstrained (`UnconstrainedLabels`). |
+| `apply.alarms_init` | ok | `NewGaugeVec(..., []string{"server_id", "alarm_type"})` (`apply/metrics.go:19-27`). |
+| `etcdserver.requestDurationSec_init` | ok | `NewHistogramVec(..., []string{"type", "success"})` (`etcdserver/metrics.go:100-112`). |
+| `etcdserver.serverID_init` | ok | `NewGaugeVec(..., []string{"server_id"})` (`metrics.go:137-145`). |
+| `etcdserver.serverFeatureEnabled_init` | ok | `NewGaugeVec(..., []string{"name", "stage"})` (`metrics.go:146-152`). |
+| `v3rpc.clientRequests_init` | ok | `NewCounterVec(..., []string{"type", "client_api_version"})` (`v3rpc/metrics.go:46-54`). |
+| `v3rpc.streamFailures_init` | ok | `NewCounterVec(..., []string{"Type", "API"})` (`v3rpc/metrics.go:36-44`). |
+| `utf8.ValidString.wp_proof` | ok | Returns `decide (utf8Valid s)`: `utf8Valid` is Unicode's well-formed byte sequences (Table 3-7), exactly what Go's `ValidString` accepts (`first`/`acceptRanges`: no overlong form, no surrogate, nothing above `U+10FFFF`). |
+| `strconv.FormatBool.wp_proof` | ok | `"true"` or `"false"` (`atob.go`). |
+| `types.ID.String.wp_proof`, `ID.String_ptr.wp_proof` | ok | `strconv.FormatUint(uint64(i), 16)` (`id.go:27`): lowercase hex digits, ASCII. |
+| `etcdserverpb.AlarmType.String.wp_proof` | ok | `protoimpl.X.EnumStringOf` (protobuf v1.36.12 `api_export.go:74`): the value's descriptor name (a proto identifier) or `strconv.Itoa`: ASCII. |
+| `semver.Version.String.wp_proof` | ok | `"%d.%d.%d"` then `-pre`, `+metadata` (semver v3.5.0 `version.go:340`): two decimal numbers each followed by a dot (`semverStr`). |
+| `version.Cluster.wp_proof` | ok | `version.go:69-77`: `"%d.%d"` of a parsed version, else the first two `.`-fields of `v` joined; for a `semverStr` both ASCII (the post only claims that case). |
+| `prometheus.{Counter,Gauge,Histogram}Vec.WithLabelValues.wp_proof`, `GaugeVec.With.wp_proof` | ok | See their row above (fixed). |

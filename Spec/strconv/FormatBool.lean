@@ -23,13 +23,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `strconv.FormatBool(b)`: a string (`"true"` or `"false"`; the metrics' label, which the
-model does not read); it returns. -/
+/-- `strconv.FormatBool(b)`: `"true"` or `"false"` (the metrics' label; D19l (iii), 2026-10-18:
+until then some string); it returns. -/
 abbrev strconv.FormatBool.spec : Prop :=
   ∀ (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.strconv }}
     (App (Val (@! _root_.Perennial.strconv.FormatBool)) (Val #b))
-  {{ (str : GoString), RET #str; True }}
+  {{ (str : GoString), RET #str; ⌜str = if b then go!"true" else go!"false"⌝ }}
 
 end spec
 

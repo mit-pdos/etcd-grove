@@ -3,7 +3,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
+`clientRequests` with its label names (untranslated: the trust-boundary axioms `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
@@ -11,7 +11,8 @@ pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Pere
 fact lacks it). Its precondition has the read package's registration rights
 (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
-errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` and the four
+errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` (with its label
+names) and the four
 `watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
 `progressReportInterval` (`10 * time.Minute`: `intervalP`).
@@ -101,15 +102,17 @@ axiom toGRPCErrorMap_init :
     {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
     {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝ }}
 
-/-- `clientRequests = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/
+/-- `clientRequests = prometheus.NewCounterVec(..., []string{"type", "client_api_version"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
 axiom clientRequests_init :
     {{ (True : IProp GF) }} (App (Val clientRequests.init) (Val #()))
-    {{ RET #(); ∃ cv : Loc, globalAddr clientRequests ↦ cv }}
+    {{ RET #(); ∃ v : Loc, globalAddr clientRequests ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"type", go!"client_api_version"]⌝ }}
 
-/-- `streamFailures = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/
+/-- `streamFailures = prometheus.NewCounterVec(..., []string{"Type", "API"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
 axiom streamFailures_init :
     {{ (True : IProp GF) }} (App (Val streamFailures.init) (Val #()))
-    {{ RET #(); ∃ cv : Loc, globalAddr streamFailures ↦ cv }}
+    {{ RET #(); ∃ v : Loc, globalAddr streamFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Type", go!"API"]⌝ }}
 
 /-- `watchSendLoopWatchStreamDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
 axiom watchSendLoopWatchStreamDuration_init :
@@ -261,8 +264,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk sentBytes.init (by mem_tac))
   wp_apply (opaqueInitsOk receivedBytes.init (by mem_tac))
-  wp_apply streamFailures_init as ⟨%cvstreamFailures, HstreamFailures⟩
-  wp_apply clientRequests_init as ⟨%cvclientRequests, HclientRequests⟩
+  wp_apply streamFailures_init as ⟨%vstreamFailures, HstreamFailures, #LstreamFailures⟩
+  wp_apply clientRequests_init as ⟨%vclientRequests, HclientRequests, #LclientRequests⟩
   wp_apply watchSendLoopWatchStreamDuration_init as ⟨%hwatchSendLoopWatchStreamDuration, HwatchSendLoopWatchStreamDuration, #SwatchSendLoopWatchStreamDuration⟩
   wp_apply watchSendLoopWatchStreamDurationPerEvent_init as ⟨%hwatchSendLoopWatchStreamDurationPerEvent, HwatchSendLoopWatchStreamDurationPerEvent, #SwatchSendLoopWatchStreamDurationPerEvent⟩
   wp_apply watchSendLoopControlStreamDuration_init as ⟨%hwatchSendLoopControlStreamDuration, HwatchSendLoopControlStreamDuration, #SwatchSendLoopControlStreamDuration⟩

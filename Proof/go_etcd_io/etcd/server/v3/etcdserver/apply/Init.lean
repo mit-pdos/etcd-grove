@@ -2,8 +2,8 @@
 Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.apply`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` (`metrics.go`, untranslated:
-the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
+Its fact (`applyInit`, `Base.lean`): its gauge vector `alarms` with its label names
+(`metrics.go`, untranslated: the trust-boundary axiom `alarms_init`), and the error variables it returns or compares with
 (`applyErrVars`), from their packages' facts (`etcdserver/errors`', `lease`'s, `mvcc`'s), leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`.
 -/
@@ -61,10 +61,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `alarms = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/
+/-- `alarms = prometheus.NewGaugeVec(..., []string{"server_id", "alarm_type"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
 axiom alarms_init :
     {{ (True : IProp GF) }} (App (Val alarms.init) (Val #()))
-    {{ RET #(); ∃ gv : Loc, globalAddr alarms ↦ gv }}
+    {{ RET #(); ∃ v : Loc, globalAddr alarms ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"server_id", go!"alarm_type"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.apply
 end opaqueInits
@@ -149,7 +150,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply alarms_init as ⟨%gvalarms, Halarms⟩
+  wp_apply alarms_init as ⟨%valarms, Halarms, #Lalarms⟩
   ipersist Halarms
   ihave HeiCOR : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd19

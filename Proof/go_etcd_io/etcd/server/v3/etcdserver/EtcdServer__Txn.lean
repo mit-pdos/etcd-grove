@@ -135,13 +135,16 @@ local macro "txn_defer" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hSec as %_ -
   (try wp_auto)
-  wp_apply hFB as %_ -
+  wp_apply hFB as %fb %Hfb
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %_ ⟨-, -⟩
+  iintro %lsl ⟨Hlsl, -⟩
   (try wp_auto)
-  wp_apply hWL hist as %_ ⟨%oi, %Hoi, #Hobs⟩
+  wp_apply hWL hist _ [go!"type", go!"success"] _ _ $$ [Hlsl] as %_ ⟨%oi, %Hoi, #Hobs, -⟩
+  · iframe #; iframe Hlsl; ipureintro
+    refine ⟨Hhl, prometheus.labelValuesOk_two _ _ _ _ (by decide) ?_⟩
+    rw [Hfb]; split <;> decide
   subst Hoi
   iunfold prometheus.observerSpec at Hobs
   (try wp_auto)
@@ -433,7 +436,7 @@ theorem EtcdServer.Txn.wp_proof
   iunfold isReadNotify at HisRead'
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
+  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist, %Hhl⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
   ihave #Papply : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []

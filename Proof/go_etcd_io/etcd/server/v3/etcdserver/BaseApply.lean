@@ -308,13 +308,14 @@ abbrev srvErrVars : IProp GF :=
 
 /-- **The request path's part of the server package's facts** (2026-10-12; `True` until then): the
 metrics `metrics.go` declares and the request path updates (`requestDurationSec`, a
-`*prometheus.HistogramVec`, whose `WithLabelValues` is the trust boundary; `proposalsFailed`, a
+`*prometheus.HistogramVec` with its label names, whose `WithLabelValues` is the trust boundary; `proposalsFailed`, a
 `Counter`, and `proposalsPending`, a `Gauge`, with mvcc's `counterSpec`/`gaugeSpec` as their
 contracts), `traceutil.Tracer` (a fixed tracer, stated here rather than in `traceutil`'s facts:
 its `Start` is the trust boundary, `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Tracer__Start.lean`),
 and the error variables (`srvErrVars`). -/
 abbrev srvReqInit : IProp GF :=
-  iprop((∃ hv : Loc, globalAddr requestDurationSec ↦□ hv) ∗
+  iprop((∃ hv : Loc, globalAddr requestDurationSec ↦□ hv ∗
+      ⌜EtcdGrove.prometheus.vecLabels hv [go!"type", go!"success"]⌝) ∗
     (∃ c : GoInterfaceOk, globalAddr proposalsFailed ↦□ GoInterface.ok c ∗
       go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
     (∃ g : GoInterfaceOk, globalAddr proposalsPending ↦□ GoInterface.ok g ∗
@@ -335,7 +336,7 @@ instance gaugeSetSpec_persistent (g : GoInterfaceOk) :
 `metrics.go` the `Ready` loop updates each hold a fixed gauge (`hasLeader`, `isLeader`,
 `proposalsCommitted`: `Set`) or counter (`leaderChanges`, `heartbeatSendFailures`: `Inc`, mvcc's
 `counterSpec`); and the gauge vectors the construction uses (`serverFeatureEnabled`, `serverID`;
-unit N4, 2026-10-17). -/
+unit N4, 2026-10-17), with their label names (D19l (iii), 2026-10-18). -/
 abbrev srvRaftInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr hasLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ g : GoInterfaceOk, globalAddr isLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
@@ -346,7 +347,9 @@ abbrev srvRaftInit : IProp GF :=
       go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
     -- the construction's metrics (unit N4, 2026-10-17: `NewServer`'s `addFeatureGateMetrics(…,
     -- serverFeatureEnabled)` and `serverID.With(…)`): two fixed gauge vectors
-    (∃ gv : Loc, globalAddr serverFeatureEnabled ↦□ gv) ∗ (∃ gv : Loc, globalAddr serverID ↦□ gv))
+    (∃ gv : Loc, globalAddr serverFeatureEnabled ↦□ gv ∗
+      ⌜EtcdGrove.prometheus.vecLabels gv [go!"name", go!"stage"]⌝) ∗
+    (∃ gv : Loc, globalAddr serverID ↦□ gv ∗ ⌜EtcdGrove.prometheus.vecLabels gv [go!"server_id"]⌝))
 
 instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
   unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance

@@ -233,9 +233,10 @@ theorem EtcdServer.start.wp_proof
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   ihave #Hmi : iprop(∃ gv : Loc,
-      globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv) $$ []
+      globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv ∗
+      ⌜prometheus.vecLabels gv [go!"cluster_version"]⌝) $$ []
   · iapply isPkgInit_access $$ Hpmem
-  icases Hmi with ⟨%cvm, #Hcvm⟩
+  icases Hmi with ⟨%cvm, #Hcvm, %Hcvml⟩
   ihave #Hptypes : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
   · iPkgInit
   ihave #Hpsemver : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
@@ -295,12 +296,14 @@ theorem EtcdServer.start.wp_proof
     iintro %cv2 Hcv2
     icases Hcv2 with (%Hcv2 | ⟨%Hcv2, -⟩)
     · exact absurd Hcv2.2 (by decide)
-    wp_apply hVS cv2 $$ [] as %vs2 -
+    wp_apply hVS cv2 $$ [] as %vs2 %Hvs2
     · iframe #; ipureintro; exact Hcv2
-    wp_apply hVC as %cvs2 -
+    wp_apply hVC as %cvs2 %Hcvs2
     wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lm Hlm
     wp_apply wp_mapInsert go.string lm _ go!"cluster_version" cvs2 $$ [$Hlm] as Hlm
-    wp_apply hGW cvm lm as %g ⟨%gi, %Hg, #Hgset⟩
+    wp_apply hGW cvm lm [go!"cluster_version"] _ _ $$ [Hlm] as %g ⟨%gi, %Hg, #Hgset, -⟩
+    · iframe #; iframe Hlm; ipureintro
+      exact ⟨Hcvml, prometheus.labelMapOk_one _ _ (utf8Valid_of_ascii _ (Hcvs2 Hvs2))⟩
     subst Hg
     wp_auto
     wp_bind (App (Val #(methods gi.ty go!"Set" gi.v)) (Val #(W64 4607182418800017408)))

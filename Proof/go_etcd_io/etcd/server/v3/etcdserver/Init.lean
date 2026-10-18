@@ -3,7 +3,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
-trust-boundary axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
+trust-boundary axioms `<X>_init`; the vectors with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
@@ -143,20 +143,23 @@ axiom proposalsPending_init :
     {{ (True : IProp GF) }} (App (Val proposalsPending.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsPending ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec m }}
 
-/-- `serverFeatureEnabled = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/
+/-- `serverFeatureEnabled = prometheus.NewGaugeVec(..., []string{"name", "stage"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
 axiom serverFeatureEnabled_init :
     {{ (True : IProp GF) }} (App (Val serverFeatureEnabled.init) (Val #()))
-    {{ RET #(); ∃ gv : Loc, globalAddr serverFeatureEnabled ↦ gv }}
+    {{ RET #(); ∃ v : Loc, globalAddr serverFeatureEnabled ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"name", go!"stage"]⌝ }}
 
-/-- `serverID = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/
+/-- `serverID = prometheus.NewGaugeVec(..., []string{"server_id"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
 axiom serverID_init :
     {{ (True : IProp GF) }} (App (Val serverID.init) (Val #()))
-    {{ RET #(); ∃ gv : Loc, globalAddr serverID ↦ gv }}
+    {{ RET #(); ∃ v : Loc, globalAddr serverID ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"server_id"]⌝ }}
 
-/-- `requestDurationSec = prometheus.NewHistogramVec(...)` (`metrics.go`): a `*HistogramVec`. -/
+/-- `requestDurationSec = prometheus.NewHistogramVec(..., []string{"type", "success"})`
+(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
 axiom requestDurationSec_init :
     {{ (True : IProp GF) }} (App (Val requestDurationSec.init) (Val #()))
-    {{ RET #(); ∃ hv : Loc, globalAddr requestDurationSec ↦ hv }}
+    {{ RET #(); ∃ v : Loc, globalAddr requestDurationSec ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"type", go!"success"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver
 end opaqueInits
@@ -314,12 +317,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply proposalsApplied_init as ⟨%mproposalsApplied, HproposalsApplied, #S0proposalsApplied⟩
   wp_apply proposalsPending_init as ⟨%mproposalsPending, HproposalsPending, #S0proposalsPending⟩
   wp_apply proposalsFailed_init as ⟨%mproposalsFailed, HproposalsFailed, #S0proposalsFailed⟩
-  wp_apply requestDurationSec_init as ⟨%hvrequestDurationSec, HrequestDurationSec⟩
+  wp_apply requestDurationSec_init as ⟨%vrequestDurationSec, HrequestDurationSec, #LrequestDurationSec⟩
   wp_apply (opaqueInitsOk leaseExpired.init (by mem_tac))
   wp_apply (opaqueInitsOk currentVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk currentGoVersion.init (by mem_tac))
-  wp_apply serverID_init as ⟨%gvserverID, HserverID⟩
-  wp_apply serverFeatureEnabled_init as ⟨%gvserverFeatureEnabled, HserverFeatureEnabled⟩
+  wp_apply serverID_init as ⟨%vserverID, HserverID, #LserverID⟩
+  wp_apply serverFeatureEnabled_init as ⟨%vserverFeatureEnabled, HserverFeatureEnabled, #LserverFeatureEnabled⟩
   wp_apply (opaqueInitsOk fdUsed.init (by mem_tac))
   wp_apply (opaqueInitsOk fdLimit.init (by mem_tac))
   wp_apply (opaqueInitsOk monitorVersionInterval.init (by mem_tac))

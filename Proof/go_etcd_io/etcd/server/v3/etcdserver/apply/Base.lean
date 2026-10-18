@@ -42,6 +42,7 @@ public import Perennial.Proof.time
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.log
+public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 
 @[expose] public section
 
@@ -328,12 +329,13 @@ end go_etcd_io.etcd.pkg.v3.notify
 
 -- `api/membership` (names only but `RaftCluster.ID`; 2026-10-13, the request path's unit 4c: the
 -- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
--- `*GaugeVec`)
+-- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   define_is_pkg_init iprop(∃ gv : Loc,
-    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv)
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv ∗
+    ⌜EtcdGrove.prometheus.vecLabels gv [go!"cluster_version"]⌝)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   build_get_is_pkg_init_wf
 
@@ -395,10 +397,11 @@ abbrev applyErrVars : IProp GF :=
 
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/
-GaugeVec__WithLabelValues.lean`), `etcdserver/errors.ErrCorrupt` a fixed non-nil error, and the
+GaugeVec__WithLabelValues.lean`) with its label names (D19l (iii)), `etcdserver/errors.ErrCorrupt` a fixed non-nil error, and the
 error variables it returns `errors.New` errors (`applyErrVars`). -/
 abbrev applyInit : IProp GF :=
-  iprop((∃ gv : Loc, globalAddr alarms ↦□ gv) ∗
+  iprop((∃ gv : Loc, globalAddr alarms ↦□ gv ∗
+      ⌜EtcdGrove.prometheus.vecLabels gv [go!"server_id", go!"alarm_type"]⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ↦□ GoInterface.ok e) ∗
     applyErrVars)

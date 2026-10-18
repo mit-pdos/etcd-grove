@@ -176,7 +176,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   icases Hwpv with ⟨#HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
     #HmInv, #HmOld, #HmEmpty, #HmDenied, #HmWC, #HstreamF, #Hh1, #Hh2, #Hh3, #Hh4, #Htracer,
     #Hcanc, #Hguard'⟩
-  icases HstreamF with ⟨%cvF, #HcvF⟩
+  icases HstreamF with ⟨%cvF, #HcvF, %HcvFl⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Pprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
@@ -223,9 +223,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
         wp_apply wp_slice_literal (V := GoString) [go!"receive", go!"watch"]
         isplitr
         · ipureintro; rfl
-        iintro %lsl -
+        iintro %lsl ⟨Hlsl, -⟩
         wp_auto
-        wp_apply hCV cvF _ as %c ⟨%ci', %Hc, #Hcs⟩
+        wp_apply hCV cvF _ [go!"Type", go!"API"] _ _ $$ [Hlsl] as %c ⟨%ci', %Hc, #Hcs, -⟩
+        · iframe #; iframe Hlsl; ipureintro
+          exact ⟨HcvFl, prometheus.labelValuesOk_two _ _ _ _ (by decide) (by decide)⟩
         subst Hc
         iunfold prometheus.counterSpec at Hcs
         wp_apply Hcs

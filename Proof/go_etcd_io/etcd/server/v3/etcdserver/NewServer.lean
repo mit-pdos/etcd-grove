@@ -286,7 +286,7 @@ theorem NewServer.wp_proof
   · iexact Hrc
   wp_apply h4 as %sstats %Hssnn
   (try wp_auto)
-  wp_apply h7 $$ [$nodeID] as %ids nodeID
+  wp_apply h7 $$ [$nodeID] as %ids ⟨nodeID, -⟩
   wp_apply h6 as %lstats %Hlsnn
   (try wp_auto)
   -- the server's literal: `readych`, `lgMu`, `errorc`, the raft wrapper
@@ -351,7 +351,7 @@ theorem NewServer.wp_proof
   ihave Hsi : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   iunfold srvInit at Hsi
-  icases Hsi with ⟨⟨-, -, -, -, -, ⟨%gvf, #Hgvf⟩, ⟨%gvi, #Hgvi⟩⟩, -⟩
+  icases Hsi with ⟨⟨-, -, -, -, -, ⟨%gvf, #Hgvf, %Hgvfl⟩, ⟨%gvi, #Hgvi, %Hgvil⟩⟩, -⟩
   (try wp_auto)
   wp_apply h16 $$ []
   · iframe #; ipureintro; exact Hfgp
@@ -359,12 +359,14 @@ theorem NewServer.wp_proof
       pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply h7 $$ [$nodeID] as %ids2 nodeID
+  wp_apply h7 $$ [$nodeID] as %ids2 ⟨nodeID, %Hids2⟩
   (try wp_auto)
   wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lbl Hlbl
   wp_apply wp_mapInsert go.string lbl _ _ _ $$ [$Hlbl] as Hlbl
   (try wp_auto)
-  wp_apply h17 as %gsi ⟨%gi, %Hgi, #Hgset⟩
+  wp_apply h17 gvi lbl [go!"server_id"] _ _ $$ [Hlbl] as %gsi ⟨%gi, %Hgi, #Hgset, -⟩
+  · iframe #; iframe Hlbl; ipureintro
+    exact ⟨Hgvil, prometheus.labelMapOk_one _ _ (utf8Valid_of_ascii _ Hids2)⟩
   subst Hgi
   (try wp_auto)
   wp_apply Hgset

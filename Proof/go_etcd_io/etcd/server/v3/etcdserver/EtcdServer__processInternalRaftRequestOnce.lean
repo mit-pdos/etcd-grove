@@ -46,6 +46,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- `getRequestType`'s names are valid UTF-8 (`requestDurationSec`'s label; D19l (iii)). -/
+theorem reqTypeName_utf8 (rq : apply.IRRModel) : utf8Valid (reqTypeName rq) := by
+  have hite : ∀ {c : Prop} [Decidable c] {a b : GoString}, utf8Valid a → utf8Valid b →
+      utf8Valid (if c then a else b) := by
+    intro c _ a b ha hb; by_cases h : c
+    · rw [if_pos h]; exact ha
+    · rw [if_neg h]; exact hb
+  unfold reqTypeName; repeat' (first | decide | apply hite)
+
 set_option hygiene false in
 /-- The deferred metrics closure (`requestDurationSec.WithLabelValues(reqType,
 strconv.FormatBool(success)).Observe(time.Since(start).Seconds())`). -/
@@ -55,13 +64,16 @@ local macro "run_metrics" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hSec as %_ -
   (try wp_auto)
-  wp_apply hFB as %_ -
+  wp_apply hFB as %fb %Hfb
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %_ ⟨-, -⟩
+  iintro %lsl ⟨Hlsl, -⟩
   (try wp_auto)
-  wp_apply hWL hist as %_ ⟨%oi, %Hoi, #Hobs⟩
+  wp_apply hWL hist _ [go!"type", go!"success"] _ _ $$ [Hlsl] as %_ ⟨%oi, %Hoi, #Hobs, -⟩
+  · iframe #; iframe Hlsl; ipureintro
+    refine ⟨Hhl, prometheus.labelValuesOk_two _ _ _ _ (by first | decide | exact reqTypeName_utf8 _) ?_⟩
+    rw [Hfb]; split <;> decide
   subst Hoi
   iunfold prometheus.observerSpec at Hobs
   (try wp_auto)
@@ -411,7 +423,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iframe #; ipureintro; simp [serverFeatures]
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,
+  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist, %Hhl⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,
     ⟨#HTMR, #HRTL, #HStop, -⟩⟩, -⟩
   ihave ⟨%eTMR, #HeTMR, #HaTMR⟩ := errVarLeaf_get _ $$ HTMR
   ihave ⟨%eRTL, #HeRTL, #HaRTL⟩ := errVarLeaf_get _ $$ HRTL

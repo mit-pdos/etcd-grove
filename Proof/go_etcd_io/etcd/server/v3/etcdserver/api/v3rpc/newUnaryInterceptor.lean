@@ -78,7 +78,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   icases Hinit with ⟨-, -, -, -, #Hiv, -, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorVars at Hiv
   icases Hiv with ⟨#HeNS, #HeNC, #HeNL, #HeIV, #HeNoL, ⟨%kv, #Hkv⟩, ⟨%kl, #Hkl⟩, ⟨%hl, #Hhl⟩,
-    ⟨%cv, #Hcv⟩⟩
+    ⟨%cv, #Hcv, %Hcvl⟩⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNS HeNC HeNL HeIV HeNoL
   icases HeNC with ⟨%eNC, #HeNC⟩
   icases HeNL with ⟨%eNL, #HeNL⟩
@@ -184,7 +184,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     iexists _
     iframe
     ipureintro; exact Hne
-  wp_apply wp_ValidString as %bv -
+  wp_apply wp_ValidString as %bv %Hbv
   cases bv
   · wp_auto
     error_return eIV
@@ -194,7 +194,10 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   · ipureintro; rfl
   iintro %lsl ⟨Hlsl, -⟩
   wp_auto
-  wp_apply wp_WithLabelValues cv _ as %cnt ⟨%cnti, %Hcnt, #Hcs⟩
+  wp_apply wp_WithLabelValues cv _ [go!"type", go!"client_api_version"] _ _ $$ [Hlsl]
+    as %cnt ⟨%cnti, %Hcnt, #Hcs, -⟩
+  · iframe #; iframe Hlsl; ipureintro
+    exact ⟨Hcvl, prometheus.labelValuesOk_two _ _ _ _ (by decide) (of_decide_eq_true Hbv.symm)⟩
   subst Hcnt
   iunfold prometheus.counterSpec at Hcs
   wp_apply Hcs

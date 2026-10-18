@@ -9408,6 +9408,27 @@ are package variables built by untranslated initializers (`prometheus.NewCounter
 - *Recommendation:* (A), after D19j's `gen-init.py` work lands (it edits the same script); the
   call sites are in v3rpc (D19j's files) and the server's request path.
 
+**2026-10-18 · (iii) (A) carried out (approved by the user).** `prometheus.vecLabels v ls` is an
+`opaque` proposition (no axiom: nothing proves it but the vectors' `<X>_init` axioms, which state
+it with their `metrics.go` label names; pure, so persistent; `Labels.lean`). The four specs take
+`⌜vecLabels v ls ∧ labelValuesOk ls vs⌝ ∗ lvs ↦*{dq} vs` (`With`: `labelMapOk ls M`, the map's
+keys exactly `ls`, distinct, values UTF-8, `labels ↦${dq} M`) and give the values back.
+`utf8Valid` is a definition (Unicode's well-formed sequences, which are Go's `ValidString`'s), so
+constants are discharged by `decide`. The seven vectors the proofs read get the fact
+(`gen-init.py`'s `promvec`; their package facts in `apply/Base.lean`, `BaseApply.lean`,
+`v3rpc/Base.lean` carry it). The nine call sites discharge it; for the non-constant values seven
+value-only specs say what they return (each still an axiom, now stronger and still true of Go):
+`utf8.ValidString` returns `decide (utf8Valid s)` (the interceptors' check), `FormatBool`
+`"true"`/`"false"`, `types.ID.String`/`String_ptr` (`FormatUint(id, 16)`) and
+`AlarmType.String` (`EnumStringOf`: a descriptor name or a decimal) ASCII,
+`semver.Version.String` a string starting with two decimal numbers each followed by a dot
+(`semverStr`, `"%d.%d.%d"`), and `version.Cluster` of such a string ASCII (`"%d.%d"` after a
+successful parse, else the first two `.`-fields joined: the two numbers). `start`'s
+`ClusterVersionMetrics.With({"cluster_version": version.Cluster(v.String())})` needs the last two:
+`utf8Valid` of an arbitrary `semver.Version.String()` is not true of Go (`semver.New` does not
+check `pre`), so the fact goes through `semverStr`. No new axiom, no `sorry`; the baseline and the
+collections unchanged.
+
 **(iv) `backend.wBkt`, `wBkt_persistent`, `bbolt.Tx.DeleteBucket_kv`** (a persistent handle
 outlives `DeleteBucket(n)`; after `CreateBucketIfNotExists(n)` the old handle, whose `nodes` bbolt
 set to `nil`, passes `Put_kv`'s premises, and Go panics). A persistent fact cannot be revoked, so
