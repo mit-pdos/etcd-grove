@@ -47,7 +47,7 @@ theorem startRead_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E
     (h1 : 1 < sint.Z rev) :
     etcdRead (EM := V.EM) (rev - W64 1) ⊢ mvcc.startRead V.R.γ true rev := by
   unfold etcdRead
-  iintro (%h0 | ⟨%r1, %hr1, #H⟩)
+  iintro ⟨(%h0 | ⟨%r1, %hr1, #H⟩), -⟩
   · exfalso
     have : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
     omega
@@ -78,7 +78,9 @@ theorem isEtcdRangeWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) 
   · iframe #
     isplitr
     · ipureintro; exact Hpre
-    iunfold mvcc.startRead; ileft; ipureintro; rfl
+    unfold startOk; isplitr
+    · iunfold mvcc.startRead; ileft; ipureintro; rfl
+    ileft; ipureintro; rfl
   inext
   iintro %ch %γ ⟨#Hs, Hc, #Hi, -⟩
   iapply HΦ

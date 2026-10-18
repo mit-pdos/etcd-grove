@@ -99,9 +99,9 @@ theorem etcdReached_zero : ⊢ etcdReached (GF := GF) (W64 0) := by
   ileft; ipureintro; simp
 
 /-- **etcd's store had committed revision `r`** (K2e-6), downward closed: a read showed some
-`r' ≥ r` (`etcdReadAt`), or `r ≤ 0`. -/
+`r' ≥ r` (`etcdReadAt`), or `r ≤ 0`; (K2e-7d) and etcd had reached `r` (a read's revision is). -/
 def etcdRead (r : w64) : IProp GF :=
-  iprop(⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r')
+  iprop((⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r') ∗ etcdReached r)
 
 instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := by
   unfold etcdRead; infer_instance
@@ -109,13 +109,23 @@ instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := b
 theorem etcdRead_mono (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
     etcdRead (GF := GF) r ⊢ etcdRead r' := by
   unfold etcdRead
-  iintro (%h0 | ⟨%r1, %h1, #H⟩)
-  · ileft; ipureintro; omega
-  · iright; iexists r1; iframe H; ipureintro; omega
+  iintro ⟨(%h0 | ⟨%r1, %h1, #H⟩), #Hr⟩
+  · isplitr
+    · ileft; ipureintro; omega
+    iapply etcdReached_mono r r' h $$ Hr
+  · isplitr
+    · iright; iexists r1; iframe H; ipureintro; omega
+    iapply etcdReached_mono r r' h $$ Hr
 
-theorem etcdRead_of_at (r : w64) : etcdReadAt (GF := GF) r ⊢ etcdRead r := by
+theorem etcdRead_of_at (r : w64) : etcdReadAt (GF := GF) r ∗ etcdReached r ⊢ etcdRead r := by
   unfold etcdRead
-  iintro #H; iright; iexists r; iframe H; ipureintro; exact Int.le_refl _
+  iintro ⟨#H, #Hr⟩
+  iframe Hr
+  iright; iexists r; iframe H; ipureintro; exact Int.le_refl _
+
+theorem etcdRead_reached (r : w64) : etcdRead (GF := GF) r ⊢ etcdReached r := by
+  unfold etcdRead
+  iintro ⟨-, #Hr⟩; iexact Hr
 
 /-- A step's revision by an equal one. -/
 theorem EtcdStep_congr {r0 r1 r1' : w64} {pfx : GoString} {evs : List EtcdEv} (h : r1 = r1') :

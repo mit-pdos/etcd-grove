@@ -1351,7 +1351,7 @@ theorem watchGRPCStream.run.wp_proof
           iframe
           isplitr
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
-          dsimp only; iframe; simp only [createOf]; iexact Hsrd0
+          dsimp only; iframe; simp only [createOf]; iapply client.startOk_read $$ Hsrd0
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
             cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗ ⌜client.addCase S L' si si⌝ ∗
             (match si with
@@ -2107,7 +2107,7 @@ theorem watchGRPCStream.run.wp_proof
             ihave #HP2s := HP2
             iunfold wsIs at HP2s
             icases HP2s with ⟨-, -, -, -, -, -, -, -, -, -, #Hsrd2⟩
-            simp only [createOf]; iexact Hsrd2
+            simp only [createOf]; iapply client.startOk_read $$ Hsrd2
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
               cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗
               ⌜(L' = S1.L ∧ si = none ∧ si = none) ∨

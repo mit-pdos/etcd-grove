@@ -330,6 +330,20 @@ def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.Crea
 
 /-! ## One watch: its request and its substream -/
 
+/-- **A watch's start** (persistent; K2e-6, K2e-7d): for a watch registered with `sr`, its start
+revision was read from the server's store (`mvcc.startRead`) and etcd had reached the revision
+before it. -/
+def startOk (V : WEnv GF) (sr : Bool) (rev : w64) : IProp GF :=
+  iprop(mvcc.startRead V.R.γ sr rev ∗ (⌜sr = false⌝ ∨ etcdReached (EM := V.EM) (rev - W64 1)))
+
+instance startOk_persistent (V : WEnv GF) (sr : Bool) (rev : w64) :
+    Persistent (startOk V sr rev) := by
+  unfold startOk; infer_instance
+
+theorem startOk_read (V : WEnv GF) (sr : Bool) (rev : w64) :
+    startOk V sr rev ⊢ mvcc.startRead V.R.γ sr rev := by
+  unfold startOk; iintro ⟨#H, -⟩; iexact H
+
 /-- **A watch's values** (fixed when `run` takes its request): the request's model (`o`, the start
 revision `rev`), its context (`ctx`, `cs`), its `watchRequest`'s fields (`key`, `ed` the range end,
 `cn`/`pn` the created and progress notifications, `wbl` the buffer logging, `flt` the filters'
@@ -451,7 +465,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Unknown ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = false⌝ ∗ mvcc.startRead V.R.γ P.sr P.rev)
+    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = false⌝ ∗ startOk V P.sr P.rev)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
@@ -519,7 +533,7 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
     context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜wsReqOk V.pfx P⌝ ∗ mvcc.startRead V.R.γ P.sr P.rev) ∨
+    ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
 
