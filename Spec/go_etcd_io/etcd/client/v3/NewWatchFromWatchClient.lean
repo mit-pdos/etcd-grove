@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 
 @[expose] public section
 
@@ -26,17 +26,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `NewWatchFromWatchClient(wc, c)` of the stub `wc` and a client `c` (its call options, its
-logger): a watcher (`isWatcher`, with the client's logger) as a `Watcher`. -/
+/-- `NewWatchFromWatchClient(wc, c)` of the stub `wc` (on the connection `V.conn`) and a client `c`
+(its call options, its logger): a watcher (`isClientWatcherCore`, with the client's logger) as a
+`Watcher`. No fact about the server (D19f): construction only allocates; `isClientWatcher_of_core`
+adds them. -/
 abbrev NewWatchFromWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (c : Loc) (callSl : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ watchSrvFacts V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ v3rpc.watchStubAt V.wc V.conn ∗
       ⌜c ≠ null⌝ ∗ structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" c ↦□ callSl ∗
       callSl ↦*□ vs ∗ callOptsOk vs ∗ isClientLogger c ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.NewWatchFromWatchClient)) (Val #(wcIface V.wc)))
       (Val #c))
   {{ (wi : GoInterface), RET #wi; ∃ (w lg : Loc),
-      ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗ isClientWatcher { V with lg := lg } w }}
+      ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗ isClientWatcherCore { V with lg := lg } w }}
 
 end spec
 

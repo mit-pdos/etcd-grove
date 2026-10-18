@@ -61,14 +61,11 @@ theorem NewWatchFromWatchClient.wp_proof
   iexists «$r0_ptr», lg
   isplitr
   · ipureintro; rfl
-  unfold isClientWatcher
+  unfold isClientWatcherCore
   iexists callSl, vs
   iframe #
   isplitr
   · ipureintro; exact Hwnn
-  isplitr
-  · iapply (show watchSrvFacts (GF := GF) V ⊢ watchSrvFacts { V with lg := lg } from by
-      unfold watchSrvFacts watchConnFacts; exact .rfl) $$ Hf
   ipureintro; exact ⟨Hlg0, Hbd⟩
 
 end proof

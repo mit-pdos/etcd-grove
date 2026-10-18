@@ -1,13 +1,15 @@
 /-
 **What `clientv3.New` returns** (item 5, client construction, 2026-10-17; branch `construct`):
 `isNewClient cl ep V`, the client with its connection, its `KV` and its `Watcher`; the watch facts
-of the server it takes (`watchAddrFacts`). See `InvClientNew.lean`'s header. Lean-first (no Rocq
+of the server at `ep` (`watchAddrFacts`), which `New` does not take (D19f, 2026-10-18): its watcher
+is `isClientWatcherCore`, and `isNewClient_watcher` makes it `isClientWatcher` once the facts are
+supplied, before the first `Watch`. See `InvClientNew.lean`'s header. Lean-first (no Rocq
 counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
-public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 
 @[expose] public section
 
@@ -54,7 +56,8 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
 
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
-connection, its interceptor and some stub and logger). -/
+connection, its interceptor and some stub and logger), the watcher without the server's facts
+(`isClientWatcherCore`; `isNewClient_watcher` adds them). -/
 def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) : IProp GF :=
   iprop(clientKVAt cl ep ∗ retryClientOk cl ∗
@@ -62,12 +65,36 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
         interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
       kvObjAt api ep) ∗
     (∃ (w conn wc lg : Loc) (ics : List GoFunc),
-      clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
-      isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w))
+      clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗ grpcConn conn ep ics [] ∗
+      isClientWatcherCore { V with conn := conn, ics := ics, wc := wc, lg := lg } w))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) : Persistent (isNewClient cl ep V) := by
   unfold isNewClient; infer_instance
+
+/-- **The client's watcher, once the watch server's facts are supplied** (D19f): `New`'s client
+with `watchAddrFacts V` at its endpoint has a `Watcher` field that is a `*watcher` over the
+connection with the server's facts (`isClientWatcher`, what `watcher.Watch`'s spec and
+`client_watcher_rangeWatcher` take): the form `isNewClient` had before D19f. -/
+theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (ep : GoString) (V : WEnv GF) (hV : V.addr = ep) :
+    isNewClient cl ep V ∗ watchAddrFacts V ⊢
+      ∃ (w conn wc lg : Loc) (ics : List GoFunc),
+        clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
+        isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
+  unfold isNewClient
+  iintro ⟨⟨-, -, -, %w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, #Hf⟩
+  iexists w, conn, wc, lg, ics
+  iframe Hw
+  iapply isClientWatcher_of_core
+  iframe Hcore
+  iapply (show watchConnFacts (GF := GF) { V with conn := conn, ics := ics } ⊢
+      watchConnFacts { V with conn := conn, ics := ics, wc := wc, lg := lg } from by
+    unfold watchConnFacts; exact .rfl)
+  iapply watchConnFacts_of_addr
+  iframe Hf
+  rw [hV]
+  iexact Hc
 
 end defs
 

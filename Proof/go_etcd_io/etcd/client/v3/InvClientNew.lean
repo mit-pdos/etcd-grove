@@ -31,7 +31,8 @@ an axiom: `Build`'s initial state is `state()`'s, one `resolver.Endpoint` per en
 **What `New` gives** (`isNewClient cl ep V`): the `*Client` `cl` with its connection to the server
 at `ep`, the client's (`clientKVAt`: `isEtcdConn`, the retry interceptor installed), its `KV` a
 `*kv` over it (`kvObjAt`, what `client_*_end_to_end` take), its `Watcher` a watcher over it
-(`isClientWatcher`, given the watch facts of the server at `ep`, `watchAddrFacts V`), its logger
+(`isClientWatcherCore`, without the watch server's facts, D19f; `isNewClient_watcher` makes it
+`isClientWatcher` given the facts of the server at `ep`, `watchAddrFacts V`), its logger
 and the retry interceptor's reads (`retryClientOk`); `InvClientNewResult.lean`.
 -/
 module
