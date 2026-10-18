@@ -164,7 +164,7 @@ theorem RawNode.Propose.wp_proof
         Hfr.2.2.2.2.2.2.2.1 Hstok)
       (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
       (by rw [Hfr.2.2.2.2.2.2.2.1]; exact Hpvoff)
-      (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
+      (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
   icases Herr with (%Herr | ⟨-, #Hd⟩)

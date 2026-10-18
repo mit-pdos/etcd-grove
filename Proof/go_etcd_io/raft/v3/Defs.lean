@@ -848,6 +848,11 @@ acknowledgement keeps them (`NetFrame`, `LocalFrame`). -/
 structure NGhost where
   outlb : Nat := 0
   unst : Bool := false
+  /-- (2026-10-17, pre-vote at the `RawNode` layer) a term ceiling: every queued message is of a
+  term at most the node's or this (`OutTermOk`). Only the `RawNode` raises it, before a step, to a
+  term the budget covers (a received message's, or one past the node's before a `MsgHup`): a
+  `MsgPreVote` is at the next term and a granted `MsgPreVoteResp` at the requester's. -/
+  tc : w64 := W64 0
 deriving DecidableEq
 
 

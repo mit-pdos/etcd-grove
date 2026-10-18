@@ -56,6 +56,8 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (entryID.mk m.LogTerm' m.Index') = true) →
     -- pre-vote on (2026-10-10; `raft.Step.spec`)
     s.prevote = true →
+    -- (2026-10-17) the requested term within the node's or the ceiling (`NGhost.tc`)
+    (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -68,9 +70,10 @@ theorem wp_Step_MsgPreVote (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hpvon
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hpvon Hptc
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgPreVote_gt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hgt Hwf Hutd0 Hpvon
+      (Hptc.resolve_left (by omega))
   · wp_start_folded as ⟨Hphys, Hm⟩
     by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · iapply wp_Step_MsgPreVote_lt _P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hlt Hwf Hpvon

@@ -39,7 +39,8 @@ theorem RawNode.Tick.wp_proof
   rcases Hf with rfl | rfl
   all_goals first
     | wp_apply wp_tickElection cf _ γ rnv.raft' id s
-        (by rw [← Htrm]; exact Hterm) Hwf (fun _ => Hpf.1)
+        (by rw [← Htrm]; exact Hterm) (fun h => absurd (h.symm.trans Hpvoff) (by decide)) Hwf
+        (fun _ => Hpf.1)
         $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
     | wp_apply wp_tickHeartbeat cf _ γ rnv.raft' id s Hwf (fun _ => Hpf.1)
         $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩

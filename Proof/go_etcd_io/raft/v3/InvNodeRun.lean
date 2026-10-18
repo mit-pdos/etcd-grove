@@ -278,7 +278,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []) }
+                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
@@ -403,11 +403,12 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have Hsm : StepMsg m := netStepTypes_stepMsg Hty
   have Hrest : RestMsgOk s m ents ctx :=
     Hok.restMsgOk (st := ⟨m, ents, sn, ctx, rsp⟩) (by rw [← Htrm]; exact Htn)
-  have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
+  have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
+        (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) := by not_net
   have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
       m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
         (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) ∧
-      s.prevote = true := by
+      s.prevote = true ∧ (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc) := by
     not_net
   have P3 : m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
       (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
@@ -467,7 +468,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have e1 := Href.keep (by not_net) (by not_net); subst e1
   have e2 := Hcc (by not_net); subst c'
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
-  obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
+  obtain ⟨Ht1, -, Ht3, -, Ht5, -⟩ := Htm (by not_net)
   have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
       (if m.Type' = MsgTimeoutNow then 1 else 0) := by
     by_cases h : m.Type' = MsgTimeoutNow
@@ -705,7 +706,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       Hfr'.2.2.2.2.2.2.2.1 Hstok)
     (by rw [Hfr'.1]; exact Htrm) (by rw [Hfr'.2.2.2.2.2.2.1]; exact Hstor)
     (by rw [Hfr'.2.2.2.2.2.2.2.1]; exact Hpvoff)
-    (by rw [Hfr'.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr'.2.2.2.2.2.2.2.2]; exact Hrs_unst)
+    (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
     (Int.le_trans Hrs_clb Hc)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
 

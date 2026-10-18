@@ -159,7 +159,7 @@ theorem raft.tickHeartbeat.wp_proof
       have e2 := Hcc (by msg_ne); subst c'
       -- the step keeps the term and the log's frame: a tick from `s0` is one from `s`
       have Htr0 : ∀ s', TickStep s0 s' → TickStep s s' := by
-        obtain ⟨Ht1, -, Ht3, Hi, -⟩ := Htm (by msg_ne)
+        obtain ⟨Ht1, -, Ht3, Hi, -, -⟩ := Htm (by msg_ne)
         have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
         have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
         simp only [H0] at Ht3
@@ -167,8 +167,9 @@ theorem raft.tickHeartbeat.wp_proof
         rw [Int.max_eq_left h0] at Ht3
         have Hi := Hi (by msg_ne)
         have Hf := Hfr (by msg_ne) (by msg_ne)
-        intro s' ⟨Hf', Hl', Hu', Hi'⟩
-        exact ⟨Hf.trans Hf', by omega, by omega, by omega⟩
+        have Heq : s0.term = s.term := by word
+        intro s' ⟨Hf', Hl', Hu', Hi', Hp'⟩
+        exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq⟩
       icases Herr with (%Herr | ⟨%Hc', -⟩)
       rotate_left
       · exfalso; revert Hc'; msg_ne
@@ -303,14 +304,14 @@ theorem raft.tickHeartbeat.wp_proof
       iapply HΦ $$ %s'
       iframe Hphys Hghost
       ipureintro
-      obtain ⟨Ht1, -, Ht3, Hi, -⟩ := Htm (by msg_ne)
+      obtain ⟨Ht1, -, Ht3, Hi, -, Hpc'⟩ := Htm (by msg_ne)
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
       simp only [H0] at Ht3
       exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
-        Hi (by msg_ne)⟩⟩
+        Hi (by msg_ne), fun h => (Hpc' h).1⟩⟩
     · exfalso; revert Hc'; msg_ne
   · rw [decide_eq_false Hhb]
     wp_auto

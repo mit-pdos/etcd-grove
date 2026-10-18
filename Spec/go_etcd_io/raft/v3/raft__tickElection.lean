@@ -27,10 +27,12 @@ open Iris Iris.BI go_etcd_io.raft.v3
 keeps it, the term up by at most one (a campaign), `offsetInProgress` not back. -/
 def TickStep [FfiSyntax] (s s' : NState) : Prop :=
   NetFrame s s' ∧ uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ uint.Z s.term + 1 ∧
-  uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress
+  uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
+  -- (2026-10-17) a pre-candidate afterwards is at the term before (a pre-campaign keeps it)
+  (s'.role = .preCandidate → s'.term = s.term)
 
 theorem TickStep.refl [FfiSyntax] (s : NState) : TickStep s s :=
-  ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _⟩
+  ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _, fun _ => rfl⟩
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -45,6 +47,8 @@ abbrev raft.tickElection.spec : Prop :=
   ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
   -- a campaign increments the term; `send` panics if it wraps
   uint.Z s.term + 1 < 2 ^ 64 →
+  -- (2026-10-17) a pre-campaign's next term within the ceiling (`NGhost.tc`)
+  (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
   NStateWf s →
   -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s); the dynamic one
   -- excludes a pre-candidate (`GMode.Pre`)

@@ -402,7 +402,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   have Hmsgs_term : ∀ q ∈ ms1 ++ nonself id ms2, uint.Z q.st.msg.Term' ≤ uint.Z rs.term := by
     intro q Hq
     rw [Htrm]
-    exact (Hout_term q (Hsub q Hq) Hpvoff).1
+    exact ((Hout_term q (Hsub q Hq)).2 Hpvoff).1
   -- the `MsgReadIndex`s handed out: at most the outbox's read-index requests (2026-10-13)
   have Hrdc : rdCountM ((ms1 ++ nonself id ms2).map QMsg.st) ≤ rdCount s.outbox :=
     outboxRelP_rdCount _ _ _ _ Houtbox

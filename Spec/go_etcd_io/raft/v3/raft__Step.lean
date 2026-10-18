@@ -123,7 +123,9 @@ def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.stored = s.logst.stored ∧
   s'.logst.storage = s.logst.storage ∧
   s'.prevote = s.prevote ∧
-  s'.gh = s.gh
+  s'.gh = s.gh ∧
+  -- (2026-10-17) and the role (`PreCandStep`)
+  s'.role = s.role
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -184,41 +186,58 @@ up (a campaign); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
 `offsetInProgress` does not move back but by a `MsgApp`, whose append may truncate the
 in-progress entries. And (2026-10-13, for `node.go`'s term budget) a `MsgTimeoutNow` at most
 one past the larger of the node's and the message's term: a step-down to the message's
-term, then a campaign. -/
+term, then a campaign. And (2026-10-17, for the pre-candidate's budget at the `RawNode` layer)
+a node that is a pre-candidate afterwards was one before, or stepped a `MsgHup` (a pre-campaign),
+and is at the same term (`PreCandStep`). -/
+def PreCandStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+  s'.role = .preCandidate → s'.term = s.term ∧ (s.role = .preCandidate ∨ m.Type' = MsgHup)
+
+/-- `PreCandStep` for a concrete end state: the role and term kept, or a role that is no
+pre-candidate's (2026-10-17). -/
+macro "pc_tac" : tactic => `(tactic| first
+  | (intro h; exact ⟨rfl, .inl h⟩)
+  | (intro h; cases h)
+  | (intro h; exact absurd h (by decide))
+  | (intro h; exact ⟨rfl, .inr ‹_›⟩)
+  | (intro h; simp_all))
+
 def TermStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
   (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
   (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp → m.Type' ≠ MsgTimeoutNow →
      uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term')) ∧
   (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) ∧
-  (m.Type' = MsgTimeoutNow → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') + 1)
+  (m.Type' = MsgTimeoutNow → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') + 1) ∧
+  PreCandStep m s s'
 
 /-- A step that keeps the term. -/
 theorem TermStep.of_term [FfiSyntax] {m : MessageM} {s s' : NState}
     (h : s'.term = s.term)
-    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+    (hpc : PreCandStep m s s' := by pc_tac) :
     TermStep m s s' := by
   unfold TermStep; rw [h]
   exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ _ => Int.le_max_left _ _, hi,
-    fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega⟩
+    fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
 theorem TermStep.refl [FfiSyntax] (m : MessageM) (s : NState) : TermStep m s s :=
-  TermStep.of_term rfl (fun _ => Int.le_refl _)
+  TermStep.of_term rfl (fun _ => Int.le_refl _) (fun h => ⟨rfl, .inl h⟩)
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
 theorem TermStep.of_le [FfiSyntax] {m : MessageM} {s s' : NState}
     (hup : m.Type' ≠ MsgHup) (h1 : uint.Z s.term ≤ uint.Z s'.term)
     (h2 : uint.Z s'.term ≤ uint.Z m.Term')
-    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+    (hpc : PreCandStep m s s' := by pc_tac) :
     TermStep m s s' :=
   ⟨h1, fun h => absurd h hup, fun _ _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi,
-   fun _ => by have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term'); omega⟩
+   fun _ => by have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
 /-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
 theorem TermStep.of_local [FfiSyntax] {m : MessageM} {s s' : NState}
     (h : LocalFrame s s') : TermStep m s s' :=
-  TermStep.of_term h.1 (fun _ => h.2.1)
+  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp => ⟨h.1, .inl (h.2.2.2.2.2.2.2.2.2 ▸ hp)⟩)
 
 /-- What a response does to the role and the term (2026-10-10), beyond `TermStep`: a
 stale `MsgVoteResp` or `MsgAppResp` (from a term below the node's) leaves the role; a
@@ -304,7 +323,10 @@ abbrev raft.Step.spec : Prop :=
   -- term; `send` panics if that wraps to zero.
   (m.Type' = MsgHup →
      m.Term' = W64 0 ∧
-     uint.Z s.term + 1 < 2 ^ 64) →
+     uint.Z s.term + 1 < 2 ^ 64 ∧
+     -- (2026-10-17) with pre-vote on a `MsgHup` pre-campaigns: its `MsgPreVote`s are of the next
+     -- term, which the ceiling (`NGhost.tc`) must cover; the `RawNode` raises it first
+     (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)) →
   (m.Type' = MsgVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0) →
@@ -334,7 +356,10 @@ abbrev raft.Step.spec : Prop :=
      (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') = true) ∧
-     s.prevote = true) →
+     s.prevote = true ∧
+     -- (2026-10-17) a grant answers at the requested term, which the ceiling (`NGhost.tc`)
+     -- must cover when it is past the node's; the `RawNode` raises it first
+     (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc)) →
   (m.Type' = MsgPreVoteResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧

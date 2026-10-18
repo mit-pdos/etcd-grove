@@ -61,7 +61,7 @@ theorem RawNode.Campaign.wp_proof
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
     [] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgHup])
-    (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm⟩)
+    (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm, fun h => absurd (h.symm.trans Hpvoff) (by decide)⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)

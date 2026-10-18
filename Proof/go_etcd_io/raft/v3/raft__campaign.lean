@@ -173,7 +173,7 @@ theorem raft.campaign.wp_proof
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
   · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg
-      (by first | exact Hpv rfl | (apply Hpv; assumption) | simp_all) $$ [$Hphys] as Hphys
+      (by first | exact (Hpv rfl).1 | exact (Hpv (by assumption)).1 | simp_all) $$ [$Hphys] as Hphys
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
     wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
@@ -194,7 +194,8 @@ theorem raft.campaign.wp_proof
     iframe
   iintro HJ
   iNamed HJ
-  have Hpvpre : decide (t = campaignPreElection) = true → s.prevote = true :=
+  have Hpvpre : decide (t = campaignPreElection) = true →
+      s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc :=
     fun h => Hpv (of_decide_eq_true h)
   -- a pre-election's requests carry no `Context` (2026-10-13)
   have Hprecl : decide (t = campaignPreElection) = true → transferCtx t = [] := by
@@ -357,7 +358,12 @@ theorem raft.campaign.wp_proof
               cases pre
               · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32,
                   MsgVoteResp, MsgPreVoteResp]
-              · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
+              · simp [campRoleState, becomePrecandidate, sendMsgs, (Hpvpre rfl).1] at Hpf,
+            -- (2026-10-17) within the node's term or the ceiling
+            by cases pre
+               · left; simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs]
+               · right; simp only [campRoleState, becomePrecandidate, sendMsgs, ↓reduceIte]
+                 have := (Hpvpre rfl).2; word,
             by cases pre <;> rfl⟩)
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
         $$ [$Hphys $Hm]
@@ -431,7 +437,12 @@ theorem raft.campaign.wp_proof
               cases pre
               · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vreqW32,
                   MsgVote, MsgPreVoteResp]
-              · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
+              · simp [campRoleState, becomePrecandidate, sendMsgs, (Hpvpre rfl).1] at Hpf,
+            -- (2026-10-17) within the node's term or the ceiling
+            by cases pre
+               · left; simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs]
+               · right; simp only [campRoleState, becomePrecandidate, sendMsgs, ↓reduceIte]
+                 have := (Hpvpre rfl).2; word,
             by cases pre <;> rfl⟩)
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
         $$ [$Hphys $Hm]

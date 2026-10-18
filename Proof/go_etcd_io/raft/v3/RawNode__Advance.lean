@@ -337,7 +337,7 @@ private theorem wp_step_pending
       ipureintro
       exact ⟨Hwf', Hstp, by msg_ne, fun _ => by msg_ne, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1,
         Hfr.2.2.2.1, by rw [Hfr.1]; exact Int.le_refl _, Hfr.1, Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1,
-        Hfr.2.2.2.2.2.2⟩
+        Hfr.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.1⟩
   | applyAck ce =>
     unfold pendingRel
     icases Hp with ⟨%Hm, -⟩
@@ -383,7 +383,7 @@ private theorem wp_step_pending
       ipureintro
       exact ⟨Hwf', Hstp, by msg_ne, fun h => absurd rfl (h ce), Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1,
         Hfr.2.2.2.1, by rw [Hfr.1]; exact Int.le_refl _, Hfr.1, Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1,
-        Hfr.2.2.2.2.2.2⟩
+        Hfr.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.1⟩
 
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :

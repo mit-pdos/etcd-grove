@@ -612,7 +612,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "Hself" ∷ ([∗list] q ∈ ms2, selfOwn id q) ∗
     "Hother" ∷ ([∗list] q ∈ ms2, otherHalf id q) ∗
     "%HmsgsAA_ok" ∷ ⌜∀ m ∈ ms2, AAMsgOk id s.term m.st⌝ ∗
-    "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.prevote s.term m.st.msg⌝ ∗
+    "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.prevote s.term s.gh.tc m.st.msg⌝ ∗
     "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
     "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
@@ -640,7 +640,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ownSliceCap Loc sl2' (DFrac.own 1) -∗
         outboxRel o ms1' ms2' -∗
         ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
-        ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.prevote s.term m.st.msg⌝ -∗
+        ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.prevote s.term g.tc m.st.msg⌝ -∗
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
         ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
@@ -882,7 +882,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []) }
+                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap

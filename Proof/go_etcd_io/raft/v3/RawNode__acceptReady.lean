@@ -593,7 +593,7 @@ theorem RawNode.acceptReady.wp_proof
       refine ⟨⟨_, _, rfl⟩, ?_⟩
       simp only [PendingOk, selfPending, decide_eq_true_eq]
       refine ⟨Hb, fun Hpf => ?_⟩
-      have Hnp := (Hout_term m (List.mem_append_right _ Hm'.1) Hpf).2
+      have Hnp := ((Hout_term m (List.mem_append_right _ Hm'.1)).2 Hpf).2
       simp only [decide_eq_false_iff_not]
       exact Hnp
     apply ready_stepsOk _ _ _ ce _ (Int.le_refl _)

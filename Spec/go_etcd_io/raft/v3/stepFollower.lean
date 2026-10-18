@@ -164,7 +164,9 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
      else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
      else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
        dropped = false ∧ s' = s
-     else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOkC c id s s'
+     else if m.Type' = MsgTimeoutNow then
+       -- (2026-10-17) the transfer's campaign makes no pre-candidate
+       dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
      else False)
 
 /-- At a simple configuration, `FollowerStepResultC`'s step is `FollowerStepResult`'s. -/
@@ -179,7 +181,7 @@ theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64
   · simp [hT, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
       MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
       MsgUnreachable, MsgSnapStatus, MsgTimeoutNow] at h ⊢
-    exact ⟨h.1, h.2.simple⟩
+    exact ⟨h.1, h.2.1.simple⟩
   · simp only [hT, ite_false] at h ⊢
     exact h
 

@@ -67,7 +67,8 @@ theorem raft.hup.wp_proof
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
+    exact ⟨⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+      fun _ => .inl (by first | rfl | simp_all)⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
       cases h : s.role <;> simp_all [stateW64] <;> decide
@@ -91,7 +92,8 @@ theorem raft.hup.wp_proof
         iapply HΦ $$ %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
+        exact ⟨⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+        fun _ => .inl (by first | rfl | simp_all)⟩
       | false =>
       wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -102,9 +104,16 @@ theorem raft.hup.wp_proof
       iapply HΦ
       iframe Hphys
       ipureintro
-      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
+      refine ⟨⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
         stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
-        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩
+        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩, ?_⟩
+      rotate_left
+      · -- (2026-10-17) a pre-candidate only by a pre-election
+        intro h
+        by_cases hp : t = campaignPreElection
+        · exact .inr hp
+        · exfalso
+          simp [campaignState, decide_eq_false hp, sendMsgs, becomeCandidate] at h
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
       split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo, resetTo0] <;>
@@ -117,7 +126,8 @@ theorem raft.hup.wp_proof
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
+      exact ⟨⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+        fun _ => .inl (by first | rfl | simp_all)⟩
 
 end proof
 

@@ -113,6 +113,8 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
         ents = [] ∧ ctx = [] ∧
         uint.Z m.Term' ≤ uint.Z s.term + (if m.Type' = MsgPreVoteResp then 1 else 0)) ∧
      (s.prevote = false → uint.Z m.Term' ≤ uint.Z s.term ∧ m.Type' ≠ MsgPreVoteResp) ∧
+     -- (2026-10-17) at most the node's term or the ceiling (`NGhost.tc`)
+     (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc) ∧
      out = [absMsgFrom ty m id m.Term' ents ctx])
   ∨
   (∃ ty,

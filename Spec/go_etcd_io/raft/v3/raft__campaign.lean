@@ -56,7 +56,9 @@ abbrev raft.campaign.spec : Prop :=
   -- a pre-election only with pre-vote on (2026-10-10): its pre-vote messages are of the
   -- next term, which `ownRaftPhys` allows only then (`OutTermOk`); `hup` is called with
   -- `campaignPreElection` exactly when `r.preVote`
-  (t = campaignPreElection → s.prevote = true) →
+  -- (2026-10-17) and the next term within the ceiling (`NGhost.tc`), which the `RawNode` raises
+  -- before a `MsgHup`
+  (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
   {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
