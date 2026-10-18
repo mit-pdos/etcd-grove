@@ -8486,6 +8486,45 @@ the theorem says nothing.
   by a tick's caller from its own step, the ticker's payload `True`: `rnTickerOk` mints nothing).
   Left: `rnLogFits` (a receipt per entry raft appends: a raft model change) and mvcc compaction's
   `2 ^ 62` premise.
+  *`rnLogFits` (stage 5, 2026-10-18): stopped for a decision.* What it bounds: a `Ready`'s
+  unstable entries `es` (`e0.Index + |es| ≤ 2 ^ 61`, `MemoryStorage.Append`'s premise) and its
+  committed log (`|d ++ ce| + 1 < 2 ^ 64`); both are positions in a node's log, which grows by its
+  own creation (a leader's `appendEntry`: `Step.propose`, `Step.win`) and by entries other nodes
+  created (`appAccept`, `snapRestore`, whose entries and base carry `isEntry`). So the bound has to
+  be a fact about every *created* entry, recorded where it is created, and checkable by every
+  node: the protocol layer's `isEntryR` (leader branch). The node layer alone cannot do it (a
+  follower's growth comes from messages; a count kept per node at `node.run` pays one receipt per
+  event, not per entry), nor can the server (a duplicated `MsgProp` makes raft append the same
+  proposal twice, so deposits do not bound entries). Proposed design (P):
+  (1) `isEntryR`'s leader branch gains `⧖ ((uint.Z e.Index').toNat - γ.reBoot.length)` (persistent);
+  then every log's last index `L` (last entry's record, or the base's `isSnapMeta`, or `0`) has
+  `⧖ (L - |reBoot|)`, and so do a `Ready`'s `es` and committed log;
+  (2) `appendEntry.spec` takes `⧖ m` and returns `⧖ (m + |ents|)` (its clone loop takes one step
+  receipt per entry, `wp_go_step_preceipt` at `proto.Clone`'s resolution); `raft.Step`'s branches
+  start from the `⧖ (L - |reBoot|)` of their ghost state;
+  (3) the creating rules get the receipt: the refinement is a pure relation (`StepC`, `StepR`,
+  `StepCD`) checked once per `raft.Step` by a generic ghost update (`ownRaftGhost_stepC_in`,
+  `ghost_step_recv`/`ghost_step_md`, `RefinementR`, `RefinementDyn`), and a derivation may create
+  entries and then truncate below them (`propose; higherTerm; appAccept`), so no endpoint of the
+  derivation bounds them. Options: (3a) a bound parameter `B` of the relations, with
+  `plogLastIndexZ + |ents| ≤ B + |reBoot|` a premise of `propose`/`win` (and the dynamic ones), the
+  generic update taking `⧖ B` (persistent, so both halves of `trans` share it); (3b) a monotone
+  pure field of `PState`/`NState` (the highest index created, raised by `pappend` and `logAppend`)
+  with `⧖ (hw - |reBoot|)` in `ownRaftGhost`, the generic update taking `⧖ (s'.hw - |reBoot|)`;
+  (3a) changes ~200 constructor uses and ~150 statements mechanically, (3b) the `toPState`
+  equations of every log-changing Go proof.
+  (4) the protocol layer (`[AllG GF]` only) needs `[ReceiptGS GF]` throughout (`Protocol/*`, a
+  section variable), a departure from the Rocq mirror;
+  (5) `readyData` (raft's `InvNode.lean`) gains a persistent `∃ n, ⧖ n ∗ ⌜es`'s and the committed
+  log's last index `≤ n + |reBoot|⌝` (from `ownRawNodeReady_handout`, which holds the ghost
+  state, and the stale `Ready`'s case), and the server's premise becomes the pure
+  `receiptBound GF + |reBoot| ≤ 2 ^ 61` (`|reBoot|` is the number of initial peers; the server has
+  no bound on it yet: a pure premise on `NewServer`'s peers).
+  Cost: a raft-model change across `Protocol/{Ghost,Refinement,RefinementDyn,StepC,StepR,Facts,
+  LeaderCompleteness}`, the Go proofs of `appendEntry`, `becomeLeader`, `stepLeader`'s `MsgProp`,
+  `raft.Step`'s branches (`MsgProp`, `MsgVoteResp`, `MsgHup`), `StepGhostMode`, the node layer
+  (`readyData`, `freshOk`/`staleOk`) and the register example; no trust-base change expected. The
+  user decides whether to do it, and (3a) or (3b).
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
