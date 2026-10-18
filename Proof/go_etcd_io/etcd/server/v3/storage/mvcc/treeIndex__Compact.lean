@@ -148,7 +148,7 @@ theorem mvcc.treeIndex.Compact.wp_proof
   wp_call
   (try wp_auto)
   ihave #HlogLb : monoListLbOwn γ.log log $$ []
-  · iunfold mvcc.idxCert at Hcert; icases Hcert with ⟨-, -, -, #H⟩; iexact H
+  · iunfold mvcc.idxCert at Hcert; icases Hcert with ⟨-, -, -, #H, -⟩; iexact H
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hnev0 Ht0 Hkis0 Hg0]
   · inext
     iunfold mvcc.idxLockInv

@@ -120,6 +120,7 @@ theorem mvcc.newTreeIndex.wp_proof
     iexists -1, []
     iframe Hcmp
     ipureintro; simp
+  imod receipt_zero (GF := GF) with Hr0
   wp_auto
   -- one token's guard
   have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
@@ -136,14 +137,17 @@ theorem mvcc.newTreeIndex.wp_proof
     simp only [named, γ]
     iframe #
     ipureintro; exact Hlgnn
-  isplitl [Hhauth Hlauth]
+  isplitl [Hhauth Hlauth Hr0]
   · iunfold mvcc.idxWriter
     simp only [γ]
     rw [hshape, hevs]
     iframe Hhauth Hlauth
     isplitl []
     · iexact Hnlb
-    ipureintro; exact hwf
+    isplitl []
+    · ipureintro; exact hwf
+    simp only [mvcc.logCh, List.map_nil, List.sum_nil, List.length_nil, Nat.add_zero]
+    iexact Hr0
   isplitl [Hlother]
   · iexact Hlother
   isplitl [Hcauth]

@@ -75,7 +75,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The store stays small** (persistent; a premise): every sealed log (`mvcc.idxSealed`: every
+/-- **The store stays small** (persistent; a theorem since D19b, `storeSmall_of_receipts`,
+until then a premise of `NewServer.spec`): every sealed log (`mvcc.idxSealed`: every
 certified one, `idxCert_sealed`, and the one a writer has sealed and not yet committed, one
 revision more; unit W-M2b) has at most `2 ^ 62` changes (`txn.LogSmall`: the sort's premise,
 `sort.Sort`'s bound and the comparators' non-negative values). -/
@@ -84,6 +85,21 @@ def storeSmall (γ : mvcc.StoreNames) : IProp GF :=
 
 instance storeSmall_persistent (γ : mvcc.StoreNames) : Persistent (storeSmall (GF := GF) γ) := by
   unfold storeSmall; infer_instance
+
+/-- **The store stays small, from time receipts** (D19b, 2026-10-18): a sealed log has fewer
+changes than the receipts' bound (the index's writer holds a receipt per change,
+`mvcc.idxSealed_small`). -/
+theorem storeSmall_of_receipts [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (γ : mvcc.StoreNames) (h : receiptBound GF ≤ 2 ^ 62) :
+    ⊢ storeSmall (GF := GF) γ := by
+  iintro
+  iunfold storeSmall
+  iintro !> %log Hs
+  ihave %Hsm := mvcc.idxSealed_small _ _ $$ Hs
+  ipureintro
+  unfold txn.LogSmall txn.logChanges
+  unfold mvcc.logCh at Hsm
+  omega
 
 /-- The values of the server's fields the read side reads (besides `ReqFields`). -/
 structure ReadFields where

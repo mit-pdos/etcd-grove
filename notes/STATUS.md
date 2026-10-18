@@ -193,6 +193,24 @@ bound or a buffer bound not tied to the write-backs. Better with receipts: back 
 version counter itself by receipts (one per write-back `Unlock`), which would remove the
 write-back tokens (`wbTok`, D14f/D14g's threading) altogether; a backend-wide change, not done.
 
+**Stage 3: `storeSmall` (done).** mvcc's index writer (`idxWriter`, `idxWriterSealed`) holds a time
+receipt per change of its log and pending revision (`⧗ (logCh ilog + pend.length)`, `logCh` the
+log's change count, `txn.logChanges`); `treeIndex.Put` and `Tombstone` take one each from a Go
+step of theirs (the steps after the index lock's `Lock`, up to the next resolution); a seal and a
+commit snapshot them, so every sealed and certified log carries `⌜logCh log < receiptBound GF⌝`
+(`idxSealed`, `idxCert`: one more conjunct each, `idxSealed_small`). `storeSmall` is now a
+theorem, `storeSmall_of_receipts` (`InvRead.lean`, under `receiptBound GF ≤ 2 ^ 62`), and
+`NewServer.spec`'s premise `#Hsmall` is gone (the `2 ^ 48` premise implies it); `srvLogsSmall`
+(the watch facts) was already derived from `storeSmall` (`srvLogsSmall_of_read`). `rnLogFits` is
+raft's (the node layer's `Ready` entries' index bound): deferred to the raft stage. A tactic for
+taking a receipt: `wp_take_receipt as H` (`Proof/ReceiptTactics.lean`): steps (pure, loads,
+stores, local allocations named as `wp_auto` names them) up to the next `FuncResolve`/
+`MethodResolve` and takes it with `wp_go_step_receipt'`. Statements changed: `mvcc.idxWriter`,
+`idxWriterSealed`, `idxSealed`, `idxCert` (the receipts / the bound); new `mvcc.logCh`,
+`logCh_snoc`, `idxSealed_small`, `storeSmall_of_receipts`; `NewServer.spec` (`#Hsmall` gone). The
+mvcc compaction's own smallness premise (`InvCompact.lean`, `… .sum < 2 ^ 62`, the
+`mvcc-compaction` collection) could be discharged the same way; not done. Trust base unchanged.
+
 ## Item 9: the adequacy example (stage 1; stopped) (2026-10-18, branch `raft-retarget`)
 
 Open-work item 9. Stage 1 (the Go program and its translation) done; stages 2 and 3 (the

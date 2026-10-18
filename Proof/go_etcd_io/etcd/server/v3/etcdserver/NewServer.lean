@@ -994,10 +994,7 @@ theorem NewServer.wp_proof
   -- supply from the time-receipt bound (D19b), the thread bound; `ClusterVersion()` from the cluster's
   -- `Version` contract
   isplitr
-  · iunfold storeSmall
-    rw [Hγw.2.2.2.1]
-    iunfold storeSmall at Hsmall
-    iexact Hsmall
+  · iapply (storeSmall_of_receipts _ (by omega))
   isplitr
   · iapply (idCred_supply ρ.ids Hrb)
   isplitr

@@ -31,7 +31,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
   · iexists te; iexact Htrc
   iunfold mvcc.idxCert at Hc0
-  icases Hc0 with ⟨-, -, -, #Hl0⟩
+  icases Hc0 with ⟨-, -, -, #Hl0, -⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs

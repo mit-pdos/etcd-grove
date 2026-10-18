@@ -2713,7 +2713,7 @@ theorem isTxnWrite_logQ (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log
   icases Htw with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Htw⟩
   iNamed Htw
   iunfold idxWriter at Hw
-  icases Hw with ⟨Hh, #Hn, %Hwf, Hla⟩
+  icases Hw with ⟨Hh, #Hn, %Hwf, Hla, Hrc⟩
   ihave %Hag := monoListAuthOwn_agree _ _ _ _ _ $$ Hla Hq
   isplitr
   · ipureintro; exact Hag.2.symm
@@ -2731,8 +2731,8 @@ theorem isTxnWrite_logQ (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log
   · ipureintro; exact Hbudget
   isplitr
   · ipureintro; exact Hps
-  isplitl [Hh Hla]
-  · iunfold idxWriter; iframe Hh Hla; iframe #; ipureintro; exact Hwf
+  isplitl [Hh Hla Hrc]
+  · iunfold idxWriter; iframe Hh Hla Hrc; iframe #; ipureintro; exact Hwf
   ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
 
 /-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/

@@ -22,11 +22,13 @@
   `clusterWorkloadOk` at `E₀`, D13c, now proved: `clusterWorkloadOk_of`), the start `bootKV` at
   the consistent index `0`; the member id's 16 low bits not `0` and the conf-change policy
   `srvCCPolicy` admitting id-`0` conf changes only (D19c: no request claims the id `0` of raft's
-  bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): `storeSmall` (the store's sealed logs small), the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
+  bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
   and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
   a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`) and
   `receiptBound GF ≤ N + 1` (D19b: `start` puts the `N` write tokens in a receipt-backed budget,
-  one taken per applied entry; until then the premise `srvLifeBound`, at most `N` entries).
+  one taken per applied entry; until then the premise `srvLifeBound`, at most `N` entries); the
+  first also bounds the store's sealed logs (`storeSmall_of_receipts`: mvcc's index writer holds
+  a receipt per change; until D19b the premise `storeSmall`).
 * `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
   server's raft environment `srvEr`), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
@@ -106,8 +108,6 @@ abbrev NewServer.spec : Prop :=
       "Hrd" ∷ srvReadNamesFresh ρ.rd (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) ∗
       -- the workload clause's residual size bound (D19c; the clause itself until then, D13c)
       "#Hlogb" ∷ clusterLogBound ρ (W64 0) bootKV ∗
-      -- the other lifetime bound (D17): every sealed log of the store at most `2 ^ 62` changes
-      "#Hsmall" ∷ storeSmall E₀.γ ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the background
       -- goroutines' effects and the auth store's record bound
       "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗

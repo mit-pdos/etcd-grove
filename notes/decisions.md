@@ -8478,8 +8478,10 @@ the theorem says nothing.
   `idCred γi n := ⌜receiptBound GF ≤ 2 ^ 48⌝`). Stage 2 (done): `srvLifeBound` (a receipt per
   applied entry, from the apply loop's iteration, buys a token of a receipt-backed budget,
   `srvWTPool`: the count is of tokens taken, not of committed entries, so no statement about
-  raft's log is needed; `run` no longer hands tokens per batch). Stage 3: `storeSmall`, the watch store's
-  `srvLogsSmall`, `rnLogFits` if server-side. Raft's tick/term budget (`budgetInv`, `tickCred`,
+  raft's log is needed; `run` no longer hands tokens per batch). Stage 3 (done): `storeSmall`
+  (mvcc's index writer holds a receipt per change, `treeIndex.Put`/`Tombstone` take one; sealed
+  and certified logs carry `logCh log < receiptBound GF`), the watch store's `srvLogsSmall`
+  (derived from it already); `rnLogFits` is raft's, with the raft stage. Raft's tick/term budget (`budgetInv`, `tickCred`,
   `rnTickerOk`) after PreVote lands.
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server

@@ -3,6 +3,7 @@ Proof of `Spec/.../mvcc/treeIndex__Tombstone.lean`. Lean-first (no Rocq counterp
 -/
 module
 
+public import Proof.ReceiptTactics
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.BTree__Get
@@ -39,7 +40,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxWriter at Hw
-  icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth⟩
+  icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf
   wp_apply wp_with_defer
   iintro %defer Hdefer
@@ -59,6 +60,11 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
+  -- the receipt of the change (D19b), from the next resolution step
+  wp_take_receipt as Hr
+  ihave Hrc : iprop(⧗ (mvcc.logCh ilog + (pend ++ [mvcc.Change.del k]).length)) $$ [Hrc Hr]
+  · rw [List.length_append, List.length_singleton, ← Nat.add_assoc]
+    iapply (receipt_add _ 1).2; iframe
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
@@ -195,7 +201,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   iapply HΦ
   iunfold mvcc.idxWriter
   rw [← mvcc.histShape_ev, hcount]
-  iframe Hauth Hlauth
+  iframe Hauth Hlauth Hrc
   isplitl []
   · iexact Hnlb'
   ipureintro; exact hwf''
