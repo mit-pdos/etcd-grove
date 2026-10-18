@@ -31,6 +31,7 @@ public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__Tick
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Spec.go_etcd_io.raft.v3.node__Propose
+public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
@@ -234,13 +235,46 @@ theorem isRNMemStor_of_memstorage (γ : RNNames) :
   iunfold rnAppendReceipt
   iexact Hrcpt
 
-/-- **The node meets `raftPropose`** (`node.Propose.spec`): raft's commit invariant and the
+/-- **A change `ccRaftOk` admits leaves the voters as they are** (`CCShrink`, the static mode's
+premise of `node.ApplyConfChange`; audit phase B3, 2026-10-18): an `AddNode` of a voter
+(`makeVoter` of a voter), or of the node `0` (skipped), on a non-empty configuration. -/
+theorem ccShrink_of_raftOk (cfg : GSet w64) (cm : CCV1M) (h : ccRaftOk cfg cm) :
+    CCShrink cfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
+  obtain ⟨ht, k, hk, hid⟩ := h
+  have hne : cfg ≠ ∅ := by
+    intro he
+    rw [he] at hk
+    have := (GMap.elem_of_gset _ _).1 hk
+    simp at this
+  rcases hid with hid | hid0
+  · by_cases h0 : cm.nodeId = W64 0
+    · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm h0 hne)
+    · intro lrn Hd
+      refine ⟨lrn, GMap.subseteq_refl _, ?_⟩
+      have hin : cm.nodeId ∈ cfg := by rw [hid]; exact hk
+      have hL : cm.nodeId ∉ lrn := fun h' => Hd _ h' hin
+      have hc : ({ Type' := cm.type, NodeId' := cm.nodeId } : ConfChangeSingleM) =
+          addNodeCC cm.nodeId := by rw [ht]
+      show ccApplyM (W32 0) [{ Type' := cm.type, NodeId' := cm.nodeId }] (cfgState cfg lrn) =
+        some (cfgState cfg lrn)
+      apply ccApplyM_single
+      rw [hc]
+      have := simpleM_cfgState_addNode cfg lrn cm.nodeId h0 hL Hd
+      rw [GMap.insert_id _ _ _ ((GMap.elem_of_gset _ _).1 hin)] at this
+      exact this
+  · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm hid0 hne)
+
+/-- **The node meets `raftPropose`** (`node.Propose.spec`, and since audit phase B3,
+2026-10-18, `node.ApplyConfChange.spec` in the static mode for a change `ccRaftOk` admits,
+`ccShrink_of_raftOk`): raft's commit invariant and the
 proposals' witnesses are the server's (`srvPropWits_of_raft`); a `Propose` over the request
 path's context (`txnCtx_nodeCtx`) with the server's argument (`srvPropArg`, converted by
 `srvPropAu_to_propAu`) returns raft's result in the server's terms (`srvPropRes`) and an error
 the gRPC layer takes (`applyErrIs_of_propErr`). -/
 theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
-    (wp_Propose : letI : MemStorReg GF := ⟨γ.reg⟩; node.Propose.spec (GF := GF) (hG := hG)) :
+    (wp_Propose : letI : MemStorReg GF := ⟨γ.reg⟩; node.Propose.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨γ.reg⟩;
+      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) := by
@@ -249,8 +283,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, -, -, -, -, -⟩
+  icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -⟩
   obtain ⟨Hraft, -, -⟩ := Hn
+  obtain ⟨Hstatic, -⟩ := Hmode
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -259,6 +294,22 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   · iexact Hinv
   isplitr
   · iapply srvPropWits_of_raft E.γr.raft $$ Hinv
+  isplitr
+  rotate_left
+  · -- `ApplyConfChange` (audit phase B3): raft's static mode, a change that keeps the voters
+    iintro !> %c %cm %Hok %Φ !> Hc HΦ
+    have hsh : CCShrink γ.node.raft.reCfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
+      rw [← Hraft]; exact ccShrink_of_raftOk _ cm Hok
+    wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, []⟩
+        (cfgState ∅ ∅) (fun _ => hsh)
+        (fun dec c0 h0 h1 hd => absurd (hd ▸ Hstatic) (by simp))) $$ [Hc]
+      as %csp %cs ⟨Hcs, -⟩
+    · iframe #
+      iframe Hc
+      ileft; ipureintro; exact Hstatic
+    iapply HΦ
+    iexists cs
+    iexact Hcs
   iintro !> %ctx %cd %dsl %data %Q %fresh %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
   ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) fresh $$ [Harg]

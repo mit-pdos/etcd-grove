@@ -227,7 +227,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv0 := Hsrv
   iunfold isServer at Hsrv
-  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, #Hgen⟩
+  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, #Hgen, -⟩
   ihave #Hat' := Hat
   iunfold srvAtomics at Hat'
   icases Hat' with ⟨#Hainv, -, #Hkvi⟩

@@ -448,11 +448,12 @@ instance srvGenAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
 protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read (the applier's in the
 environment `E`), and the atomics (the applied index's at the read names `γr`: unit 4b); the
 request path's read names are `γr` (`ρ.rd`, 2026-10-14, unit C2a: the results the apply thread
-hands the wait carry a witness at them, `resultIsW`). -/
+hands the wait carry a witness at them, `resultIsW`); the server's raft node (`srvRaftNode`, whose
+`ApplyConfChange` `applyConfChange` calls; audit phase B3, 2026-10-18). -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
-    srvAtomics s E γr ∗ srvGenAt s E ρ)
+    srvAtomics s E γr ∗ srvGenAt s E ρ ∗ srvRaftNode s ρ.raft)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :

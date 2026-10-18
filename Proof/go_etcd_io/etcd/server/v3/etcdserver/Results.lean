@@ -231,7 +231,8 @@ theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
     node.wp_ReadIndex
 
 /-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
-`node.wp_Propose` (`raftPropose_of_isNode`), over `rnEnvOk`, `rnIsNode` and `srvRaftLogInv`. The
+`node.wp_Propose` and, since audit phase B3 (2026-10-18), `node.wp_ApplyConfChange`
+(`raftPropose_of_isNode`), over `rnEnvOk`, `rnIsNode` and `srvRaftLogInv`. The
 errors are raft's since stage R7c (`propErr`: `nil`, `ErrStopped`, the context's `Canceled` or
 `DeadlineExceeded`, the proposal's `ErrProposalDropped`), each one the gRPC layer takes
 (`applyErrIs_of_propErr`, by the server's and the read package's facts). -/
@@ -240,7 +241,7 @@ theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) :=
   letI : MemStorReg GF := ⟨γ.reg⟩
-  raftPropose_of_isNode E γ node.wp_Propose
+  raftPropose_of_isNode E γ node.wp_Propose node.wp_ApplyConfChange
 
 /-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10): raft's
 `memStorage_Append` (over the linked `MemoryStorage.wp_Append`), for a registered storage. -/
@@ -262,7 +263,7 @@ default configuration) since 2026-10-17. -/
 theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
   letI : MemStorReg GF := ⟨reg⟩
   raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
-    node.wp_Tick node.wp_ReadIndex node.wp_Propose
+    node.wp_Tick node.wp_ReadIndex node.wp_Propose node.wp_ApplyConfChange
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s

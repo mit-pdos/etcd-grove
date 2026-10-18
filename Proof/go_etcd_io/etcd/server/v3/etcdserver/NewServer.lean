@@ -233,7 +233,8 @@ theorem NewServer.wp_proof
     (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
-    (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG)) :
+    (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hmid Hfgp
   wp_start
@@ -293,6 +294,7 @@ theorem NewServer.wp_proof
   -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
   have hNS := raftNode_of_StartNode (GF := GF) (MemStorReg.memStorRegName GF) h8 h9 h10 h11 h12 h78
+    h86
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
   wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'

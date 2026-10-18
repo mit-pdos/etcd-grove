@@ -101,7 +101,7 @@ log's model, the invariant and the client's `etcdKV`. -/
 theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (E : CoPset)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : BootLogOk ccOk ps bootLog)
-    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0)
+    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0 ∧ ccBootOk γs.raft.reCfg d)
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
     (hlog : γk.log0 ≠ []) :
     ⊢ rLog (GF := GF) γs.raft bootLog -∗
@@ -125,7 +125,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       simp only [Option.map_some, Option.some.injEq] at hm
       subst hm
       obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, hok⟩ := hk n e he
-      refine ⟨hi, ht, ?_, hcc _ _ hok⟩
+      refine ⟨hi, ht, ?_, (hcc _ _ hok).1⟩
       unfold isConfChangeEncoding
       show (ccDecodeV1 e.Data').isSome = true
       rw [hd]; rfl
@@ -152,6 +152,21 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     obtain ⟨-, ht, -, hid⟩ := hent' n m hn
     refine ⟨fun h0 => ?_, fun _ => hid⟩
     rw [ht] at h0; exact absurd h0 (by decide)
+  -- (audit phase B3) every conf change of the boot log is one `applyConfChange` takes
+  have hccl : ccLogOk γs.raft.reCfg (bootEntries bootLog) := by
+    intro m hm _
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    obtain ⟨-, -, hk⟩ := hboot
+    unfold bootEntries at hn
+    rw [List.getElem?_map] at hn
+    cases he : bootLog[n]? with
+    | none => rw [he] at hn; simp at hn
+    | some e =>
+      rw [he] at hn
+      simp only [Option.map_some, Option.some.injEq] at hn
+      subst hn
+      obtain ⟨-, -, -, -, hok⟩ := hk n e he
+      exact (hcc _ _ hok).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, ht, -, -⟩ := hent' n m hn
@@ -160,7 +175,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
       ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γk L))
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft.reCfg γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
@@ -171,7 +186,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     · ipureintro; exact hok
     iunfold kvWork
     iframe Hcl
-    ipureintro; exact hshape
+    ipureintro; exact ⟨hshape, hccl⟩
   imodintro
   iframe Hinv
   iunfold etcdKV; iexact Hv2

@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShape L) :
+    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft.reCfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -74,6 +74,9 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
   · rename_i ht
     have h0 := hsh.2 ht
     rw [h0]
+    isplitr
+    rotate_left
+    · ipureintro; exact hcl m hm ht
     iintro !> %Ψ HR
     iunfold reqWaitR at HR
     icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
@@ -97,13 +100,15 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
+  obtain ⟨Hsh, Hccl⟩ := Hsh
   obtain ⟨R, rfl⟩ := Hp
   rw [logShape_append] at Hsh
   icases BigSepL.bigSepL_append.1 $$ Hcl with ⟨#HclL, -⟩
   imodintro
   isplitr
   · ipureintro; exact Hsh.1
-  iapply batchWaitOk_of_work ρ E L Hsh.1 $$ HclL HNZ HL
+  iapply batchWaitOk_of_work ρ E L Hsh.1 (fun m hm => Hccl m (List.mem_append_left _ hm))
+    $$ HclL HNZ HL
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (raft's, the start log and index the server's), in the

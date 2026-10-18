@@ -348,10 +348,12 @@ theorem EtcdServer.start.wp_proof
     ihave #Hrb := Hreqb
     icases Hrb with ⟨%vq0, #Hvq0⟩
     iunfold srvReqBuilt at Hvq0
-    icases Hvq0 with ⟨#G1, #G2, -⟩
-    iunfold srvGenAt
-    iexists vq0.gen
-    iframe G1 G2
+    icases Hvq0 with ⟨#G1, #G2, #G3, -⟩
+    isplitr
+    · iunfold srvGenAt
+      iexists vq0.gen
+      iframe G1 G2
+    iexact G3
   ihave #Hpwait : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait $$ []
   · iPkgInit
   ihave #Hwt := isWaitTime_of_timeList hTLW hTLT tl (appliedAtLeast γr) $$ [$Hpwait $Htl]
