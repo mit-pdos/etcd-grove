@@ -6760,34 +6760,32 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     a created response not published keeps the position), `outcProd` keeps `cur2`'s authority,
     `sendCloseSubstream`'s canceled response keeps the position, `Watch` returns `cur2`'s first
     position. `run` still dispatches with `cpl = false` (`γh2 := γhi`).
-    **K2e-7d (in progress, 2026-10-18; `sendLoop`'s split landed):**
-    - *The cache's contract asks only what the cache uses* (d-1): the header revision's bound
-      only for a progress notification, and the created case is any response without events that
-      is not a progress notification (cursor kept, no `etcdReached`): the server needs nothing on
-      the created response's header nor an event response's, and a progress at revision `0` fits.
-    - *Server facts* (d-2, d-2b, d-2c, d-7, d-9): `mvccCov`'s `fwdEvs` (a live id's watcher's
-      responses with events sent before `r` are those queued before it, in order) and `mvccOk`'s
-      `fwdIdx` (those sent before `r` while its id was live were queued before it), from a
-      history kept by `sendLoop` (`SendHist`, `WatchSendHist.lean`); a response's id is its
-      watcher's or `-1` (`progressIfSync`'s spec; `respOk`; `mvccExtra` assigns any id but `-1`);
-      `ctrlWatcher` carries the watcher's `sr` (`WS`); `regsAt` takes a list of watchers for one
-      credit (`sentAuth_reg_regsL`).
-    - *The watch's start reached* (d-3): `etcdRead r` says etcd reached `r` too; `Watch` takes
-      `startOk` (`startRead` and, with `sr`, `etcdReached (rev - 1)`).
-    - *The second cursor's lemmas* (d-4..d-8, d-12, `WatchCompl.lean`): `cur2Ok` (the events so far
-      are a watched log's watch events up to the cursor; the cursor is the start, a last event's
-      revision or a progress notification's, `progAt`), `cmpl_events`, `cmpl_prog`, `cmpl_mono`,
-      `cmpl_cov`, `covers_prefix`.
-    - *`run`'s model* (d-10, d-11): a registered id is live (`phOk`); `regFacts` keeps the
-      watcher's `sr` and the created response's channel snapshot (`regSnap`).
-    - **Next**: `cpl := sr ∧ prefix watch (key non-empty, not all `0xff`) ∧ rev ≠ 0` at the
-      substream's allocation (`γ.cur2`, `γh2` lists), the second cursor in `wsRest` (queued: `γh2`'s
-      authority; registered: `cur2Ok`), `wsRest_snoc_ctrl` an entailment (`progAt` indexes the
-      responses), the registration (`cur2Ok_init`), `reg_pre` (events: `cmpl_events`, needs
-      `dispatch_content` to expose its key-values; own-id progress: `cmpl_cov`, `cmpl_mono`,
-      `cmpl_prog`), the broadcast (`-1`: the registered substreams' watchers listed for
-      `regsAt`, one credit; `respCompl` and no cancel give `w ∈ x.cov`). Limitation: the cache's
-      prefix must be non-empty and not all `0xff` for the client to promise completeness.
+    **K2e-7d (done, 2026-10-18):** `run` dispatches the cache's contract at the second cursor.
+    - *The cache's contract asks only what the cache uses*: the header revision's bound only for a
+      progress notification; the created case is any response without events that is not a
+      progress notification (cursor kept, no `etcdReached`).
+    - *Server facts*: `mvccCov`'s `fwdEvs` (a live id's watcher's responses with events sent
+      before `r` are those queued before it, in order) and `mvccOk`'s `fwdIdx` (those sent while
+      its id was live were queued before it), from `sendLoop`'s history (`SendHist`,
+      `WatchSendHist.lean`); a response's id is its watcher's or `-1` (`progressIfSync`'s spec,
+      `respOk`, `mvccExtra`); `ctrlWatcher` carries the watcher's `sr`; `regsAt` takes a list of
+      watchers for one credit.
+    - *The watch's start reached*: `etcdRead r` says etcd reached `r`; `Watch` takes `startOk`.
+    - *The client*: `cplOf` (start read, non-zero, a non-empty prefix not all `0xff`) decides the
+      promise at the allocation; the second cursor `cur2Ok` (`WatchCompl.lean`) steps at the
+      registration (`cur2Ok_init`), an own-id response with events (`cmpl_events`) or without
+      (`own_cov`, `prog_cmpl` = `cmpl_cov` + `cmpl_mono` + `cmpl_prog`) and a broadcast
+      (`bcast_covAll`: (a) a registered watcher was registered before it, from the created
+      response's snapshot; (b) `regsAt` over all of them; (c) `respCompl` and the client's sent
+      requests: covered, or cancelled at the client's request, so the substream stopped).
+    - Limitation: the client promises completeness only for a non-empty prefix not all `0xff`
+      (the cache's prefix must be such; `issues/` not needed: a proof scope, not a bug).
+    - **Next**: `isEtcdWatcher_of_watcher`: the client's channel is `isSpsc γ.spsc ch
+      (rangeWatchElem γ ...)`, the cache's `isEtcdWatchChan ch γ' pfx` = `isSpsc γ'.spsc ch
+      (etcdWatchElem γ' pfx)` with `γ'.cur := γ.cur2`; an SPSC channel's element predicate is
+      fixed (no weakening lemma: `Spsc.lean`), so either the cache's watcher contract is stated
+      over the client's element (a weaker `etcdWatchElem` that the cache's proof can use), or the
+      client's `Watch` returns the cache's channel directly; then `RequestProgress`, K3.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
