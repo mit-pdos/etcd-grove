@@ -226,7 +226,7 @@ theorem Cache.get.wp_proof
       iframe Ha Hreach
       ipureintro; exact Hr0
     isplitr
-    · iapply etcdRead_of_at $$ Hread
+    · iapply etcdRead_of_at; iframe Hread Hreach
     ipureintro; exact Hle
 
 end proof

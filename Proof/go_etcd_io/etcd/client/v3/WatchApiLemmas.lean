@@ -123,8 +123,6 @@ theorem rangeWatchElem_canceled [EM : EtcdModel GF]
   rw [h2]
   iframe Hi Hi'
   unfold watchRespOk
-  isplitr
-  · ipureintro; decide
   ileft
   iframe Hse
   ipureintro

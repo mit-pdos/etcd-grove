@@ -260,7 +260,7 @@ theorem demuxBC_updResp (cap : Nat) (c : DemuxCore) (r : RespModel) (hinv : Demu
     refine ⟨{ hinv with
       stream_le := fun b hb => by have := hinv.stream_le b hb; simp only; omega
       maxRev_nonneg := by simp only; omega
-      maxRev_lt := hbd.1
+      maxRev_lt := hbd.1 hpn
       uninit := fun h => absurd h hmin
       base_maxRev := fun _ => by simp only; exact hpb hpn }, ⟨[], by simp, hle, by simp, hinv.stream_ok,
         fun b hb => by have := hinv.stream_le b hb; simp only; omega⟩, ?_⟩

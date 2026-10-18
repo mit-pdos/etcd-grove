@@ -70,7 +70,7 @@ theorem mvcc.watchableStore.progressAll.wp_proof
       iunfold mvcc.rsnW
       iexists r0, fcs0
       iframe Hf0 Hrs
-  wp_apply (hPIS s st γ m dq M _ γc (mvcc.progCompl (mvcc.storeWatchParams s st γ) γc M o ch L))
+  wp_apply (hPIS s st γ m dq M (W64 (-1)) γc (mvcc.progCompl (mvcc.storeWatchParams s st γ) γc M o ch L))
     $$ [$Hws $Hm $HR $HPC] as %b ⟨Hm, HPC, HR⟩
   · isplitr
     · iintro !> %id %w %hw
@@ -84,6 +84,8 @@ theorem mvcc.watchableStore.progressAll.wp_proof
       isplitr
       · ipureintro; exact Hwc
       iright
+      isplitr
+      · ipureintro; first | rfl | trivial
       rw [Hwc]
       iexact Hpf
     iright; iexact Hcw

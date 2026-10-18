@@ -40,7 +40,7 @@ abbrev watcher.Watch.spec : Prop :=
       ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
         0 ≤ sint.Z rev ∧
         KeyRangeUnder V.pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ ∗
-      mvcc.startRead V.R.γ sr rev }}
+      startOk V sr rev }}
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!! go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
   {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
       isSpsc γ.spsc ch (rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev)

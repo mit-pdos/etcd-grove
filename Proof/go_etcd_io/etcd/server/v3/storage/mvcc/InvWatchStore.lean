@@ -459,7 +459,8 @@ instance respsIs_persistent (vs : List WatchResponse) (rs : List RespM) :
 with events carries its watcher's id. -/
 def respOk (r : RespM) : IProp GF :=
   iprop(⌜∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev⌝ ∗
-    ∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed r.w rr fcs ∗ ⌜r.evs ≠ [] → r.id = rr.id⌝)
+    ∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed r.w rr fcs ∗
+      ⌜(r.evs ≠ [] → r.id = rr.id) ∧ (r.id = rr.id ∨ r.id = W64 (-1))⌝)
 
 instance respOk_persistent (r : RespM) : Persistent (respOk (GF := GF) r) := by
   unfold respOk; infer_instance
@@ -892,6 +893,25 @@ theorem sentAuth_reg_regs (γ : WsNames) (γc : WatchChanNames) (sent : List Res
   ipureintro; exact fun k x hk hx hid => HRI.2.2.1 w n k x Hl hk hx hid
 
 open Iris.ProofMode in
+/-- `sentAuth_reg_regs` for a list of registered watchers (K2e-7d). -/
+theorem sentAuth_reg_regsL (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
+    ∀ ps : List (Loc × Nat), sentAuth (GF := GF) γ γc sent L ∗
+      □ ([∗list] p ∈ ps, chanRegAt γc p.1 p.2) ⊢
+      ⌜∀ p ∈ ps, ∀ k x, p.2 ≤ k → sent[k]? = some x → x.id = W64 (-1) → p.1 ∈ x.regs⌝
+  | [] => by iintro -; ipureintro; intro p hp; cases hp
+  | p :: ps => by
+    iintro ⟨Hs, #Hl⟩
+    ihave ⟨#Hp, #Hl'⟩ := BigSepL.bigSepL_cons.1 $$ Hl
+    icases (persistent_entails_right (sentAuth_reg_regs (GF := GF) γ γc sent L p.1 p.2))
+      $$ [$Hs $Hp] with ⟨%H1, ⟨Hs, -⟩⟩
+    ihave %H2 := sentAuth_reg_regsL γ γc sent L ps $$ [$Hs $Hl']
+    ipureintro
+    intro q hq
+    rcases List.mem_cons.1 hq with rfl | hq
+    · exact H1
+    · exact H2 q hq
+
+open Iris.ProofMode in
 /-- **Each response sent is at its own position** (K1b). -/
 theorem sentAuth_idx (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
     sentAuth (GF := GF) γ γc sent L ⊢ ⌜idxOk sent⌝ := by
@@ -945,15 +965,15 @@ open Iris.ProofMode in
 reason. -/
 theorem complW_facts (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (L covl : List Loc)
     (id rid rev : w64) (evm : List EvM) (hrid : rid ≠ W64 (-1)) :
-    CS ∗ (⌜id = rid⌝ ∨ complW γw ql CS covl id rev evm) ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗
-      dghostVar γw.live (DFrac.own ql) true ⊢
+    CS ∗ (⌜id = rid⌝ ∨ ⌜id = W64 (-1)⌝ ∗ complW γw ql CS covl id rev evm) ∗
+      ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ⊢
     CS ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
       (⌜id = W64 (-1)⌝ → progFact γw.wc.prog) ∗
       (⌜id ≠ W64 (-1)⌝ ∨ ((□ ∀ w : Loc, ⌜w ∈ L⌝ -∗ ⌜w ∈ covl⌝ ∨ rsnW γw.wc w) ∗
         ⌜1 ≤ sint.Z rev ∧ evm = []⌝)) := by
   iintro ⟨HCS, #Hid, Hregl, Hlv⟩
   by_cases hm : id = W64 (-1)
-  · icases Hid with (%Heq | #Hw)
+  · icases Hid with (%Heq | ⟨-, #Hw⟩)
     · exact absurd (Heq ▸ hm) hrid
     iunfold complW at Hw
     icases Hw $$ %L %hm HCS Hregl Hlv with ⟨HCS, Hregl, Hlv, #Hp, #Hcm, %Hr1⟩

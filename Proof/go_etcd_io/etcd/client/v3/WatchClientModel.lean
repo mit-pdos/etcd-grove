@@ -64,7 +64,8 @@ def phOk (S : RunSt) (ws : Loc) : WPh → Prop
       X ≠ W64 (-1) ∧
       (S.CS !! X = none → ∀ i, S.L[i]? = some (WatchReqM.cancel X) → i ∈ S.ansd) ∧
       (∀ i i', S.L[i]? = some (WatchReqM.cancel X) → S.L[i']? = some (WatchReqM.cancel X) → i ∉ S.ansd →
-        i' ∉ S.ansd → i = i')
+        i' ∉ S.ansd → i = i') ∧
+      idLive S.Dm X
   | .closedRun X => (S.M !! X = none ∧ (∀ Y, S.M !! Y ≠ some ws) ∧ S.CI !! X = some ws) ∧ ws ∉ S.l ∧ S.CL !! ws = some () ∧ X ∈ S.regs ∧
       X ≠ W64 (-1) ∧ ¬ idLive S.Dm X ∧ (∀ i, S.L[i]? = some (WatchReqM.cancel X) → i ∈ S.ansd)
   | .orphan => (∀ X, S.M !! X ≠ some ws) ∧ ws ∉ S.l ∧ S.CL !! ws = none
@@ -543,8 +544,8 @@ theorem cancel_ok {S : RunSt} {U : GMap Loc Unit} {X : w64} {L' : List v3rpc.Wat
     | queued si => exact hph
     | orphan => exact hph
     | reg X' =>
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
-      refine ⟨r1, r2, r3, r4, r5, ?_, ?_⟩
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
+      refine ⟨r1, r2, r3, r4, r5, ?_, ?_, r8⟩
       · intro hCS i hi
         unfold RunSt.sentCancel at hCS; simp only at hCS
         have hXX : X ≠ X' := by
@@ -618,8 +619,8 @@ theorem progress_ok {S : RunSt} {U : GMap Loc Unit} {L' : List v3rpc.WatchReqM}
     | queued si => exact hph
     | orphan => exact hph
     | reg X' =>
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
-      refine ⟨r1, r2, r3, r4, r5, ?_, ?_⟩
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
+      refine ⟨r1, r2, r3, r4, r5, ?_, ?_, r8⟩
       · intro hCS i hi
         rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, h⟩
         · exact r6 hCS i h
@@ -769,8 +770,8 @@ theorem addWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {L' : List v3rpc.Wat
       · have := q5 hs (by rw [← hhead]; exact hh)
         exact hcA.2 ▸ this
     | reg X =>
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
-      refine ⟨r1, ?_, r3, r4, r5, ?_, ?_⟩
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
+      refine ⟨r1, ?_, r3, r4, r5, ?_, ?_, r8⟩
       · intro h
         rcases List.mem_append.1 h with h | h
         · exact r2 h
@@ -867,7 +868,8 @@ theorem mem_of_set0 {l : List Loc} {x : Loc} (hm : x ∈ l.set 0 null) (hx : x �
 theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X : w64} {h : Loc}
     {reg : Bool} (hg : gOk S U) (hp : S.pend = some i) (hhead : S.l.head? = some h)
     (hsrc : m.src = none) (hcr : m.created = true) (hid : m.watchId = X)
-    (hX : m.canceled = false → X ∉ S.regs) (hMX : reg = true → S.M !! X = none)
+    (hX : m.canceled = false → X ∉ S.regs) (hcan : m.canceled = true → X = W64 (-1))
+    (hMX : reg = true → S.M !! X = none)
     (hreg : reg = true → h ≠ null ∧ X ≠ W64 (-1) ∧ m.canceled = false)
     (hph : h ≠ null → phOk S h (.queued (some i))) :
     gOk (S.answer m i X h reg) U ∧
@@ -929,6 +931,19 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
       · exfalso; rw [hid] at hc; rw [← hc.2] at hY; exact hX hca hY
       · simp
     · exact hn
+  have hlive' : ∀ Y, Y ∈ S.regs → Y ≠ W64 (-1) → idLive S.Dm Y →
+      idLive (S.answer m i X h reg).Dm Y := by
+    intro Y hY hY1 hl
+    show idLive (S.Dm ++ [m]) Y
+    rw [idLive_snoc]
+    split
+    · rename_i hc
+      exfalso
+      rw [hid] at hc
+      cases hca : m.canceled
+      · rw [← hc.2] at hY; exact hX hca hY
+      · exact hY1 (hc.2 ▸ hcan hca)
+    · exact hl
   refine ⟨⟨?_, ?_, ?_, ?_, g5, g6, g7, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
   · intro Y w hY
     rcases hM1 Y w hY with h1 | ⟨hr, -, e⟩
@@ -977,10 +992,11 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
       · obtain ⟨-, h2⟩ := q4 j hj
         rw [hhead] at h2; cases h2; exact absurd rfl hne
     | reg Y =>
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph'
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph'
       exact ⟨hM2 Y ws r1, fun hm => r2 (hl1 ws hwn hm), r3, hregs Y r4, r5,
         fun hCS j hj => hans j (r6 hCS j hj),
-        fun j j' hj hj' hn hn' => r7 j j' hj hj' (fun e => hn (hans j e)) (fun e => hn' (hans j' e))⟩
+        fun j j' hj hj' hn hn' => r7 j j' hj hj' (fun e => hn (hans j e)) (fun e => hn' (hans j' e)),
+        hlive' Y r4 r5 r8⟩
     | closedRun Y =>
       obtain ⟨⟨c1, c1', c1''⟩, c2, c3, c4, c5, c6, c7⟩ := hph'
       have c1n : (S.answer m i X h reg).M !! Y = none := by
@@ -1008,7 +1024,7 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
     by_cases hr : reg = true
     · rw [if_pos hr]
       obtain ⟨-, hXn, hca⟩ := hreg hr
-      refine ⟨?_, hhl hn, q3, ?_, hXn, ?_, ?_⟩
+      refine ⟨?_, hhl hn, q3, ?_, hXn, ?_, ?_, ?_⟩
       · show (if reg = true then GMap.insert X h S.M else S.M) !! X = some h
         rw [if_pos hr]; exact GMap.lookup_insert _ _ _
       · show X ∈ (if m.canceled = true then S.regs else S.regs ++ [X])
@@ -1016,6 +1032,8 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
       · intro _ j hj
         exact absurd (g9 j X hj) (hX hca)
       · intro j j' hj; exact absurd (g9 j X hj) (hX hca)
+      · show idLive (S.Dm ++ [m]) X
+        rw [idLive_snoc, if_pos ⟨hsrc, hid⟩, hcr, hca]; rfl
     · rw [if_neg hr]
       refine ⟨fun Y hY => ?_, hhl hn, q3⟩
       rcases hM1 Y h hY with h1 | ⟨hr', -, -⟩
@@ -1112,8 +1130,8 @@ theorem resume_ok {S : RunSt} {U : GMap Loc Unit} {L' : List WatchReqM} {pend' s
       refine ⟨q1, (hl ws hwn).2 q2, q3, fun j hj => ?_, fun _ hh => absurd hh hhd⟩
       obtain ⟨h1, -⟩ := q4 j hj; rw [hp] at h1; cases h1
     | reg Y =>
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
-      refine ⟨r1, fun h => r2 ((hl ws hwn).1 h), r3, r4, r5, ?_, ?_⟩
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
+      refine ⟨r1, fun h => r2 ((hl ws hwn).1 h), r3, r4, r5, ?_, ?_, r8⟩
       · intro hCS i hi
         rcases hpos i _ hi with ⟨-, h⟩ | ⟨-, ⟨c, hc'⟩, -⟩
         · exact r6 hCS i h
@@ -1247,9 +1265,9 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
       obtain ⟨q1, q2, q3, q4, q5⟩ := hph
       exact ⟨fun Y h => q1 Y (hM Y ws h).1, q2, by rw [hCL ws hne]; exact q3, q4, q5⟩
     | reg Y =>
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
       have hYX : Y ≠ X := fun e => by subst e; rw [← hfw] at r1; exact hne r1
-      refine ⟨hMr Y ws hne r1, r2, by rw [hCL ws hne]; exact r3, r4, r5, ?_, ?_⟩
+      refine ⟨hMr Y ws hne r1, r2, by rw [hCL ws hne]; exact r3, r4, r5, ?_, ?_, (hlive Y hYX).2 r8⟩
       · intro hCS j hj
         unfold RunSt.cancelAns at hCS; simp only at hCS
         rw [GMap.lookup_delete_ne _ (Ne.symm hYX)] at hCS
@@ -1284,7 +1302,7 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
     | reg Y =>
       have hY : Y = X := g2 Y X ws hph.1 hMX
       subst hY
-      obtain ⟨r1, r2, r3, r4, r5, r6, r7⟩ := hph
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, -⟩ := hph
       refine ⟨⟨?_, fun Z h => (hM Z ws h).2 hf, ?_⟩, r2, ?_, r4, r5, ?_, ?_⟩
       · unfold RunSt.cancelAns; simp only [hf]; exact GMap.lookup_delete _ _
       · unfold RunSt.cancelAns; simp only [hf]; exact GMap.lookup_insert _ _ _
@@ -1326,7 +1344,9 @@ theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.
       obtain ⟨c1, c2, c3, c4, c5, c6, c7⟩ := hph
       exact ⟨c1, c2, c3, c4, c5, fun h => c6 ((hlive Y).1 h), c7⟩
     | queued si => exact hph
-    | reg Y => exact hph
+    | reg Y =>
+      obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
+      exact ⟨r1, r2, r3, r4, r5, r6, r7, (hlive Y).2 r8⟩
     | orphan => exact hph
 
 
