@@ -25,17 +25,40 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A metadata at `m` whose fields hold a nested conf state and two cells holding `md`'s is an owned
 metadata holding `md`. -/
 private theorem smPts_intro (m pc pi pt : Loc) (md : SnapshotMetadataM) (uf : List w8)
-    (Hnn : m ≠ null) :
+    (Hnn : m ≠ null) (Hpc : pc ≠ null) :
     (m.[raftpb.SnapshotMetadata, go!"ConfState"] ↦ pc ∗ csOptA pc (DFrac.own 1) md.ConfState' ∗
       m.[raftpb.SnapshotMetadata, go!"Index"] ↦ pi ∗ cellRO pi md.Index' ∗
       m.[raftpb.SnapshotMetadata, go!"Term"] ↦ pt ∗ cellRO pt md.Term' ∗
-      pbMsg raftpb.SnapshotMetadata m uf : IProp GF) ⊢ smPts m (DFrac.own 1) md := by
+      pbMsg raftpb.SnapshotMetadata m uf : IProp GF) ⊢ smPtsW m (DFrac.own 1) md := by
   iintro ⟨HC, Hc, HI, #cI, HT, #cT, #Hpb⟩
-  iunfold smPts
+  iunfold smPtsW
   iexists pc, pi, pt, uf
   isplitr
-  · ipureintro; exact Hnn
+  · ipureintro; exact ⟨Hnn, Hpc⟩
   iframe HC HI HT Hc
+  iframe cI cT Hpb
+
+/-- `smPts_of_struct` (`InvPb.lean`) for a set conf state: whole (D17d). -/
+private theorem smPtsW_of_struct (p : Loc) (v : raftpb.SnapshotMetadata) (md : SnapshotMetadataM)
+    (E : CoPset) (Hu : v.unknownFields' = slice.nil) (Hc : v.ConfState' ≠ null) :
+    (p ↦ v ∗ csOptA v.ConfState' (DFrac.own 1) md.ConfState' ∗ cellRO v.Index' md.Index' ∗
+      cellRO v.Term' md.Term' : IProp GF) ⊢ |={E}=> smPtsW p (DFrac.own 1) md := by
+  iintro ⟨Hp, Hc, #cI, #cT⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, ConfState, Index, Term, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.SnapshotMetadata p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  iunfold smPtsW
+  iexists v.ConfState', v.Index', v.Term', []
+  isplitr
+  · ipureintro; exact ⟨Hnn, Hc⟩
+  iframe
   iframe cI cT Hpb
 
 /-- `EnsureConfState` on a snapshot's nested conf state (`csOptA`, D7) held at `1`: in each case a
@@ -95,14 +118,15 @@ theorem raftpb.EnsureSnapshotMetadata.wp_proof
     irename : («$r0_ptr» ↦ W64 0 : IProp GF) => Ht
     imod cellRO_alloc pi (W64 0) $$ Hi with #ci
     imod cellRO_alloc «$r0_ptr» (W64 0) $$ Ht with #ct
+    icases csPts_nn _ _ _ _ $$ Hcs with ⟨Hcs, %Hrc⟩
     ihave Hc := csPts_weaken _ _ _ _ $$ Hcs
-    imod smPts_of_struct pm { (zero_val raftpb.SnapshotMetadata) with ConfState' := rc, Index' := pi, Term' := «$r0_ptr» }
-      (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)) ⊤ (by rfl)
+    imod smPtsW_of_struct pm { (zero_val raftpb.SnapshotMetadata) with ConfState' := rc, Index' := pi, Term' := «$r0_ptr» }
+      (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)) ⊤ (by rfl) Hrc
       $$ [«$r0» Hc] with Hsm
     · dsimp only
       iframe «$r0»
       isplitl
-      · iunfold csOpt; iright; iexact Hc
+      · iunfold csOptA; iright; ileft; iexact Hc
       iframe ci ct
     imodintro
     iapply HΦ
@@ -138,7 +162,7 @@ theorem raftpb.EnsureSnapshotMetadata.wp_proof
           imodintro
           iapply HΦ
           isplitl
-          · iapply smPts_intro _ _ _ _ _ _ Hnn
+          · iapply smPts_intro _ _ _ _ _ _ Hnn Hrn
             iframe
             iframe cI cT Hpb
           · ipureintro; intro _; rfl

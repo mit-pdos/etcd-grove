@@ -25,13 +25,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `EnsureSnapshot(s)` of a snapshot pointer, `nil` (`none`) or owned (fully) holding a snapshot:
 a non-`nil` snapshot holding the same record (the zero record for `nil`), owned, its `Metadata`
 set (`ownSnapE`; since 2026-10-15, stage R3, for `MemoryStorage.CreateSnapshot`, which writes the
-metadata's fields after `EnsureSnapshot`); `s` itself when `s` was not `nil`. -/
+metadata's fields after `EnsureSnapshot`); `s` itself when `s` was not `nil`. Since D17d (2026-10-18)
+whole (`ownSnapW`: the metadata's conf state set too; `ownSnapW_E` forgets it). -/
 abbrev raftpb.EnsureSnapshot.spec : Prop :=
   ∀ (s : Loc) (o : Option SnapshotM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapOpt s (DFrac.own 1) o }}
     (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #s))
   {{ (r : Loc), RET #r;
-      ownSnapE r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
+      ownSnapW r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
         (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))) ∗ ⌜s ≠ null → r = s⌝ }}
 
 end spec

@@ -58,6 +58,26 @@ def ownSnapE (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
     "HM" ∷ p.[raftpb.Snapshot, go!"Metadata"] ↦{dq} pm ∗ "Hm" ∷ smPts pm dq s.Metadata' ∗
     "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
 
+/-- A `*pb.SnapshotMetadata` at `p` holding `md` whose `ConfState` is set (D17d, 2026-10-18):
+`smPts` with the conf-state pointer non-`nil`, what `EnsureSnapshotMetadata` returns. -/
+def smPtsW (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
+  iprop(∃ (pc pi pt : Loc) (uf : List w8),
+    "%Hnn" ∷ ⌜p ≠ null ∧ pc ≠ null⌝ ∗
+    "HC" ∷ p.[raftpb.SnapshotMetadata, go!"ConfState"] ↦{dq} pc ∗ "Hc" ∷ csOptA pc dq md.ConfState' ∗
+    "HI" ∷ p.[raftpb.SnapshotMetadata, go!"Index"] ↦{dq} pi ∗ "#cI" ∷ cellRO pi md.Index' ∗
+    "HT" ∷ p.[raftpb.SnapshotMetadata, go!"Term"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt md.Term' ∗
+    "#Hpb" ∷ pbMsg raftpb.SnapshotMetadata p uf)
+
+/-- A `*pb.Snapshot` at `p` holding `s` made **whole** (D17d, 2026-10-18): its `Metadata` set and
+the metadata's `ConfState` set, what `EnsureSnapshot` returns and `proto.Clone` keeps; etcd's
+`run` reads `sn.Metadata.ConfState` of `MemoryStorage.Snapshot()`'s clone directly. -/
+def ownSnapW (p : Loc) (dq : DFrac) (s : SnapshotM) : IProp GF :=
+  iprop(∃ (ds : GoSlice) (pm : Loc) (uf : List w8),
+    "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+    "HD" ∷ p.[raftpb.Snapshot, go!"Data"] ↦{dq} ds ∗ "Hd" ∷ ds ↦*{dq} s.Data' ∗
+    "HM" ∷ p.[raftpb.Snapshot, go!"Metadata"] ↦{dq} pm ∗ "Hm" ∷ smPtsW pm dq s.Metadata' ∗
+    "#Hpb" ∷ pbMsg raftpb.Snapshot p uf)
+
 /-- A hard-state pointer that may be `nil`, read as the zero record: `MemoryStorage`'s
 `hardState` before the first `SetHardState` (`NewMemoryStorage` leaves it `nil`; `InitialState`
 returns it, "may be nil", `storage.go:52-55`). Persistent. -/
@@ -252,12 +272,34 @@ theorem ownSnapE_weaken (p : Loc) (dq : DFrac) (s : SnapshotM) :
   iunfold smOpt
   iright; iexact Hm
 
-/-- A freshly allocated `*pb.Snapshot` (hidden fields zero) whose data and (set) metadata hold
-`s`'s. -/
-theorem ownSnapE_of_struct (p : Loc) (v : raftpb.Snapshot) (s : SnapshotM) (E : CoPset)
+theorem smPtsW_smPts (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    smPtsW (GF := GF) p dq md ⊢ smPts p dq md := by
+  iintro H
+  iNamed H
+  iunfold smPts
+  iexists pc, pi, pt, uf
+  isplitr
+  · ipureintro; exact Hnn.1
+  iframe HC Hc HI cI HT cT Hpb
+
+/-- A whole snapshot has its metadata set (D17d). -/
+theorem ownSnapW_E (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    ownSnapW (GF := GF) p dq s ⊢ ownSnapE p dq s := by
+  iintro H
+  iNamed H
+  ihave Hm := smPtsW_smPts _ _ _ $$ Hm
+  iunfold ownSnapE
+  iexists ds, pm, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HD Hd HM Hm Hpb
+
+/-- A freshly allocated `*pb.Snapshot` (hidden fields zero) whose data and (whole) metadata hold
+`s`'s (whole since D17d). -/
+theorem ownSnapW_of_struct (p : Loc) (v : raftpb.Snapshot) (s : SnapshotM) (E : CoPset)
     (Hu : v.unknownFields' = slice.nil) :
-    (p ↦ v ∗ v.Data' ↦* s.Data' ∗ smPts v.Metadata' (DFrac.own 1) s.Metadata' : IProp GF) ⊢
-      |={E}=> ownSnapE p (DFrac.own 1) s := by
+    (p ↦ v ∗ v.Data' ↦* s.Data' ∗ smPtsW v.Metadata' (DFrac.own 1) s.Metadata' : IProp GF) ⊢
+      |={E}=> ownSnapW p (DFrac.own 1) s := by
   iintro ⟨Hp, Hd, Hm⟩
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
@@ -269,7 +311,7 @@ theorem ownSnapE_of_struct (p : Loc) (v : raftpb.Snapshot) (s : SnapshotM) (E : 
   imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
-  iunfold ownSnapE
+  iunfold ownSnapW
   iexists v.Data', v.Metadata', []
   isplitr
   · ipureintro; exact Hnn
@@ -353,6 +395,43 @@ theorem ownSnapM_persist (p : Loc) (dq : DFrac) (s : SnapshotM) :
   isplitr
   · ipureintro; exact Hnn
   iframe HD Hd HM Hm Hpb
+
+/-- A whole snapshot frozen read-only (D17d, 2026-10-18: etcd's `run` keeps the clone
+`MemoryStorage.Snapshot()` returns, which nothing writes): the snapshot at `□`, and its metadata
+and conf-state pointers, non-`nil`, read-only. -/
+theorem ownSnapW_persist (p : Loc) (dq : DFrac) (s : SnapshotM) :
+    ownSnapW (GF := GF) p dq s ⊢ |==> ∃ (pm pc : Loc), ⌜pm ≠ null ∧ pc ≠ null⌝ ∗
+      ownSnapM p DFrac.discard s ∗
+      p.[raftpb.Snapshot, go!"Metadata"] ↦□ pm ∗
+      pm.[raftpb.SnapshotMetadata, go!"ConfState"] ↦□ pc := by
+  iintro H
+  iNamed H
+  iunfold smPtsW at Hm
+  icases Hm with ⟨%pc, %pi, %pt, %ufm, %Hnnm, HC, Hc, HI, #cI, HT, #cT, #Hpbm⟩
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HD with #HD
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hd with #Hd
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HM with #HM
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HC with #HC
+  imod csOptA_persist _ _ _ $$ Hc with #Hc
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HI with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HT with #HT
+  imodintro
+  iexists pm, pc
+  isplitr
+  · ipureintro; exact Hnnm
+  iframe HM HC
+  iunfold ownSnapM
+  iexists ds, pm, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HD Hd HM Hpb
+  iunfold smOpt
+  iright
+  iunfold smPts
+  iexists pc, pi, pt, ufm
+  isplitr
+  · ipureintro; exact Hnnm.1
+  iframe HC Hc HI cI HT cT Hpbm
 
 end lemmas
 

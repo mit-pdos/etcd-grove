@@ -50,6 +50,7 @@ theorem MemoryStorage.Snapshot.wp_proof
   wp_auto
   wp_apply wp_EnsureSnapshot sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
   · simp only [snapOpt]; iexact Hsnap
+  ihave Hr := ownSnapW_E $$ Hr
   ihave Hr := ownSnapE_weaken $$ Hr
   simp only [Option.getD_some]
   wp_apply wp_CloneSnapshot.1 r (DFrac.own 1) sv $$ [Hr] as %p' ⟨Hr, Hp'⟩

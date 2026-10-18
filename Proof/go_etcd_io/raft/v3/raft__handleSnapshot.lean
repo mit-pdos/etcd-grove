@@ -69,6 +69,7 @@ theorem raft.handleSnapshot.wp_proof
   ihave %Hps : ⌜ps ≠ null⌝ $$ [Hsnap]
   · simp only [snapOpt]; iunfold ownSnapM at Hsnap; iNamed Hsnap; ipureintro; exact Hnn
   wp_apply wp_EnsureSnapshot $$ [$Hsnap] as %sp ⟨Hsnap, %Hsp⟩
+  ihave Hsnap := ownSnapW_E $$ Hsnap
   obtain rfl := Hsp Hps
   simp only [Option.getD_some]
   wp_apply wp_Snapshot_GetMetadata_E $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩

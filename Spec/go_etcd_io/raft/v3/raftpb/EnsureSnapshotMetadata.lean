@@ -4,7 +4,7 @@ retarget, stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 
@@ -25,12 +25,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `EnsureSnapshotMetadata(m)` of a metadata pointer, `nil` or owned (fully: it may write its
 fields and its conf state's `AutoLeave`) holding `md`: a non-`nil` metadata holding `md`, owned;
 `m` itself when `m` was not `nil`. The record does not change: every `nil` field it fills reads
-as the zero value it is given (`EnsureConfState` on the conf state). -/
+as the zero value it is given (`EnsureConfState` on the conf state). Since D17d (2026-10-18) its
+`ConfState` set too (`smPtsW`). -/
 abbrev raftpb.EnsureSnapshotMetadata.spec : Prop :=
   ∀ (m : Loc) (md : SnapshotMetadataM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smOpt m (DFrac.own 1) md }}
     (App (Val #(functions raftpb.EnsureSnapshotMetadata [])) (Val #m))
-  {{ (r : Loc), RET #r; smPts r (DFrac.own 1) md ∗ ⌜m ≠ null → r = m⌝ }}
+  {{ (r : Loc), RET #r; smPtsW r (DFrac.own 1) md ∗ ⌜m ≠ null → r = m⌝ }}
 
 end spec
 

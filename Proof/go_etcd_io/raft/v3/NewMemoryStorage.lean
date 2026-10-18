@@ -84,6 +84,7 @@ theorem NewMemoryStorage.wp_proof
   wp_apply wp_EnsureSnapshot null none $$ [] as %sp ⟨Hsp, -⟩
   · simp only [snapOpt]; ipureintro; trivial
   simp only [Option.getD_none]
+  ihave Hsp := ownSnapW_E $$ Hsp
   ihave Hsp := ownSnapE_weaken $$ Hsp
   iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe⟩ : MemStorNames)
   isplitr [HhardState cs_initialState]

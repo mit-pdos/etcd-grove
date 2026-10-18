@@ -57,6 +57,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   have Hss : σp.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
   wp_apply wp_EnsureSnapshot sp (some sv) $$ [Hsnap] as %r ⟨Hr, %Hrsp⟩
   · simp only [snapOpt]; iexact Hsnap
+  ihave Hr := ownSnapW_E $$ Hr
   have Hr : r = sp := Hrsp Hspnn
   subst r
   simp only [Option.getD_some]

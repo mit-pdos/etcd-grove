@@ -9,7 +9,7 @@ the raft trees, 2026-10-16, this file was the only one importing the `Raft37` tr
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 
@@ -36,7 +36,14 @@ Against protobuf-go v1.36.11: `Clone` merges into a new message, recursively for
 (`Data`) and repeated scalars (the conf state's lists: `append` onto the empty destination) and
 the unknown fields; it only reads the source. "If the top-level message is invalid, it returns
 an invalid message as well" (`proto.Clone`'s documentation): `Clone((*Snapshot)(nil))` is a
-typed nil. -/
+typed nil.
+
+Since D17d (2026-10-18), a third conjunct: the clone of a **whole** snapshot (`ownSnapW`: its
+`Metadata` and the metadata's `ConfState` non-`nil`, what `raftpb.EnsureSnapshot` returns) is whole:
+`mergeMessage` copies a set (non-`nil`) message field into a fresh destination field, empty or
+not (presence of a message field is its pointer being non-`nil`), so the clone's `Metadata` and
+`ConfState` are allocated. `MemoryStorage.Snapshot` clones its snapshot right after
+`EnsureSnapshot`; etcd's `run` reads the clone's `Metadata.ConfState` directly. -/
 abbrev proto.CloneSnapshot.spec : Prop :=
   (∀ (p : Loc) (dq : DFrac) (s : SnapshotM),
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownSnapM p dq s }}
@@ -46,7 +53,12 @@ abbrev proto.CloneSnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto }}
     (App (Val (@! google_golang_org.protobuf.proto.Clone))
       (Val #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #(null : Loc))))
-  {{ RET #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #(null : Loc)); True }}
+  {{ RET #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #(null : Loc)); True }} ∧
+  (∀ (p : Loc) (dq : DFrac) (s : SnapshotM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownSnapW p dq s }}
+      (App (Val (@! google_golang_org.protobuf.proto.Clone)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #p)))
+    {{ (p' : Loc), RET #(interface.mkOk (go.GoType.PointerType raftpb.Snapshot.ty) #p');
+        ownSnapW p dq s ∗ ownSnapW p' (DFrac.own 1) s }})
 
 end spec
 
