@@ -27,9 +27,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `isServerRun` lists: it starts the raft wrapper's loop (with the ready handler, whose
 `updateCommittedIndex` raises the committed index's ghost lower bounds), then receives each batch
 of committed entries raft hands it (`applyc`) and schedules its `applyAll` on a FIFO scheduler,
-the apply thread's resources flowing from job to job (`applyRes`); it returns on `errorc` or
-`stop`, after its shutdown (closing `stopping`, cancelling the server's context, stopping the
-scheduler, waiting for `GoAttach`'s goroutines, stopping raft, `Cleanup`, closing `done`). The write
+the apply thread's resources flowing from job to job (`applyRes`). Its two exits, `errorc` and
+`stop` (after which it would shut down: close `stopping`, cancel the server's context, stop the
+scheduler, wait for `GoAttach`'s goroutines, stop raft, `Cleanup`, close `done`), are never taken
+in the runs covered (D19m, 2026-10-18): nothing is sent on either (`srvRunFieldsAt`: bags with
+predicate `False`), so it never returns; until then the shutdown was proved, with `Cleanup` a false
+trust-boundary axiom (it closes the backend and the stores that request goroutines still use). The write
 budget is the store's write tokens (the backend's unit 6: one token per applied entry), since D19b
 (2026-10-18) in the receipt-backed budget `srvWTPool E.γ` (`isServerRun`), from which `apply` takes
 one per entry. Until D19b `run` held `txn.storeWTs E.γ N` and handed each batch's share to its

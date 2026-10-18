@@ -13,7 +13,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
-public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setLead
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
@@ -23,13 +22,9 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setCommittedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
-public import Spec.go_uber_org.zap.Error
-public import Spec.go_uber_org.zap.Logger__Warn
 public import Perennial.Proof.time
 
 @[expose] public section
@@ -181,62 +176,6 @@ local macro "ul_tail" : tactic => `(tactic| (
     · iframe #
     ul_stats))
 
-set_option hygiene false in
-/-- `run`'s deferred shutdown (after its loop returns): `stopping` closed under `wgMu`'s write
-lock (`GoAttach`'s protocol closed, its "no waiters" taken), the context cancelled, the scheduler
-stopped, `GoAttach`'s goroutines waited for, raft stopped, `Cleanup`, `done` closed. -/
-local macro "run_shutdown" : tactic => `(tactic| (
-  ihave #Htrue : iprop(True) $$ []
-  · itrivial
-  ihave #Hgok' := Hgok
-  iunfold srvGoAttachOk at Hgok'
-  icases Hgok' with ⟨%gch, %gc, #Hgstf, #Hgint, #Hgwg, #Hginv, #Hgguard, -, -, -⟩
-  wp_apply sync.RWMutex.wp_Lock_guard (srvWgMuAddr s) (wgMuP γg) $$ [] as ⟨Hwl, HP1⟩
-  · iframe #
-  iunfold wgMuP at HP1
-  icases HP1 with ⟨%bo, Hbo, Hso⟩
-  imod goAttach_closer_open γg bo _ $$ Hginv Hclose Hbo with ⟨%Hbot, Hclose, Hbo⟩
-  subst Hbot
-  iunfold stopPart at Hso
-  simp only [↓reduceIte]
-  (try wp_auto)
-  ihave #Hgich : isChan gch γg.ch Unit $$ []
-  · iunfold isStopChanInternal at Hgint; icases Hgint with ⟨$, -⟩
-  wp_apply_core chan.wp_close (V := Unit) gch γg.ch $$ Hgich
-  iintro -
-  iapply stop_close_au_internal gch γg.ch γg.chi iprop(True) _ $$ Hgint Hso Htrue
-  inext
-  iintro #Hdisc
-  imod goAttach_shutdown γg $$ Hginv Hclose Hbo Hdisc with ⟨HP1, Hw0⟩
-  (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard (srvWgMuAddr s) (wgMuP γg) $$ [Hwl HP1]
-  · iframe #; iframe
-  (try wp_auto)
-  wp_bind (App (Val #v.cancel) (Val #()))
-  iunfold context.cancelSpec at Hcfs
-  iapply Hcfs $$ Htrue
-  inext
-  iintro -
-  (try wp_auto)
-  wp_apply hStop sci γs (Ps ++ [pl]) $$ [Hstoptok Hq]
-  · iframe #; iframe
-  (try wp_auto)
-  wp_apply wp_goAttach_Wait s γg $$ [Hw0]
-  · iframe #; iframe
-  (try wp_auto)
-  wp_apply hRStop Er γn (srvRAddr s) $$ []
-  · iframe #
-  (try wp_auto)
-  wp_apply hCl s $$ []
-  (try wp_auto)
-  wp_apply wp_broadcast_chan_close (ty := go.ChannelType go.ChanDir.sendrecv (go.StructType []))
-    v.done γd iprop(True) $$ [Hdc]
-  · iframe Hdc; iexact Htrue
-  iintro -
-  (try wp_auto)
-  iapply HΦ
-  itrivial))
-
 set_option maxHeartbeats 0 in
 theorem EtcdServer.run.wp_proof
     (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
@@ -255,12 +194,7 @@ theorem EtcdServer.run.wp_proof
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
-    (hRev : EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG))
-    (hZE : zap.Error.spec (GF := GF) (hG := hG))
-    (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
-    (hStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
-    (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
-    (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG)) :
+    (hRev : EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
   wp_start as Hpre
@@ -649,7 +583,8 @@ theorem EtcdServer.run.wp_proof
     iexists A, Ps, pl, Q, R
     iframe
     iframe #
-  -- `err := <-s.errorc`: warn, return
+  -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
+  -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -660,28 +595,13 @@ theorem EtcdServer.run.wp_proof
     · iapply is_bag_is_chan $$ Hecb
     iapply bag_recv_au γe v.errorc _ _ $$ [$Hlc1 $Hlc2] Hecb
     inext
-    iintro %err -
-    wp_auto
-    wp_apply hZE err as %ef -
-    (try wp_auto)
-    wp_apply wp_slice_literal
-    isplitr
-    · ipureintro; rfl
-    iintro %fsl ⟨-, -⟩
-    (try wp_auto)
-    wp_apply hW fv.lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg0
-    (try wp_auto)
-    wp_apply hW fv.lg _ _ $$ []
-    · iframe #; ipureintro; exact Hlg0
-    (try wp_auto)
-    wp_for_post
-    run_shutdown
-  -- `<-s.stop`: return
+    iintro %err Hf
+    iexfalso; iexact Hf
+  -- `<-s.stop`: nothing is sent on it (D19m: no `Stop`/`HardStop` in the runs covered); so `run`
+  -- never returns, and its deferred shutdown (`Cleanup` among it) is never reached
   iapply BigAndL.bigAndL_cons.2
   isplit
-  · iunfold isUnitBag at Hscb
-    icases Hscb with ⟨%γst, #Hstb⟩
+  · icases Hscb with ⟨%γst, #Hstb⟩
     simp only [chan.blockingClausePre]
     iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, v.stop, γst
     isplitr
@@ -690,10 +610,8 @@ theorem EtcdServer.run.wp_proof
     · iapply is_bag_is_chan $$ Hstb
     iapply bag_recv_au γst v.stop _ _ $$ [$Hlc1 $Hlc2] Hstb
     inext
-    iintro %u -
-    wp_auto
-    wp_for_post
-    run_shutdown
+    iintro %u Hf
+    iexfalso; iexact Hf
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

@@ -294,7 +294,8 @@ theorem NewServer.wp_proof
   (try wp_auto)
   wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %errc %γec ⟨#Herrc, %Herrcap, Herro⟩
   · ipureintro; word
-  imod start_bag (V := GoInterface) (fun _ => iprop(True)) _ errc γec (by trivial) $$ Herrc Herro
+  -- `errorc`: nothing is sent on it in the runs covered (D19m)
+  imod start_bag (V := GoInterface) (fun _ => iprop(False)) _ errc γec (by trivial) $$ Herrc Herro
     with #Herrb
   (try wp_auto)
   -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started

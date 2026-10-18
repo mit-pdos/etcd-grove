@@ -101,7 +101,6 @@ apply_Apply: @
 # membership change's contract, and names-only callees (zap, the alarm store, ...).
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__stopWithDelay:
 # The apply thread's small callees, with bodies (proved): the server's leader test and
 # logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
 # alarm store's Get (api/v3alarm).
@@ -131,7 +130,7 @@ zap_Error:
 EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingIndex consistentIndex__UnsafeConsistentIndex consistentIndex__SetConsistentIndex
 EtcdServer__setAppliedIndex:
 EtcdServer__setTerm:
-EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
+EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply
 # GoAttach (server.go; the request path's unit 4c: with its body, over Perennial's WaitGroup and
 # RWMutex, InvGoAttach.lean; the apply thread's alarm goroutine is dead in the model, D19k:
 # NoSpaceDead.lean)
@@ -323,20 +322,21 @@ EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdSer
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
-# trust boundary (`axiom … .wp_proof`): `revokeExpiredLeases`, `Cleanup` (names-only server
-# methods) and v2stats' `BecomeLeader`.
+# trust boundary (`axiom … .wp_proof`): `revokeExpiredLeases` (a names-only server method) and
+# v2stats' `BecomeLeader`. (`Cleanup`, `raftNode.stop`, the scheduler's `Stop` and the warning
+# were its shutdown's, which D19m (2026-10-18) made unreachable: `raftNode.stop` stays linked,
+# proved.)
 SnapshotMetadata__GetTerm: @
 EtcdServer__setCommittedIndex:
 EtcdServer__setLead:
 EtcdServer__revokeExpiredLeases:
-EtcdServer__Cleanup:
 v2stats_ServerStats__BecomeLeader:
 schedule_NewFIFOScheduler:
 schedule_job__Do:
 schedule_NewJob: schedule_job__Do
 schedule_Scheduler__Schedule:
 schedule_Scheduler__Stop:
-EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases zap_Error zap_Logger__Warn schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup
+EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases
 # The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
 # `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
 # leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,

@@ -6,7 +6,6 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
 
 @[expose] public section
 
@@ -71,8 +70,7 @@ theorem entriesAt_drop (ents : List Loc) (ms : List EntryModel) (k : Nat) :
 
 theorem EtcdServer.applyEntries.wp_proof
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
-    (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG))
-    (hStop : EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG)) :
+    (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
@@ -194,8 +192,9 @@ theorem EtcdServer.applyEntries.wp_proof
         ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
       iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hfs Hbc' Hlog Hka Hkb'
-    obtain ⟨hli, -, hok2, hci2⟩ := Hpost
-    -- the postcondition, whether or not the server stops
+    obtain ⟨hli, -, hok2, hci2, hstop⟩ := Hpost
+    -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
+    subst hstop
     have hlast : ms.getLast? = (ms.drop k).getLast? := by
       rw [List.getLast?_drop]; simp only [ite_eq_right (show ¬ ms.length ≤ k by omega)]
     obtain ⟨mL, hmL, hmLi⟩ := entriesFrom_last f0 ms Hfrom (by
@@ -207,38 +206,17 @@ theorem EtcdServer.applyEntries.wp_proof
       rw [hmL]; simp only [Option.map_some, Option.getD_some]; rw [happi]
       have : uint.Z f0 + k ≤ uint.Z f0 + ms.length - 1 := by omega
       omega
-    cases stop
-    · wp_auto
-      iapply HΦ
-      iframe Hfs
-      iexists st', appi, appt, a', at', csl
-      iframe
-      isplitl [Hka]
-      · isplitr
-        · ipureintro; rw [hun]; exact Hx'
-        iframe Hlog'
-        rw [hun]; iexact Hka
-      ipureintro; exact ⟨hok2, hfin, Or.inr hci2⟩
-    · ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
-      · iPkgInit
-      wp_auto
-      wp_apply fmt.wp_Errorf _ slice.nil ([] : List GoAny) _root_.Perennial.fmt.ArgsWf.nil $$ [] as %err -
-      · iapply ownSlice_nil
-      (try wp_auto)
-      wp_apply wp_fork $$ []
-      · wp_apply hStop
-        itrivial
-      (try wp_auto)
-      iapply HΦ
-      iframe Hfs
-      iexists st', appi, appt, a', at', csl
-      iframe
-      isplitl [Hka]
-      · isplitr
-        · ipureintro; rw [hun]; exact Hx'
-        iframe Hlog'
-        rw [hun]; iexact Hka
-      ipureintro; exact ⟨hok2, hfin, Or.inr hci2⟩
+    wp_auto
+    iapply HΦ
+    iframe Hfs
+    iexists st', appi, appt, a', at', csl
+    iframe
+    isplitl [Hka]
+    · isplitr
+      · ipureintro; rw [hun]; exact Hx'
+      iframe Hlog'
+      rw [hun]; iexact Hka
+    ipureintro; exact ⟨hok2, hfin, Or.inr hci2⟩
   · -- `off ≥ len(entries)`: every entry is already applied
     (try wp_auto)
     obtain ⟨mL, hmL, hmLi⟩ := entriesFrom_last f0 ms Hfrom (by

@@ -9692,3 +9692,105 @@ Axioms: eleven added (five `v3rpc` `<X>_init`, five `rpctypes` `<X>_init`,
 linked result reaches yet (as the other `<X>_init`s): `etc/tcb-baseline.txt` gains only
 `mvcc.ReportEventReceived.wp_proof` (322 axioms, 12 `sorry`s; the `cache-client`, `mvcc`,
 `v3rpc` and `watch` collections too), updated with `--check --update` on purpose.
+
+## D19m carried out: `Cleanup` unreachable; `revokeExpiredLeases` and `createMergedSnapshotMessage` stopped (D19n, D19o) (2026-10-18)
+
+The user approved D19m's recommendations (2026-10-18). Carried out for `Cleanup`; the other two
+need a further decision each (D19n, D19o below).
+
+* **`EtcdServer.Cleanup`: (A), carried out.** `run`'s two exits are dead in the runs covered:
+  - `s.stop`: `start` makes it a bag with predicate `False` (`srvRunFieldsAt`); its only senders in
+    Go are `HardStop` (and `Stop`, through it), which the runs covered never call (any program that
+    did could not be verified against these specs: a send needs `False`).
+  - `s.errorc`: `NewServer` makes it a bag with predicate `False` (`srvRunBuilt`,
+    `srvRunFieldsAt`). Its senders in Go: `stopWithDelay` (`server.go:1352`), called by
+    `applyEntries` only when `apply` returns `shouldStop`, i.e. when `applyConfChange` removed the
+    local member, which its contract excludes (`removed = false`, B3's `ccApplyOk`); `apply`'s spec
+    now returns `shouldStop = false` (its loop keeps `sb = false`), `applyEntries`' branch is gone
+    and with it `stopWithDelay`'s axiom. And the transport (`ErrorC: srv.errorc`,
+    `server.go:426`): its peers' and remotes' stream readers and pipelines send
+    `errMemberRemoved` there when a remote member answers that this one was removed. That is one of
+    the transport goroutines' effects, which the named premise `transportEffectsOk` already assumes
+    as a whole (the cluster's message trust assumption); its statement now says so explicitly (no
+    well-behaved member says that of a member never removed; in a one-member cluster there is no
+    peer). Not a new premise, but a stated reading of the existing one.
+  So `run` never returns; its deferred shutdown proof (`run_shutdown`: `stopping` closed, the
+  context cancelled, the scheduler stopped, `GoAttach` waited for, `raftNode.stop`, `Cleanup`,
+  `done` closed) is gone, and with it `run`'s hypotheses `zap.Error`, `Logger.Warn`,
+  `Scheduler.Stop`, `raftNode.stop` and `Cleanup`. **Two axioms fewer**: `EtcdServer.Cleanup` and
+  `EtcdServer.stopWithDelay` (their spec and proof files removed, as `raftRequestAlarm`'s in D19k).
+  `raftNode.stop` (proved) stays linked, now unused; the scheduler's `Stop` (an axiom of mvcc's
+  list) leaves the server's collection. A stopping server (D19m (B), a "server open" token)
+  remains the route when one is in scope. Trust base: `etc/tcb-baseline.txt` 320 axioms, 12
+  `sorry`s (two fewer), the `server` collection three fewer, both updated with `--check --update`
+  on purpose.
+
+## The lessor's grants and `run`'s expired-lease receive (D19n, 2026-10-18 · proposed)
+
+D19m (A) for `revokeExpiredLeases`: `expiredC`'s bag predicate "a lease this lessor granted", with
+a ghost record of grants kept empty because no `LeaseGrant` is ever applied (`plainReq` admits
+none: `.leaseGrant` falls to `_ => False`, and a put's lease is `0`). Carrying it out showed the
+missing piece: **who can refute the predicate in `run`.** The receiver is `run`, but the lease
+state is the apply thread's (`leaseOwn γl L`, inside `kvOwn`'s `leasesLive`, `∃ L`, travelling
+from job to job), and the lessor's ghost state (`γl`: the live set, a non-monotone ghost
+variable, half in the lessor's lock, half the owner's) gives no persistent fact that `L` stays
+empty: `run` holds nothing to combine a "granted" witness with. Every route needs a persistent,
+server-level fact that the apply thread never grants, and so a change on the apply side; the
+choice is where it lives.
+
+* *(A) A grant guard of the lessor.* `lessorInv` (or `NewLessor`'s postcondition, through a
+  saved predicate pinned in the lessor's ghost map as its location is) carries a persistent
+  predicate `GA : w64 → IProp` chosen by `NewLessor`'s caller; `Grant` takes `□ GA id`; the lock
+  keeps `∀ id ∈ L, GA id`; `NewLessor`'s axiom gives `expiredC` the predicate `fun _ => ∃ id, GA
+  id` (true of Go: `runLoop` sends only leases of `leaseMap`, found under the lock). The apply
+  environment (`apply.AEnv`) gains the guard and `LeaseGrant`'s spec its premise `□ E.GA id`; the
+  server picks `GA := fun _ => False`, discharging the applier's `LeaseGrant` premise from
+  `plainEntry` (the branch is dead in the server's applies), and `run`'s receive yields `False`:
+  `revokeExpiredLeases` leaves the link (one axiom fewer). Cost: the signature of every lessor
+  spec over `lessorInv` (about fifteen) or, with the saved predicate, only `NewLessor`, `Grant`
+  and the derivations of the lessor contracts (`LessorContract`, `LessorDerive`, `LessorOk`); the
+  apply package's `AEnv` and `LeaseGrant` (its three appliers); `NewServer`'s instantiation.
+  Moderate.
+* *(B) The live set pinned at the server.* The server's apply resources keep `L = []`
+  (`leasesLive` at `[]`), which needs `apply.Apply`'s spec to say that a non-`LeaseGrant`
+  request leaves the live set unchanged (its postcondition today is `∃ L' ⊇ L`), and an
+  invariant shared with `run` holding a fraction of the owner's half at `[]` (so `leaseOwn`
+  becomes fractional). Larger than (A), and it changes the txn layer's `leaseOwn` users.
+* *(C) A named workload premise* "no lease expires" (D19m (B), as `backendUnderQuota`), under
+  which `NewLessor`'s contract gives the bag `False`: cheap; a premise where the model can prove
+  the fact.
+
+*Recommendation:* (A), with the saved predicate (the lessor specs' signatures unchanged).
+`revokeExpiredLeases` stays a false axiom until then (`notes/audit.md`).
+
+## Raft's `MsgSnap` in a one-member cluster (D19o, 2026-10-18 · proposed)
+
+D19m (A) for `createMergedSnapshotMessage`: `msgSnapC` never delivers because raft sends `MsgSnap`
+only to another voter and the configuration stays `{self}`. Two things stop it now:
+
+1. **The receive is in `applyAll`**, whose proof D19i part 1 is changing on its own branch
+   (`d19i1-raft`; `applyAll`, the snapshot path, `compactRaftLog`): dropping
+   `createMergedSnapshotMessage` and `sendMergedSnap` from `applyAll`'s hypotheses must wait for it
+   or be done there.
+2. **The raft-side fact does not exist yet.** A `Ready`'s message reaches the server as
+   `msgOwn ∗ isRaftMsg γ st ∗ termLB` (`rnEnvOk`, `rnMsgOk_of_raft`); `isMessage`'s `.snap` clause
+   carries the leader and the committed prefix, nothing about `dst`. The pure model knows more:
+   `maybeSendSnapshot`'s spec sends the `.snap` "from `id` to `to`" with `to ≠ id` (its only caller
+   is reached from `bcastAppend`, which skips the leader), `to` a key of the progress map, which
+   in the static mode tracks exactly `γ.raft.reCfg` (`InvNode`'s configuration facts). Options:
+   * *(A) In the protocol.* `isMessage`'s `.snap` clause gains `⌜m.dst ≠ m.src ∧ m.dst ∈
+     reCfg⌝` (static mode; with reconfiguration, the configuration at the term), proved at
+     `maybeSendSnapshot` from the tracker's keys; the server's `E.M` then refutes a `MsgSnap` when
+     `reCfg = {self}` (the server's start: `ccBootOk`'s one-member configuration; `ccApplyOk`
+     keeps it). Cost: the raft protocol's message clause and its send sites (`maybeSendSnapshot`
+     only), the static-mode tracker invariant if it is not already stated in that form; then the
+     server side (`isRNMsgSnapC`'s predicate, `processMessages`, `applyAll`). Raft-side, but in
+     `raft.go`'s send path, not in `node.go`'s `run`/`advancec` or `RawNode` (D19i's).
+   * *(B) In the outbox* (`outboxRel`, physical): each queued message's `To` is a tracked peer
+     other than the node; the same proof obligation at the send sites, carried through `Ready`
+     (`RawNode`, D19i's area) instead of through the persistent protocol predicate.
+   * *(C) A premise "no `MsgSnap`"* on the run (D19m (C)).
+
+   *Recommendation:* (A), after D19i part 1 has landed (the `applyAll` side then a small change:
+   the receive's predicate `False`, the two hypotheses dropped). `createMergedSnapshotMessage`
+   stays a false axiom, and `sendMergedSnap` a suspect one, until then.

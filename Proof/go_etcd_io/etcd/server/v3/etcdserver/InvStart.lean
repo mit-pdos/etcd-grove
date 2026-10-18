@@ -130,11 +130,11 @@ instance srvReadBuilt_persistent (s : Loc) (E : apply.AEnv GF) (v : ReadFields) 
     Persistent (srvReadBuilt s E v) := by
   unfold srvReadBuilt; infer_instance
 
-/-- **`run`'s fields but those `start` sets** (persistent; `srvRunFieldsAt`'s `errorc`, compactor,
-stats and `leadTimeMu`). -/
+/-- **`run`'s fields but those `start` sets** (persistent; `srvRunFieldsAt`'s `errorc`, a bag on
+which nothing is sent since D19m, compactor, stats and `leadTimeMu`). -/
 def srvRunBuilt (s : Loc) (v : RunFields) : IProp GF :=
   iprop(srvErrorcAddr s ↦□ v.errorc ∗
-      (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(True))) ∗
+      (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(False))) ∗
     srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
     srvStatsAddr s ↦□ v.stats ∗
     sync.isRWMutexGuard (srvLeadTimeMuAddr s) (leadTimeP s))

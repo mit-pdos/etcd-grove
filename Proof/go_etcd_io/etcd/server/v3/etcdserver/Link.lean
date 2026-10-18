@@ -17,7 +17,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ApplyWait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CommittedIndex
@@ -85,7 +84,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__shouldSnaps
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
@@ -544,10 +542,6 @@ theorem pbutil.wp_MustUnmarshalMessage :
     pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustUnmarshalMessage.wp_proof
 
-theorem EtcdServer.wp_stopWithDelay :
-    EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG) :=
-  EtcdServer.stopWithDelay.wp_proof
-
 theorem backend.wp_VerifyBackendConsistency :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
   backend.VerifyBackendConsistency.wp_proof
@@ -875,10 +869,6 @@ theorem EtcdServer.wp_Backend :
     EtcdServer.Backend.spec (GF := GF) (hG := hG) :=
   EtcdServer.Backend.wp_proof
 
-theorem EtcdServer.wp_Cleanup :
-    EtcdServer.Cleanup.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Cleanup.wp_proof
-
 theorem EtcdServer.wp_Cluster :
     EtcdServer.Cluster.spec (GF := GF) (hG := hG) :=
   EtcdServer.Cluster.wp_proof
@@ -1093,7 +1083,7 @@ theorem EtcdServer.wp_apply :
 
 theorem EtcdServer.wp_applyEntries :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
+  EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply
 
 theorem EtcdServer.wp_shouldSnapshotToDisk :
     EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG) :=
@@ -1167,13 +1157,9 @@ theorem EtcdServer.wp_revokeExpiredLeases :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.revokeExpiredLeases.wp_proof
 
-theorem raftNode.wp_stop :
-    raftNode.stop.spec (GF := GF) (hG := hG) :=
-  raftNode.stop.wp_proof
-
 theorem EtcdServer.wp_run :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
-  EtcdServer.run.wp_proof EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule EtcdServer.wp_revokeExpiredLeases zap.wp_Error zap.Logger.wp_Warn schedule.Scheduler.wp_Stop raftNode.wp_stop EtcdServer.wp_Cleanup
+  EtcdServer.run.wp_proof EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule EtcdServer.wp_revokeExpiredLeases
 
 theorem EtcdServer.wp_Stopping :
     EtcdServer.Stopping.spec (GF := GF) (hG := hG) :=
@@ -1366,6 +1352,10 @@ theorem raftNode.wp_advanceTicks :
 theorem raftNode.wp_getLatestTickTs :
     raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
   raftNode.getLatestTickTs.wp_proof
+
+theorem raftNode.wp_stop :
+    raftNode.stop.spec (GF := GF) (hG := hG) :=
+  raftNode.stop.wp_proof
 
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=

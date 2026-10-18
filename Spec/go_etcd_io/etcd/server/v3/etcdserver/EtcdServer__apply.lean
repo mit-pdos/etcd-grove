@@ -47,7 +47,9 @@ apply thread at the committed raft log `A` through `f0 - 1` (`kvApplied`), the b
 it (`kvBatch`), at `A ++ ms` after. **The write budget**
 (2026-10-13, unit 6): one write token of the store per entry, spent (a conf change's is wasted);
 since D19b (2026-10-18) taken from the budget `srvWTPool E.γ` with a time receipt of the entry's
-iteration, until then handed in (`txn.storeWTs E.γ ms.length`). -/
+iteration, until then handed in (`txn.storeWTs E.γ ms.length`). **The stop** (D19m, 2026-10-18): it
+returns `shouldStop = false`, since `applyConfChange` removes no member (`ccApplyOk`), so the
+caller's `stopWithDelay` is never reached. -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -71,7 +73,8 @@ abbrev EtcdServer.apply.spec : Prop :=
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧
-          uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z appliedi)⌝ }}
+          uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z appliedi) ∧
+          shouldStop = false⌝ }}
 
 end spec
 

@@ -308,14 +308,18 @@ abbrev srvLeadTimeMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"leadTi
 end addrsR
 
 /-- **`run`'s view of the server** at the fields' values `v` (persistent): `errorc` (a channel of
-errors, no content), `stop` (a unit channel `HardStop` sends on), `done`, `cancel` (the server
+errors on which nothing is sent: a bag with predicate `False`, D19m, 2026-10-18: its senders are
+`stopWithDelay`, which `apply` never asks for, and the transport's peers, `transportEffectsOk`),
+`stop` (the unit channel `HardStop` sends on, a bag with predicate `False`: the runs covered call
+neither `Stop` nor `HardStop`, D19m), `done`, `cancel` (the server
 context's cancel function, `WithCancel`'s), the compactor, the stats, the leader-change notifier,
 `leadTimeMu`'s write side, the committed index's invariant, `GoAttach`'s protocol. -/
 def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.ContextNames)
     (v : RunFields) : IProp GF :=
   iprop(srvErrorcAddr s ↦□ v.errorc ∗
-      (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(True))) ∗
-    srvStopAddr s ↦□ v.stop ∗ isUnitBag v.stop ∗
+      (∃ γe : ChanNames, isChanBag γe v.errorc (V := GoInterface) (fun _ => iprop(False))) ∗
+    srvStopAddr s ↦□ v.stop ∗
+      (∃ γst : ChanNames, isChanBag γst v.stop (V := Unit) (fun _ => iprop(False))) ∗
     srvDoneAddr s ↦□ v.done ∗
     srvCancelAddr s ↦□ v.cancel ∗ context.cancelSpec v.cancel γcx iprop(True) ∗
     srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
