@@ -32,8 +32,6 @@ Unit test: [`TestRawNodeSnapshotDuringConfChangeApply`](https://github.com/upama
 
 ### Anything else we need to know?
 
-Is ignoring a snapshot while committed entries are being applied (my PR; the leader resends the snapshot after `ReportSnapshot`) the fix you prefer, rather than making `ApplyConfChange` skip a conf change that a restored snapshot includes?
-
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Raft version
