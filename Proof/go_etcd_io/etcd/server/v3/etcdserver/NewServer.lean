@@ -855,6 +855,8 @@ theorem NewServer.wp_proof
   ipersist ClientCertAuthEnabledS
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr5, Hlgrs⟩
   icases replicate_take1 _ _ hM1 $$ Hfcnr with ⟨Hfcr, -⟩
+  -- the watch-token pool (D19b's method), from `mvcc.New`'s tokens
+  imod (mvcc.watchTokPool_alloc γw ⊤ (by omega)) $$ Hwtoks with #Hpool
   -- (D19g (b)) what serving needs: the configuration fields, the watchable store as the KV, the
   -- progress interval's field, `lgMu`'s reader slots for request goroutines and the others'
   icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨Hlgs, -⟩
@@ -888,6 +890,11 @@ theorem NewServer.wp_proof
   iframe Hgap Hserve
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
+  isplitr
+  · unfold srvWatchBuilt
+    iexists ws, γw
+    iframe #
+    ipureintro; rfl
   unfold srvBuilt
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr

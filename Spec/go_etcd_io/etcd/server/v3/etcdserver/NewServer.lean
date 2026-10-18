@@ -53,12 +53,15 @@ row of `isServerBuilt` the built part leaves out, `run`'s snapshot contract `rnS
 `bootOk` hands the fresh `MemoryStorage`'s application snapshot token, which raft's `StartNode`
 lends `InitialState` and gives back, and `MemoryStorage.Snapshot`'s application triple reads
 (`rnSnapOnce_of_tok`); until then it was the residual premise of whoever composed `NewServer`
-with `start`.
+with `start`. The watch store
+(`srvWatchBuilt`, 2026-10-18): the server's `kv` the watchable store, with the watch-token pool
+allocated from `mvcc.New`'s tokens (`mvcc.watchTokPool_alloc`, under the time-receipt bound).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 
 @[expose] public section
 
@@ -144,7 +147,7 @@ abbrev NewServer.spec : Prop :=
       ⌜err = GoInterface.nil⌝ ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γn : RNNames) (b : GoInterface),
-          ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
+          ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
