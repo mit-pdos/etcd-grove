@@ -31,8 +31,8 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
   `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title), then, where the
   repository has a changelog for the next release, its entry alone (`changelog: add entry for <what>`, no body; the
   link `pull/TODO` until the PR exists). Messages are as short as upstream's: most etcd and raft commits have no
-  body, and nine in ten at most three lines. The tests commit says only that the test fails until the next commit;
-  the fix commit says in a sentence or two what was wrong and what changes, in words rather than function names,
+  body, and nine in ten at most three lines. The tests commit has no body (the PR says the tests fail first); the
+  fix commit says in one short sentence what changes, or what was wrong, in words rather than function names,
   without restating the diff. Subjects at most 72 characters; the prefix the package's history uses (`client/v3:`,
   `etcdserver:`, `raft:`). `git commit -s`, no AI trailer of any kind. The messages are drafts the user rewrites
   (etcd does not accept AI-written messages). Amend the commits until the PR is open.

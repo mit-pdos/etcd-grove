@@ -13,7 +13,7 @@ decides how to file, as for the sibling.
   2026-10-18)
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-removed-leader` in `~/etcd-fixes/raft-readindex-removed-leader`, three commits:
-  c1e730b adds the test, which fails there; f54c2e0 is the fix; 916ceec adds the changelog entry. Not yet pushed
+  a15b631 adds the test, which fails there; 9fa83d5 is the fix; 30d3548 adds the changelog entry. Not yet pushed
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader`, the branch the links in
   `issue.md` name; its lines 2227-2260 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
@@ -48,9 +48,9 @@ fix peer 2 produces none (its heartbeat at term 1 is ignored by peer 1 at term 2
 off), so the check is vacuous there; kept so on purpose (the user's decision, 2026-10-18): the test rules out a
 stale answer, not the absence of one.
 
-- At the test commit c1e730b (`go test . -run TestReadOnlyForRemovedLeader`): fails, `"2" is not greater than or
+- At the test commit a15b631 (`go test . -run TestReadOnlyForRemovedLeader`): fails, `"2" is not greater than or
   equal to "4"` (`read index`).
-- At the fix commit f54c2e0: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- At the fix commit 9fa83d5: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l` empty; `go vet ./...` clean.
 - A temporary test (2026-10-18, with the combined fix; this fix makes the same check at the shortcut): a leader of
   `{1}` that enters the joint configuration `{1}&&{1}` (adding a learner with an explicit transition) gets no answer

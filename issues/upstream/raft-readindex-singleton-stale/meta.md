@@ -31,7 +31,7 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
   sibling candidate `issues/upstream/raft-readindex-removed-leader/`, split off 2026-10-18)
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, three commits:
-  73b99ba adds the test, which fails there; 3a6de21 is the fix; 1cbdc49 adds the changelog entry. The fork's branch has the earlier combined fix
+  14d36dd adds the test, which fails there; b8a3280 is the fix; 3d0bd8a adds the changelog entry. The fork's branch has the earlier combined fix
   (77ab0c9) until this is force-pushed (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`,
   the branch the links in `issue.md` name; its lines 2154-2188 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
@@ -68,9 +68,9 @@ peer 1 has commit 2, peer 2 commit 3; both apply the removal right after that `n
 `becomeLeader`; a read sent to peer 1 through `nt.send` must have a read state with an index of at least 3 (only
 the guarantee: not when, nor at which index, it is answered).
 
-- At the test commit 73b99ba (`go test . -run TestReadOnlyForNewSingleVoterLeader`): fails, `"2" is not greater
+- At the test commit 14d36dd (`go test . -run TestReadOnlyForNewSingleVoterLeader`): fails, `"2" is not greater
   than or equal to "3"` (`read index`).
-- At the fix commit 3a6de21: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- At the fix commit b8a3280: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l` empty; `go vet ./...` clean.
 
 Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
