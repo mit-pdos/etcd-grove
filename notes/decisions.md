@@ -9104,6 +9104,10 @@ the theorem says nothing.
 - `NewServer.spec`'s two gaps found by item 9's point 7 (`kvInv` in place of the owned `rLog`; the
   post extended for `v3rpc.Server`'s `grpcCfgOk` and slots): adopted (the user, 2026-10-18), one
   round after `clusterLogBound` and `rnSnapOnce` land.
+- D19l and D19m: every recommendation adopted (the user, 2026-10-18). Sequenced: the fork fixes
+  (D19l (i) `Reset`, (ii) `AuthInfoFromTLS`) as one batch with one re-translation; D19l (iii) the
+  per-vector label facts after D19k (both edit `gen-init.py`); D19l (v) and D19m's four after D19i
+  part 1 lands (it touches `run` and raft); D19l (iv) in phase C.
 
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
 conclusion to executions where the bounds hold (they are ghost facts, not observable in the
@@ -9521,3 +9525,49 @@ have the instance).
 Facts copied only within one package (raft's private `ite_pos`/`ite_neg`, `uint_nat_eq`) or once
 (`backend.strLt_total`, the `goStringLe_*` of `mvcc/BucketRange.lean`, mvcc's `wFractional_*`
 combinators) are left where they are; they can move when a second package needs them.
+
+## D19j carried out: `watch.go`'s package variables from `v3rpc`'s facts; `io.EOF` stays (2026-10-18)
+
+The user chose D19j's option (1). Carried out, but for `io.EOF`:
+
+* **`v3rpc.watchPkgVars`** (`v3rpc/Base.lean`, its pieces in `v3rpc/BaseWatch.lean`): everything
+  `watchVars` held but `io.EOF` and `reportEventOk`, now a conjunct of `v3rpcInit`, proved by
+  `v3rpc`'s initializer (`etc/gen-init.py`): `auth`'s four errors from `authInit`
+  (`errVarLeaf_of_authErrVar`); `mvcc`'s `ErrEmptyWatcherRange`/`ErrWatcherDuplicateID` from
+  `mvccInit`, which now keeps them as the `errors.New` errors they are (`errorsNewVar`, appended;
+  `errVarLeaf_of_newVar`); `rpctypes`' `ErrCompacted` (its `errorStringSpec`) and five `ErrGRPC*`
+  errors, which `rpctypesInit` now keeps (appended; five `<X>_init` axioms, `status.Error` values
+  whose `Error()` returns); `streamFailures` and the four `watchSendLoop*` histograms (five
+  `<X>_init` axioms, as `clientRequests_init`); `traceutil.Tracer` from `traceutilInit`;
+  `context.Canceled`'s pointer error; and the progress interval's lock, initialized by the
+  initializer (`sync.init_RWMutex` over `progressReportInterval`, `10 * time.Minute`, within
+  `intervalP`'s bounds; `guard_of_slots`).
+* **`mvcc.ReportEventReceived`**: a trust-boundary spec (`Spec/.../mvcc/ReportEventReceived.lean`,
+  axiom `mvcc.ReportEventReceived.wp_proof`, linked in mvcc's Link and `@` in v3rpc's), a callee
+  of `sendLoop`. Stated for `0 ≤ n`: its body's `totalEventsCounter.Add(float64(n))` panics on a
+  negative value (prometheus' counter), so the old package fact `reportEventOk` (every `n`) was
+  false; `sendLoop` passes `len(...)` of event slices it holds (`ownSlice_len` at its four calls).
+* **`watchVars` = `eofVar ∗ watchPkgVars`** (`InvWatch.lean`), `watchVars_of_init : isPkgInit
+  v3rpc ∗ eofVar ⊢ watchVars`; `grpcCfgOk_of_started` takes `isPkgInit v3rpc ∗ v3rpc.eofVar` in
+  place of `watchVars`.
+
+**`io.EOF` (not done as planned).** The planned premise class (`isPkgInit io ⊢ eofVar`, as
+`ContextReadErrs`) holds in no model: Perennial's `io.isInit` keeps only `Discard`'s cell, not
+`EOF`'s, so the entailment would conjure a points-to from nothing, the class would be
+uninhabitable and every theorem taking it vacuous (`ContextReadErrs` is sound because
+`context.isInit` has the `Canceled`/`DeadlineExceeded` cells). So `v3rpc.eofVar` stays a named
+premise, of the intermediate lemma `grpcCfgOk_of_started`, not of a closed theorem: as a
+points-to on a global it is not one of D19a's admissible hypotheses (pure facts, triples of
+called functions), so it must be discharged before the closed theorem, by the Perennial change
+below and a pin bump. True of Go: `io.EOF = errors.New("EOF")`, and Perennial's own
+`io.initialize'` stores that value (`Perennial/Proof/io/initialize.lean` drops it).
+**Proposed to Perennial, on its own:** `io.isInit` keeps `EOF ↦□ errors.New("EOF")`'s value with
+its `errors.New` facts (as `context.isInit` keeps `Canceled`), from the `wp_New` its proof already
+calls.
+
+Axioms: eleven added (five `v3rpc` `<X>_init`, five `rpctypes` `<X>_init`,
+`mvcc.ReportEventReceived.wp_proof`), each checked against the Go source (`notes/audit.md`,
+"Added after phase A"). The ten `<X>_init` are in the generated `Init.lean` files, which no
+linked result reaches yet (as the other `<X>_init`s): `etc/tcb-baseline.txt` gains only
+`mvcc.ReportEventReceived.wp_proof` (322 axioms, 12 `sorry`s; the `cache-client`, `mvcc`,
+`v3rpc` and `watch` collections too), updated with `--check --update` on purpose.

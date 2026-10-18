@@ -13,6 +13,7 @@ axiom backend.rtxStats
 axiom backend.txLive
 axiom context.Err.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof

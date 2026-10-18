@@ -15,7 +15,10 @@ the eight false etcd-internal axioms putget does not reach, four restated true o
 (`monitorKVHash`, `monitorCompactHash`, `monitorDowngrade` restricted to the configuration that
 turns them off; `SetVersionChangedNotifier` with its field owned), four stopped for a decision
 (D19m: `revokeExpiredLeases`, `Cleanup`, `createMergedSnapshotMessage`, `mvcc.store.Close`); no
-axiom added or removed.
+axiom added or removed. **D19j (2026-10-18):** eleven
+axioms added for `watch.go`'s package variables (their rows at the end; the ten `<X>_init` in
+`Init.lean` files no linked result reaches, so the baseline gains one: 322); the package fact
+`reportEventOk`, false for a negative count, replaced by one of them.
 
 ## Phase A result (2026-10-18)
 
@@ -332,3 +335,12 @@ the constructor's spec returns. Its idealisations are the two suspects and `NewS
 | `EtcdGrove.goose_adequacy_start` (point 5) | ok | Perennial's `goose_adequacy` (`GooseLang/Adequacy.lean:274`) plus the start rights handed out once; consistent with `nameFree`/`netAddrFree` as `True`, though the gRPC family's intended model needs `netAddrFree` exclusive per address. It rests on the user checking `namesUnclaimed`/`addrsUnclaimed`. |
 | `EtcdGrove.initLb_of_spec` (point 5) | ok | Only for the Goose-generated `ExternalInit`s, whose package-state map only grows. |
 | `features.NewDefaultServerFeatureGate` (point 5) | ok | `New` stores both maps and `Add` registers the 10 features (`etcd_features.go:99-118`), exactly `serverFeatures`. |
+
+### Added after phase A (D19j, 2026-10-18; Go: `server/etcdserver/api/v3rpc/metrics.go`, `api/v3rpc/rpctypes/error.go`, `server/storage/mvcc/metrics.go`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `v3rpc.streamFailures_init` | ok | `streamFailures = prometheus.NewCounterVec(...)` (`metrics.go`): returns a `*CounterVec` (the post: some `Loc`); no panic (`NewCounterVec` panics only on invalid label names, and these are fixed valid ones; registration is `init()`'s, D16). |
+| `v3rpc.watchSendLoop{WatchStream,WatchStreamPerEvent,ControlStream,Progress}Duration_init` (4) | ok | `prometheus.NewHistogram(...)` (`metrics.go:56-102`): a `Histogram`; its `Observe(float64)` returns for any value (it records into buckets; no panic). |
+| `rpctypes.ErrGRPC{InvalidAuthToken,AuthOldRevision,UserEmpty,PermissionDenied,WatchCanceled}_init` (5) | ok | `status.Error(codes.X, "...")` (`error.go:40,62,69,73,75`) with a code other than `OK`: a non-nil `*status.Error` whose `Error()` returns its formatted message (`errorStringSpec`). |
+| `mvcc.ReportEventReceived.wp_proof` | ok | `metrics.go:318-321`: `pendingEventsGauge.Sub(float64(n))` (a gauge: any value) and `totalEventsCounter.Add(float64(n))` (a counter: panics on a negative value, hence the premise `0 ≤ n`). Replaces the package fact `reportEventOk`, stated for every `n` (false for a negative one; the watch server passes slice lengths). |
