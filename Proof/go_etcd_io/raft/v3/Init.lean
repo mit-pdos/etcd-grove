@@ -10,10 +10,15 @@ variables (non-`nil`, and for the three the proofs compare against, of a pointer
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
 Three things are not facts of the model, and are premises:
-* `raftpb`'s, `proto`'s, `os`'s and `strconv`'s `wp_initialize'` are `sorry`: their
-  initializers are only partly translated (raftpb's protobuf plumbing, the file descriptor
-  and its registration, which `raftpb.toml` does not translate; the names-only packages
-  `google.golang.org/protobuf/proto` and the standard library's), so they call opaque values.
+* `raftpb`'s, `proto`'s, `os`'s and `strconv`'s initializers are only partly translated
+  (raftpb's protobuf descriptors, which `raftpb.toml` does not translate; the names-only
+  packages `google.golang.org/protobuf/proto` and the standard library's `os`, `strconv`), so
+  they call opaque values `X.init`: the trust-boundary axioms `<pkg>.opaqueInitsOk` say these
+  run (the generated `Init.lean` files' method, `etc/gen-init.py`), and `os.Stderr_init` that
+  `Stderr`'s gives the variable some `*File`, which `os`'s fact reads (2026-10-18; until then
+  the four `wp_initialize'` were `sorry`). `raftpb`'s and `proto`'s call the generated
+  `protoreflect`/`protoimpl` theorems, so they (and `quorum`'s, `tracker`'s, `confchange`'s)
+  are stated at `HasLC.hasLC`, with their package's `Assumptions`.
   (Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
   no longer calling `reflect.DeepEqual`; `emptyState` is a pointer, `&pb.HardState{}`.)
 * `log.New` (raft's `defaultLogger`, `discardLogger`) is not modelled by Perennial: the
@@ -29,6 +34,8 @@ module
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.context.NewErrorString
+public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
+public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 
 @[expose] public section
 
@@ -78,6 +85,90 @@ end wps
 
 end log
 
+section opaqueInits
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+namespace os
+
+/-- **The trust boundary: `os`'s untranslated variable initializers run.** Perennial
+translates `os` names-only, so each `X.init` is an axiom of the translation; Go runs them at
+program start (`ErrInvalid = fs.ErrInvalid`, ..., `Stdin = NewFile(...)`, `dirBufPool =
+sync.Pool{...}`, `checkPidfdOnce = sync.OnceValue(checkPidfd)`, the `var _ I = ...`
+assertions), and every Go program starts, so each returns without panicking. Satisfiable
+whatever the semantics (the `X.init`s are uninterpreted constants). `Stderr`'s, which the
+fact reads, is `Stderr_init`. -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([pollSplice.init, pollCopyFileRange.init, errPatternHasSeparator.init,
+        checkPidfdOnce.init, «_».init, checkWrapErr.init, lstat.init, errPathEscapes.init,
+        errWriteAtInAppendMode.init, Stdout.init, Stdin.init, Kill.init, Interrupt.init,
+        ErrNoHandle.init, errProcessReleased.init, ErrProcessDone.init,
+        ErrDeadlineExceeded.init, ErrNoDeadline.init, ErrClosed.init, ErrNotExist.init,
+        ErrExist.init, ErrPermission.init, ErrInvalid.init, dirBufPool.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+/-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
+holds some `*File` (what `os`'s fact reads; raft's `defaultLogger` loads it). The variable's
+cell is given here: `os` is names-only, so no `GlobalAlloc` of it is translated. -/
+axiom Stderr_init :
+    {{ (True : IProp GF) }} (App (Val Stderr.init) (Val #()))
+    {{ RET #(); ∃ f : Loc, globalAddr Stderr ↦ f }}
+
+end os
+
+namespace strconv
+
+/-- **The trust boundary: `strconv`'s untranslated variable initializers run.** Perennial
+translates `strconv` names-only, so each `X.init` is an axiom of the translation; Go runs them
+at program start (the `isPrint`/`isNotPrint`/`isGraphic` table literals, `ErrRange =
+errors.New(...)`, `ErrSyntax = errors.New(...)`), and every Go program starts, so each returns
+without panicking. Satisfiable whatever the semantics (the `X.init`s are uninterpreted
+constants). -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([ErrSyntax.init, ErrRange.init, isGraphic.init, isNotPrint32.init, isPrint32.init,
+        isNotPrint16.init, isPrint16.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+end strconv
+
+namespace google_golang_org.protobuf.proto
+
+/-- **The trust boundary: protobuf-go `proto`'s untranslated variable initializers run.**
+`proto` is translated names-only, so each `X.init` is an axiom of the translation; Go runs them
+at program start (`wireTypes`, a map literal, and `errRecursionDepth`, `errDecode`,
+`errUnknown`, `errors.New`/`protoimpl.X.NewError` values), and etcd starts, so each returns
+without panicking. Satisfiable whatever the semantics (the `X.init`s are uninterpreted
+constants). -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([wireTypes.init, errRecursionDepth.init, errDecode.init, errUnknown.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+end google_golang_org.protobuf.proto
+
+namespace go_etcd_io.raft.v3.raftpb
+
+/-- **The trust boundary: `raftpb`'s untranslated variable initializers run.** `raftpb.toml`
+does not translate the generated protobuf descriptors (`file_raft_proto_enumTypes`, `_msgTypes`,
+`_goTypes`, `_depIdxs`: slice and array literals of zero messages, enum values and type
+indices), so each `X.init` is an axiom of the translation; Go runs them at program start, and
+etcd starts, so each returns without panicking. Satisfiable whatever the semantics (the
+`X.init`s are uninterpreted constants). (The package's `func init()`, `file_raft_proto_init`'s
+registration, is not translated, so the model's initializer does not run it.) -/
+axiom opaqueInitsOk :
+    ∀ v ∈ ([file_raft_proto_depIdxs.init, file_raft_proto_goTypes.init,
+        file_raft_proto_msgTypes.init, file_raft_proto_enumTypes.init] : List val),
+    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+end go_etcd_io.raft.v3.raftpb
+
+end opaqueInits
+
+/-- `x ∈ [a, ..., x, ...]`, linear in the list. -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -92,10 +183,47 @@ theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
       (App (Val os.initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.os }} := by
-  -- Unprovable: `os` is translated names-only; its variables' initializers (`Stdin'init`,
-  -- `Stdout'init`, `Stderr'init`, `ErrInvalid'init`, ...) are opaque (axioms in
-  -- Perennial/Code/os.lean).
-  sorry
+  wp_start as Hown
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  iapply wp_fupd
+  wp_apply (os.opaqueInitsOk os.dirBufPool.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrInvalid.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrPermission.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrExist.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrNotExist.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrClosed.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrNoDeadline.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrDeadlineExceeded.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrProcessDone.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.errProcessReleased.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.ErrNoHandle.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.Interrupt.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.Kill.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.Stdin.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.Stdout.init (by mem_tac))
+  wp_apply os.Stderr_init as ⟨%stderr, Hstderr⟩
+  wp_apply (os.opaqueInitsOk os.errWriteAtInAppendMode.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.errPathEscapes.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.lstat.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.checkWrapErr.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.«_».init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.checkPidfdOnce.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.errPatternHasSeparator.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.pollCopyFileRange.init (by mem_tac))
+  wp_apply (os.opaqueInitsOk os.pollSplice.init (by mem_tac))
+  ipersist Hstderr
+  iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
+  is_pkg_init_finish
 
 omit package_sem in
 theorem strconv.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
@@ -104,36 +232,128 @@ theorem strconv.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
       (App (Val strconv.initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.strconv }} := by
-  -- Unprovable: `strconv` is translated names-only; its variables' initializers
-  -- (`ErrRange'init`, `ErrSyntax'init`, the `isPrint` tables) are opaque (axioms in
-  -- Perennial/Code/strconv.lean).
-  sorry
+  wp_start as Hown
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply (strconv.opaqueInitsOk strconv.isPrint16.init (by mem_tac))
+  wp_apply (strconv.opaqueInitsOk strconv.isNotPrint16.init (by mem_tac))
+  wp_apply (strconv.opaqueInitsOk strconv.isPrint32.init (by mem_tac))
+  wp_apply (strconv.opaqueInitsOk strconv.isNotPrint32.init (by mem_tac))
+  wp_apply (strconv.opaqueInitsOk strconv.isGraphic.init (by mem_tac))
+  wp_apply (strconv.opaqueInitsOk strconv.ErrRange.init (by mem_tac))
+  wp_apply (strconv.opaqueInitsOk strconv.ErrSyntax.init (by mem_tac))
+  iframe Hown
+  is_pkg_init_finish
 
-omit package_sem in
-theorem go_etcd_io.raft.v3.raftpb.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.raftpb get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val go_etcd_io.raft.v3.raftpb.initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }} := by
-  -- Unprovable: `raftpb.toml` translates the types and the functions raft's proofs use,
-  -- not the generated protobuf code: the initializers of `ErrInvalidLengthRaft`,
-  -- `ErrIntOverflowRaft`, `ErrUnexpectedEndOfGroupRaft` (`fmt.Errorf`), of the file
-  -- descriptor, of `_ = proto.Marshal`, and the package's `init` (gogoproto's `RegisterEnum`,
-  -- `RegisterType`, `RegisterFile`) are opaque (axioms in Code/go_etcd_io/raft/v3/raftpb.lean).
-  sorry
+end init
 
-omit package_sem in
-theorem google_golang_org.protobuf.proto.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+section init_lc
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+theorem google_golang_org.protobuf.proto.wp_initialize'
+    [google_golang_org.protobuf.proto.Assumptions] (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.protobuf.proto get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
       (App (Val google_golang_org.protobuf.proto.initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto }} := by
-  -- Unprovable (raft v3.7, stage R4): protobuf-go's `proto` is translated names-only; its
-  -- variables' initializers (`wireTypes'init`, `errRecursionDepth'init`, `errDecode'init`,
-  -- `errUnknown'init`) are opaque (axioms in Code/google_golang_org/protobuf/proto.lean).
-  sorry
+  wp_start as Hown
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply google_golang_org.protobuf.reflect.protoreflect.wp_initialize' _ Hinit.2.1 $$ Hown
+    as ⟨Hown, #H1⟩
+  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errUnknown.init (by mem_tac))
+  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errDecode.init (by mem_tac))
+  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errRecursionDepth.init (by mem_tac))
+  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.wireTypes.init (by mem_tac))
+  iframe Hown
+  is_pkg_init_finish
+
+theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
+    [go_etcd_io.raft.v3.raftpb.Assumptions] (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.raftpb get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val go_etcd_io.raft.v3.raftpb.initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }} := by
+  wp_start as Hown
+  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeType_value _ as HConfChangeType_value
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeType_name _ as HConfChangeType_name
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeTransition_value _ as HConfChangeTransition_value
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeTransition_name _ as HConfChangeTransition_name
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.MessageType_value _ as HMessageType_value
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.MessageType_name _ as HMessageType_name
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.EntryType_value _ as HEntryType_value
+  wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.EntryType_name _ as HEntryType_name
+  repeat (first
+    | wp_apply google_golang_org.protobuf.runtime.protoimpl.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H7⟩
+    | wp_apply google_golang_org.protobuf.reflect.protoreflect.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H6⟩
+    | wp_apply slices.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H5⟩
+    | wp_apply google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
+    | wp_apply strings.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
+    | wp_apply strconv.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
+    | wp_apply fmt.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #H1⟩
+    | wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk _ (by mem_tac))
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) _ _) as %m0 Hm0
+  repeat (first
+    | wp_apply (wp_mapInsert (K := w32) (V := GoString) _ m0 _ _ _) $$ Hm0 as Hm0
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := GoString) (V := w32) _ _) as %m1 Hm1
+  repeat (first
+    | wp_apply (wp_mapInsert (K := GoString) (V := w32) _ m1 _ _ _) $$ Hm1 as Hm1
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) _ _) as %m2 Hm2
+  repeat (first
+    | wp_apply (wp_mapInsert (K := w32) (V := GoString) _ m2 _ _ _) $$ Hm2 as Hm2
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := GoString) (V := w32) _ _) as %m3 Hm3
+  repeat (first
+    | wp_apply (wp_mapInsert (K := GoString) (V := w32) _ m3 _ _ _) $$ Hm3 as Hm3
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) _ _) as %m4 Hm4
+  repeat (first
+    | wp_apply (wp_mapInsert (K := w32) (V := GoString) _ m4 _ _ _) $$ Hm4 as Hm4
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := GoString) (V := w32) _ _) as %m5 Hm5
+  repeat (first
+    | wp_apply (wp_mapInsert (K := GoString) (V := w32) _ m5 _ _ _) $$ Hm5 as Hm5
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) _ _) as %m6 Hm6
+  repeat (first
+    | wp_apply (wp_mapInsert (K := w32) (V := GoString) _ m6 _ _ _) $$ Hm6 as Hm6
+    | wp_auto)
+  wp_apply (wp_map_make1 (K := GoString) (V := w32) _ _) as %m7 Hm7
+  repeat (first
+    | wp_apply (wp_mapInsert (K := GoString) (V := w32) _ m7 _ _ _) $$ Hm7 as Hm7
+    | wp_auto)
+  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_enumTypes.init (by mem_tac))
+  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_msgTypes.init (by mem_tac))
+  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_goTypes.init (by mem_tac))
+  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_depIdxs.init (by mem_tac))
+  iframe Hown
+  is_pkg_init_finish
+
+end init_lc
+
+
+section init2
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem go_etcd_io.raft.v3.quorum.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.quorum get_is_pkg_init) :
@@ -196,7 +416,7 @@ theorem go_etcd_io.raft.v3.confchange.wp_initialize' (get_is_pkg_init : GoString
   iframe Hown
   is_pkg_init_finish
 
-end init
+end init2
 
 namespace go_etcd_io.raft.v3
 
