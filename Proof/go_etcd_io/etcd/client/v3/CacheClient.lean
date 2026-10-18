@@ -87,6 +87,8 @@ server's facts at `ep` (`watchAddrFacts V`, `isNewClient_watcher`) and the KV's 
 (as `isEtcdClient_of_server`). -/
 theorem isEtcdClient_of_new [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (cl : Loc) (ep : GoString)
@@ -99,7 +101,7 @@ theorem isEtcdClient_of_new [_root_.Perennial.errors.Assumptions] [_root_.Perenn
       sortNamesOk ∗ kvAnyAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany⟩
-  ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher hAs cl ep V hV $$ [$P1 $P2 $Hnc $Hf]
+  ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher wp_ErrAny hAs cl ep V hV $$ [$P1 $P2 $P3 $Hnc $Hf]
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKV, #Hkv⟩, -⟩

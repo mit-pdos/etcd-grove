@@ -7360,14 +7360,19 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
         implements `error`, the KV path's premise). `watchConnFacts_of_addr`,
         `isNewClient_watcher`, `isEtcdClient_of_new`, `cache_end_to_end_new` take the classes
         and `hAs`; `watchAddrFacts` and `etcd_cache_served` no longer list it.
-      - `ctxErrClientAllW`: Perennial's `isContext` says only that `Err()` returns a typed error
-        (a context's cause may be any error): a premise about every context, which a context
-        whose `Err()` returns an error with `As` or `GRPCStatus` would falsify. The narrowing
-        (not done): `Watch`/`RequestProgress` take `ctxErrClient ctx cs` of their own context
-        (as the KV's `kv.Get` does), the cache supplies it for its internal
-        `WithCancel(Background())` context (its `Err()` returns `context.Canceled`, an
-        `errors.New` leaf: `ContextReadErrs`, `errorsNewOk_of`'s classes), and `run`'s own
-        contexts are `WithCancelValCtx`'s.
+      - ~~`ctxErrClientAllW`~~ (done 2026-10-18, the user's choice over a per-call premise, which
+        would not have covered the client's internal `WithCancelValCtx` stream context):
+        `client.ctxErrClientAllW_of` (`ErrorsNewOk.lean`) from Go's documented contract of
+        `Context.Err`, the new trust-boundary axiom `context.ErrAny` (`Spec/context/ErrAny.lean`:
+        `nil` until done, then the value of `Canceled` or `DeadlineExceeded`, in the shape of
+        `isContext`'s `HErr`), which replaces `context.ErrDone`'s axiom (`ErrDone` is now a
+        theorem from it: the trust base's count is unchanged, 327; eight collections show the
+        swap), and the two errors' facts: `ContextReadErrs` (existing, the read package's
+        premise: leaves without `Is`, `Error()` returns) and the new class `ContextErrsClient`
+        (their types are not `rpctypes.EtcdError` and have no `GRPCStatus`).
+        `clientErr_statusErrOk_of_leaf` is the shared step. `watchAddrFacts` and
+        `etcd_cache_served` no longer list it; `watchConnFacts_of_addr`, `isNewClient_watcher`,
+        `isEtcdClient_of_new` take `ErrAny`'s spec, the classes and `isPkgInit context`.
       - `noRetryableStreamErr`, `srvNoDupKeys`: excluded behaviours, each with its issue
         (`etcd-watch-resume-closing-substream.md`, `etcd-txn-check-intervals-sibling.md`).
       - ~~`watchTokSupply`~~ (done 2026-10-18, the user's choice: D19b's time receipts): the

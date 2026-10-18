@@ -10,7 +10,8 @@
 # and the interface calls (the `server` and `raftInterface` contracts, `isReadServer`,
 # `isReadRaft`; unit 4b discharges them) are not listed.
 context_WithTimeoutBackground:
-context_ErrDone:
+context_ErrAny:
+context_ErrDone: context_ErrAny
 errors_Is:
 strconv_FormatUint:
 traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
