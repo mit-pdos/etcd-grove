@@ -24,7 +24,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
 public import Perennial.Proof.time
 
 @[expose] public section
@@ -193,8 +192,7 @@ theorem EtcdServer.run.wp_proof
     (hRS : raftNode.start.spec (GF := GF) (hG := hG))
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
-    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
-    (hRev : EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG)) :
+    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
   wp_start as Hpre
@@ -563,7 +561,8 @@ theorem EtcdServer.run.wp_proof
     iunfold named
     iintro !> ⟨H, -⟩
     iexact H
-  -- `leases := <-expiredLeaseC`: revoked (names-only)
+  -- `leases := <-expiredLeaseC`: nothing is sent on it (D19n: the lessor's grant guard is `False`,
+  -- so no lease is granted and none expires); `revokeExpiredLeases` is never reached
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -574,15 +573,10 @@ theorem EtcdServer.run.wp_proof
     · iapply is_bag_is_chan $$ Helc
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
-    iintro %ls -
-    wp_auto
-    wp_apply hRev s ls $$ []
-    (try wp_auto)
-    wp_for_post
-    iframe
-    iexists A, Ps, pl, Q, R
-    iframe
-    iframe #
+    iintro %ls Hf
+    icases Hf with ⟨%_, Hf⟩
+    iunfold srvGrantGuard at Hf
+    iexfalso; iexact Hf
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2

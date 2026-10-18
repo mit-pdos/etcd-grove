@@ -17,9 +17,10 @@ was for the store before `BackendBridge.lean`): not yet proved of the real backe
 `lessorBackend lp P f`: the lessor's `b` (read-only: `newLessor` sets it; `Recover`, not
 proved, would replace it) is such a backend.
 
-`lessorExpiredC lp`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC` returns,
-of slices of leases with no logical content (the server's `run` passes them on to the
-names-only `revokeExpiredLeases`).
+`lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
+returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
+the expiry loop sends only non-empty slices of leases of its map; until then no logical content);
+a server whose guard is `False` receives nothing from it.
 -/
 module
 
@@ -87,13 +88,14 @@ instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IPr
     Persistent (lessorBackend lp P f T R) := by
   unfold lessorBackend; infer_instance
 
-/-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases with no
-logical content. -/
-def lessorExpiredC (lp : Loc) : IProp GF :=
+/-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases, some lease of
+each meeting the grant guard `GA` (D19n). -/
+def lessorExpiredC (lp : Loc) (GA : w64 → IProp GF) : IProp GF :=
   iprop(∃ (c : GoChan) (γc : ChanNames), lF go!"expiredC" lp ↦□ c ∗
-    isChanBag γc c (V := GoSlice) (fun _ => iprop(True)))
+    isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, GA id)))
 
-instance lessorExpiredC_persistent (lp : Loc) : Persistent (lessorExpiredC (GF := GF) lp) := by
+instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
+    Persistent (lessorExpiredC (GF := GF) lp GA) := by
   unfold lessorExpiredC; infer_instance
 
 end defs

@@ -633,8 +633,9 @@ def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRMod
 
 /-- The request facts of a one-argument method that leaves the log as it is, by method: what
 the layers read of the request (`R r`); `True` for those passed on unread to the auth store. -/
-def reqFacts (m : GoString) (r : Loc) : IProp GF :=
-  if m = go!"LeaseGrant" then iprop(∃ g : LeaseGrantModel, leaseGrantIs r g)
+def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
+  if m = go!"LeaseGrant" then
+    iprop(∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id)
   else if m = go!"LeaseCheckpoint" then
     iprop(∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝)
   else if m = go!"Alarm" then iprop(∃ am : AlarmModel, alarmRequestIs r am)
@@ -720,7 +721,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvPost E c (.ok ai) rq log (revokeOutcomeIs resp err) Pre Post }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ respMethods⌝ -∗
-      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ ciSplit E Pre }}
+      {{ reqFacts E m r ∗ mPre E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ ciSplit E Pre }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
@@ -737,7 +738,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvOwn E log ∗ chainRes c (.ok ai) ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS }}
+      {{ reqFacts E m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
       {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post ∗ E.FS }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection

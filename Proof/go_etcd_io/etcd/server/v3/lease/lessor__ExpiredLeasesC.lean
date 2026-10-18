@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 theorem lease.lessor.ExpiredLeasesC.wp_proof :
     lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG) := by
-  intro lp
+  intro lp GA
   wp_start as #Hc
   iunfold lessorExpiredC at Hc
   icases Hc with ⟨%c, %γc, #Hcf, #Hbag⟩

@@ -72,7 +72,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
@@ -1153,13 +1152,9 @@ theorem raftNode.wp_apply :
     raftNode.apply.spec (GF := GF) (hG := hG) :=
   raftNode.apply.wp_proof
 
-theorem EtcdServer.wp_revokeExpiredLeases :
-    EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
-  EtcdServer.revokeExpiredLeases.wp_proof
-
 theorem EtcdServer.wp_run :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
-  EtcdServer.run.wp_proof EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule EtcdServer.wp_revokeExpiredLeases
+  EtcdServer.run.wp_proof EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule
 
 theorem EtcdServer.wp_Stopping :
     EtcdServer.Stopping.spec (GF := GF) (hG := hG) :=

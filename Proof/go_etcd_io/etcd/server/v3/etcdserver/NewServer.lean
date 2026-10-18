@@ -434,9 +434,12 @@ theorem NewServer.wp_proof
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
   rw [Hbe0]
-  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo)
+  -- the grant guard `srvGrantGuard` (`False`, D19n): the server's policy admits no `LeaseGrant`
+  -- (`plainReq`), so the lessor's `expiredC` never delivers
+  wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
+      srvGrantGuard)
     $$ [Hopen Hwl Hfl]
-    as %l ⟨Hopen, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, Hlrd, Hlown, #Hlck, #Hlbe, #Hllk⟩
+    as %l ⟨Hopen, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, #Hlbe, #Hllk⟩
   · iframe #
     unfold backend.wbTok
     iframe Hopen Hwl Hfl

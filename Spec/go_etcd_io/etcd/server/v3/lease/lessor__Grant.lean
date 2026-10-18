@@ -26,13 +26,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 lock's critical-section contract: for `id` 0, a TTL above `MaxLeaseTTL` or a lease already
 granted (`id ∈ L`), one of the lessor's errors, nothing changed (`Pre` back); otherwise the new
 lease `l` (its `ID` and `ttl` read-only: its `ttl` the larger of `ttl` and the lessor's minimum),
-`id` added to the live set, its record written to the backend (`Post`). -/
+`id` added to the live set, its record written to the backend (`Post`). Since D19n (2026-10-18)
+only a lease the lessor's grant guard admits (`leaseGranted γl id`), which the lessor's lock then
+keeps for every lease of its map. -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (P : IProp GF) (f : val)
     (T R : IProp GF) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
       lessorCfg lp ∗ lessorBackend lp P f T R ∗ leaseOwn γl L ∗ mvcc.csContract P f Pre Q Post ∗
-      T ∗ R }}
+      T ∗ R ∗ leaseGranted γl id }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Grant")) (Val #id)) (Val #ttl))
   {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ lessorErrIs err ∗ leaseOwn γl L ∗ Pre) ∨

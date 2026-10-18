@@ -322,21 +322,20 @@ EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdSer
 # The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
 # committed index's and the leader's setters (with bodies), the raft storage snapshot's
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
-# trust boundary (`axiom … .wp_proof`): `revokeExpiredLeases` (a names-only server method) and
-# v2stats' `BecomeLeader`. (`Cleanup`, `raftNode.stop`, the scheduler's `Stop` and the warning
+# trust boundary (`axiom … .wp_proof`): v2stats' `BecomeLeader`. (`revokeExpiredLeases`, the expired
+# leases' receive, is unreachable since D19n, 2026-10-18.) (`Cleanup`, `raftNode.stop`, the scheduler's `Stop` and the warning
 # were its shutdown's, which D19m (2026-10-18) made unreachable: `raftNode.stop` stays linked,
 # proved.)
 SnapshotMetadata__GetTerm: @
 EtcdServer__setCommittedIndex:
 EtcdServer__setLead:
-EtcdServer__revokeExpiredLeases:
 v2stats_ServerStats__BecomeLeader:
 schedule_NewFIFOScheduler:
 schedule_job__Do:
 schedule_NewJob: schedule_job__Do
 schedule_Scheduler__Schedule:
 schedule_Scheduler__Stop:
-EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases
+EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule
 # The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
 # `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
 # leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,

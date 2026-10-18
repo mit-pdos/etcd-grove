@@ -9725,7 +9725,7 @@ need a further decision each (D19n, D19o below).
   `sorry`s (two fewer), the `server` collection three fewer, both updated with `--check --update`
   on purpose.
 
-## The lessor's grants and `run`'s expired-lease receive (D19n, 2026-10-18 · proposed)
+## The lessor's grants and `run`'s expired-lease receive (D19n, 2026-10-18 · (A) adopted, carried out)
 
 D19m (A) for `revokeExpiredLeases`: `expiredC`'s bag predicate "a lease this lessor granted", with
 a ghost record of grants kept empty because no `LeaseGrant` is ever applied (`plainReq` admits
@@ -9763,7 +9763,7 @@ choice is where it lives.
 *Recommendation:* (A), with the saved predicate (the lessor specs' signatures unchanged).
 `revokeExpiredLeases` stays a false axiom until then (`notes/audit.md`).
 
-## Raft's `MsgSnap` in a one-member cluster (D19o, 2026-10-18 · proposed)
+## Raft's `MsgSnap` in a one-member cluster (D19o, 2026-10-18 · (A) adopted; raft half stopped, D19p)
 
 D19m (A) for `createMergedSnapshotMessage`: `msgSnapC` never delivers because raft sends `MsgSnap`
 only to another voter and the configuration stays `{self}`. Two things stop it now:
@@ -9794,3 +9794,65 @@ only to another voter and the configuration stays `{self}`. Two things stop it n
    *Recommendation:* (A), after D19i part 1 has landed (the `applyAll` side then a small change:
    the receive's predicate `False`, the two hypotheses dropped). `createMergedSnapshotMessage`
    stays a false axiom, and `sendMergedSnap` a suspect one, until then.
+
+## D19n carried out: the lessor's grant guard; `revokeExpiredLeases` removed (2026-10-18)
+
+The user chose (A), with the saved predicate. Carried out:
+
+* **The guard** (`lease/InvLessor.lean`): the lessor's ghost map `γl` now pins, at `false`, its
+  location *and* the name `γga` of a saved predicate (`LessorGV := (Loc × GName) ⊕ List w64`,
+  `lessorPinG`; `lessorPin γl lp` is `∃ γga, lessorPinG γl lp γga`, so its users are unchanged).
+  `lessorGuard γl GA`: the pin and `savedPredOwn γga □ GA`; `leaseGranted γl id := ∃ GA,
+  lessorGuard γl GA ∗ □ GA id` (persistent). The lock's ghost component is `lessorAuth γl q lp L`
+  (the authority and `□ [∗list] id ∈ L, leaseGranted γl id`), carried untouched by every method
+  but `Grant` (`lessor_live_grant`, which replaces `lessor_live_update`). No other lessor spec's
+  signature changed.
+* **`Grant`** takes `leaseGranted γl id` (the guard and `□ GA id`, packed); the apply package's
+  `isApplyLessor` `Grant` clause takes `lease.leaseGranted γ.leases id`; the guard reaches the
+  appliers through the store's names (`E.γ.leases`), not a new `AEnv` field: the four `LeaseGrant`
+  appliers' specs and `reqFacts` (now `reqFacts E m r`) take `∃ g, leaseGrantIs r g ∗
+  lease.leaseGranted E.γ.leases g.id`. The chain's dispatch never reaches them anyway (`rqOk`'s
+  `.leaseGrant => False`).
+* **`NewLessor`'s axiom** takes the guard `GA` (its caller's choice) and returns `lessorGuard γl
+  GA` and `lessorExpiredC lp GA`, a bag with predicate `∃ id, GA id`. True of Go: the loop's
+  `revokeExpiredLeases` sends only a non-empty slice (`lessor.go:652`) of leases
+  `findExpiredLeases` took from `leaseMap` under the read lock (`expireExists`, `lessor.go:706`),
+  each of which the lock keeps as `leaseGranted` (agreeing with the pinned guard after a step);
+  the map starts empty (fresh bucket, no `Recover`).
+* **The server**: `srvGrantGuard` (`InvApplier.lean`, `fun _ => False`) is the guard `NewServer`
+  gives `NewLessor` and the predicate of `lessorOk`'s `expiredC`; `run`'s receive yields `False`,
+  and `revokeExpiredLeases` (spec and axiom) is gone. **The guard is the instance's choice**
+  (the user, 2026-10-18): putget's workload keeps leases off; a lease-enabled instance will pick
+  its own guard through the workload parameter a later unit threads through `plainReq`,
+  `reqPropOk`, `kvWork`, `NoSpaceDead` and `srvGrantGuard`.
+
+Trust base: one axiom fewer (`EtcdServer.revokeExpiredLeases`): `etc/tcb-baseline.txt` 319 axioms,
+12 `sorry`s; the `server` collection too; updated with `--check --update` on purpose.
+
+## D19o's raft half: a `MsgSnap` may go to a learner (D19p, 2026-10-18 · proposed)
+
+D19o (A) asks for `isMessage`'s `.snap` clause to gain `dst ≠ src ∧ dst ∈ reCfg` in the static
+mode. **As stated it is false of raft**: `maybeSendSnapshot` sends to any tracked peer that needs
+a snapshot, learners included, and the static mode admits learners (`InvNode`'s static-mode
+configuration: `c.Voters' ≡ₚ reCfg`, `∀ k ∈ c.Learners', k ∉ reCfg`; `CCShrink` may only drop
+them). Also, `isMessage` is a protocol predicate over `RaftNames`, which records the voters
+(`reCfg`) but neither the mode nor the learners, so "in the static mode" cannot be said there.
+`dst ≠ src` alone holds (the only caller is reached from `bcastAppend`, which skips the leader) but
+does not let the server refute a `MsgSnap`. Options:
+
+* *(A) The tracked set in the protocol's names.* `RaftNames` gains `reTracked : Option (GSet w64)`:
+  `some T` in the static mode, `T` the voters and the initial learners (an over-approximation of
+  every id the tracker ever holds there, as learners are only dropped), `none` in the dynamic
+  mode; `.snap`'s clause gains `⌜m.dst ≠ m.src ∧ ∀ T, reTracked = some T → m.dst ∈ T⌝`, proved at
+  `maybeSendSnapshot` from the tracker's keys (which the static node state ties to its
+  configuration). The server then refutes a `MsgSnap` from its one-member, learner-free
+  configuration (`T = {self}`). Cost: every construction of `RaftNames` (bootstrap, `StartNode`,
+  `RestartNode`, the tests' instances) and the static-mode invariant's tie of the tracker's keys
+  to `T`; still in `raft.go`'s send path and the protocol files.
+* *(B) Voters only, learners excluded by a static-mode premise.* The static mode of the server's
+  node has no learners (its bootstrap and `ccApplyOk`), so a static-mode node state with an empty
+  learner set could carry `dst ∈ reCfg`; but the clause is protocol-wide, so the fact must live
+  with the node (its outbox, `Ready`: D19i's area) rather than in `isMessage`.
+* *(C) A premise "no `MsgSnap`"* on the run.
+
+*Recommendation:* (A). Not started: a design decision (the user's (A) assumed voters only).

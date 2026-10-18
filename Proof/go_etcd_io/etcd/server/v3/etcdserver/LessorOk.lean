@@ -4,7 +4,7 @@ lessor (2026-10-13, unit 9 of the backend). Lean-first (no Rocq counterpart); se
 `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 
 `lessorOk_of_lessorInv`: the lessor at `lp` (`lease.lessorInv`, its configuration and its
-`expiredC`, `lease.lessorExpiredC`) meets `lessorOk`, from the specs of `Promote` and `Demote`
+`expiredC` at the grant guard `False`, `lease.lessorExpiredC`, D19n) meets `lessorOk`, from the specs of `Promote` and `Demote`
 (trust-boundary axioms: float arithmetic, a float-to-integer conversion and `sort.Sort`; the
 close of `demotec`) and the proof of `ExpiredLeasesC`.
 -/
@@ -40,7 +40,7 @@ theorem lessorOk_of_lessorInv
     (hExp : lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG))
     (lp : Loc) (γl : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorExpiredC lp ⊢
+      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorExpiredC lp srvGrantGuard ⊢
       lessorOk (lease.lessorIface lp) := by
   iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hexp⟩
   iunfold lessorOk
@@ -56,7 +56,7 @@ theorem lessorOk_of_lessorInv
     iapply (hDemote lp γl) $$ [] HΦ
     iframe #
   · iintro !> %Φ !> - HΦ
-    iapply (hExp lp) $$ [] HΦ
+    iapply (hExp lp srvGrantGuard) $$ [] HΦ
     iframe #
 
 end proof
