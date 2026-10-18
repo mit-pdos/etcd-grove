@@ -8955,6 +8955,53 @@ the theorem says nothing.
     - *(C) Leave both false and recorded* (the status quo): not sound for a closed theorem, the
       branch is within the model's reach.
     - *Recommendation:* (A), raft's side first.
+    - **2026-10-18 · (A) approved by the user as part 1; stopped before any Lean change, needs a
+      decision.** (A)'s floor was "a monotone lower bound of what raft has handed out to apply
+      (`applying`), which etcd's `appliedi` never exceeds". Raft needs less: the compaction
+      boundary at most **`raftLog.applied`**, as `Compact`'s documentation says (`storage.go:266`).
+      `hasUnappliedConfChanges` (`hup`'s check, on every election timeout, `Campaign`,
+      `MsgTimeoutNow`) scans `[applied+1, committed+1)` and `Panicf`s on `ErrCompacted`
+      (`raft.go:995-1021`, `mustCheckOutOfBounds`); `nextCommittedEnts` alone would allow
+      `applying`. And `applied` moves only at `Advance` (the `MsgStorageApplyResp` of
+      `stepsOnAdvance`), which etcd's `raftNode.start` calls *after* `notifyc`, the signal on which
+      `applyAll` snapshots and compacts at `appliedi - SnapshotCatchUpEntries` (`1` early). So in
+      that window etcd compacts past `applied` whenever one `Ready` carried more than
+      `SnapshotCatchUpEntries` committed entries (or `applied` is 0 at the first memory
+      snapshot), and a `MsgHup` then panics raft: a Go bug, reproduced on raft by a Go test
+      (`issues/etcd-compact-past-raft-applied.md`). So no restatement of `compactRaftLog` that keeps
+      raft's invariants is true of the Go code as it is; (A) needs a Go fix first, which is the
+      user's call (as D19i's `monitorStorageVersion` (A) fixes the backend in the fork).
+      - *(A1) etcd waits for `Advance`* (fork fix 1 of the issue): `raftNode.start` closes
+        `raftAdvancedC` after every `Advance` (today it sends on it only with a conf change, for
+        `configure`'s waiter, which a close serves as well), and `applyAll` waits for it before
+        `snapshotIfNeededAndCompactRaftLog`. Raft publishes **one** bound, its
+        `applied`, at `Advance` (the storage-apply step), which then also bounds the snapshot
+        (`appliedi` is the batch's last index, which `Advance` makes `applied`); the witness rides
+        on `raftAdvancedC` (today a unit bag with no content, `InvRaftNode.lean`) to the apply
+        thread. Smallest proof; the apply loop waits for the raft loop once per snapshot.
+      - *(A2) etcd bounds the compaction by the batch's predecessor* (fix 2): `compacti` at most
+        the applied index before the batch, which raft had applied before handing the batch out;
+        the witness rides on the batch (`rnApP`: raft's `applied` at the `Ready`). But the snapshot
+        is still taken at `appliedi`, above `applied`, so raft's contract needs a second bound
+        for the snapshot (`applying`, or the committed prefix): more raft-side ghost state.
+      - *(B)* (above) is unchanged by this; *(C)* stays unsound.
+      - *Recommendation:* (A1).
+      What raft's side is under (A1) or (A2) (decided by raft's code, the same in both but for
+      the snapshot's bound), for the unit that carries it out: `StorState` gains the published
+      bound `fl` (raft's, raised by a new law of `isStorageWith` at `appliedTo`, never above what
+      the storage holds); `ownStorage`'s `σ` stays raft's *view* (`σ.prev`, `σ.ents`, `σ.ss`),
+      the storage's true boundary between `σ.prev.index` and `fl` and its true snapshot newer
+      than or equal to `σ.ss`; `FirstIndex` answers in `[σ.prev.index + 1, fl + 1]`; `Term(i)`
+      and `Entries(lo, _)` answer as now or `ErrCompacted` with `i < fl` / `lo ≤ fl`; `Snapshot`
+      answers `σ.ss` or a newer snapshot the application made, which needs the application's
+      certificate for `ksn` (`raftSnapCert`, from `SnapObl` on `ep.confState`, which the apply
+      thread does not yet track). Raft's readers re-proved against it: `raftLog.firstIndex`/
+      `term`/`slice`/`snapshot` and their callers (`lastTerm` and `nextCommittedEnts` read at
+      or above `applied`, so they still succeed; `matchTerm`, `findConflictByTerm`,
+      `maybeSendAppend`, `hasUnappliedConfChanges`'s `scan` (from `applied + 1 ≥ fl + 1`) as
+      Go does). `MemView` (`InvMemstorage.lean`) becomes the lower-bound relation, the
+      application's `CreateSnapshot`/`Compact` specs take `memSnapTok` (extended with a share of
+      the boundary) and a lower bound of `fl`, not `ownMemoryStorage`.
   - *`EtcdServer.monitorStorageVersion`.* The model admits another goroutine's write under the
     batch lock: `LockOutsideApply` hands out the client's `W ∗ Pk` (the store's `lateW`/
     `writerRes`, the hook's `batchLockInv`/`metaTM`), as for mvcc's compaction, and none of them
