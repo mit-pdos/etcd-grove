@@ -2,13 +2,9 @@
 
 - **Finding**: `issues/election-campaign-key-check.md`
 - **Target**: etcd-io/etcd, `main` (`client/v3/concurrency`)
-- **Branch**: `election-campaign-key-check` in `~/etcd-fixes/election-campaign-key-check` (commit
-  fd83e72569415d691445ab88ac9c86fdbe93cf89), not pushed. `origin` (upamanyus/etcd) already has an older
-  `election-campaign-key-check` (bb50d33b8, off f061acd09: a loop that re-waits on a recreated key, returning
-  `ErrElectionNotLeader`, and a 313-line test file), which this branch replaces, so the push is
-  `git -C ~/etcd-fixes/election-campaign-key-check push --force-with-lease=election-campaign-key-check:bb50d33b8ce7a31961be5b498f0e6e1e375338f5 origin election-campaign-key-check`.
-  `issue.md` links the test at `https://github.com/upamanyus/etcd/blob/election-campaign-key-check/...`, which shows
-  this branch's test only after that push.
+- **Branch**: `fix/election-campaign-key-check` in `~/etcd-fixes/election-campaign-key-check` (commit fd83e7256), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/election-campaign-key-check`), the branch the links in `issue.md` name. The fork's older
+  draft branch `election-campaign-key-check` (bb50d33b8) is left as it was.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16); `Election.Campaign` unchanged
   in substance since f061acd09, where the finding was made
 - **State**: draft

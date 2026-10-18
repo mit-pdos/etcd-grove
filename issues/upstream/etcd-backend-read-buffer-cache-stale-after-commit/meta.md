@@ -3,10 +3,8 @@
 - **Finding**: `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`
 - **Target**: etcd-io/etcd, `main`; the cache dates from #12933 (9c82e8c72, 2021-05, v3.5), so `release-3.6` and
   `release-3.5` likely have it too (not checked)
-- **Branch**: `etcd-backend-read-buffer-cache-stale-after-commit` in `~/etcd-fixes/etcd-backend-read-buffer-cache-stale-after-commit`
-  (commit 29baf8d7e), not pushed. `issue.md` links
-  the test at `https://github.com/upamanyus/etcd/blob/etcd-backend-read-buffer-cache-stale-after-commit/...`, which
-  resolves once the branch is pushed to the fork under that name.
+- **Branch**: `fix/etcd-backend-read-buffer-cache-stale-after-commit` in `~/etcd-fixes/etcd-backend-read-buffer-cache-stale-after-commit` (commit 29baf8d7e), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/etcd-backend-read-buffer-cache-stale-after-commit`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

@@ -2,11 +2,8 @@
 
 - **Finding**: `issues/etcd-watch-id-reuse-stale-events.md`
 - **Target**: etcd-io/etcd, `main`
-- **Branch**: `etcd-watch-id-reuse-stale-events` in `~/etcd-fixes/etcd-watch-id-reuse-stale-events` (commit
-  29b6544ed), not pushed. `issue.md` links the test at
-  `https://github.com/upamanyus/etcd/blob/etcd-watch-id-reuse-stale-events/...`, which resolves once the branch is
-  pushed to the fork under that name: `git -C ~/etcd-fixes/etcd-watch-id-reuse-stale-events push origin
-  etcd-watch-id-reuse-stale-events`.
+- **Branch**: `fix/etcd-watch-id-reuse-stale-events` in `~/etcd-fixes/etcd-watch-id-reuse-stale-events` (commit 29b6544ed), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/etcd-watch-id-reuse-stale-events`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16); `sendLoop`/`recvLoop` unchanged
   from the finding's revision.
 - **State**: draft

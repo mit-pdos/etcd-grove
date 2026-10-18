@@ -2,11 +2,8 @@
 
 - **Finding**: `issues/etcd-apply-lease-checkpoint-sections.md`
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.6`, `release-3.5` (same code there, not run)
-- **Branch**: `etcd-apply-lease-checkpoint-sections` in `~/etcd-fixes/etcd-apply-lease-checkpoint-sections` (commit
-  a246d135a), not pushed. `issue.md` links the test at
-  `https://github.com/upamanyus/etcd/blob/etcd-apply-lease-checkpoint-sections/...`, which resolves once the branch
-  is pushed to the fork under that name: `git -C ~/etcd-fixes/etcd-apply-lease-checkpoint-sections push origin
-  etcd-apply-lease-checkpoint-sections`.
+- **Branch**: `fix/etcd-apply-lease-checkpoint-sections` in `~/etcd-fixes/etcd-apply-lease-checkpoint-sections` (commit a246d135a), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/etcd-apply-lease-checkpoint-sections`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16)
 - **State**: draft (2026-10-16). Replaces the fork's older draft `lease-checkpoint-one-section` (2a163496c, off
   f061acd09, left untouched): same fix, one minimal test instead of three, no lessor-level test.

@@ -12,7 +12,7 @@ The cache becomes ready again once the retried upstream watch is established, wh
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestCacheReadyAfterWatchRetry`](https://github.com/upamanyus/etcd/blob/cache-ready-after-retry/cache/cache_test.go) on branch [`upamanyus/etcd:cache-ready-after-retry`](https://github.com/upamanyus/etcd/tree/cache-ready-after-retry). On `main` (b25719d10) it fails (output trimmed):
+Unit test: [`TestCacheReadyAfterWatchRetry`](https://github.com/upamanyus/etcd/blob/fix/cache-ready-after-retry/cache/cache_test.go) on branch [`upamanyus/etcd:fix/cache-ready-after-retry`](https://github.com/upamanyus/etcd/tree/fix/cache-ready-after-retry). On `main` (b25719d10) it fails (output trimmed):
 
 ```
 === RUN   TestCacheReadyAfterWatchRetry/retry_Get_at_revision_7

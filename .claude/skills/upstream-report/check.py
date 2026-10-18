@@ -124,8 +124,8 @@ def main():
             fail(f"issue: this repository's vocabulary: {sorted(set(re.findall(LOCAL_WORDS, p)))}")
         if re.search(r"linked branch|the branch\b", p) and not fork:
             fail("issue: refers to a branch without a link to it")
-        if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/{re.escape(a.slug)}\b", issue):
-            fail(f"issue: no link to the test on {fork}'s branch {a.slug}")
+        if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/fix/{re.escape(a.slug)}\b", issue):
+            fail(f"issue: no link to the test on {fork}'s branch fix/{a.slug}")
         for t in set(re.findall(r"\bTest\w+", p)):
             if diff and t not in diff:
                 fail(f"issue: names {t}, which the branch does not add")

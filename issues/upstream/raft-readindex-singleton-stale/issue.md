@@ -19,7 +19,7 @@ Node 1 answers the read only after it commits an entry at its term (index 4), as
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/raft-readindex-singleton-stale/raft_test.go) on branch [`upamanyus/etcd-raft:raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
+Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go) on branch [`upamanyus/etcd-raft:fix/raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
 
 ### Anything else we need to know?
 

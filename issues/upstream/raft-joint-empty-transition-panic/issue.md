@@ -23,7 +23,7 @@ The leader refuses the proposal in both configurations, replacing it with an emp
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestRawNodeProposeEmptyJointConfChange`](https://github.com/upamanyus/etcd-raft/blob/raft-joint-empty-transition-panic/rawnode_test.go) on branch [`upamanyus/etcd-raft:raft-joint-empty-transition-panic`](https://github.com/upamanyus/etcd-raft/tree/raft-joint-empty-transition-panic), off `main` (638f42739): a single voter enters a joint configuration with `JointExplicit` and one change, then proposes the empty `JointExplicit` change. On `main`, `joint=false` passes and `joint=true` panics as above.
+Unit test: [`TestRawNodeProposeEmptyJointConfChange`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-joint-empty-transition-panic/rawnode_test.go) on branch [`upamanyus/etcd-raft:fix/raft-joint-empty-transition-panic`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-joint-empty-transition-panic), off `main` (638f42739): a single voter enters a joint configuration with `JointExplicit` and one change, then proposes the empty `JointExplicit` change. On `main`, `joint=false` passes and `joint=true` panics as above.
 
 ### Anything else we need to know?
 

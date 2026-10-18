@@ -2,10 +2,8 @@
 
 - **Finding**: `issues/raft-joint-empty-transition-panic.md`
 - **Target**: etcd-io/raft, `main` (raftpb on protobuf-go v2; v3.7.0 and 40f8be7 have the same `stepLeader` check)
-- **Branch**: `raft-joint-empty-transition-panic` in `~/etcd-fixes/raft-joint-empty-transition-panic` (commit
-  9e1429d86), not pushed. `issue.md` links the test at
-  `https://github.com/upamanyus/etcd-raft/blob/raft-joint-empty-transition-panic/rawnode_test.go`, which resolves once
-  the branch is pushed: `git -C ~/etcd-fixes/raft-joint-empty-transition-panic push origin raft-joint-empty-transition-panic`.
+- **Branch**: `fix/raft-joint-empty-transition-panic` in `~/etcd-fixes/raft-joint-empty-transition-panic` (commit 9e1429d86), pushed 2026-10-18 to `upamanyus/etcd-raft`
+  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-joint-empty-transition-panic`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

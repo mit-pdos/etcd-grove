@@ -24,7 +24,7 @@ The same happens for any client calling `RangeStream` (`clientv3.KV.GetStream`) 
 
 Run the `etcdctl` commands above against a single-member cluster built from `main` (b25719d10).
 
-Integration test: [`TestKVGetStreamSortByCreateRevision`](https://github.com/upamanyus/etcd/blob/etcd-rangestream-sort-none/tests/integration/clientv3/kv_test.go) on branch [`upamanyus/etcd:etcd-rangestream-sort-none`](https://github.com/upamanyus/etcd/tree/etcd-rangestream-sort-none). On `main` it fails (output trimmed):
+Integration test: [`TestKVGetStreamSortByCreateRevision`](https://github.com/upamanyus/etcd/blob/fix/etcd-rangestream-sort-none/tests/integration/clientv3/kv_test.go) on branch [`upamanyus/etcd:fix/etcd-rangestream-sort-none`](https://github.com/upamanyus/etcd/tree/fix/etcd-rangestream-sort-none). On `main` it fails (output trimmed):
 
 ```
 --- FAIL: TestKVGetStreamSortByCreateRevision (0.23s)

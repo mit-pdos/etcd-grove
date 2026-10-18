@@ -2,12 +2,9 @@
 
 - **Finding**: `issues/mutex-lock-recreated.md`
 - **Target**: etcd-io/etcd, `main`
-- **Branch**: `mutex-lock-recreated` in `~/etcd-fixes/mutex-lock-recreated` (commit e8c9187e542fe28d04b2f42c8f97c0e310126df8),
-  not pushed. `origin` (upamanyus/etcd) already has an older `mutex-lock-recreated` (113b0b324, off f061acd09: a
-  loop fix and a 255-line test), which this branch replaces, so the push is
-  `git -C ~/etcd-fixes/mutex-lock-recreated push --force-with-lease=mutex-lock-recreated:113b0b32497c5c417e9b817571e84dac3b72dbc8 origin mutex-lock-recreated`.
-  `issue.md` links the test at `https://github.com/upamanyus/etcd/blob/mutex-lock-recreated/...`, which shows this
-  branch's test only after that push.
+- **Branch**: `fix/mutex-lock-recreated` in `~/etcd-fixes/mutex-lock-recreated` (commit e8c9187e5), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/mutex-lock-recreated`), the branch the links in `issue.md` name. The fork's older
+  draft branch `mutex-lock-recreated` (113b0b324) is left as it was.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16); `client/v3/concurrency/mutex.go`
   unchanged since f061acd09, where the finding was made
 - **State**: draft

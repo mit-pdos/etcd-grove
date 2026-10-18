@@ -2,11 +2,9 @@
 
 - **Finding**: `issues/cache-ready-after-retry.md`
 - **Target**: etcd-io/etcd, `main` (the `cache` module, `go.etcd.io/etcd/cache/v3`)
-- **Branch**: `cache-ready-after-retry` in `~/etcd-fixes/cache-ready-after-retry` (commit fcfb43c88), not pushed.
-  `issue.md` links the test at `https://github.com/upamanyus/etcd/blob/cache-ready-after-retry/...`, which resolves
-  once the branch is pushed to the fork under that name. The fork already has a branch of that name (the older draft
-  64313a1f8, off f061acd09), so the push replaces it:
-  `git -C ~/etcd-fixes/cache-ready-after-retry push --force-with-lease=cache-ready-after-retry:64313a1f8 origin cache-ready-after-retry`.
+- **Branch**: `fix/cache-ready-after-retry` in `~/etcd-fixes/cache-ready-after-retry` (commit fcfb43c88), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/cache-ready-after-retry`), the branch the links in `issue.md` name. The fork's older
+  draft branch `cache-ready-after-retry` (64313a1f8) is left as it was.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

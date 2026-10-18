@@ -17,7 +17,7 @@ The same happens for any client that sets `WatchId` to the ID of a watch it canc
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test [`TestV3WatchReuseCanceledID`](https://github.com/upamanyus/etcd/blob/etcd-watch-id-reuse-stale-events/tests/integration/clientv3/watch/v3_watch_test.go) on branch [`upamanyus/etcd:etcd-watch-id-reuse-stale-events`](https://github.com/upamanyus/etcd/tree/etcd-watch-id-reuse-stale-events) runs these steps. On `main` (b25719d10) it failed in 10 of 10 runs:
+Integration test [`TestV3WatchReuseCanceledID`](https://github.com/upamanyus/etcd/blob/fix/etcd-watch-id-reuse-stale-events/tests/integration/clientv3/watch/v3_watch_test.go) on branch [`upamanyus/etcd:fix/etcd-watch-id-reuse-stale-events`](https://github.com/upamanyus/etcd/tree/fix/etcd-watch-id-reuse-stale-events) runs these steps. On `main` (b25719d10) it failed in 10 of 10 runs:
 
 ```
 --- FAIL: TestV3WatchReuseCanceledID (0.31s)

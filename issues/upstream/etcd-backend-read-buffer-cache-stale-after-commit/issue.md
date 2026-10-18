@@ -12,7 +12,7 @@ A commit does not change what a `ConcurrentReadTx` reads: the range after `Force
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestConcurrentReadTxAfterCommit`](https://github.com/upamanyus/etcd/blob/etcd-backend-read-buffer-cache-stale-after-commit/server/storage/backend/backend_test.go) on branch [`upamanyus/etcd:etcd-backend-read-buffer-cache-stale-after-commit`](https://github.com/upamanyus/etcd/tree/etcd-backend-read-buffer-cache-stale-after-commit). On `main` (b25719d10) it fails (output trimmed):
+Unit test: [`TestConcurrentReadTxAfterCommit`](https://github.com/upamanyus/etcd/blob/fix/etcd-backend-read-buffer-cache-stale-after-commit/server/storage/backend/backend_test.go) on branch [`upamanyus/etcd:fix/etcd-backend-read-buffer-cache-stale-after-commit`](https://github.com/upamanyus/etcd/tree/fix/etcd-backend-read-buffer-cache-stale-after-commit). On `main` (b25719d10) it fails (output trimmed):
 
 ```
 --- FAIL: TestConcurrentReadTxAfterCommit (0.01s)

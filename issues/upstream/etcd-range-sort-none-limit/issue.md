@@ -30,7 +30,7 @@ The same happens for any client sending `SortOrder: NONE` with a non-key sort ta
 
 Run the `etcdctl` commands above against a single-member cluster built from `main` (ea8b59433).
 
-Unit test: [`TestRangeSortLimit`](https://github.com/upamanyus/etcd/blob/etcd-range-sort-none-limit/server/etcdserver/txn/range_test.go) on branch [`upamanyus/etcd:etcd-range-sort-none-limit`](https://github.com/upamanyus/etcd/tree/etcd-range-sort-none-limit). On `main` it fails (output trimmed):
+Unit test: [`TestRangeSortLimit`](https://github.com/upamanyus/etcd/blob/fix/etcd-range-sort-none-limit/server/etcdserver/txn/range_test.go) on branch [`upamanyus/etcd:fix/etcd-range-sort-none-limit`](https://github.com/upamanyus/etcd/tree/fix/etcd-range-sort-none-limit). On `main` it fails (output trimmed):
 
 ```
 --- FAIL: TestRangeSortLimit (0.01s)

@@ -2,9 +2,8 @@
 
 - **Finding**: `issues/etcd-rangestream-sort-none.md`
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.7` (RangeStream is new in 3.7)
-- **Branch**: `etcd-rangestream-sort-none` in `~/etcd-fixes/etcd-rangestream-sort-none` (commit 5f0401a75), not pushed.
-  `issue.md` links the test at `https://github.com/upamanyus/etcd/blob/etcd-rangestream-sort-none/...`, which
-  resolves once the branch is pushed: `git -C ~/etcd-fixes/etcd-rangestream-sort-none push origin etcd-rangestream-sort-none`.
+- **Branch**: `fix/etcd-rangestream-sort-none` in `~/etcd-fixes/etcd-rangestream-sort-none` (commit 5f0401a75), pushed 2026-10-18 to `upamanyus/etcd`
+  (`https://github.com/upamanyus/etcd/tree/fix/etcd-rangestream-sort-none`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` b25719d10cdc41fb707b0d9f819c2529dec5d590 (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

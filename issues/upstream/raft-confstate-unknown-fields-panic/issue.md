@@ -19,7 +19,7 @@ The follower restores the snapshot, as it does the same snapshot without the unk
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestRestoreFromSnapMsgUnknownField`](https://github.com/upamanyus/etcd-raft/blob/raft-confstate-unknown-fields-panic/raft_test.go) on branch [`upamanyus/etcd-raft:raft-confstate-unknown-fields-panic`](https://github.com/upamanyus/etcd-raft/tree/raft-confstate-unknown-fields-panic), off `main` (638f42739). On `main` it panics as above.
+Unit test: [`TestRestoreFromSnapMsgUnknownField`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-confstate-unknown-fields-panic/raft_test.go) on branch [`upamanyus/etcd-raft:fix/raft-confstate-unknown-fields-panic`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-confstate-unknown-fields-panic), off `main` (638f42739). On `main` it panics as above.
 
 ### Anything else we need to know?
 

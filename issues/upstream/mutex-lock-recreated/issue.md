@@ -31,7 +31,7 @@ The same happens for any two `Mutex` values on one session and prefix when one d
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestMutexLockKeyRecreated`](https://github.com/upamanyus/etcd/blob/mutex-lock-recreated/tests/integration/clientv3/concurrency/mutex_test.go) on branch [`upamanyus/etcd:mutex-lock-recreated`](https://github.com/upamanyus/etcd/tree/mutex-lock-recreated), which runs the calls above. On `main` (b25719d10) it fails:
+Integration test: [`TestMutexLockKeyRecreated`](https://github.com/upamanyus/etcd/blob/fix/mutex-lock-recreated/tests/integration/clientv3/concurrency/mutex_test.go) on branch [`upamanyus/etcd:fix/mutex-lock-recreated`](https://github.com/upamanyus/etcd/tree/fix/mutex-lock-recreated), which runs the calls above. On `main` (b25719d10) it fails:
 
 ```
 --- FAIL: TestMutexLockKeyRecreated (0.26s)

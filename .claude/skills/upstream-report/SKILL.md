@@ -7,7 +7,7 @@ description: Turn a finding in issues/<slug>.md into an upstream-ready candidate
 
 From one finding, `issues/<slug>.md`, produce for the user to review:
 
-- a fix branch `<slug>` in `~/etcd-fixes/<slug>`: one signed-off commit off current upstream `main`, with a test
+- a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: one signed-off commit off current upstream `main`, with a test
   that fails without the fix;
 - `issues/upstream/<slug>/issue.md`, `pr.md` and `meta.md` (base commit, commands run and results, duplicates
   found, answers to likely reviewer questions, state).
@@ -21,7 +21,7 @@ Never push, file, or comment on GitHub; the user does. Aim for a candidate the u
 | etcd-io/raft | `~/etcd-raft` (clone on first use) | `upstream` etcd-io/raft, `origin` upamanyus/etcd-raft |
 | etcd-io/website | `~/etcd-website` | `upstream` etcd-io/website (no fork) |
 
-`git -C <clone> fetch upstream && git -C <clone> worktree add ~/etcd-fixes/<slug> -b <slug> upstream/main`. Never
+`git -C <clone> fetch upstream && git -C <clone> worktree add ~/etcd-fixes/<slug> -b fix/<slug> upstream/main`. Never
 base a fix on the fork's branches (Goose branches, old fix branches). From a session isolated in an etcd-grove
 worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work and re-enter it by path.
 
@@ -64,7 +64,7 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 8. **Write** `issue.md` and `pr.md` (below), commit, and run
    `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN.
 9. **Hand off**: branch and commit, base, the files, the commit message to rewrite, anything not verified, and the
-   push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin <slug>`. State `draft` in
+   push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin fix/<slug>`. State `draft` in
    `meta.md`.
 
 ## The issue
@@ -77,7 +77,7 @@ no root cause, code names, code links, history, or claims about other releases.
   client sending X with Y and Z").
 - **What did you expect?** One or two sentences, in terms of the example.
 - **How can we reproduce it?** Whatever it takes, at `main` (<sha>): the steps, or the test linked on the fork's
-  branch (`https://github.com/upamanyus/etcd/blob/<slug>/<path>` and `.../tree/<slug>`), not described, with its
+  branch (`https://github.com/upamanyus/etcd/blob/fix/<slug>/<path>` and `.../tree/fix/<slug>`), not described, with its
   failing assertion.
 - **Anything else?** Impact or workarounds if any; side findings as questions to the maintainers; then, word for
   word: "I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this

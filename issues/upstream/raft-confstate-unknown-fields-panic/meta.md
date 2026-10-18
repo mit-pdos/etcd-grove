@@ -2,10 +2,8 @@
 
 - **Finding**: `issues/raft-confstate-unknown-fields-panic.md`
 - **Target**: etcd-io/raft, `main` (raftpb on protobuf-go v2; v3.7.0 has the same `Equivalent`)
-- **Branch**: `raft-confstate-unknown-fields-panic` in `~/etcd-fixes/raft-confstate-unknown-fields-panic` (commit
-  c6921dd56), not pushed. `issue.md` links the test at
-  `https://github.com/upamanyus/etcd-raft/blob/raft-confstate-unknown-fields-panic/raft_test.go`, which resolves once
-  the branch is pushed: `git -C ~/etcd-fixes/raft-confstate-unknown-fields-panic push origin raft-confstate-unknown-fields-panic`.
+- **Branch**: `fix/raft-confstate-unknown-fields-panic` in `~/etcd-fixes/raft-confstate-unknown-fields-panic` (commit c6921dd56), pushed 2026-10-18 to `upamanyus/etcd-raft`
+  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-confstate-unknown-fields-panic`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

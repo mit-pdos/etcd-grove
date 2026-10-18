@@ -20,7 +20,7 @@ The follower ends with the snapshot's voters `[1 2 3]` in both cases.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestRawNodeSnapshotDuringConfChangeApply`](https://github.com/upamanyus/etcd-raft/blob/raft-snapshot-during-apply-stale-confchange/rawnode_test.go) on branch [`upamanyus/etcd-raft:raft-snapshot-during-apply-stale-confchange`](https://github.com/upamanyus/etcd-raft/tree/raft-snapshot-during-apply-stale-confchange), off `main` (638f42739). On `main` the `snapBeforeApply=true` case fails as above.
+Unit test: [`TestRawNodeSnapshotDuringConfChangeApply`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-snapshot-during-apply-stale-confchange/rawnode_test.go) on branch [`upamanyus/etcd-raft:fix/raft-snapshot-during-apply-stale-confchange`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-snapshot-during-apply-stale-confchange), off `main` (638f42739). On `main` the `snapBeforeApply=true` case fails as above.
 
 ### Anything else we need to know?
 

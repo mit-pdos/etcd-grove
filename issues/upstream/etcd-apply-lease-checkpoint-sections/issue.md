@@ -10,7 +10,7 @@ Every commit persisting consistent index 3 holds both checkpoints (`[]int64{100,
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestLeaseCheckpointCommittedWithConsistentIndex`](https://github.com/upamanyus/etcd/blob/etcd-apply-lease-checkpoint-sections/server/etcdserver/apply/backend_test.go) on branch [`upamanyus/etcd:etcd-apply-lease-checkpoint-sections`](https://github.com/upamanyus/etcd/tree/etcd-apply-lease-checkpoint-sections). On `main` (b25719d10) it fails (output trimmed):
+Unit test: [`TestLeaseCheckpointCommittedWithConsistentIndex`](https://github.com/upamanyus/etcd/blob/fix/etcd-apply-lease-checkpoint-sections/server/etcdserver/apply/backend_test.go) on branch [`upamanyus/etcd:fix/etcd-apply-lease-checkpoint-sections`](https://github.com/upamanyus/etcd/tree/fix/etcd-apply-lease-checkpoint-sections). On `main` (b25719d10) it fails (output trimmed):
 
 ```
 --- FAIL: TestLeaseCheckpointCommittedWithConsistentIndex (0.01s)

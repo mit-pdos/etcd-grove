@@ -29,10 +29,8 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
-- **Branch**: `raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (commit
-  32de820fe), not pushed. `issue.md` links the test at
-  `https://github.com/upamanyus/etcd-raft/blob/raft-readindex-singleton-stale/raft_test.go`, which resolves once the
-  branch is pushed: `git -C ~/etcd-fixes/raft-readindex-singleton-stale push origin raft-readindex-singleton-stale`.
+- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (commit 32de820fe), pushed 2026-10-18 to `upamanyus/etcd-raft`
+  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

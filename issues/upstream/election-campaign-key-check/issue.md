@@ -30,7 +30,7 @@ The same happens for any `Campaign` whose key (`Key()`) is deleted while it wait
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestElectionCampaignKeyDeleted`](https://github.com/upamanyus/etcd/blob/election-campaign-key-check/tests/integration/clientv3/concurrency/election_test.go) on branch [`upamanyus/etcd:election-campaign-key-check`](https://github.com/upamanyus/etcd/tree/election-campaign-key-check), which runs the calls above. On `main` (b25719d10) it fails:
+Integration test: [`TestElectionCampaignKeyDeleted`](https://github.com/upamanyus/etcd/blob/fix/election-campaign-key-check/tests/integration/clientv3/concurrency/election_test.go) on branch [`upamanyus/etcd:fix/election-campaign-key-check`](https://github.com/upamanyus/etcd/tree/fix/election-campaign-key-check), which runs the calls above. On `main` (b25719d10) it fails:
 
 ```
 --- FAIL: TestElectionCampaignKeyDeleted (0.26s)

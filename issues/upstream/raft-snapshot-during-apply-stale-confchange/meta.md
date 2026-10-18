@@ -2,11 +2,8 @@
 
 - **Finding**: `issues/raft-snapshot-during-apply-stale-confchange.md`
 - **Target**: etcd-io/raft, `main` (raftpb on protobuf-go v2; the finding's 40f8be7 has the same code)
-- **Branch**: `raft-snapshot-during-apply-stale-confchange` in `~/etcd-fixes/raft-snapshot-during-apply-stale-confchange`
-  (commit c65d182b8), not pushed. `issue.md` links the test at
-  `https://github.com/upamanyus/etcd-raft/blob/raft-snapshot-during-apply-stale-confchange/rawnode_test.go`, which
-  resolves once the branch is pushed:
-  `git -C ~/etcd-fixes/raft-snapshot-during-apply-stale-confchange push origin raft-snapshot-during-apply-stale-confchange`.
+- **Branch**: `fix/raft-snapshot-during-apply-stale-confchange` in `~/etcd-fixes/raft-snapshot-during-apply-stale-confchange` (commit c65d182b8), pushed 2026-10-18 to `upamanyus/etcd-raft`
+  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-snapshot-during-apply-stale-confchange`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft
 - **Upstream issue**: —

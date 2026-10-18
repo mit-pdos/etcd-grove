@@ -49,17 +49,17 @@ The findings of the etcd client-side work (cache, concurrency, leasing, recipes)
 drafts of the issues to file against etcd-io/etcd, one per finding (the proofs state what the
 code does; a finding is a behaviour the specs could not hide): each names the upstream revision
 it refers to, how to reproduce it (a test on the fix branch) and the fix. The fix branches are
-on the fork `upamanyus/etcd`, one signed-off commit each off upstream `main` (f061acd09), with
-the tests; the issues and pull requests are filed by hand from them. A finding that is not a bug
+on the fork `upamanyus/etcd` (`upamanyus/etcd-raft` for raft), one signed-off commit each off upstream
+`main`, with the tests, named `fix/<slug>` (the earlier drafts, off f061acd09, without the prefix); the issues and pull requests are filed by hand from them. A finding that is not a bug
 (a documentation request) has no fix branch. A draft covers the fields above in its own order
 (summary, what happens, how to reproduce, expected, the fix); "How the proof handles it" is in
 `notes/STATUS.md`'s section for the package.
 
 | Draft | Kind | Fork branch | Found in |
 |---|---|---|---|
-| [cache-ready-after-retry](cache-ready-after-retry.md) | bug | `cache-ready-after-retry` (fcfb43c88, off b25719d10; replaces 64313a1f8, unpushed) | `cache` (STATUS "The whole package") |
-| [mutex-lock-recreated](mutex-lock-recreated.md) | bug | `mutex-lock-recreated` (e8c9187e5, off b25719d10; replaces 113b0b324, unpushed) | `concurrency` (Mutex) |
-| [election-campaign-key-check](election-campaign-key-check.md) | bug | `election-campaign-key-check` (fd83e7256, off b25719d10; replaces bb50d33b8, unpushed) | `concurrency` (Election) |
+| [cache-ready-after-retry](cache-ready-after-retry.md) | bug | `fix/cache-ready-after-retry` (fcfb43c88, off b25719d10; replaces 64313a1f8, pushed) | `cache` (STATUS "The whole package") |
+| [mutex-lock-recreated](mutex-lock-recreated.md) | bug | `fix/mutex-lock-recreated` (e8c9187e5, off b25719d10; replaces 113b0b324, pushed) | `concurrency` (Mutex) |
+| [election-campaign-key-check](election-campaign-key-check.md) | bug | `fix/election-campaign-key-check` (fd83e7256, off b25719d10; replaces bb50d33b8, pushed) | `concurrency` (Election) |
 | [stm-serializable-snapshot](stm-serializable-snapshot.md) | documentation | none (`stm-serializable-snapshot` kept local, not proposed) | `concurrency` (STM) |
 | [leasing-evictrange-key](leasing-evictrange-key.md) | bug | `leasing-evictrange-key` (14d1c4bf3) | `leasing` (units 1–2) |
 | [leasing-evalcmp-missing-key](leasing-evalcmp-missing-key.md) | bug | `leasing-evalcmp-missing-key` (06541aec6) | `leasing` (units 1–2) |
@@ -77,25 +77,25 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [raft-config-clone-autoleave](raft-config-clone-autoleave.md) | bug (`Status().Config.AutoLeave` always false) | none (etcd-io/raft) | `confchange`, 2026-10-12 |
 | [raft-changer-nil-incoming](raft-changer-nil-incoming.md) | undocumented precondition (panic) | none (etcd-io/raft) | `confchange`, 2026-10-12 |
 | [raft-unknown-transition-panic](raft-unknown-transition-panic.md) | undocumented precondition (a committed entry panics every node, and again on every restart) | none (etcd-io/raft) | `raftpb` (`ConfChangeV2.EnterJoint`), 2026-10-13 |
-| [raft-joint-empty-transition-panic](raft-joint-empty-transition-panic.md) | bug (an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, committed, and panics every node; reproduced by a Go test) | `upamanyus/etcd-raft` `raft-joint-empty-transition-panic` (9e1429d86, off 638f42739, unpushed) | reconfiguration analysis (B1), 2026-10-14 |
-| [raft-readindex-singleton-stale](raft-readindex-singleton-stale.md) | bug (`ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a conf change: a new leader before its first commit, a removed leader; reproduced by a Go test; fixed in the fork commit `0560cb7` the proof pins, verified at `raft.Step` in both ghost modes, 2026-10-14) | `upamanyus/etcd-raft` `raft-readindex-singleton-stale` (32de820fe, off 638f42739, unpushed) | review of the reconfiguration paper proof, 2026-10-14 |
+| [raft-joint-empty-transition-panic](raft-joint-empty-transition-panic.md) | bug (an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, committed, and panics every node; reproduced by a Go test) | `upamanyus/etcd-raft` `fix/raft-joint-empty-transition-panic` (9e1429d86, off 638f42739, pushed) | reconfiguration analysis (B1), 2026-10-14 |
+| [raft-readindex-singleton-stale](raft-readindex-singleton-stale.md) | bug (`ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a conf change: a new leader before its first commit, a removed leader; reproduced by a Go test; fixed in the fork commit `0560cb7` the proof pins, verified at `raft.Step` in both ghost modes, 2026-10-14) | `upamanyus/etcd-raft` `fix/raft-readindex-singleton-stale` (32de820fe, off 638f42739, pushed) | review of the reconfiguration paper proof, 2026-10-14 |
 | [raft-step-writes-caller-message](raft-step-writes-caller-message.md) | documentation (raft v3.7: `Step` writes into the caller's message and keeps it, `MemoryStorage.ApplySnapshot` fills its argument's nil fields, against `Step`'s "callers must treat m as immutable"; reproduced by a Go test) | none (etcd-io/raft) | the raft v3.7 retarget's inventory (R0), 2026-10-15 |
-| [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) | bug (raft v3.7: a `ConfState` with an unknown field is "not equivalent" to the same configuration, so `newRaft` and snapshot restore panic; reproduced by a Go test) | `upamanyus/etcd-raft` `raft-confstate-unknown-fields-panic` (c6921dd56, off 638f42739, unpushed) | the raft v3.7 retarget (R1, the spec of `proto.Equal`), 2026-10-15 |
+| [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) | bug (raft v3.7: a `ConfState` with an unknown field is "not equivalent" to the same configuration, so `newRaft` and snapshot restore panic; reproduced by a Go test) | `upamanyus/etcd-raft` `fix/raft-confstate-unknown-fields-panic` (c6921dd56, off 638f42739, pushed) | the raft v3.7 retarget (R1, the spec of `proto.Equal`), 2026-10-15 |
 | [raft-joiner-empty-confstate](raft-joiner-empty-confstate.md) | undocumented precondition (with the initial `ConfState` in an index-0 snapshot, a node added later folds conf changes onto an empty configuration and wins alone; reproduced by a Go test) | none (etcd-io/raft) | review of the reconfiguration paper proof, 2026-10-14 |
 | [raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md) | undocumented precondition (`Advance` before `ApplyConfChange`, which the docs allow, breaks state machine safety; reproduced by a Go test) | none (etcd-io/raft) | reconfiguration analysis (B0), 2026-10-13 |
 | [raft-ready-messages-read-after-handout](raft-ready-messages-read-after-handout.md) | undocumented precondition (raft v3.7: `node.go`'s `acceptReady` reads the `To` of responses already handed out in `Ready.Messages`; not reproduced) | none (etcd-io/raft) | the raft v3.7 retarget (R5, the `Ready` predicates), 2026-10-16 |
 | [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md) | undocumented precondition (non-atomic persistence of entries and `HardState`; plausibility, abstract-model trace) | none (etcd-io/raft) | reconfiguration analysis (B0), 2026-10-13 |
 | [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md) | documentation (upstream draft for the two findings above: apply a `Ready`'s conf changes before `Advance`, persist entries and `HardState` atomically; also `ApplyConfChange`'s contradictory rejection rule) | none (etcd-io/raft) | reconfiguration analysis (B0), drafted 2026-10-14 |
 | [raft-track-confchange-application](raft-track-confchange-application.md) | proposal (upstream draft: guards follow the conf changes passed to `ApplyConfChange`, opt-in; prototype with tests, `raft-conf-lag-model/guard-fix.patch`) | none (etcd-io/raft; the patch file) | reconfiguration analysis (parallel session), 2026-10-14 |
-| [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md) | bug (a snapshot restored while a `Ready`'s conf change is being applied: `ApplyConfChange` then applies it on top of the snapshot's configuration, a wrong configuration or a panic; reproduced by Go tests with hand-built leader messages) | `upamanyus/etcd-raft` `raft-snapshot-during-apply-stale-confchange` (c65d182b8, off 638f42739, unpushed; the guard-fix patch also fixes it) | guard fix (parallel session), 2026-10-14 |
+| [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md) | bug (a snapshot restored while a `Ready`'s conf change is being applied: `ApplyConfChange` then applies it on top of the snapshot's configuration, a wrong configuration or a panic; reproduced by Go tests with hand-built leader messages) | `upamanyus/etcd-raft` `fix/raft-snapshot-during-apply-stale-confchange` (c65d182b8, off 638f42739, pushed; the guard-fix patch also fixes it) | guard fix (parallel session), 2026-10-14 |
 | [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md) | possible bug, unconfirmed (the leader calls raft's `Advance` before applying a conf change, so raft accepts a concurrent membership change under the old configuration; ingredients confirmed by code reading and a raft Go test, not run on etcd) | none (fix proposed inline) | guard fix (parallel session), 2026-10-14 |
 | [etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md) | bug (a committed entry panics every member, and again on every restart) | `txn-delete-then-ignore-put` (d9ba0e03c) | txn (unit 3), 2026-10-12 |
-| [etcd-range-sort-none-limit](etcd-range-sort-none-limit.md) | bug | `range-sort-none-limit` (7362d4129) | txn (unit 2), 2026-10-11 |
+| [etcd-range-sort-none-limit](etcd-range-sort-none-limit.md) | bug | `fix/etcd-range-sort-none-limit` (972c22ce2, off ea8b59433, pushed; earlier draft `range-sort-none-limit` 7362d4129) | txn (unit 2), 2026-10-11 |
 | [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md) | bug (regression in v3.7, 7624a8a2e) | `range-keys-only-lease` (01e522548) | txn (unit 2), 2026-10-11 |
 | [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) | bug (a panic on a coarse monotonic clock: Windows) | none | mvcc watchable store (unit 3b), 2026-10-12 |
-| [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `etcd-apply-lease-checkpoint-sections` (a246d135a, off b25719d10, unpushed; earlier draft `lease-checkpoint-one-section` 2a163496c) | apply (unit 1), 2026-10-12 |
+| [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `fix/etcd-apply-lease-checkpoint-sections` (a246d135a, off b25719d10, pushed; earlier draft `lease-checkpoint-one-section` 2a163496c) | apply (unit 1), 2026-10-12 |
 | [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md) | bug (a panic on a huge configured interval) | none (reproduced by an overlay test) | v3rpc watch (unit W-S), 2026-10-14 |
-| [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) | bug (reproduced by an integration test, 2026-10-16) | `etcd-watch-id-reuse-stale-events` (29b6544ed, off b25719d10, unpushed) | v3rpc watch (unit W-S), 2026-10-14 |
+| [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) | bug (reproduced by an integration test, 2026-10-16) | `fix/etcd-watch-id-reuse-stale-events` (29b6544ed, off b25719d10, pushed) | v3rpc watch (unit W-S), 2026-10-14 |
 | [etcd-watch-canceled-pending-retained](etcd-watch-canceled-pending-retained.md) | bug (minor: a canceled watcher's responses are kept for the stream's lifetime, up to 128 per cancel; from code reading) | none (fixed by the `etcd-watch-id-reuse-stale-events` candidate) | upstream report of `etcd-watch-id-reuse-stale-events`, 2026-10-16 |
 | [etcd-stream-interceptor-err-before-done](etcd-stream-interceptor-err-before-done.md) | bug (a `context.Context` contract violation: `Err()` non-nil while `Done()` is open, in `Cancel`'s window; reproduced deterministically by an overlay test) | none | v3rpc stream interceptor (unit W-W), 2026-10-15 |
 | [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) | bug (a client panic, "send on closed channel", after a transient stream failure; reproduced by an overlay test with a fake watch client) | none | client watch (unit W-C), 2026-10-15 |
@@ -114,7 +114,7 @@ comparisons are evaluated before the outer transaction's operations run (undocum
 non-key target with `SortOrder: NONE` and returns duplicated and missing keys, since each chunk is
 sorted by the target but the next chunk starts after the chunk's last key (a wrong result, outside
 the verified code; found 2026-10-12 while fixing `etcd-range-sort-none-limit`; not filed; candidate and fork branch
-`etcd-rangestream-sort-none` (5f0401a75, off b25719d10, unpushed), 2026-10-16).
+`fix/etcd-rangestream-sort-none` (5f0401a75, off b25719d10, pushed), 2026-10-16).
 [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md): the apply package's
 alarm gauge counts an alarm activated twice twice (`AlarmStore.Activate` returns the existing
 member) and stays at 1 after it is disarmed (a wrong metric; reproduced; found 2026-10-12, apply
@@ -131,7 +131,7 @@ found 2026-10-12, backend unit 1; not filed).
 commit it can serve a deleted key (a reader in `Unlock`'s window) or an old value of a key the
 pre-commit hook rewrote (deterministic); no wrong mvcc result known (reproduced twice; found
 2026-10-12, backend unit 2; not filed; candidate and fork branch
-`etcd-backend-read-buffer-cache-stale-after-commit` (29baf8d7e, off b25719d10, unpushed), 2026-10-16).
+`fix/etcd-backend-read-buffer-cache-stale-after-commit` (29baf8d7e, off b25719d10, pushed), 2026-10-16).
 [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md): a put whose
 encoded `KeyValue` exceeds bbolt's `MaxValueSize` (`2^31 - 2` bytes) makes the backend's
 `unsafePut` call `lg.Fatal` (an unstated precondition of `UnsafePut`/`UnsafeSeqPut` and of mvcc's
