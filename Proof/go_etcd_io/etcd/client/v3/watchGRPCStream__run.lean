@@ -70,12 +70,28 @@ instance respInfo_persistent (m : v3rpc.WatchRespM) : Persistent (respInfo (GF :
 /-- The create request of a watch. -/
 abbrev createOfP (P : WsPrm GF) : v3rpc.CreateReqM := createOf P.key P.ed P.rev P.pn P.sr
 
+/-- **A registered substream's place on the channel** (persistent; K2e-7d): a snapshot `l` of the
+stream's channel's sent list from its created response (taken after the registration, at an index
+`n` at most its length), whose responses of id `-1` were all sent down before the created one
+(among `L`). -/
+def regSnap (γs : StreamNames) (w : Loc) : IProp GF :=
+  iprop(∃ (γo : mvcc.WsStreamNames) (γa : GName) (l : List mvcc.RespM) (L : List v3rpc.WatchRespM)
+      (n : Nat),
+    streamAuxIs γs (v3rpc.auxOf γo γa) ∗ mvcc.streamSentLb γo l ∗ v3rpc.downLbW γs L ∗
+    mvcc.streamRegAt γo w n ∗
+    ⌜n ≤ l.length ∧ ∀ x ∈ l, x.id = W64 (-1) → ∃ m' ∈ L, m'.src = some x⌝)
+
+instance regSnap_persistent (γs : StreamNames) (w : Loc) : Persistent (regSnap (GF := GF) γs w) := by
+  unfold regSnap; infer_instance
+
 /-- **A registered substream's watcher** (persistent): the mvcc watcher `w` the server registered
-for its create at the id `X` (range `rg`, no filters, first revision `lo`), the id assigned to it. -/
+for its create at the id `X` (range `rg`, no filters, first revision `lo`; K2e-7d: registered
+with the create's start-read flag, its place on the channel), the id assigned to it. -/
 def regFacts (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (X : w64) (w : Loc)
     (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
   iprop(⌜v3rpc.createRangeOk (createOfP P) X rg⌝ ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
     fcs ↦*□ ([] : List GoFunc) ∗
+    (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = P.sr⌝) ∗ regSnap γs w ∗
     ∃ (γo : mvcc.WsStreamNames) (γa : GName), streamAuxIs γs (v3rpc.auxOf γo γa) ∗
       mvcc.idAssigned γo X w)
 
@@ -528,7 +544,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
     ileft; iexact Hx
   -- the substream runs: the response's content
   iunfold regFacts at Hrf
-  icases Hrf with ⟨%Hcr, #Hwi, #Hfcs, %γo, %γa, #Hax, #Hias⟩
+  icases Hrf with ⟨%Hcr, #Hwi, #Hfcs, -, -, %γo, %γa, #Hax, #Hias⟩
   ihave %hρw : ⌜ρ.evs ≠ [] → ρ.w = w⌝ $$ []
   · by_cases hne : ρ.evs = []
     · ipureintro; intro h'; exact absurd hne h'
@@ -1603,7 +1619,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Hm1 with ⟨%Hpn, %h, %sl, %ps, Hhdr, Hho, Hwid, Hcr, Hca, Hcomp, Hcrs, Hfr, Hev, #Hps,
         %Hpslen, #Hevs⟩
       wp_auto
-      icases Hcase with (⟨%Hsrc, Hctrl, -⟩ | #Hmvcc)
+      icases Hcase with (⟨%Hsrc, Hctrl, #Hcaf⟩ | #Hmvcc)
       · iunfold v3rpc.ctrlOk at Hctrl
         icases Hctrl with ⟨%i, %req, %γo, %γa, #Haux, #Hup, %Hcans, Hcw, Hat⟩
         cases req with
@@ -1646,6 +1662,7 @@ theorem watchGRPCStream.run.wp_proof
               □ (⌜m.canceled = false⌝ -∗ ∃ (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
                 ⌜v3rpc.createRangeOk c m.watchId rg⌝ ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
                 fcs ↦*□ ([] : List GoFunc) ∗
+                (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = c.sr⌝) ∗
                 ∃ (γo : mvcc.WsStreamNames) (γa : GName), streamAuxIs γs (v3rpc.auxOf γo γa) ∗
                   mvcc.idAssigned γo m.watchId w)) $$ [Hcw Hids]
           · cases hcan : m.canceled
@@ -1893,7 +1910,7 @@ theorem watchGRPCStream.run.wp_proof
               simp only [Bool.false_eq_true, ↓reduceIte]
               iintro ⟨Hid, Hm, HcF⟩
               -- the watcher the server registered
-              ihave ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, %γo', %γa', #Hax', #Hias⟩ := Hwf $$ %hca
+              ihave ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, #Hws, %γo', %γa', #Hax', #Hias⟩ := Hwf $$ %hca
               ihave #Hwi' := Hwi
               iunfold mvcc.watcherIs at Hwi'
               icases Hwi' with ⟨%γw0, %C0, -, #Hwfix, -⟩
@@ -1935,10 +1952,40 @@ theorem watchGRPCStream.run.wp_proof
               rw [if_neg (show ¬ (decide (client.isBroadcast m) = true) by
                 simp only [decide_eq_true_eq]; exact hnb)]
               iintro ⟨%wr, Hpost⟩
+              ihave #Hsnap : iprop(client.regSnap γs w) $$ []
+              · irevert Hcaf
+                unfold v3rpc.createdAfter
+                rw [hcr0, hca]
+                simp only [Bool.not_false, Bool.and_self, ↓reduceIte]
+                iintro #Hcaf
+                icases Hcaf with ⟨%γo2, %γa2, %w2, %l0, %l, %L, %n, #Hax2, #Hia2, #Hl0, #Hl, #HL,
+                  #Hrn, %Hn, %Hpp⟩
+                ihave %He : iprop(⌜v3rpc.auxOf γo' γa' = v3rpc.auxOf γo2 γa2⌝) $$ []
+                · iapply streamAuxIs_agree
+                  isplit
+                  · iexact Hax'
+                  · iexact Hax2
+                obtain ⟨rfl, rfl⟩ := v3rpc.auxOf_inj He
+                ihave %Hw := mvcc.idAssigned_agree γo' m.watchId w w2 $$ [Hias Hia2]
+                · isplit
+                  · iexact Hias
+                  · iexact Hia2
+                subst Hw
+                unfold client.regSnap
+                iexists γo', γa', l, L, n
+                iframe Hax' Hl HL Hrn
+                ipureintro
+                exact ⟨Nat.le_trans Hn Hpp.1.length_le, Hpp.2.2⟩
               ihave #Hrg : iprop(client.regFacts V γs P m.watchId w rg fcs lo) $$ []
               · unfold client.regFacts
-                iframe #
-                ipureintro; exact Hcrg
+                iframe Hwi Hfcs Hsnap
+                isplitr
+                · ipureintro; exact Hcrg
+                isplitr
+                · icases Hws with ⟨%γw', #Hm', %Hsr'⟩
+                  iexists γw'; iframe Hm'; ipureintro; exact Hsr'
+                iexists γo', γa'
+                iframe Hax' Hias
               ihave Hrest := client.reg_post V γs P S.Dm m m.watchId w rg fcs lo []
                 ([P.rev - W64 1] ++ [P.rev - W64 1]) b wr $$ [Hauth Hpost]
               · iframe
