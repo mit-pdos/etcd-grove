@@ -268,7 +268,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.NewTicker.wp_proof
-axiom time.Since.wp_proof
 axiom time.Ticker.Reset.wp_proof
 axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof

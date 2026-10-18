@@ -9373,6 +9373,24 @@ request contract (`isReqAuth`'s `AuthInfoFromTLS` clause, `AuthReqDerive.lean`),
   stated.
 - *Recommendation:* (C), else (A).
 
+**2026-10-18 · (i) (C) and (ii) (C) carried out (approved by the user), one fork batch.** The
+fork's `goose-lean` gains two commits on `06aa6e6e7` (local branch `goose-lean-d19l` of
+`/shared/etcd`, worktree `/shared/etcd-fork-d19l`; not pushed): `5615016f6`, etcd-io/etcd#22297
+cherry-picked with its test (`resyncDelay(syncDuration, last, now)`: the duration when the pass
+made progress with watchers left and it is positive, else `watchResyncPeriod`), and `17c88a667`,
+`AuthInfoFromTLS`'s two-result assertion (`nil` for a non-TLS peer) with the issue's
+reproduction as a test (it panics without the fix). `etc/goose.py`'s pin and putget's
+`go.mod`/`go.sum` follow (`v3.0.0-20261018175554-17c88a6678c3`); `mvcc.toml` translates
+`resyncDelay` with its body. The translation changes only `syncWatchersLoop` (the two `Reset`s
+become one `Reset(resyncDelay(...))`) and adds `resyncDelay` (plus source line numbers).
+- (i): `resyncDelay` proved (`Proof/.../mvcc/resyncDelay.lean`: its exact result, positive for any
+  `syncDuration`); `syncWatchersLoop` and `store.scheduleCompaction` use Perennial's
+  `time.wp_Since` (any duration); the local `Spec/time/Since.lean` and its axiom
+  `time.Since.wp_proof` are deleted (one axiom fewer; the mvcc, mvcc-compaction and server
+  collections lose it).
+- (ii): `AuthInfoFromTLS`'s axiom unchanged in statement (any context), now true of the fork's
+  code; only its doc comment changes. No caller changes.
+
 **(iii) prometheus `CounterVec.WithLabelValues`, `GaugeVec.WithLabelValues`,
 `HistogramVec.WithLabelValues`, `GaugeVec.With`** (Go panics on a label count other than the
 vector's, or a value that is not UTF-8). Nothing states a vector's label names today: the vectors

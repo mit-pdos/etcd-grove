@@ -24,7 +24,6 @@ axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
-axiom time.Since.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

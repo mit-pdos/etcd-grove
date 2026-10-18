@@ -68,6 +68,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
@@ -107,7 +108,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Proof.time.NewTicker
-public import Proof.time.Since
 public import Proof.time.Ticker__Reset
 public import Proof.time.Ticker__Stop
 public import Proof.time.Time__Unix
@@ -700,9 +700,9 @@ theorem mvcc.watchableStore.wp_syncWatchers :
     mvcc.watchableStore.syncWatchers.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size mvcc.watcherGroup.wp_choose mvcc.wp_rangeEvents mvcc.wp_newWatcherBatch mvcc.watcher.wp_send mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_delete mvcc.watchableStore.wp_addVictim
 
-theorem time.wp_Since :
-    time.Since.spec (GF := GF) (hG := hG) :=
-  time.Since.wp_proof
+theorem mvcc.wp_resyncDelay :
+    mvcc.resyncDelay.spec (GF := GF) (hG := hG) :=
+  mvcc.resyncDelay.wp_proof
 
 theorem time.Ticker.wp_Reset :
     time.Ticker.Reset.spec (GF := GF) (hG := hG) :=
@@ -710,7 +710,7 @@ theorem time.Ticker.wp_Reset :
 
 theorem mvcc.watchableStore.wp_syncWatchersLoop :
     mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers time.wp_Since time.Ticker.wp_Reset
+  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers mvcc.wp_resyncDelay time.Ticker.wp_Reset
 
 theorem mvcc.watchableStore.wp_moveVictims :
     mvcc.watchableStore.moveVictims.spec (GF := GF) (hG := hG) :=
@@ -782,7 +782,7 @@ theorem time.Time.wp_Unix :
 
 theorem mvcc.store.wp_scheduleCompaction [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) :=
-  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
+  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
 
 theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.compact.spec (GF := GF) (hG := hG) :=
