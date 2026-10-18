@@ -28,14 +28,20 @@ and needs the entry list to come back unchanged -- see `ownRaftLog` in
 The function ends in a `panic` on an error from `Storage`. `Logger.wp_logf`
 deliberately does not cover the panicking methods, so this proof has to *reach* the
 `Storage` call with its precondition satisfied; that is the whole content of the
-lemma. -/
+lemma.
+
+(D19i part 1, 2026-10-18) The application may have compacted the storage, up to the floor raft
+published (`LogState.fl`): the answer is at least one past the log's boundary, at most one past
+the floor, and above the log's only once the storage is compacted (`storCut`). -/
 abbrev raftLog.firstIndex.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"firstIndex")) (Val #()))
   {{ (i : w64), RET #i;
       ownRaftLog l ls ∗
-      ⌜uint.Z i = uint.Z ls.prev.index' + 1⌝ }}
+      ⌜uint.Z ls.prev.index' + 1 ≤ uint.Z i ∧
+        uint.Z i ≤ max (uint.Z ls.prev.index') (uint.Z ls.fl) + 1⌝ ∗
+      (⌜uint.Z i = uint.Z ls.prev.index' + 1⌝ ∨ storCut ls.storage (uint.Z i - 1)) }}
 
 end spec
 

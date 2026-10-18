@@ -40,7 +40,10 @@ abbrev raftLog.matchTerm.spec : Prop :=
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"matchTerm")) (Val #id))
   {{ (b : Bool), RET #b;
       ownRaftLog l ls ∗
-      ⌜b = decide (PlogMatches ls.prev (ls.sents ++ ls.uents) id)⌝ }}
+      -- (D19i part 1) exact at or above the floor; below it a compacted entry answers `false`
+      ⌜(b = true → PlogMatches ls.prev (ls.sents ++ ls.uents) id) ∧
+        (uint.Z ls.fl ≤ uint.Z id.index' →
+          b = decide (PlogMatches ls.prev (ls.sents ++ ls.uents) id))⌝ }}
 
 end spec
 

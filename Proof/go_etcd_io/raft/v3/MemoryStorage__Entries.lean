@@ -28,8 +28,8 @@ theorem MemoryStorage.Entries.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
     (wp_limitSize : limitSize.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) := by
-  intro ms γs σv lo hi maxSize
-  wp_start as ⟨Hms, %Hrangev, %Hpf⟩
+  intro ms γs σv lo hi maxSize ec
+  wp_start as ⟨Hms, %Hrangev, %Hpf, #Hec⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
   wp_apply wp_with_defer as %defer defer
@@ -38,11 +38,20 @@ theorem MemoryStorage.Entries.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σ, Hinv⟩
+  icases Hinv with ⟨%σL, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- below the pending batch the contents `σ` answer as the view `σv` (2026-10-10)
-  icases memView_agree γs σv σ $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
-  obtain ⟨Hrange, Htk, Hprev⟩ := memView_entries σv σ Hvw lo hi Hrangev Hpf
+  -- below the pending batch the contents `σL` answer as the view `σv` (2026-10-10); (D19i part 1)
+  -- the fields `σ` are them cut at `c`
+  icases memCut_view γs σv σL c $$ Hview Hgs_inv Hcut_inv
+    with ⟨%Hvc, #Hcutlb, Hview, Hgs_inv, Hcut_inv⟩
+  obtain ⟨Hvw, Hcok, Hcfl⟩ := Hvc
+  obtain ⟨HrangeL, HtkL, HprevL⟩ := memView_entries σv σL Hvw lo hi Hrangev Hpf
+  have Hlast := memCut_stLast Hcok
+  have Hpb' : uint.Z (memCut σL c).prev.index' + ((memCut σL c).ents.length : Int) < 2^61 := by
+    unfold EtcdGrove.stLast at Hlast; omega
+  have Hc1 := Hcok.1
+  generalize Hσ : memCut σL c = σ at Hpb' Hlast ⊢
+  have Hσprev : σ.prev = c := by rw [← Hσ]; rfl
   iNamed Hfields_inv
   icases Hents with #Hents
   ihave %Hcl := entsRO_cons_len $$ Hents
@@ -56,14 +65,60 @@ theorem MemoryStorage.Entries.wp_proof
   · iframe He0
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
-  · exfalso; rw [Hd0] at Hif; omega
+  · -- (D19i part 1) at or below the boundary: the application compacted past `lo`,
+    -- `ErrCompacted`
+    have Hle : uint.Z lo ≤ uint.Z c.index' := by rw [Hd0, Hσprev] at Hif; omega
+    have Hne : c ≠ σL.prev := by
+      intro Hc; rw [Hc] at Hle; omega
+    have Hfl : uint.Z c.index' ≤ uint.Z σv.fl := Hcfl.resolve_left Hne
+    try wp_auto
+    wp_method_call
+    wp_call
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcut_inv]
+    · inext
+      unfold memstorageInv memstorageFields
+      iexists σL, c
+      iframe Hgs_inv Hcut_inv
+      rw [Hσ]
+      isplitl
+      · iexists _, _, _, _, _, _, _, _
+        iframe # ∗
+        ipureintro; exact ⟨Hd0, Hd1⟩
+      ipureintro; exact Hpb_inv
+    iapply HΦ $$ %slice.nil %([] : List EntryM) %ec
+    ileft
+    isplitr
+    · ipureintro; exact ⟨rfl, by omega⟩
+    isplitr
+    · iunfold memStorCut
+      iunfold memStorCut at Hcutlb
+      iapply monoNatLbOwn_le _ (by omega) $$ Hcutlb
+    unfold ownMemoryStorage
+    iframe # ∗
+    ipureintro; exact Hbounded
+  have Hlo : uint.Z c.index' + 1 ≤ uint.Z lo := by rw [Hd0, Hσprev] at Hif; omega
+  have Hrange : uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
+      uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 := by
+    rw [Hσprev]
+    unfold EtcdGrove.stLast at Hlast
+    refine ⟨Hlo, Hrangev.2.1, ?_⟩
+    have := HrangeL.2.2
+    rw [Hσprev] at Hlast
+    omega
+  have HE : (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+        (uint.Z lo - uint.Z σ.prev.index' - 1).toNat =
+      (σv.ents.take (uint.Z hi - uint.Z σv.prev.index' - 1).toNat).drop
+        (uint.Z lo - uint.Z σv.prev.index' - 1).toNat := by
+    rw [← Hσ]
+    simp only [memCut]
+    rw [memCut_drop Hcok lo hi Hlo Hrangev.2.1, HtkL, HprevL]
   ihave Hf : memstorageFields ms σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists _, _, _, _, _, _, _, _
     iframe HhardState Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents Hents_cap
     ipureintro
     exact ⟨Hd0, Hd1⟩
-  wp_apply wp_MemoryStorage_lastIndex ms σ Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms σ Hpb' $$ [$Hf] as %li ⟨%Hli, Hf⟩
   rw [Hd0]
   unfold memstorageFields
   iNamed Hf
@@ -147,21 +202,27 @@ theorem MemoryStorage.Entries.wp_proof
   -- the deferred `ms.Unlock()`
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf Hcut_inv]
   · unfold memstorageInv
-    iexists σ
+    iexists σL, c
+    rw [Hσ]
     iframe
     ipureintro; exact Hpb_inv
   iapply HΦ
+  iright
+  isplitr
+  · ipureintro; rfl
   isplitr
   · iunfold entsRO; iunfold entsPts; iexists ls1; iframe Hs2 Hb1
   isplitr
   · ipureintro
-    rw [← Htk, ← Hprev]
+    rw [← HE]
     refine ⟨Hnetake, ?_, ?_, ?_, List.take_prefix _ _⟩
     · rw [List.length_take, HE0len]; omega
     · intro e He
-      exact List.mem_of_mem_drop (List.mem_of_mem_take He)
+      have H1 := List.mem_of_mem_take He
+      rw [HE] at H1
+      exact List.mem_of_mem_drop H1
     · simp only [slice.fullSlice]
   unfold ownMemoryStorage
   iframe # ∗

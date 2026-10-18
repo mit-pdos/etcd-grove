@@ -262,12 +262,25 @@ theorem raftLog.append.wp_proof
       have := Hpend.2 Hs e1 He1
       simp only [logTruncateAppend, List.length_take] at this ⊢
       omega
+    -- (D19i part 1) the floor: at most `committed`, below the batch, so below the new
+    -- `offsetInProgress`
+    have Hcmlt : uint.Z ls.committed < uint.Z e0.Index' := by word
+    have Hfl2 : FlOk σ (logTruncateAppend ls (e0 :: ents')) := by
+      refine ⟨Hfl.1, Hfl.2.1, fun Hs => ?_, Hfl.2.2.2⟩
+      have := Hfl.2.2.1 Hs
+      have := Hfl.2.1
+      have := Happlied.2
+      simp only [logTruncateAppend, ← Hip2]
+      rw [Hip2]
+      unfold logTruncInprogress
+      repeat' split
+      all_goals omega
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 Hsksn ?_ ?_ ?_
+          Hstor Hpend2 Hfl2 Hsksn ?_ ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hpksn Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩

@@ -341,6 +341,11 @@ structure LogState [FfiSyntax] where
   in it (`ownRaftLog`'s `Hsksn`, `Hpksn`), so `raftLog.snapshot` returns one of them. Only a
   restore (`logRestore`) adds to it. The protocol does not read it (`toPState`). -/
   ksn : List SnapTrip
+  /-- (D19i part 1, 2026-10-18) The floor raft has published to the application
+  (`StorState.fl`, `InvStorage.lean`): the storage may be compacted, and its snapshot replaced,
+  up to it. Ghost, not a Go field. At most `applied` (`ownRaftLog`'s `Hfl`): raft's
+  `hasUnappliedConfChanges` reads the log from `applied + 1`. -/
+  fl : w64 := 0
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -773,7 +778,7 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 (its id, lists and `AutoLeave`) joins the ones the node may send (`ksn`). -/
 def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k]⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/

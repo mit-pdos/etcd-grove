@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize σ lok Hidx Hss Hpe Hlg Hmax
+  intro st lg maxSize σ lok Hidx Hss Hpe Hlg Hmax Hfl0
   subst Hlg
   wp_start as ⟨#Hsto, HStorage, #Hlg⟩
   ihave #Hsto2 : isStorage st $$ [Hsto]
@@ -31,7 +31,12 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
   subst Hstok
   icases Hbounded $$ HStorage with ⟨%Hbnd, HStorage⟩
   wp_auto
-  wp_apply HFirstIndex $$ HStorage as %fi ⟨%Hfi, HStorage⟩
+  wp_apply HFirstIndex $$ HStorage as %fi ⟨%Hfi0, -, HStorage⟩
+  -- (D19i part 1) the floor is not raised: the storage's boundary is the view's
+  have Hfi : uint.Z fi = uint.Z σ.prev.index' + 1 := by
+    rw [Hfl0, show uint.Z (W64 0) = 0 from rfl,
+      Int.max_eq_left (show (0 : Int) ≤ uint.Z σ.prev.index' by word)] at Hfi0
+    omega
   wp_apply HLastIndex $$ [$HStorage] as %li ⟨%Hli, HStorage⟩
   · ipureintro; exact Hpe
   wp_alloc l as Hl
@@ -103,7 +108,10 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; intro _; word
     isplitr
     · ipureintro; rfl
-    ipureintro; exact ⟨Hpe, fun _ e0 He0 => by simp at He0⟩
+    isplitr
+    · ipureintro; exact ⟨Hpe, fun _ e0 He0 => by simp at He0⟩
+    ipureintro
+    refine ⟨Hfl0, by simp, fun _ => by word, fun e0 He0 => by simp [Hpe] at He0⟩
   · ipureintro; word
 
 end proof

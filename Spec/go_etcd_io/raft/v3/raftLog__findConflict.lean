@@ -57,6 +57,8 @@ The batch is lent at any fraction and comes back; the log is unchanged. -/
 abbrev raftLog.findConflict.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (es : GoSlice) (dq : DFrac) (ents : List EntryM),
   (∀ e ∈ ents, uint.Z ls.prev.index' ≤ uint.Z e.Index') →
+  -- (D19i part 1) at or above the floor, where `matchTerm` is exact
+  (∀ e ∈ ents, uint.Z ls.fl ≤ uint.Z e.Index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "Hes" ∷ entsPts es dq ents }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"findConflict")) (Val #es))

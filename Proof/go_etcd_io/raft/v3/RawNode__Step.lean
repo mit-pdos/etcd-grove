@@ -39,7 +39,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   iapply HΦ $$ %$e %rs.term
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv hprev steps Hwf Hin
-      Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+      Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
   ipureintro
   refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
@@ -67,7 +67,7 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok _Hdns Hmtc Htn Hpvb
+  intro γ rn id rs ml st Hok _Hdns Hmtc Htn Hpvb Hflw
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok _Hdns Hmtc Htn Hpvb ⊢
   have Hok0 := Hok
@@ -108,7 +108,7 @@ theorem RawNode.Step.wp_proof
         with ⟨%Hb1, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
+      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
         (GMode.Pre.of_facts Hpf (by not_net) (by not_net))
         $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
@@ -137,7 +137,7 @@ theorem RawNode.Step.wp_proof
       have Hc := Href.commit_mono
       have e1 := Href.keep (by not_net) (by not_net); subst e1
       have e2 := Hcc (by not_net); subst c'
-      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
+      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm (by not_net)
       have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
           (if m.Type' = MsgTimeoutNow then 1 else 0) := by
@@ -173,6 +173,7 @@ theorem RawNode.Step.wp_proof
           Hstok' rfl (by rw [Hsg]; exact Hstor)
           (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+          (RNFl.keep Hrnfl Hfl' Hap' Ha)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
       ipureintro
       rw [Htrm]

@@ -345,11 +345,21 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
   rw [Hunp0] at Hp0
   have Hplen := Hp0.1.length_le
   simp only [storApp, List.length_append, List.length_take] at Hplen
-  have Hpo : σ.pend = [] ∧ (nextUnstable ls ≠ [] → PendOk σ (nextUnstable ls)) := by
-    refine ⟨Hpend.1.trans Hunp0, fun Hne => ⟨Hne, fun e0 He0 => ?_⟩⟩
-    obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
-    rw [Hsp]
-    constructor <;> omega
+  have Hpo : σ.pend = [] ∧ (nextUnstable ls ≠ [] →
+      PendOk σ (nextUnstable ls) ∧ PendAbove σ (nextUnstable ls)) := by
+    refine ⟨Hpend.1.trans Hunp0, fun Hne => ⟨⟨Hne, fun e0 He0 => ?_⟩, fun e0 He0 => ?_⟩⟩
+    · obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
+      refine ⟨by rw [Hsp]; omega, by rw [Hsp]; omega, fun k e Hk => ?_⟩
+      -- (D19i part 1) the batch is numbered consecutively, as the unstable entries are
+      simp only [nextUnstable, List.head?_drop, List.getElem?_drop] at He0 Hk
+      have h1 := Hcontig _ _ He0
+      have h2 := Hcontig _ _ Hk
+      push_cast at h1 h2
+      omega
+    · obtain ⟨Hi, -⟩ := Hhead e0 He0
+      have := Hfl.2.2.1 Hs0
+      have := Hfl.2.1
+      rw [Hfl.1]; omega
   imod isStorage_handout lv.storage' σ (nextUnstable ls) Hpo $$ HisStorage HStorage
     with ⟨HStorage, Happ⟩
   have Hstore' : LogStoreOk (logHanded ls).snap { σ with pend := nextUnstable ls }
@@ -370,11 +380,22 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
     simp only [LogPersistOk, storApp_pend, logHanded]
     simp only [nextUnstable, logOffset, ← Hoffset]
     exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
+  have HflN : FlOk { σ with pend := nextUnstable ls } (logHanded ls) := by
+    refine ⟨Hfl.1, Hfl.2.1, fun _ => ?_, fun e0 He0 => ?_⟩
+    · have := Hfl.2.2.1 Hs0
+      have := Hipb
+      simp only [logHanded]
+      word
+    · obtain ⟨Hi, -⟩ := Hhead e0 He0
+      have := Hfl.2.2.1 Hs0
+      have := Hfl.2.1
+      show uint.Z σ.fl < _
+      rw [Hfl.1]; omega
   imodintro
   isplitr [Happ]
   · iapply ownRaftLog_intro (K := ls.ksn) l lv lv.storage' { σ with pend := nextUnstable ls } ls.snap ls.uents
       (logHanded ls) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied Hpapplied
-      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN Hsksn
+      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN HflN Hsksn
       rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
   rw [← Hstor]; iexact Happ
 

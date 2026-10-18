@@ -92,8 +92,10 @@ theorem raftLog.acceptUnstable.wp_proof
   iapply HΦ
   unfold logAcceptUnstable
   reseal_raftLog
-  · simp only [logEnd, logLast]; word
-  · simp only [logEnd, logLast]; word
+  all_goals first
+    | (simp only [logEnd, logLast]; word)
+    | exact ⟨Hfl.1, Hfl.2.1, fun _ => by
+        have := Hfl.2.2.1 Hs0; simp only [logEnd, logLast]; word, Hfl.2.2.2⟩
 
 end proof
 

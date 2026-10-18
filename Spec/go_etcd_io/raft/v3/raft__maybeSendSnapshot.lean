@@ -66,11 +66,13 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (pr : Loc),
   to ≠ id →
   s.progress !! to = some pr →
-  -- (2026-10-16, stage R8a, D11) the log is compacted, so the storage's snapshot is non-empty
-  -- (`raftLog.snapshot`'s premise); `maybeSendAppend` has it from `term(pr.Next - 1)`'s failure
-  uint.Z s.logst.prev.index' ≠ 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-10-16, stage R8a, D11) the log is compacted, so the storage's snapshot is
+      -- non-empty (`raftLog.snapshot`'s premise); `maybeSendAppend` has it from
+      -- `term(pr.Next - 1)`'s failure. (D19i part 1, 2026-10-18) Or the storage is, by the
+      -- application (`storPast`).
+      "#Hcompact" ∷ (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨ storPast s.logst.storage 1) }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendSnapshot"))
       (Val #to)) (Val #pr))
   {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;

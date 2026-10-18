@@ -40,22 +40,22 @@ theorem MemoryStorage.InitialState.wp_proof
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
   iunfold memSnapShare at Hsn
-  icases Hsn with ⟨#Hsinv, Hok, Hsv⟩
+  icases Hsn with ⟨#Hsinv, Hok⟩
   iunfold memSnapTok at Htok
-  icases Htok with ⟨-, -, -, Hak, Hsvt⟩
+  icases Htok with ⟨-, -, -, Hak, Hsvt, Hcbt⟩
   -- (D17d) the owner's and the application's keys lend the snapshot, without the lock
   imod memSnap_take ms γs 3 ⊤ HN $$ Hsinv [Hok Hak] with ⟨Hhome, Hrcpt⟩
   · iunfold memSnapKeys; iright; iright; iframe; ipureintro; rfl
   wp_auto
   iunfold memSnapHome at Hhome
   icases Hhome with ⟨%σp, Hsn, Hsnh⟩
-  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsv Hsnh with %Hag
+  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
   obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
-  ihave Hsn := memSnapOwn_congr ms σp σ Hs1 Hs2 Hs3 $$ Hsn
+  ihave Hsn := memSnapOwn_congr ms σp σt Hs1 Hs2 Hs3 $$ Hsn
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
-  have Hcs : sv.Metadata'.ConfState' = storCS σ :=
-    confState_eq_storCS _ σ Hsnap_id.2.1 Hsnap_id.2.2
+  have Hcs : sv.Metadata'.ConfState' = storCS σt :=
+    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2
   (try wp_auto)
   wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
   · iframe Hsnap
@@ -71,7 +71,7 @@ theorem MemoryStorage.InitialState.wp_proof
     iapply wp_fupd
     wp_apply wp_EnsureConfState.2 as %r Hr
     imod csPts_persist _ _ _ _ $$ Hr with #Hr
-    imod memSnap_put ms γs 3 σ ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] [Hsnh] with Hk
+    imod memSnap_put ms γs 3 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] [Hsnh] with Hk
     · iunfold memSnapOwn
       iexists sp, sv
       iframe
@@ -103,7 +103,7 @@ theorem MemoryStorage.InitialState.wp_proof
     ihave Hm := Hcback $$ []
     · iunfold csOptA; iright; iright; iexact Hr
     ihave Hsnap := Hmback $$ Hm
-    imod memSnap_put ms γs 3 σ ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] [Hsnh] with Hk
+    imod memSnap_put ms γs 3 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] [Hsnh] with Hk
     · iunfold memSnapOwn
       iexists sp, sv
       iframe

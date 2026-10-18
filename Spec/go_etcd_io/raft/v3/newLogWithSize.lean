@@ -66,6 +66,8 @@ abbrev newLogWithSize.spec : Prop :=
   -- at size `0`, and `nextCommittedEnts` `Panicf`s on
   -- `maxApplyingEntsSize - applyingEntsSize <= 0`
   0 < uint.Z maxSize →
+  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
+  σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage st ∗
       ownStorage st σ ∗ isLogger lok }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))

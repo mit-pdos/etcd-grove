@@ -36,7 +36,10 @@ below, what keeps `applied <= applying` (`acceptReady` passes the last committed
 handed out, above `applying`). -/
 abbrev raftLog.acceptApplying.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i size : w64) (au : Bool),
-  uint.Z ls.applied ≤ uint.Z i ∧ uint.Z i ≤ uint.Z ls.committed →
+  uint.Z ls.applied ≤ uint.Z i ∧ uint.Z i ≤ uint.Z ls.committed ∧
+  -- (D19i part 1) `applying` does not move back (the floor is at most it), and stays below
+  -- `offsetInProgress` (`FlOk`: `acceptReady` accepts the unstable entries first)
+  uint.Z ls.applying ≤ uint.Z i ∧ (ls.snap = none → uint.Z i < uint.Z ls.inprogress) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"acceptApplying"))
       (Val #i)) (Val #size)) (Val #au))

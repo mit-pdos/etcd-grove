@@ -58,7 +58,9 @@ abbrev MemoryStorage.InitialState.spec : Prop :=
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"InitialState")) (Val #()))
   {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
       hsOpt hp hs ∗ memStorMeta ms γs hs ∗ ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt ∗
-      csPts cs DFrac.discard (storCS σ) true }}
+      -- the storage's snapshot's, which the token knows (D19i part 1: the owner's view may be
+      -- older, the application may have replaced it)
+      csPts cs DFrac.discard (storCS σt) true }}
 
 end spec
 

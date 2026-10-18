@@ -58,7 +58,7 @@ local macro "finish0" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
-    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
 
 set_option hygiene false in
@@ -70,7 +70,7 @@ local macro "finish" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
-    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
 
 set_option hygiene false in
@@ -99,7 +99,7 @@ local macro "finish_false" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu, Hrd0⟩
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl ⟨Hout0, Hnu, Hrd0⟩
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
 
 set_option hygiene false in

@@ -35,18 +35,25 @@ variable [RegStor GF]
 
 /-- See the file header. -/
 abbrev Storage.Snapshot.spec : Prop :=
-  ∀ (s ms : Loc) (γs : MemStorNames) (σ : StorState) (esu : GoInterface),
+  ∀ (s ms : Loc) (γs : MemStorNames) (σ : StorState) (esu : GoInterface) (n : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗
       s.[RStorage, go!"MemoryStorage"] ↦□ ms ∗ ownMemoryStorage ms γs σ ∗
-      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
+      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
+      -- (D19i part 1) what the caller knows of the storage's compaction
+      (⌜n ≤ 0⌝ ∨ memStorCut γs n) }}
     (App (Val (s @!! go.GoType.PointerType rStorageTy @!! go!"Snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
        (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-        ⌜snapId sv = σ.ss ∧ sv.Metadata'.Index' ≠ W64 0 ∧
-          sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-          sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}
+        -- non-empty; the view's snapshot or (D19i part 1) a newer one, at or below the floor
+        ⌜sv.Metadata'.Index' ≠ W64 0 ∧
+          ((snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
+            sv.Metadata'.ConfState'.lists = σ.scs) ∨
+           (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
+            uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
+            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝)) }}
 
 end spec
 

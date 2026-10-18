@@ -48,9 +48,10 @@ theorem raft.committedEntryInCurrentTerm.wp_proof
   -- `term(committed)`: in bounds, so no error
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
-  wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr_iff, %Hterm_at, #Herr⟩
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr_iff, %Hterm_at, #Herr, -⟩
   ihave Hphys := Hlogback $$ Hlog
-  have Herr : err = interface.nil := Herr_iff.2 ⟨Hcb.1.1, Hcb.1.2.2⟩
+  have Herr : err = interface.nil := Herr_iff.2 ⟨Hcb.1.1, Hcb.1.2.2⟩ (by omega)
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   wp_apply wp_raftLog_zeroTermOnOutOfBounds $$ [$Herr] as %t' %Ht'
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys

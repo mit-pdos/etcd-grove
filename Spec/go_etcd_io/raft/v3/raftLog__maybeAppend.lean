@@ -82,6 +82,9 @@ abbrev raftLog.maybeAppend.spec : Prop :=
   (PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' →
    plogFindConflict ls.prev (ls.sents ++ ls.uents) ents = W64 0 ∨
    uint.Z ls.committed < uint.Z (plogFindConflict ls.prev (ls.sents ++ ls.uents) ents)) →
+  -- (D19i part 1) `a.prev` at or above the floor (the caller has `a.prev.index ≥ committed`),
+  -- where `matchTerm` is exact
+  uint.Z ls.fl ≤ uint.Z a.prev'.index' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "#Hents" ∷ entsRO a.entries' ents ∗
       "Hcap" ∷ ownSliceCap Loc a.entries' (DFrac.own 1) }}
@@ -101,7 +104,7 @@ abbrev raftLog.maybeAppend.spec : Prop :=
                 (if uint.Z committed < uint.Z lni then committed else lni) ∧
             ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧
             ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored ∧
-            ls'.storage = ls.storage⌝ ∗
+            ls'.storage = ls.storage ∧ ls'.fl = ls.fl⌝ ∗
       -- (2026-10-10) entries still to be handed out stay so (`NGhost.unst`)
       ⌜ls'.snap = ls.snap ∧ (nextUnstable ls ≠ [] → nextUnstable ls' ≠ [])⌝ }}
 

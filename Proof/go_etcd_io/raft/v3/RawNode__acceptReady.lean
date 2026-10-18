@@ -503,8 +503,17 @@ theorem RawNode.acceptReady.wp_proof
     wp_auto
     rw [Hasync]
     have Hlast := Hceok e He
+    icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcb2, Hlog⟩
+    icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw2, Hlog⟩
+    have Hend : uint.Z e.Index' < uint.Z (logEnd s.logst) := by
+      have := (show LogNoWrap s.logst from Hnw2).logLast_Z
+      unfold logEnd
+      have := Hcb2.1.2.2
+      simp only [logAcceptUnstable] at this Hnw2
+      word
     wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
-      ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega⟩
+      ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega,
+        by show uint.Z s.logst.applying ≤ _; omega, fun _ => Hend⟩
       $$ [Hlog] as Hlog
     · iframe Hlog
     isplitr
@@ -638,6 +647,30 @@ theorem RawNode.acceptReady.wp_proof
     · iapply (BigSepL2.bigSepL2_app_wand (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
         pendingRel γ id st p))) $$ Hps Hpa
     · iexact Hpc
+  -- (D19i part 1) the floor and `applied` unmoved; `applying` moved to the last committed entry
+  -- handed out, whose acknowledgement is queued
+  have HrnflN : RNFl
+      { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
+                steps := readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
+                outlb := 0, unst := false }
+      (readyNstate s ce sz) := by
+    have Hfl0 : (readyNstate s ce sz).logst.fl = s.logst.fl := by
+      simp only [readyNstate, logAcceptApplying, logAcceptUnstable]
+      split <;> rfl
+    refine ⟨fun hw => by rw [Hfl0, Hrapp]; exact Hrnfl.1 hw, fun hlt => ?_⟩
+    cases hce : ce.getLast? with
+    | none =>
+      exfalso
+      have hap : (readyNstate s ce sz).logst.applying = s.logst.applying := by
+        simp only [readyNstate, logAcceptApplying, logAcceptUnstable, hce]
+      rw [hap, Hrapp] at hlt
+      exact absurd Hrnfl.2 (Int.not_le.2 hlt)
+    | some e =>
+      have hap : (readyNstate s ce sz).logst.applying = e.Index' := by
+        simp only [readyNstate, logAcceptApplying, logAcceptUnstable, hce]
+      have Hne : ce ≠ [] := by intro h; subst h; simp at hce
+      refine ⟨ce, e, ?_, hce, by rw [hap]; exact Int.le_refl _⟩
+      simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, or_true]
   iapply HΦ $$ %(readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
   simp only [named]
   iapply ownRawNode_intro γ rn id
@@ -650,7 +683,7 @@ theorem RawNode.acceptReady.wp_proof
     Hwf Hin Hal Hasync Hdlen'
     (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
     (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
-    (by rw [Hlogst, Hlf.1]; exact Hrs_clb)
+    (by rw [Hlogst, Hlf.1]; exact Hrs_clb) HrnflN
     $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs'
 
 end proof

@@ -9005,6 +9005,34 @@ the theorem says nothing.
       Go does). `MemView` (`InvMemstorage.lean`) becomes the lower-bound relation, the
       application's `CreateSnapshot`/`Compact` specs take `memSnapTok` (extended with a share of
       the boundary) and a lower bound of `fl`, not `ownMemoryStorage`.
+    - **2026-10-18 · (A1) chosen by the user; the fork fix landed (`06aa6e6e`, re-translated,
+      `e71f853db9`); raft's side carried out on `d19i1-raft` (`36e58eb679`, `2bdfb191b7`); the
+      publication stopped for a decision.** Carried out: the contract above (`StorState.fl`,
+      `storCut`, `storFloor`, the floor law `Hfloor`; `MemoryStorage`'s model cuts its fields at a
+      boundary, `memCut`, its history carries the floor, `CreateSnapshot`/`Compact` take
+      `memSnapTok` and the floor's witness `memFloorTok`), raft's readers re-proved. **What is
+      new:** `node.Advance` returns at the `advancec` handoff, *before* `run`'s `rn.Advance`
+      moves `applied` (`node.go`), and etcd's apply thread may compact as soon as `raftAdvancedC`
+      is closed, so the floor must be raised at the handoff, past `applied` for the instant
+      between it and `rn.Advance`: raft's invariant is therefore `fl ≤ applying` (`FlOk`, with
+      `applying < offsetInProgress`), `fl ≤ applied` only outside that window (`RNState.flw`,
+      `RNFl`), a premise of the reads from `applied + 1` (`hasUnappliedConfChanges`, so `hup`,
+      `Step`'s `MsgHup`/`MsgTimeoutNow`, `tickElection`, `RawNode.Campaign`/`Tick`/`Step`), and
+      `ownRawNode_raise_floor` raises the floor to `applying` with the storage's witness. (The Go
+      fix is right: in that window `run` does nothing but `rn.Advance`, which reads no entry at
+      or below the floor.) **Stopped:** how the witness reaches the application at the handoff.
+      `advancec` is a Perennial `isHandshake` whose reply `Q` is fixed and given by the receiver
+      (`run`) when it commits its receive -- in the receiver-first case before it has the
+      sender's payload (`recvAu`'s `Idle` case; a blocking `select` commits to the clause there,
+      so raising the floor at that commit is sound) -- and the sender (`node.Advance`) must learn
+      that the witness is for *its* committed log (`|ds|`), which no fixed `Q` relates without a
+      ghost resource the two exchange each round. Options: (i) a local request/reply protocol for
+      `advancec` in place of `isHandshake` (its own invariant and send/receive lemmas, proved
+      here, like Perennial's handshake): the receiver deposits the witness with a fraction of the
+      committed log's authority (`dlm`) that the sender reads at its commit, against its lower
+      bound, and the receiver takes back; or (ii) a Go change so that the application asks raft
+      for the bound it compacts to (`Status()`'s reply is `run`'s), which moves the publication
+      to a channel whose reply `run` computes.
   - *`EtcdServer.monitorStorageVersion`.* The model admits another goroutine's write under the
     batch lock: `LockOutsideApply` hands out the client's `W ∗ Pk` (the store's `lateW`/
     `writerRes`, the hook's `batchLockInv`/`metaTM`), as for mvcc's compaction, and none of them

@@ -129,7 +129,7 @@ theorem ownRawNode_borrow (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) 
   · iexact Hphys
   iintro Hphys
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 theorem ownRawNodeIdle_borrow (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) :
@@ -146,7 +146,7 @@ theorem ownRawNodeIdle_borrow (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
   · iexact Hphys
   iintro Hphys
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hidle
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hidle
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- The fields of the raft struct `isNode` shares, out of a node. -/
@@ -163,7 +163,7 @@ theorem ownRawNode_shared (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) 
   iexists rnv.raft', lok
   iframe Hr Hid Hlg Hlogger
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- The leader fields, for `run`'s check (any values: the check only logs and arms the
@@ -234,7 +234,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-    Hrs_clb, Hrdz, Hceok, Hes, Hrdc⟩
+    Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc⟩
 
 /-! ## Abandoning a `Ready`, keeping it armed -/
 
@@ -306,7 +306,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   iapply ownRawNode_intro γ rn id rs' s' cf fp rnv sv hprev [] Hwf Hin Hal Hasync Hdlen
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
-    (Int.le_refl _)
+    (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-! ## The tick channel -/
@@ -374,7 +374,9 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     (Hmtc : uint.Z st.msg.Term' ≤ uint.Z rs.tc)
     (Htn : st.msg.Type' = MsgTimeoutNow →
       max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc)
-    (Hpvb : st.msg.Type' = MsgPreVote → γ.reBoot ≠ []) :
+    (Hpvb : st.msg.Type' = MsgPreVote → γ.reBoot ≠ [])
+    -- (D19i part 1) the floor not raised (a `MsgTimeoutNow` campaigns)
+    (Hflw : rs.flw = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         msgIn ml DFrac.discard st ∗
@@ -401,7 +403,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     with ⟨%Hb1, Hghost⟩
   have HnP : m.Type' ≠ MsgProp := by not_net
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-  wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
+  wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
       Hwf
     (GMode.Pre.of_facts Hpf (by not_net) (by not_net))
     $$ [$Hphys $Hghost $Hlc Hmin Hcred]
@@ -430,7 +432,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have Hc := Href.commit_mono
   have e1 := Href.keep (by not_net) (by not_net); subst e1
   have e2 := Hcc (by not_net); subst c'
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by not_net) (by not_net)
   obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm (by not_net)
   have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
       (if m.Type' = MsgTimeoutNow then 1 else 0) := by
@@ -460,6 +462,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       Hstok' rfl (by rw [Hsg]; exact Hstor)
       (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+      (RNFl.keep Hrnfl Hfl' Hap' Ha)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
   ipureintro
   rw [Htrm]
@@ -669,7 +672,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne') (by msg_ne'); subst e1
   have e2 := Hcc (by msg_ne'); subst c'
-  obtain ⟨Hfr', Hap⟩ := Hloc (.inl Hty)
+  obtain ⟨Hfr', Hap, -⟩ := Hloc (.inl Hty)
   have Hap' := Hap (fun Hc => by rw [Hty] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr'.2.2.2.2.1
     Hfr'.2.2.2.2.2.1 $$ Hstrecs
@@ -683,9 +686,10 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (stepsOk_mono s s' _ Hfr'.1 ⟨Hfr'.2.2.2.2.1, Hfr'.2.2.2.2.2.1⟩ Hc Hap'
       (tc_le_of_gh Hfr'.2.2.2.2.2.2.2.2.1) Hstok)
     (by rw [Hfr'.1]; exact Htrm) (by rw [Hfr'.2.2.2.2.2.2.1]; exact Hstor)
-    (Hpvoff.keep rfl rfl Hfr'.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.1 Hfr'.2.2.2.2.2.2.2.2.2)
+    (Hpvoff.keep rfl rfl Hfr'.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.1 Hfr'.2.2.2.2.2.2.2.2.2.1)
     (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr'.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
     (Int.le_trans Hrs_clb Hc)
+    (RNFl.keep Hrnfl Hfr'.2.2.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hap')
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
 
 end step
@@ -859,7 +863,8 @@ theorem wp_applyConf_dyn
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
-    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
+    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+    (Hrnfl : RNFl rs s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         rawNodeOwn rn rnv ∗ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
         ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
@@ -998,6 +1003,7 @@ theorem wp_applyConf_dyn
       ⟨fun h => by rw [Hpv']; exact Hpvoff.1 h, by rw [Hgh']; exact Hpvoff.2.1,
         by rw [Hgh', Ht']; exact Hpvoff.2.2.1, fun h => by rw [Hgh', Ht']; exact Hpvoff.2.2.2 (Hrl' h)⟩
       (by rw [Hgh']; exact Hrs_out) (by rw [Hgh']; exact Hrs_unst) (Int.le_trans Hrs_clb Hc')
+      (by unfold RNFl; rw [Hls']; exact Hrnfl)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr'
   ipureintro; exact Hcs0
 
@@ -1014,6 +1020,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+    (Hrnfl : RNFl rs s)
     (Hok : ApplyCCOk γ.reCfg id s s') :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
       sdrOk rnv.raft' rs.mode -∗
@@ -1043,6 +1050,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (stepsOk_mono_le s s' _ (by rw [Htm]; exact Int.le_refl _) ⟨Hprev, Hstored⟩ Hc Happ (tc_le_of_gh Hgh) Hstok)
     (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keep rfl rfl Hpv Hgh Htm Hro)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+    (by unfold RNFl; rw [Hls]; exact Hrnfl)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr'
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
@@ -1078,7 +1086,7 @@ theorem wp_rn_raft_applyConfChange
       s cc ccm DFrac.discard lrn' Hd' Hsz' Hn'
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc with Hrn
   try wp_auto
   imodintro
@@ -1111,7 +1119,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   · iexact Hphys
   iintro Hphys
   iapply ownRawNode_intro_static γ rn id rs s _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- `r.applyConfChange(cc)` on the node's raft struct in the dynamic mode (2026-10-15, stage N;
@@ -1140,7 +1148,7 @@ theorem wp_rn_raft_applyConfChange_dyn
   subst Heq
   iapply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k e cs' cc ccm
       DFrac.discard Hpre s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor
-      Hpvoff Hrs_out Hrs_unst Hrs_clb
+      Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ [$Hpkg $Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv
       $Hstrecs $Hccs $Hlc]
   inext
@@ -1174,7 +1182,7 @@ theorem ownRawNode_async (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
   · ipureintro; exact Hasync
   iintro Hrn
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- A `Ready` `run` computed and abandoned but keeps armed (`readyc` set): what
@@ -1253,6 +1261,23 @@ theorem headRest_termLB (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoC
   unfold headRest
   icases H with ⟨#Hlb, H⟩
   iframe Hlb H
+
+/-- (D19i part 1) The floor is not raised past `applied` at the loop's head (`runCfg_flw`). -/
+theorem headRest_flw (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : Ready) :
+    ⊢ headRest (GF := GF) γ nv rs ac rc rd -∗ ⌜rs.flw = false⌝ ∗ headRest γ nv rs ac rc rd := by
+  iintro H
+  unfold headRest
+  icases H with ⟨#Hlb, %Hst, Hcfg, H⟩
+  iunfold runCfg at Hcfg
+  icases Hcfg with ⟨%Hm0, Hcfg⟩
+  isplitr
+  · ipureintro; exact Hm0.2.2
+  iframe Hlb H
+  isplitr
+  · ipureintro; exact Hst
+  iunfold runCfg
+  iframe Hcfg
+  ipureintro; exact Hm0
 
 /-- A step changes only the node's term and (2026-10-17) the term ceiling, which the budget
 covers. -/
@@ -1667,7 +1692,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   iunfold runCfg
   iframe Hdlm
   isplitr
-  · ipureintro; exact ⟨Hm.1, by simp only; omega⟩
+  · ipureintro; exact ⟨Hm.1, by simp only; omega, Hm.2.2⟩
   iexists k + 1
   iframe Hcap_r Hcam
   ipureintro
@@ -1677,7 +1702,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
 (the configuration and its index unchanged); a lower bound of it for the driver. -/
 theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM)
     (Hd : rs'.delivered = rs.delivered ++ ce) (Hm : rs'.mode = rs.mode) (Hc : rs'.cfg = rs.cfg)
-    (Hca : rs'.capplied = rs.capplied) :
+    (Hca : rs'.capplied = rs.capplied) (Hfw : rs'.flw = rs.flw) :
     ⊢ runCfg (GF := GF) γ rs ==∗ runCfg γ rs' ∗ monoListLbOwn γ.dlm (rs.delivered ++ ce) := by
   iintro Hcfg
   iunfold runCfg at Hcfg
@@ -1689,11 +1714,26 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM)
   rw [Hd, Hm, Hc, Hca]
   iframe Hdlm
   isplitr
-  · ipureintro; refine ⟨Hm0.1, ?_⟩; simp only [List.length_append]; omega
+  · ipureintro
+    refine ⟨Hm0.1, ?_, by rw [Hfw]; exact Hm0.2.2⟩
+    have := Hm0.2.1
+    simp only [List.length_append]; omega
   iexists ca_r
   iframe Hcap_r Hcam
   ipureintro
-  exact ⟨Hinv.1, NoConfIn_prefix (List.prefix_append _ _) Hm0.2 Hinv.2⟩
+  exact ⟨Hinv.1, NoConfIn_prefix (List.prefix_append _ _) Hm0.2.1 Hinv.2⟩
+
+/-- (D19i part 1) The floor is not raised past `applied` (`RNState.flw`). -/
+theorem runCfg_flw (γ : NodeNames) (rs : RNState) :
+    ⊢ runCfg (GF := GF) γ rs -∗ ⌜rs.flw = false⌝ ∗ runCfg γ rs := by
+  iintro Hcfg
+  iunfold runCfg at Hcfg
+  icases Hcfg with ⟨%Hm0, Hdlm, Hrest⟩
+  isplitr
+  · ipureintro; exact Hm0.2.2
+  iunfold runCfg
+  iframe Hdlm Hrest
+  ipureintro; exact Hm0
 
 /-- The `advancec` arm, before `Advance`: the driver's A1 (no conf entry of the committed log
 handed out past its configuration index, a lower bound of `run`'s) is A1 at the `RawNode`. -/
@@ -1723,6 +1763,7 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
 committed log handed out, over no conf entry (A1), not at all in the static mode. -/
 theorem runCfg_advance (γ : NodeNames) (rs rs' : RNState)
     (Hd : rs'.delivered = rs.delivered) (Hm : rs'.mode = rs.mode) (Hc : rs'.cfg = rs.cfg)
+    (Hfw : rs'.flw = false)
     (Hca : rs.capplied ≤ rs'.capplied ∧ rs'.capplied ≤ max rs.capplied rs.delivered.length ∧
       (rs.mode = .static → rs'.capplied = rs.capplied))
     (HA1 : rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) :
@@ -1739,12 +1780,12 @@ theorem runCfg_advance (γ : NodeNames) (rs rs' : RNState)
     | static => exact .inl (Hca.2.2 hm)
     | dyn _ _ _ _ =>
       right; refine ⟨rfl, ?_⟩
-      have := Hca.2.1; have := Hm0.2; omega
+      have := Hca.2.1; have := Hm0.2.1; omega
   isplitr
   · ipureintro
-    refine ⟨Hm0.1, ?_⟩
+    refine ⟨Hm0.1, ?_, Hfw⟩
     rcases Hcases with h | ⟨-, h⟩
-    · rw [h]; exact Hm0.2
+    · rw [h]; exact Hm0.2.1
     · exact h
   iexists ca_r
   iframe Hcap_r Hcam

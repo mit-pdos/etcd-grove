@@ -199,9 +199,10 @@ theorem keep_frame {m : MessageM} {s s' : NState} (ht : s'.term = s.term)
     (hst : s'.logst.stored = s.logst.stored := by rfl)
     (hsg : s'.logst.storage = s.logst.storage := by rfl)
     (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl)
-    (hpc : PreCandStep m s s' := by pc_tac) :
+    (hpc : PreCandStep m s s' := by pc_tac)
+    (hfl : s'.logst.fl = s.logst.fl := by rfl) (hap : s'.logst.applied = s.logst.applied := by rfl) :
     NetFrame s s' ∧ TermStep m s s' :=
-  ⟨⟨ha, hs, hu, hp, hst, hsg, hpv, hg⟩, TermStep.of_term ht (fun _ => by rw [hi]; exact Int.le_refl _) hpc⟩
+  ⟨⟨ha, hs, hu, hp, hst, hsg, hpv, hg, hfl, by rw [hap]; exact Int.le_refl _⟩, TermStep.of_term ht (fun _ => by rw [hi]; exact Int.le_refl _) hpc⟩
 
 /-- The same, for a branch that keeps the whole log. -/
 theorem keep_frame_logst {m : MessageM} {s s' : NState} (ht : s'.term = s.term)
@@ -209,7 +210,7 @@ theorem keep_frame_logst {m : MessageM} {s s' : NState} (ht : s'.term = s.term)
     (hg : s'.gh = s.gh := by rfl) (hpc : PreCandStep m s s' := by pc_tac) :
     NetFrame s s' ∧ TermStep m s s' := by
   exact keep_frame ht (by rw [hl]) (by rw [hl]) (by rw [hl]) (by rw [hl]) (by rw [hl])
-    (by rw [hl]) (by rw [hl]) hpv hg hpc
+    (by rw [hl]) (by rw [hl]) hpv hg hpc (by rw [hl]) (by rw [hl])
 
 /-- The same, for a branch that steps down to the message's term (`becomeFollower`) and
 keeps the rest. -/
@@ -222,9 +223,10 @@ theorem stepdown_frame {m : MessageM} {s s' : NState} (hup : m.Type' ≠ MsgHup)
     (hst : s'.logst.stored = s.logst.stored := by rfl)
     (hsg : s'.logst.storage = s.logst.storage := by rfl)
     (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl)
-    (hpc : PreCandStep m s s' := by pc_tac) :
+    (hpc : PreCandStep m s s' := by pc_tac)
+    (hfl : s'.logst.fl = s.logst.fl := by rfl) (hap : s'.logst.applied = s.logst.applied := by rfl) :
     NetFrame s s' ∧ TermStep m s s' :=
-  ⟨⟨ha, hs, hu, hp, hst, hsg, hpv, hg⟩, TermStep.of_le hup Hle (by rw [ht]; exact Int.le_refl _)
+  ⟨⟨ha, hs, hu, hp, hst, hsg, hpv, hg, hfl, by rw [hap]; exact Int.le_refl _⟩, TermStep.of_le hup Hle (by rw [ht]; exact Int.le_refl _)
     (fun _ => by rw [hi]; exact Int.le_refl _) hpc⟩
 
 /-- The same, with the stepped-down state named (`s1`) and the branch's end state built
@@ -239,7 +241,7 @@ theorem stepdown_frame' {m : MessageM} {s s1 s' : NState} {l : w64}
   subst Hs1
   exact stepdown_frame hup (by rw [ht]; exact Int.le_of_lt Hgt) (ht.trans rfl)
     (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl)
-    (by rw [hl]; rfl) (by rw [hl]; rfl) hpv hg hpc
+    (by rw [hl]; rfl) (by rw [hl]; rfl) hpv hg hpc (by rw [hl]; rfl) (by rw [hl]; rfl)
 
 /-- A leader's read-only state is as the read-index code needs it (`RdOk`, 2026-10-13),
 and its term is nonzero. -/

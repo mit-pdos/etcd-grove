@@ -38,14 +38,29 @@ theorem raftLog.mustCheckOutOfBounds.wp_proof
   wp_auto
   wp_if_destruct
   · exfalso; word
-  wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
+  wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi, #Hcut⟩
   wp_if_destruct
-  · exfalso; word
+  · -- (D19i part 1) below the storage's boundary: `ErrCompacted`
+    ihave #Hinit := isInitialized_access $$ Hpkg
+    iNamed Hinit
+    wp_auto
+    iapply HΦ
+    iframe Hlog
+    iright
+    icases Hcut with (%Hfe | #Hcut)
+    · exfalso; word
+    isplitr
+    · ipureintro; word
+    iframe ErrCompacted
+    iapply storPast_mono _ _ _ (by word : uint.Z lo ≤ uint.Z fi - 1)
+    iapply storPast_of_cut
+    iexact Hcut
   wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   wp_if_destruct
   · exfalso; word
   iapply HΦ
   iframe Hlog
+  ileft; ipureintro; rfl
 
 end proof
 

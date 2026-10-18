@@ -82,7 +82,7 @@ Both laws keep `prev` and `ss`. -/
 theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     ⊢ isStorageWith (GF := GF)
         (fun σ => iprop(ownMemoryStorage ms γs σ ∗ ⌜σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0⌝))
-        (memAppendTok ms γs) (memAppendedTok ms γs)
+        (memAppendTok ms γs) (memAppendedTok ms γs) (memStorCut γs) (memFloorTok ms γs)
         (interface.mkOk (go.GoType.PointerType MemoryStorage.ty) #ms) := by
   unfold isStorageWith
   simp only []
@@ -104,30 +104,35 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     imodintro
     iintro %Φ ⟨Hown, %Hss⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
-    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, Hown⟩
+    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, #Hcut, Hown⟩
     iapply HΦ
-    iframe
+    iframe Hown Hcut
     ipureintro; exact ⟨Hfi, Hss⟩
   isplitr
-  · iintro %σ %i0
+  · iintro %σ %i0 %ec
     imodintro
-    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hr, %Hpf⟩ HΦ
+    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hr, %Hpf, #Hec⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
-    wp_apply MemoryStorage.wp_Term $$ [$Hown] as %t ⟨%Ht, Hown⟩
+    wp_apply MemoryStorage.wp_Term ms γs σ i0 ec $$ [$Hown $Hec] as %t %err ⟨Ht, Hown⟩
     · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ
-    iframe
-    ipureintro; exact ⟨Ht, Hss⟩
+    iframe Ht Hown
+    ipureintro; exact Hss
   isplitr
-  · iintro %σ %lo %hi %maxSize
+  · iintro %σ %lo %hi %maxSize %ec
     imodintro
-    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hr, %Hpf⟩ HΦ
+    iintro %Φ ⟨⟨Hown, %Hss⟩, %Hr, %Hpf, #Hec⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
-    wp_apply MemoryStorage.wp_Entries $$ [$Hown] as %s %es ⟨Hs, %Hp, Hown⟩
+    wp_apply MemoryStorage.wp_Entries ms γs σ lo hi maxSize ec $$ [$Hown $Hec] as %sl %es %err Hres
     · ipureintro; exact ⟨Hr, Hpf⟩
-    iapply HΦ
-    iframe
-    ipureintro; exact ⟨Hp, Hss⟩
+    iapply HΦ $$ %sl %es %err
+    icases Hres with (⟨%He, #Hcut, Hown⟩ | ⟨%He, Hs, %Hp, Hown⟩)
+    · ileft
+      iframe Hcut Hown
+      ipureintro; exact ⟨He, Hss⟩
+    · iright
+      iframe Hown Hs
+      ipureintro; exact ⟨He, Hp, Hss⟩
   isplitr
   · imodintro
     iintro %σ ⟨Hown, %Hss⟩
@@ -135,28 +140,14 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     iframe
     ipureintro; exact ⟨Hb, Hss⟩
   isplitr
-  · iintro %σ %esu
+  · iintro %σ %esu %n
     imodintro
-    iintro %Φ ⟨⟨Hown, %Hss⟩, #Hesu⟩ HΦ
+    iintro %Φ ⟨⟨Hown, %Hss⟩, #Hesu, #Hn⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
-    wp_apply MemoryStorage.wp_Snapshot.1 $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+    wp_apply MemoryStorage.wp_Snapshot.1 ms γs σ esu n $$ [$Hown $Hesu $Hn] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
-    iframe Hown
-    isplitr
-    · ipureintro; exact Hss
-    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv⟩)
-    · ileft; ipureintro; exact Herr
-    iright
-    isplitr
-    · ipureintro; exact Herr
-    iexists sv
-    iframe Hv
-    ipureintro
-    refine ⟨Hsv.1, ?_, Hsv.2.1, Hsv.2.2⟩
-    intro Hp
-    have H := congrArg entryID.index' Hsv.1
-    simp only [snapId] at H
-    rw [H]; exact Hss Hp
+    iframe Hown Hr
+    ipureintro; exact Hss
   isplitr
   · imodintro
     iintro %σ %p ⟨Hown, %Hss⟩ %Hpo
@@ -164,12 +155,19 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     imodintro
     iframe
     ipureintro; exact Hss
+  isplitr
+  · imodintro
+    iintro %σ1 %σ %p ⟨Hown, %Hss⟩ Ht
+    imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
+    imodintro
+    iframe
+    ipureintro; exact ⟨Heq, Hss⟩
   imodintro
-  iintro %σ1 %σ %p ⟨Hown, %Hss⟩ Ht
-  imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
+  iintro %σ %x ⟨Hown, %Hss⟩ %Hx
+  imod memStorage_floor ms γs σ x Hx $$ Hown with ⟨Hown, Hfw⟩
   imodintro
-  iframe
-  ipureintro; exact ⟨Heq, Hss⟩
+  iframe Hown Hfw
+  ipureintro; exact Hss
 
 end proof
 
@@ -184,15 +182,16 @@ class MemStorReg (GF : BundledGFunctors) where
   memStorRegName : GName
 
 /-- A storage's names, as the registry records them. -/
-abbrev MemStorNamesRec := GName × GName × GName × GName × GName × GName × GName × GName
+abbrev MemStorNamesRec :=
+  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak)
+  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd)
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2 := by
   cases γs1; cases γs2
   simp only [MemStorNames.tuple, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 section model
@@ -261,11 +260,71 @@ def memStorAppendedTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp
   iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
     memAppendedTok ms γs σ p)
 
+/-- (D19i part 1) The storage's boundary has reached `n`: the `MemoryStorage`'s, of its names. -/
+def memStorCutI (st : Storage) (n : Int) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    memStorCut γs n)
+
+/-- (D19i part 1) The floor's witness: the `MemoryStorage`'s, of its names. -/
+def memStorFloorI (st : Storage) (x : w64) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    memFloorTok ms γs x)
+
 /-- The storage model of an application whose `Storage`s are bare `MemoryStorage`s. -/
 instance memStorageModel : StorageModel GF where
   ownStorage := memOwnStorage
   appendTok := memStorAppendTok
   appendedTok := memStorAppendedTok
+  storCut := memStorCutI
+  storCut_persistent := fun st n => by unfold memStorCutI; infer_instance
+  storFloor := memStorFloorI
+  storFloor_persistent := fun st x => by unfold memStorFloorI; infer_instance
+
+theorem memStorCut_at (ms : Loc) (γs : MemStorNames) (n : Int) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ storCut (memStorIface ms) n -∗ memStorCut γs n := by
+  iintro #Hreg Hc
+  ihave Hc : memStorCutI (memStorIface ms) n $$ [Hc]
+  · iexact Hc
+  unfold memStorCutI
+  icases Hc with ⟨%ms', %γs', %Hst, #Hreg', Hc⟩
+  have := memStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  iexact Hc
+
+theorem memStorCut_intro (ms : Loc) (γs : MemStorNames) (n : Int) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ memStorCut γs n -∗ storCut (memStorIface ms) n := by
+  iintro #Hreg Hc
+  ihave H : memStorCutI (memStorIface ms) n $$ [Hc]
+  · unfold memStorCutI
+    iexists ms, γs
+    iframe Hreg Hc
+    ipureintro; rfl
+  iexact H
+
+theorem memStorFloor_at (ms : Loc) (γs : MemStorNames) (x : w64) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ storFloor (memStorIface ms) x -∗ memFloorTok ms γs x := by
+  iintro #Hreg Hc
+  ihave Hc : memStorFloorI (memStorIface ms) x $$ [Hc]
+  · iexact Hc
+  unfold memStorFloorI
+  icases Hc with ⟨%ms', %γs', %Hst, #Hreg', Hc⟩
+  have := memStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  iexact Hc
+
+theorem memStorFloor_intro (ms : Loc) (γs : MemStorNames) (x : w64) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ memFloorTok ms γs x -∗ storFloor (memStorIface ms) x := by
+  iintro #Hreg Hc
+  ihave H : memStorFloorI (memStorIface ms) x $$ [Hc]
+  · unfold memStorFloorI
+    iexists ms, γs
+    iframe Hreg Hc
+    ipureintro; rfl
+  iexact H
 
 /-! ### The conversions, under the registry's record -/
 
@@ -435,35 +494,53 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
     iintro %Φ Hown HΦ
     ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ $$ Hreg Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, Hown⟩
+    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, #Hcut, Hown⟩
     iapply HΦ
     ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
     iframe Hown
-    ipureintro; exact Hfi
+    isplitr
+    · ipureintro; exact Hfi
+    icases Hcut with (%Hc | #Hc)
+    · ileft; ipureintro; exact Hc
+    · iright; iapply memStorCut_intro ms γs _ $$ Hreg Hc
   isplitr
-  · iintro %σ %i0
+  · iintro %σ %i0 %ec
     imodintro
-    iintro %Φ ⟨Hown, %Hr, %Hpf⟩ HΦ
+    iintro %Φ ⟨Hown, %Hr, %Hpf, #Hec⟩ HΦ
     ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ $$ Hreg Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_apply MemoryStorage.wp_Term $$ [$Hown] as %t ⟨%Ht, Hown⟩
+    wp_apply MemoryStorage.wp_Term ms γs σ i0 ec $$ [$Hown $Hec] as %t %err ⟨Ht, Hown⟩
     · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ
     ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
     iframe Hown
-    ipureintro; exact Ht
+    icases Ht with (%Ht | ⟨%Ht, #Hc⟩)
+    · ileft; ipureintro; exact Ht
+    · iright
+      isplitr
+      · ipureintro; exact Ht
+      iapply memStorCut_intro ms γs _ $$ Hreg Hc
   isplitr
-  · iintro %σ %lo %hi %maxSize
+  · iintro %σ %lo %hi %maxSize %ec
     imodintro
-    iintro %Φ ⟨Hown, %Hr, %Hpf⟩ HΦ
+    iintro %Φ ⟨Hown, %Hr, %Hpf, #Hec⟩ HΦ
     ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ $$ Hreg Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_apply MemoryStorage.wp_Entries $$ [$Hown] as %sl %es ⟨Hs, %Hp, Hown⟩
+    wp_apply MemoryStorage.wp_Entries ms γs σ lo hi maxSize ec $$ [$Hown $Hec]
+      as %sl %es %err Hres
     · ipureintro; exact ⟨Hr, Hpf⟩
-    iapply HΦ
-    ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
-    iframe Hown Hs
-    ipureintro; exact Hp
+    iapply HΦ $$ %sl %es %err
+    icases Hres with (⟨%He, #Hc, Hown⟩ | ⟨%He, Hs, %Hp, Hown⟩)
+    · ileft
+      ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
+      iframe Hown
+      isplitr
+      · ipureintro; exact He
+      iapply memStorCut_intro ms γs _ $$ Hreg Hc
+    · iright
+      ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
+      iframe Hown Hs
+      ipureintro; exact ⟨He, Hp⟩
   isplitr
   · imodintro
     iintro %σ Hown
@@ -473,28 +550,19 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
     iframe Hown
     ipureintro; exact Hb
   isplitr
-  · iintro %σ %esu
+  · iintro %σ %esu %n
     imodintro
-    iintro %Φ ⟨Hown, #Hesu⟩ HΦ
+    iintro %Φ ⟨Hown, #Hesu, #Hn⟩ HΦ
     ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ $$ Hreg Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_apply MemoryStorage.wp_Snapshot.1 $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+    ihave #Hn' : (⌜n ≤ 0⌝ ∨ memStorCut (GF := GF) γs n) $$ []
+    · icases Hn with (%Hc | #Hc)
+      · ileft; ipureintro; exact Hc
+      · iright; iapply memStorCut_at ms γs _ $$ Hreg Hc
+    wp_apply MemoryStorage.wp_Snapshot.1 ms γs σ esu n $$ [$Hown $Hesu $Hn'] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
     ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
-    iframe Hown
-    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv⟩)
-    · ileft; ipureintro; exact Herr
-    iright
-    isplitr
-    · ipureintro; exact Herr
-    iexists sv
-    iframe Hv
-    ipureintro
-    refine ⟨Hsv.1, ?_, Hsv.2.1, Hsv.2.2⟩
-    intro Hp
-    have H := congrArg entryID.index' Hsv.1
-    simp only [snapId] at H
-    rw [H]; exact Hss Hp
+    iframe Hown Hr
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo
@@ -504,17 +572,26 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
     ihave Htok := memStorAppendTok_intro ms γs σ p $$ Hreg Htok
     imodintro
     iframe Hown Htok
+  isplitr
+  · imodintro
+    iintro %σ1 %σ %p Hown Ht
+    ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ1 $$ Hreg Hown
+    ihave Ht := memStorAppendedTok_at ms γs σ p $$ Hreg Ht
+    imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
+    ihave Hown := memOwnStorage_intro ms γs (storAbsorb σ1)
+      (show (storAbsorb σ1).prev.index' ≠ W64 0 → (storAbsorb σ1).ss.index' ≠ W64 0 from Hss)
+      $$ Hreg Hown
+    imodintro
+    iframe Hown
+    ipureintro; exact Heq
   imodintro
-  iintro %σ1 %σ %p Hown Ht
-  ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ1 $$ Hreg Hown
-  ihave Ht := memStorAppendedTok_at ms γs σ p $$ Hreg Ht
-  imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
-  ihave Hown := memOwnStorage_intro ms γs (storAbsorb σ1)
-    (show (storAbsorb σ1).prev.index' ≠ W64 0 → (storAbsorb σ1).ss.index' ≠ W64 0 from Hss)
-    $$ Hreg Hown
+  iintro %σ %x Hown %Hx
+  ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ $$ Hreg Hown
+  imod memStorage_floor ms γs σ x Hx $$ Hown with ⟨Hown, Hfw⟩
+  ihave Hown := memOwnStorage_intro ms γs { σ with fl := x } Hss $$ Hreg Hown
+  ihave Hfw := memStorFloor_intro ms γs x $$ Hreg Hfw
   imodintro
-  iframe Hown
-  ipureintro; exact Heq
+  iframe Hown Hfw
 
 /-- **The application's `Append`** of the entries a `Ready` handed out, in the contract's terms:
 the right in (`appendRight`, `RawNode.Ready`'s), the receipt out (`appendReceipt`, what

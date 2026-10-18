@@ -129,6 +129,12 @@ theorem raftLog.stableTo.wp_proof
       exact Hps.1
     · -- nothing pending: an acknowledgement that hits comes after the append
       exact ⟨Hpend.1, fun _ e0 He0 => by simp [Hup] at He0⟩
+    · -- (D19i part 1) the floor: `offsetInProgress` only rises
+      refine ⟨Hfl.1, Hfl.2.1, fun _ => ?_, Hfl.2.2.2⟩
+      have := Hfl.2.2.1 Hsn
+      have := w64Max_spec ls.inprogress (id.index' + W64 1)
+      simp only
+      omega
     · simp only [Hk]
   · -- a miss: nothing changes
     rw [ite_eq_right Hh]

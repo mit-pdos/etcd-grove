@@ -89,7 +89,7 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     (wp_raftLog_scan : raftLog.scan.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG)) :
     raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hsn
+  intro c r id s Hsn Hfla
   wp_start as Hphys
   ihave #Hinit := isInitialized_access $$ Hpkg
   iNamed Hinit
@@ -139,11 +139,15 @@ theorem raft.hasUnappliedConfChanges.wp_proof
       uint.Z (s.logst.committed + W64 1) ≤ uint.Z s.logst.prev.index'
         + (s.logst.sents.length : Int) + (s.logst.uents.length : Int) + 1 := by
     word
+  -- (D19i part 1) from `applied + 1`, above the floor
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  have Hlofl : uint.Z s.logst.fl < uint.Z (s.logst.applied + W64 1) := by
+    have := Hflb.2.1; word
   wp_func_lits
   wp_apply wp_raftLog_scan _ s.logst _ _ _ _
     (fun acc => iprop(found_ptr ↦ false ∗ ⌜∀ e ∈ acc, ¬ IsConfEnt e⌝))
     (fun err => iprop(⌜err = eb⌝ ∗ found_ptr ↦ true ∗
-      ⌜∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝)) Hrange
+      ⌜∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝)) Hrange Hlofl
     $$ [$Hlog found] as %err ⟨Hlog, Hres⟩
   · isplitl [found]
     · simp only [named]

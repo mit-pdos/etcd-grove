@@ -173,6 +173,12 @@ structure RNState [FfiSyntax] where
   the static mode. -/
   cfg : CCState := ⟨CfgM.simple ∅ ∅, ∅⟩
   capplied : Nat := 0
+  /-- (D19i part 1) The floor is raised past `applied` (`ownRawNode_raise_floor`): `node.go`
+  raises it to `applying` when the application's `Advance` is handed over, and `Advance`, which
+  follows at once, moves `applied` up to it and clears the flag. While it is set the node is not
+  to campaign (`Campaign`, `Tick`, `Step` take it clear: `hasUnappliedConfChanges` reads from
+  `applied + 1`). -/
+  flw : Bool := false
 
 section defs
 variable [FfiSyntax]
@@ -526,7 +532,8 @@ theorem netStepTypes_stepMsg {m : MessageM} (h : m.Type' ∈ netStepTypes) : Ste
 theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     (h : NetMsgOk id st)
     (ht : st.msg.Type' = MsgTimeoutNow →
-      uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64) :
+      uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64 ∧
+      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) :
     RestMsgOk s st.msg st.ents st.ctx := by
   obtain ⟨-, -, Hun, -, -, Htl, -⟩ := h
   refine ⟨fun h' => Hun ?_, ht, fun h' => ⟨(Htl h').1, (Htl h').2, fun hz => ?_⟩⟩
@@ -623,7 +630,7 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
       Huents_cap Hl_logger Hu_logger
 
 /-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
@@ -651,6 +658,25 @@ theorem ownRaftPhysC_logwf (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : N
   ihave H := Hback $$ Hlog
   iframe H
   ipureintro; exact Hw.2
+
+/-- (D19i part 1) The floor and `applied` (`RNState.flw`): the floor is at most `applied` unless
+raised; and `applied` lags `applying` only while an apply acknowledgement up to `applying` is
+queued for `Advance` (so `Advance` leaves `applied` at least `applying`, at least the floor). -/
+def RNFl (rs : RNState) (s : NState) : Prop :=
+  (rs.flw = false → uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
+  (uint.Z s.logst.applied < uint.Z s.logst.applying →
+    ∃ ce e, Pending.applyAck ce ∈ rs.steps ∧ ce.getLast? = some e ∧
+      uint.Z s.logst.applying ≤ uint.Z e.Index')
+
+/-- `RNFl` across a step that keeps the floor, `applying`, the queue and the flag, and does not
+move `applied` back. -/
+theorem RNFl.keep {rs rs' : RNState} {s s' : NState} (h : RNFl rs s)
+    (hfl : s'.logst.fl = s.logst.fl) (hap : uint.Z s.logst.applied ≤ uint.Z s'.logst.applied)
+    (hag : s'.logst.applying = s.logst.applying)
+    (hw : rs'.flw = rs.flw := by rfl) (hst : rs'.steps = rs.steps := by rfl) : RNFl rs' s' := by
+  refine ⟨fun hf => ?_, fun hlt => ?_⟩
+  · have := h.1 (hw ▸ hf); rw [hfl]; omega
+  · rw [hag] at hlt ⊢; rw [hst]; exact h.2 (by omega)
 
 /-- (2026-10-17) The pre-vote scope and the term ceiling, as `ownRawNode` keeps them: pre-vote off
 in the dynamic mode (a pre-candidate there needs `StepR.campaign`'s guard kept: not yet proved);
@@ -694,9 +720,12 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
     (Htn : m.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z m.Term') + 1 ≤ uint.Z rs.tc)
     (Hb1 : m.Type' = MsgPreVote → 1 ≤ uint.Z s.term)
+    -- (D19i part 1) the floor at most `applied` (a `MsgTimeoutNow` campaigns)
+    (Hfla : uint.Z s.logst.fl ≤ uint.Z s.logst.applied)
     (k : StepMsg m →
       (m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
-        (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)) →
+        (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) ∧
+        uint.Z s.logst.fl ≤ uint.Z s.logst.applied) →
       (m.Type' = MsgVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0) →
       (m.Type' = MsgVoteResp → m.To' = id ∧ m.Term' ≠ W64 0) →
       (m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
@@ -753,7 +782,7 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
       have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
       have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       simp only at h ⊢
-      exact ⟨by omega, by omega⟩))
+      exact ⟨by omega, by omega, Hfla⟩))
 
 /-- `RNPv` after a step of `raft.Step` (`PreCandStep`): the setting and the ceiling kept, the term
 within the ceiling, and a pre-campaign (`MsgHup`) only with the ceiling one past the term. -/
@@ -1195,7 +1224,9 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- the lower bounds for `node.go` (2026-10-10, `RNState.outlb`)
   "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
-  "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝)
+  "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝ ∗
+  -- (D19i part 1) the floor and `applied`
+  "%Hrnfl" ∷ ⌜RNFl rs s⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. (2026-10-16, stage R5: the hard state `hprev` after the soft state; the
@@ -1210,7 +1241,8 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
-    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
+    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+    (Hrnfl : RNFl rs s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
@@ -1227,7 +1259,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb⟩
+    Hrs_unst, Hrs_clb, Hrnfl⟩
 
 /-! ### The static mode, as before (2026-10-14, stage B7 part 2)
 
@@ -1259,7 +1291,8 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
-    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
+    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+    (Hrnfl : RNFl rs s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1279,7 +1312,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     iframe Hghost
     ipureintro; exact CfgStatic.simple γ _ Hst
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
-    Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
@@ -1300,7 +1333,7 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     | static => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Hm]
     | dyn dec c0 h0 _ => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- (2026-10-17) In a cluster started from a bootstrap log (`StartNode`: `γ.reBoot ≠ []`) every
@@ -1350,7 +1383,7 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   iapply ownRawNode_intro γ rn id { rs with tc := tc } { s with gh := { s.gh with tc := tc } } cf fp
     rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
-    ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle'⟩ Hrs_out Hrs_unst Hrs_clb
+    ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle'⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- (2026-10-17) The term is within the ceiling. -/
@@ -1362,7 +1395,7 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   isplitr
   · ipureintro; rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
@@ -1397,8 +1430,42 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hal Hasync
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
-    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+
+/-- (D19i part 1) **Raising the floor** to `applying` -- the committed log handed out,
+`delivered` -- with nothing unpersisted: the client (`node.go`, when the application's `Advance`
+is handed over) gets the storage's floor witness, the application's right to compact and snapshot
+up to it, and the node is marked raised (`RNState.flw`) until `Advance` moves `applied` there. -/
+theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (Hunp0 : rs.unpersisted = []) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs ==∗
+      ownRawNode γ rn id { rs with flw := true } ∗
+      ∃ x : w64, ⌜uint.Z x = (rs.delivered.length : Int)⌝ ∗ storFloor rs.storage x := by
+  iintro H
+  iNamed H
+  icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  imod ownRaftLog_raise_floor s.log s.logst s.logst.applying ⟨Hflb.1, Int.le_refl _⟩
+    (Hunp ▸ Hunp0) Hsnap $$ Hlog with ⟨Hlog, Hfw⟩
+  ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    %(fun _ => logLast_le_of_fields rfl rfl rfl)
+  ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
+    (s' := { s with logst := { s.logst with fl := s.logst.applying } }) rfl rfl rfl rfl $$ Hghost
+  imodintro
+  isplitr [Hfw]
+  · iapply ownRawNode_intro γ rn id { rs with flw := true }
+      { s with logst := { s.logst with fl := s.logst.applying } } cf fp rnv sv hprev steps Hwf Hin Hal
+      Hasync Hdlen Hunp Hsnap
+      (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
+      Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+      ⟨fun h => by simp at h, Hrnfl.2⟩
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+  iexists s.logst.applying
+  isplitr
+  · ipureintro; have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega
+  rw [Hstor]
+  iexact Hfw
 
 end rawnode
 

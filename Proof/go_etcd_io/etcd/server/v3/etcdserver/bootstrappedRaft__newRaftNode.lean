@@ -72,6 +72,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
     rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk)
     $$ [Hc Hsto Hghost Hpeers Htok] as %nd ⟨Htok, Hpost⟩
+  · rfl
   · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk)) =
       memStorIface bv.storage' from rfl]
     rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).ty =

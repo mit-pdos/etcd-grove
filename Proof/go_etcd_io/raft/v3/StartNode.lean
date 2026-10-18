@@ -31,14 +31,14 @@ theorem StartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
   intro γ bud c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
-    P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9
+    P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
     #Hbud, #Hlb1⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · iapply ownRaftGhost_inv γ cv.ID' (bootPState bootLog) $$ Hghost
   wp_auto
   wp_apply wp_setupNode γ c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
-    P8 P9 P11 P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9
+    P8 P9 P11 P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0
     $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted]
     as %np ⟨HR, %nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers⟩
   ipersist Hn
@@ -102,7 +102,7 @@ theorem StartNode.wp_proof
       unfold runCfg
       iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _⟩
+      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl⟩
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩

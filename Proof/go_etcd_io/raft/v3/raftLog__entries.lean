@@ -35,19 +35,28 @@ theorem raftLog.entries.wp_proof
   wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   wp_if_destruct
   · -- `i` is past the end: `nil` and no error; the log is untouched.
-    iapply HΦ
+    iapply HΦ $$ %_ %_ %interface.nil
     iframe Hlog
+    ileft
+    isplitr
+    · ipureintro; rfl
     isplitl
     · unfold entsRO; iapply entsPts_nil
     · ipureintro
       exact ⟨fun e He => absurd He (List.not_mem_nil), List.nil_prefix⟩
   · wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li2 ⟨Hlog, %Hli2⟩
-    wp_apply wp_raftLog_slice l ls _ _ _ (by word) $$ [$Hlog] as %sl %es ⟨Hlog, Hsl, %Hes, -⟩
-    obtain ⟨-, -, Hin, Hpre⟩ := Hes
-    iapply HΦ
-    iframe Hlog Hsl
-    ipureintro
-    exact ⟨Hin, Hpre⟩
+    wp_apply wp_raftLog_slice l ls _ _ _ (by word) $$ [$Hlog] as %sl %es %err ⟨Hlog, Hr⟩
+    iapply HΦ $$ %sl %es %err
+    iframe Hlog
+    icases Hr with (⟨%Herr, Hsl, %Hes, -⟩ | ⟨%Hle, #He, #Hc⟩)
+    · obtain ⟨-, -, Hin, Hpre⟩ := Hes
+      ileft
+      iframe Hsl
+      ipureintro
+      exact ⟨Herr, Hin, Hpre⟩
+    iright
+    iframe He Hc
+    ipureintro; exact Hle
 
 end proof
 

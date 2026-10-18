@@ -34,7 +34,7 @@ theorem RestartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -50,7 +50,7 @@ theorem RestartNode.wp_proof
   wp_auto
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24
+    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28
     $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s, Hfresh, %Herr⟩
   · iintro %Φ %ss' Hs HK
     iapply Hinit $$ Hs
@@ -76,6 +76,13 @@ theorem RestartNode.wp_proof
       fun h => by rw [Hr] at h; cases h⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
+  -- (D19i part 1) the floor at most `applying`, which is `applied` (`0`)
+  icases ownRaftPhysC_log_same _ rnv.raft' cv.ID' s $$ Hphys with ⟨HL, Hback0⟩
+  icases ownRaftLog_fl _ _ $$ HL with ⟨%Hflk, HL⟩
+  ihave Hphys := Hback0 $$ HL
+  have HrnflR : ∀ rs0 : RNState, rs0.steps = [] → RNFl rs0 s := fun rs0 _ =>
+    ⟨fun _ => by rw [Hap]; rw [Hapg] at Hflk; exact Hflk.1,
+     fun h => absurd h (by rw [Hap, Hapg]; exact Int.lt_irrefl _)⟩
   ihave Hrn : ownRawNode γ rn cv.ID'
       { delivered := [], unpersisted := [], steps := [], term := W64 0,
         storage := interface.ok si, mode := md,
@@ -96,7 +103,7 @@ theorem RestartNode.wp_proof
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
-          (uint_Z_nonneg _)
+          (uint_Z_nonneg _) (HrnflR _ rfl)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -138,7 +145,7 @@ theorem RestartNode.wp_proof
           s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
-          (uint_Z_nonneg _)
+          (uint_Z_nonneg _) (HrnflR _ rfl)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -204,7 +211,7 @@ theorem RestartNode.wp_proof
       unfold runCfg
       iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _⟩
+      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl⟩
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩

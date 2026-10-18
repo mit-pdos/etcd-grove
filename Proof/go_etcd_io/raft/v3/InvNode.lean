@@ -589,7 +589,10 @@ configuration as of the last applied conf change, `(ca, rs.cfg)` (`cap`'s half, 
 authority at `ca`); `Advance` may have moved the configuration index past `ca`, over no conf
 entry. -/
 def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
-  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ rs.delivered.length⌝ ∗
+  iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ rs.delivered.length ∧
+      -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
+      -- in its `advancec` arm, right before `Advance`
+      rs.flw = false⌝ ∗
     monoListAuthOwn γ.dlm 1 rs.delivered ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
       monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn rs.delivered ca rs.capplied⌝)

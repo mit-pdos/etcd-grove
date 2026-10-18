@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.appliedTo.wp_proof
     (wp_raftLog_appliedTo : raftLog.appliedTo.spec (GF := GF) (hG := hG)) :
     raft.appliedTo.spec (GF := GF) (hG := hG) := by
-  intro c r id s index size Hidx Hal0
+  intro c r id s index size Hidx Hipo Hal0
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -38,6 +38,7 @@ theorem raft.appliedTo.wp_proof
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcb, Hlog⟩
+  icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   obtain ⟨Hcm, Hap⟩ := Hlv
   wp_auto
@@ -53,8 +54,9 @@ theorem raft.appliedTo.wp_proof
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
     first
-      | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) $$ [$Hlog] as Hlog
-      | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega) $$ [$Hlog] as Hlog
+      | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) Hipo $$ [$Hlog] as Hlog
+      | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega)
+          (fun h => absurd Hrw.2.1 (Int.not_le.2 h)) $$ [$Hlog] as Hlog
     ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     -- `r.trk.Config.AutoLeave`: off, or the node is no leader (`Hal0`) -- the rest is dead

@@ -107,12 +107,23 @@ theorem raftLog.nextCommittedEnts.wp_proof
     clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
       Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
     iclear HisStorage Husnap Hl_logger Hu_logger
+    -- (D19i part 1) from `applying + 1`, above the floor: no `ErrCompacted`
+    icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+    icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrwf, Hlog⟩
     wp_apply wp_raftLog_slice l ls (ls.applying + W64 1) (hi0 + W64 1) (ls.apmax - ls.apsize) ?_
-      $$ [Hlog] as %s %es ⟨Hlog, #Hs, %Hes, Hcap⟩
+      $$ [Hlog] as %s %es %err0 ⟨Hlog, Hsr⟩
     · obtain ⟨⟨Hcb1, Hcb2, Hcb3⟩, Hcb4⟩ := Hcb
       specialize Hcb4 Hsn
       refine ⟨?_, ?_, ?_⟩ <;> word
     · iexact Hlog
+    icases Hsr with (⟨%Herr0, #Hs, %Hes, Hcap⟩ | ⟨%Hle0, -, -⟩)
+    rotate_left
+    · exfalso
+      obtain ⟨⟨Hcb1, Hcb2, Hcb3⟩, Hcb4⟩ := Hcb
+      specialize Hcb4 Hsn
+      word
+    subst Herr0
+    wp_auto
     obtain ⟨-, Hlen, -, Hpre⟩ := Hes
     iapply HΦ
     iframe Hlog Hs Hcap

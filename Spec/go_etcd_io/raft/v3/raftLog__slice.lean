@@ -52,7 +52,13 @@ What the result *is* is stated only as far as `scan` and its callers need: non-e
 at most `hi - lo` entries, every one an entry of the log, a prefix of the log from `lo`.
 That is enough for `scan` (which, since 2026-10-13, hands its callback each page's position
 in the scanned range, for `hasUnappliedConfChanges`). If a later caller needs the indices -- `maybeSendAppend` will --
-strengthen this triple rather than adding a second one. -/
+strengthen this triple rather than adding a second one.
+
+(D19i part 1, 2026-10-18) The application may have compacted the storage up to the floor
+raft published (`LogState.fl`): a range starting at or below it may answer `ErrCompacted`
+(from `mustCheckOutOfBounds` or `Storage.Entries`), as Go does; above it the error is
+impossible, which is where every panicking caller reads (`nextCommittedEnts` from
+`applying + 1`, `hasUnappliedConfChanges` from `applied + 1`). -/
 abbrev raftLog.slice.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (lo hi maxSize : w64),
   uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
@@ -61,19 +67,23 @@ abbrev raftLog.slice.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"slice"))
       (Val #lo)) (Val #hi)) (Val #maxSize))
-  {{ (s : GoSlice) (es : List EntryM),
-      RET (PairV #s #interface.nil);
-      ownRaftLog l ls ∗ entsRO s es ∗
-      ⌜es ≠ [] ∧
-        (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
-        (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
-        -- the log's entries at `[lo, lo+1, ...]`, cut short by `maxSize`
-        es <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo⌝ ∗
-      -- no spare capacity anyone else owns (2026-10-05): every exit re-caps
-      -- (`ents[:len:len]`), returns `Storage.Entries`' capped slice, or `extend`s into a
-      -- fresh one -- so the caller may hand the slice on where its capacity is demanded
-      -- (`Step`'s `Hents_cap`, for `Advance`'s `MsgStorageApplyResp`)
-      ownSliceCap Loc s (DFrac.own 1) }}
+  {{ (s : GoSlice) (es : List EntryM) (err : GoInterface),
+      RET (PairV #s #err);
+      ownRaftLog l ls ∗
+      ((⌜err = interface.nil⌝ ∗ entsRO s es ∗
+        ⌜es ≠ [] ∧
+          (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
+          (∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
+          -- the log's entries at `[lo, lo+1, ...]`, cut short by `maxSize`
+          es <+: plogFrom ls.prev (ls.sents ++ ls.uents) lo⌝ ∗
+        -- no spare capacity anyone else owns (2026-10-05): every exit re-caps
+        -- (`ents[:len:len]`), returns `Storage.Entries`' capped slice, or `extend`s into a
+        -- fresh one -- so the caller may hand the slice on where its capacity is demanded
+        -- (`Step`'s `Hents_cap`, for `Advance`'s `MsgStorageApplyResp`)
+        ownSliceCap Loc s (DFrac.own 1)) ∨
+       -- (D19i part 1) `ErrCompacted`: `lo` at most the floor, the storage compacted past it
+       (⌜s = slice.nil ∧ uint.Z lo ≤ uint.Z ls.fl⌝ ∗ globalAddr ErrCompacted ↦□ err ∗
+        storPast ls.storage (uint.Z lo))) }}
 
 end spec
 

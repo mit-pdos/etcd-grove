@@ -481,6 +481,60 @@ def LogPersistOk (σ : StorState)
   (uents = [] → pend = []) ∧
   storApp σ pend = stored
 
+omit [GoGlobalContext] in
+/-- (D19i part 1) An entry of the storage's view below `offsetInProgress` (`ipo` entries past the
+stable part) and below the pending batch is the log's: `LogPersistOk` says the storage holds the
+log there once the batch is appended, and below the batch the view agrees with that. What makes
+a snapshot the application took at or below the floor an entry of the log
+(`raftLog.snapshot`). -/
+theorem termAt_log_below (σ : StorState) (sents uents : List EntryM) (ipo : Int)
+    (pend stored : List EntryM) (idx t : w64)
+    (Hp : LogPersistOk σ sents uents ipo pend stored)
+    (Hipo : 0 ≤ ipo ∧ ipo ≤ uents.length)
+    (Hge : uint.Z σ.prev.index' ≤ uint.Z idx)
+    (Hlt : uint.Z idx < uint.Z σ.prev.index' + (sents.length : Int) + ipo + 1)
+    (Hab : ∀ e0, pend.head? = some e0 → uint.Z idx < uint.Z e0.Index')
+    (Ht : termAt σ.prev σ.ents idx = some t) :
+    plogTermAt σ.prev (sents ++ uents) idx = some t := by
+  unfold termAt at Ht
+  by_cases Hb : uint.Z idx = uint.Z σ.prev.index'
+  · rw [if_pos Hb] at Ht
+    cases Ht
+    unfold plogTermAt
+    simp [Hb]
+  rw [if_neg Hb] at Ht
+  cases He : σ.ents[(uint.Z idx - uint.Z σ.prev.index' - 1).toNat]? with
+  | none => rw [He] at Ht; cases Ht
+  | some e =>
+    rw [He] at Ht
+    simp only [Option.map_eq_map, Option.map_some, Option.some.injEq] at Ht
+    subst Ht
+    have Hklt := (List.getElem?_eq_some_iff.1 He).1
+    -- the storage, once the batch is appended, has `e` there too
+    have Happ : (storApp σ pend)[(uint.Z idx - uint.Z σ.prev.index' - 1).toNat]? = some e := by
+      cases pend with
+      | nil => exact He
+      | cons e0 rest =>
+        have := Hab e0 rfl
+        simp only [storApp]
+        rw [List.getElem?_append_left (by rw [List.length_take]; omega),
+          List.getElem?_take_of_lt (by omega)]
+        exact He
+    -- and so does the log
+    have Hpre := Hp.1
+    rw [List.prefix_iff_eq_take] at Hpre
+    have HL : (sents ++ uents.take ipo.toNat)[(uint.Z idx - uint.Z σ.prev.index' - 1).toNat]?
+        = some e := by
+      rw [Hpre, List.getElem?_take_of_lt (by simp only [List.length_append, List.length_take]; omega)]
+      exact Happ
+    have Hlog : (sents ++ uents)[(uint.Z idx - uint.Z σ.prev.index' - 1).toNat]? = some e := by
+      rw [← HL]
+      by_cases Hs : (uint.Z idx - uint.Z σ.prev.index' - 1).toNat < sents.length
+      · rw [List.getElem?_append_left Hs, List.getElem?_append_left Hs]
+      · rw [List.getElem?_append_right (by omega), List.getElem?_append_right (by omega),
+          List.getElem?_take_of_lt (by omega)]
+    exact plogTermAt_lookup _ _ _ _ e Hlog (by omega)
+
 /-- The storage's pending batch is the log's `unpersisted` (2026-10-10), and with no
 snapshot pending it starts at or above `unstable.offset` (`prev.index + |sents| + 1`):
 it is the in-progress part of the unstable suffix a `Ready` handed out, and only a
@@ -502,6 +556,17 @@ theorem pendFrom_of_logOk (σ : StorState) (ls : LogState) (Hp : PendLogOk σ ls
   rw [Hp.1] at He0
   have := Hp.2 Hs e0 He0
   omega
+
+/-- (D19i part 1, 2026-10-18) The floor (`StorState.fl`, `LogState.fl`): the storage's is the
+log's, at most `applying` (so every read the log makes from `applying + 1` on is above it, and
+answers as before; `node.go` raises it to `applying` when the application's `Advance` is handed
+over, before `RawNode.Advance` moves `applied` there: `RNState.flw`, and the reads from
+`applied + 1`, `hasUnappliedConfChanges`', take `fl ≤ applied` as a premise), below `offsetInProgress` with no snapshot pending (the storage then agrees
+with the log up to it: `LogPersistOk`), and below the storage's pending batch (`PendAbove`: an
+append never rewrites what the application may compact). -/
+def FlOk (σ : StorState) (ls : LogState) : Prop :=
+  σ.fl = ls.fl ∧ uint.Z ls.fl ≤ uint.Z ls.applying ∧
+  (ls.snap = none → uint.Z ls.applying < uint.Z ls.inprogress) ∧ PendAbove σ σ.pend
 
 /-- The one predicate for a `raftLog`, indexed by its abstract state `ls` (`LogState`,
 above): the struct at some value `lv` whose fields are `ls`'s, the `Storage` at some
@@ -560,7 +625,8 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "%Hpaused" ∷ ⌜lv.applyingEntsPaused' = false → uint.Z ls.apsize < uint.Z ls.apmax⌝ ∗
   -- the storage, as the state names it, and its pending batch (2026-10-10)
   "%Hstor" ∷ ⌜lv.storage' = ls.storage⌝ ∗
-  "%Hpend" ∷ ⌜PendLogOk σ ls⌝)
+  "%Hpend" ∷ ⌜PendLogOk σ ls⌝ ∗
+  "%Hfl" ∷ ⌜FlOk σ ls⌝)
 
 /-- Re-seal `ownRaftLog` from the pieces `iNamed Hlog` names. **Use this rather than
 `iframe`**: with the existential storage state, Rocq's `iFrame` spends ~35 s searching
@@ -601,6 +667,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     lv.maxApplyingEntsSize' = ls.apmax →
     lv.storage' = ls.storage →
     PendLogOk σ ls →
+    FlOk σ ls →
     (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
     ls.snap = snap →
     ls.uents = uents →
@@ -616,7 +683,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       isLoggerVal lv.unstable'.logger' -∗
       ownRaftLog l ls := by
   intro Hst Hcm Hap Hidx Hnowrap Hstore Hoffset Happlied Hpapplied
-    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hsksn Hsnap
+    Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsnap
     Huents HK
   subst Hst Hsnap Huents HK
   iintro Hl #HisStorage HStorage #Husnap #Hpksn #Huents Huents_cap #Hl_logger #Hu_logger
@@ -625,7 +692,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
   simp only [named]
   iframe Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
   ipureintro
-  exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hsksn, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend⟩
+  exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hsksn, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend, Hfl⟩
 
 /-- The struct, for a field read. `committed` and `applied` are what the state says
 they are. -/
@@ -643,7 +710,7 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   · iintro Hl
     iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- Read a pure fact of `ownRaftLog` out of it, without consuming it, from the facts
@@ -672,7 +739,7 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
       Hipb Happlying
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- The `Ready`-side facts, read out without consuming the log: `inprogress` between
@@ -707,7 +774,7 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
   ihave Htok : appendedTok lv.storage' σa ls.unpersisted $$ [Htok]
   · rw [Hstor]; iexact Htok
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -740,10 +807,82 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
       StoredSnapOk (storAbsorb σ) ls.committed ls.prev (ls.sents ++ ls.uents) := Hssnap
   have Hpend' : PendLogOk (storAbsorb σ) { ls with unpersisted := [] } :=
     ⟨rfl, fun _ e0 He0 => by simp at He0⟩
+  have Hfl' : FlOk (storAbsorb σ) { ls with unpersisted := [] } :=
+    ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => by simp [storAbsorb] at He0⟩
   iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
-    Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
+    Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
     Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+
+/-- (D19i part 1) **Raising the floor** to `x`, between the floor and `applying`, with nothing
+unpersisted and no snapshot pending: the storage's floor law (`isStorageWith`'s `Hfloor`) gives the
+application the witness `storFloor` (its right to compact and snapshot up to `x`). The storage
+holds the log up to `offsetInProgress` (`LogPersistOk`), past `applying` (`FlOk`), so up to `x`. -/
+theorem ownRaftLog_raise_floor (l : Loc) (ls : LogState) (x : w64)
+    (Hx : uint.Z ls.fl ≤ uint.Z x ∧ uint.Z x ≤ uint.Z ls.applying)
+    (Hunp : ls.unpersisted = []) (Hsn : ls.snap = none) :
+    ⊢ ownRaftLog (GF := GF) l ls ==∗
+      ownRaftLog l { ls with fl := x } ∗ storFloor ls.storage x := by
+  iintro H
+  iNamed H
+  ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+  · unfold isStorage; iexact HisStorage
+  unfold isStorageWith
+  icases Hsto with ⟨%isv, #Hsto⟩
+  iNamed Hsto
+  have Hpσ : σ.pend = [] := Hpend.1.trans Hunp
+  obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
+  have Hp0 := Hpersist Hsn
+  rw [Hunp] at Hp0
+  have Hplen := Hp0.1.length_le
+  simp only [storApp, List.length_append, List.length_take] at Hplen
+  have Hlt := Hfl.2.2.1 Hsn
+  have Hxle : uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) := by
+    rw [Hsp]
+    have : (min (uint.Z ls.inprogress - uint.Z lv.unstable'.offset').toNat ls.uents.length : Int)
+        = uint.Z ls.inprogress - uint.Z lv.unstable'.offset' := by omega
+    omega
+  have Hpre : σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧
+      uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) :=
+    ⟨Hpσ, by rw [Hfl.1]; exact Hx.1, Hxle⟩
+  imod Hfloor $$ %σ %x HStorage %Hpre with ⟨HStorage, Hfw⟩
+  imodintro
+  isplitr [Hfw]
+  · have Hfl' : FlOk { σ with fl := x } { ls with fl := x } :=
+      ⟨rfl, Hx.2, Hfl.2.2.1, fun e0 He0 => by simp [Hpσ] at He0⟩
+    have Hpend' : PendLogOk { σ with fl := x } { ls with fl := x } := Hpend
+    have Hpersist' : ls.snap = none →
+        LogPersistOk { σ with fl := x } ls.sents ls.uents
+          (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.unpersisted ls.stored := Hpersist
+    have Hssnap' : ls.snap = none →
+        StoredSnapOk { σ with fl := x } ls.committed ls.prev (ls.sents ++ ls.uents) := Hssnap
+    have Hstore' : LogStoreOk ls.snap { σ with fl := x } ls.prev ls.sents ls.uents := Hstore
+    iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with fl := x } rfl Hcm Hap Hidx
+      Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
+      Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
+      Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+  rw [← Hstor]
+  iexact Hfw
+
+/-- (D19i part 1) The floor, read out without consuming the log: at most `applying`, so at most
+`committed` and the last index; below `offsetInProgress` with no snapshot pending. -/
+theorem ownRaftLog_fl (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ⌜uint.Z ls.fl ≤ uint.Z ls.applying ∧ uint.Z ls.applying ≤ uint.Z ls.committed ∧
+        uint.Z ls.committed ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+          + (ls.uents.length : Int) ∧
+        (ls.snap = none → uint.Z ls.fl < uint.Z ls.inprogress)⌝ ∗
+      ownRaftLog l ls := by
+  iintro H0
+  iNamed H0
+  isplitr
+  · ipureintro
+    exact ⟨Hfl.2.1, Happlying.2, Hcommitted, fun h => Int.lt_of_le_of_lt Hfl.2.1 (Hfl.2.2.1 h)⟩
+  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Huents_cap Hl_logger Hu_logger
 
 /-- `Hnowrap`, read out without consuming the log. Needed to know `lastIndex() + 1`
 does not wrap, which is what makes the range premises of `raftLog.slice` and
@@ -1042,7 +1181,7 @@ macro "reseal_raftLog" : tactic =>
                | ((rewrite [Huoff]); with_reducible assumption)
                -- the storage and its pending batch (2026-10-10), for a state that
                -- keeps the fields they are stated on
-               | exact Hstor | exact Hpend))
+               | exact Hstor | exact Hpend | exact Hfl))
 
 section setCommitted
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

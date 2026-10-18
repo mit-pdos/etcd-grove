@@ -40,7 +40,7 @@ theorem RawNode.Campaign.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.Campaign.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hterm
+  intro γ rn id rs Hterm Hflw
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -64,7 +64,7 @@ theorem RawNode.Campaign.wp_proof
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
     [] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgHup])
-    (fun _ => ⟨rfl, Hnw, fun _ => Htc1⟩)
+    (fun _ => ⟨rfl, Hnw, fun _ => Htc1, Hrnfl.1 Hflw⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -91,7 +91,7 @@ theorem RawNode.Campaign.wp_proof
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, Ht2, -, -, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht2' := Ht2 rfl
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
@@ -104,6 +104,7 @@ theorem RawNode.Campaign.wp_proof
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) 
         (Hpvoff.step rfl rfl Hpre Hgh (by have := Ht2 rfl; omega) Hpcs (fun _ => Htc1))
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+        (RNFl.keep Hrnfl Hfl' Hap' Ha)
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     ipureintro
     rw [Htrm]

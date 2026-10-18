@@ -188,10 +188,12 @@ theorem frame_handle_app (id : w64) (t : NState) (m : MessageM)
     HandleAppResult id t m ents s' → NetFrame t s' ∧ s'.term = t.term := by
   intro Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, Hapl, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
-  · obtain ⟨H1, H2, H3, H4, H5, H6⟩ := Hfr
-    exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩, rfl⟩
+  · obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := Hfr
+    exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl, H7, by
+      show uint.Z _ ≤ uint.Z (sendMsgs _ _).logst.applied; rw [show ∀ s0 ms, (sendMsgs s0 ms).logst = s0.logst from fun _ _ => rfl]
+      exact Hapl ▸ Int.le_refl _⟩, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
 
 /-- `handleAppendEntries` keeps what `rOf` reads beyond `toPState` (stage B7). -/

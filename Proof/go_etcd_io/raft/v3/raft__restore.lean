@@ -421,6 +421,9 @@ theorem raft.restore.wp_proof
   icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_matchTerm _ _ { term' := sv.Metadata'.Term', index' := sv.Metadata'.Index' }
     $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
+  -- (D19i part 1) above `committed`, so above the floor: `matchTerm` is exact
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  have Hb := Hb.2 (by simp only; omega)
   ihave Hphys := Hlogback $$ Hlog
   change b = decide (PlogMatches _ _ (snapId sv)) at Hb
   by_cases Hm : PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv)

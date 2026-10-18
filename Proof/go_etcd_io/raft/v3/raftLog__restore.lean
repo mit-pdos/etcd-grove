@@ -72,6 +72,7 @@ theorem raftLog.restore.wp_proof
       lv.storage' σ _ _ (logRestore ls (snapTrip sv sv.Metadata'.ConfState'.lists))
       rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
+      ⟨Hfl.1, Hfl.2.1, fun h => by simp [logRestore] at h, Hfl.2.2.2⟩
       (fun h => List.mem_append_left _ (Hsksn h)) ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,

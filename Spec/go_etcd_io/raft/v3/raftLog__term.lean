@@ -70,21 +70,38 @@ model sees. Log replication needs it -- `matchTerm`, and through it `findConflic
 `unstable.maybeTerm`'s widened spec, below it from `isStorage`'s `HTerm`
 (`termAt prev stored i`), which agrees with `plogTermAt` on the visible stable prefix
 `sents` (`Proof/raftLog__term.lean`). Until then the term was unspecified and nothing
-on the election path read it. -/
+on the election path read it.
+
+**Compaction by the application** (D19i part 1, 2026-10-18): the storage may have been
+compacted past the log's boundary, up to the floor raft published (`LogState.fl`), so an index
+in the range may answer `ErrCompacted` -- only below the floor, and then the storage is
+compacted past it (`storPast`). So the iff is now: no error only in the range, and in the range
+at or above the floor always no error. Every caller that relies on success reads at or above
+`applied`, above the floor (`ownRaftLog`'s `Hfl`). -/
 abbrev raftLog.term.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"term")) (Val #i))
   {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
       ownRaftLog l ls ∗
-      ⌜err = interface.nil ↔
-        (uint.Z ls.prev.index' ≤ uint.Z i ∧
-         uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
-           + (ls.uents.length : Int))⌝ ∗
+      ⌜(err = interface.nil →
+          (uint.Z ls.prev.index' ≤ uint.Z i ∧
+           uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+             + (ls.uents.length : Int))) ∧
+        ((uint.Z ls.prev.index' ≤ uint.Z i ∧
+           uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+             + (ls.uents.length : Int)) →
+          uint.Z ls.fl ≤ uint.Z i → err = interface.nil)⌝ ∗
       ⌜err = interface.nil →
         plogTermAt ls.prev (ls.sents ++ ls.uents) i = some t⌝ ∗
       (⌜err = interface.nil⌝ ∨ globalAddr ErrCompacted ↦□ err ∨
-       globalAddr ErrUnavailable ↦□ err) }}
+       globalAddr ErrUnavailable ↦□ err) ∗
+      -- (D19i part 1) an error in the range: the storage is compacted past `i`
+      (⌜err = interface.nil ∨
+         ¬ (uint.Z ls.prev.index' ≤ uint.Z i ∧
+            uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+              + (ls.uents.length : Int))⌝ ∨
+       storPast ls.storage (uint.Z i + 1)) }}
 
 end spec
 
