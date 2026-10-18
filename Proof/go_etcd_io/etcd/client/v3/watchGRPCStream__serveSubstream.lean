@@ -628,7 +628,9 @@ theorem watchGRPCStream.serveSubstream.wp_proof
             unfold retcP
             iexists P.γ
             iframe Houtc
-            iexact Hres
+            icases Hres with ⟨Hr1, Hr2, Hr3⟩
+            iframe Hr1 Hr2 Hr3
+            ipureintro; exact HPws.2.2
           (try wp_auto)
           cases hcn : P.cn
           · (try wp_auto)

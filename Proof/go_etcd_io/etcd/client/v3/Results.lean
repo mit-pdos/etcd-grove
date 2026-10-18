@@ -2551,6 +2551,18 @@ theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
     isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx :=
   isEtcdRangeWatcher_of_watcher v3.watcher.wp_Watch V w
 
+/-- **etcd's client's watcher is the cache's** (K2e-8): a `*watcher` over etcd's server meets the
+cache's watcher contract (`isEtcdWatcher`: a prefix watch's channel satisfies the cache's watch
+contract, `watchRespOk`, complete: every event of the prefix after the start, and progress
+notifications at revisions the stream has covered) for a prefix not all `0xff` (non-empty: by
+`watchConnFacts`). Its premises are `client_watcher_rangeWatcher`'s. -/
+theorem client_watcher_etcdWatcher (V : WEnv GF) (w : Loc) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
+    isEtcdWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx :=
+  isEtcdWatcher_of_watcher v3.watcher.wp_Watch V w hff
+
 /-- **`NewWatcher(c)` returns a range watcher** (unit W-C): over a client `c` whose connection
 satisfies `watchConnFacts V`, `NewWatcher` (linked) returns the `Watcher` interface of a
 `*watcher` meeting the clients' closable range-watch contract at the server's model. -/
@@ -2691,6 +2703,7 @@ end client
 #print axioms Perennial.EtcdGrove.client.etcd_kv_served
 #print axioms Perennial.EtcdGrove.client.watchClient_Watch
 #print axioms Perennial.EtcdGrove.client.client_watcher_rangeWatcher
+#print axioms Perennial.EtcdGrove.client.client_watcher_etcdWatcher
 #print axioms Perennial.EtcdGrove.client.client_newWatcher_rangeWatcher
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Put
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Get

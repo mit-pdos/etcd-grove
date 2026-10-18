@@ -16,6 +16,7 @@ module
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.go_etcd_io.etcd.client.v3.NewWatcher
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
+public import Proof.go_etcd_io.etcd.client.v3.PrefixRange
 
 @[expose] public section
 
@@ -90,10 +91,100 @@ theorem isEtcdRangeWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) 
     · iunfold mvcc.startRead; ileft; ipureintro; rfl
     ileft; ipureintro; rfl
   inext
-  iintro %ch %γ ⟨#Hs, Hc, #Hi, -⟩
+  iintro %ch %γ ⟨#Hs, Hc, #Hi, -, -⟩
   iapply HΦ
   iframe Hc
   iframe #
+
+/-- A range watch response's header, owned, made read-only: the cache's `hdrAt`. -/
+theorem hdrAt_of_watchHdrOwn [EM : EtcdModel GF] (h : Loc) (r : RespModel) :
+    watchHdrOwn (GF := GF) h r ⊢ |==> hdrAt h r.hdrRev := by
+  unfold watchHdrOwn
+  split
+  · iintro #H; imodintro; iexact H
+  · iintro ⟨%hn, H⟩
+    ipersist H
+    imodintro
+    unfold hdrAt
+    iright
+    iframe H
+    ipureintro; exact hn
+
+/-- **A response of a range watch that promises completeness is etcd's** (K2e-8): the `i`-th
+response of a range watch of `o` (with `o.key` the prefix `pfx`) whose `γ.cpl` is set satisfies the
+cache's contract at the second cursor (`etcdWatchElem` at `γ.cur2`). -/
+theorem etcdWatchElem_of_rangeWatchElem [EM : EtcdModel GF] (γ : EtcdWatchNames) (pfx : GoString)
+    (o : OpFull) (rev : w64) (hcpl : γ.cpl = true) (hk : o.key = pfx) (i : Int)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    rangeWatchElem (GF := GF) γ pfx o rev i v ⊢
+      |==> etcdWatchElem ⟨γ.spsc, γ.cur2, γ.cur2, γ.cpl⟩ pfx i v := by
+  unfold rangeWatchElem
+  iintro ⟨%r, %c, %c', #He, Hh, %Hf, -, -, -, -, Hcp⟩
+  icases Hcp with (%Hc | ⟨%c2, %c2', #H2, #H2', #Hok⟩)
+  · rw [hcpl] at Hc; cases Hc
+  imod hdrAt_of_watchHdrOwn v.Header' r $$ Hh with #Hh
+  imodintro
+  unfold etcdWatchElem respAt
+  iexists r, c2, c2'
+  rw [← hk]
+  iframe #
+  ipureintro; exact Hf
+
+/-- **etcd's client's watcher meets the cache's watcher contract** at the server's model
+(K2e-8), for a cache whose prefix is not all `0xff` (`cplCond`'s condition, with the prefix
+non-empty, which `watchConnFacts` says: the client promises completeness only for such a prefix
+watch): the channel `Watch` returns, at its second cursor. -/
+theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
+    (V : WEnv GF) (w : Loc) (hff : prefixRangeEnd V.pfx ≠ [W8 0]) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
+    isEtcdWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx := by
+  iintro ⟨#P1, #P2, #P3, #Hw⟩
+  ihave %hf : ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ $$ [Hw]
+  · iunfold isClientWatcher at Hw
+    icases Hw with ⟨%cs, %vs, -, -, -, -, -, -, -, Hsf, -⟩
+    iunfold watchSrvFacts at Hsf
+    icases Hsf with ⟨-, Hcf⟩
+    iunfold watchConnFacts at Hcf
+    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, -, -, %h⟩
+    ipureintro; exact h
+  obtain ⟨hst, hp⟩ := hf
+  unfold isEtcdWatcher
+  iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre, #Hrd⟩ HΦ
+  obtain ⟨hpw, hnp, hrev⟩ := Hpre
+  unfold OpFull.isPrefixWatch at hpw
+  simp only [decide_eq_true_eq, hp, if_false] at hpw
+  obtain ⟨ht, hr, -, -, hpk, hfr, hfp, hfd, hkey, hend⟩ := hpw
+  iapply (wp_Watch V w ctx cs key sl gs rev true) $$ [] [HΦ]
+  · iframe #
+    isplitr
+    · ipureintro
+      refine ⟨?_, hnp, by omega, ?_⟩
+      · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
+        exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
+      · rw [hkey, hend]; exact concurrency.keyRangeUnder_prefix V.pfx hp
+    iapply startOk_of_etcdRead V rev hst hrev $$ Hrd
+  inext
+  iintro %ch %γ ⟨#Hs, Hc, #Hi, #Hi2, %Hcpl⟩
+  have hc : γ.cpl = true := by
+    rw [Hcpl]; unfold cplCond
+    have : rev ≠ W64 0 := fun h => by subst h; simp at hrev
+    simp only [hkey, hend, Bool.true_and, decide_eq_true_eq]
+    exact ⟨hp, trivial, hff, this⟩
+  ispecialize HΦ $$ %ch %(⟨γ.spsc, γ.cur2, γ.cur2, γ.cpl⟩ : EtcdWatchNames)
+  iapply HΦ
+  isplitr
+  · unfold isEtcdWatchChan
+    iexists rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev
+    iframe Hs
+    iintro !> %i %v H
+    iapply etcdWatchElem_of_rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev hc hkey
+      i v $$ H
+  unfold etcdWatchConsumer
+  iexists []
+  iframe Hc Hi2
+  ipureintro; rfl
 
 /-- The server's sealed logs are small (the read side's `storeSmall`), so `srvLogsSmall`. -/
 theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)

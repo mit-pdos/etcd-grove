@@ -538,7 +538,7 @@ theorem cpl_facts (V : WEnv GF) (P : WsPrm GF) (X : w64) (rg : mvcc.WatchRange)
     P.sr = true ∧ 1 ≤ sint.Z P.rev ∧ (∀ k, rg.covers k = true ↔ P.o.key <+: k) ∧
       rg.startRev = P.rev ∧ rg.id = X := by
   rw [hc] at hcpl
-  unfold cplOf at hcpl
+  unfold cplOf cplCond at hcpl
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcpl
   obtain ⟨hsr, hk, he, hff, hr0⟩ := hcpl
   obtain ⟨-, -, h0, -, hkey, hed, -, -⟩ := hok

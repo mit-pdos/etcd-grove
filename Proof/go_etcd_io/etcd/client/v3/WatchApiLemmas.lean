@@ -131,20 +131,20 @@ theorem rangeWatchElem_canceled [EM : EtcdModel GF]
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **`Watch`'s `closeCh`** (its loop's state): not made yet, or an SPSC channel of the watch
 with both sides at the start (the producer's cursor at `rev - 1`). -/
-def closeChRes [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev : w64) (cc : Loc) :
-    IProp GF :=
+def closeChRes [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev : w64) (b : Bool)
+    (cc : Loc) : IProp GF :=
   iprop(⌜cc = chan.nil⌝ ∨ ∃ γ : EtcdWatchNames,
     isSpsc γ.spsc cc (rangeWatchElem γ pfx o rev) (fun _ => iprop(True)) ∗
     spscProducer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListAuthOwn γ.cur 1 [rev - W64 1] ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-    monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ ⌜γ.cur2 = γ.cur⌝)
+    monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ ⌜γ.cur2 = γ.cur ∧ γ.cpl = b⌝)
 
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **A fresh channel as a watch's SPSC channel**, both sides at the start, the producer's cursor
 at `rev - 1` (a new mono list). -/
 theorem watch_spsc_alloc [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev : w64)
-    (ch : Loc) (γc : ChanNames) :
+    (b : Bool) (ch : Loc) (γc : ChanNames) :
     ⊢ isChan ch γc go_etcd_io.etcd.client.v3.WatchResponse -∗
       (ownChan γc go_etcd_io.etcd.client.v3.WatchResponse .Idle ∨
         ownChan γc go_etcd_io.etcd.client.v3.WatchResponse (.Buffered [])) ={⊤}=∗
@@ -154,16 +154,16 @@ theorem watch_spsc_alloc [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev 
         monoListAuthOwn γ.cur 1 [rev - W64 1] ∗
         spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
         monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
-        ⌜γ.cur2 = γ.cur⌝ := by
+        ⌜γ.cur2 = γ.cur ∧ γ.cpl = b⌝ := by
   iintro #Hch Ho
   imod mono_list_own_alloc [rev - W64 1] with ⟨%γcur, Ha, #Hlb⟩
-  imod start_spsc ch (rangeWatchElem ⟨⟨γc, 0, 0⟩, γcur, γcur, false⟩ pfx o rev) (fun _ => iprop(True)) γc
+  imod start_spsc ch (rangeWatchElem ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ pfx o rev) (fun _ => iprop(True)) γc
     $$ Hch Ho with ⟨%γs, #Hs, Hp, Hc⟩
   imodintro
-  iexists ⟨γs, γcur, γcur, false⟩
+  iexists ⟨γs, γcur, γcur, b⟩
   iframe Hp Ha Hc
-  have heq : rangeWatchElem (GF := GF) ⟨⟨γc, 0, 0⟩, γcur, γcur, false⟩ pfx o rev =
-      rangeWatchElem ⟨γs, γcur, γcur, false⟩ pfx o rev := by unfold rangeWatchElem; rfl
+  have heq : rangeWatchElem (GF := GF) ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ pfx o rev =
+      rangeWatchElem ⟨γs, γcur, γcur, b⟩ pfx o rev := by unfold rangeWatchElem; rfl
   rw [← heq]
   isplitr
   · iexact Hs
@@ -171,7 +171,7 @@ theorem watch_spsc_alloc [EM : EtcdModel GF] (pfx : GoString) (o : OpFull) (rev 
   · iapply monoListIdxOwn_get 0 (rev - W64 1) rfl $$ Hlb
   isplitr
   · iapply monoListIdxOwn_get 0 (rev - W64 1) rfl $$ Hlb
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, rfl⟩
 
 end lemmas
 
