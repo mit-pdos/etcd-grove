@@ -411,7 +411,8 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgSnap P Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid
+  wp_apply (wp_Step_MsgSnap (B := plogLastIndexZ (toPState s).base (toPState s).log) P Q c r id s
+      ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid
       Hid Hwf Hscope Hsn Hcl Hnl Hfv) $$ [$Hphys $Hmsg]
     as %err %s' %c1 ⟨Hphys, %Hc1, %Hwf', %Hst, %Herr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -428,8 +429,11 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     iexact Hm
   unfold stepPost
   icases HΦ with ⟨Hlc, HΦ⟩
-  imod ghost_stepCDS γ md c c1 id m Hty sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ Hstep
-      Hid Hc1 $$ Hm Hall [Hz] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
+  -- (2026-10-18, D19b stage 5) a step that creates no entry, at the node's last index
+  ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+  imod ghost_stepCDS γ md c c1 id m Hty sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ _ HL
+      Hstep Hid Hc1 $$ Hrc0 Hm Hall [Hz] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
   · rw [Hcnt]; iexact Hz
   imodintro
   ihave Herr' : (⌜err = interface.nil⌝ ∨
@@ -498,8 +502,11 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
   -- the step in the mode's model (2026-10-14)
   unfold stepPost
   icases HΦ with ⟨Hlc, HΦ⟩
-  imod ghost_step_md γ md c id m s s' _ recv 1 Hrecv Hstep (Hdh s') Hcnt $$ Hm Hcred Hlc Hghost
-      Hrest with ⟨%md', %Hout, Hghost⟩
+  -- (2026-10-18, D19b stage 5) a step that creates no entry, at the node's last index
+  ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+  imod ghost_step_md γ md c id m s s' _ recv 1 _ HL Hrecv Hstep (Hdh s') Hcnt $$ Hrc0 Hm Hcred
+      Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
   imodintro
   ihave Herr' : (⌜err = interface.nil⌝ ∨
       (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err) : IProp GF) $$ []
@@ -641,18 +648,34 @@ theorem raft.Step.wp_proof
       · ipureintro; exact fun h => absurd h hl
     ihave %Hlnz := Hlnz_lem $$ Hghost
     -- `Hents` is owned: the `by_cases` above reduced its `if m.Type' = MsgProp`
-    wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs Hty Hterm Hfrom Hne Hlen Hlok Hlnz
-      Hwf)
-      $$ [$Hphys $Hmi $Hcc] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
+    -- (2026-10-18, D19b stage 5) the receipt of the log's last index (`lastRec`)
+    ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+    imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+    wp_apply (wp_Step_MsgProp P Q c r id s ml m sn ctx rs ents cs _ Hty Hterm Hfrom Hne Hlen Hlok
+      Hlnz Hwf HL)
+      $$ [$Hphys $Hmi $Hcc $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hfr, %Hst, Herr⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+    -- the receipt of the bound: the last index's, or the appended batch's
+    ihave #HrcB : ⧖ (B.toNat - γ.reBoot.length) $$ [Hrcb]
+    · by_cases hlt : plogLastIndexZ (toPState s).base (toPState s).log < B
+      · ihave #H := Hrcb $$ %hlt
+        have Hpl : plogLastIndexZ (toPState s).base (toPState s).log =
+            plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := rfl
+        iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+          ((plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)).toNat
+            - γ.reBoot.length) + ents.length by omega))
+        iexact H
+      · iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+          (plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length by omega))
+        iexact Hrc0
     have Hcnt : rdCount recv = 0 := by
       unfold rdCount; rw [List.countP_eq_zero]
       intro x hx; rw [Hrecv x hx]; simp [absMsg, absMsgFrom]
     imod rdCred_zero (GF := GF) γ with Hz
-    imod ghost_step_md γ md c id m s s' _ recv 0 Hrecv Hstep
+    imod ghost_step_md γ md c id m s s' _ recv 0 B HBb.2.2 Hrecv Hstep
       (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (Hty.symm.trans h) (by w32_ne))
         (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
-      (by omega) $$ Hm' Hz Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+      (by omega) $$ HrcB Hm' Hz Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
     iframe Hphys Hghost
@@ -795,11 +818,22 @@ theorem raft.Step.wp_proof
   · -- MsgVoteResp: tally the vote, possibly winning or losing.
     obtain ⟨Hto, Hterm⟩ := Hvoteresp Hty
     ihave #Hm' := Hmsg $$ %MsgType.voteResp %(by rw [Hty]; exact mtypeOf_MsgVoteResp) %(And.intro (by decide) (by decide))
-    wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hwf) $$ [$Hphys $Hmi]
-      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
+    -- (2026-10-18, D19b stage 5) the receipt of the log's last index (`lastRec`), raised by one
+    -- in the step for a win's entry
+    ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+    imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+    wp_apply (wp_Step_MsgVoteResp P PB c r id s ml m ents sn ctx rs _ Hty Hto Hterm Hwf HL)
+      $$ [$Hphys $Hmi $Hrc0]
+      as %err %s' %B ⟨Hphys, %HBb, #Hrcb, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-    iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
-      (fun _ => Hfr) (fun _ => Htm) Hresp $$ Hm' Hghost Hrest Hphys [] HΦ
+    iapply finish_branchB γ md c r id s s' m _ recv err Φ B HBb.2.2 (Hdh s') Hwf' Hrecv Hstep
+      (fun _ => Hfr) (fun _ => Htm) Hresp $$ [] Hm' Hghost Hrest Hphys [] HΦ
+    · have Hpl : plogLastIndexZ (toPState s).base (toPState s).log =
+          plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := rfl
+      iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+        ((plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)).toNat
+          - γ.reBoot.length) + 1 by omega))
+      iexact Hrcb
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgPreVote
   · -- MsgPreVote (2026-10-04): answered with a free `MsgPreVoteResp`; nothing

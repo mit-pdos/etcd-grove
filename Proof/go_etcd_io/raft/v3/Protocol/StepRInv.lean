@@ -938,8 +938,8 @@ prefix's fold (`AdmFold`, A3 for snapshots) and what each received `MsgApp` tell
 that receives it (`AppKnow`, stated here for any state with the invariant, since the
 derivation does not name it; the per-rule lemmas take it for the receiving state only). -/
 theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState}
-    {id : w64} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
-    {r : RState} {ms : List Msg} {r' : RState} (h : StepR Adm dec id r ms r')
+    {id : w64} {B : Int} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
+    {r : RState} {ms : List Msg} {r' : RState} (h : StepR Adm dec id B r ms r') (hB : B < 2 ^ 64)
     (hK : ∀ r1 m, m ∈ ms → m.ty = .app → RInv dec c0 r1 → AppKnow r1 m)
     (H : RInv dec c0 r) : RInv dec c0 r' := by
   induction h with
@@ -949,12 +949,12 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
       (ih1 (fun r1 m hm => hK r1 m (List.mem_append_left _ hm)) H)
   | higherTerm => exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
   | campaign r peers cl _ _ hs hg _ _ => exact RInv_campaign id _ H hs hg
-  | win r mt ms h1 _ h3 _ _ _ => exact RInv_win id mt _ H h1 h3
+  | win r mt ms h1 _ h3 _ _ _ => exact RInv_win id mt _ H h1 (by omega)
   | appAccept m r lastnewi es' h1 _ _ _ _ _ h7 h8 =>
     exact RInv_appAccept m lastnewi es' _ H h7 h8 (hK r m List.mem_cons_self h1 H)
   | heartbeat m r _ _ _ _ _ h6 => exact RInv_heartbeat m.src m.commit _ H h6
   | commit r n h1 h2 h3 _ _ => exact RInv_commit n H h1 h2 h3
-  | propose m r cs _ h2 h3 h4 => exact RInv_propose id m cs _ H h2 h3 h4
+  | propose m r cs _ h2 h3 h4 => exact RInv_propose id m cs _ H h2 h3 (by omega)
   | propDrop m r cs _ h2 h3 h4 => exact RInv_propDrop m cs H h2 h3 h4
   | snapRestore m r fp' cs' _ _ _ _ _ h6 _ h8 _ h10 =>
     exact RInv_snapRestore m fp' cs' _ H h6 h8 (hAdm _ _ h10)
@@ -984,9 +984,10 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
 
 /-- A derivation that receives nothing keeps `RInv` with no message knowledge. -/
 theorem RInv_stepR_nil {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState}
-    {id : w64} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
-    {r r' : RState} (h : StepR Adm dec id r [] r') (H : RInv dec c0 r) : RInv dec c0 r' :=
-  RInv_stepR hAdm h (fun _ _ hm => by simp at hm) H
+    {id : w64} {B : Int} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
+    {r r' : RState} (h : StepR Adm dec id B r [] r') (hB : B < 2 ^ 64) (H : RInv dec c0 r) :
+    RInv dec c0 r' :=
+  RInv_stepR hAdm h hB (fun _ _ hm => by simp at hm) H
 
 /-- The dynamic model's admissible configurations satisfy `RInv_stepR`'s premise. -/
 theorem AdmFold_fold (dec : CCDec) (c0 : CCState) :

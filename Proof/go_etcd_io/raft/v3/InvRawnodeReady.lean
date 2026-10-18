@@ -913,6 +913,57 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Int.le_refl _)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
+/-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
+stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,
+`lastRec_receipt`), the entries to append end at most at `L`, the committed log handed out is
+at most `L` long. -/
+def readyIdx (γr : RaftNames) (d ce es : List EntryM) : IProp GF :=
+  iprop(∃ L : Int, lastRec γr L ∗ ⌜L < 2 ^ 64 ∧
+    (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ L + 1) ∧
+    ((d ++ ce).length : Int) ≤ L⌝)
+
+instance readyIdx_persistent (γr : RaftNames) (d ce es : List EntryM) :
+    Persistent (readyIdx (GF := GF) γr d ce es) := by
+  unfold readyIdx; infer_instance
+
+omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+/-- The indices a `Ready` hands out are within the log (2026-10-18, D19b stage 5, `readyIdx`):
+the unstable entries not yet handed out end at the last index, the committed log handed out
+(`applying` long, then `ce`) is at most `committed` long. -/
+theorem readyIdx_pure (ls : LogState) (d ce : List EntryM)
+    (Hidx : LogIndicesOk ls.prev (ls.sents ++ ls.uents))
+    (Hip : logOffset ls ≤ uint.Z ls.inprogress)
+    (Hap : uint.Z ls.applying ≤ uint.Z ls.committed)
+    (Hcm : uint.Z ls.committed ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+      + (ls.uents.length : Int))
+    (Hdlen : d.length = (uint.Z ls.applying).toNat) (Hce : CeOk ls ce) :
+    (∀ e0, (nextUnstable ls).head? = some e0 → uint.Z e0.Index' + ((nextUnstable ls).length : Int)
+        ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int) + 1) ∧
+      ((d ++ ce).length : Int) ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+        + (ls.uents.length : Int) := by
+  have Hapz := uint_Z_nonneg ls.applying
+  refine ⟨fun e0 He0 => ?_, ?_⟩
+  · unfold nextUnstable at He0 ⊢
+    rw [List.head?_drop] at He0
+    have Hk := (List.getElem?_eq_some_iff.mp He0).1
+    have Hi := Hidx (ls.sents.length + (uint.Z ls.inprogress - logOffset ls).toNat) e0 (by
+      rw [List.getElem?_append_right (by omega)]; simpa using He0)
+    rw [List.length_drop]
+    unfold logOffset at Hip
+    push_cast at Hi ⊢
+    omega
+  · rw [List.length_append]
+    cases Hl : ce.getLast? with
+    | none =>
+      rw [List.getLast?_eq_none_iff.mp Hl, List.length_nil, Hdlen]
+      push_cast
+      rw [Int.toNat_of_nonneg Hapz]; omega
+    | some e =>
+      have H := Hce e Hl
+      rw [Hdlen]
+      push_cast
+      rw [Int.toNat_of_nonneg Hapz]; omega
+
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
 right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
 the atomic update of `readyc <- rd`, giving the right to the application with the `Ready`;
@@ -923,7 +974,9 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (rd : Ready) (ce es : List EntryM) (ms : List QMsg) :
     ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false ==∗
       ownRawNodeReady γ rn id rs rd ce es ms true ∗ appendRight rs.storage es ∗
-      [∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0) := by
+      ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+      -- (2026-10-18, D19b stage 5) the indices handed out are within the log
+      readyIdx γ rs.delivered ce es := by
   iintro H
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %c, %fp, %rnv, %sv, %hprev, H⟩
@@ -932,9 +985,20 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
   simp only [Bool.false_eq_true, ↓reduceIte]
+  -- (2026-10-18, D19b stage 5) the indices handed out, from the log and the ghost state
+  icases ownRaftLog_pure _ _ (LogIndicesOk s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+      uint.Z s.logst.prev.index' + (s.logst.sents.length : Int) + 1 ≤ uint.Z s.logst.inprogress ∧
+      uint.Z s.logst.applying ≤ uint.Z s.logst.committed ∧
+      uint.Z s.logst.committed ≤ uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
+        + (s.logst.uents.length : Int))
+    (fun _ _ Hidx _ _ Hoff _ _ Hcm Hipb Happ => ⟨Hidx, by omega, Happ.2, Hcm⟩) $$ Hlog
+    with ⟨%Hlf, Hlog⟩
+  have Hri := readyIdx_pure s.logst rs.delivered ce Hlf.1 (by unfold logOffset; omega) Hlf.2.2.1
+    Hlf.2.2.2 Hdlen Hceok
   imod ownRaftLog_handout _ _ Hunp Hsnap $$ Hlog with ⟨Hlog, Happ⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
+  ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
   imod ownRaftGhost_drain γ id (toPState s) [] List.nil_subperm $$ Hghost with ⟨Hghost, Hcr⟩
   ihave Hrest := ghostRest_keep γ _ c id (s := s) (s' := { s with outbox := [] })
     rfl rfl rfl rfl rfl rfl rfl rfl $$ Hrest
@@ -968,7 +1032,18 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       Hrs_clb, Hrdz, Hceok, Hes, Hrdc⟩
   isplitl [Happ]
   · rw [Hes, ← Hstor]; iexact Happ
-  iapply rdCred_msgs γ ms $$ Hcr
+  isplitl [Hcr]
+  · iapply rdCred_msgs γ ms $$ Hcr
+  iunfold readyIdx
+  iexists plogLastIndexZ (toPState s).base (toPState s).log
+  iframe Hlr
+  ipureintro
+  have Hpl : plogLastIndexZ (toPState s).base (toPState s).log = uint.Z s.logst.prev.index'
+      + (s.logst.sents.length : Int) + (s.logst.uents.length : Int) := by
+    simp only [plogLastIndexZ, toPState, List.length_append]; push_cast; omega
+  rw [Hpl] at HL ⊢
+  rw [Hes]
+  exact ⟨HL, Hri.1, Hri.2⟩
 
 /-! ## A node with nothing new to hand out (2026-10-10)
 

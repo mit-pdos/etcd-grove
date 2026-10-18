@@ -83,7 +83,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
-            StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
+            StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'

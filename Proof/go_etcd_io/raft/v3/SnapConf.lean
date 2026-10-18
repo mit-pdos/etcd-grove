@@ -128,7 +128,7 @@ is not done yet is carrying the certificate from those records to the receiving 
 (notes/STATUS.md, "Snapshots at the public API (stage S)"). -/
 
 section cert
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-- `SnapScope`'s facts of a snapshot's lists and index. -/
 def SnapListsOk (k : SnapTrip) : Prop :=

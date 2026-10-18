@@ -55,7 +55,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
-            StepCDS c c (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
+            StepCDS c c (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hwf Hlt
   wp_start as H

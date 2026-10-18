@@ -487,7 +487,7 @@ macro "prevote_resp_dispatch" : tactic =>
         $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
-        candidateStepResult_prevoteresp c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
+        candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
           (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
@@ -499,7 +499,8 @@ macro "prevote_resp_dispatch" : tactic =>
       exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
     · -- Leader: no arm
       simp only [stepFuncOf]
-      wp_apply _P.stepLeader c r id s ml m ents sn ctx rs
+      imod (preceipt_zero (GF := GF)) with #Hrc00
+      wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0
           (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
           Hrole
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -511,8 +512,8 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys
+        $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
+      · iframe Hphys Hrc00
         isplitl [Hm]
         · rw [ite_eq_right Hnp]; iexact Hm
         · iintro %Hc; exfalso; exact Hnp Hc
@@ -541,7 +542,7 @@ macro "prevote_resp_dispatch" : tactic =>
         $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
-        candidateStepResult_prevoteresp c _ _ _ _ _ _ _ _ Hty (.inr Hrole)
+        candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inr Hrole)
           (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn

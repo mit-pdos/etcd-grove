@@ -65,7 +65,7 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- `raft.Step.wp_proof` discharge the `isMessage` side of `ownRaftGhost_step`
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by

@@ -61,7 +61,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -104,7 +104,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignPreElection] at this
-    have HCD := stepCD_hup (m := m) Hok Hnowrap Hlogf
+    have HCD := stepCD_hup (B := B) (m := m) Hok Hnowrap Hlogf
     have Hpc := fun h => HupGuard.precand Hok.2.2.2.2 h
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'

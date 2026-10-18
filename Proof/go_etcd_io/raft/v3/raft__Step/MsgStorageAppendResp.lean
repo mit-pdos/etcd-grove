@@ -66,7 +66,7 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
-        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hsn Hle Hstok Hghoff Hwf
   wp_start as H

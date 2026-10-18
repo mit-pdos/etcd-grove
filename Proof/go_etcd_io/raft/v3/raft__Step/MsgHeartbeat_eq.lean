@@ -64,7 +64,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -145,7 +145,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
+    imod (preceipt_zero (GF := GF)) with #Hrc00
+    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
         Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
@@ -156,7 +157,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

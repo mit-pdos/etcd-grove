@@ -145,6 +145,14 @@ was appended: the batch, stamped with the current term and consecutive indices a
 the struct at the *same* state, which was only true because `ownRaftPhys` quantified
 the log away.
 
+### The receipt (2026-10-18, D19b stage 5)
+
+The clone loop takes one Go step per entry; each raises the persistent time receipt by one
+(`wp_raise_receipt`), so the caller's `⧖ m` comes back as `⧖ (m + |ents|)`. A caller whose `m`
+covers its log's last index past the bootstrap log thus covers the stamped entries' indices,
+which the ghost step that creates them (`StepC.propose`, `StepC.win`) records with each entry
+(`isEntryR`).
+
 ### raft v3.7 (2026-10-15, stage R4)
 
 `es` is a `[]*pb.Entry`, and v3.7's `appendEntry` **no longer writes the caller's entries**: it
@@ -159,16 +167,19 @@ and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
 `EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.) -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List EntryM) (dq : DFrac),
+    (ents : List EntryM) (dq : DFrac) (m : Nat),
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      "Hes" ∷ entsPts es dq ents }}
+      "Hes" ∷ entsPts es dq ents ∗
+      -- (2026-10-18, D19b stage 5) a time receipt, raised by one per entry stamped
+      "#Hrc" ∷ ⧖ m }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
+      ⧖ (m + ents.length) ∗
       -- an all-empty batch is never dropped -- see above
       ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
       -- (stage R4) the caller's batch, untouched

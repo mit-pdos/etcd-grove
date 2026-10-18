@@ -213,7 +213,7 @@ theorem leader_beat_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m :
     (ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgBeat) (Hwf : NStateWf s)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
-    dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
+    dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResultC at H
@@ -245,7 +245,7 @@ theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents ctx) ∧
-      StepCD c id m s recv s') ∧
+      StepCD c id B m s recv s') ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResultC at H
@@ -310,7 +310,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
     (H : LeaderStepResultC c id s m ents0 dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
-      StepCD c id m s recv s') ∧
+      StepCD c id B m s recv s') ∧
     NetFrame s s' ∧ TermStep m s s' := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResultC at H

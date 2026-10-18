@@ -257,13 +257,14 @@ end frame
 
 section frame_lemmas
 variable [FfiSyntax]
+variable {B : Int}
 
 /-- The `pci` an `RState` keeps across a step to `p'`: its own at a leader, `0` elsewhere. -/
 def pciKeep (p' : PState) (x : w64) : w64 := if p'.role = .leader then x else W64 0
 
 /-- A `StepCF` derivation is a `StepC` one. -/
 theorem StepCF.toC {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PState}
-    (h : StepCF c id s ms s') : StepC c id s ms s' := by
+    (h : StepCF c id s ms s') : StepC c id B s ms s' := by
   induction h with
   | refl s => exact .refl s
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
@@ -329,10 +330,10 @@ theorem RState.with_p_pci (r : RState) (p' : PState)
 
 /-- `RState.with_p_pci` on a `StepR` derivation's target. -/
 theorem StepR.pci_keep {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
-    {r : RState} {ms : List Msg} {p' : PState} (h : StepR Adm dec id r ms { r with p := p' })
+    {r : RState} {ms : List Msg} {p' : PState} (h : StepR Adm dec id B r ms { r with p := p' })
     (h1 : p'.role = .leader → r.p.role = .leader) (h2 : r.p.role = .leader → p'.role = .leader)
     (hz : r.p.role ≠ .leader → r.pci = W64 0) :
-    StepR Adm dec id r ms { r with p := p', pci := pciKeep p' r.pci } := by
+    StepR Adm dec id B r ms { r with p := p', pci := pciKeep p' r.pci } := by
   rw [RState.with_p_pci r p' h1 h2 hz]; exact h
 
 /-- A `StepCF` derivation is a `StepR` one, at any `RState` over its start whose non-leader
@@ -341,7 +342,7 @@ and cleared at a step-down. -/
 theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : CfgM}
     {id : w64} {s : PState} {ms : List Msg} {s' : PState} (h : StepCF c id s ms s') :
     ∀ (r : RState), r.p = s → r.cfg.cfg = c → (r.p.role ≠ .leader → r.pci = W64 0) →
-      StepR Adm dec id r ms
+      StepR Adm dec id B r ms
         { r with p := s', pci := pciKeep s' r.pci } := by
   induction h with
   | refl s =>
@@ -475,6 +476,7 @@ end frame_lemmas
 
 section code
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable {B : Int}
 
 /-- The ghost part of a node's `RState`: the configuration index, the configuration (with the
 learner flags), the full log's prefix below the compaction boundary. -/
@@ -548,18 +550,18 @@ def CidxMove (m : MessageM) (s' : NState) (g : RGh) (cidx' : Nat) : Prop :=
 
 /-- What a branch of `raft.Step` delivers (see the file header): the `StepC c` witness, and the
 `StepR` one at every ghost part over `c`, under the dynamic model's premises. -/
-def StepCD (c : CfgM) (id : w64) (m : MessageM) (s : NState) (recv : List Msg)
+def StepCD (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState) (recv : List Msg)
     (s' : NState) : Prop :=
-  StepC c id (toPState s) recv (toPState s') ∧
+  StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
     DynHyp m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
-      StepR Adm dec id (rOf s g) recv (rOf s' { g with cidx := cidx' })
+      StepR Adm dec id B (rOf s g) recv (rOf s' { g with cidx := cidx' })
 
 /-- A frame step of the code is a `StepCD` one. -/
 theorem StepCD.frame {c : CfgM} {id : w64} {m : MessageM} {s : NState}
     {recv : List Msg} {s' : NState}
     (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
-    StepCD c id m s recv s' := by
+    StepCD c id B m s recv s' := by
   refine ⟨h.toC, fun Adm dec g hc _ => ⟨g.cidx, .inl rfl, ?_⟩⟩
   rw [show ({ g with cidx := g.cidx } : RGh) = g from rfl, rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
@@ -567,8 +569,8 @@ theorem StepCD.frame {c : CfgM} {id : w64} {m : MessageM} {s : NState}
 /-- A `StepCD` step that the dynamic model's premises exclude (a `MsgSnap`, a pre-candidate's):
 only the `StepC` witness is needed. -/
 theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : MessageM} {s : NState}
-    {recv : List Msg} {s' : NState} (h : StepC c id (toPState s) recv (toPState s'))
-    (hx : m.Type' = MsgSnap ∨ s.role = .preCandidate) : StepCD c id m s recv s' :=
+    {recv : List Msg} {s' : NState} (h : StepC c id B (toPState s) recv (toPState s'))
+    (hx : m.Type' = MsgSnap ∨ s.role = .preCandidate) : StepCD c id B m s recv s' :=
   ⟨h, fun _ _ _ _ hd => by
     rcases hx with hx | hx
     · exact absurd hx hd.1
@@ -577,8 +579,8 @@ theorem StepCD.of_excluded {c : CfgM} {id : w64} {m : MessageM} {s : NState}
 /-- A frame step, then a `StepCD` one (2026-10-14, stage B7). -/
 theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : MessageM} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
-    (h2 : StepCD c id m s1 r2 s') (hd : ∀ g, DynHyp m s s' g → DynHyp m s1 s' g) :
-    StepCD c id m s (r1 ++ r2) s' := by
+    (h2 : StepCD c id B m s1 r2 s') (hd : ∀ g, DynHyp m s s' g → DynHyp m s1 s' g) :
+    StepCD c id B m s (r1 ++ r2) s' := by
   refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g hc hdy => ?_⟩
   obtain ⟨cidx', Hcm, H2⟩ := h2.2 Adm dec g hc (hd g hdy)
   refine ⟨cidx', Hcm, .trans _ _ _ _ _ ?_ H2⟩
@@ -592,17 +594,17 @@ denotes that the dynamic model admits after `fp'` (`Adm`), a `StepR` witness to 
 the configuration afterwards `c'` (`cn` after a restore, `c` otherwise). Unlike `StepCD`, the
 ghost part may change wholesale (`StepR.snapRestore`'s configuration index, configuration and
 full prefix). -/
-def StepCDS (c c' cn : CfgM) (id : w64) (sid : entryID) (s : NState) (recv : List Msg)
+def StepCDS (c c' cn : CfgM) (id : w64) (B : Int) (sid : entryID) (s : NState) (recv : List Msg)
     (s' : NState) : Prop :=
-  StepC c id (toPState s) recv (toPState s') ∧
+  StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List EntryM)
     (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → cs'.cfg = cn → id ∈ cn.ids →
-    Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id (rOf s g) recv (rOf s' g')
+    Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' g')
 
 /-- A frame step (with no configuration change), as `StepCDS`. -/
 theorem StepCDS.frame {c cn : CfgM} {id : w64} {sid : entryID} {s : NState} {recv : List Msg}
     {s' : NState} (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
-    StepCDS c c cn id sid s recv s' := by
+    StepCDS c c cn id B sid s recv s' := by
   refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ _ => ⟨g, hc, ?_⟩⟩
   rw [rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
@@ -610,7 +612,7 @@ theorem StepCDS.frame {c cn : CfgM} {id : w64} {sid : entryID} {s : NState} {rec
 /-- A frame step, then a `StepCDS` one. -/
 theorem StepCDS.trans_frame {c c' cn : CfgM} {id : w64} {sid : entryID} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
-    (h2 : StepCDS c c' cn id sid s1 r2 s') : StepCDS c c' cn id sid s (r1 ++ r2) s' := by
+    (h2 : StepCDS c c' cn id B sid s1 r2 s') : StepCDS c c' cn id B sid s (r1 ++ r2) s' := by
   refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hcs hid hA => ?_⟩
   obtain ⟨g', hc', H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hcs hid hA
   refine ⟨g', hc', .trans _ _ _ _ _ ?_ H2⟩
@@ -632,10 +634,10 @@ theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec
       [Msg.mk .appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
     (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true)
     (Hl' : s'.role ≠ .leader) :
-    StepR Adm dec id (rOf s g) [m] (rOf s' ⟨uint.nat m.index, cs', fp'⟩) := by
+    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨uint.nat m.index, cs', fp'⟩) := by
   have Hnl : (rOf s g).p.role ≠ .leader := by
     simp only [rOf, toPState_role]; exact proleRole_not_leader _ h5
-  have H := StepR.snapRestore (dec := dec) m (rOf s g) fp' cs' h1 h2 h3 h4 Hnl h6 h7 h8 h9 h10
+  have H := StepR.snapRestore (dec := dec) (B := B) m (rOf s g) fp' cs' h1 h2 h3 h4 Hnl h6 h7 h8 h9 h10
   have e : rOf s' ⟨uint.nat m.index, cs', fp'⟩ =
       { rOf s g with
         p := psendMsgs
@@ -755,9 +757,9 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
     (Hok : HupOkC c id s s') (Hnw : uint.Z s.term + 1 < 2 ^ 64)
     (Hlog : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :
-    StepCD c id m s [] s' := by
-  refine ⟨Hok.2.1, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
-  change StepR Adm dec id (rOf s g) [] (rOf s' g)
+    StepCD c id B m s [] s' := by
+  refine ⟨Hok.2.1 B, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
+  change StepR Adm dec id B (rOf s g) [] (rOf s' g)
   obtain ⟨-, -, ⟨Hl, -⟩, -, Hg⟩ := Hok
   rcases Hg with rfl | ⟨Hnl, Hin, Hsn, Hno, pre, peers, pvs, cl, Hperm, rfl⟩
   · exact .refl _
@@ -774,7 +776,7 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
     simp only [rOf, toPState_role]; exact proleRole_not_leader _ Hnl
   cases pre
   · -- an election: `StepR.campaign`, with the guard
-    show StepR Adm dec id (rOf s g) []
+    show StepR Adm dec id B (rOf s g) []
       { rOf s g with p := toPState (sendMsgs (becomeCandidate id s) _), pci := W64 0 }
     rw [toPState_sendMsgs, toPState_becomeCandidate]
     have Hgc : (rOf s g).cfg.cfg = c := hc
@@ -782,7 +784,7 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
       (by simp [rOf, Hsn]) ?_ Hnw (by rw [Hgc]; exact Hperm)
     exact noConfIn_of_unapplied s.logst g.fp hd.2.2.1.1 (Hlog.1 Hsn) Hlog.2.1 Hlog.2.2 Hno
   · -- a pre-election: `abandon`, then the free sends
-    show StepR Adm dec id (rOf s g) []
+    show StepR Adm dec id B (rOf s g) []
       { rOf s g with p := toPState (sendMsgs (becomePrecandidate s) _), pci := W64 0 }
     rw [toPState_sendMsgs, toPState_becomePrecandidate]
     have Hcf : StepCF c id (rOf s g).p [] (psendMsgs (pbecomeFollower (rOf s g).p s.term (W64 0))
@@ -797,7 +799,7 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
       · simp only [List.mem_map] at h
         obtain ⟨_, _, rfl⟩ := h
         exact ⟨Or.inl rfl, rfl⟩
-    have H := Hcf.toR (Adm := Adm) (dec := dec) (rOf s g) rfl hc (rOf_pci_zero s g)
+    have H := Hcf.toR (Adm := Adm) (dec := dec) (B := B) (rOf s g) rfl hc (rOf_pci_zero s g)
     have e : pciKeep (psendMsgs (pbecomeFollower (rOf s g).p s.term (W64 0))
         ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
          peers.map fun dst => prevoteReq id dst (s.term + W64 1)

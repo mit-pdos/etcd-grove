@@ -98,6 +98,7 @@ public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.Token
 public import Perennial.GooseLang.Countable
+public import Perennial.GooseLang.Receipts
 
 @[expose] public section
 
@@ -329,10 +330,10 @@ theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
   rw [← HC.1]; exact (JQuorumAcked_of_out hi HC.2.1 f N).1 H
 
 /-- The ghost state's step relation at a static configuration is `Step` at its voters. -/
-theorem CfgStatic.stepC_iff [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64)
+theorem CfgStatic.stepC_iff [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64) (B : Int)
     (s : PState) (ms : List Msg) (s' : PState) :
-    Step γ.reCfg id s ms s' ↔ StepC (CfgM.simple γ.reCfg lrn) id s ms s' :=
-  step_iff_stepC γ.reCfg lrn id γ.reCfg_ne s ms s'
+    Step γ.reCfg id B s ms s' ↔ StepC (CfgM.simple γ.reCfg lrn) id B s ms s' :=
+  step_iff_stepC γ.reCfg lrn id B γ.reCfg_ne s ms s'
 
 /-! ### The configurations the ghost state records (2026-10-14, reconfiguration stage B4)
 
@@ -483,7 +484,7 @@ end aev
 
 section ghost
 variable [FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-! ### Votes -/
 
@@ -952,7 +953,10 @@ def isEntryR (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
                  e.Index' ↪[γt]□ ((e, pt) : EntryM × w64) ∗
                  ⌜PtOk F0 e.Term' (uint.Z e.Index') pt⌝ ∗
                  -- what the entry's data is (2026-10-10)
-                 entData γ e) ∨
+                 entData γ e ∗
+                 -- (2026-10-18, D19b stage 5) its index past the bootstrap log is covered by
+                 -- a persistent time receipt, taken by `appendEntry` when it was created
+                 ⧖ ((uint.Z e.Index').toNat - γ.reBoot.length)) ∨
     (⌜BootRec γ.reBoot e pt⌝ ∗ entData γ e))
 
 def isEntry (γ : RaftNames) (e : EntryM) : IProp GF :=
@@ -1377,7 +1381,25 @@ theorem isEntryR_boot (γ : RaftNames) (e : EntryM) (pt : w64) :
 theorem isEntryR_data (γ : RaftNames) (e : EntryM) (pt : w64) :
     ⊢ isEntryR (GF := GF) γ e pt -∗ entData γ e := by
   unfold isEntryR
-  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, #Hd⟩ | ⟨-, #Hd⟩) <;> iexact Hd
+  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, #Hd, -⟩ | ⟨-, #Hd⟩) <;> iexact Hd
+
+/-- A record's index past the bootstrap log is covered by a time receipt (2026-10-18, D19b
+stage 5): a leader's entry carries it, a boot entry is within the bootstrap log. -/
+theorem isEntryR_receipt (γ : RaftNames) (e : EntryM) (pt : w64) :
+    ⊢ isEntryR (GF := GF) γ e pt ==∗ ⧖ ((uint.Z e.Index').toNat - γ.reBoot.length) := by
+  unfold isEntryR
+  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, -, #Hr⟩ | ⟨%Hb, -⟩)
+  · imodintro; iexact Hr
+  · obtain ⟨H1, H2, -, -⟩ := Hb
+    have Hlt := (List.getElem?_eq_some_iff.mp H2).1
+    rw [show (uint.Z e.Index').toNat - γ.reBoot.length = 0 by omega]
+    iapply (preceipt_zero (GF := GF))
+
+theorem isEntry_receipt (γ : RaftNames) (e : EntryM) :
+    ⊢ isEntry (GF := GF) γ e ==∗ ⧖ ((uint.Z e.Index').toNat - γ.reBoot.length) := by
+  unfold isEntry
+  iintro ⟨%pt, #H⟩
+  iapply isEntryR_receipt γ e pt $$ H
 
 /-! ### The bootstrap log in logs with records (2026-10-16, stage R8b, D12)
 

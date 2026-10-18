@@ -32,7 +32,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 variable {md : Bool}
 
 /-! ### Read contexts -/

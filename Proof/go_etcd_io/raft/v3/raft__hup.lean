@@ -67,7 +67,7 @@ theorem raft.hup.wp_proof
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
-    exact ⟨⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+    exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
       fun _ => .inl (by first | rfl | simp_all)⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
@@ -92,7 +92,7 @@ theorem raft.hup.wp_proof
         iapply HΦ $$ %s
         iframe Hphys
         ipureintro
-        exact ⟨⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+        exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
         fun _ => .inl (by first | rfl | simp_all)⟩
       | false =>
       wp_auto
@@ -105,7 +105,7 @@ theorem raft.hup.wp_proof
       iframe Hphys
       ipureintro
       refine ⟨⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
-        stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
+        fun _ => stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
         .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩, ?_⟩
       rotate_left
       · -- (2026-10-17) a pre-candidate only by a pre-election
@@ -126,7 +126,7 @@ theorem raft.hup.wp_proof
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro
-      exact ⟨⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
+      exact ⟨⟨Hwf, fun _ => .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩,
         fun _ => .inl (by first | rfl | simp_all)⟩
 
 end proof

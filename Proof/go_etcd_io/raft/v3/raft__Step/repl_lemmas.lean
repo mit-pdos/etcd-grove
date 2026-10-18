@@ -56,7 +56,7 @@ theorem stepCF_eq (c : CfgM) (id : w64) (ps : PState) (recv : List Msg)
 
 theorem step_eq (c : CfgM) (id : w64) (ps : PState) (recv : List Msg)
     (ps1 ps2 : PState) :
-    StepC c id ps recv ps1 → ps1 = ps2 → StepC c id ps recv ps2 := by
+    StepC c id B ps recv ps1 → ps1 = ps2 → StepC c id B ps recv ps2 := by
   intro H He; subst He; exact H
 
 /-- `HandleAppResult` refines `StepC.appStale` / `StepC.appAccept` / `StepC.appReject` at
@@ -326,7 +326,7 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
     ps.role ≠ .leader →
     m.From' ≠ id →
     HandleSnapResult id t m sv voters s' →
-    StepC c id ps [absSnap m sv voters] (toPState s') := by
+    StepC c id B ps [absSnap m sv voters] (toPState s') := by
   intro Ht Hto Hterm Hnl Hfid Hres
   have Htm : t.term = ps.term := congrArg PState.term Ht
   have Hb : t.logst.prev = ps.base := congrArg PState.base Ht
@@ -374,7 +374,7 @@ theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →
-    StepC c id ps [absSnap m sv voters] (pbecomeFollower ps m.Term' m.From') := by
+    StepC c id B ps [absSnap m sv voters] (pbecomeFollower ps m.Term' m.From') := by
   intro Hgt Hto Hfid
   refine step_eq c id _ _ _ _
     (StepC.higherTerm (absSnap m sv voters) ps Hgt Hto (fun _ => Hfid)) ?_
@@ -433,7 +433,7 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : Mess
     m.From' ≠ id →
     HandleSnapResult id t m sv voters s' →
     ((SnapRestores s sv ∧ c' = cn) ∨ (¬ SnapRestores s sv ∧ c' = c)) →
-    StepCDS c c' cn id (snapId sv) s [absSnap m sv voters] s' := by
+    StepCDS c c' cn id B (snapId sv) s [absSnap m sv voters] s' := by
   intro Ht Htl Hnls Htr Hto Hterm Hfid Hres Hc'
   have Hst : SnapRestores t sv ↔ SnapRestores s sv := by unfold SnapRestores; rw [Htl]
   rw [← Hst] at Hc'
@@ -446,7 +446,7 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : Mess
       · exact h
       · exact absurd Hr h
     subst Hcn
-    have Hstep := step_handle_snap c id _ _ m sv voters s' Ht Hto Hterm Hnl Hfid Hres
+    have Hstep := step_handle_snap (B := B) c id _ _ m sv voters s' Ht Hto Hterm Hnl Hfid Hres
     refine ⟨Hstep, fun Adm dec g fp' cs' _ hfp hcs hid hA => ?_⟩
     have Htm : t.term = (toPState s).term := congrArg PState.term Ht
     have Hb : t.logst.prev = (toPState s).base := congrArg PState.base Ht

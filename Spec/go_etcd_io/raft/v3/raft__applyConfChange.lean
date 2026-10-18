@@ -33,8 +33,8 @@ def ApplyCCOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
 `Step.sendApps`; at a non-leader `Step.refl`), and what is kept of the physical state: the
 role, `r.step`, `r.tick`, the term, pre-vote, the ghost bounds, the log but for a raised
 commit index. -/
-theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCOk cfg id s s') :
-    Step cfg id (toPState s) [] (toPState s') ∧
+theorem applyCCOk_step {B : Int} (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCOk cfg id s s') :
+    Step cfg id B (toPState s) [] (toPState s') ∧
     s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
     s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
     s'.logst = { s.logst with committed := s'.logst.committed } ∧
@@ -47,7 +47,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
     obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
     -- the new `Progress` values
-    have H1 : Step cfg id (toPState s) []
+    have H1 : Step cfg id B (toPState s) []
         (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }) := by
       have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } =
           { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
@@ -68,7 +68,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
     have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
     have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
     -- the commit
-    have H2 : Step cfg id (toPState s1) []
+    have H2 : Step cfg id B (toPState s1) []
         (toPState { s1 with logst := { s1.logst with committed := c } }) := by
       rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
       · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
@@ -82,7 +82,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
       at H2 Hms
     have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
     -- the appends
-    have H3 : Step cfg id (toPState s2) []
+    have H3 : Step cfg id B (toPState s2) []
         (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
       have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
           toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
@@ -119,14 +119,14 @@ non-leader), with `applyCCOk_step`'s frame. A leader removed or demoted (no vote
 the `reMatch` step and then steps down at its own term (`becomeFollower(r.Term, None)`,
 `stepDownOnRemoval`), which no `StepC` rule describes: `StepC` has no step-down of a leader at
 its own term (`abandon` is a non-leader's). -/
-theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s') :
-    (StepC c' id (toPState s) [] (toPState s') ∧
+theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s') :
+    (StepC c' id B (toPState s) [] (toPState s') ∧
       s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
       s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
       s'.logst = { s.logst with committed := s'.logst.committed } ∧
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) ∨
     (s.role = .leader ∧ id ∉ c'.voters ∧
-      ∃ ps1, StepC c' id (toPState s) [] ps1 ∧
+      ∃ ps1, StepC c' id B (toPState s) [] ps1 ∧
         toPState s' = pbecomeFollower ps1 s.term (W64 0)) := by
   obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
   unfold SwitchOkC at Hsw
@@ -135,7 +135,7 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
         NState).role = .leader from Hl)] at Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
     -- the new `Progress` values
-    have H1 : StepC c' id (toPState s) []
+    have H1 : StepC c' id B (toPState s) []
         (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id }) := by
       have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } =
           { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
@@ -161,7 +161,7 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
       have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
       have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
       -- the commit
-      have H2 : StepC c' id (toPState s1) []
+      have H2 : StepC c' id B (toPState s1) []
           (toPState { s1 with logst := { s1.logst with committed := c } }) := by
         rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
         · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
@@ -175,7 +175,7 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
         at H2 Hms
       have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
       -- the appends
-      have H3 : StepC c' id (toPState s2) []
+      have H3 : StepC c' id B (toPState s2) []
           (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
         have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
             toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl

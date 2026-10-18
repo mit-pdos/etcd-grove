@@ -251,18 +251,19 @@ theorem wp_stepLeader_prop
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
     (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option CCMsg))
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option CCMsg)) (k0 : Nat)
     (Hty : m.Type' = MsgProp) (Hid : id ∈ c.voters) (Hne : ents ≠ [])
     (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs }}
+        msgIn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗ ccEntsOk ents cs ∗ ⧖ k0 }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗
+        (⌜dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
         ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
         (if dropped then globalAddr ErrProposalDropped ↦□ err
          else ⌜err = interface.nil⌝) }} := by
-  wp_start as ⟨Hphys, Hm, #Hcc⟩
+  wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
   ihave %Hct := ccEntsOk_types ents cs $$ Hcc
   have Hcslen : cs.length = ents.length := (List.Forall₂.length_eq Hct).symm
   iunfold ccEntsOk at Hcc
@@ -318,6 +319,8 @@ theorem wp_stepLeader_prop
     wp_raft_logC
     iapply HΦ $$ %errPropDropped %s %true
     iframe Hphys
+    isplitr
+    · iintro %Hd; exact absurd Hd (by decide)
     isplitr
     · ipureintro
       exact ⟨cs, Hct, by simp⟩
@@ -568,8 +571,8 @@ theorem wp_stepLeader_prop
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
     wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
-        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) Hlen' Hnz $$ [$Hphys Hes]
-      as %acc ⟨-, -, Hphys⟩
+        (leaderPropConf s ents cs c.joint).1 (DFrac.own 1) k0 Hlen' Hnz $$ [$Hphys Hes $Hrc]
+      as %acc ⟨#Hrc1, -, -, Hphys⟩
     · iunfold entsPts
       iexists els
       iframe Hes Hents
@@ -578,6 +581,8 @@ theorem wp_stepLeader_prop
       wp_auto
       iapply HΦ $$ %errPropDropped %_ %true
       iframe Hphys
+      isplitr
+      · iintro %Hd; exact absurd Hd (by decide)
       isplitr
       · ipureintro
         exact ⟨cs, Hct, by simp⟩
@@ -588,6 +593,12 @@ theorem wp_stepLeader_prop
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys
+      isplitr
+      · iintro -
+        have Hpl : (leaderPropConf s ents cs c.joint).1.length = ents.length := by
+          simp only [leaderPropConf]; rw [propConf_length, Hcslen, Nat.min_self]
+        rw [← Hpl]
+        iexact Hrc1
       isplitr
       · ipureintro
         refine ⟨cs, Hct, ?_⟩

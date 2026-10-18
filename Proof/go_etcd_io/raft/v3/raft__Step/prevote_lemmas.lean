@@ -148,7 +148,7 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
-    c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
+    c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
       RespStep m s s' ∧ NetFrame s s' ∧ TermStep m s s' := by
   intro Hty Hrole Hin Hnw Hwf H
   unfold CandidateStepResultC at H

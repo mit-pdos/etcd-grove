@@ -91,7 +91,7 @@ theorem Register.run.wp_proof
   ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es $$ Hbusy
   unfold readyData
   icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, ⟨%sts, #Hsts, #Hstsok⟩, ⟨%hs, #Hhs⟩,
-    #Hss, %Hsnap⟩
+    #Hss, %Hsnap, -⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b
   · -- a log past `maxIndex`: the replica stops

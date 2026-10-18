@@ -84,8 +84,8 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
-  iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc⟩ HΦ
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
+  iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- a leader is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
   have Hid : id ∈ c.voters := Hvoter (by rw [Hlead]; decide)
@@ -97,14 +97,17 @@ theorem stepLeader.wp_proof
     iapply wp_stepLeader_prop c wp_raft_bcastAppend wp_raft_appendEntry wp_raftLog_lastIndex
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
       wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
-      wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs Hp Hid
-      Hne Hsmall Hnz Hlead $$ [Hphys Hm]
+      wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs k0 Hp
+      Hid Hne Hsmall Hnz Hlead $$ [Hphys Hm]
     · iframe
-      iframe Hinit Hcc
+      iframe Hinit Hcc Hrc
     inext
-    iintro %err %s' %dropped ⟨Hphys, %Hres, Herr⟩
+    iintro %err %s' %dropped ⟨Hphys, Hrc', %Hres, Herr⟩
     iapply HΦ
     iframe Hphys Herr
+    isplitl [Hrc']
+    · iintro %Hd
+      iapply Hrc' $$ %Hd.2
     ipureintro
     simp only [LeaderStepResultC, Hp, ↓reduceIte]
     exact Hres
@@ -115,6 +118,8 @@ theorem stepLeader.wp_proof
     iintro %err %s' ⟨Hphys, %Herr, %Hres⟩
     iapply HΦ $$ %err %s' %false
     iframe Hphys
+    isplitr
+    · iintro %Hd; exact absurd Hd.1 Hp
     isplitr
     · ipureintro
       simp only [LeaderStepResultC, Hp, ↓reduceIte]

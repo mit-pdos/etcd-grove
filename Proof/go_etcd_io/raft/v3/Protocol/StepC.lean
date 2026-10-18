@@ -400,6 +400,11 @@ variable [FfiSyntax]
 -- `c` is the node's configuration; `id` the node being described.
 variable (c : CfgM) (id : w64)
 
+/- (2026-10-18, D19b stage 5) The rules that create entries (`win`, `propose`) take their last
+index at most `B`, the bound of the indices a step may create: the ghost update holds a time
+receipt for it (`⧖ (B - |reBoot|)`), which every created entry's record keeps (`isEntryR`). -/
+variable (B : Int)
+
 /-- `Step` at the configuration `c` (see the file header): the rules `campaign`, `win`,
 `lose`, `commit` and `readAck` read the voters of both halves; the others are `Step`'s. The
 rules' documentation is `Step`'s. -/
@@ -444,7 +449,7 @@ inductive StepC : PState → List Msg → PState → Prop where
   | win (s : PState) (mt : GMap w64 w64) (ms : List Msg) :
       s.role = .candidate →
       JQuorum c (granted s.votes) →
-      plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
+      plogLastIndexZ s.base s.log + 1 ≤ B →
       LeaderMatchOk id s mt →
       (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
       StepC s [] (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms))
@@ -535,7 +540,7 @@ inductive StepC : PState → List Msg → PState → Prop where
       m.ty = .propose →
       PropRepl m.entries ents →
       s.role = .leader →
-      plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
+      plogLastIndexZ s.base s.log + (ents.length : Int) ≤ B →
       StepC s [m]
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
           [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))])
@@ -647,9 +652,9 @@ section equiv
 variable [FfiSyntax]
 
 /-- `Step` at the voters of a non-joint configuration is `StepC` there. -/
-theorem stepC_of_step (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
-    {s : PState} {ms : List Msg} {s' : PState} (h : Step c.incoming id s ms s') :
-    StepC c id s ms s' := by
+theorem stepC_of_step (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
+    {s : PState} {ms : List Msg} {s' : PState} (h : Step c.incoming id B s ms s') :
+    StepC c id B s ms s' := by
   have Hv := CfgM.voters_of_out ho
   induction h with
   | refl s => exact .refl s
@@ -695,9 +700,9 @@ theorem stepC_of_step (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
     | (apply StepC.stepDown <;> assumption)
 
 /-- `StepC` at a non-joint configuration is `Step` at its voters. -/
-theorem step_of_stepC (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
-    {s : PState} {ms : List Msg} {s' : PState} (h : StepC c id s ms s') :
-    Step c.incoming id s ms s' := by
+theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
+    {s : PState} {ms : List Msg} {s' : PState} (h : StepC c id B s ms s') :
+    Step c.incoming id B s ms s' := by
   have Hv := CfgM.voters_of_out ho
   induction h with
   | refl s => exact .refl s
@@ -744,10 +749,10 @@ theorem step_of_stepC (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
 
 /-- The two step relations agree at a non-joint configuration with voters `cfg ≠ ∅`,
 whatever its learners: `Step cfg` is `StepC (CfgM.simple cfg lrn)`. -/
-theorem step_iff_stepC (cfg lrn : GSet w64) (id : w64) (hne : cfg ≠ ∅)
+theorem step_iff_stepC (cfg lrn : GSet w64) (id : w64) (B : Int) (hne : cfg ≠ ∅)
     (s : PState) (ms : List Msg) (s' : PState) :
-    Step cfg id s ms s' ↔ StepC (CfgM.simple cfg lrn) id s ms s' :=
-  ⟨stepC_of_step (CfgM.simple cfg lrn) id hne rfl, step_of_stepC (CfgM.simple cfg lrn) id hne rfl⟩
+    Step cfg id B s ms s' ↔ StepC (CfgM.simple cfg lrn) id B s ms s' :=
+  ⟨stepC_of_step (CfgM.simple cfg lrn) id B hne rfl, step_of_stepC (CfgM.simple cfg lrn) id B hne rfl⟩
 
 end equiv
 

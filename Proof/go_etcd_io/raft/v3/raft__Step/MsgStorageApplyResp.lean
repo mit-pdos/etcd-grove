@@ -39,7 +39,7 @@ private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : MessageM) (s : NStat
     (idx sz : w64) (Hty : m.Type' = MsgStorageApplyResp)
     (Hidx : uint.Z idx ≤ uint.Z s.logst.committed)
     (Hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed) :
-    StepCD c id m s [] { s with logst := logAppliedTo s.logst idx sz } := by
+    StepCD c id B m s [] { s with logst := logAppliedTo s.logst idx sz } := by
   refine ⟨by rw [toPState_logAppliedTo]; exact .refl _, fun Adm dec g hc hd => ?_⟩
   obtain ⟨Hsn, Ha1⟩ := hd.2.2.2.1 Hty
   refine ⟨max g.cidx (uint.nat (w64Max idx s.logst.applied)), .inr ⟨Hty, rfl⟩, ?_⟩
@@ -92,7 +92,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Hframe" ∷ ⌜LocalFrame s s' ∧
                      ((∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
                       s'.logst.applying = s.logst.applying)⌝ ∗
-        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         -- (2026-10-14, stage B7) `applied` moves at most to the last entry's index
         "%Happ" ∷ ⌜s'.logst.applied = s.logst.applied ∨
           ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied⌝ ∗

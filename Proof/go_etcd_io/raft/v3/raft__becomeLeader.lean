@@ -149,10 +149,13 @@ theorem raft.becomeLeader.wp_proof
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
-  wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1)
+  -- (2026-10-18, D19b stage 5) `appendEntry`'s time receipt: `raft.Step`, which runs the ghost
+  -- step that creates the leader's entry, takes its own; here the least one serves
+  imod (preceipt_zero (GF := GF)) with #Hrc0
+  wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1) 0
       (by simp) (by subst hs1; exact Hnz)
-      $$ [$Hphys $Hes]
-    as %accepted ⟨%Hacc, Hes, Hphys⟩
+      $$ [$Hphys $Hes $Hrc0]
+    as %accepted ⟨-, %Hacc, Hes, Hphys⟩
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
   have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
   subst Hacc'

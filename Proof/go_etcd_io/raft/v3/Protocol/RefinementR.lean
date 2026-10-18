@@ -28,20 +28,21 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
-theorem ownRaftGhost_stepR (γ : RaftNames) (dec : CCDec) (id : w64) (r : RState)
-    (recv : List Msg) (r' : RState) (HS : StaticR γ.reCfg r) (HV : RoleVoter id γ.reCfg r) :
-    StepR (StaticAdm γ.reCfg) dec id r recv r' →
-    ⊢ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
+theorem ownRaftGhost_stepR (γ : RaftNames) (dec : CCDec) (id : w64) (B : Int) (HB : B < 2 ^ 64)
+    (r : RState) (recv : List Msg) (r' : RState) (HS : StaticR γ.reCfg r)
+    (HV : RoleVoter id γ.reCfg r) :
+    StepR (StaticAdm γ.reCfg) dec id B r recv r' →
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ (rdCount recv) -∗ £ 1 -∗
       ownRaftGhost γ id r.p ={⊤}=∗
       ownRaftGhost γ id r'.p := by
   intro Hstep
-  iintro Hrecv Hcr Hlc Hown
+  iintro #Hrc Hrecv Hcr Hlc Hown
   ihave %Hst := ownRaftGhost_static γ id r.p $$ Hown
-  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hst) id r.p recv r'.p
-    (stepR_static Hstep HS HV).1 $$ Hrecv Hcr Hlc Hown
+  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hst) id B HB r.p recv r'.p
+    (stepR_static Hstep HS HV).1 $$ Hrc Hrecv Hcr Hlc Hown
 
 end ghost
 

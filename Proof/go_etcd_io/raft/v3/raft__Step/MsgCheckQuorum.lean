@@ -33,7 +33,7 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
     (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgCheckQuorum) (Hwf : NStateWf s)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
-    dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
+    dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
   unfold LeaderStepResultC at H
@@ -54,7 +54,7 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
     · rw [toPState_prvals_nl _ pvs (by simp [becomeFollower]), toPState_becomeFollower]
       exact .stepDown _ Hpr
     · have Hrl : (rOf s g).p.role = .leader := by simp [rOf, toPState, Hr, proleRole]
-      have HR := StepR.stepDown (Adm := Adm) (dec := dec) (id := id) (rOf s g) Hrl
+      have HR := StepR.stepDown (Adm := Adm) (dec := dec) (id := id) (B := B) (rOf s g) Hrl
       have e : RState.mk (pbecomeFollower (rOf s g).p (rOf s g).p.term (W64 0))
           (rOf s g).applied (W64 0) (rOf s g).snap (rOf s g).cidx (rOf s g).cfg (rOf s g).fp =
           rOf ({ becomeFollower s s.term (W64 0) with prvals := pvs } : NState)
@@ -94,7 +94,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -169,7 +169,8 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the quorum check, perhaps a step-down at its term
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (by simp [Hty]) Hrole
+    imod (preceipt_zero (GF := GF)) with #Hrc00
+    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by simp [Hty]) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -179,12 +180,12 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
-      leader_checkQuorum_step c id s m ents dropped s' Hrole Hty Hwf Hres
+      leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

@@ -1568,6 +1568,11 @@ theorem preadRespondAll_cons (s : PState) (q : ReadReq) (qs : List ReadReq) :
 
 theorem preadRespondAll_nil (s : PState) : preadRespondAll id s [] = s := rfl
 
+/- (2026-10-18, D19b stage 5) The rules that create entries (`win`, `propose`) take their last
+index at most `B`, the bound of the indices a step may create: the ghost update holds a time
+receipt for it (`⧖ (B - |reBoot|)`), which every created entry's record keeps (`isEntryR`). -/
+variable (B : Int)
+
 /-- Answering changes only the outbox and the read state. -/
 theorem preadRespond_eq (s : PState) (q : ReadReq) :
     ∃ o r, preadRespond id s q = { s with outbox := o, rd := r } := by
@@ -1674,7 +1679,7 @@ inductive Step : PState → List Msg → PState → Prop where
   | win (s : PState) (mt : GMap w64 w64) (ms : List Msg) :
       s.role = .candidate →
       IsQuorum cfg (granted s.votes) →
-      plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
+      plogLastIndexZ s.base s.log + 1 ≤ B →
       LeaderMatchOk id s mt →
       (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
       Step s [] (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms))
@@ -1805,7 +1810,7 @@ inductive Step : PState → List Msg → PState → Prop where
       m.ty = .propose →
       PropRepl m.entries ents →
       s.role = .leader →
-      plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
+      plogLastIndexZ s.base s.log + (ents.length : Int) ≤ B →
       Step s [m]
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
           [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))])

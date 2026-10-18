@@ -55,9 +55,10 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
 `MsgTimeoutNow`): `r.step` agrees with the role, a protocol step that receives nothing,
-the log untouched, the term up by at most one, `r.preVote` and the ghost bounds kept. -/
+the log untouched, the term up by at most one (a step at every bound `B`: it creates no
+entry), `r.preVote` and the ghost bounds kept. -/
 def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
-  NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+  NStateWf s' ∧ (∀ B, Step cfg id B (toPState s) [] (toPState s')) ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
    uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh)
 
@@ -79,7 +80,7 @@ def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
 at an empty voter set, where `StepC` and `Step` differ (`HupOkC.simple`). (2026-10-14, stage
 B7) And what `hup` checked (`HupGuard`). -/
 def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
-  NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
+  NStateWf s' ∧ (∀ B, StepC c id B (toPState s) [] (toPState s')) ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
    uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
   (id ∉ c.voters → s' = s) ∧ HupGuard c id s s'
@@ -101,8 +102,8 @@ theorem HupOkC.simple {cfg lrn : GSet w64} {id : w64} {s s' : NState}
   by_cases hne : cfg = ∅
   · have hs : s' = s := h.2.2.2.1 (by
       rw [CfgM.voters_simple, hne]; exact GMap.not_elem_of_empty _)
-    rw [hs]; exact .refl _
-  · exact (step_iff_stepC cfg lrn id hne _ _ _).2 h.2.1
+    rw [hs]; exact fun _ => .refl _
+  · exact fun B => (step_iff_stepC cfg lrn id B hne _ _ _).2 (h.2.1 B)
 
 end hup_results
 

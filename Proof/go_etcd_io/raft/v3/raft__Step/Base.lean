@@ -306,10 +306,11 @@ theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : MessageM)
 `recv` is the incoming message, some number of times, and that message is `isMessage`. -/
 theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
     (ps ps' : PState) (a : Msg) (recv : List Msg)
-    (HC : CfgStatic γ c) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepC c id ps recv ps')
+    (B : Int) (HB : B < 2 ^ 64)
+    (HC : CfgStatic γ c) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepC c id B ps recv ps')
     (Hna : a.ty ≠ .readIndex) :
-    ⊢ isMessage (GF := GF) γ a -∗ £ 1 -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
-  iintro #Hm Hlc Hg
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ £ 1 -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
+  iintro #Hrc #Hm Hlc Hg
   have Hcnt : rdCount recv = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
     intro x hx; rw [Hrecv x hx]; simp [Hna]
@@ -320,20 +321,20 @@ theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  iapply ownRaftGhost_stepC γ c HC id ps recv ps' Hstep $$ Hall [Hz] Hlc Hg
+  iapply ownRaftGhost_stepC γ c HC id B HB ps recv ps' Hstep $$ Hrc Hall [Hz] Hlc Hg
   rw [Hcnt]; iexact Hz
 
 /-- The one ghost update of a branch, in the mode `md`: `recv` is the incoming message, some
 number of times, and that message is `isMessage`; its read credit when it is a read-index
 request (`Hcr`). -/
 theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
-    (s s' : NState) (a : Msg) (recv : List Msg) (n : Nat)
-    (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepCD c id m s recv s') (Hdh : DynHypFor md m s s')
+    (s s' : NState) (a : Msg) (recv : List Msg) (n : Nat) (B : Int) (HB : B < 2 ^ 64)
+    (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepCD c id B m s recv s') (Hdh : DynHypFor md m s s')
     (Hn : rdCount recv ≤ n) :
-    ⊢ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
-  iintro #Hm Hcr Hlc Hg Hrest
+  iintro #Hrc #Hm Hcr Hlc Hg Hrest
   ihave Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
   · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
       (fun k x hx => by
@@ -343,7 +344,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
   ihave Hc := (rdCred_split γ (rdCount recv) (n - rdCount recv)).1 $$ [Hcr]
   · rw [show rdCount recv + (n - rdCount recv) = n by omega]; iexact Hcr
   icases Hc with ⟨Hc, -⟩
-  imod ghost_stepCD γ md c id m s recv s' Hstep Hdh $$ Hall Hc Hlc Hg Hrest
+  imod ghost_stepCD γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hall Hc Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
   iexists md'
@@ -354,12 +355,16 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
 
 /-- The same, for a branch that receives nothing. -/
 theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
-    (s s' : NState) (Hstep : StepCD c id m s [] s') (Hdh : DynHypFor md m s s') :
+    (s s' : NState) (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
+    (Hdh : DynHypFor md m s s') :
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
   iintro Hlc Hg Hrest
+  -- (2026-10-18, D19b stage 5) a step that creates no entry, at the node's last index
+  ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc
   imod rdCred_zero (GF := GF) γ with Hcr
-  imod ghost_stepCD γ md c id m s [] s' Hstep Hdh $$ [] [Hcr] Hlc Hg Hrest
+  imod ghost_stepCD γ md c id m _ HB s [] s' Hstep Hdh $$ Hrc [] [Hcr] Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
@@ -376,7 +381,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
     (s s' : NState) (m : MessageM) (a : Msg) (recv : List Msg) (err : GoInterface)
     (Φ : val → IProp GF)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
-    (Hstep : StepCD c id m s recv s')
+    (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
     (Hresp : RespStep m s s') (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
     ⊢ isMessage γ a -∗
@@ -393,8 +398,43 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
   imod rdCred_zero (GF := GF) γ with Hz
   unfold stepPost
   icases HΦ with ⟨Hlc, HΦ⟩
-  imod ghost_step_md γ md c id m s s' a recv 0 Hrecv Hstep Hdh (by omega) $$ Hm Hz Hlc Hghost Hrest
+  -- (2026-10-18, D19b stage 5) a step that creates no entry, at the node's last index
+  ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc
+  imod ghost_step_md γ md c id m s s' a recv 0 _ HB Hrecv Hstep Hdh (by omega) $$ Hrc Hm Hz Hlc
+    Hghost Hrest
     with ⟨%md', %Hout, Hghost⟩
+  imodintro
+  iapply HΦ $$ %err %s' %c %md'
+  iframe Hphys Hghost Herr
+  ipureintro
+  exact ⟨Hwf', Hout, fun _ => rfl, Hfr, Htm, Hresp⟩
+
+/-- `finish_branch` at a bound `B` the step may create entries up to, with its time receipt
+(2026-10-18, D19b stage 5): `MsgVoteResp`'s win. -/
+theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
+    (s s' : NState) (m : MessageM) (a : Msg) (recv : List Msg) (err : GoInterface)
+    (Φ : val → IProp GF) (B : Int) (HB : B < 2 ^ 64)
+    (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
+    (Hstep : StepCD c id B m s recv s')
+    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
+    (Hresp : RespStep m s s') (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage γ a -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
+      ownRaftPhysCV c c.voters r id s' -∗
+      (⌜err = interface.nil⌝ ∨
+        (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
+      stepPost γ md c r id s m Φ -∗
+      |={⊤}=> Φ #err := by
+  iintro #Hrc #Hm Hghost Hrest Hphys Herr HΦ
+  have Hcnt : rdCount recv = 0 := by
+    unfold rdCount; rw [List.countP_eq_zero]
+    intro x hx; rw [Hrecv x hx]; simp [Hna]
+  imod rdCred_zero (GF := GF) γ with Hz
+  unfold stepPost
+  icases HΦ with ⟨Hlc, HΦ⟩
+  imod ghost_step_md γ md c id m s s' a recv 0 B HB Hrecv Hstep Hdh (by omega) $$ Hrc Hm Hz Hlc
+    Hghost Hrest with ⟨%md', %Hout, Hghost⟩
   imodintro
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr
@@ -405,7 +445,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
 theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : MessageM) (err : GoInterface) (Φ : val → IProp GF)
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s')
-    (Hstep : StepCD c id m s [] s')
+    (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
     (Hresp : RespStep m s s') :
     ⊢ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗

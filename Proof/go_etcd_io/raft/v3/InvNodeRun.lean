@@ -762,9 +762,9 @@ over `c'`, a non-leader takes no step, a leader that stays a voter takes `reMatc
 joint quorum of `c'` and `sendApps` (an `MsgApp` carrying its commit index, `ReplSends`), and a
 removed or demoted leader takes `reMatch` and steps down (`StepR.stepDown`, with
 `StepDownOnRemoval`). `applyCCOkC_step`'s `StepR` version: `StepR` has the step-down. -/
-theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} (c' : CfgM)
+theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {B : Int} (c' : CfgM)
     (id : w64) (s s' : NState) (g : RGh) (H : ApplyCCOkC c' id s s') (hc : g.cfg.cfg = c') :
-    StepR Adm dec id (rOf s g) [] (rOf s' g) := by
+    StepR Adm dec id B (rOf s g) [] (rOf s' g) := by
   obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
   unfold SwitchOkC at Hsw
   by_cases Hl : s.role = .leader
@@ -821,7 +821,7 @@ theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} 
         exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
           (fun m hm => (Hms m hm).2)
       have HF := StepCF.trans _ _ _ _ _ H1 (StepCF.trans _ _ _ _ _ H2 H3)
-      have HR := HF.toR (Adm := Adm) (dec := dec) (rOf s g) rfl hc Hz
+      have HR := HF.toR (Adm := Adm) (dec := dec) (B := B) (rOf s g) rfl hc Hz
       have Hfr : RFrame s { sendMsgs s2 ms with prvals := pvs2, lt := lt' } := by
         refine ⟨?_, ?_, fun _ => ⟨Hl, ?_⟩⟩ <;> (rw [← Hs2, ← Hs1]; try rfl)
       rw [rOf_frame _ _ g Hfr]
@@ -831,13 +831,13 @@ theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} 
       obtain ⟨pvs', rfl⟩ := Hsw
       generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
         NState) = s1 at H1 ⊢
-      have HR1 := H1.toR (Adm := Adm) (dec := dec) (rOf s g) rfl hc Hz
+      have HR1 := H1.toR (Adm := Adm) (dec := dec) (B := B) (rOf s g) rfl hc Hz
       have Hfr1 : RFrame s s1 := by
         refine ⟨?_, ?_, fun _ => ⟨Hl, ?_⟩⟩ <;> (rw [← Hs1]; try rfl)
       rw [← rOf_frame _ _ g Hfr1] at HR1
       have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
       have Hrl : (rOf s1 g).p.role = .leader := by simp [rOf, toPState, Hl1, proleRole]
-      have HR2 := StepR.stepDown (Adm := Adm) (dec := dec) (id := id) (rOf s1 g) Hrl
+      have HR2 := StepR.stepDown (Adm := Adm) (dec := dec) (id := id) (B := B) (rOf s1 g) Hrl
       have Ht1 : s1.term = s.term := by rw [← Hs1]
       have e : RState.mk (pbecomeFollower (rOf s1 g).p (rOf s1 g).p.term (W64 0))
           (rOf s1 g).applied (W64 0) (rOf s1 g).snap (rOf s1 g).cidx (rOf s1 g).cfg (rOf s1 g).fp =
@@ -868,7 +868,7 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
       uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
       -- (2026-10-17) no pre-candidate made (`RNPv`)
       (s'.role = .preCandidate → s.role = .preCandidate) := by
-  rcases applyCCOkC_step c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, -⟩
+  rcases applyCCOkC_step (B := 0) c' id s s' H with ⟨-, Hr, Hsf, Htk, Ht, Hpv, Hg, Hl, Hc⟩ | ⟨Hl, Hv, -⟩
   · exact ⟨⟨by rw [Hsf, Hr]; exact Hwf.1, by rw [Htk]; exact Hwf.2⟩, Ht, Hpv, Hg, Hl, Hc,
       fun h => by rw [← Hr]; exact h⟩
   · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
@@ -998,11 +998,11 @@ theorem wp_applyConf_dyn
     unfold entStep
     rw [ite_eq_left Hconf, Htake, Hdec, Option.bind_some]
     exact Hstep
-  have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id (rOf s g) []
+  have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id 0 (rOf s g) []
       (rOf s g') :=
     StepR.applyConf (rOf s g) k e (ccm.transition, ccm.changes) cs' (by simp [rOf, Hsnap]) Hk1 Hkc Hfull_k Hconf
       Hnoc' (by rw [Htake]; exact Hdec) Hstep Hadm
-  have HR2 := applyCCOkC_stepR (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
+  have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
     (dec := dec) cs'.cfg id s s' g' Hok rfl
   have HR := StepR.trans _ _ _ _ _ HR1 HR2
   ihave #Hrecs : □ ∀ (fp' : List EntryM), ⌜fp' = (rOf s g).full.take (k + 1)⌝ -∗
@@ -1019,7 +1019,9 @@ theorem wp_applyConf_dyn
     isplitr
     · ipureintro; exact HI
     iintro %hc; iapply Hcamp; exact hc
-  imod ownRaftGhostR_stepR γ dec c0 h0 HD _ id _ _ _ HR $$ Hrecs [] [Hcr0] Hlc Hgr with Hgr
+  imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
+  imod ownRaftGhostR_stepR γ dec c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 Hrecs [] [Hcr0] Hlc
+    Hgr with Hgr
   · rw [List.nil_append]
     iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
@@ -1076,7 +1078,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       isCommitted γ rs.delivered -∗
       storedRecs γ s.logst.prev s.logst.stored -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
-  obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ := applyCCOk_step _ _ _ _ Hok
+  obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ := applyCCOk_step (B := 0) _ _ _ _ Hok
   have Hprev : s'.logst.prev = s.logst.prev := by rw [Hls]
   have Hstored : s'.logst.stored = s.logst.stored := by rw [Hls]
   have Happ : s'.logst.applying = s.logst.applying := by rw [Hls]
@@ -1088,7 +1090,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     exact ⟨by rw [Hsf, Hro]; exact H1, by rw [Htk]; exact H2⟩
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs Hlc
   rw [← Hrel.1] at *
-  imod ownRaftGhost_step_0 γ id _ _ Hst $$ Hlc Hghost with Hghost
+  imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
+  imod ownRaftGhost_step_0 γ id 0 (by decide) _ _ Hst $$ Hrc0 Hlc Hghost with Hghost
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hprev Hstored $$ Hstrecs
   iapply ownRawNode_intro_static γ rn id rs s' (toPState s') rnv sv hprev steps Hm ⟨rfl, Hwf'⟩ Hin Hasync
     (by rw [Happ]; exact Hdlen) (by rw [Hunp']; exact Hunp) (by rw [Hsnap']; exact Hsnap)

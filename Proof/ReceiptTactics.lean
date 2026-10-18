@@ -41,4 +41,39 @@ macro "wp_take_receipt" " as " H:ident : tactic => `(tactic| (
   iintro $H:ident -
   iapply wp_value'))
 
+section preceipt
+open Iris Iris.BI Iris.ProgramLogic
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+variable [GoSemanticsFunctions] [go.PreSemantics]
+
+/-- `wp_go_step_preceipt` with an empty evaluation context (use after `wp_bind`). -/
+theorem wp_go_step_preceipt' (i : GoInstruction) (v : val) (e : Expr)
+    [go.IsGoStepPureDet i v e] {s : Stuckness} {E : CoPset} (Φ : val → IProp GF) (m : Nat)
+    (hv : v.isPanic = false) :
+    ⧖ m ∗ ▷ (⧗ 1 -∗ ⧖ (m + 1) -∗ £ 1 -∗ WP e @ s; E {{ Φ }})
+    ⊢ WP (App (Val (GoInstruction i)) (Val v)) @ s; E {{ Φ }} :=
+  wp_go_step_preceipt i v e Φ [] m hv
+
+end preceipt
+
+set_option hygiene false in
+/-- Step to the next function or method resolution and take it, raising the persistent time
+receipt `H : ⧖ m` (in the intuitionistic context) to `⧖ (m + 1)`, still named `H` (D19b stage 5,
+2026-10-18). -/
+macro "wp_raise_receipt" H:ident : tactic => `(tactic| (
+  wp_to_resolve
+  first
+    | wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+    | wp_bind (App (Val (GoInstruction (MethodResolve _ _))) (Val _))
+  iapply wp_go_step_preceipt'
+  case hv => exact isPanic_intoVal _
+  isplitr
+  · iexact $H:ident
+  iclear $H:ident
+  inext
+  iintro - #$H:ident -
+  iapply wp_value'))
+
 end Perennial

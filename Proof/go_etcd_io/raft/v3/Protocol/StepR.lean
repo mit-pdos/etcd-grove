@@ -119,6 +119,10 @@ variable [FfiSyntax]
 
 variable (Adm : List EntryM → CCState → Prop) (dec : CCDec) (id : w64)
 
+/- (2026-10-18, D19b stage 5) As `StepC`'s: the rules that create entries (`win`, `propose`)
+take their last index at most `B`. -/
+variable (B : Int)
+
 /-- A node's step with reconfiguration (see the file header). The rules shared with `StepC`
 are its rules at `r.cfg.cfg` on `r.p`; their documentation is `Step`'s. -/
 inductive StepR : RState → List Msg → RState → Prop where
@@ -167,7 +171,7 @@ inductive StepR : RState → List Msg → RState → Prop where
   | win (r : RState) (mt : GMap w64 w64) (ms : List Msg) :
       r.p.role = .candidate →
       JQuorum r.cfg.cfg (granted r.p.votes) →
-      plogLastIndexZ r.p.base r.p.log + 1 < 2 ^ 64 →
+      plogLastIndexZ r.p.base r.p.log + 1 ≤ B →
       LeaderMatchOk id r.p mt →
       (∀ m ∈ ms, ReplOk id (pwinState id r.p mt) m) →
       (∀ m ∈ ms, AppCommitEq (pwinState id r.p mt) m) →
@@ -261,7 +265,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       m.ty = .propose →
       r.p.role = .leader →
       CCTypesOk m.entries cs →
-      plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) < 2 ^ 64 →
+      plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) ≤ B →
       StepR r [m] { r with
         p := psendMsgs
           (pappend r.p ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))
@@ -425,9 +429,9 @@ end model
 section mono
 variable [FfiSyntax]
 
-theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
+theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {id : w64} {B : Int}
     (hA : ∀ l cs, Adm l cs → Adm' l cs) {r : RState} {ms : List Msg} {r' : RState}
-    (h : StepR Adm dec id r ms r') : StepR Adm' dec id r ms r' := by
+    (h : StepR Adm dec id B r ms r') : StepR Adm' dec id B r ms r' := by
   induction h with
   | refl r => exact .refl r
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
@@ -518,10 +522,10 @@ theorem preadRespondAll_role (id : w64) (s : PState) (qs : List ReadReq) :
   obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
   rw [h]
 
-theorem stepR_static {V : GSet w64} {dec : CCDec} {id : w64} {r : RState} {ms : List Msg}
-    {r' : RState} (h : StepR (StaticAdm V) dec id r ms r') (hs : StaticR V r)
+theorem stepR_static {V : GSet w64} {dec : CCDec} {id : w64} {B : Int} {r : RState}
+    {ms : List Msg} {r' : RState} (h : StepR (StaticAdm V) dec id B r ms r') (hs : StaticR V r)
     (hv : RoleVoter id V r) :
-    StepC (CfgM.simple V ∅) id r.p ms r'.p ∧ StaticR V r' ∧ RoleVoter id V r' := by
+    StepC (CfgM.simple V ∅) id B r.p ms r'.p ∧ StaticR V r' ∧ RoleVoter id V r' := by
   induction h with
   | refl r => exact ⟨.refl _, hs, hv⟩
   | trans _ _ _ _ _ _ _ ih1 ih2 =>

@@ -327,7 +327,7 @@ single voter. (Until 2026-10-14 also `stepLeader.specS`, at a simple configurati
 caller.) -/
 abbrev stepLeader.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (k0 : Nat),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
@@ -369,10 +369,14 @@ abbrev stepLeader.spec : Prop :=
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-10-13) and its conf-change entries' bytes, which decode
-      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) }}
+      "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗
+      -- (2026-10-18, D19b stage 5) a time receipt, raised by one per entry of an appended
+      -- proposal (`appendEntry`'s)
+      "#Hrc" ∷ ⧖ k0 }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
+      (⌜m.Type' = MsgProp ∧ dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
       ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}

@@ -39,7 +39,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
 variable [FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### Protocol facts the code needs
 
@@ -1633,7 +1633,7 @@ end ghost
 
 section lemmas
 variable [FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- No read credit (2026-10-13). -/
 theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
@@ -1642,41 +1642,42 @@ theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
 
 /-- Taking a step that consumes a single known message, with its read credit (2026-10-13:
 one for a `MsgReadIndex`) and (2026-10-14, stage R) a later credit. -/
-theorem ownRaftGhost_step_1c (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
-    (s' : PState) :
-    Step γ.reCfg id s [m] s' →
-    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗ £ 1 -∗
+theorem ownRaftGhost_step_1c (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64) (s : PState)
+    (m : Msg) (s' : PState) :
+    Step γ.reCfg id B s [m] s' →
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗ £ 1 -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
   intro Hstep
-  iintro #Hm Hcr Hlc Hown
-  iapply ownRaftGhost_step γ id s [m] s' Hstep $$ [] Hcr Hlc Hown
+  iintro #Hrc #Hm Hcr Hlc Hown
+  iapply ownRaftGhost_step γ id B HB s [m] s' Hstep $$ Hrc [] Hcr Hlc Hown
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
   iexact Hm
 
 /-- Taking a step that consumes a single known message other than a `MsgReadIndex`. -/
-theorem ownRaftGhost_step_1 (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
-    (s' : PState) :
+theorem ownRaftGhost_step_1 (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64) (s : PState)
+    (m : Msg) (s' : PState) :
     m.ty ≠ .readIndex →
-    Step γ.reCfg id s [m] s' →
-    ⊢ isMessage (GF := GF) γ m -∗ £ 1 -∗
+    Step γ.reCfg id B s [m] s' →
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ £ 1 -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
   intro Hty Hstep
-  iintro #Hm Hlc Hown
+  iintro #Hrc #Hm Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step_1c γ id s m s' Hstep $$ Hm [Hcr] Hlc Hown
+  iapply ownRaftGhost_step_1c γ id B HB s m s' Hstep $$ Hrc Hm [Hcr] Hlc Hown
   rw [rdCount_singleton, ite_eq_right Hty]
   iexact Hcr
 
 /-- Taking a step that consumes nothing. -/
-theorem ownRaftGhost_step_0 (γ : RaftNames) (id : w64) (s s' : PState) :
-    Step γ.reCfg id s [] s' →
-    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id s' := by
+theorem ownRaftGhost_step_0 (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64)
+    (s s' : PState) :
+    Step γ.reCfg id B s [] s' →
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id s' := by
   intro Hstep
-  iintro Hlc Hown
+  iintro #Hrc Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step γ id s [] s' Hstep $$ [] [Hcr] Hlc Hown
+  iapply ownRaftGhost_step γ id B HB s [] s' Hstep $$ Hrc [] [Hcr] Hlc Hown
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
@@ -1690,8 +1691,8 @@ Every rule of `Step` keeps `commit` or raises it: `plogCommitTo` (`appAccept`,
 it to carry a queued `MsgStorageApplyResp`'s "its entries are committed" across the
 steps before it. (Until 2026-10-09 `PstepCommitMono`, a premise of `Advance`'s spec.) -/
 
-theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
-    {recv : List Msg} {ps' : PState} (H : Step cfg id ps recv ps') :
+theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {B : Int} {ps : PState}
+    {recv : List Msg} {ps' : PState} (H : Step cfg id B ps recv ps') :
     uint.Z ps.commit ≤ uint.Z ps'.commit := by
   induction H with
   | refl => exact Int.le_refl _

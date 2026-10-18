@@ -246,17 +246,13 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
 instance rnEnvOk_persistent (E : RNEnv GF) (γ : RNNames) : Persistent (rnEnvOk E γ) := by
   unfold rnEnvOk; infer_instance
 
-/-- **The run's premise on raft's `Ready`s** (persistent; a trust-boundary premise, D10): every
-`Ready`'s entries fit `MemoryStorage.Append`'s index bound (raft's node layer cannot establish it
-for the unstable entries it hands out; the register checks it in Go, etcd does not), and the
-committed index it hands out has a successor (the next index fits a `uint64`: what the server's
-`srvIdxOk` carries for the delivered log). -/
+/-- **The run's premise on raft's `Ready`s** (pure since 2026-10-18, D19b stage 5; until then a
+trust-boundary premise on every `Ready`, D10): the time-receipt bound past the bootstrap log fits
+`MemoryStorage.Append`'s index bound. Every index a `Ready` hands out is within the node's log
+(`readyIdx`), whose last index has a record keeping a time receipt (`lastRec_receipt`), so the
+entries fit `Append` (`rnFits`) and the committed index handed out has a successor. -/
 def rnLogFits (γ : RNNames) : IProp GF :=
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  iprop(□ ∀ (rd : Ready) (d ce es : List EntryM) (ms : List QMsg),
-    readyData γ.node rd d ce es ms -∗
-      ⌜rnFits (es.map EntryModel.ofM) ∧ (d ++ ce).length + 1 < 2 ^ 64⌝ ∗
-      readyData γ.node rd d ce es ms)
+  iprop(⌜receiptBound GF + γ.node.raft.reBoot.length ≤ 2 ^ 61⌝)
 
 instance rnLogFits_persistent (γ : RNNames) : Persistent (rnLogFits (GF := GF) γ) := by
   unfold rnLogFits; infer_instance
@@ -489,10 +485,27 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   subst Heq
   iunfold rnLogFits at Hfits
-  ihave ⟨%Hfit, Hdata⟩ := Hfits $$ %rd %(rnLogOf γ L) %ce %es %ms Hdata
+  icases Hfits with %Hrb
   iunfold readyData at Hdata
   icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, -, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
-    #Hss, %Hsnap⟩
+    #Hss, %Hsnap, #Hri⟩
+  -- (2026-10-18, D19b stage 5) the indices handed out, bounded by the receipt of the log's last
+  iunfold readyIdx at Hri
+  icases Hri with ⟨%Lx, #Hlr, %Hix⟩
+  imod lastRec_receipt γ.node.raft Lx $$ Hlr with #Hrc
+  ihave %Hlt := preceipt_lt (GF := GF) _ $$ Hrc
+  have Hfit : rnFits (es.map EntryModel.ofM) ∧ ((rnLogOf γ L) ++ ce).length + 1 < 2 ^ 64 := by
+    obtain ⟨_, Hes0, Hd⟩ := Hix
+    refine ⟨fun e0 He0 => ?_, by omega⟩
+    rw [List.head?_map] at He0
+    cases Hh : es.head? with
+    | none => rw [Hh] at He0; cases He0
+    | some x =>
+      rw [Hh] at He0; cases He0
+      have := Hes0 x Hh
+      simp only [List.length_map]
+      show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 61
+      omega
   icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
   icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
   imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs

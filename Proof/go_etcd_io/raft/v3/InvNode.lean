@@ -537,7 +537,9 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (∃ h : HardStateM, hsOpt rd.HardState' h) ∗
     -- (2026-10-16, stage R7a, D10) the soft state: `nil`, or `Lead`/`RaftState` read-only
     softStateRO rd.SoftState' ∗
-    ⌜rd.Snapshot' = null⌝)
+    ⌜rd.Snapshot' = null⌝ ∗
+    -- (2026-10-18, D19b stage 5) the indices handed out are within the log (`readyIdx`)
+    readyIdx γ.raft d ce es)
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. -/

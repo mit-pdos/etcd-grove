@@ -65,7 +65,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -145,7 +145,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the replication path
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (.inr (.inr (.inr (.inl Hty)))) Hrole
+    imod (preceipt_zero (GF := GF)) with #Hrc00
+    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (.inr (.inr (.inr (.inl Hty)))) Hrole
         (fun _ => Hfnz)
         (fun Hc => by
           rcases Hc with Hc | ⟨-, Hc⟩
@@ -156,12 +157,12 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ hr => Hack Hrole Hteq hr)
-      $$ [$Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', ⟨recv, Hrecv, Hstep⟩, Hft⟩ :=
-      leader_appresp_step c id s m ents ents dropped s' Hrole Hty Hto Hteq Hwf Hres
+      leader_appresp_step (B := B) c id s m ents ents dropped s' Hrole Hty Hto Hteq Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

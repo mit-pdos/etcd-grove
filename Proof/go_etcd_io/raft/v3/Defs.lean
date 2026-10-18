@@ -243,7 +243,7 @@ def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
 end msgs
 
 section msgs_ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-- What a message other than a heartbeat or its response carries as a protocol message
 does not depend on its `Context` (2026-10-12; a heartbeat's is a read-index position): the

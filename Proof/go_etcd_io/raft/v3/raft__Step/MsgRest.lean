@@ -117,7 +117,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)
     (Hr : s.role = .leader) (Hwf : NStateWf s)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
-    dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
+    dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hnp : m.Type' ≠ MsgProp := by rcases Hty with h | h | h | h | h <;> rw [h] <;> w32_ne
   unfold LeaderStepResultC at H
@@ -230,16 +230,17 @@ set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a leader: `leaderStepResult_rest`. -/
 local macro "local_leader" : tactic => `(tactic| (
   wp_gets
-  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs (by simp [Hty]) Hrole
+  imod (preceipt_zero (GF := GF)) with #Hrc00
+  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by simp [Hty]) Hrole
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, %Hres, Herrn⟩
-  · iframe Hphys
+    $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
+  · iframe Hphys Hrc00
     rw [if_neg (by rw [Hty]; w32_ne)]
     iframe Hm
     ity_other
   obtain ⟨rfl, Hwf', Hst, Hl, Ht, Hpv, Hg⟩ :=
-    leaderStepResult_rest _ _ _ _ _ _ _ _ Hty5 Hrole Hwf Hres
+    leaderStepResult_rest (B := B) _ _ _ _ _ _ _ _ Hty5 Hrole Hwf Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
@@ -289,7 +290,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
   obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
-  have HCD := stepCD_hup (m := m) Hok Hnw Hlogf
+  have HCD := stepCD_hup (B := B) (m := m) Hok Hnw Hlogf
   obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
@@ -323,7 +324,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = stepdownMsg id m) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -403,7 +404,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = stepdownMsg id m) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -555,7 +556,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = stepdownMsg id m) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -636,7 +637,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rw [if_neg (by rw [Hty]; w32_ne)]
       iexact Hm
     obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
-    have HCD := stepCD_hup (m := m) Hok Hnwm Hlogf
+    have HCD := stepCD_hup (B := B) (m := m) Hok Hnwm Hlogf
     obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn

@@ -797,7 +797,7 @@ theorem node.run.wp_proof
     icases ownRawNodeReady_softStateRO γ.raft nv.rn' id rs rdv' ce es ms false $$ Hrn
       with ⟨#Hss, Hrn⟩
     -- the append right goes with the `Ready`, and `rof` records it
-    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr⟩
+    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver
     imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce } ce rfl rfl rfl rfl $$ Hcfg
       with ⟨Hcfg, #Hdlb⟩
@@ -811,7 +811,7 @@ theorem node.run.wp_proof
       iexists rs.delivered, ce, es, ms
       iframe Hdlv Hr1 Hdlb
       unfold readyData
-      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Hrsts Hhd Hss
+      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Hrsts Hhd Hss Hri
       isplitl [Happ]
       · rw [← Hstor]
         iexact Happ

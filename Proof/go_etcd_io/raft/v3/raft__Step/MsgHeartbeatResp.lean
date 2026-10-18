@@ -64,7 +64,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ cx recv, (cx = [] ∨ cx = ctx) ∧
             (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents cx) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by

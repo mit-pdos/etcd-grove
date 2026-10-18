@@ -58,7 +58,7 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
-            StepCD c id m s recv s'⌝ ∗
+            StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗

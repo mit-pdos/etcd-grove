@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Spec.google_golang_org.protobuf.proto.CloneEntry
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -151,8 +152,8 @@ theorem raft.appendEntry.wp_proof
     (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro c r id s es ents dq Hsmall Hnz
-  wp_start as ⟨Hphys, Hes⟩
+  intro c r id s es ents dq m Hsmall Hnz
+  wp_start as ⟨Hphys, Hes, #Hrc⟩
   wp_auto
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
@@ -176,7 +177,9 @@ theorem raft.appendEntry.wp_proof
       "Hiraft" ∷ iraft ↦ k ∗
       "Hcl" ∷ cl ↦* (lc ++ List.replicate (ents.length - sint.nat n) (zero_val Loc)) ∗
       "#Hcls" ∷ ([∗list] l;e ∈ lc;(ents.mapIdx (stamp s.term li)).take (sint.nat n), entRO l e) ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int) ∧ lc.length = sint.nat n⌝)
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int) ∧ lc.length = sint.nat n⌝ ∗
+      -- (2026-10-18, D19b stage 5) one receipt raised per entry cloned
+      "#Hrc" ∷ ⧖ (m + sint.nat n))
     $$ [i Hiraft Hcl]
   · iexists W64 0, _, []
     iframe i Hiraft
@@ -185,7 +188,9 @@ theorem raft.appendEntry.wp_proof
     iframe Hcl
     isplitr
     · iapply BigSepL2.bigSepL2_nil.2; itrivial
-    ipureintro; refine ⟨by word, by word, rfl⟩
+    isplitr
+    · ipureintro; refine ⟨by word, by word, rfl⟩
+    iexact Hrc
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat n < ents.length := by word
@@ -206,8 +211,10 @@ theorem raft.appendEntry.wp_proof
     · iframe; ipureintro; exact Hle
     try wp_auto
     simp only [Hbnd', _root_.and_self, ↓reduceIte]
-    wp_apply wp_load_slice_index es (sint.Z n) _ dq le Hn.1 $$ [Hes] as Hes
+    wp_apply +noauto wp_load_slice_index es (sint.Z n) _ dq le Hn.1 $$ [Hes] as Hes
     · iframe; ipureintro; exact Hle
+    -- (2026-10-18, D19b stage 5) the receipt of this entry: `proto.Clone`'s resolution
+    wp_raise_receipt Hrc
     try wp_auto
     wp_apply wp_CloneEntry le DFrac.discard e $$ [$Hle] as %l' ⟨-, Hl'⟩
     try wp_auto
@@ -264,8 +271,10 @@ theorem raft.appendEntry.wp_proof
     isplitr
     · iapply BigSepL2.bigSepL2_snoc.2
       iframe Hcls Hl'
-    ipureintro
-    refine ⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩
+    isplitr
+    · ipureintro
+      refine ⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩
+    iexact Hrc
   · -- the loop is done: every entry is cloned and stamped
     have Hnn : (sint.nat n : Int) = sint.Z n := Int.toNat_of_nonneg Hn.1
     have Hesn : (sint.nat es.len : Int) = sint.Z es.len := Int.toNat_of_nonneg Hlen.2
@@ -294,6 +303,8 @@ theorem raft.appendEntry.wp_proof
       iapply HΦ
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
+      isplitr
+      · iexact Hrc
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     wp_apply wp_traceReplicate
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -376,6 +387,8 @@ theorem raft.appendEntry.wp_proof
     iapply HΦ
     simp only [↓reduceIte]
     iframe
+    isplitr
+    · iexact Hrc
     ipureintro; exact fun _ => trivial
 
 end proof
