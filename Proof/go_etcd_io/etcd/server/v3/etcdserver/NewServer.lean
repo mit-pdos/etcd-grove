@@ -864,13 +864,13 @@ theorem NewServer.wp_proof
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
       cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs]
-  · unfold srvServeBuilt srvServeCfg srvBemuReader srvLeadTimeReader
+  · unfold srvServeBuilt srvServeFacts srvServeCfg srvBemuReader srvLeadTimeReader
     isplitr
-    · iexists ws, γw
-      iframe #
-      ipureintro; rfl
-    isplitr
-    · iframe #
+    · isplitr
+      · iexists ws, γw
+        iframe #
+        ipureintro; rfl
+      · iframe #
     iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs
   imodintro
   iapply HΦ
