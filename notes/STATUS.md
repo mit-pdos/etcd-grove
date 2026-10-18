@@ -6902,8 +6902,12 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     - Premises of the end to end beyond `New`'s and `isClientWatcher`'s: the KV's (`Range`'s
       registration, `isServerRead`, `sortNamesOk`, `kvAnyAu E γr`), and the client's field
       points-to's (`clientKVAddr`, `clientWatcherAddr`), as `queue_end_to_end_client`.
-    - **Next** (not started): from `clientv3.New`'s result (`isNewClient`, D19f) instead of
-      the field premises; the program-level theorem (a server started, a client, a cache).
+    - *From `clientv3.New`'s result* (2026-10-18): `isEtcdClient_of_new` (`CacheClient.lean`):
+      `isNewClient cl ep V` (D19f) with the watch server's facts at `ep` (`watchAddrFacts V`,
+      `isNewClient_watcher`) and the KV's premises at `ep` gives `isEtcdClient`; the end to end
+      `cache_end_to_end_new` (cache/v3/Results.lean) takes it instead of the field premises.
+    - **Next** (not started): the program-level theorem (a server started, `clientv3.New`, the
+      cache's `New`), as the adequacy example's (item 9).
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
