@@ -1,0 +1,5 @@
+=== RUN   TestReviewRestoredBackendStaleConfState
+    review_restore_confstate_test.go:54: raft starts with voters [10 20]
+--- PASS: TestReviewRestoredBackendStaleConfState (0.03s)
+PASS
+ok  	go.etcd.io/etcd/server/v3/etcdserver	0.058s

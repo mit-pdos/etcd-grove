@@ -21,6 +21,8 @@ a scratch checkout with the other `server/etcdserver/*_test.go` files deleted. G
 | `bootstrap_restart_helper_pr_test.go` | `bootstrapStorageForTest`: `bootstrapBackend(cfg)` + `bootstrapWALFromBackend` + `MemoryStorage()` | PR head (copy as `bootstrap_restart_helper_test.go`) |
 | `bootstrap_restart_helper_base_test.go` | the same with `bootstrapBackend(cfg, true, ss)` + `bootstrapWALFromSnapshot` | PR base (copy as `bootstrap_restart_helper_test.go`) |
 | `pr-head.log`, `pr-base.log` | the three tests: all fail at the PR head (raft panics `state.commit 10 is out of range [3, 3]`, `state.commit 5 is out of range [8, 10]`, `missing log entry [last: 0, append at: 4]`), all pass at the base | |
+| `restore_confstate_test.go` (the reviewer's) | `TestReviewRestoredBackendStaleConfState`: a backend restored by `etcdutl snapshot restore` with new member ids (members trimmed, the meta `confState` key left as the source cluster's) and a WAL adding the new members: raft must start with the new members as voters. Needs `bootstrap_restart_test.go` and its helper | PR head, PR base |
+| `restore-pr-head.log`, `restore-pr-base.log` | PR head: voters `[1 2]`, the source cluster's (fails); base: `[10 20]` (passes) | |
 | `fork/bootstrap_restart_test.go` | the first two tests over the fork's protobuf-go v2 `raftpb`/`walpb` (no v2 `.snap` file: at this revision bootstrap reads the WAL's snapshot record) | fork PR, fork base |
 | `fork/bootstrap_restart_helper_forkpr_test.go`, `fork/bootstrap_restart_helper_forkbase_test.go` | the helpers at the fork PR and fork base | fork PR, fork base |
 | `fork/fork-pr.log`, `fork/fork-base.log` | both fail on the verified code (same panics), both pass on the fork base. (The third test does not apply to the fork's `bootstrap`, which overrides the conf state from the v3 store before `MemoryStorage`; the helper bypasses that.) | |
@@ -34,6 +36,8 @@ rm <dir>/server/etcdserver/*_test.go
 cp bootstrap_restart_test.go <dir>/server/etcdserver/
 cp bootstrap_restart_helper_<rev>_test.go <dir>/server/etcdserver/bootstrap_restart_helper_test.go
 cd <dir>/server/etcdserver && GOTOOLCHAIN=go1.24.3 go test -count=1 -run TestRestart -v .
+# the restore test, in addition:
+cp restore_confstate_test.go <dir>/server/etcdserver/ && (cd <dir>/server/etcdserver && GOTOOLCHAIN=go1.24.3 go test -count=1 -run TestReview -v .)
 ```
 
 Fork (`<rev>` is `forkpr` or `forkbase`; the package's own tests compile there):

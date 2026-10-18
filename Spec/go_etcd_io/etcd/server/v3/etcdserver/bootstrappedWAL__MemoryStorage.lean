@@ -13,7 +13,8 @@ latest snapshot record, `wal.snapshot`, applied as is.)
 snapshot's `pos.Index`, or `0` without a conf state). This is what `Append` needs not to panic on a
 gap (`"missing log entry"`) nor drop entries, and what `WAL.ReadAll` guarantees of the entries it
 returns after the position it was opened at (its `ErrSliceOutOfRange` check). The last index is
-below `2^61` (raft's storage bound; `Append`'s premise) and so is `pos.Index` (`ApplySnapshot`'s).
+below `2^61` (raft's storage bound; `Append`'s premise; not checked by `ReadAll`: an assumption
+on the WAL's contents) and so is `pos.Index` (`ApplySnapshot`'s).
 The conf state, when set, is owned (`ApplySnapshot` takes the snapshot, and with it the conf state
 the snapshot points at, at full ownership: `EnsureSnapshot` may fill its nil fields); the hard
 state is `nil` or read-only (`hsOpt`), the entries read-only log entries (`entsPts`, as `Append`

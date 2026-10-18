@@ -15,7 +15,8 @@ translated names-only): it returns the WAL, its last hard state (`nil` or read-o
 after the position and the WAL's metadata. `EntsAfter i p`: the `k`-th entry is at index
 `i + 1 + k`, what `ReadAll`'s `ErrSliceOutOfRange` check ensures of the entries it returns after the
 position it was opened at (an entry past the next index is an error, an earlier one overwrites the
-tail: `ents = append(ents[:offset], e)`); and the last is below `2^61` (raft's storage bound).
+tail: `ents = append(ents[:offset], e)`); and the last is below `2^61` (raft's storage bound) --
+**not** checked by `ReadAll`: an assumption on the WAL's contents, as raft's own bound is.
 -/
 module
 

@@ -1,0 +1,12 @@
+        	            	
+        	            	listB:
+        	            	([]uint64) (len=2) {
+        	            	 (uint64) 1,
+        	            	 (uint64) 2
+        	            	}
+        	Test:       	TestReviewRestoredBackendStaleConfState
+        	Messages:   	raft starts with the source cluster's voters
+--- FAIL: TestReviewRestoredBackendStaleConfState (0.04s)
+FAIL
+FAIL	go.etcd.io/etcd/server/v3/etcdserver	0.062s
+FAIL
