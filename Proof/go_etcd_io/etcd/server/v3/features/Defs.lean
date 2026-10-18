@@ -10,6 +10,8 @@ contract), as the server's proofs see it. Lean-first (no Rocq counterpart).
   `notes/STATUS.md`, "Item 9, point 7".) The server asks only for registered features
   (`StopGRPCServiceOnDefrag`, `TxnModeWriteWithSharedBuffer`, `LeaseCheckpoint`,
   `LeaseCheckpointPersist`, `PriorityRequest` on the verified paths).
+* `featureIs fg f b`: `fg`'s `Enabled(f)` returns `b` (audit B4a: `CompactHashCheck` off, for
+  `EtcdServer.monitorCompactHash`).
 
 Moved from `etcdserver/InvProposer.lean` (2026-10-18) so that `features.NewDefaultServerFeatureGate`'s
 spec states it without importing the server's proofs.
@@ -51,6 +53,18 @@ def isFeatureGate (fg : GoInterface) : IProp GF :=
 
 instance isFeatureGate_persistent (fg : GoInterface) : Persistent (isFeatureGate (GF := GF) fg) := by
   unfold isFeatureGate; infer_instance
+
+/-- **`fg`'s `Enabled(f)` answers `b`** (persistent; audit B4a, 2026-10-18): a fact of the feature
+gate `NewDefaultServerFeatureGate` returns, for a feature whose default it is (no feature is set
+in the program). `EtcdServer.monitorCompactHash`'s contract takes it of `CompactHashCheck` (off by
+default), under which the monitor returns at once. -/
+def featureIs (fg : GoInterface) (f : GoString) (b : Bool) : IProp GF :=
+  iprop(∃ fi : GoInterfaceOk, ⌜fg = GoInterface.ok fi⌝ ∗
+    □ ({{ True }} (App (Val #(methods fi.ty go!"Enabled" fi.v)) (Val #f)) {{ RET #b; True }}))
+
+instance featureIs_persistent (fg : GoInterface) (f : GoString) (b : Bool) :
+    Persistent (featureIs (GF := GF) fg f b) := by
+  unfold featureIs; infer_instance
 
 end defs
 

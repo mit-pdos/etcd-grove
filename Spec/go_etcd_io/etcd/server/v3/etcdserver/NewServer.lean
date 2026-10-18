@@ -63,6 +63,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 
 @[expose] public section
 
@@ -157,7 +158,10 @@ abbrev NewServer.spec : Prop :=
           -- watchable store, the progress interval's field, and the request slots
           srvServeBuilt srv E cfg 64 ∗
           -- (D19i part 2) the storage version monitor's backend access
-          srvSVRes srv E.γ }}
+          srvSVRes srv E.γ ∗
+          -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
+          -- `monitorDowngrade`'s `lgMu` reader slot
+          srvMonitorCfg srv cfg }}
 
 end spec
 

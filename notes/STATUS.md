@@ -46,6 +46,26 @@ system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean
 module system").
 
 
+## Audit B4a: four false etcd-internal axioms restated, four stopped (D19m) (2026-10-18, branch `raft-retarget`)
+
+Audit phase B4, part a (approved by the user): the eight false etcd-internal axioms putget's Go
+run does not reach (`notes/audit.md`; `notes/decisions.md`, D19m).
+
+* **Restated, true of the Go code at the pin** (still names-only axioms; no axiom added or
+  removed): `monitorKVHash`, `monitorCompactHash`, `monitorDowngrade` take the configuration
+  that turns them off (`CorruptCheckTime`/`DowngradeCheckTime` `↦□ 0`; the feature gate's new
+  persistent `featureIs fg "CompactHashCheck" false`, which `NewDefaultServerFeatureGate`'s spec
+  now returns; `monitorDowngrade` also an `lgMu` slot for its `Logger()`), threaded as
+  `NewServer`'s new post `srvMonitorCfg s cfg` and `Start`'s new pre `srvMonitorsOff s ∗
+  srvLgReader s` (`srvMonitorsOff_of`, `InvMonitors.lean`: Main's proof gives it from putget's
+  configuration); `RaftCluster.SetVersionChangedNotifier` takes `c.versionChanged` owned
+  (`bootOk`'s new `Hvcn`; the cluster's apply contract `Hisc` takes the field read-only after).
+* **Stopped for a decision (D19m)**: `revokeExpiredLeases` (no lease exists in the model but
+  `expiredC`'s bag says nothing; recommended: the lessor's granted set), `Cleanup` (`run`'s exits
+  reachable in the model; recommended: the exits dead), `createMergedSnapshotMessage` (no `MsgSnap`
+  in a single-member cluster, unproved; recommended: raft's messages addressed to other voters),
+  `mvcc.store.Close` (needs the stop token `NewStore` gives up; recommended: `NewStore` returns it).
+
 ## `raftRequestAlarm`: stopped (D19k) (2026-10-18, branch `raft-retarget`)
 
 D19h's last step (approved by the user). The goal was to show `applyEntryNormal`'s `ErrNoSpace`

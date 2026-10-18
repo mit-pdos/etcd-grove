@@ -9285,6 +9285,97 @@ In Go each `errors.New` allocates a fresh `errorString`. D19h's "a lemma that no
 statement as the existing `<X>_init` axioms, made more exact about the Go line they describe.
 **Adopted by the user (2026-10-18): (A), to start once D19j (`watchVars`, `gen-init.py`) lands.**
 
+## Audit B4a: the false etcd-internal axioms putget does not reach (D19m, 2026-10-18)
+
+**2026-10-18 · four restated (taken: each true of the Go code at the pin), four stopped for a
+decision (proposed).** Audit phase B4, part a (`notes/audit.md`): the eight false etcd-internal
+axioms off putget's Go path.
+
+- **Taken: the hash and downgrade monitors restricted to the configuration that turns them off.**
+  `monitorKVHash` (`CorruptCheckTime ≠ 0`) and `monitorCompactHash` (`CompactHashCheck` on) would
+  read the backend and may propose `Alarm{CORRUPT}`, which the KV model does not admit (an alarm is
+  not `plainReq`: the same obstacle as `raftRequestAlarm`, D19h/D19k); `monitorDowngrade`
+  (`DowngradeCheckTime ≠ 0`) may propose `DowngradeInfoSet`, which no permit covers. Giving them
+  resources would need those requests in the model; putget's configuration leaves all three off
+  (zero intervals, the feature at its default `false`), so each contract now takes the fact under
+  which the body returns at once: the interval's field `↦□ 0`, or the feature gate's
+  `featureIs fg "CompactHashCheck" false` (a new persistent contract of the gate,
+  `features/Defs.lean`, which `NewDefaultServerFeatureGate`'s trust-boundary spec now also
+  returns: the gate is not shared and nothing sets a feature, the argument its spec already made
+  for `isFeatureGate`); `monitorDowngrade` also a reader slot of `lgMu` and the logger field
+  (`NewMonitor(s.Logger(), …)` comes before the check). Threading: `NewServer`'s post gains
+  `srvMonitorCfg s cfg` (the two fields and the gate field at `cfg`'s values, one more `lgMu`
+  slot); `Start`'s pre gains `srvMonitorsOff s ∗ srvLgReader s`, which `srvMonitorsOff_of` gives
+  from `srvMonitorCfg` for a configuration with both intervals `0` and the gate's `featureIs`
+  (`InvMonitors.lean`; Main's proof, still to come, discharges it from putget's literal and
+  `NewDefaultServerFeatureGate`). Rejected: a pure premise on `cfg` alone (the feature's answer is
+  the gate's, not the configuration's); keeping the monitors' contracts unrestricted with a
+  workload premise "no corruption, no downgrade" (a premise where a configuration fact does).
+- **Taken: `RaftCluster.SetVersionChangedNotifier` with the field owned.** It writes
+  `c.versionChanged` without the lock; the contract takes the field's points-to and returns it at
+  `n`. `bootstrap`'s contract (`bootOk`, a premise, D13b) gives the field owned (`Hvcn`: the
+  cluster is not yet shared; fresh, D19a), `NewServer` persists it after the call, and the
+  cluster's apply contract `Hisc` (whose `SetVersion` reads the field under the lock) now takes
+  the read-only field as a premise, so a model of `bootstrap` can prove both (`SetVersion`'s own
+  truth, its notifier's `Notify` among it, stays that contract's row).
+- **Stopped: `EtcdServer.revokeExpiredLeases`.** For a non-empty slice its goroutine proposes
+  `LeaseRevoke`, which the KV model does not admit (`plainReq` excludes `leaseRevoke`; a revoke
+  deletes the lease's keys); even an empty slice calls `ensureLeadership` (the read loop's
+  `LinearizableReadNotify`, `raftStatus`, the tick mutex). `run`'s proof passes it whatever
+  `expiredC` delivers (a bag with predicate `True`, `lessorOk`). In the model no lease ever
+  exists (`plainReq` excludes `leaseGrant` and puts with a lease, the lease bucket is fresh:
+  `bootOk`'s `bkFresh "lease"`), and in Go the lessor sends only non-empty slices of its expired
+  leases, so the receive is dead -- but nothing says so. Options: *(A)* the lessor's map in the
+  model: `NewLessor`'s contract (names-only `runLoop`) gives `expiredC` the predicate "a lease
+  this lessor granted", `Grant`'s spec records the lease in a ghost set the KV invariant keeps
+  empty (no committed `LeaseGrant`), so `run`'s receive yields `False` and the axiom leaves the
+  link (as `Alarm` in B3); cost: the lessor's grant path and `kvInv`'s side, moderate. *(B)* A
+  named workload premise "no lease expires" (D19a's first kind, as `backendUnderQuota`), under
+  which `NewLessor`'s contract gives the bag `False`; cheap, but a premise where the model could
+  prove it. *(C)* Leases in the KV model (`LeaseGrant`/`LeaseRevoke` as requests, the revoke's
+  deletes): large. *Recommendation:* (A).
+- **Stopped: `EtcdServer.Cleanup`.** It closes the KV, the auth store and the backend (bbolt
+  closed) under `bemu`'s write lock after `s.wg.Wait()`, but request goroutines (not in `s.wg`)
+  keep persistent views of all three. Reached in the model on `run`'s two exits (`<-s.stop`,
+  `<-s.errorc`, bags with predicate `True`), not in putget's Go run (nothing stops the server).
+  Options: *(A)* the exits dead: `s.stop`'s and `s.errorc`'s bags with predicate `False` in the
+  runs covered (nobody calls `Stop`/`HardStop`: a fact of Main's proof; `errorc`'s senders --
+  `stopWithDelay` on the member's removal, which `ccApplyOk` excludes, and the raft loop's
+  fatal errors -- each shown not to send), `run`'s shutdown proof gone with `Cleanup`'s and
+  `raftNode.stop`'s axioms from the link; cost: the senders' contracts. *(B)* A "server open"
+  fractional token every request path holds and gives back, `Cleanup` taking the whole (the
+  backend's `bOpen` shares, the store's closer, the auth store's): faithful for a server that
+  stops, but the token threads through every request spec. *(C)* Closed states in the backend's
+  and the stores' models (operations after `Close` return errors): largest. *Recommendation:* (A)
+  for the closed theorem, (B) when a stopping server is in scope.
+- **Stopped: `EtcdServer.createMergedSnapshotMessage`.** It commits the KV, takes a backend
+  snapshot (a bbolt read transaction a goroutine streams), clones `*confState` and writes
+  `m.Snapshot`, a message raft hands out read-only (`rnMsgOk`: `msgAt`, persistent). Reached in
+  the model whenever `msgSnapC` delivers, never in a single-member cluster (raft sends `MsgSnap`
+  only to a follower). Options: *(A)* the receive dead: raft's messages carry `to ≠ self` among
+  the configuration's voters (`rnMsgOk`), the configuration stays `{self}` (`ccApplyOk` adds only
+  members of it), so `msgSnapC` carries nothing; cost: a raft-side fact on `Ready`'s messages
+  and the configuration's invariance through the server. *(B)* Its resources: the message owned
+  through `msgSnapC`'s bag (raft's message ownership, `processMessages`), a backend snapshot
+  model, the conf state's read: large, and only for multi-member clusters. *(C)* A premise "no
+  `MsgSnap`" on the run. *Recommendation:* (A).
+- **Stopped: `mvcc.store.Close`.** It stops the FIFO scheduler, but `isStore` (persistent) holds
+  `schedLive` (the stop token given up for good, `NewStore`), so the triple lets a holder of
+  `isStore` compact after `Close`, where Go's `Schedule` panics. Reached only on `NewServer`'s
+  error paths after `mvcc.New` (`restoreAlarms`, `tr.Start()` failing), where in Go nothing
+  schedules afterwards. Any true contract of `Close` needs the stop token, which `NewStore`
+  gives up (its `restore` may itself schedule a compaction). Options: *(A)* a fractional
+  "store open" token: `NewStore` keeps the stop token in an invariant with it, untracked
+  `Schedule` (the store's `compact`, `updateCompactRev`, `compactBarrier`) takes a share,
+  `Close` the whole; the apply thread holds a share for good; cost: mvcc's compaction specs and
+  their callers. *(B)* `NewServer`'s late error paths dead: `restoreAlarms` and
+  `rafthttp.Transport.Start` without errors on putget's configuration (a fresh alarm bucket, no
+  TLS), and `Close`'s contract taking the stop token (vacuous after `NewStore`); cost: two
+  trust-boundary contracts narrowed, premises on the configuration. *(C)* `NewStore` returns the
+  stop token and the caller gives it up (`schedLive_of_stopTok`) on success, `Close` on error;
+  needs `restore`'s scheduled compaction excluded (a fresh backend: none scheduled).
+  *Recommendation:* (C), with `restore`'s case from the fresh backend `bootOk` gives.
+
 ## Proof/Lib: facts that belong to no Go package (2026-10-18, branch `proof-lib`)
 
 *The decision.* A fact about Perennial's, Iris's or Lean's own definitions -- not about a Go

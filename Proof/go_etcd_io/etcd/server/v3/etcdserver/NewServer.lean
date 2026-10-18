@@ -369,8 +369,10 @@ theorem NewServer.wp_proof
   (try wp_auto)
   wp_apply Hgset
   (try wp_auto)
-  wp_apply h18 $$ []
-  · iframe #
+  -- (audit B4a) the cluster's `versionChanged` field, owned, then read-only
+  wp_apply h18 $$ [Hvcn] as Hvcn
+  · iframe #; iframe Hvcn
+  ipersist Hvcn
   (try wp_auto)
   -- `lgMu`'s readers (`Logger()`)
   ipersist lg
@@ -872,7 +874,13 @@ theorem NewServer.wp_proof
   -- progress interval's field, `lgMu`'s reader slots for request goroutines and the others'
   icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨Hlgs, Hlgrs⟩
   -- (D19i part 2) the storage version monitor's `lgMu` reader slot
-  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgSV, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgSV, Hlgrs⟩
+  -- (audit B4a) `monitorDowngrade`'s `lgMu` reader slot, and the monitors' configuration fields
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgMon, -⟩
+  ipersist CorruptCheckTimeS
+  ipersist DowngradeCheckTimeS
+  ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
+  · iunfold srvMonitorCfg; rw [Hfgi]; iframe #; iframe HlgMon
   ipersist LoggerS
   ipersist MaxTxnOpsS
   ipersist WarningUnaryRequestDurationS
@@ -918,7 +926,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hgap Hserve HSV
+  iframe Hgap Hserve HSV HMon
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   isplitr
@@ -1119,6 +1127,7 @@ theorem NewServer.wp_proof
     · iapply Hisc $$ %γw.st %hook [] Hhook
       · ipureintro; exact Hγw.2.2.1
       · ipureintro; exact Hhknn
+      · iexists _; iexact Hvcn
     isplitr
     · iunfold apply.isRaftStatus
       iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩

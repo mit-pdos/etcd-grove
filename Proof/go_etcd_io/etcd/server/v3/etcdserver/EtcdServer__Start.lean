@@ -60,7 +60,7 @@ theorem EtcdServer.Start.wp_proof
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb
-  wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv⟩
+  wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd⟩
   wp_auto
   wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb $$ [Hb]
     as ⟨%γw, #Hreq, #Hrd, Hst, #Hwp⟩
@@ -154,12 +154,16 @@ theorem EtcdServer.Start.wp_proof
     iapply HΦ'
     try itrivial
   -- `s.monitorKVHash`, `s.monitorCompactHash`, `s.monitorDowngrade`
+  -- (audit B4a) off: `srvMonitorsOff`
+  iunfold srvMonitorsOff at Hoff
+  icases Hoff with ⟨#Hcct, #Hdct, %fg, #Hfgf, #Hfgo⟩
   wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg
     isplitr
     · itrivial
     iintro !> %Φ' - HΦ'
-    wp_apply hKVH s
+    wp_apply hKVH s $$ []
+    · iframe #
     iapply HΦ'
     try itrivial
   wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
@@ -167,15 +171,15 @@ theorem EtcdServer.Start.wp_proof
     isplitr
     · itrivial
     iintro !> %Φ' - HΦ'
-    wp_apply hCH s
+    wp_apply hCH s fg $$ []
+    · iframe #
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
-    isplitr
-    · itrivial
-    iintro !> %Φ' - HΦ'
-    wp_apply hDG s
+  wp_apply hGA s _ (srvLgReader s) $$ [Hgr Hlg Hlgd] as ⟨Hgr, Hlg⟩
+  · iframe Hgr Hlg Hlgd
+    iintro !> %Φ' HL HΦ'
+    wp_apply hDG s vd.lg $$ [HL]
+    · iframe #; iframe HL
     iapply HΦ'
     try itrivial
   iapply HΦ
