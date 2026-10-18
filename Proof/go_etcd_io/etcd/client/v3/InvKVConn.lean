@@ -812,6 +812,20 @@ instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc 
     Persistent (ctxErrClient ci cd) := by
   unfold ctxErrClient; infer_instance
 
+namespace client
+
+/-- **Every context's `Err()` returns client errors** (a premise, persistent; `InvServerKV.lean`'s
+header; moved here from there on 2026-10-18, for the lessor): `ctxErrClient` for every
+`isContext`. -/
+def ctxErrClientAll : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+    context.isContext ctx cs -∗ ctxErrClient ctx cs)
+
+instance ctxErrClientAll_persistent : Persistent (ctxErrClientAll (GF := GF)) := by
+  unfold ctxErrClientAll; infer_instance
+
+end client
+
 /-! ## The objects -/
 
 /-- **The generated stub `kc`** (`*etcdserverpb.kVClient`) on the connection `conn`. -/

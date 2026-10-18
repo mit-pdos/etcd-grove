@@ -80,7 +80,7 @@ theorem clientWatchVars_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, -, -, -, ⟨%ch, %t, %d, #H1, #H2, #H3⟩⟩
+  icases Hi with ⟨-, -, -, -, -, -, ⟨%ch, %t, %d, #H1, #H2, #H3⟩, -⟩
   unfold clientWatchVars
   iexists ch, t, d
   iframe #

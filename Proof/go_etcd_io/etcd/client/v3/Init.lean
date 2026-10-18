@@ -6,7 +6,8 @@ Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, transla
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
 backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
-`maxBackoff`. Its initializer also runs its other untranslated initializers
+`maxBackoff`, and `LeaseResponseChSize` (`lease.go`, untranslated: `16`; the trust-boundary axiom
+`LeaseResponseChSize_init`). Its initializer also runs its other untranslated initializers
 (`opaqueInitsOk`).
 -/
 module
@@ -71,7 +72,6 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([ErrNoAvailableEndpoints.init,
         ErrOldCluster.init,
         ErrMutuallyExclusiveCfg.init,
-        LeaseResponseChSize.init,
         defaultWaitForReady.init,
         defaultMaxCallSendMsgSize.init,
         defaultMaxCallRecvMsgSize.init,
@@ -102,6 +102,11 @@ axiom defaultBackoffWaitBetween_init :
 axiom defaultBackoffJitterFraction_init :
     {{ (True : IProp GF) }} (App (Val defaultBackoffJitterFraction.init) (Val #()))
     {{ RET #(); ∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f }}
+
+/-- `LeaseResponseChSize = 16` (`lease.go`). -/
+axiom LeaseResponseChSize_init :
+    {{ (True : IProp GF) }} (App (Val LeaseResponseChSize.init) (Val #()))
+    {{ RET #(); globalAddr LeaseResponseChSize ↦ (W64 16 : w64) }}
 
 end go_etcd_io.etcd.client.v3
 end opaqueInits
@@ -171,7 +176,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrNoAvailableEndpoints.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrOldCluster.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrMutuallyExclusiveCfg.init (by mem_tac))
-  wp_apply (opaqueInitsOk LeaseResponseChSize.init (by mem_tac))
+  wp_apply LeaseResponseChSize_init as HLeaseResponseChSize
   -- translated initializer of noPrefixEnd))
   wp_apply wp_slice_literal (l := [W8 0])
   isplitr
@@ -202,6 +207,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HvalCtxCh
   ipersist HzeroTime
   ipersist HmaxBackoff
+  ipersist HLeaseResponseChSize
   iframe Hown
   imodintro
   isplitr

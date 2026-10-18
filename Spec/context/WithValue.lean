@@ -7,6 +7,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Code.go_etcd_io.etcd.client.v3
 
 @[expose] public section
 
@@ -27,7 +28,8 @@ variable [package_sem : context.Assumptions]
 /-- `context.WithValue(parent, key, v)`: a context, not nil (a `valueCtx` over `parent`), for a
 key of the auth store's two parameter types (as the backend's `Authenticate` passes),
 `traceutil.StartTimeKey` (2026-10-12: the server's `Put` and `Txn`) or `traceutil.TraceKey{}`
-(2026-10-14, unit P1b: `traceutil.EnsureTrace`); all empty structs,
+(2026-10-14, unit P1b: `traceutil.EnsureTrace`) or clientv3's `keepAliveCtxKey{}` (2026-10-18, item
+1, the client lease: `lessor.KeepAlive`); all empty structs,
 comparable (`WithValue` panics on a nil or incomparable key). A `valueCtx`'s `Deadline`, `Done`
 and `Err` are its parent's, so for any description of the parent (`mvcc.txnCtx`, at a
 descriptor `cd`) the context is described by `cd` with other values; in particular (2026-10-12,
@@ -44,7 +46,8 @@ abbrev context.WithValue.spec : Prop :=
         key.ty = go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty ∨
         key.ty = go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty ∨
         key = ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
-          #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩⌝ }}
+          #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ ∨
+        key.ty = go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty⌝ }}
     (App (App (App (Val (@! context.WithValue)) (Val #(GoInterface.ok parent)))
       (Val #(GoInterface.ok key))) (Val #v))
   {{ (c : GoInterface), RET #c; ⌜c ≠ GoInterface.nil⌝ ∗

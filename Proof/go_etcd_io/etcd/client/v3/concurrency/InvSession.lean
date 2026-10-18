@@ -167,10 +167,11 @@ some value, or the close. -/
 theorem chanAny_recv_au (γ : ChanNames) (ch : Loc) (Φ : Loc → Bool → IProp GF) :
     ⊢ £ 1 ∗ £ 1 -∗ isChanAny γ ch -∗ (▷ ∀ v ok, Φ v ok) -∗ recvAu γ Loc Φ := by
   unfold isChanAny recvAu
-  iintro ⟨Hlc1, Hlc2⟩ ⟨#Hch, #Hinv⟩ HΦ
+  iintro ⟨Hlc1, Hlc2⟩ ⟨#Hch, %γc, #Hinv⟩ HΦ
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑(nroot .@ "etcd_anychan")) $$ Hlc1 Hi with Hi
-  icases Hi with ⟨%s, Hoc0⟩
+  unfold chanAnyInv
+  icases Hi with ⟨%s, Hoc0, Ht⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -182,12 +183,12 @@ theorem chanAny_recv_au (γ : ChanNames) (ch : Loc) (Φ : Loc → Bool → IProp
     iintro Hoc
     imod Hmask with -
     imod Hclose $$ [Hoc] with -
-    · inext; iexists .RcvPending; iexact Hoc
+    · inext; iexists .RcvPending; iframe Hoc
     imodintro
     unfold recvNestedAu
     iinv Hinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑(nroot .@ "etcd_anychan")) $$ Hlc2 Hi with Hi
-    icases Hi with ⟨%s, Hoc1⟩
+    icases Hi with ⟨%s, Hoc1, Ht⟩
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     inext
@@ -199,16 +200,16 @@ theorem chanAny_recv_au (γ : ChanNames) (ch : Loc) (Φ : Loc → Bool → IProp
       | itrivial
       | (iintro Hoc
          imod Hmask with -
-         imod Hclose $$ [Hoc] with -
-         · inext; iexists _; iexact Hoc
+         imod Hclose $$ [Hoc Ht] with -
+         · inext; iexists _; iframe Hoc; try iexact Ht
          imodintro
          iapply HΦ)
   all_goals first
     | itrivial
     | (iintro Hoc
        imod Hmask with -
-       imod Hclose $$ [Hoc] with -
-       · inext; iexists _; iexact Hoc
+       imod Hclose $$ [Hoc Ht] with -
+       · inext; iexists _; iframe Hoc; try iexact Ht
        imodintro
        iapply HΦ)
 

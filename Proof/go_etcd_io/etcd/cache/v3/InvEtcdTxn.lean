@@ -58,7 +58,7 @@ etcd's state at its revision (`readTxnResult`); the STM's reads.
 **Leases** (`isEtcdLease l`, a definition): `Grant` returns an error or a lease ID other than
 `NoLease` with a header revision etcd has reached; `KeepAlive` returns an error, or a channel
 (nil or not) on which a receive yields any response or the close (`isChanAny`: no promise that
-the stream lasts); `Revoke` returns an error or a response whose header revision etcd has
+the stream lasts; the close is the sender's, whose token the caller does not hold); `Revoke` returns an error or a response whose header revision etcd has
 reached. What a lease does to keys (a put with `WithLease(id)` records `id` in the key-value;
 the lease's expiry or revocation deletes them, a step of etcd's history like any other) is not
 stated beyond the put's `lease`: nothing about liveness.
@@ -1138,10 +1138,24 @@ instance isEtcdRangeWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
 /-! ## Leases -/
 
 omit EM in
-/-- A channel of pointers with no promise: a receive yields some value or finds it closed (the
-invariant holds the channel's state, whatever it is). -/
+/-- **The invariant of a channel of pointers whose close is the token `γc`'s holder's**: the
+channel's state, whatever it is, and, once it is closed, the token (`ghostVar γc 1 ()`,
+exclusive). The holder of the token (the sender: the client's lessor) can rule out the closed
+state, so it may send and close; anyone else may only receive (a receive never closes). -/
+def chanAnyInv (γ : ChanNames) (γc : GName) : IProp GF :=
+  iprop(∃ s : ChanState Loc, ownChan γ Loc s ∗
+    match s with
+    | .Closed _ => ghostVar γc 1 ()
+    | _ => iprop(True))
+
+omit EM in
+/-- A channel of pointers with no promise to its receivers: a receive yields some value or finds
+it closed (the invariant `chanAnyInv` holds the channel's state, whatever it is; the right to
+close it is a token, `γc`, which the receivers do not hold: until 2026-10-18 the invariant held
+the state alone, which let anyone close the channel, so no real sender could rule out the closed
+state its sends and close need). -/
 def isChanAny (γ : ChanNames) (ch : Loc) : IProp GF :=
-  iprop(isChan ch γ Loc ∗ inv (nroot .@ "etcd_anychan") (∃ s : ChanState Loc, ownChan γ Loc s))
+  iprop(isChan ch γ Loc ∗ ∃ γc : GName, inv (nroot .@ "etcd_anychan") (chanAnyInv γ γc))
 
 omit EM in
 instance isChanAny_persistent (γ : ChanNames) (ch : Loc) :

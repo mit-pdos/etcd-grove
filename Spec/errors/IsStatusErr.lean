@@ -30,13 +30,17 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 /-- `errors.Is(err, target)` with `err` an error grpc's `status` accepts (`statusErrOk`: a leaf
-error whose `Is` method, if any, returns) and `target` an `rpctypes.EtcdError` value or a pointer
-error, returns some boolean. -/
+error whose `Is` method, if any, returns) and `target` an `rpctypes.EtcdError` value, a pointer
+error or (2026-10-18, item 1, the client lease: `canceledByCaller` compares with
+`context.DeadlineExceeded`, a `deadlineExceededError{}`) a non-nil error whose `==` does not panic
+(`SafeMapKey`: Go's `Is` compares `err == target` first, which for a comparable target compares the
+dynamic types, then the values of an equal type, the target's), returns some boolean. -/
 abbrev errors.IsStatusErr.spec : Prop :=
   ∀ (err target : GoInterface),
   ((∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       target = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∨
-    ∃ tii, target = GoInterface.ok tii ∧ _root_.Perennial.errors.IsPointerError tii) →
+    (∃ tii, target = GoInterface.ok tii ∧ _root_.Perennial.errors.IsPointerError tii) ∨
+    ∃ tii, target = GoInterface.ok tii ∧ SafeMapKey (GF := GF) go.error target) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
   {{ (b : Bool), RET #b; True }}

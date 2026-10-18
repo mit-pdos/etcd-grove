@@ -67,15 +67,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **Every context's `Err()` returns client errors** (a premise, persistent; see the file
-header): `ctxErrClient` for every `isContext`. -/
-def ctxErrClientAll : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-    context.isContext ctx cs -∗ ctxErrClient ctx cs)
-
-instance ctxErrClientAll_persistent : Persistent (ctxErrClientAll (GF := GF)) := by
-  unfold ctxErrClientAll; infer_instance
-
 /-- **The client's errors are client errors as `errors.Is` sees them** (a premise, persistent; see
 the file header). -/
 def clientErrsIs : IProp GF :=

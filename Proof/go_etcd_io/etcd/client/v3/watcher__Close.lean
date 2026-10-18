@@ -58,7 +58,7 @@ theorem watcher.Close.wp_proof
     wp_call
     try simp only [show (null : Loc) = map.nil from rfl, _root_.decide_true]
     wp_auto
-    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr ⟨ce, rfl, Hcep⟩) $$ [] as %bIs -
+    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr (Or.inl ⟨ce, rfl, Hcep⟩)) $$ [] as %bIs -
     · iframe #
     cases bIs <;> (wp_auto; iapply HΦ; itrivial)
   · wp_func_lits
@@ -96,7 +96,7 @@ theorem watcher.Close.wp_proof
         iframe; iframe #
     iintro ⟨%v, %e, Hws, err, #Hse⟩ HM
     wp_auto
-    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr ⟨ce, rfl, Hcep⟩) $$ [] as %bIs -
+    wp_apply wp_Is e (GoInterface.ok ce) (Or.inr (Or.inl ⟨ce, rfl, Hcep⟩)) $$ [] as %bIs -
     · iframe #
     cases bIs <;> (wp_auto; iapply HΦ; itrivial)
 

@@ -1,5 +1,5 @@
 /-
-**Trust boundary**: `errors.Is` of an error grpc accepts, against an `EtcdError` value or a pointer error, returns (an axiom; see `Spec/errors/IsStatusErr.lean`). Lean-first (no Rocq counterpart).
+**Trust boundary**: `errors.Is` of an error grpc accepts, against an `EtcdError` value, a pointer error or a comparable error, returns (an axiom; see `Spec/errors/IsStatusErr.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
-/-- **Trust boundary**: `errors.Is` of an error grpc accepts, against an `EtcdError` value or a pointer error, returns. -/
+/-- **Trust boundary**: `errors.Is` of an error grpc accepts, against an `EtcdError` value, a pointer error or a comparable error, returns. -/
 axiom errors.IsStatusErr.wp_proof : errors.IsStatusErr.spec (GF := GF) (hG := hG)
 
 end proof

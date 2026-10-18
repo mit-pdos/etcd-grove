@@ -130,6 +130,62 @@ theorem optApplyOk_of_retryApplyOk (f : GoFunc) :
   · unfold optionsOk at *
     iexact Hok
 
+/-- **A call option the client passes to a stream** (persistent; item 1, the client lease,
+2026-10-18): one it passes to a unary call (`callOptOk`), or a `retryOption` whose closure builds
+the interceptor's options (`optApplyOk`: the lessor's `withMax(0)`). The stream interceptor applies
+the retry options to a copy of its own options and, for a client stream, either retries nothing
+(`max` stays `0`) or fails with `Unimplemented` (`retry_interceptor.go`, `NewStream`'s axiom). -/
+def streamCallOptOk (v : GoInterface) : IProp GF :=
+  iprop(callOptOk v ∨ ∃ ro : go_etcd_io.etcd.client.v3.retryOption,
+    ⌜v = interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro⌝ ∗ optApplyOk ro.applyFunc')
+
+instance streamCallOptOk_persistent (v : GoInterface) :
+    Persistent (streamCallOptOk (GF := GF) v) := by
+  unfold streamCallOptOk; infer_instance
+
+/-- Every call option of `vs` is one the client passes to a stream. -/
+def streamCallOptsOk (vs : List GoInterface) : IProp GF := iprop([∗list] v ∈ vs, streamCallOptOk v)
+
+instance streamCallOptsOk_persistent (vs : List GoInterface) :
+    Persistent (streamCallOptsOk (GF := GF) vs) := by
+  unfold streamCallOptsOk; infer_instance
+
+/-- A unary call's options are a stream's. -/
+theorem streamCallOptsOk_of (vs : List GoInterface) :
+    callOptsOk (GF := GF) vs ⊢ streamCallOptsOk vs := by
+  induction vs with
+  | nil =>
+    iintro -
+    unfold streamCallOptsOk
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | cons v vs ih =>
+    unfold callOptsOk
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hv, Hvs⟩
+    unfold streamCallOptsOk
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hv]
+    · unfold streamCallOptOk; ileft; iexact Hv
+    · have ih' := ih; unfold callOptsOk streamCallOptsOk at ih'
+      iapply ih' $$ Hvs
+
+theorem streamCallOptsOk_app (vs ws : List GoInterface) :
+    streamCallOptsOk (GF := GF) vs ∗ streamCallOptsOk ws ⊢ streamCallOptsOk (vs ++ ws) := by
+  unfold streamCallOptsOk
+  iintro ⟨H1, H2⟩
+  iapply BigSepL.bigSepL_append.2
+  isplitl [H1]
+  · iexact H1
+  · iexact H2
+
+theorem streamCallOptsOk_singleton (v : GoInterface) :
+    streamCallOptOk (GF := GF) v ⊢ streamCallOptsOk [v] := by
+  unfold streamCallOptsOk
+  iintro H
+  iapply BigSepL.bigSepL_singleton.2
+  iexact H
+
 /-- **What the retry interceptor reads of the `*Client` `c`** (persistent; see the file header):
 non-nil, its logger, its `Token` and `authTokenBundle` (read-only; a bundle whenever a token). -/
 def retryClientOk (c : Loc) : IProp GF :=
