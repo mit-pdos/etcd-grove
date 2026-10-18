@@ -665,6 +665,96 @@ theorem RNPv.dyn {rs : RNState} {s : NState} (H : RNPv rs s) (g : RGh) :
     (rs.mode.toG g).isDyn = true → s.prevote = false :=
   fun h => H.1 (by rw [← RNMode.toG_isDyn rs.mode g]; exact h)
 
+set_option hygiene false in
+/-- A premise of `raft.Step` about a type a network message is not (`Hty`): vacuous. -/
+local macro "not_net" : tactic => `(tactic| (intro h; first
+  | (obtain h | h := h <;> (first | exact h.elim | (rw [h] at Hty; simp [netStepTypes,
+  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgHup,
+  MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
+  | (first | exact h.elim | (rw [h] at Hty; simp [netStepTypes,
+  MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgHup,
+  MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty))))
+
+/-- A stamped type is not one of the unstamped ones. -/
+local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
+  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgPreVote, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
+
+/-- **`raft.Step`'s premises of a message from the network** (`NetMsgOk`) at a `RawNode`'s
+state (`RNPv rs s`, the term `rs.term = s.term`; the ceiling covering the message's term and a
+transfer's campaign, a pre-vote request only past term `0`): every premise up to `RestMsgOk`,
+vacuous at a type the network does not deliver. `k` is `raft.Step`'s spec at the message (what it
+takes after `RestMsgOk` is left in `X`). Shared by `RawNode.Step` (`RawNode__Step.lean`) and
+`run`'s step (`InvNodeRun.lean`, `wp_rn_raft_Step_net`). -/
+theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m : MessageM}
+    {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8} {rsp : List Loc} {X : Prop}
+    (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) (Hpv : RNPv rs s) (Htrm : rs.term = s.term)
+    (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
+    (Htn : m.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z m.Term') + 1 ≤ uint.Z rs.tc)
+    (Hb1 : m.Type' = MsgPreVote → 1 ≤ uint.Z s.term)
+    (k : StepMsg m →
+      (m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
+        (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)) →
+      (m.Type' = MsgVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0) →
+      (m.Type' = MsgVoteResp → m.To' = id ∧ m.Term' ≠ W64 0) →
+      (m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
+        (s.term = W64 0 → plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
+          (entryID.mk m.LogTerm' m.Index') = true) ∧
+        (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc)) →
+      (m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
+        (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)) →
+      (m.Type' = MsgApp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+      (m.Type' = MsgHeartbeat → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+      (m.Type' = MsgAppResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
+        (m.Reject' = true → m.From' ≠ id)) →
+      (m.Type' = MsgHeartbeatResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
+        m.From' ≠ id) →
+      (m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+      (m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0) →
+      (m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id)) →
+      (m.Type' = MsgStorageAppendResp → sn = none ∧ uint.Z m.Term' ≤ uint.Z s.term ∧
+        (m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
+          StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
+      (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
+      (m.Type' = MsgReadIndex → m.Term' = W64 0) →
+      (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
+      (m.Type' = MsgReadIndexResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
+        m.From' ≠ id) →
+      RestMsgOk s m ents ctx → X) : X := by
+  have Hok0 := Hok
+  simp only [NetMsgOk] at Hok0
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf⟩ := Hok0
+  have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
+      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
+    fun h ht => Hnri (h ▸ ht)
+  have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
+  refine k (netStepTypes_stepMsg Hty) (by not_net) (fun h => Hnr h (by ty_ne))
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2, Hpvf h,
+      fun hz => by exfalso; have := Hb1 h; rw [hz] at this; word,
+      .inr (by rw [← Hpv.2.1]; exact Hmtc)⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      fun hp => by have := Hpv.2.2.2 hp; omega⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inl h)⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inl h))⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2, Hrej h⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inr (.inl h)))⟩)
+    (by not_net) (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h))
+    (by not_net)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inr (.inr h)))⟩)
+    (Hok.restMsgOk (st := ⟨m, ents, sn, ctx, rsp⟩) (fun h => by
+      have := Htn h; rw [Hpv.2.1, Htrm] at this
+      have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
+      have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
+      simp only at h ⊢
+      exact ⟨by omega, by omega⟩))
+
 /-- `RNPv` after a step of `raft.Step` (`PreCandStep`): the setting and the ceiling kept, the term
 within the ceiling, and a pre-campaign (`MsgHup`) only with the ceiling one past the term. -/
 theorem RNPv.step {rs rs' : RNState} {s s' : NState} {m : MessageM} (H : RNPv rs s)
