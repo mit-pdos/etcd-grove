@@ -96,8 +96,9 @@ Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
   down once the remaining voter stops answering. Not changed.
 - `ReadOnlyLeaseBased` at a single voter now also waits for the first commit of the leader's term (it used to take
   the shortcut too). Before that commit, its multi-voter path postpones as well.
-- Related, not changed: reads postponed until the leader's first commit in its term are not released when that
-  commit happens through a configuration change (`switchToConfig`'s `maybeCommit`), only through `MsgAppResp`
-  (`issues/raft-switchtoconfig-pending-reads.md`).
+- Related, not changed: `switchToConfig`'s `maybeCommit` does not release postponed reads, only the `MsgAppResp`
+  path does. Not reachable under `doc.go`'s protocol (a node does not campaign with committed conf changes
+  unapplied, and a leader's first commit in its term goes through `MsgAppResp`); only with `Advance` before
+  `ApplyConfChange` (`issues/raft-switchtoconfig-pending-reads.md`).
 - The verified fork (mit-pdos etcd-grove) carries the same change on v3.7.0 (`509271dac`), verified at `raft.Step`.
 - Backports: v3.7.0 (`raft.go:1355-1361`) has the same shortcut; not tried on a release branch.
