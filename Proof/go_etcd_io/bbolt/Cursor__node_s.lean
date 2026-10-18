@@ -82,7 +82,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
         sliceIndexRef elemRef (sint.Z (W64 0)) cv.stack' ↦ r0 ∗ bktShape γ W B0 ∗
         ⌜bktClean W hwm bl B0 ∧ bktGrows B B0 ∧ resolve B0 B.ib.root' = some n0 ∧
           (B0.ns !! n0).isSome ∧ kpath W B0 B.ib.root' path ∧ bktExt W B B0 ∧
-          (∀ k v, entryIn W B k v → entryIn W B0 k v)⌝)
+          (∀ k v, entryIn W B k v → entryIn W B0 k v) ∧ (bktPg W B → bktPg W B0)⌝)
       at next with [n c Hcl Hctx Hst Hr0 Hsh] as ⟨%n0, %B0, %st0, n, c, Hcl, Hctx, Hst, Hr0, Hsh, %Hj⟩
     · by_cases Hr0n : r0.node' = null
       · rw [decide_eq_true Hr0n]
@@ -139,7 +139,8 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
         isplitl [Hbk Hv Hpf Hpm Hdb]
         · unfold wctx; iframe
         ipureintro
-        exact ⟨Hc', Hg', Hr', Hs', Hk', Hext, Hf.1⟩
+        exact ⟨Hc', Hg', Hr', Hs', Hk', Hext, Hf.1, fun hp => bktPg_nodeRes W hwm bl B pm B.ib.root'
+          null r0.page' pg _ l B' st st' Hclean (fun _ => ⟨Hsrc, Or.inl ⟨rfl, Hrn0, rfl⟩⟩) Hres hp⟩
       · rw [decide_eq_false Hr0n]
         try wp_auto
         obtain ⟨l0, Hres0, Hn0, -⟩ : ∃ l, resolve B B.ib.root' = some l ∧ r0.node' = l ∧ r0.page' = null := by
@@ -153,8 +154,8 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
         iframe
         ipureintro
         refine ⟨Hclean, bktGrows_refl B, Hn0 ▸ Hres0, by rw [Hn0, Hr0r]; rfl,
-          kpath_of_wpath W B path _ Hpath, bktExt_refl W B, fun _ _ h => h⟩
-    obtain ⟨Hc0, Hg0, Hrs0, Hsm0, Hkp0', Hext0, Hent0⟩ := Hj
+          kpath_of_wpath W B path _ Hpath, bktExt_refl W B, fun _ _ h => h, id⟩
+    obtain ⟨Hc0, Hg0, Hrs0, Hsm0, Hkp0', Hext0, Hent0, Hpg0⟩ := Hj
     ihave Hsh := bktShape_keys γ W B0 $$ Hsh
     icases Hsh with ⟨Hsh, %Hkeys0⟩
     ihave Hs := Hs0back $$ Hr0
@@ -175,7 +176,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
         "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z (cv.stack'.len - W64 1) ∧ bktClean W hwm bl Bk ∧
           bktGrows B Bk ∧ resolve Bk pidk = some nk ∧ (Bk.ns !! nk).isSome ∧
           kpath W Bk pidk (path.drop (sint.nat j)) ∧
-          (∀ k v, entryIn W B k v → entryIn W Bk k v) ∧
+          (∀ k v, entryIn W B k v → entryIn W Bk k v) ∧ (bktPg W B → bktPg W Bk) ∧
           (∀ k, kroute W B k B.ib.root' path → ∃ bnd, bktKeysB W Bk bnd ∧
             keyIn (bnd nk).1 (bnd nk).2 k ∧ kroute W Bk k pidk (path.drop (sint.nat j))) ∧
           (∀ k P, pathKey W B k P B.ib.root' path → pathKey W Bk k P pidk (path.drop (sint.nat j)))⌝ : IProp GF)
@@ -184,7 +185,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
       simp only [named, show sint.nat (W64 0) = 0 from rfl, List.drop_zero]
       iframe
       ipureintro
-      refine ⟨by decide, by word, Hc0, Hg0, Hrs0, Hsm0, Hkp0', Hent0, fun k hk => ?_,
+      refine ⟨by decide, by word, Hc0, Hg0, Hrs0, Hsm0, Hkp0', Hent0, Hpg0, fun k hk => ?_,
         fun k P hp => pathKey_ext W B B0 Hext0 k P path _ Hkp0 hp⟩
       obtain ⟨bnd, hb⟩ := Hkeys0
       have hib : B0.ib = B.ib := Hg0.2.1
@@ -196,7 +197,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
       exact keyIn_none k
     wp_for IH
     wp_if_destruct
-    · obtain ⟨Hj0, Hjk, Hck, Hgk, Hrk, Hsk, Hkp, Hentk, Hkrk, Hpkk⟩ := Hj
+    · obtain ⟨Hj0, Hjk, Hck, Hgk, Hrk, Hsk, Hkp, Hentk, Hpgk, Hkrk, Hpkk⟩ := Hj
       have Hjl : sint.nat j + 1 < path.length := by word
       have Hjk' : (sint.Z j).toNat < sint.nat (cv.stack'.len - W64 1) := by word
       obtain ⟨r', r2, rs, Hdr, Hdr1, Hr'⟩ := drop_cons2 path (sint.nat j) Hjl
@@ -258,7 +259,9 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
         rw [Hkd] at h1; cases h1
         rw [List.getElem?_map, Hw] at h2; cases h2; rfl
       refine ⟨by word, by word, Hc', bktGrows_trans _ _ _ Hgk Hg', Hres', Hs', ?_,
-        fun k v h => Hf.1 k v (Hentk k v h), fun k hk => ?_, fun k P hp => ?_⟩
+        fun k v h => Hf.1 k v (Hentk k v h), fun hp => bktPg_nodeRes W hwm bl Bk pm w.pgid nk p pg
+          Src.view l B' stk st' Hck (fun h => ⟨(Hsrcw h).2, Or.inr ⟨_, rk, w, Hrk', Hleaf, Hw, rfl, h⟩⟩)
+          Hres (Hpgk hp), fun k hk => ?_, fun k P hp => ?_⟩
       · rw [Hj1, Hdr1]
         exact kpath_mono W Bk B' Hkids' _ _ Hkp2
       · obtain ⟨bnd, hb, hin, hkr⟩ := Hkrk k hk
@@ -288,7 +291,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
         subst hcw
         rw [Hj1, Hdr1]
         exact pathKey_ext W Bk B' Hext k P _ _ Hkp2 hrest
-    · obtain ⟨Hj0, Hjk, Hck, Hgk, Hrk, Hsk, Hkp, Hentk, Hkrk, Hpkk⟩ := Hj
+    · obtain ⟨Hj0, Hjk, Hck, Hgk, Hrk, Hsk, Hkp, Hentk, Hpgk, Hkrk, Hpkk⟩ := Hj
       have Hje : sint.nat j + 1 = path.length := by word
       obtain ⟨x, Hdx⟩ := drop_last1 path (sint.nat j) Hje
       rw [Hdx] at Hkp
@@ -315,7 +318,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
       isplitl [Hbk Hv Hpf Hpm Hdb]
       · unfold wctx; iframe
       ipureintro
-      refine ⟨Hck, Hgk, ⟨rk, Hrk', Hleaf⟩, Hentk, fun k hk => ?_, fun k P hp r hr => ?_⟩
+      refine ⟨Hck, Hgk, ⟨rk, Hrk', Hleaf⟩, Hentk, fun k hk => ?_, fun k P hp r hr => ?_, Hpgk⟩
       · obtain ⟨bnd, hb, hin, -⟩ := Hkrk k hk
         exact ⟨bnd, hb, hin⟩
       · have hpk := Hpkk k P hp
@@ -356,7 +359,7 @@ theorem Cursor.node.wp_sproof (hA : Assert.spec (GF := GF) (hG := hG))
     · unfold wctx; iframe
     ipureintro
     refine ⟨Hclean, bktGrows_refl B, ⟨nrec, Hrec, Hrk.1⟩, fun _ _ h => h, fun k hk => ?_,
-      fun k P hp r hr => ?_⟩
+      fun k P hp r hr => ?_, id⟩
     · obtain ⟨bnd, hb⟩ := Hkeys
       refine ⟨bnd, hb, ?_⟩
       have := wpath_bnd W hwm bl B Hclean bnd hb k path _ Hpath hk Hroot (fun nk hnk => by

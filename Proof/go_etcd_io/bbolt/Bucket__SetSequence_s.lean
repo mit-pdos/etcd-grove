@@ -100,7 +100,8 @@ theorem Bucket.SetSequence.wp_sproof (hWr : Bucket.Writable.wspec (GF := GF) (hG
     ihave Hsh := Hshback $$ %(wtxUpd T st1 bl { B1 with ib := { (B1).ib with sequence' := v } }) %({ B1 with ib := { (B1).ib with sequence' := v } }) [] [Hbt]
     · ipureintro
       exact ⟨rfl, by show B1.ib.root' = B.ib.root'; rw [Hg1.2.1], fun h => absurd h Hrn1, Hg1.1,
-        Hres2.2, Hbkk⟩
+        Hres2.2, Hbkk, fun hp => bktPg_nodeRes W _ bl B T.pm B.ib.root' null p pg _ l B1 _ _ Hclean
+          (fun _ => ⟨Hsrc, Or.inl ⟨rfl, Hrn, rfl⟩⟩) Hres hp⟩
     · iapply (bktToks_ib γ W B1 { (B1).ib with sequence' := v } rfl).2; iexact Hbt
     iapply HΦ
     iframe
@@ -126,7 +127,7 @@ theorem Bucket.SetSequence.wp_sproof (hWr : Bucket.Writable.wspec (GF := GF) (hG
     icases Hbs with ⟨Hbt, %Hbkk⟩
     ihave Hsh := Hshback $$ %(wtxUpd T T.t.stats' bl { B with ib := { (B).ib with sequence' := v } }) %({ B with ib := { (B).ib with sequence' := v } }) [] [Hbt]
     · ipureintro
-      exact ⟨rfl, rfl, fun h => absurd h Hrn, rfl, fun _ _ h => h, Hbkk⟩
+      exact ⟨rfl, rfl, fun h => absurd h Hrn, rfl, fun _ _ h => h, Hbkk, id⟩
     · iapply (bktToks_ib γ W B { (B).ib with sequence' := v } rfl).2; iexact Hbt
     iapply HΦ
     iframe

@@ -181,7 +181,7 @@ theorem Bucket.CreateBucket.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := h
         wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
           Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
         · iframe
-        obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath⟩ := Hn
+        obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
         obtain ⟨bnd, Hbkb, Hkin⟩ := Hroute kb Hkr
         have HP := Hpath kb _ Hpk r Hr
         isimp only [bktShape] at Hbsh
@@ -292,7 +292,8 @@ theorem Bucket.CreateBucket.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := h
         have Hseq : shapeEq ({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns }) ({ B' with ns := <[l := r']> B'.ns }) := ⟨rfl, rfl, rfl, rfl, rfl⟩
         ihave Hsh := Hshback $$ %(wtxUpd T st' bl ({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns })) %(({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns })) [] [Htk]
         · ipureintro
-          refine ⟨rfl, by show B'.ib.root' = B.ib.root'; rw [Hg'.2.1], fun h => absurd h Hrn, Hg'.1, ?_, ?_⟩
+          refine ⟨rfl, by show B'.ib.root' = B.ib.root'; rw [Hg'.2.1], fun h => absurd h Hrn, Hg'.1, ?_, ?_,
+            fun hp => bktPg_leafOp W B' (HnPg hp) l r r' Hr Hleaf A D C _ hws hws' (by simp) e1 (by rw [Hr'])⟩
           · intro k v h
             exact (entryIn_shapeEq W _ _ Hseq k v).2
               (entryIn_leafOp W B' l r r' Hr Hleaf e1 A D C _ hws hws' hD k v (Hent k v h))
@@ -318,7 +319,7 @@ theorem Bucket.CreateBucket.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := h
         wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
           Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
         · iframe
-        obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath⟩ := Hn
+        obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
         obtain ⟨bnd, Hbkb, Hkin⟩ := Hroute kb Hkr
         have HP := Hpath kb _ Hpk r Hr
         isimp only [bktShape] at Hbsh
@@ -428,7 +429,8 @@ theorem Bucket.CreateBucket.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := h
         have Hseq : shapeEq ({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns }) ({ B' with ns := <[l := r']> B'.ns }) := ⟨rfl, rfl, rfl, rfl, rfl⟩
         ihave Hsh := Hshback $$ %(wtxUpd T st' bl ({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns })) %(({ B' with bv := { B'.bv with page' := null }, ns := <[l := r']> B'.ns })) [] [Htk]
         · ipureintro
-          refine ⟨rfl, by show B'.ib.root' = B.ib.root'; rw [Hg'.2.1], fun h => absurd h Hrn, Hg'.1, ?_, ?_⟩
+          refine ⟨rfl, by show B'.ib.root' = B.ib.root'; rw [Hg'.2.1], fun h => absurd h Hrn, Hg'.1, ?_, ?_,
+            fun hp => bktPg_leafOp W B' (HnPg hp) l r r' Hr Hleaf A D C _ hws hws' (by simp) e1 (by rw [Hr'])⟩
           · intro k v h
             exact (entryIn_shapeEq W _ _ Hseq k v).2
               (entryIn_leafOp W B' l r r' Hr Hleaf e1 A D C _ hws hws' hD k v (Hent k v h))

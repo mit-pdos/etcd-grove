@@ -103,7 +103,7 @@ theorem Bucket.Delete.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
       wp_apply hNode γ cl cv' path W (uint.nat T.mv.pgid') bl B txl _ T.t.pages' T.pm (DFrac.own 1)
         Hsk1 HwOK Hsk2 $$ [Hcl Hs Hctx Hstats Hbsh] as %l %B' %st' ⟨Hcl, Hs, Hctx, Hstats, Hbsh, %Hn⟩
       · iframe
-      obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath⟩ := Hn
+      obtain ⟨Hc', Hg', ⟨r, Hr, Hleaf⟩, Hent, Hroute, Hpath, HnPg⟩ := Hn
       obtain ⟨bnd, Hbk, Hkin⟩ := Hroute kb Hkr
       have HP := Hpath kb _ Hpk r Hr
       have Hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null := fun h => by
@@ -152,7 +152,8 @@ theorem Bucket.Delete.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
           (fun k v h => entryIn_leafOp W B' l r r' Hr Hleaf e1 A D C [] hws hws' hD k v (Hent k v h))
           ⟨bnd, bktKeysB_leafOp W _ bl B' Hc' bnd Hbk l r r' Hr Hleaf A D C [] hws hws' (by simp) e1
             (by rw [Hr']) (by rw [Hr']) (by rw [Hr']) (by rw [Hr'])
-            (fun h => by rw [Hr'] at h; cases h)⟩ $$ [Hfr Htk]
+            (fun h => by rw [Hr'] at h; cases h)⟩
+            (fun hp => bktPg_leafOp W B' (HnPg hp) l r r' Hr Hleaf A D C [] hws hws' (by simp) e1 (by rw [Hr'])) $$ [Hfr Htk]
         · iframe
         ihave Hbk := Hback $$ %r' [Hn Hins Hicap Hents Hch2 Hchcap Hkey]
         · rw [Hr']; unfold nodeOwn; iframe
@@ -172,7 +173,7 @@ theorem Bucket.Delete.wp_sproof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
         · unfold nodeOwn; iframe
         rw [bktOwn_insert_same W bl B' l r Hr]
         ihave Hsh := txShape_close γ W T (wtxUpd T st' bl B') bl B B' HB rfl Hg'.2.1 Hg'.1 Hrn
-          Hent ⟨bnd, Hbk⟩ $$ [Hfr Htk]
+          Hent ⟨bnd, Hbk⟩ HnPg $$ [Hfr Htk]
         · iframe
         ihave Hv : wView (GF := GF) W $$ [Hdata Hpv Hfli]
         · unfold wView; iframe; iframe #; ipureintro; exact Hlgv

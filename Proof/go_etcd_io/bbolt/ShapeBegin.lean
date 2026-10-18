@@ -115,7 +115,14 @@ theorem txShape_alloc (W : WView) (T : WTx) (bl : Loc) (B : BRec) (hbs : T.bs = 
       unfold tokB
       simp only [↓reduceIte]
       iexact Hs
-  · ipureintro
+  · isplitr
+    rotate_left
+    · ipureintro
+      intro bl' B' hB'
+      rw [GMap.lookup_singleton_Some] at hB'
+      obtain ⟨-, rfl⟩ := hB'
+      exact bktPg_empty W _ hns
+    ipureintro
     intro bl' B' hB'
     rw [GMap.lookup_singleton_Some] at hB'
     obtain ⟨-, rfl⟩ := hB'

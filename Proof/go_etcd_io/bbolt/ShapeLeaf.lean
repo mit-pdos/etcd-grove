@@ -270,7 +270,7 @@ def txFrame (γ : GName) (W : WView) (T : WTx) (bl : Loc) : IProp GF :=
   iprop(∃ (M : GMap Nat Unit), ghostMapAuth γ 1 M ∗
     ⌜∀ id, (M !! id).isSome ↔ (W.pages !! id).isSome⌝ ∗
     (∀ B', bktToks γ W B' -∗ [∗map] _bl ↦ B ∈ <[bl := B']> T.bs, bktToks γ W B) ∗
-    ⌜∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B⌝)
+    ⌜∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B⌝ ∗ ⌜txPg W T.bs⌝)
 
 /-- The shape of the bucket `bl` split out of the transaction's. -/
 theorem txShape_open (γ : GName) (W : WView) (T : WTx) (bl : Loc) (B : BRec)
@@ -278,7 +278,7 @@ theorem txShape_open (γ : GName) (W : WView) (T : WTx) (bl : Loc) (B : BRec)
     txShape (GF := GF) γ W T ⊢ bktShape γ W B ∗ txFrame γ W T bl ∗
       ⌜∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B⌝ := by
   unfold txShape
-  iintro ⟨%M, Ha, %Hd, Hbs, %Hf⟩
+  iintro ⟨%M, Ha, %Hd, Hbs, %Hf, %Hp⟩
   icases (BigSepM.bigSepM_insert_acc (M := GMap Loc) (Φ := fun _ B => bktToks (GF := GF) γ W B)
     (show Std.get? T.bs bl = some B from hB)) $$ Hbs with ⟨Hb, Hback⟩
   isplitl [Hb]
@@ -288,7 +288,9 @@ theorem txShape_open (γ : GName) (W : WView) (T : WTx) (bl : Loc) (B : BRec)
     · ipureintro; exact Hd
     isplitl
     · iintro %B' Hb'; iapply Hback $$ %B' Hb'
-    · ipureintro; exact Hf
+    · isplitr
+      · ipureintro; exact Hf
+      · ipureintro; exact Hp
   · ipureintro; exact Hf
 
 /-- The facts of the transaction with the bucket `bl`'s record `B''` (its root, its header if
@@ -335,17 +337,20 @@ theorem txShape_close (γ : GName) (W : WView) (T T' : WTx) (bl : Loc) (B B'' : 
     (hB : T.bs !! bl = some B) (hT' : T'.bs = <[bl := B'']> T.bs)
     (hib : B''.ib = B.ib) (hbm : B''.bm = B.bm)
     (hrn : B''.bv.rootNode' = null → B.bv.rootNode' = null)
-    (hent : ∀ k v, entryIn W B k v → entryIn W B'' k v) (hk : bktKeys W B'') :
+    (hent : ∀ k v, entryIn W B k v → entryIn W B'' k v) (hk : bktKeys W B'')
+    (hp : bktPg W B → bktPg W B'') :
     txFrame (GF := GF) γ W T bl ∗ bktToks γ W B'' ⊢ txShape γ W T' := by
   unfold txFrame txShape
-  iintro ⟨⟨%M, Ha, %Hd, Hback, %Hf⟩, Hb⟩
+  iintro ⟨⟨%M, Ha, %Hd, Hback, %Hf, %Hp⟩, Hb⟩
   iexists M
   iframe Ha
   isplitr
   · ipureintro; exact Hd
   isplitl
   · rw [hT']; iapply Hback $$ %B'' Hb
-  · ipureintro; exact txFacts_upd W T T' bl B B'' hB hT' hib hbm hrn hent hk Hf
+  · isplitr
+    · ipureintro; exact txFacts_upd W T T' bl B B'' hB hT' hib hbm hrn hent hk Hf
+    · ipureintro; rw [hT']; exact txPg_insert W T.bs bl B'' Hp (hp (Hp bl B hB))
 
 /-- The transaction's shape with the bucket `bl`'s record unchanged. -/
 theorem txShape_same (γ : GName) (W : WView) (T T' : WTx) (bl : Loc) (B : BRec)

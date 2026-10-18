@@ -243,7 +243,7 @@ open Iris.ProofMode in
 theorem txShapeR_of (γ : GName) (W : WView) (T : WTx) (hr : rblReady W T) :
     txShape (GF := GF) γ W T ⊢ txShapeR γ W T := by
   unfold txShape txShapeR
-  iintro ⟨%M, Ha, %HM, Hts, %Hk⟩
+  iintro ⟨%M, Ha, %HM, Hts, %Hk, -⟩
   iexists M
   iframe
   ipureintro

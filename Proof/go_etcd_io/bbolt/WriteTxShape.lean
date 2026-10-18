@@ -28,6 +28,10 @@ its entry's and whose tree has the entry's bounds (`treeKeys`).
 **Nested buckets** (`bktNested`): an opened bucket `C` (name `k`) is the value of `B`'s entry
 `k` (`entryIn`: in a materialized leaf, or on a page of a position of `B`): its root is the
 value's, and, if `C` has no materialized root (it did not change), its header is the value's.
+
+**Nodes' pages** (`txPg`, `NodePages.lean`): before `Commit` a branch node's entries are its
+page's and a leaf's entries have no child page, which `rebalance` needs (`RebalanceReady.lean`).
+It is the transaction's, not the bucket's (`bktShape`), which must hold again after `rebalance`.
 -/
 module
 
@@ -36,6 +40,7 @@ public import Proof.go_etcd_io.bbolt.BucketOpen
 public import Proof.go_etcd_io.bbolt.TreeKeys
 public import Proof.go_etcd_io.bbolt.WriteCursor
 public import Perennial.Ghost.GhostMap
+public import Proof.go_etcd_io.bbolt.NodePages
 
 @[expose] public section
 
@@ -201,7 +206,7 @@ def txShape (γ : GName) (W : WView) (T : WTx) : IProp GF :=
   iprop(∃ (M : GMap Nat Unit), ghostMapAuth γ 1 M ∗
     ⌜∀ id, (M !! id).isSome ↔ (W.pages !! id).isSome⌝ ∗
     ([∗map] _bl ↦ B ∈ T.bs, bktToks γ W B) ∗
-    ⌜∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B⌝)
+    ⌜∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B⌝ ∗ ⌜txPg W T.bs⌝)
 
 end toks
 

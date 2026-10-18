@@ -26,9 +26,9 @@ them, `brFirst` and the leaves' `pgid` 0 (both true of bbolt: branches are their
 have no cycle (`rblAcyc`; bbolt materializes a node under its parent, which it never moves
 before `Commit`), and that all the leaves of a tree are at one depth (`rblHt`, of the nodes and
 of the view's pages: a merge of two branches gives the merged one the children of both, which
-must be of one kind; bbolt only writes such trees, but `treeStrict` does not say so); they
-are not consequences of `txShape` and the clean invariant (a materialized branch's first key is
-not tied to its bounds there, a branch's entries not to its page).
+must be of one kind; `treeStrict` states it of the file, `pageHts`). They follow from the clean
+invariant, `txShape` (its `txPg`: a node's entries are its page's, `NodePages.lean`) and the
+view's heights: `rblReady_of_shape` (`RebalanceReady.lean`).
 
 **Freed pages** (`freedOK`; their tokens `pgToks γ F`, `freedToks` of `SpillDefs.lean`):
 beyond `freedIn` (`SpillDefs.lean`: every slot of a freed page is pending for the

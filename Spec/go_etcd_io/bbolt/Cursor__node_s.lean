@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `c.node()` (`Cursor.node.spec`) with the bucket's shape: the nodes it materializes take
 their positions' tokens, the keys stay a B+tree's, nested buckets' entries stay where they are,
 if the path descended by a key `k` (`kroute`), `k` is within the leaf's bounds, and the leaf's
-entries with a key are those of the path's end (`pathKey`). -/
+entries with a key are those of the path's end (`pathKey`); the nodes' pages stay (`bktPg`: a
+new node is read from its page). -/
 abbrev Cursor.node.sspec : Prop :=
   ∀ (γ : GName) (cl : Loc) (cv : Cursor) (path : List elemRef) (W : WView) (hwm : Nat) (bl : Loc)
     (B : BRec) (txl : Loc) (st : TxStats) (pmap : GoMap) (pm : GMap w64 Loc) (dqp : DFrac),
@@ -38,8 +39,9 @@ abbrev Cursor.node.sspec : Prop :=
         (∀ k v, entryIn W B k v → entryIn W B' k v) ∧
         (∀ k, kroute W B k B.ib.root' path →
           ∃ bnd, bktKeysB W B' bnd ∧ keyIn (bnd l).1 (bnd l).2 k) ∧
-        ∀ k P, pathKey W B k P B.ib.root' path → ∀ r, B'.ns !! l = some r →
-          ∀ w ∈ r.ws, w.key = k → P w.flags⌝ }}
+        (∀ k P, pathKey W B k P B.ib.root' path → ∀ r, B'.ns !! l = some r →
+          ∀ w ∈ r.ws, w.key = k → P w.flags) ∧
+        (bktPg W B → bktPg W B')⌝ }}
 
 end spec
 

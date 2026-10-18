@@ -500,7 +500,7 @@ theorem txShape_add (γ : GName) (W : WView) (T : WTx) (st : TxStats) (bl : Loc)
   have Hfacts := txFacts_add W T st bl B k cl Bc v hB hfr hent h16 hcib hcbm hcns hkeys
   unfold txShape
   rw [hbs]
-  iintro ⟨%M, Ha, %Hd, Hbs, %Hf⟩
+  iintro ⟨%M, Ha, %Hd, Hbs, %Hf, %Hp⟩
   iexists M
   iframe Ha
   isplitr
@@ -514,10 +514,13 @@ theorem txShape_add (γ : GName) (W : WView) (T : WTx) (st : TxStats) (bl : Loc)
     iframe Hc
     iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc) (Φ := fun _ B => bktToks (GF := GF) γ W B)).2
     iframe
-  · ipureintro
-    have := Hfacts Hf
-    rw [hbs] at this
-    exact this
+  · isplitr
+    · ipureintro
+      have := Hfacts Hf
+      rw [hbs] at this
+      exact this
+    · ipureintro
+      exact txPg_insert W _ cl Bc (txPg_insert W T.bs bl _ Hp (Hp bl B hB)) (bktPg_empty W Bc hcns)
 
 /-- The transaction's shape with the bucket `bl`'s record unchanged. -/
 theorem txShape_same (γ : GName) (W : WView) (T T' : WTx) (bl : Loc) (B : BRec)
@@ -1166,10 +1169,10 @@ theorem txShape_facts (γ : GName) (W : WView) (T : WTx) :
     txShape (GF := GF) γ W T ⊢
       ⌜∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B⌝ ∗ txShape γ W T := by
   unfold txShape
-  iintro ⟨%M, Ha, %Hd, Hbs, %Hf⟩
+  iintro ⟨%M, Ha, %Hd, Hbs, %Hf, %Hp⟩
   isplitr
   · ipureintro; exact Hf
-  iexists M; iframe; ipureintro; exact ⟨Hd, Hf⟩
+  iexists M; iframe; ipureintro; exact ⟨Hd, Hf, Hp⟩
 
 end sfacts
 
@@ -1182,13 +1185,14 @@ variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
 root node, its opened buckets kept, its entries kept, its keys a B+tree's. -/
 def bktUpdOK (W : WView) (B B'' : BRec) : Prop :=
   B''.ib.root' = B.ib.root' ∧ (B''.bv.rootNode' = null → B.bv.rootNode' = null ∧ B''.ib = B.ib) ∧
-  B''.bm = B.bm ∧ (∀ k v, entryIn W B k v → entryIn W B'' k v) ∧ bktKeys W B''
+  B''.bm = B.bm ∧ (∀ k v, entryIn W B k v → entryIn W B'' k v) ∧ bktKeys W B'' ∧
+  (bktPg W B → bktPg W B'')
 
 theorem txFacts_upd2 (W : WView) (T T' : WTx) (bl : Loc) (B B'' : BRec)
     (hB : T.bs !! bl = some B) (hT' : T'.bs = <[bl := B'']> T.bs) (hu : bktUpdOK W B B'')
     (hf : ∀ bl B, T.bs !! bl = some B → bktKeys W B ∧ bktNested W T B) :
     ∀ bl' C, T'.bs !! bl' = some C → bktKeys W C ∧ bktNested W T' C := by
-  obtain ⟨hroot, hrn, hbm, hent, hk⟩ := hu
+  obtain ⟨hroot, hrn, hbm, hent, hk, -⟩ := hu
   have hlk : ∀ y, T'.bs !! y = if y = bl then some B'' else T.bs !! y := by
     intro y; rw [hT']
     by_cases h : y = bl
@@ -1235,7 +1239,7 @@ theorem txShape_acc (γ : GName) (W : WView) (T : WTx) (bl : Loc) (B : BRec)
       (∀ (T' : WTx) (B'' : BRec), ⌜T'.bs = <[bl := B'']> T.bs ∧ bktUpdOK W B B''⌝ -∗
         bktToks γ W B'' -∗ txShape γ W T') := by
   unfold txShape
-  iintro ⟨%M, Ha, %Hd, Hbs, %Hf⟩
+  iintro ⟨%M, Ha, %Hd, Hbs, %Hf, %Hp⟩
   icases (BigSepM.bigSepM_delete (M := GMap Loc) (Φ := fun _ B => bktToks (GF := GF) γ W B)
     (show Std.get? T.bs bl = some B from hB)).1 $$ Hbs with ⟨Hb, Hrest⟩
   isplitl [Hb]
@@ -1250,7 +1254,9 @@ theorem txShape_acc (γ : GName) (W : WView) (T : WTx) (bl : Loc) (B : BRec)
   · rw [hT']
     iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc) (Φ := fun _ B => bktToks (GF := GF) γ W B)).2
     iframe
-  · ipureintro; exact txFacts_upd2 W T T' bl B B'' hB hT' hu Hf
+  · isplitr
+    · ipureintro; exact txFacts_upd2 W T T' bl B B'' hB hT' hu Hf
+    · ipureintro; rw [hT']; exact txPg_insert W T.bs bl B'' Hp (hu.2.2.2.2.2 (Hp bl B hB))
 
 end updown
 
