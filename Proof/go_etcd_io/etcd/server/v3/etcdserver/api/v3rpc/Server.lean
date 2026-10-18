@@ -142,7 +142,7 @@ theorem v3rpc.Server.wp_proof
     (hInit : grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG)) :
     v3rpc.Server.spec (GF := GF) (hG := hG) := by
   intro _
-  intro s C d gsl gvs
+  intro s C d gsl gvs Hbuq
   wp_start as ⟨#Hc, Hlr, Hbr, Hgo, Hd, %Hdb, #Hgvs, %Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, %Hlg0n, #Hlg, %Hlgn, #Hqb, #Hmid, #Hn, #Hwd,
@@ -338,7 +338,7 @@ theorem v3rpc.Server.wp_proof
   ihave #HdC := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdC
   ihave #HdA := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdA
   ihave #HdM := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdM
-  wp_apply (hNewKV s C.A C.n C.lg C.qb C.mid) $$ [Hlr Hbr]
+  wp_apply (hNewKV s C.A C.n C.lg C.qb C.mid Hbuq) $$ [Hlr Hbr]
     as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp, Hlr, Hbr⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hkv
@@ -362,7 +362,7 @@ theorem v3rpc.Server.wp_proof
       v3rpc.watchDesc_nodup wsds HwD, ⟨_, rfl, v3rpc.ServerMethodSets.watch_te⟩⟩
     exact v3rpc.ServerMethodSets.watch_impl
   (try wp_auto)
-  wp_apply (hNewL s C.A C.lg0 C.lg C.qb C.mid) $$ [Hlr Hbr] as %lv ⟨%ql, %Hlv, Hlr, Hbr⟩
+  wp_apply (hNewL s C.A C.lg0 C.lg C.qb C.mid Hbuq) $$ [Hlr Hbr] as %lv ⟨%ql, %Hlv, Hlr, Hbr⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hlv
   (try wp_auto)

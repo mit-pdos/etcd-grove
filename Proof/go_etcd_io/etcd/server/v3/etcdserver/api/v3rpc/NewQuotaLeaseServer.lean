@@ -36,7 +36,7 @@ theorem v3rpc.NewQuotaLeaseServer.wp_proof
     (wp_newBackendQuota : v3rpc.newBackendQuota.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     v3rpc.NewQuotaLeaseServer.spec (GF := GF) (hG := hG) := by
-  intro s A lg0 lg qb mid
+  intro s A lg0 lg qb mid Hbuq
   wp_start as ⟨#HKV, #Hlg0, #Hlg, %Hlgn, Hlr, #Hqb, Hbr, #Hmid⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -46,7 +46,7 @@ theorem v3rpc.NewQuotaLeaseServer.wp_proof
   wp_apply wp_NewLeaseServer s A lg0 $$ [] as %ls ⟨%p, %Hls⟩
   · iframe #
   subst Hls
-  wp_apply wp_newBackendQuota s lg qb go!"lease" $$ [Hlr Hbr] as %qv ⟨#Hq, Hlr, Hbr⟩
+  wp_apply wp_newBackendQuota s lg qb go!"lease" Hbuq $$ [Hlr Hbr] as %qv ⟨#Hq, Hlr, Hbr⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   wp_apply wp_MemberID s mid $$ []
   · iframe #

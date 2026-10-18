@@ -4,7 +4,6 @@ Proof of the spec of the same name (unit P3b). Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Alarm
 
 @[expose] public section
 
@@ -27,8 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem v3rpc.quotaAlarmer.check.wp_proof
-    (wp_Alarm : EtcdServer.Alarm.spec (GF := GF) (hG := hG)) :
+theorem v3rpc.quotaAlarmer.check.wp_proof :
     v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) := by
   intro qa s E ρ ci cd r rt hrt
   wp_start as ⟨#Hqa, #Hsrv, #HNR, Hlt, Hard, #Hctx⟩
@@ -45,16 +43,11 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   icases Hiq with ⟨%qi, %Hqi, #HAv, -⟩
   subst Hqi
   wp_auto
-  wp_apply HAv $$ %rt %r as %b -
+  wp_apply HAv $$ %rt %r as %b %Hb
   · ipureintro; exact hrt
-  cases b
-  · wp_auto
-    ihave Hu := HNR
-    imod Hu with Hid'
-    wp_apply wp_Alarm s E ρ ci cd $$ [Hlt Hard Hid' «$r0»] as %resp %err ⟨Hlt, Hard⟩
-    · iframe; iframe #
-    iapply HΦ
-    iframe
+  -- (audit phase B3, D19h) under `backendUnderQuota` the quota answers true: the NOSPACE
+  -- alarm's branch (`s.Alarm`) is not reached
+  subst Hb
   · wp_auto
     iapply HΦ
     iframe

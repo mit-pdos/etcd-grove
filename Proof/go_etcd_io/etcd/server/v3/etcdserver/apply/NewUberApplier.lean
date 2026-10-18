@@ -31,10 +31,10 @@ theorem apply.NewUberApplier.wp_proof
     (hN : apply.newApplierV3.spec (GF := GF) (hG := hG))
     (hR : apply.uberApplier.restoreAlarms.spec (GF := GF) (hG := hG)) :
     apply.NewUberApplier.spec (GF := GF) (hG := hG) := by
-  intro opts RD T z
+  intro opts RD T z Hbuq
   wp_start as ⟨Hard, #HGet, HT⟩
   wp_auto
-  wp_apply (hN opts RD) $$ [Hard] as %base #Hbase
+  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base #Hbase
   · iframe
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu

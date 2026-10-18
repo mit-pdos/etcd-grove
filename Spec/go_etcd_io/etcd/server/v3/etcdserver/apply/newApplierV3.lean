@@ -31,6 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 takes the reader resource `E.RD` (2026-10-14, unit A2). -/
 abbrev apply.newApplierV3.spec : Prop :=
   ∀ (opts : ApplierOptions) (RD : IProp GF),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
   {{ (a : GoInterface), RET #a;

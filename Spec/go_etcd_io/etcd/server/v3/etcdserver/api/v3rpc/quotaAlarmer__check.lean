@@ -28,10 +28,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`qa.check(ctx, r)`** of a request `r` of a type `rt` with `apply.quotaReqTy rt` (`*pb.PutRequest`,
-`*pb.TxnRequest`): the quota's `Available(r)`; if not, the NOSPACE alarm is raised through `s.Alarm` (`EtcdServer.Alarm`: the request path's premises, an id
-credit minted from the server's budget `□ |==> idCred ρ.ids 1`, `srvStarted`'s idealization)
-and the error `ErrGRPCNoSpace` returned. The reader slot of `leadTimeMu` and the auth store's reader
-resource `E.RD` (2026-10-14, unit A2: `Alarm`'s) come back. -/
+`*pb.TxnRequest`): the quota's `Available(r)`, which answers true (`apply.isQuota`, under the
+workload premise `apply.backendUnderQuota`: audit phase B3, D19h, 2026-10-18), so the NOSPACE
+alarm's branch (`s.Alarm`, then `ErrGRPCNoSpace`) is not reached; until then it went through the
+names-only `EtcdServer.Alarm`, a false axiom (an alarm is not a request the KV model admits),
+hence the precondition's id credit and reader resources, which come back unused. -/
 abbrev v3rpc.quotaAlarmer.check.spec : Prop :=
   ∀ (qa s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (rt : go.GoType),

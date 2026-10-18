@@ -33,11 +33,11 @@ theorem apply.newApplierV3.wp_proof
     (hQ : apply.newQuotaApplierV3.spec (GF := GF) (hG := hG))
     (hA : apply.newAuthApplierV3.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3.spec (GF := GF) (hG := hG) := by
-  intro opts RD
+  intro opts RD Hbuq
   wp_start as Hard
   wp_auto
   wp_apply (hB opts) $$ [] as %b #Hb
-  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b) $$ [] as %q #Hq
+  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ [] as %q #Hq
   wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p #Hp
   · iframe
   iapply HΦ
