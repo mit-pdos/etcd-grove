@@ -60,16 +60,25 @@ before any public issue.
 
 ## Second tier: real, narrower or partly known
 
-6. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
+6. **[etcd-compact-past-raft-applied](etcd-compact-past-raft-applied.md)**: the apply loop
+   snapshots and compacts raft's in-memory log before `Advance` has moved raft's `applied`, so a
+   campaign in that window panics the member (`hasUnappliedConfChanges`: "unavailable due to
+   compaction"). Default configuration: a follower restarted without a disk snapshot replays its
+   log in one `Ready`, and a `MoveLeader` to it (as rolling restarts do) panics it; reproduced on
+   `main` with a failpoint widening the window (4 of 4 runs), not yet measured without one. One
+   member crashes, a restart recovers it. Fix: small (`applyAll` waits for `raftAdvancedC` before
+   snapshotting; tested, `fix.patch`). Upstream: none for this trigger (etcd-io/etcd#9079, the same
+   panic from another cause; #18825 made the in-memory snapshot reachable with defaults).
+7. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
    [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) (the same cause):
    the client library panics on a send to a closed channel (for Kubernetes, the API server).
    etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it.
-7. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)**: the retry
+8. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)**: the retry
    interceptor can resend a `Put`/`Txn`/`Delete` after a `Canceled` status, applying the write
    twice. Less reachable than the file suggests (mostly through proxies or load balancers).
    etcd-io/etcd#18424 was closed as unreachable; the since-merged #21122 undercuts that, a reason
    to reopen.
-8. **[raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md)** (one finding
+9. **[raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md)** (one finding
    in four files, with [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md),
    [raft-track-confchange-application](raft-track-confchange-application.md),
    [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md)):
@@ -78,10 +87,10 @@ before any public issue.
    `RawNode`; etcd's path is unconfirmed (concurrent membership changes, a slow apply loop, a
    partition). The documentation fix and etcd's five-line change are easy to argue for; claiming
    etcd is affected needs more evidence.
-9. **[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md)**: stale linearizable
+10. **[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md)**: stale linearizable
    reads after shrinking to a single voter. Patch with tests ready; in etcd it needs a contrived
    sequence (scale-down to one member, lost messages, a read right after the election).
-10. **[cache-ready-after-retry](cache-ready-after-retry.md)**: after one watch retry the new
+11. **[cache-ready-after-retry](cache-ready-after-retry.md)**: after one watch retry the new
     `cache` package never becomes ready again. Deterministic test, fix one line; an actively
     developed package, the likeliest to be merged quickly. Also small and ready:
     **[etcd-range-sort-none-limit](etcd-range-sort-none-limit.md)** (`etcdctl get
@@ -108,7 +117,10 @@ their low 16 bits).
 [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md) (etcd-io/etcd#22209, labeled for
 v3.7.4; a maintainer is discussing the fix's design) and
 [etcd-backend-duplicate-put-stale-read](etcd-backend-duplicate-put-stale-read.md)
-(etcd-io/etcd#21986, fix PRs open; no etcd caller reaches it).
+(etcd-io/etcd#21986, fix PRs open; an etcd caller reaches it: `monitorStorageVersion`'s
+v3.5→v3.7 migration writes `meta/storageVersion` three times in one session, and `StorageVersion()`
+reads the old value until the next commit, at most about 100 ms; reproduced at the fork pin, our
+fork carries #21987).
 
 ## Probably not worth their time now
 
