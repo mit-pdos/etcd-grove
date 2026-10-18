@@ -9283,7 +9283,7 @@ In Go each `errors.New` allocates a fresh `errorString`. D19h's "a lemma that no
 
 **Recommended: (A)**, once the `gen-init.py` edits in progress have landed. It is the same kind of
 statement as the existing `<X>_init` axioms, made more exact about the Go line they describe.
-Waiting for the user.
+**Adopted by the user (2026-10-18): (A), to start once D19j (`watchVars`, `gen-init.py`) lands.**
 
 ## Proof/Lib: facts that belong to no Go package (2026-10-18, branch `proof-lib`)
 
