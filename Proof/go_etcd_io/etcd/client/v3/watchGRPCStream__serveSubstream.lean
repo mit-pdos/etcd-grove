@@ -83,7 +83,7 @@ theorem watchRespOk_created (V : WEnv GF) (pfx : GoString) (c c' : w64) (v : go_
     (r : RespModel) (hc : r.created = true) (he : r.events = []) :
     watchRespOk (EM := V.EM) pfx c c' v r ⊢ ⌜c' = c⌝ := by
   unfold watchRespOk
-  iintro ⟨-, (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, -, -⟩ | ⟨%H, -⟩)⟩
+  iintro (⟨%H, -⟩ | %H | ⟨%H, -, -⟩ | ⟨%H, -⟩)
   · ipureintro; exact H.2
   · ipureintro; exact H.2.2.2
   · exfalso; simp [RespModel.isProgressNotify, hc] at H

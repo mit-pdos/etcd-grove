@@ -64,8 +64,6 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
     iexists c2, c2
     iframe Hj1 Hj2
     unfold watchRespOk
-    isplitr
-    · ipureintro; simp
     ileft
     iframe Hse
     ipureintro

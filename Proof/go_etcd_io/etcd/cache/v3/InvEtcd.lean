@@ -835,31 +835,30 @@ instance watchChain_persistent (pfx : GoString) (prev : w64) (bs : List Batch) :
   | cons b bs ih => unfold watchChain; infer_instance
 
 /-- **etcd's watch contract**, for one response `v` (modelled by `r`) received when the watch is
-at revision `c`, after which it is at `c'`. Its header revision is below `2^63 - 1` (etcd's
-revisions are), and it is one of:
+at revision `c`, after which it is at `c'`. It is one of:
 * an error (`resp.Err() != nil`: a close error, a compaction, a cancel); the position is kept;
   the close error is one grpc's `status` accepts (`statusErrOk`, unit P3a; it was `errStrOk`:
   its `Error()` returns some string; `WatchResponse.Err` passes it to `rpctypes.Error`, which
   calls its `Error()` and `GRPCStatus()`): a gRPC status error or a context error from the
   client's stream;
-* the created notification (no events); the position is kept; etcd has reached its header
-  revision (`etcdReached`, free if `0`);
-* a progress notification at `p ≥ c`: nothing under the prefix changed in `(c, p]`; the
-  position becomes `p`; etcd has reached `p`;
+* a response without events that is not a progress notification (the created notification;
+  one with header revision `0`, which `IsProgressNotify` rejects); the position is kept;
+* a progress notification at `p ≥ c`, below `2^63 - 1` (etcd's revisions are): nothing under
+  the prefix changed in `(c, p]`; the position becomes `p`; etcd has reached `p`;
 * events, sorted by revision, above `c` and below `2^63 - 1`, grouped by revision into batches,
   each the step after the previous one (`watchChain`, from `c`, which says that etcd has reached
   each batch's revision); the position becomes the last event's revision. -/
 def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
-  iprop(⌜sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
-    ((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
-     (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
-     (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev⌝ ∗
-       (⌜c = r.hdrRev⌝ ∨ EtcdStep c r.hdrRev pfx []) ∗ etcdReached r.hdrRev) ∨
-     (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
+  iprop((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
+    ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
+    (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev ∧
+        sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
+      (⌜c = r.hdrRev⌝ ∨ EtcdStep c r.hdrRev pfx []) ∗ etcdReached r.hdrRev) ∨
+    (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
         (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
         r.events.getLast?.map EvModel.rev = some c'⌝ ∗
-      watchChain pfx c (splitBatches r.events))))
+      watchChain pfx c (splitBatches r.events)))
 
 instance watchRespOk_persistent (pfx : GoString) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :

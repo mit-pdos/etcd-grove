@@ -47,15 +47,16 @@ theorem watchEvents_opts (pfx : GoString) (rev : w64) :
       OpModel.zero, withPrefixM, withRevM, withProgressNotifyM, withCreatedNotifyM,
       OpFull.isPrefixWatch, h]
 
-/-- The pure part of etcd's watch contract for a response that is not an error: the created
-notification, a progress notification, or events. -/
+/-- The pure part of etcd's watch contract for a response that is not an error: one without
+events that is no progress notification (the created notification), a progress notification, or
+events. -/
 def WatchCase (pfx : GoString) (k k' : w64) (r : RespModel) : Prop :=
-  sint.Z r.hdrRev < 2 ^ 63 - 1 ∧
-  ((r.created = true ∧ r.events = [] ∧ k' = k) ∨
-   (r.isProgressNotify = true ∧ sint.Z k ≤ sint.Z r.hdrRev ∧ k' = r.hdrRev) ∨
-   (r.events ≠ [] ∧ EvRevSorted r.events ∧
-     (∀ e ∈ r.events, sint.Z k < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
-     r.events.getLast?.map EvModel.rev = some k'))
+  (r.events = [] ∧ r.isProgressNotify = false ∧ k' = k) ∨
+  (r.isProgressNotify = true ∧ sint.Z k ≤ sint.Z r.hdrRev ∧ k' = r.hdrRev ∧
+    sint.Z r.hdrRev < 2 ^ 63 - 1) ∨
+  (r.events ≠ [] ∧ EvRevSorted r.events ∧
+    (∀ e ∈ r.events, sint.Z k < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
+    r.events.getLast?.map EvModel.rev = some k')
 
 theorem isProgressNotify_events {r : RespModel} (h : r.isProgressNotify = true) :
     r.events = [] := by
@@ -76,11 +77,13 @@ theorem isProgressNotify_false_of_created {r : RespModel} (h : r.created = true)
 /-- `Broadcast`'s premise on the response. -/
 theorem watchCase_pre {pfx : GoString} {k k' : w64} {r : RespModel} (h : WatchCase pfx k k' r) :
     EvRevSorted r.events ∧ RespRevsBounded r := by
-  obtain ⟨hh, hc | hc | hc⟩ := h
-  · unfold RespRevsBounded; rw [hc.2.1]; exact ⟨List.Pairwise.nil, hh, fun e he => by cases he⟩
+  rcases h with hc | hc | hc
+  · unfold RespRevsBounded; rw [hc.1]
+    exact ⟨List.Pairwise.nil, fun hp => absurd hp (by rw [hc.2.1]; decide), fun e he => by cases he⟩
   · unfold RespRevsBounded; rw [isProgressNotify_events hc.1]
-    exact ⟨List.Pairwise.nil, hh, fun e he => by cases he⟩
-  · exact ⟨hc.2.1, hh, fun e he => (hc.2.2.1 e he).2⟩
+    exact ⟨List.Pairwise.nil, fun _ => hc.2.2.2, fun e he => by cases he⟩
+  · exact ⟨hc.2.1, fun hp => absurd hp (by rw [isProgressNotify_false_of_events hc.1]; decide),
+      fun e he => (hc.2.2.1 e he).2⟩
 
 /-! ## Separation-logic lemmas -/
 
@@ -117,14 +120,14 @@ theorem watchEvents_after (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : Resp
     WriterOk pfx (updResp cap c r) ∗ CursorOk pfx (updResp cap c r) k' ∗
       CursorOk pfx (updResp cap c r) (rev - W64 1) ∗ ⌜sint.Z (rev - W64 1) ≤ sint.Z k'⌝ := by
   iintro ⟨#Hw, #Hk, #H0, #Hst⟩
-  obtain ⟨-, hc | hc | hc⟩ := hcase
-  · obtain ⟨hcr, hev, rfl⟩ := hc
+  rcases hcase with hc | hc | hc
+  · obtain ⟨hev, hnp, rfl⟩ := hc
     have hu : updResp cap c r = c := by
-      unfold updResp; simp [isProgressNotify_false_of_created hcr, hev]
+      unfold updResp; simp [hnp, hev]
     rw [hu]
     iframe Hw Hk H0
     ipureintro; exact hle
-  · obtain ⟨hp, hkp, rfl⟩ := hc
+  · obtain ⟨hp, hkp, rfl, -⟩ := hc
     have hu : updResp cap c r = { c with maxRev := r.hdrRev } := by
       unfold updResp; simp [hp]
     rw [hu]
@@ -254,26 +257,28 @@ theorem watchRespOk_case (pfx : GoString) (k k' : w64)
         □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) ∗
         □ (⌜r.isProgressNotify = true⌝ -∗ ⌜k = r.hdrRev⌝ ∨ EtcdStep k r.hdrRev pfx []) := by
   unfold watchRespOk
-  iintro ⟨%Hh, (⟨%H, -⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hs, #Hre⟩ | ⟨%H, #Hc⟩)⟩
+  iintro (⟨%H, -⟩ | %H | ⟨%H, #Hs, #Hre⟩ | ⟨%H, #Hc⟩)
   · exact absurd H.1 hne
   · isplitr
-    · ipureintro; exact ⟨Hh, Or.inl H.2⟩
+    · ipureintro; exact Or.inl H.2
     isplitr
-    · rw [H.2.2.1]; unfold splitBatches watchChain; itrivial
+    · rw [H.2.1]; unfold splitBatches watchChain; itrivial
     isplitr
-    · imodintro; iintro -; iexact Hre
+    · imodintro; iintro %Hp
+      rw [H.2.2.1] at Hp
+      cases Hp
     imodintro; iintro %Hp
-    rw [isProgressNotify_false_of_created H.2.1] at Hp
+    rw [H.2.2.1] at Hp
     cases Hp
   · isplitr
-    · ipureintro; exact ⟨Hh, Or.inr (Or.inl H.2)⟩
+    · ipureintro; exact Or.inr (Or.inl H.2)
     isplitr
     · rw [isProgressNotify_events H.2.1]; unfold splitBatches watchChain; itrivial
     isplitr
     · imodintro; iintro -; iexact Hre
     imodintro; iintro -; iexact Hs
   · isplitr
-    · ipureintro; exact ⟨Hh, Or.inr (Or.inr H.2)⟩
+    · ipureintro; exact Or.inr (Or.inr H.2)
     iframe Hc
     isplitr
     · imodintro; iintro %Hp
@@ -290,7 +295,7 @@ theorem watchRespOk_closeErr (pfx : GoString) (k k' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
     watchRespOk (GF := GF) pfx k k' v r ⊢ statusErrOk v.closeErr' := by
   unfold watchRespOk
-  iintro ⟨%Hh, (⟨%H, #He⟩ | ⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, -⟩)⟩
+  iintro (⟨%H, #He⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
   · iexact He
   all_goals
     have hn : v.closeErr' = GoInterface.nil :=
@@ -317,9 +322,9 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
   ihave %Hkp := cursorOk_pure pfx c k $$ Hk
   iunfold CursorOk at Hk
   icases Hk with ⟨-, #Ht⟩
-  obtain ⟨-, hc | hc | hc⟩ := hcase
+  rcases hcase with hc | hc | hc
   · unfold respCert
-    rw [isProgressNotify_false_of_created hc.1, hc.2.1]
+    rw [hc.2.1, hc.1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     itrivial
   · unfold respCert

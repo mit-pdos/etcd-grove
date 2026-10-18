@@ -207,9 +207,11 @@ def resolveStart (startingRev M : w64) : w64 :=
   if startingRev = W64 0 then (if M = W64 0 then W64 0 else M + W64 1) else startingRev
 
 /-- `Broadcast`'s premise on the response: its revisions are below `2^63 - 1` (so that
-`maxRev < 2^63 - 1` stays true; see `DemuxInv`). -/
+`maxRev < 2^63 - 1` stays true; see `DemuxInv`): a progress notification's header revision,
+the events'. -/
 def RespRevsBounded (r : RespModel) : Prop :=
-  sint.Z r.hdrRev < 2 ^ 63 - 1 ∧ ∀ e ∈ r.events, sint.Z e.rev < 2 ^ 63 - 1
+  (r.isProgressNotify = true → sint.Z r.hdrRev < 2 ^ 63 - 1) ∧
+    ∀ e ∈ r.events, sint.Z e.rev < 2 ^ 63 - 1
 
 /-! ## A registered watcher -/
 
