@@ -43,6 +43,10 @@ Then give it:
 - **Possible fixes**.
 - **Found**: date and by what (which proof or check).
 
+`RANKING.md` (not an issue: no front matter, skipped by `etc/issues-status.py`) ranks all of them
+by how much they matter to etcd's and raft's maintainers and how likely they are to act; update it
+when an issue is added or its upstream state moves.
+
 ## Drafts for etcd-io/etcd
 
 The findings of the etcd client-side work (cache, concurrency, leasing, recipes) are written as
