@@ -95,7 +95,8 @@ theorem mvcc.sc_keyDel (log : mvcc.Log) (rev : w64) (A : GMap Revision Unit)
   ⟨hrl, r, t, hk, h0, h1, fun hk' => by have := (hA r).2 hk'; rw [hnot] at this; cases this⟩
 
 /-! Counting the keys the job deletes (item 8, 2026-10-17): distinct revision keys of the job's
-log up to `rev` (`sc_space`), so no more than its changes, fewer than `2 ^ 62` (`CompactSmall`):
+log up to `rev` (`sc_space`), so no more than its changes, fewer than `2 ^ 62` (`CompactSmall`,
+from the certificate's time receipts: `CompactSmall_of_cert`):
 `keyCompactions` (an `int`) stays non-negative, as `dbCompactionKeysCounter.Add` needs. -/
 
 /-- `k` is the bucket key of a change of `log` at a revision at most `c`. -/
@@ -216,8 +217,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold mvcc.compactJobPre at Hjob
   icases Hjob with ⟨#Hs, #Hstop, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
-  have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2.1
-  have Hsmall : mvcc.CompactSmall log (sint.Z rev) := Hrev'.2.2.2
+  have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
+  ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
+  · iapply mvcc.CompactSmall_of_cert s γ log (sint.Z rev) $$ [Hs Hcert]
+    iframe Hs Hcert
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
