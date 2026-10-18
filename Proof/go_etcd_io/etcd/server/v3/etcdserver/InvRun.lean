@@ -10,10 +10,11 @@ from the node's start, is the committed entries after the applied index `ai₀` 
 at, consecutive (`srvIdxOk`: entry `n` has index `ai₀ + 1 + n`, a normal entry or a v1 conf
 change, no index past `2 ^ 64 - 1`); each normal entry's id is claimed for its data and a conf
 change's is no KV request's (`batchWaitOk`: the claims of `batchCommitted`); and, a premise on
-the workload rather than on raft, the log meets the KV's premises from the state `x₀` the server
-started at (`entriesOk c₀ L x₀`: every normal entry decodes to a request with an id, within the
-revision budget, ..., at every state a run of the log before it reaches; `c₀` the consistent
-index the apply thread started at).
+the workload rather than on raft, the log's entries have good shapes (`logShape L`: every
+normal entry decodes to a request with an id that meets its premise wherever the size clauses
+hold; D19c's move, 2026-10-18: until then `entriesOk c₀ L x₀`, the premises themselves at every
+state a run of the log from `x₀` reaches, whose size clauses the server's construction took as a
+premise, `clusterLogBound`; the apply thread now checks them at the log it meets).
 
 **The apply thread's resources at the log `A`** (`applyRes`: one definition, chained from job to
 job through the FIFO scheduler: a job's `Prev` is the previous job's `Post`): `ep`'s applied
@@ -128,18 +129,6 @@ theorem ciJ_iff (c c₀ ai : w64) (hJ : ciJ c c₀ ai) (m : EntryModel)
   · exact Iff.rfl
   · constructor <;> intro <;> omega
 
-theorem entriesOk_congr (c c' : w64) (L : List EntryModel)
-    (h : ∀ m ∈ L, (uint.Z c < uint.Z m.index ↔ uint.Z c' < uint.Z m.index)) (x : apply.ApplyKV) :
-    entriesOk c L x ↔ entriesOk c' L x := by
-  induction L generalizing x with
-  | nil => simp [entriesOk]
-  | cons m L ih =>
-    have hm := batchStep_congr c c' m (h m (List.mem_cons_self ..))
-    simp only [entriesOk, hm]
-    constructor
-    · rintro ⟨h1, h2⟩; exact ⟨h1, fun x1 hx => (ih (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) x1).1 (h2 x1 hx)⟩
-    · rintro ⟨h1, h2⟩; exact ⟨h1, fun x1 hx => (ih (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) x1).2 (h2 x1 hx)⟩
-
 theorem entriesStep_congr (c c' : w64) (L : List EntryModel)
     (h : ∀ m ∈ L, (uint.Z c < uint.Z m.index ↔ uint.Z c' < uint.Z m.index))
     (x x' : apply.ApplyKV) :
@@ -150,15 +139,6 @@ theorem entriesStep_congr (c c' : w64) (L : List EntryModel)
     have hm := batchStep_congr c c' m (h m (List.mem_cons_self ..))
     rintro ⟨x1, h1, h2⟩
     exact ⟨x1, hm ▸ h1, ih (fun m' hm' => h m' (List.mem_cons_of_mem _ hm')) x1 h2⟩
-
-/-- The premise of a log, after a run of its prefix: the premise of the rest. -/
-theorem entriesOk_append_run (c : w64) (A B : List EntryModel) (x₀ x : apply.ApplyKV)
-    (h : entriesOk c (A ++ B) x₀) (hr : entriesStep c A x₀ x) : entriesOk c B x := by
-  induction A generalizing x₀ with
-  | nil => simp only [entriesStep] at hr; subst hr; simpa using h
-  | cons m A ih =>
-    obtain ⟨x1, h1, h2⟩ := hr
-    exact ih x1 (h.2 x1 h1) h2
 
 theorem entriesStep_append' (c : w64) (A B : List EntryModel) (x₀ x x' : apply.ApplyKV)
     (h1 : entriesStep c A x₀ x) (h2 : entriesStep c B x x') : entriesStep c (A ++ B) x₀ x' := by
@@ -203,7 +183,7 @@ consistent index `c₀`. -/
 -- 2026-10-14 (unit T1): the log `L` is committed (`srvRLogLb ρ.raft L`), raft's committed log's.
 def srvC (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShape L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvC_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : Persistent (srvC (GF := GF) ρ E ai₀ c₀ x₀ L) := by

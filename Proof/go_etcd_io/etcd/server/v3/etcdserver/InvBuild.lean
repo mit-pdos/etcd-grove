@@ -21,10 +21,11 @@ halves of the unit share, frozen once placed:
   the raft contract's `E.C` between the two.
 * **The server's raft environment** `srvEr` (`E.C = srvC …`, messages unconstrained, the tick
   credit, the read names, raft's read registrations).
-* **The workload clause** `clusterWorkloadOk` (D13c: a premise of `NewServer.spec`): every
-  committed log meets the apply premises (`entriesOk`) and its ids are claimed under this
-  server's generator (`batchWaitOk`). For several members both are facts about the other members'
-  requests (`issues/etcd-request-id-member-prefix.md`); discharging it for one server is unit N3.
+* **The workload clause** `clusterWorkloadOk` (D13c: a premise of `NewServer.spec` until D19c,
+  now proved): every committed log's entries have good shapes (`logShape`; until D19c's move the
+  apply premises themselves, `entriesOk`) and its ids are claimed under this server's generator
+  (`batchWaitOk`). For several members both are facts about the other members' requests
+  (`issues/etcd-request-id-member-prefix.md`).
 * **The built part** `srvBuilt` and **the residual** `srvBuildGap`. Since D17 (2026-10-17) the
   residual has one row, the raft storage's snapshot contract `rnSnapOnce`; the others (the KV
   rows, the write budget, the uber-applier's, `storeSmall`, the id budget, `ClusterVersion()`'s
@@ -89,51 +90,21 @@ def srvReadNamesFresh (γr : ReadNames) (σ : KVState) : IProp GF :=
 
 /-! ## The workload clause (D13c; D19c) -/
 
-/-- **The size clauses of a batch's premises** (D19c, 2026-10-18): as `entriesOk`, over every run
-of the batch's earlier entries, but only the size clauses (`rqSmall`) of each normal entry's
-request at the KV log it meets. -/
-def entriesSmall [FfiSyntax] (c : w64) : List EntryModel → apply.ApplyKV → Prop
-  | [], _ => True
-  | m :: ms, x => (m.typ = W32 0 → ∀ rq, apply.irrDecode m.data = some rq → rqSmall x.log rq) ∧
-      ∀ x1, batchStep c m x x1 → entriesSmall c ms x1
-
-/-- **The apply premises of a batch from its entries' shapes and its size clauses** (D19c). -/
-theorem entriesOk_of_shape [FfiSyntax] (c : w64) :
-    ∀ (L : List EntryModel) (x : apply.ApplyKV), logShape L → entriesSmall c L x → entriesOk c L x
-  | [], _, _, _ => trivial
-  | m :: ms, x, hs, hm => by
-    refine ⟨fun ht => ?_, fun x1 h1 => entriesOk_of_shape c ms x1
-      (fun m' hm' => hs m' (List.mem_cons_of_mem _ hm')) (hm.2 x1 h1)⟩
-    rcases (hs m List.mem_cons_self).1 ht with hd | ⟨rq, hdec, hid, hsh⟩
-    · exact Or.inl hd
-    · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (hm.1 ht rq hdec), hsh.1 _⟩
-
-/-- **The residual of the workload clause: the cluster's size bound** (D19c, 2026-10-18;
-persistent; a premise of `NewServer.spec`): every committed log meets the size clauses of its
-entries' premises (`entriesSmall`: room for a revision, fewer than `2 ^ 56` keys in a delete's
-range or changes in a transaction, the sorts' small logs and selections) from `x₀` at the
-consistent index `c₀`. A statement over the proof's ghost state, as the lifetime bounds were
-(D19a): D19b's time receipts are to discharge it, from a counter of the store's changes (each a Go
-step), every reachable log's revisions, keys and a request's changes below the receipts' bound.
-The rest of the workload clause is proved (`clusterWorkloadOk_of`, `BuildGap.lean`). -/
-def clusterLogBound (ρ : ReqNames) (c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L -∗ ⌜entriesSmall c₀ L x₀⌝)
-
-instance clusterLogBound_persistent (ρ : ReqNames) (c₀ : w64) (x₀ : apply.ApplyKV) :
-    Persistent (clusterLogBound (GF := GF) ρ c₀ x₀) := by
-  unfold clusterLogBound; infer_instance
-
 /-- **The cluster's workload** (persistent): every committed log `L` (after the server's start)
-meets the apply premises from `x₀` at the consistent index `c₀` (`entriesOk`), and every entry's
-id is claimed under this server's generator (`batchWaitOk`): what the raft contract's `E.C` asks
-beyond the KV invariant (`rnEnvOk_of_cluster`). A premise of `NewServer.spec` until D19c
-(2026-10-18, D13c); since then proved (`clusterWorkloadOk_of`, `BuildGap.lean`) from the KV
-invariant, which keeps every committed entry's shape and id claim (`kvWork`), the reserved id
-`0` (`idNoZero`) and the residual size bound (`clusterLogBound`); at an update, as it opens the
-KV invariant. -/
-def clusterWorkloadOk (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64) (x₀ : apply.ApplyKV) :
+has entries of good shapes (`logShape`: each normal entry's request meets its premise at every
+log where the size clauses hold, `rqShape`), and every entry's id is claimed under this server's
+generator (`batchWaitOk`): what the raft contract's `E.C` asks beyond the KV invariant
+(`rnEnvOk_of_cluster`). A premise of `NewServer.spec` until D19c (2026-10-18, D13c); since then
+proved (`clusterWorkloadOk_of`, `BuildGap.lean`) from the KV invariant, which keeps every
+committed entry's shape and id claim (`kvWork`), and the reserved id `0` (`idNoZero`); at an
+update, as it opens the KV invariant. Until D19c's move (2026-10-18) it asked the apply premises
+themselves over every run from `x₀` at the consistent index `c₀` (`entriesOk`), whose size
+clauses were the residual premise `clusterLogBound`; the apply thread now checks those at the log
+it meets (`entryOk_of_shape`, `srvApplyKV_small`), so `c₀` and `x₀` are unused (kept for the
+callers' statements). -/
+def clusterWorkloadOk (ρ : ReqNames) (E : apply.AEnv GF) (_c₀ : w64) (_x₀ : apply.ApplyKV) :
     IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜entriesOk c₀ L x₀⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShape L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64)
     (x₀ : apply.ApplyKV) : Persistent (clusterWorkloadOk (GF := GF) ρ E c₀ x₀) := by
