@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Proof.Lib.Iris
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 
 @[expose] public section
 
@@ -2080,6 +2081,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
+    "#HhsOk" ∷ mvcc.hashStorageOk shs ∗
     "#Hc0" ∷ idxCert γ.idx [[], []] ∗
     "%Hrb" ∷ ⌜receiptBound GF ≤ 2 ^ 48⌝)
 

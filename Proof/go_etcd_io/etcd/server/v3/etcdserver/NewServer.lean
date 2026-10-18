@@ -437,7 +437,7 @@ theorem NewServer.wp_proof
   · iframe #
     unfold backend.wbTok
     iframe Hopen Hwl Hfl
-    ipureintro; exact ⟨Hlgnn, Hckok⟩
+    ipureintro; exact ⟨Hlgnn, Hckok, by simp⟩
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []

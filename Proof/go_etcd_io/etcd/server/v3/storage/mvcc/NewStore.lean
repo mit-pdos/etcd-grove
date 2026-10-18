@@ -138,7 +138,8 @@ theorem mvcc.NewStore.wp_proof
   wp_apply chan.wp_make1 (V := Unit) as %stopc %γstop ⟨#Hstc, %Hstcap, Hstown⟩
   (try wp_auto)
   iStructNamed «$r0»
-  wp_apply hHash as %hp -
+  wp_apply hHash as %hp #Hhs
+  · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_alloc rv as Hrv
   (try wp_auto)

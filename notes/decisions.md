@@ -9285,6 +9285,110 @@ In Go each `errors.New` allocates a fresh `errorString`. D19h's "a lemma that no
 statement as the existing `<X>_init` axioms, made more exact about the Go line they describe.
 **Adopted by the user (2026-10-18): (A), to start once D19j (`watchVars`, `gen-init.py`) lands.**
 
+## Audit B4b: the latent axioms and premise gaps restated; ten stopped for a decision (D19l, 2026-10-18)
+
+Phase B4, part b (`notes/audit.md`, the Plan): the axioms false only in an instance no proof uses
+(latent) and those missing a premise every caller meets (premise gaps). Each restated true of Go
+by a premise its callers discharge, or a postcondition weakened. **Done** (the audit's rows say
+how): `strconv.FormatUint` (base `2..36`), `monitorFileDescriptor` (`lg ≠ null`),
+`storage.BackendQuota.Cost` (a non-nil request), `txn.WarnOfExpensiveRequest`/`WarnOfFailedRequest`
+(the logger and the uber-applier's stringer, of a non-nil request), `addFeatureGateMetrics`
+(`isFeatureGate`), `lease.lessor.Promote` (a positive `leaseRevokeRate` in `lessorCfg`, from
+`NewLessor` of a non-negative one, restated), `mvcc.hashStorage.Store` (`hashStorageOk`, a
+non-nil logger, from `NewHashStorage`, kept in `isStore`), `mvcc.kvHasher.WriteKeyValue`/`Hash`
+(`kvHasherOk`, opaque as the type, from `newKVHasher`, restated, and `bucketKeyOk` of the key),
+`bbolt.DB.Info_kv` (a live transaction of the database), `bbolt.Bucket.Cursor_kvw` (`ownWTx` comes
+back only with the cursor). (`grpc.ClientConn.NewStream`, the twelfth latent one, is fixed by the watch session on `lean`,
+`ba511d61f7`: left to it.)
+
+**Stopped** (options below; nothing changed in Lean for them):
+
+**(i) `time.Since`** (`Spec/time/Since.lean`: `0 < d`). The audit's suggested fix, `0 ≤ d`, is
+not true either for an arbitrary `t` (a `t` without a monotonic reading, or a later one, gives a
+negative duration), and it breaks `syncWatchersLoop`, whose `delayTicker.Reset(syncDuration)`
+panics on `0`: the Go hazard of `issues/etcd-watch-sync-ticker-reset-zero.md` (upstream
+etcd-io/etcd#22296). Perennial's time model has no monotonic clock (`runtimeNano` arbitrary), so
+its proved `time.wp_Since` gives any duration (the local axiom is false in that model too).
+- *(A) A named run premise* `time.clockAdvances` (opaque: "every `time.Since` of the run returns a
+  positive duration"; etcd calls it only on earlier `time.Now()` results), a premise of the axiom,
+  as a hypothesis class in gen-link's `SEM_PREMISES` (`[ClockAdvances]`: every result reaching
+  `syncWatchersLoop` takes it, up to `wp_NewServer` and the closed theorem; cheap) or a
+  precondition threaded `syncWatchersLoop` → `mvcc.New` → `NewServer.spec` (as
+  `backendUnderQuota`). `scheduleCompaction` and the other callers move to Perennial's proved
+  `time.wp_Since`. Loss: a premise false on a coarse clock, the very hazard filed.
+- *(B) A local monotonic clock*: a persistent `nowStamp t` from a local `time.Now` axiom, `Since`
+  of a stamped `t` at least `0` (true of Go), and (A)'s premise only for `syncWatchersLoop`'s
+  positivity. Two or three new axioms; callers switch from Perennial's `wp_Now`.
+- *(C) The fork carries the upstream fix* (`Reset` only for a positive `syncDuration`), as raft's
+  read-index fix and D19i part 2: then Perennial's `time.wp_Since` suffices, the axiom goes, no
+  premise. A retranslation (`etc/goose.py`) and a small change to `syncWatchersLoop`'s proof.
+- *(D) Perennial* (separately): a monotonic clock in the time model; (B) without local axioms.
+- *Recommendation:* (C); (A) with the class if the fork should stay at upstream's code.
+
+**(ii) `auth.authStore.AuthInfoFromTLS`** (any context; Go panics on a peer whose `AuthInfo` is
+not a `credentials.TLSInfo`: `issues/etcd-auth-tls-info-assert.md`). Its caller is the server's
+request contract (`isReqAuth`'s `AuthInfoFromTLS` clause, `AuthReqDerive.lean`), for any context.
+- *(A) A deployment premise* (opaque "etcd's gRPC servers are built with TLS credentials or
+  none", so a handler's peer has no `AuthInfo` or a `TLSInfo`), as a class (gen-link
+  `SEM_PREMISES`) or threaded through `isReqAuth`'s users (v3rpc's handlers) to `v3rpc.Server`.
+- *(B) In grpc's model*: the serving axioms give each handler context a persistent fact of its
+  peer's `AuthInfo` type, from the server's credentials (`grpc.NewServer`'s options);
+  `isReqAuth`'s clause takes it. Larger (grpc's server-side axioms, v3rpc's handlers).
+- *(C) The fork fixes the assertion* (`, ok :=`), the issue's proposed fix: the axiom true as
+  stated.
+- *Recommendation:* (C), else (A).
+
+**(iii) prometheus `CounterVec.WithLabelValues`, `GaugeVec.WithLabelValues`,
+`HistogramVec.WithLabelValues`, `GaugeVec.With`** (Go panics on a label count other than the
+vector's, or a value that is not UTF-8). Nothing states a vector's label names today: the vectors
+are package variables built by untranslated initializers (`prometheus.NewCounterVec(opts,
+[]string{...})`).
+- *(A) A per-vector fact* `promVecLabels v ls` (persistent, an initialization fact of each
+  package's metric variables, `etc/gen-init.py`'s `SPECIAL`, trust-boundary axioms on the
+  initializers as now), and the four specs taking `lvs ↦*□ vs ∗ ⌜vs.length = ls.length ∧ ∀ v ∈ vs,
+  utf8Valid v⌝` (`With`: the map's keys `ls`). Nine call sites discharge it: constants (decidable),
+  ids and versions formatted by `strconv`/`fmt` (UTF-8 by construction), the client's API
+  version (v3rpc's interceptor checks `utf8.ValidString`, `interceptor.go:63,234`).
+- *(B) Per-vector axioms*: each spec restated for the global vector its callers use, with the
+  arity written in the axiom (`clientRequests`: 2, ...), and the UTF-8 premise. No init facts;
+  the arity checked by reading the initializer (trusted).
+- *Recommendation:* (A), after D19j's `gen-init.py` work lands (it edits the same script); the
+  call sites are in v3rpc (D19j's files) and the server's request path.
+
+**(iv) `backend.wBkt`, `wBkt_persistent`, `bbolt.Tx.DeleteBucket_kv`** (a persistent handle
+outlives `DeleteBucket(n)`; after `CreateBucketIfNotExists(n)` the old handle, whose `nodes` bbolt
+set to `nil`, passes `Put_kv`'s premises, and Go panics). A persistent fact cannot be revoked, so
+the fix is in what `ownWTx` records.
+- *(A) Generations*: `wBkt tx b n g`, `ownWTx` holding each bucket's current generation (a ghost
+  map `n ↦ g` in the model); `DeleteBucket` bumps it, `Put`/`Delete`/`Cursor_kvw` need the
+  current one. Every bbolt spec and backend proof that names `wBkt` (about 30 files).
+- *(B) Deleted names*: `ownWTx tx γ D S X` with `X` the names deleted in this transaction;
+  `CreateBucketIfNotExists_kv` requires `n ∉ X`, `DeleteBucket_kv` adds `n`. With
+  `S.lookup n = none` after the delete, no old handle passes `Put_kv`'s premise, and the name
+  cannot come back in that transaction (no verified proof deletes a bucket and re-creates it);
+  the same files as (A), a smaller change.
+- *(C) Keep, as now* (latent: no proof deletes and re-creates).
+- *Recommendation:* (B), in phase C with the bbolt model (`notes/audit.md`, Plan).
+
+**(v) `mvcc.store.restore`** (a `meta` bucket with a finished or scheduled compaction makes Go set
+`compactMainRev`/`currentRev` otherwise and call `compactLockfree`; the spec fixes only the `key`
+bucket). The store's backend contract (`isKeyBackendG`) does not model the `meta` bucket's
+compaction keys, so no caller can state their absence.
+- *(A) Model them*: the backend contract gains the compaction keys' view (the one
+  `UnsafeSetFinishedCompact`/`UnsafeSetScheduledCompact` write), and `NewStore`'s precondition
+  their absence, from the bootstrap's fresh backend (`bootOk`, `bkFresh`-like per key).
+- *(B) A named premise* (opaque `mvcc.metaNoCompaction`: "the backend `NewStore` opens records no
+  compaction"), a premise of the axiom threaded `NewStore` → `mvcc.New` → `NewServer.spec`, as
+  `backendUnderQuota` (true of putget's fresh data directory).
+- *(C) `restore` of a backend with data* (the index rebuilt): the general case, large.
+- *Recommendation:* (B) now (one premise on three specs), (A) with phase C's backend model.
+
+**Found on the way, not fixed:** `apply.isQuota` (which `storage.NewBackendQuota`'s axiom gives)
+has `Cost`'s nil-request gap in both its clauses (`Available` calls `Cost`): its callers
+(`quotaApplierV3`'s `Put`/`Txn`/`LeaseGrant`) hold non-nil request facts, but
+`v3rpc.quotaAlarmer.check`'s spec takes any `r`, so the premise would thread into v3rpc's quota
+servers (D19j's files). A premise gap of the same kind, left for a later round.
+
 ## Audit B4a: the false etcd-internal axioms putget does not reach (D19m, 2026-10-18)
 
 **2026-10-18 · four restated (taken: each true of the Go code at the pin), four stopped for a

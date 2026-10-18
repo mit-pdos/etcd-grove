@@ -118,9 +118,10 @@ theorem EtcdServer.Start.wp_proof
   · iframe Hgr Hlg Hlgm
     iintro !> %Φ' HL HΦ'
     wp_auto
-    wp_apply hLg s vd.lg $$ [HL] as ⟨-, -⟩
+    wp_apply hLg s vd.lg $$ [HL] as ⟨%Hlg', -⟩
     · iframe #; iframe HL; ipureintro; exact Hlgn
-    wp_apply hMFD
+    wp_apply hMFD $$ []
+    · iframe #; ipureintro; exact Hlg'
     iapply HΦ'
     try itrivial
   -- `s.monitorClusterVersions`, `s.monitorStorageVersion`

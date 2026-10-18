@@ -266,7 +266,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #HcfgS := Hcfg
   iStructNamedSuffix HcfgS "C"
   (try wp_auto)
-  wp_apply h3 as %hv -
+  wp_apply h3 as %hv %Hhv
   (try wp_auto)
   wp_apply wp_slice_make2 (V := w8) (W64 17) as %lastS ⟨HlastS, HlastC⟩
   · ipureintro; decide
@@ -286,14 +286,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   -- `D`: the keys deleted so far (item 8): distinct keys of the job's space, below the cursor
   ihave HI : iprop(∃ (lst : GoSlice) (bs : List w8) (kc : w64) (hv' : kvHasher) (D : List GoString),
       "last" ∷ last_ptr ↦ lst ∗ "HlastS" ∷ lst ↦* bs ∗ "HlastC" ∷ ownSliceCap w8 lst (DFrac.own 1) ∗
-      "%Hbs" ∷ ⌜bs.length = 17⌝ ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗ "h" ∷ h_ptr ↦ hv' ∗
+      "%Hbs" ∷ ⌜bs.length = 17⌝ ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
+      "h" ∷ (h_ptr ↦ hv' ∗ ⌜mvcc.kvHasherOk hv'⌝) ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧
         ∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k ∧ go.GoStringLt k bs⌝)
     $$ [last HlastS HlastC keyCompactions h]
   · iexists lastS, _, W64 0, hv, []
     simp only [named]
     iframe
-    ipureintro; simp
+    ipureintro; simp [Hhv]
   wp_for HI
   wp_apply time.wp_Now as %tst -
   (try wp_auto)
@@ -366,7 +367,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave IH : iprop(∃ (n k kc : w64) (hv : kvHasher) (rv : Revision) (D : List GoString),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
-      "h" ∷ h_ptr ↦ hv ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ Locked [] ∗
+      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ Locked [] ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ L.length⌝ ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧ (∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k) ∧
         (∀ k ∈ D, ∀ j (hj : j < L.length), sint.nat n ≤ j → go.GoStringLt k (L[j]).1) ∧
@@ -472,9 +473,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_apply wp_load_slice_index vs (sint.Z n) vss DFrac.discard vsl Hn.1 $$ [$Hvs] as -
     · ipureintro; exact Hkv.2
     (try wp_auto)
+    icases h with ⟨h, %Hhv⟩
     wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 DFrac.discard DFrac.discard)
       $$ [$h $Hkeep] as ⟨⟨%hv2, h⟩, Hkeep, -, -⟩
     · iframe #
+      ipureintro
+      exact ⟨Hhv, r, _, Hkb, by cases t <;> simp, Hr0, Hs0⟩
     (try wp_auto)
     wp_for_post
     iframe
@@ -552,7 +556,9 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     (try wp_auto)
     wp_apply HPause
     (try wp_auto)
+    icases h with ⟨h, %Hhv⟩
     wp_apply h7 h_ptr hv $$ [$h] as %hash h
+    · ipureintro; exact Hhv
     (try wp_auto)
     wp_apply HSize as %sz -
     wp_apply HSizeU as %szu -

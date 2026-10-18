@@ -1,5 +1,5 @@
 /-
-`Bucket.Cursor_kvw` (bbolt). `b.Cursor()` in the write transaction: a cursor over the bucket's entries now.
+`Bucket.Cursor_kvw` (bbolt). `b.Cursor()` in the write transaction: a cursor over the bucket's entries, `ownWTx` back with the cursor.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Cursor_kvw.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -25,13 +25,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `b.Cursor()` in the write transaction: a cursor over the bucket's entries now. -/
+/-- `b.Cursor()` in the write transaction: a cursor over the bucket's entries now, with the
+transaction's live token; the transaction's ownership (`ownWTx`, which `Put`/`Delete` need) comes
+back only with the cursor. (Go's write-transaction cursor reads the materialized nodes, so it would
+see a later `Put`: until audit B4b, 2026-10-18, this spec gave `ownWTx` back at once and the
+cursor kept the entries of `m`, false after a `Put` on the bucket.) -/
 abbrev bbolt.Bucket.Cursor_kvw.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (b : Loc) (n : GoString) (m : BktData),
   S.lookup n = some m →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ wBkt tx b n }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Cursor")) (Val #()))
-  {{ (c : Loc), RET #c; ownCur tx c (bktEnts m) none ∗ ownWTx tx γ D S }}
+  {{ (c : Loc), RET #c; ownCur tx c (bktEnts m) none ∗ txLive tx 1 ∗
+      (∀ pos : Option Nat, ownCur tx c (bktEnts m) pos -∗ txLive tx 1 -∗ ownWTx tx γ D S) }}
 
 end spec
 

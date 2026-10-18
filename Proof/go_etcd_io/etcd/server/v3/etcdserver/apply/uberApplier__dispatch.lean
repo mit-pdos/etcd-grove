@@ -47,7 +47,24 @@ local macro "ok_path" : tactic => `(tactic| (
   wp_apply hASO
   wp_alloc s1 as Hs1
   wp_auto
-  wp_apply hWER))
+  wp_apply hWER $$ [Hs1]
+  · isplitr
+    · ipureintro; exact HlgN
+    iexists s1, _
+    iframe Hs1
+    ipureintro; exact ⟨rfl, Hipn⟩))
+
+set_option hygiene false in
+/-- The failure's warning (`WarnOfFailedRequest`), with a fresh stringer of the request. -/
+local macro "wfr_step" : tactic => `(tactic| (
+  wp_alloc s2 as Hs2
+  wp_auto
+  wp_apply hWFR $$ [Hs2]
+  · isplitr
+    · ipureintro; exact HlgN
+    iexists s2, _
+    iframe Hs2
+    ipureintro; exact ⟨rfl, Hipn⟩))
 
 set_option hygiene false in
 /-- The deferred metrics with `ar.Err` not nil: `errors.Is(ar.Err, ErrCompacted)`, then the
@@ -63,8 +80,13 @@ local macro "err_path" : tactic => `(tactic| (
   wp_apply hASO
   wp_alloc s1 as Hs1
   wp_auto
-  wp_apply hWER
-  cases b <;> (try wp_auto) <;> (try (wp_alloc s2 as Hs2; wp_auto; wp_apply hWFR))))
+  wp_apply hWER $$ [Hs1]
+  · isplitr
+    · ipureintro; exact HlgN
+    iexists s1, _
+    iframe Hs1
+    ipureintro; exact ⟨rfl, Hipn⟩
+  cases b <;> (try wp_auto) <;> (try wfr_step)))
 
 set_option hygiene false in
 /-- The deferred metrics, whatever `ar.Err`. -/
@@ -145,6 +167,9 @@ theorem apply.uberApplier.dispatch.wp_proof
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
+  ihave #Hopts' := Hopts
+  iunfold apply.backendOptsOk at Hopts'
+  icases Hopts' with ⟨%HlgN, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
   icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩

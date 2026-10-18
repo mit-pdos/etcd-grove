@@ -70,14 +70,14 @@ theorem backend.batchTx.UnsafeRange.wp_proof
   obtain ⟨m, Hm⟩ : ∃ m, st.S.lookup bi.name = some m := Option.ne_none_iff_exists'.mp Hn
   wp_if_destruct
   · exact absurd rfl Hnn
-  wp_apply (hCursor st.tx γ.db st.C st.S bkt bi.name m Hm) $$ [$Hwtx $Hwb] as %c ⟨Hcur, Hwtx⟩
-  icases ownWTx_live st.tx γ.db st.C st.S $$ Hwtx with ⟨Hlive, Hback⟩
+  wp_apply (hCursor st.tx γ.db st.C st.S bkt bi.name m Hm) $$ [$Hwtx $Hwb]
+    as %c ⟨Hcur, Hlive, Hback⟩
   wp_apply (hRange st.tx c (bktEnts m) none 1 key endKey kb eb dk de limit)
-    $$ [$Hcur $Hlive $Hkey $HendKey] as %keys %vals ⟨-, Hlive, Hkey, HendKey, Hout⟩
+    $$ [$Hcur $Hlive $Hkey $HendKey] as %keys %vals ⟨⟨%pos', Hcur⟩, Hlive, Hkey, HendKey, Hout⟩
   iapply HΦ
   unfold bktOf
   rw [Hm]
-  ispecialize Hback $$ Hlive
+  ispecialize Hback $$ %pos' Hcur Hlive
   iframe
 
 end proof

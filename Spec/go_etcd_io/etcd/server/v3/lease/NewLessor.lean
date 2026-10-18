@@ -35,7 +35,8 @@ lessor's writes (`lessorBackend`), at the backend's batch lock `Pk` and any froz
 
 Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the etcd pin):
 * `newLessor` allocates the lessor (its maps, `expiredC` a channel of 16, `stopC`, `doneC`), sets
-  the configuration's fields (a zero `leaseRevokeRate` defaulted to 1000), then `initAndRecover`:
+  the configuration's fields (a zero `leaseRevokeRate` defaulted to 1000: so a positive rate, given
+  a non-negative one, `lessorCfg`; audit B4b, 2026-10-18), then `initAndRecover`:
   `b.BatchTx()`'s `LockOutsideApply` (no hook: the backend open, `bOpen`), `UnsafeCreateLeaseBucket`,
   `MustUnsafeGetAllLeases` (it decodes every record of the `Lease` bucket, a panic on an
   undecodable one: the bucket is fresh, `bkFresh d.γB "lease"`, consumed), `Unlock` (one
@@ -64,7 +65,7 @@ abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
-      ⌜ckptEffectsOk⌝ ∗ lease.clusterOk cl ∗
+      ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
       bkFresh d.γB go!"lease" }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))
