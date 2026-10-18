@@ -8874,6 +8874,9 @@ the theorem says nothing.
     requests, whose answers are exact), (ii) Perennial's `errors.Is` spec and a lemma that none
     of those errors `Is` `ErrNoSpace`, (iii) at a `kvExact` chain no outcome is a NOSPACE one
     (`.rejected .noSpace`, `.applied _ true`); then the branch is dead.
+    **The unit, stopped (2026-10-18): D19k.** (i) and (iii) hold up, and (ii)'s `errors.Is`
+    spec is local, not Perennial's. But (ii)'s lemma needs the error variables told apart
+    (`ErrNoSpace`'s pointer differs from the backend errors'), which no package fact gives.
   - *Carried out (2026-10-18, after clusterLogBound and rnSnapOnce landed).* (a):
     `NewServer.spec` takes `"#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd`
     (now in `InvBuild.lean`); its postcondition no longer has `etcdKV`, and `NewServer.lean`
@@ -9209,6 +9212,78 @@ five metrics, `reportEventOk`) a smaller named premise of `grpcCfgOk_of_started`
 must still meet, which it can only do from (1)'s statements. **Recommended: (1)**, the
 statements being of the same kind as the existing `<X>_init` axioms and true of Go (prometheus
 constructors return their collectors; `io.EOF = errors.New("EOF")`). Waiting for the user.
+
+## `raftRequestAlarm`'s dead branch needs the error variables told apart: stopped (D19k, 2026-10-18)
+
+The task (the user, 2026-10-18): D19h's last step. Under `apply.backendUnderQuota` Go never takes
+`applyEntryNormal`'s `ErrNoSpace` branch, so the model should show it dead and
+`EtcdServer.raftRequestAlarm` should leave the trust base. Stopped before any Lean change. D19h's
+three steps checked against the code:
+
+* **(ii) `errors.Is`: no Perennial change needed.** Perennial's `errors.Is.spec`
+  (`Perennial/Spec/errors/Is.lean`) already has the strong postcondition: `err == target` when
+  either is `nil`, and, for a non-`nil` `err` and a pointer target, `true` only if some error of
+  the tree is the target or an `Is` method said so. The weak spec is ours: `Spec/errors/Is.lean`
+  returns `RET #b; True`, and `Proof/errors/Is.lean` drops Perennial's facts. Restating it with
+  Perennial's postcondition is a local change.
+* **(i) the workload: narrowing is the smaller change.** The verified proposers send only puts,
+  deletes and transactions (`EtcdServer.Put`/`DeleteRange`/`Txn`) and the monitors'
+  `ClusterMemberAttrSet`/`ClusterVersionSet` (`monitorReq`). `plainReq`'s `_ => True` also admits
+  the auth requests, `Authenticate`, `AuthStatus`, the downgrade requests, `LeaseCheckpoint` and
+  `Range`, and the auth requests' answers say only `applyErrIs`. Narrowing `plainReq` to the
+  KV, cluster and downgrade kinds with `needAdminPermission rq = false` (so `monitorReq` gains that
+  clause, which the monitors' concrete requests meet) stays inside the server's KV files:
+  `plainReq` is used only there.
+* **(iii) the chain: provable.** `kvApplied` keeps `x.chain = γk.ch0 = alarmChain false false
+  false`, so the chain has no capped or corrupt layer and auth is off. Then no outcome is
+  `.rejected .noSpace`, `.corrupt` or `.auth`, and no applied outcome has `ns = true`: the quota
+  layer is the identity and the backend's outcomes carry `false`. So `ar.Err` is `nil` or one of
+  the backend's errors: for a put `ErrLeaseNotFound`/`ErrKeyNotFound` (`putOutcomeIs`); for a
+  transaction `checkErrIs` (those two, mvcc's `ErrFutureRev`, `ErrCompacted`); for a range `nil`
+  or `ErrFutureRev`.
+
+**The gap: nothing tells the error variables apart.** The backend's errors are leaf
+`*errorString`s, so `errors.Is(e, ErrNoSpace)` is `e == ErrNoSpace`, and showing it `false` needs
+`e`'s pointer to differ from `ErrNoSpace`'s. No fact gives that. Each package fact says only
+that a variable holds *some* `*errorString` `x` whose `Error()` returns its message
+(`errorsNewVar`, `leaseErrVar`, the postcondition of Perennial's `context.wp_New_errorString`).
+In the model two variables may hold the same `x`, and the `Error()` triples do not rule it out.
+In Go each `errors.New` allocates a fresh `errorString`. D19h's "a lemma that none of those errors
+`Is` `ErrNoSpace`" cannot be proved from the present facts.
+
+**Options.**
+* **(A) Carry `errors.New`'s field in the facts** (no new axiom). Perennial's `wp_New_errorString`
+  already persists the `errorString.s` cell in its proof (`ipersist s`); its postcondition drops
+  it. The change:
+  - `errorsNewVarInit`/`errorsNewVar` (`Proof/errors/NewVar.lean`) carry `s ↦□ msg` for `x`, so
+    `etcdserver/errors`' `errorsNewVarsInit` (and bbolt's, which share the abbreviation) are
+    restated stronger and stay true of Go;
+  - `lease`'s and `mvcc`'s initializers, which call Perennial's `wp_New_errorString`, get a local
+    variant that returns the cell, and the general fix (the postcondition with `s ↦□ msg`) is
+    proposed to Perennial;
+  - `leaseErrVar` carries the cell;
+  - the apply package's `applyErrVars` gains "`ErrNoSpace`'s error is none of `ErrKeyNotFound`'s,
+    `ErrLeaseNotFound`'s, `ErrFutureRev`'s, `ErrCompacted`'s", proved from the different messages
+    (two `↦□` at one cell agree).
+
+  These Init files are generated, so this is an `etc/gen-init.py` change. Then (i)-(iii) above,
+  the branch is dead, and `AlarmContract.lean` and its axiom go. Cost: one unit. It collides with
+  the `gen-init.py` work now uncommitted in the shared worktree (`gen-init.py`, `apply/Init.lean`,
+  `mvcc/Base.lean`), so it should come after that work lands.
+* **(B) A workload whose answers carry no error.** Puts and transactions without ignore flags
+  (`txn.needsPrev` false) and without failing checks, so every admitted answer's error is `nil` and
+  Perennial's nil clause gives `false`. No init change. But the client's `Put` with
+  `IgnoreValue`/`IgnoreLease` and such transactions leave the verified workload: `putPermit`,
+  `txnPermit` and the v3rpc and client specs above them narrow. That is a loss of coverage D19h
+  did not intend. Also `checkErrIs` would have to be made exact for plain transactions.
+* **(C) Keep the axiom, restated true of Go.** It would be stated for the one request the
+  goroutine proposes, `{Alarm: ACTIVATE NOSPACE}`. That request still enters the log, which the KV
+  model excludes (`plainReq` is `False` for `.alarm`), so this needs D19h's option (A), modeling
+  the alarm. Several units.
+
+**Recommended: (A)**, once the `gen-init.py` edits in progress have landed. It is the same kind of
+statement as the existing `<X>_init` axioms, made more exact about the Go line they describe.
+Waiting for the user.
 
 ## Proof/Lib: facts that belong to no Go package (2026-10-18, branch `proof-lib`)
 
