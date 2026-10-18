@@ -87,7 +87,7 @@ theorem RawNode.ForgetLeader.wp_proof
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, -, Ht3, -, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
@@ -109,6 +109,7 @@ theorem RawNode.ForgetLeader.wp_proof
         (Hpvoff.step rfl rfl Hpre Hgh (by rw [← Htrm', Htrm]; exact Hpvoff.2.2.1) Hpcs
           (by msg_ne))
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+        (RNFl.keep Hrnfl Hfl' Hap' Ha)
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     ipureintro; exact Herr
   · exfalso; revert Hc'; msg_ne

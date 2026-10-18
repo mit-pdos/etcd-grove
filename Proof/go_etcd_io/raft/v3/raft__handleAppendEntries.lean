@@ -158,7 +158,7 @@ theorem raft.handleAppendEntries.wp_proof
       -- accepted
       obtain ⟨lni, es'⟩ := res
       rw [Hpm] at Hma
-      obtain ⟨rfl, rfl, Hprev, Hes', Happ, Hcm', Ha', Hsn', Hu', Hst'⟩ := Hma
+      obtain ⟨rfl, rfl, Hprev, Hes', Happ, Hcm', Ha', Hsn', Hu', Hst', Hsg', Hfl'⟩ := Hma
       wp_auto
       reply_head
       imod cellRO_alloc $$ «$v2» with #cIx
@@ -173,7 +173,7 @@ theorem raft.handleAppendEntries.wp_proof
       iframe
       ipureintro
       exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
-        ⟨Ha', Hsn', Hu', Hprev, Hst'⟩, rfl⟩)
+        ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, rfl⟩)
     | none =>
       -- rejected: `a.prev` does not match
       rw [Hpm] at Hma

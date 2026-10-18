@@ -686,9 +686,9 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => rfl
     isplitr
-    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
+    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩
     isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1⟩
+    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
@@ -724,9 +724,9 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => rfl
     isplitr
-    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
+    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩
     isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1⟩
+    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
@@ -738,7 +738,7 @@ theorem raft.Step.wp_proof
     -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
     wp_apply (wp_Step_MsgStorageApplyResp P Q c r id s ml m sn ctx rs ents HtyB (Hsapr HtyB) (Happly HtyB)
         Hwf (Hsal HtyB)) $$ [$Hphys $Hmi]
-      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Happ', %Herr⟩
+      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Happ', %Happ2, %Herr⟩
     imod ghost_step_md0 γ md c id m s s' Hst
       (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
         (fun _ => Happ') hmd HI)
@@ -753,7 +753,8 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => rfl
     isplitr
-    · ipureintro; exact fun _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB)⟩
+    · ipureintro
+      exact fun _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB), fun _ => Happ2⟩
     isplitr
     · ipureintro; exact fun _ h => absurd HtyB h
     isplitr
@@ -798,8 +799,8 @@ theorem raft.Step.wp_proof
   iclear Hsnap Hmsg0
   by_cases Hty : m.Type' = MsgHup
   · -- MsgHup: a local message, handled by `hup`.
-    obtain ⟨Hmterm, Hnowrap, Htc⟩ := Hhup Hty
-    wp_apply (wp_Step_MsgHup P PB c r id s ml m ents sn ctx rs Hty Hmterm Hnowrap Htc Hwf) $$ [$Hphys $Hmi]
+    obtain ⟨Hmterm, Hnowrap, Htc, Hfla⟩ := Hhup Hty
+    wp_apply (wp_Step_MsgHup P PB c r id s ml m ents sn ctx rs Hty Hmterm Hnowrap Htc Hwf Hfla) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) $$ Hghost Hrest Hphys [] HΦ
@@ -929,8 +930,8 @@ theorem raft.Step.wp_proof
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgTimeoutNow
   · -- leader transfer: the transferee campaigns
-    obtain ⟨Hnw, Hnwm⟩ := Htn Hty
-    wp_apply (wp_Step_MsgTimeoutNow P PB c r id s ml m ents sn ctx rs Hty Hnw Hnwm Hwf) $$ [$Hphys $Hmi]
+    obtain ⟨Hnw, Hnwm, Hfla⟩ := Htn Hty
+    wp_apply (wp_Step_MsgTimeoutNow P PB c r id s ml m ents sn ctx rs Hty Hnw Hnwm Hwf Hfla) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep

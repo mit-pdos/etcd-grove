@@ -427,6 +427,17 @@ theorem RawNode.Bootstrap.wp_proof
   -- (2026-10-17) the term ceiling at the term
   ihave Hphys := ownRaftPhys_raise_tc _ rnv.raft' id sk (W64 1)
     (by rw [HNgh]; show (0 : Int) ≤ _; decide) $$ Hphys
+  -- (D19i part 1) the floor at most `applying`, which is `applied` (`0`)
+  icases ownRaftPhys_log_at _ rnv.raft' id _ $$ Hphys with ⟨HL, %Hgh0, Hlogback⟩
+  icases ownRaftLog_fl _ _ $$ HL with ⟨%Hflk, HL⟩
+  ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    %(fun _ => logLast_le_of_fields rfl rfl rfl)
+  have Haa : ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).logst.applied =
+      ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).logst.applying := by
+    simp only; rw [HNls]; simp only [logAppend, Hap0, Hapg0]
+  have HrnflB : ∀ rs0 : RNState, rs0.steps = [] →
+      RNFl rs0 { sk with gh := { sk.gh with tc := W64 1 } } := fun rs0 _ =>
+    ⟨fun _ => by rw [Haa]; exact Hflk.1, fun h => absurd h (by rw [Haa]; exact Int.lt_irrefl _)⟩
   iapply HΦ
   isplitl []
   · ipureintro; rfl
@@ -444,7 +455,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
         ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
           fun h => by simp only at h; rw [HNr] at h; cases h⟩
-        (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _)
+        (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
     · rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil

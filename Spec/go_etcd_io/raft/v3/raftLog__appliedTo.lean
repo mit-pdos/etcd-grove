@@ -27,6 +27,8 @@ not part of `LogState`. -/
 abbrev raftLog.appliedTo.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i size : w64),
   uint.Z ls.applied ≤ uint.Z i ∧ uint.Z i ≤ uint.Z ls.committed →
+  -- (D19i part 1) past `applying` only below `offsetInProgress` (`ownRaftLog`'s `FlOk`)
+  (uint.Z ls.applying < uint.Z i → ls.snap = none → uint.Z i < uint.Z ls.inprogress) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLog l ls }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"appliedTo")) (Val #i))
       (Val #size))

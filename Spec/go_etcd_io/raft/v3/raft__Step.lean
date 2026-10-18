@@ -90,7 +90,9 @@ def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
     Prop :=
   ((m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
      m.Term' = W64 0) ∧
-  (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) ∧
+  -- (D19i part 1) and with the floor at most `applied` (`hup`'s)
+  (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64 ∧
+     uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
   (m.Type' = MsgTransferLeader →
      ents = [] ∧ ctx = [] ∧
      (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0))
@@ -125,7 +127,9 @@ def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.prevote = s.prevote ∧
   s'.gh = s.gh ∧
   -- (2026-10-17) and the role (`PreCandStep`)
-  s'.role = s.role
+  s'.role = s.role ∧
+  -- (D19i part 1) the floor, and `applied` does not move back
+  s'.logst.fl = s.logst.fl ∧ uint.Z s.logst.applied ≤ uint.Z s'.logst.applied
 
 /-- `Step`'s postcondition for the three local messages `RawNode` steps -- a proposal
 (`Propose`) and the two storage acknowledgements (`Advance`): `LocalFrame`, and
@@ -140,7 +144,10 @@ def LocalStepOk [FfiSyntax] (m : MessageM) (ents : List EntryM)
   LocalFrame s s' ∧
   ((m.Type' = MsgStorageApplyResp →
       ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
-   s'.logst.applying = s.logst.applying)
+   s'.logst.applying = s.logst.applying) ∧
+  -- (D19i part 1) an apply acknowledgement moves `applied` up to its last entry
+  (m.Type' = MsgStorageApplyResp →
+      ∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied)
 
 /-- What every `Step` but a `MsgSnap`'s and a `MsgStorageApplyResp`'s leaves of the log's
 state beyond the protocol (2026-10-09): `applying` (only `appliedTo` moves it), the pending
@@ -163,22 +170,25 @@ def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.stored = s.logst.stored ∧
   s'.logst.storage = s.logst.storage ∧
   s'.prevote = s.prevote ∧
-  s'.gh = s.gh
+  s'.gh = s.gh ∧
+  -- (D19i part 1) the floor, and `applied` does not move back
+  s'.logst.fl = s.logst.fl ∧ uint.Z s.logst.applied ≤ uint.Z s'.logst.applied
 
 theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
 
 theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
     (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
   ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
    h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.1.trans h1.2.2.2.2.2.1,
-   h2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.1, h2.2.2.2.2.2.2.2.trans h1.2.2.2.2.2.2.2⟩
+   h2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.1, h2.2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.2.1,
+   h2.2.2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.2.2.1, Int.le_trans h1.2.2.2.2.2.2.2.2.2 h2.2.2.2.2.2.2.2.2.2⟩
 
 /-- Two states with the same log state and pre-vote setting. -/
 theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
     (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl) :
     NetFrame s s' := by
-  unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
 
 /-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
 up (a campaign); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
@@ -237,7 +247,7 @@ theorem TermStep.of_le [FfiSyntax] {m : MessageM} {s s' : NState}
 /-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
 theorem TermStep.of_local [FfiSyntax] {m : MessageM} {s s' : NState}
     (h : LocalFrame s s') : TermStep m s s' :=
-  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp => ⟨h.1, .inl (h.2.2.2.2.2.2.2.2.2 ▸ hp)⟩)
+  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp => ⟨h.1, .inl (h.2.2.2.2.2.2.2.2.2.1 ▸ hp)⟩)
 
 /-- What a response does to the role and the term (2026-10-10), beyond `TermStep`: a
 stale `MsgVoteResp` or `MsgAppResp` (from a term below the node's) leaves the role; a
@@ -326,7 +336,9 @@ abbrev raft.Step.spec : Prop :=
      uint.Z s.term + 1 < 2 ^ 64 ∧
      -- (2026-10-17) with pre-vote on a `MsgHup` pre-campaigns: its `MsgPreVote`s are of the next
      -- term, which the ceiling (`NGhost.tc`) must cover; the `RawNode` raises it first
-     (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)) →
+     (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) ∧
+     -- (D19i part 1) the floor at most `applied` (`hup`'s)
+     uint.Z s.logst.fl ≤ uint.Z s.logst.applied) →
   (m.Type' = MsgVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0) →
@@ -463,9 +475,12 @@ abbrev raft.Step.spec : Prop :=
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗
+         -- (D19i part 1) and at most `applying` (`RawNode.Advance` acknowledges entries
+         -- `Ready` handed out; `appliedTo` then leaves `applying`)
          "%Happly" ∷ ⌜m.Type' = MsgStorageApplyResp →
                        ∀ e, ents.getLast? = some e →
-                       uint.Z e.Index' ≤ uint.Z s.logst.committed⌝ ∗
+                       uint.Z e.Index' ≤ uint.Z s.logst.committed ∧
+                       uint.Z e.Index' ≤ uint.Z s.logst.applying⌝ ∗
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents ctx))) ∗

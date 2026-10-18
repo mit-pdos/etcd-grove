@@ -88,7 +88,8 @@ abbrev RawNode.Advance.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
-      ownRawNode γ rn id { rs with steps := [], term := t, capplied := ca } ∗
+      -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised
+      ownRawNode γ rn id { rs with steps := [], term := t, capplied := ca, flw := false } ∗
       ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
       -- (2026-10-17; 2026-10-10 to 2026-10-17, with pre-vote off: `t = rs.term`) within the
       -- term ceiling

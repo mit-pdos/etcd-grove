@@ -41,6 +41,9 @@ abbrev RawNode.Campaign.spec : Prop :=
   -- (2026-10-17; until then `rs.term + 1 < 2 ^ 64`) the campaign's term within the ceiling
   -- (`ownRawNode_raise_tc` raises it)
   uint.Z rs.term + 1 ≤ uint.Z rs.tc →
+  -- (D19i part 1) the floor not raised past `applied` (`hasUnappliedConfChanges` reads from
+  -- `applied + 1`): not between the application's `Advance` handed over and `Advance` itself
+  rs.flw = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Campaign")) (Val #()))

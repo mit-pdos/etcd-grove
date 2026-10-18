@@ -419,7 +419,7 @@ theorem stepFollower.wp_proof
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
   · -- `MsgTimeoutNow` (2026-10-13): `hup(campaignTransfer)`, an ordinary campaign
     obtain ⟨-, Htn⟩ := Hrest (Or.inr Hty)
-    obtain ⟨Hnw, Hwf⟩ := Htn Hty
+    obtain ⟨Hnw, Hwf, Hfla⟩ := Htn Hty
     simp only [Hty, MsgTimeoutNow]
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -427,7 +427,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_raft_logC
     wp_apply wp_raft_hup c r id s _ Hnw
-        (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf
+        (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf Hfla
       $$ [$Hphys] as %s' ⟨Hphys, %Hok, %Hpc⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys

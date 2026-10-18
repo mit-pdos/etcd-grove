@@ -78,7 +78,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     (ents : List EntryM) :
     m.Type' = MsgStorageApplyResp →
     m.Term' = W64 0 →
-    (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed) →
+    (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed ∧
+      uint.Z e.Index' ≤ uint.Z s.logst.applying) →
     NStateWf s →
     -- (2026-10-14, stage B7) `appliedTo`'s auto-leave branch is not taken
     (c.autoLeave = true → s.role ≠ .leader) →
@@ -96,6 +97,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         -- (2026-10-14, stage B7) `applied` moves at most to the last entry's index
         "%Happ" ∷ ⌜s'.logst.applied = s.logst.applied ∨
           ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied⌝ ∗
+        -- (D19i part 1) and at least to it
+        "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hterm Hlast Hwf Hal
   wp_start as H
@@ -126,8 +129,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩,
-      StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, rfl⟩
+    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, fun _ => rfl⟩,
+      StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -157,7 +160,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
     icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
     ihave Hphys := Hback $$ Hlog
-    wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He) Hal $$ [$Hphys] as Hphys
+    wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He).1
+      (fun h => absurd (Hlast e He).2 (Int.not_le.2 h)) Hal $$ [$Hphys] as Hphys
     try wp_auto
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es5 ⟨#Hes5, Hm⟩
     wp_apply _P.payloadsSize $$ [$Hes5] as %psz -
@@ -165,13 +169,22 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun Hle => ?_⟩, ?_,
-      .inr ⟨e, by simp, rfl⟩, rfl⟩
+    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩, fun Hle => ?_⟩, ?_,
+      .inr ⟨e, by simp, rfl⟩, ?_, rfl⟩
+    · show uint.Z s.logst.applied ≤ uint.Z (w64Max e.Index' s.logst.applied)
+      unfold w64Max
+      split <;> word
     · have H1 := Hle e (by simp)
       show w64Max s.logst.applying (w64Max e.Index' s.logst.applied) = s.logst.applying
       unfold w64Max
       split <;> split <;> word
-    exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He) Hcm.1.2.1
+    · exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He).1 Hcm.1.2.1
+    · intro e0 He0
+      have He0' : e = e0 := by simpa using He0
+      subst He0'
+      show uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied)
+      unfold w64Max
+      split <;> word
 
 end StepProof
 

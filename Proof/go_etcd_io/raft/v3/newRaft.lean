@@ -306,7 +306,12 @@ theorem newRaft.wp_proof
       · exact absurd h Ha0
       · exact h
     icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, %Hgh0, Hlogback⟩
-    wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng $$ [$HL] as HL
+    icases ownRaftLog_ready_wf _ _ $$ HL with ⟨%Hrw1, HL⟩
+    icases ownRaftLog_committed _ _ $$ HL with ⟨%Hcb1, HL⟩
+    wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng
+      (fun _ _ => by
+        have h1 := Hrw1.1.1; have h2 := Hcb1.1.2.2; have h3 := Hrng.2
+        simp only [s1, s0, ls1, List.length_nil] at h1 h2 h3 ⊢; omega) $$ [$HL] as HL
     ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     isplitr

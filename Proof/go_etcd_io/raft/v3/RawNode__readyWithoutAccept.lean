@@ -457,6 +457,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     ipureintro
     exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb,
+      ⟨Hrnfl.1, Int.not_lt.1 fun h => by
+        obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
       ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
       trivial, Hrdc⟩
   isplitr

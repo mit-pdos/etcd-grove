@@ -54,7 +54,7 @@ theorem raft.hup.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_raft_hasUnappliedConfChanges : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
     raft.hup.spec (GF := GF) (hG := hG) := by
-  intro c r id s t Hnowrap Hpv Hwf
+  intro c r id s t Hnowrap Hpv Hwf Hfla
   wp_start as Hphys
   wp_auto
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
@@ -80,7 +80,7 @@ theorem raft.hup.wp_proof
       -- a voter, so it may campaign
       obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
       wp_auto
-      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, %Hhc⟩
+      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn Hfla $$ [$Hphys] as %hc ⟨Hphys, %Hhc⟩
       cases hc with
       | true =>
         -- (2026-10-13) a conf-change entry committed but not applied: log and return,

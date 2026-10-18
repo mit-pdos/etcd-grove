@@ -76,6 +76,13 @@ theorem RestartNode.wp_proof
       fun h => by rw [Hr] at h; cases h⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
+  -- (D19i part 1) the floor at most `applying`, which is `applied` (`0`)
+  icases ownRaftPhysC_log_same _ rnv.raft' cv.ID' s $$ Hphys with ⟨HL, Hback0⟩
+  icases ownRaftLog_fl _ _ $$ HL with ⟨%Hflk, HL⟩
+  ihave Hphys := Hback0 $$ HL
+  have HrnflR : ∀ rs0 : RNState, rs0.steps = [] → RNFl rs0 s := fun rs0 _ =>
+    ⟨fun _ => by rw [Hap]; rw [Hapg] at Hflk; exact Hflk.1,
+     fun h => absurd h (by rw [Hap, Hapg]; exact Int.lt_irrefl _)⟩
   ihave Hrn : ownRawNode γ rn cv.ID'
       { delivered := [], unpersisted := [], steps := [], term := W64 0,
         storage := interface.ok si, mode := md,
@@ -96,7 +103,7 @@ theorem RestartNode.wp_proof
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
-          (uint_Z_nonneg _)
+          (uint_Z_nonneg _) (HrnflR _ rfl)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -138,7 +145,7 @@ theorem RestartNode.wp_proof
           s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
-          (uint_Z_nonneg _)
+          (uint_Z_nonneg _) (HrnflR _ rfl)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -204,7 +211,7 @@ theorem RestartNode.wp_proof
       unfold runCfg
       iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _⟩
+      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl⟩
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩

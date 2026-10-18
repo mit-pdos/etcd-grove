@@ -48,6 +48,10 @@ abbrev raft.hasUnappliedConfChanges.spec : Prop :=
   -- reason `hup` tests `promotable` (which checks `hasNextOrInProgressSnapshot`)
   -- first. Added 2026-10-02.
   s.logst.snap = none →
+  -- (D19i part 1) the floor at most `applied`, so `scan` from `applied + 1` finds the entries in
+  -- the storage: `node.go` raises the floor to `applying` when the application's `Advance` is
+  -- handed over, and `RawNode.Advance` moves `applied` up to it right after (`RNState.flw`)
+  uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
       (Val #()))

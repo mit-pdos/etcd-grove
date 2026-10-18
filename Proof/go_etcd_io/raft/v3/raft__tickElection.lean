@@ -40,7 +40,7 @@ theorem raft.tickElection.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.tickElection.spec (GF := GF) (hG := hG) := by
-  intro c md γ r id s Hterm Htc Hwf Hpc
+  intro c md γ r id s Hterm Htc Hwf Hfla Hpc
   wp_start as H
   iNamed H
   wp_auto_lc 1
@@ -106,7 +106,7 @@ theorem raft.tickElection.wp_proof
   wp_apply wp_raft_Step c md γ r id s «$a0_ptr»
       ({ (zero_val MessageM) with Type' := W32 0, From' := id } : MessageM) [] [] none []
       (by simp [StepMsg, stepMsgTypes, MsgHup])
-      (fun _ => ⟨rfl, Hterm, Htc⟩)
+      (fun _ => ⟨rfl, Hterm, Htc, Hfla⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)

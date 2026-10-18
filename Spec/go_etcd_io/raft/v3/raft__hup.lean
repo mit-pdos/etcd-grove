@@ -51,6 +51,8 @@ abbrev raft.hup.spec : Prop :=
   (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
   -- `r.step` matches the role; kept by the call
   NStateWf s →
+  -- (D19i part 1) the floor at most `applied` (`hasUnappliedConfChanges`')
+  uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();

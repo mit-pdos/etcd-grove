@@ -50,6 +50,8 @@ abbrev raft.tickElection.spec : Prop :=
   -- (2026-10-17) a pre-campaign's next term within the ceiling (`NGhost.tc`)
   (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
   NStateWf s →
+  -- (D19i part 1) the floor at most `applied` (a campaign's `hup`)
+  uint.Z s.logst.fl ≤ uint.Z s.logst.applied →
   -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s); the dynamic one
   -- excludes a pre-candidate (`GMode.Pre`)
   (md.isDyn = true → s.role ≠ .preCandidate) →

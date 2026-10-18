@@ -150,7 +150,7 @@ theorem RawNode.Propose.wp_proof
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
-  obtain ⟨Hfr, Hap⟩ := Hloc (.inl rfl)
+  obtain ⟨Hfr, Hap, -⟩ := Hloc (.inl rfl)
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
     Hfr.2.2.2.2.2.1 $$ Hstrecs
@@ -163,9 +163,10 @@ theorem RawNode.Propose.wp_proof
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap'
         (tc_le_of_gh Hfr.2.2.2.2.2.2.2.2.1) Hstok)
       (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
-      (Hpvoff.keep rfl rfl Hfr.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.1 Hfr.1 Hfr.2.2.2.2.2.2.2.2.2)
+      (Hpvoff.keep rfl rfl Hfr.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.1 Hfr.1 Hfr.2.2.2.2.2.2.2.2.2.1)
       (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
+      (RNFl.keep Hrnfl Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.2 Hap')
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr

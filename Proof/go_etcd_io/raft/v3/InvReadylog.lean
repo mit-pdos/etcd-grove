@@ -358,6 +358,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
       omega
     · obtain ⟨Hi, -⟩ := Hhead e0 He0
       have := Hfl.2.2.1 Hs0
+      have := Hfl.2.1
       rw [Hfl.1]; omega
   imod isStorage_handout lv.storage' σ (nextUnstable ls) Hpo $$ HisStorage HStorage
     with ⟨HStorage, Happ⟩
@@ -387,6 +388,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
       word
     · obtain ⟨Hi, -⟩ := Hhead e0 He0
       have := Hfl.2.2.1 Hs0
+      have := Hfl.2.1
       show uint.Z σ.fl < _
       rw [Hfl.1]; omega
   imodintro

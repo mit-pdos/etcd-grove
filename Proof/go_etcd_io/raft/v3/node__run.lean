@@ -358,6 +358,7 @@ theorem node.run.wp_proof
     all_goals (
       try wp_auto
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
+      icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
       -- term ceiling raised to the bound, past the message's term (a granted pre-vote answers at
       -- it) and a transfer's campaign
@@ -371,7 +372,7 @@ theorem node.run.wp_proof
       icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
         (by simp only; omega)
-        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb
+        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb Hflw
         $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hmsg Hcred Hlc1
       ihave Hrest := headRest_term γ nv rs ac rc' rdv' t tb $$ Hrest Hlbtb
@@ -701,12 +702,13 @@ theorem node.run.wp_proof
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
     icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
+    icases headRest_flw γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hflw, Hrest⟩
     -- (2026-10-17) the tick credit raises the term ceiling by one: the tick may (pre-)campaign
     imod budget_spend γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Hcr Hlb' with ⟨%Hb, #Hlb1⟩
     icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
     ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
     wp_apply wp_RawNode_Tick γ.raft nv.rn' id { rs with tc := rs.tc + W64 1 } (by simp only; word)
-      $$ [$Hrn] as %t H
+      Hflw $$ [$Hrn] as %t H
     iNamed H
     ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
     wp_for_post
@@ -799,7 +801,7 @@ theorem node.run.wp_proof
     -- the append right goes with the `Ready`, and `rof` records it
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver
-    imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce } ce rfl rfl rfl rfl $$ Hcfg
+    imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce } ce rfl rfl rfl rfl rfl $$ Hcfg
       with ⟨Hcfg, #Hdlb⟩
     iunfold rofFull at Hrof
     icases Hrof with ⟨%x, Hr1, Hr2⟩
@@ -887,8 +889,8 @@ theorem node.run.wp_proof
       Hunst HA1 $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     subst Hrc
     ihave Hcfg := runCfg_advance γ rs
-      { { rs with unpersisted := [] } with steps := [], term := t, capplied := ca }
-      rfl rfl rfl Hca HA1 $$ Hcfg
+      { { rs with unpersisted := [] } with steps := [], term := t, capplied := ca, flw := false }
+      rfl rfl rfl rfl Hca HA1 $$ Hcfg
     wp_for_post
     iframe HΦ n r
     iexists pc', chan.nil, chan.nil, zero_val Ready, ld'
