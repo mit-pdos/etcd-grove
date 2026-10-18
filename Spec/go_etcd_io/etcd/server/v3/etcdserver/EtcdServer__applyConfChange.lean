@@ -38,6 +38,11 @@ is raft's `ownCCV1` (as `pbutil.MustUnmarshalMessage` decoded it; since stage R6
 v3.7 retarget, 2026-10-16, the struct value with its `Id` cell), some record `m'` after with
 `m`'s id.
 
+(D19i part 1, 2026-10-18) `ep.confState` (`epConfState`) stays `nil` or a read-only
+`*pb.ConfState`: raft's `ApplyConfChange` answers a fresh one (`node.ApplyConfChange.spec`'s
+`confstateP`, owned), which the server only reads afterwards (`CreateSnapshot`, the backend
+hooks' `SetConfState`).
+
 **Scope** (audit phase B3, 2026-10-18; until then stated for every change, which was false: it
 handed raft a change without `node.ApplyConfChange`'s premise, panicked on a malformed context or
 an unknown type, and removed the local member on its `RemoveNode`, against
@@ -57,7 +62,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
       srvRaftNode s γs ∗
-      ownCCV1 cc (DFrac.own 1) m ∗ epConfStateAddr ep ↦ cs ∗
+      ownCCV1 cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
           (Pre -∗ WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!!
@@ -68,7 +73,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
       ⌜removed = false⌝ ∗
       (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
-        epConfStateAddr ep ↦ cs') ∗
+        epConfState ep cs') ∗
       (if v3 then iprop(Post ∨ Adv) else Pre) }}
 
 end spec

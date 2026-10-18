@@ -403,7 +403,9 @@ theorem ownSnapW_persist (p : Loc) (dq : DFrac) (s : SnapshotM) :
     ownSnapW (GF := GF) p dq s ⊢ |==> ∃ (pm pc : Loc), ⌜pm ≠ null ∧ pc ≠ null⌝ ∗
       ownSnapM p DFrac.discard s ∗
       p.[raftpb.Snapshot, go!"Metadata"] ↦□ pm ∗
-      pm.[raftpb.SnapshotMetadata, go!"ConfState"] ↦□ pc := by
+      pm.[raftpb.SnapshotMetadata, go!"ConfState"] ↦□ pc ∗
+      -- (D19i part 1) the conf state, read-only
+      csOptA pc DFrac.discard s.Metadata'.ConfState' := by
   iintro H
   iNamed H
   iunfold smPtsW at Hm
@@ -419,7 +421,7 @@ theorem ownSnapW_persist (p : Loc) (dq : DFrac) (s : SnapshotM) :
   iexists pm, pc
   isplitr
   · ipureintro; exact Hnnm
-  iframe HM HC
+  iframe HM HC Hc
   iunfold ownSnapM
   iexists ds, pm, uf
   isplitr

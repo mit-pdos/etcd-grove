@@ -27,10 +27,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `rnApP` depends on the names through `cum` only. -/
-theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum) :
+/-- `rnApP` depends on the names through `cum` and (D19i part 1) the storage and the start log
+only. -/
+theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
+    (hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP; rw [h]
+  unfold rnApP; rw [h, hms, hγs, hpre]
 
 set_option maxHeartbeats 0 in
 theorem newRaftNode.wp_proof :
@@ -128,7 +130,7 @@ theorem newRaftNode.wp_proof :
   isplitr
   · iunfold isRNApplyc
     rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, reg, γsp, cum, γd⟩
-      ⟨node, id, nl, pre, ms, γs, reg, ⟨γap, cum, cum⟩, cum, γd⟩ rfl]
+      ⟨node, id, nl, pre, ms, γs, reg, ⟨γap, cum, cum⟩, cum, γd⟩ rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

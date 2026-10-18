@@ -223,7 +223,7 @@ spec `context.ErrDone`; until then the premise `rnCtxErrOk`). -/
 theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
-      rnStopOk γ.nl ⊢
+      rnStopOk γ.nl ∗ rnMemStorReg γ ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) :=
   letI : MemStorReg GF := ⟨γ.reg⟩
   isRaftNodeIfc_of_isNode E γ s node.wp_Ready

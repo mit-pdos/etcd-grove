@@ -368,10 +368,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     (wp_ReadIndex : letI : MemStorReg GF := ⟨γ.reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
-      rnStopOk γ.nl ⊢
+      rnStopOk γ.nl ∗ rnMemStorReg γ ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) := by
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hcinv, #Hstop⟩
+  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hcinv, #Hstop, #Hreg⟩
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
@@ -399,15 +399,26 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     iunfold rnAppendReceipt at Hrcpt
     wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg
       (fun h => by rw [Hstatic] at h; simp [RNMode.isDyn] at h) $$ [Hbusy Hrcpt Hcfg]
-      as ⟨Hdrv, Hcfg⟩
+      as ⟨Hdrv, Hcfg, %x, #Hfl, %Hx⟩
     · iframe #
       rw [Hstor]
       iframe Hbusy Hrcpt Hcfg
     iapply HΦ
-    iunfold rnDrv
-    iframe Hdrv
-    iexists ca, cfg
-    iexact Hcfg
+    isplitl [Hdrv Hcfg]
+    · iunfold rnDrv
+      iframe Hdrv
+      iexists ca, cfg
+      iexact Hcfg
+    -- (D19i part 1) the floor's witness, the `MemoryStorage`'s
+    iunfold memFloorAtLeast
+    iexists x
+    isplitr
+    · ihave #Hfl' : storFloor (memStorIface γ.ms) x $$ []
+      · rw [← Hstor]; iexact Hfl
+      iapply memStorFloor_at γ.ms γ.γs x $$ Hreg Hfl'
+    ipureintro
+    simp only [rnLogOf, List.length_map, List.append_assoc] at Hx ⊢
+    exact Hx
   isplitr
   · -- `Tick`, for a time receipt (D19b: raft's tick credit)
     iintro !> %Φ !> Hcred HΦ

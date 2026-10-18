@@ -33,6 +33,10 @@ theorem EtcdServer.shouldSnapshotToMemory.wp_proof :
   wp_auto
   iapply HΦ
   iframe
+  ipureintro
+  intro h
+  simp only [decide_eq_true_eq] at h
+  word
 
 end proof
 

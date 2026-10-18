@@ -338,6 +338,15 @@ theorem rnReadStateBridge_of_raft (E : RNEnv GF) (γ : RNNames) :
   iframe Henv Hinv Hst Hctx
   ipureintro; exact Hi
 
+/-- (D19i part 1) The `MemoryStorage` `ms`'s floor is at least `n` (persistent): its witness
+`memFloorTok`, the application's right to compact and snapshot up to it. -/
+def memFloorAtLeast (ms : Loc) (γs : MemStorNames) (n : Int) : IProp GF :=
+  iprop(∃ x : w64, memFloorTok ms γs x ∗ ⌜n ≤ uint.Z x⌝)
+
+instance memFloorAtLeast_persistent (ms : Loc) (γs : MemStorNames) (n : Int) :
+    Persistent (memFloorAtLeast (GF := GF) ms γs n) := by
+  unfold memFloorAtLeast memFloorTok; infer_instance
+
 /-- **The `raft.Node` `n`** (see the file header; the trust boundary until R7's discharge):
 `Ready` returns the node's handshake channel (raft's `readyP`), `Advance` takes the busy driver
 and the append receipt, `Tick` a tick's resource, `Stop` returns; and (2026-10-13, the request
@@ -353,7 +362,8 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
     □ (∀ (d ce es : List EntryModel),
       {{ rnBusy γ d ce es ∗ rnAppendReceipt γ es }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
-      {{ RET #(); rnDrv γ (d ++ ce) }}) ∗
+      -- (D19i part 1) and the storage's floor at least the committed log handed out
+      {{ RET #(); rnDrv γ (d ++ ce) ∗ memFloorAtLeast γ.ms γ.γs (γ.pre ++ d ++ ce).length }}) ∗
     □ ({{ ⧗ 1 }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
@@ -483,7 +493,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   iunfold rnDrv at Hdrv
   icases Hdrv with ⟨Hdrv, Hcfg⟩
   iunfold nodeDriver at Hdrv
-  icases Hdrv with ⟨#Hnode, Hds, -⟩
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   subst Heq
   iunfold rnLogFits at Hfits
@@ -562,7 +572,9 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
     · iunfold dlvLb; iexact Hlb
     iexists rnLogOf γ L, ce
     iframe Hd Hds Hrof
-    ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
+    iexact Hreq
 
 /-! ## The other components -/
 
@@ -690,11 +702,12 @@ instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) :=
 
 /-- `raftAdvancedC` (D19i part 1, 2026-10-18: the fork closes it after every `Advance`, and
 `applyAll` waits for it before snapshotting or compacting): a broadcast channel, never sent on,
-closed once (`make(chan struct{}, 1)`: a `stopChan`); a reader's view of it. -/
-def rnAdvChan (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, ownStopChan c γc iprop(True) .Unknown)
+closed once (`make(chan struct{}, 1)`: a `stopChan`), its close carrying `P` (the storage's floor
+past the batch, `rnApP`); a reader's view of it. -/
+def rnAdvChan (c : Loc) (P : IProp GF) : IProp GF :=
+  iprop(∃ γc : ChanNames, ownStopChan c γc P .Unknown)
 
-instance rnAdvChan_persistent (c : Loc) : Persistent (rnAdvChan (GF := GF) c) := by
+instance rnAdvChan_persistent (c : Loc) (P : IProp GF) : Persistent (rnAdvChan (GF := GF) c P) := by
   unfold rnAdvChan; infer_instance
 
 
@@ -706,7 +719,10 @@ def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    isUnitBag ap.notifyc' ∗ rnAdvChan ap.raftAdvancedC' ∗ committedLast E.γr ce)
+    isUnitBag ap.notifyc' ∗
+    -- (D19i part 1) closed once `Advance` returned: the storage's floor past the batch
+    rnAdvChan ap.raftAdvancedC' (memFloorAtLeast γ.ms γ.γs (γ.pre ++ F ++ ce).length) ∗
+    committedLast E.γr ce)
 
 /-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never

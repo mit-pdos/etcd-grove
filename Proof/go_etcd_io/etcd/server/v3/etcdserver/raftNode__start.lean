@@ -327,7 +327,9 @@ theorem raftNode.start.wp_proof
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
       · ipureintro; decide
       -- (D19i part 1) `raftAdvancedC`: a broadcast channel, closed after `Advance`
-      imod alloc_stop_chan (E := ⊤) iprop(True) γac ac $$ Hacch Hacown with Hacp
+      -- its close carries the storage's floor past the batch (`node.Advance`'s)
+      imod alloc_stop_chan (E := ⊤) (memFloorAtLeast γ.ms γ.γs (γ.pre ++ L' ++ ce).length) γac ac
+        $$ Hacch Hacown with Hacp
       icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
       -- `proto.Clone(rd.Snapshot)` of the nil snapshot, twice
       rw [Hsnapnil]
@@ -488,10 +490,10 @@ theorem raftNode.start.wp_proof
             rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
             wp_auto
             ihave HAdv' := HAdv $$ %L' %ce %es
-            wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
-            -- `close(raftAdvancedC)`
-            wp_apply wp_stop_chan_close ac γac iprop(True) $$ [$Hacp] as -
-            · imodintro; itrivial
+            wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
+            -- `close(raftAdvancedC)`, with the floor's witness
+            wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+            · imodintro; iexact Hfl
             (try wp_auto)
             wp_for_post
             iframe
@@ -527,10 +529,10 @@ theorem raftNode.start.wp_proof
               rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
               wp_auto
               ihave HAdv' := HAdv $$ %L' %ce %es
-              wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
-              -- `close(raftAdvancedC)`
-              wp_apply wp_stop_chan_close ac γac iprop(True) $$ [$Hacp] as -
-              · imodintro; itrivial
+              wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
+              -- `close(raftAdvancedC)`, with the floor's witness
+              wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+              · imodintro; iexact Hfl
               (try wp_auto)
               wp_for_post
               iframe
@@ -571,10 +573,10 @@ theorem raftNode.start.wp_proof
           rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
           wp_auto
           ihave HAdv' := HAdv $$ %L' %ce %es
-          wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
-          -- `close(raftAdvancedC)`
-          wp_apply wp_stop_chan_close ac γac iprop(True) $$ [$Hacp] as -
-          · imodintro; itrivial
+          wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
+          -- `close(raftAdvancedC)`, with the floor's witness
+          wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
+          · imodintro; iexact Hfl
           (try wp_auto)
           wp_for_post
           iframe

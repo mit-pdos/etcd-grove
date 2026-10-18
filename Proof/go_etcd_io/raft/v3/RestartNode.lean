@@ -5,6 +5,7 @@ public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Spec.go_etcd_io.raft.v3.newNode
 public import Spec.go_etcd_io.raft.v3.node__run
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
+public import Proof.go_etcd_io.raft.v3.InvAdvance
 
 @[expose] public section
 
@@ -165,19 +166,22 @@ theorem RestartNode.wp_proof
   imod dghostVar_alloc ((0 : Nat), cfgState (GMap.listToSet csm.Voters') ∅) with ⟨%γccq, Hccq⟩
   icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcam, Hcam, #Hcamlb⟩
+  -- (D19i part 1) the driver's request on `advancec`
+  imod dghostVar_alloc (0 : Nat) with ⟨%γreq, Hreq⟩
+  icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
     #Hcc, Hoc, #Hccs, Hocs, #Hcrd, Hord, #Hca, Hoa, #Hct, Hot, #Hcd, Hod, #Hcs, Hos, #Hcst, Host⟩
   let γn : NodeNames := { raft := γ, bud := bud, stor := interface.ok si, propc := γp,
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
-                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam }
+                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq }
   imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
   imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
   imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
   imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
-  imod start_handshake nv.advancec' (advanceP γn) iprop(True) γa $$ Hca Hoa with #Hha
+  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
   imod start_handshake nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) γd $$ Hcd Hod
     with #Hhd
   imod start_handshake nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) γs $$ Hcs Hos
@@ -221,9 +225,11 @@ theorem RestartNode.wp_proof
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   iframe Hnode
-  isplitl [Hdlv2]
+  isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriver dlvLb
     iframe Hnode Hdlv2 Hdlb
+    iexists _
+    iframe Hreq1 Hreq2
   unfold nodeCfg
   iframe Hcap2 Hcamlb
   iexists _

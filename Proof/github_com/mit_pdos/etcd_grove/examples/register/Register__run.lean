@@ -291,7 +291,7 @@ theorem Register.run.wp_proof
     wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ vs) (DFrac.own 1) a' Ha
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
     wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' (fun _ => Hrc.2.1)
-      $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg⟩
+      $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg, -⟩
     wp_for_post
     iframe
     iexists ds ++ ce, rdv', rest, ps', a', ca', cfg'

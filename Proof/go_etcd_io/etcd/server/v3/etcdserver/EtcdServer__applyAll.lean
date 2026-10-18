@@ -46,7 +46,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSM : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A Hms Hai1 Hok hEok
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs Hms Hai1 Hok hEok
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, Hka, #Hkb⟩
   ihave #Hsrv' := Hsrv
@@ -70,7 +70,7 @@ theorem EtcdServer.applyAll.wp_proof
   (try wp_auto)
   -- `s.applyEntries(ep, apply)`, lending it `forceDiskSnapshot` (D14i)
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0⟩
+  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, %σ0, Htok, %Hσ0⟩
   ihave Hfs : srvFS s $$ [Hsf0]
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
@@ -80,9 +80,13 @@ theorem EtcdServer.applyAll.wp_proof
   · iframe #; iframe
   iunfold srvFS at Hfs
   icases Hfs with ⟨%sf1, Hsf1⟩
-  ihave Hss : srvSnapState s ep $$ [Hsd0 Hsm0 Hsf1]
-  · iunfold srvSnapState; iexists _, _, _; iframe
   obtain ⟨hok', hai', hci'⟩ := Hpost
+  have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
+  ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Htok]
+  · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst
+    isplitr
+    · ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
+    iexists σ0; iframe Htok; ipureintro; exact ⟨by have := Hσ0.1; omega, by word⟩
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
   wp_apply hBk s $$ [Hbr] as %be Hbr
@@ -152,14 +156,19 @@ theorem EtcdServer.applyAll.wp_proof
   isplitr
   · iapply ownStopChan_is_chan $$ Hracc
   iapply stop_chan_receive _ _ _ _ _ $$ Hracc
-  iintro ⟨-, -⟩
+  iintro ⟨#Hflb, -⟩
   (try wp_auto)
+  -- (D19i part 1) the storage's floor past the batch, so past the applied index
+  ihave #Hfl' : memFloorAtLeast mst γs (uint.Z ai') $$ []
+  · rw [hai']; iexact Hflb
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' hok'
+  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs hok'
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe
   (try wp_auto)
+  iunfold epConfState at Hcs
+  icases Hcs with ⟨Hcs, #Hcsok⟩
   -- `select { case m := <-s.r.msgSnapC: ...; default: }`
   ihave #Hmscch := is_bag_is_chan γc msc Pm $$ Hmscb
   rw [isChanBag_unseal] at *
@@ -199,6 +208,8 @@ theorem EtcdServer.applyAll.wp_proof
           (try wp_auto)
           wp_apply hSM s merged
           (try wp_auto)
+          ihave Hcs : epConfState ep cs' $$ [Hcs]
+          · iunfold epConfState; iframe Hcs Hcsok
           iapply HΦ
           iexists st'', ai', at', a', t', cs'
           iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
@@ -220,6 +231,8 @@ theorem EtcdServer.applyAll.wp_proof
           (try wp_auto)
           wp_apply hSM s merged
           (try wp_auto)
+          ihave Hcs : epConfState ep cs' $$ [Hcs]
+          · iunfold epConfState; iframe Hcs Hcsok
           iapply HΦ
           iexists st'', ai', at', a', t', cs'
           iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
@@ -236,6 +249,8 @@ theorem EtcdServer.applyAll.wp_proof
     itrivial
   · -- `default`
     (try wp_auto)
+    ihave Hcs : epConfState ep cs' $$ [Hcs]
+    · iunfold epConfState; iframe Hcs Hcsok
     iapply HΦ
     iexists st'', ai', at', a', t', cs'
     iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr

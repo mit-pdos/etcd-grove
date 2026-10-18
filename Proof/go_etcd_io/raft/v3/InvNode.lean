@@ -367,6 +367,10 @@ structure NodeNames [FfiSyntax] where
   /-- (2026-10-15) the configuration index of `cap`, as a monotone nat: `run` holds the
   authority, the driver lower bounds, by which `run` checks A1 at `Advance` -/
   cam : GName
+  /-- (D19i part 1) the driver's request on `advancec` when it arrives first: the length of the
+  committed log it was handed, whole with the driver between `Advance`s, a half in the channel
+  while its offer waits (`advInv`) -/
+  req : GName
 
 def tickN : Namespace := nroot.@"raft_tick"
 
@@ -597,6 +601,70 @@ def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
       monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn rs.delivered ca rs.capplied⌝)
 
+/-! ### `advancec` (D19i part 1): the floor raised at the rendezvous
+
+`node.Advance` returns as soon as `run` takes its send, before `run`'s `rn.Advance` moves
+`applied`, and the application may then compact its storage up to what it applied. So the floor
+is raised (`ownRawNode_raise_floor`, to `applying`: the committed log handed out) at the
+rendezvous itself, and the floor's witness goes to the sender. `advancec` has its own protocol
+over the channel's states (`advInv`), in place of a handshake's fixed reply:
+
+- `run` first (`RcvPending`): `run` deposits its node (`advDep`), the means to raise the floor;
+  the sender, meeting it (`RcvPending → SndCommit`), absorbs its append receipt, raises the
+  floor, checks the committed log `run` handed out against its own lower bound (`dlvLb`), keeps
+  the witness, and leaves the raised node (`advRet`) for `run`, which takes it back when its
+  receive completes (`SndCommit → Idle`);
+- the sender first (`SndPending`): its payload and its request (`req`, the length of its log)
+  wait; `run`, meeting it (`SndPending → RcvCommit`), raises the floor itself and leaves the
+  witness against the request, which the sender takes when its send completes.
+
+In Perennial's channel model a receiver's `RcvPending` is entered only by the sender that meets
+it, in the same step as `SndCommit` (`wp_TrySend_blocking`'s `RcvWait` case; a waiting offer a
+`select` rescinds never reaches the logical state), so a node deposited at `RcvPending` is not
+taken back by a `select` that fires another case. -/
+
+/-- `run`'s node at the `advancec` rendezvous, before the floor is raised: `runMid_busy`'s. -/
+def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+  iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
+    termLB γ.bud rs.tc ∗ runCfg γ rs ∗
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted) ∗
+    ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
+
+/-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
+(`flw`), the driver's payload in (its `dlv` half, `rof` back whole, A1's lower bound). -/
+def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+  iprop(∃ (rs : RNState) (ca_d : Nat), ownRawNode γ.raft rn id rs ∗
+    termLB γ.bud rs.tc ∗ runCfg γ { rs with flw := false } ∗
+    dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗
+    (∃ x : List EntryM × List EntryM × List EntryM,
+      dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
+    monoNatLbOwn γ.cam ca_d ∗
+    ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ rs.unpersisted = [] ∧ rs.flw = true ∧
+      (γ.mode.isDyn = true → NoConfIn rs.delivered ca_d rs.delivered.length)⌝)
+
+/-- The `advancec` protocol (see above). -/
+def advInv (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+  iprop(∃ s, "Hch" ∷ ownChan γ.advancec Unit s ∗
+    (match s with
+     | .Idle => iprop(True)
+     | .SndPending _ => iprop(advanceP γ () ∗ ∃ ds : List EntryM,
+         dghostVar γ.req (DFrac.own (1 : Qp).half) ds.length ∗ dlvLb γ ds)
+     | .RcvPending => advDep γ rn id
+     | .SndCommit _ => advRet γ rn id
+     | .RcvCommit => iprop(∃ (k : Nat) (x : w64), dghostVar γ.req (DFrac.own (1 : Qp).half) k ∗
+         storFloor γ.stor x ∗ ⌜(k : Int) ≤ uint.Z x⌝)
+     | _ => iprop(False)))
+
+def advN : Namespace := nroot.@"raft_advancec"
+
+/-- `advancec` (D19i part 1): the channel and its protocol. -/
+def isAdvChan (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) : IProp GF :=
+  iprop(isChan ch γ.advancec Unit ∗ inv advN (advInv γ rn id))
+
+instance isAdvChan_persistent (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) :
+    Persistent (isAdvChan (GF := GF) γ rn id ch) := by
+  unfold isAdvChan; infer_instance
+
 /-- A conf change on `confc` (2026-10-13, `node.ApplyConfChange`), its changes read-only: in the
 static mode, one that keeps the voters and only drops learners (`CCShrink`,
 `RawNode.ApplyConfChange`'s static scope); (2026-10-15, stage N) in the dynamic mode, the driver's
@@ -652,7 +720,7 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hconfc" ∷ isHandshake γ.confc nv.confc' (confcP γ) iprop(True) ∗
     "#Hconfstatec" ∷ isHandshake γ.confstatec nv.confstatec' (confstateP γ) iprop(True) ∗
     "#Hreadyc" ∷ isHandshake γ.readyc nv.readyc' (readyP γ) iprop(True) ∗
-    "#Hadvancec" ∷ isHandshake γ.advancec nv.advancec' (advanceP γ) iprop(True) ∗
+    "#Hadvancec" ∷ isAdvChan γ nv.rn' id nv.advancec' ∗
     "#Hdone" ∷ isHandshake γ.done nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) ∗
     "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) ∗
     "#Hstatus" ∷ isHandshake γ.status nv.status' (fun (_ : GoChan) => iprop(False)) iprop(True) ∗
@@ -671,7 +739,10 @@ instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
 
 /-- The driver's token: the committed log it was handed so far is `ds`. -/
 def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) : IProp GF :=
-  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) ds ∗ dlvLb γ ds)
+  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) ds ∗ dlvLb γ ds ∗
+    -- (D19i part 1) the request on `advancec` (`advInv`)
+    ∃ k : Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) k ∗
+      dghostVar γ.req (DFrac.own (1 : Qp).half) k)
 
 /-- The driver with a `Ready` in hand: it was handed the committed log `ds` (the last
 `Ready`'s included) and must append `es` (the last `Ready`'s entries) before `Advance`. -/
@@ -680,7 +751,9 @@ def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
   iprop(isNode γ id n ∗ dlvLb γ ds ∗
     ∃ (d ce : List EntryM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
-      dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ ⌜ds = d ++ ce⌝)
+      dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ ⌜ds = d ++ ce⌝ ∗
+    ∃ k : Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) k ∗
+      dghostVar γ.req (DFrac.own (1 : Qp).half) k)
 
 /-- `readyc`, as the driver sees it (`Node.Ready()`'s result). -/
 def isReadyChan (γ : NodeNames) (ch : Loc) : IProp GF :=
@@ -701,9 +774,9 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
           readyData γ rd ds ce es ms ∗ nodeDriverBusy γ id n (ds ++ ce) es }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriver
-  icases Hdrv with ⟨#Hnode, Hds, -⟩
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold isReadyChan
-  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds]
+  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq]
   · iframe Hrc
   iintro %rd
   iintro !> HP
@@ -719,7 +792,7 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   isplitr
   · unfold dlvLb; iexact Hlb
   iexists d, ce
-  iframe Hd Hds Hrof
+  iframe Hd Hds Hrof Hreq
   ipureintro; rfl
 
 /-- The committed log the driver was handed is a lower bound of `run`'s (2026-10-15). -/
@@ -727,7 +800,7 @@ theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) :
     ⊢ nodeDriver (GF := GF) γ id n ds -∗ dlvLb γ ds := by
   iintro H
   unfold nodeDriver
-  icases H with ⟨-, -, $⟩
+  icases H with ⟨-, -, $, -⟩
 
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
     ⊢ nodeDriverBusy (GF := GF) γ id n ds es -∗ dlvLb γ ds := by

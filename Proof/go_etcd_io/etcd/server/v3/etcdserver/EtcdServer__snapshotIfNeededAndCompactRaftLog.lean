@@ -36,17 +36,17 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x hok
-  wp_start as ⟨#Hsa, Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs hok
+  wp_start as ⟨#Hsa, Hss, #Hfl, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -⟩
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf⟩
+  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, %σ, Htok, %Hσ⟩
   (try wp_auto)
-  wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd⟩
+  wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, %Hr1⟩
   · iframe #; iframe
   (try wp_auto)
-  wp_apply hM s ep ai m $$ [Hai Hm] as %r2 ⟨Hai, Hm⟩
+  wp_apply hM s ep ai m $$ [Hai Hm] as %r2 ⟨Hai, Hm, %Hr2⟩
   · iframe #; iframe
   (try wp_auto)
   cases r1 <;> cases r2
@@ -55,23 +55,46 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     iapply HΦ
     iexists st
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf]
-    · iunfold srvSnapState; iexists d, m, f; iframe
+    isplitl [Hd Hm Hf Htok]
+    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
+      isplitr
+      · ipureintro; exact Hdm
+      iexists σ; iframe Htok; ipureintro; exact ⟨Hσ.1, by word⟩
     ipureintro; exact ⟨hok, rfl⟩
   all_goals (
+    -- (D19i part 1) the trigger fires only past index `0`
+    have Hai1 : 1 ≤ uint.Z ai := by
+      first
+        | (have := Hr2 rfl; omega)
+        | (have h := Hr1 rfl
+           have : uint.Z ai ≠ uint.Z d := fun e => h (by word)
+           have := Hdm.1
+           have : 0 ≤ uint.Z d := by word
+           omega)
     (try wp_auto)
-    wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ hok $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV]
+    wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ ms γs (W64 0) hok
+        $$ [Hd Hm Hf Htok Hai Hat Hcs Hst Hbe Happ Hlr HKV]
       as ⟨%st', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
     · iframe #
       iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-      iunfold srvSnapState; iexists d, m, f; iframe
+      iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
+      isplitr
+      · ipureintro; exact Hdm
+      iexists σ; iframe Htok; ipureintro; exact ⟨Hσ.1, by word⟩
+    iunfold srvSnapState at Hss
+    icases Hss with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, %σ', Htok, %Hσ'⟩
     (try wp_auto)
-    wp_apply hC s ai $$ [Hlr] as Hlr
-    · iframe #; iframe Hlr
+    wp_apply hC s ai ms γs σ' Hσ'.1 Hσ'.2 Hai1 $$ [Hlr Htok] as ⟨Hlr, %σ'', Htok, %Hσ''⟩
+    · iframe #; iframe Hlr Htok
     (try wp_auto)
     iapply HΦ
     iexists st'
-    iframe
+    iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
+    isplitl [Hd Hm Hf Htok]
+    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms
+      isplitr
+      · ipureintro; exact Hdm'
+      iexists σ''; iframe Htok; ipureintro; exact ⟨Hσ''.1, by word⟩
     ipureintro; exact hst')
 
 end proof

@@ -155,7 +155,7 @@ abbrev NewServer.spec : Prop :=
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
-          srvBuildGap srv (W64 0) (W64 0) ∗
+          srvBuildGap srv γn (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
           -- watchable store, the progress interval's field, and the request slots
           srvServeBuilt srv E cfg 64 ∗

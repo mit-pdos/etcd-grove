@@ -2,6 +2,7 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__Advance
+public import Proof.go_etcd_io.raft.v3.InvAdvance
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
   intro γ id n ds es ca cfg HA1
   wp_start as ⟨Hbusy, Hrcpt, Hcfg⟩
   unfold nodeDriverBusy
-  icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, Hd1, Hd2, Hrof, %Hds⟩
+  icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, Hd1, Hd2, Hrof, %Hds, %k0, Hr1, Hr2⟩
   ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
   · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
   subst Hds
@@ -36,16 +37,16 @@ theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit
-  · -- `advancec <- struct{}{}`
+  · -- `advancec <- struct{}{}` (D19i part 1: `advInv`, the floor raised at the rendezvous)
     simp only [chan.blockingClausePre]
     iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.advancec',
       γ.advancec, ()
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
-    · iapply isHandshake_isChan $$ Hadvancec
-    iapply handshake_send_au γ.advancec nv.advancec' () (advanceP γ) iprop(True)
-      $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt]
+    · iapply isAdvChan_isChan $$ Hadvancec
+    iapply adv_send_au γ nv.rn' id nv.advancec' (d ++ ce) k0
+      $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt] Hdlb Hr1 Hr2
     · unfold advanceP
       iexists d, ce, es
       iframe Hd1 Hrof Hrcpt
@@ -53,12 +54,12 @@ theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
       iframe Hcamlb
       ipureintro; exact HA1
     inext
-    iintro -
+    iintro Hfl Hreq
     wp_auto
     iapply HΦ
-    iframe Hcfg
+    iframe Hcfg Hfl
     unfold nodeDriver
-    iframe Hnode Hd2 Hdlb
+    iframe Hnode Hd2 Hdlb Hreq
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-n.done`: never

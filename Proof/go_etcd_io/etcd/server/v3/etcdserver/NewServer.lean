@@ -834,8 +834,9 @@ theorem NewServer.wp_proof
   · iapply Htrall
   · iexact Hrtm
   -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
-  ihave Hgap : srvBuildGap s (W64 0) (W64 0) $$ [Htok]
+  ihave Hgap : srvBuildGap s γrn (W64 0) (W64 0) $$ [Htok]
   · iunfold srvBuildGap
+    rw [Hrn8]
     iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn Htok
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'

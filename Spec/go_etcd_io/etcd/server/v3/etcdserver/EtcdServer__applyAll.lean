@@ -45,15 +45,19 @@ abbrev EtcdServer.applyAll.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
-    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel),
+    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
+    (mst : Loc) (γs : MemStorNames),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
-      taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗ rnAdvChan rac ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
+      taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
+      -- (D19i part 1) closed once raft advanced past the batch: the storage's floor past it
+      rnAdvChan rac (memFloorAtLeast mst γs
+        (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0))) ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗
       taNotifycAddr ap ↦□ nc ∗ isUnitBag nc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
-      srvSnapState s ep ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
+      srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
@@ -61,8 +65,8 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       (Val #ap))
   {{ RET #();
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfStateAddr ep ↦ cs' ∗
-        srvSnapState s ep ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
+        epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
+        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗

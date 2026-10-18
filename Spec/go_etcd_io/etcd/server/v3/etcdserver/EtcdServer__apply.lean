@@ -55,7 +55,7 @@ abbrev EtcdServer.apply.spec : Prop :=
     (A : List EntryModel),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms }}
@@ -65,7 +65,7 @@ abbrev EtcdServer.apply.spec : Prop :=
       RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
           appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x') ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧

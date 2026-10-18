@@ -76,10 +76,17 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
-/-- **The apply thread's snapshot state** (see the file header). -/
-def srvSnapState (s ep : Loc) : IProp GF :=
+/-- **The apply thread's snapshot state** (see the file header) at the applied index `ai`: the
+snapshot indices at most `ai`; and (D19i part 1, 2026-10-18) the raft wrapper's `MemoryStorage`
+`ms` and the application's snapshot token (`memSnapTok`), its compaction boundary at most `ai`,
+its snapshot index at least `sl` (`snapshot` raises it to `ai`, which `compactRaftLog` then
+compacts below). -/
+def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
-    srvForceSnapAddr s ↦ f)
+    srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
+    rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+    ∃ σ : StorState, memSnapTok ms γs σ ∗
+      ⌜uint.Z σ.prev.index' ≤ uint.Z ai ∧ uint.Z sl ≤ uint.Z σ.ss.index'⌝)
 
 /-- **The apply thread's resources besides the KV and the snapshot state** at the applied index
 `ai` with the protocol's state `st` (what `applyEntries` takes and gives back): `ep`'s applied
@@ -87,7 +94,7 @@ index, term and conf state, the protocol, the backend, the applying index, the l
 slot, the ghost applied index's half. -/
 def srvApplyRes (s ep : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) : IProp GF :=
-  iprop(epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfStateAddr ep ↦ cs ∗
+  iprop(epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
     applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
     srvAppliedOwn γr ai)
 

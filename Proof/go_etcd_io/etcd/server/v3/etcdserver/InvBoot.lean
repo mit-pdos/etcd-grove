@@ -242,7 +242,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
     (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
       isRaftNode E γ r -∗ memSnapTok ms0 γs memStorEmpty -∗
-      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms (W64 0) (W64 0) := by
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms γs (W64 0) (W64 0) := by
   subst Hms0
   iintro #Hpkg #Hrn Htok
   ihave #Hrn' := Hrn
@@ -256,14 +256,18 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iapply wp_fupd
-  wp_apply wp_Snapshot.2 γ.ms γs memStorEmpty $$ [$Htok] as %snap ⟨-, %sv, Hw, %Hid⟩
-  imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc⟩
+  wp_apply wp_Snapshot.2 γ.ms γs memStorEmpty $$ [$Htok] as %snap ⟨Htok, %sv, Hw, %Hid⟩
+  imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc, #Hcs⟩
   imodintro
   obtain ⟨Hid, -, -⟩ := Hid
   simp only [snapId, memStorEmpty, entryID.mk.injEq] at Hid
-  iapply HΦ $$ %snap %pm %pc %sv [] Hsn Hpm Hpc
-  ipureintro
-  exact ⟨Hid.2, Hid.1, Hnn.1, Hnn.2⟩
+  iapply HΦ $$ %snap %pm %pc %sv [] Hsn Hpm Hpc [] [Htok]
+  · ipureintro
+    exact ⟨Hid.2, Hid.1, Hnn.1, Hnn.2⟩
+  · iapply epCsOk_of_csOptA $$ Hcs
+  · iexists memStorEmpty
+    iframe Htok
+    ipureintro; simp [memStorEmpty]
 
 end snap
 
