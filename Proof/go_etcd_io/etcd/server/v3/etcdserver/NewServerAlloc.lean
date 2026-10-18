@@ -118,14 +118,16 @@ theorem srvNoopAu_to_noopAu_of (γ : ServerRaftNames) (Hai0 : uint.Z γ.ai0 = γ
       itrivial
 
 /-- **What the server's continuation of raft's allocation returns** (see the file header): read
-names at the raft names `⟨γ, [], 0⟩` and the KV start values of a new cluster, the KV invariant,
+names at the raft names `⟨γ, [], 0⟩` and the KV start values of a new cluster at the workload `W`
+(D19q, the caller's choice), the KV invariant,
 the client's `etcdKV` at the bootstrap log's model, the read names' other rows and raft's
 fresh-token authorities. -/
-def srvBootOut (ids : IdNames) (cok : GName) (bootLog : List EntryM) (γ : RaftNames) : IProp GF :=
+def srvBootOut (ids : IdNames) (cok : GName) (W : SrvWorkload) (bootLog : List EntryM)
+    (γ : RaftNames) : IProp GF :=
   iprop(∃ γr : ReadNames,
     ⌜γr.raft = ⟨γ, [], W64 0⟩ ∧ γr.kv.c0 = W64 0 ∧
       γr.kv.ch0 = apply.alarmChain false false false ∧ γr.kv.log0 = [[], []] ∧
-      γr.kv.cok = cok ∧ γr.kv.ids = ids⌝ ∗
+      γr.kv.cok = cok ∧ γr.kv.ids = ids ∧ γr.kv.wl = W⌝ ∗
     kvInv γr.raft γr.kv ∗ etcdKV γr.kv (kvStateOf (kvModel γr.kv (bootEntries bootLog))) ∗
     srvReadNamesFreshNK γr ∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
@@ -135,18 +137,18 @@ def srvBootOut (ids : IdNames) (cok : GName) (bootLog : List EntryM) (γ : RaftN
 log the conf-change policy `ccOk` admits, every admitted conf change of id `0` in the server's
 form, one `applyConfChange` takes (`srvCCPolicy`'s; audit phase B3, 2026-10-18). -/
 theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → Prop)
-    (ps : List w64) (bootLog : List EntryM) (ids : IdNames) (cok : GName)
+    (ps : List w64) (bootLog : List EntryM) (ids : IdNames) (cok : GName) (W : SrvWorkload)
     (hboot : BootLogOk ccOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
-    ⊢ allocClientBoot (GF := GF) E cfg ccOk bootLog (srvBootOut ids cok bootLog) := by
+    ⊢ allocClientBoot (GF := GF) E cfg ccOk bootLog (srvBootOut ids cok W bootLog) := by
   unfold allocClientBoot
   iintro %γ %Hγ #Hc HL Hf Hrf
   imod (srvReadNamesFresh_alloc (GF := GF) ⟨γ, [], W64 0⟩ (W64 0)
-      (apply.alarmChain false false false) [[], []] cok ids
+      (apply.alarmChain false false false) [[], []] cok ids W
       (kvStateOf (kvRaftOf (W64 0) (apply.alarmChain false false false) [[], []]
         (bootEntries bootLog)))) with ⟨%γr, %Hr, Hrd⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hids⟩ := Hr
+  obtain ⟨hraft, hc0, hch, hlog, hcok, hids, hwl⟩ := Hr
   icases srvReadNamesFresh_split γr _ $$ Hrd with ⟨Hnk, Hst⟩
   have hm : kvModel γr.kv (bootEntries bootLog) =
       kvRaftOf (W64 0) (apply.alarmChain false false false) [[], []] (bootEntries bootLog) := by
@@ -175,14 +177,14 @@ theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → 
   iexists γr
   iframe Hkv Hetcd Hnk Hf Hrf
   ipureintro
-  exact ⟨hraft, hc0, hch, hlog, hcok, hids⟩
+  exact ⟨hraft, hc0, hch, hlog, hcok, hids, hwl⟩
 
 /-- **A new cluster's raft ghost state, for the server** (`ownRaftGhost_alloc_boot` at
 `srvBootClient`): raft's names `γ` with the commit invariant, the committed bootstrap log, each
 node's ghost state at the bootstrap log's state, the server's continuation's output
 (`srvBootOut`) and raft's read credits. -/
 theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → List w8 → Prop)
-    (ps : List w64) (bootLog : List EntryM) (ids : IdNames) (cok : GName)
+    (ps : List w64) (bootLog : List EntryM) (ids : IdNames) (cok : GName) (W : SrvWorkload)
     (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
     (hboot : BootLogOk ccOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
@@ -191,11 +193,11 @@ theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → Li
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
-        srvBootOut ids cok bootLog γ ∗
+        srvBootOut ids cok W bootLog γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  iapply (ownRaftGhost_alloc_boot E cfg nodes ccOk ps bootLog (srvBootOut ids cok bootLog)
+  iapply (ownRaftGhost_alloc_boot E cfg nodes ccOk ps bootLog (srvBootOut ids cok W bootLog)
     Hcne Hnz Hcfg hboot)
-  iapply srvBootClient E cfg ccOk ps bootLog ids cok hboot hpol
+  iapply srvBootClient E cfg ccOk ps bootLog ids cok W hboot hpol
 
 end alloc
 

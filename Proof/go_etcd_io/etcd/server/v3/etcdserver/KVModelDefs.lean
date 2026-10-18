@@ -19,7 +19,10 @@ says exactly where the relation departs from it.
   treats as oracles), and a put or transaction naming a lease (the lessor's lookup). D19k
   (2026-10-18): narrowed to the kinds the verified proposers send, the KV writes and the
   monitors' `ClusterMemberAttrSet`/`ClusterVersionSet` (no range, no auth or other request whose
-  answer's error the apply package leaves open), none with an auth field set.
+  answer's error the apply package leaves open), none with an auth field set. D19q (2026-10-18):
+  that set is now `plainCover`, what the generic proofs cover, and `plainReq W` is the part of it
+  the server's workload `W` (`SrvWorkload`: the requests admitted, the lessor's grant guard, the
+  instance's obligations) admits; the leases-off instance `putgetWorkload` admits all of it.
 - **The deterministic step** (`chainLog`, `dispatchLog`, `kvEntry`) and the fold `kvRaftOf c₀ ch log₀
   A` over raft entries: an empty entry, a conf change and an entry at or below the consistent
   index `c₀` change nothing.
@@ -52,14 +55,17 @@ open go_etcd_io.etcd.server.v3.etcdserver
 
 /-! ## Plain requests and entries -/
 
-/-- **A plain request**: one whose effect on the KV is a function of the log (see the file
-header). 2026-10-15 (unit T2): a put with any flags but a lease, any delete, a plain
-transaction (`txn.txnPlain`: its gets at revision `0`, its puts with no lease and no
-`IgnoreLease`). D19k (2026-10-18): only the kinds the verified proposers send (the KV writes, the
-monitors' member attributes and cluster version), none with an auth field set
-(`needAdminPermission`); every other kind was `True` and its answer's error unknown, which kept
-`applyEntryNormal`'s NOSPACE branch reachable in the model. -/
-def plainReq (rq : apply.IRRModel) : Prop :=
+/-- **The requests the generic proofs cover** (the KV model below, `KVModel.lean`; the dead
+NOSPACE branch, `NoSpaceDead.lean`; the shapes, `WorkloadDefs.lean`): until the workload
+parameter (D19q, 2026-10-18) this was `plainReq` itself. 2026-10-15 (unit T2): a put with any
+flags but a lease, any delete, a plain transaction (`txn.txnPlain`: its gets at revision `0`, its
+puts with no lease and no `IgnoreLease`). D19k (2026-10-18): only the kinds the verified proposers
+send (the KV writes, the monitors' member attributes and cluster version), none with an auth
+field set (`needAdminPermission`); every other kind was `True` and its answer's error unknown,
+which kept `applyEntryNormal`'s NOSPACE branch reachable in the model. A workload admitting
+more (a lease-enabled one: `LeaseGrant`, `LeaseRevoke`) extends this predicate and the generic
+proofs over it. -/
+def plainCover (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
   | .put => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
       ∀ op, rq.put = some op → op.leaseID = W64 0
@@ -69,16 +75,70 @@ def plainReq (rq : apply.IRRModel) : Prop :=
   | .clusterVersionSet | .clusterMemberAttrSet => apply.needAdminPermission rq = false
   | _ => False
 
+/-- **The server's workload** (D19q, 2026-10-18; `notes/decisions.md`, "D19q"): the parameter
+the server's proofs are stated at, chosen by whoever allocates the KV names (`KVNames.wl`) and so
+fixed for a run. `admits`: the requests the instance lets into the log, within the covered ones
+(`plainReq W rq := plainCover rq ∧ W.admits rq`); `grant`: the lessor's grant guard (D19n), the
+leases the lessor may grant (`srvGrantGuard`, `NewServer`'s argument to `lease.NewLessor`). The
+fields after are the instance's obligations: its admission does not depend on the header the
+server stamps (`admits_header`, `apply.withHeader`), and it admits what the server's own
+proposers send, the KV writes (`EtcdServer.Put`/`DeleteRange`/`Txn`, `admits_kv`) and the
+monitors' requests (`admits_cluster`). The leases-off instance is `putgetWorkload`. -/
+structure SrvWorkload where
+  admits : apply.IRRModel → Prop
+  grant : w64 → Prop
+  admits_header : ∀ (rq : apply.IRRModel) (hm : apply.HeaderModel),
+    admits rq → admits { rq with header := some hm }
+  admits_kv : ∀ rq : apply.IRRModel, (apply.dispatchKind rq = .put ∨
+    apply.dispatchKind rq = .deleteRange ∨ apply.dispatchKind rq = .txn) → admits rq
+  admits_cluster : ∀ rq : apply.IRRModel, (apply.dispatchKind rq = .clusterMemberAttrSet ∨
+    apply.dispatchKind rq = .clusterVersionSet) → admits rq
+
+/-- **The workload grants no lease** (D19q): what `run`'s proof needs of the grant guard until
+the lease path (`revokeExpiredLeases`) is proved: the lessor's `expiredC` never delivers
+(`lessorOk`). -/
+def SrvWorkload.noGrant (W : SrvWorkload) : Prop := ∀ id, ¬ W.grant id
+
+/-- **The kinds the leases-off workload admits**: the KV writes and the monitors' requests. -/
+def putgetKind (k : apply.ReqKind) : Prop :=
+  k = .put ∨ k = .deleteRange ∨ k = .txn ∨ k = .clusterMemberAttrSet ∨ k = .clusterVersionSet
+
+/-- **The leases-off workload** (D19q; putget's, and every proof's until then): the kinds the
+verified proposers send (`plainReq putgetWorkload` is `plainCover`, the D19k narrowing), no
+lease granted (the grant guard `False`, D19n). -/
+def putgetWorkload : SrvWorkload where
+  admits rq := putgetKind (apply.dispatchKind rq)
+  grant _ := False
+  admits_header _ _ h := h
+  admits_kv _ h := by
+    unfold putgetKind; rcases h with h | h | h <;> simp [h]
+  admits_cluster _ h := by
+    unfold putgetKind; rcases h with h | h <;> simp [h]
+
+theorem putgetWorkload_noGrant : putgetWorkload.noGrant := fun _ h => h
+
+/-- `plainReq putgetWorkload` is the covered requests (behaviour unchanged by D19q). -/
+theorem plainCover_putget (rq : apply.IRRModel) (h : plainCover rq) :
+    putgetWorkload.admits rq := by
+  show putgetKind _
+  unfold plainCover at h
+  unfold putgetKind
+  cases hk : apply.dispatchKind rq <;> simp only [hk] at h <;> simp
+
+/-- **A plain request** of the workload `W` (D19q; until then `plainCover`, the D19k
+narrowing): covered by the generic proofs, and admitted by `W`. -/
+def plainReq (W : SrvWorkload) (rq : apply.IRRModel) : Prop := plainCover rq ∧ W.admits rq
+
 /-- **A plain entry**: a normal entry with data decodes to a plain request (an empty entry and a
 conf change are plain). -/
-def plainEntry (m : EntryModel) : Prop :=
-  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → plainReq rq
+def plainEntry (W : SrvWorkload) (m : EntryModel) : Prop :=
+  m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq → plainReq W rq
 
 /-- **A plain log**: every entry plain. -/
-def plainLog (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntry m
+def plainLog (W : SrvWorkload) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntry W m
 
-theorem plainLog_append (A B : List EntryModel) :
-    plainLog (A ++ B) ↔ plainLog A ∧ plainLog B := by
+theorem plainLog_append (W : SrvWorkload) (A B : List EntryModel) :
+    plainLog W (A ++ B) ↔ plainLog W A ∧ plainLog W B := by
   unfold plainLog
   simp only [List.mem_append]
   constructor

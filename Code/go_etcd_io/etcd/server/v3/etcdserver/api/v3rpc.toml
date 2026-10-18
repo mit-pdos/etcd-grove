@@ -37,8 +37,11 @@ translate = ["!*",
   "codec", "NewQuotaLeaseServer", "NewLeaseServer", "NewClusterServer", "NewAuthServer",
   "NewMaintenanceServer", "newHealthNotifier", "healthNotifier.startServe", "allGRPCServices",
   # the client lease (item 1, branch `lease-client`): lease.go's unary handlers and the quota
-  # wrapper's (not `LeaseKeepAlive`: it needs the server's `lease` package, not imported)
-  "LeaseServer.LeaseGrant", "LeaseServer.LeaseRevoke", "quotaLeaseServer.LeaseGrant"]
+  # wrapper's (not `LeaseKeepAlive`: it needs the server's `lease` package, not imported);
+  # the wrapper's promoted `LeaseRevoke` (the embedded service's, as `quotaKVServer.Range`), what
+  # `_Lease_LeaseRevoke_Handler` calls on the registered `*quotaLeaseServer` (stage (c))
+  "LeaseServer.LeaseGrant", "LeaseServer.LeaseRevoke", "quotaLeaseServer.LeaseGrant",
+  "quotaLeaseServer.LeaseRevoke"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",

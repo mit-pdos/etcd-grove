@@ -69,8 +69,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- An entry with data that decode to a plain request is plain. -/
-theorem plainEntry_of_data (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
-    (hd : e.data = d) (hdec : apply.irrDecode d = some rq) (hp : plainReq rq) : plainEntry e := by
+theorem plainEntry_of_data (W : SrvWorkload) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
+    (hd : e.data = d) (hdec : apply.irrDecode d = some rq) (hp : plainReq W rq) :
+    plainEntry W e := by
   intro _ _ rq' h
   rw [hd, hdec] at h
   cases h
@@ -85,10 +86,10 @@ theorem srvIdxOk_last (ai0 : w64) (L : List EntryModel) (e : EntryModel)
 /-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
-    (hok : plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    (hok : plainLog γk.wl L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [])
-    (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry e) :
-    plainLog (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
+    (hidx' : srvIdxOkW γ.ai0 (L ++ [e])) (hpl : plainEntry γk.wl e) :
+    plainLog γk.wl (L ++ [e]) ∧ srvIdxOkW γ.ai0 (L ++ [e]) ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
   obtain ⟨hplog, -, hc0, hch, h0⟩ := hok
@@ -148,12 +149,14 @@ theorem noop_claim (γi : IdNames) (cfg : GSet w64) (e : EntryModel) (h : srvNoo
 /-- **The KV invariant and the client's `etcdKV`, allocated** (2026-10-15, unit T2): from the
 server's half of raft's committed log at the start (empty), a start log not empty and a start
 consistent index at most the start index, the KV invariant at the base chain with auth disabled
-and the client's half of the state at the start log's state. -/
+and the client's half of the state at the start log's state; at the workload `W` (D19q). -/
 theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi : GName)
-    (ids : IdNames) (E : CoPset) (hc0 : uint.Z c0 ≤ uint.Z γ.ai0) (h0 : log0 ≠ []) :
+    (ids : IdNames) (W : SrvWorkload) (E : CoPset) (hc0 : uint.Z c0 ≤ uint.Z γ.ai0)
+    (h0 : log0 ≠ []) :
     ⊢ srvRLog (GF := GF) γ [] ={E}=∗ ∃ st : GName,
-      kvInv γ ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids⟩ ∗
-      etcdKV ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids⟩ (kvStateOf log0) := by
+      kvInv γ ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩ ∗
+      etcdKV ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩
+        (kvStateOf log0) := by
   iintro HL
   imod ghostVar_alloc (GF := GF) (kvStateOf log0) with ⟨%st, Hv⟩
   have hs : ⊢ ghostVar (GF := GF) st 1 (kvStateOf log0) -∗
@@ -164,10 +167,11 @@ theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi 
   icases hs $$ Hv with ⟨Hv1, Hv2⟩
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γ L ∗ ghostVar st (1 : Qp).half
-        (kvStateOf (kvModel ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids⟩ L)) ∗
-      ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z c0 ≤ uint.Z γ.ai0 + L.length ∧
+        (kvStateOf
+          (kvModel ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩ L)) ∗
+      ⌜plainLog W L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z c0 ≤ uint.Z γ.ai0 + L.length ∧
         apply.alarmChain false false false = apply.alarmChain false false false ∧ log0 ≠ []⌝ ∗
-      kvWork γ.raft.reCfg ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids⟩ L))
+      kvWork γ.raft.reCfg ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩ L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists []
@@ -255,7 +259,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [hent]
         iframe HL Hσ Hw'
         ipureintro
-        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data γk.wl _ d rq hed hdec hplain)
       imodintro
       iintro !>
       itrivial
@@ -316,7 +320,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [hst]
         iframe HL Hσ Hw'
         ipureintro
-        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data _ d rq hed hdec hplain)
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data γk.wl _ d rq hed hdec hplain)
       imodintro
       iintro !>
       rw [Hag]
@@ -502,13 +506,13 @@ theorem readQs_get (gs : List GName) (L : List EntryModel) (n : Nat) (g : GName)
 theorem dispatchKind_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     apply.dispatchKind (apply.withHeader rq hm) = apply.dispatchKind rq := rfl
 
-/-- Whether a request that is no write is plain depends only on its kind and its auth fields
+/-- Whether a request that is no write is covered depends only on its kind and its auth fields
 (`needAdminPermission`, D19k). -/
 theorem plainReq_of_kind (rq rq' : apply.IRRModel) (hk : apply.dispatchKind rq' = apply.dispatchKind rq)
     (hna : apply.needAdminPermission rq' = apply.needAdminPermission rq)
-    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hp : plainReq rq) : plainReq rq' := by
+    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hp : plainCover rq) : plainCover rq' := by
   unfold writeKind at hnw
-  unfold plainReq at hp ⊢
+  unfold plainCover at hp ⊢
   rw [hk, hna]
   revert hp hnw
   cases apply.dispatchKind rq <;> simp
@@ -526,7 +530,7 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     have he := hrq hnz
     subst he
     ipureintro
-    exact ⟨hp, hnw, hnz, hs, hQ⟩
+    exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hnw, hnz, hs, hQ⟩
   · iright
     obtain ⟨hp, hop, hnz, hs, hQ⟩ := Hop
     have he := hrq hnz
@@ -534,7 +538,7 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
     iexists op, Q
     iframe Hau
     ipureintro
-    exact ⟨hp, hop, hnz, hs, hQ⟩
+    exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩
 
 /-! ### The KV logs' certificates (2026-10-14, unit T1) -/
 

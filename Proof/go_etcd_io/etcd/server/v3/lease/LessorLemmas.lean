@@ -111,32 +111,38 @@ instance leaseExpiry_fractional (l : Loc) : Fractional (leaseExpiry (GF := GF) l
       iexists e1
       iapply (ptsto_frac_add _ _ _ _).2; iframe
 
-theorem lessorGhost_insert (lp : Loc) (L L' : List w64) :
-    (lessorGhost lp L).insert true (Sum.inr L' : Loc ⊕ List w64) = lessorGhost lp L' := by
+theorem lessorGhost_insert (lp : Loc) (γga : GName) (L L' : List w64) :
+    (lessorGhost lp γga L).insert true (Sum.inr L' : LessorGV) = lessorGhost lp γga L' := by
   apply GMap.ext
   intro k
   unfold lessorGhost
   cases k <;> simp [GMap.lookup_insert_eq_iff]
 
-/-- **The live set changes** with both halves (the lessor's under `le.mu`, the owner's): to any
-`L'`. -/
-theorem lessor_live_update (γl : GName) (lp : Loc) (L L' : List w64) :
-    ghostMapAuth (GF := GF) γl 1 (lessorGhost lp L) ∗ leaseFrag γl (1 : Qp).half L ∗
-      leaseFrag γl (1 : Qp).half L ==∗
-      ghostMapAuth γl 1 (lessorGhost lp L') ∗ leaseFrag γl (1 : Qp).half L' ∗
-        leaseFrag γl (1 : Qp).half L' := by
-  unfold leaseFrag
-  iintro ⟨Ha, H1, H2⟩
+/-- **The live set grows by a lease that may be granted** (`leaseGranted`, D19n), with both
+halves (the lessor's under `le.mu`, the owner's). -/
+theorem lessor_live_grant (γl : GName) (lp : Loc) (L : List w64) (id : w64) :
+    lessorAuth (GF := GF) γl 1 lp L ∗ leaseFrag γl (1 : Qp).half L ∗
+      leaseFrag γl (1 : Qp).half L ∗ leaseGranted γl id ==∗
+      lessorAuth γl 1 lp (L ++ [id]) ∗ leaseFrag γl (1 : Qp).half (L ++ [id]) ∗
+        leaseFrag γl (1 : Qp).half (L ++ [id]) := by
+  unfold lessorAuth leaseFrag
+  iintro ⟨⟨%γga, Ha, #Hgr⟩, H1, H2, #Hid⟩
+  ihave #Hl : iprop([∗list] x ∈ L ++ [id], leaseGranted (GF := GF) γl x) $$ []
+  · iapply BigSepL.bigSepL_snoc.2
+    iframe Hgr Hid
   icases ghostMapElem_combine true γl _ _ _ _ $$ H1 H2 with ⟨H, -⟩
-  ihave H : ghostMapElem (GF := GF) γl true (DFrac.own 1) (Sum.inr L : Loc ⊕ List w64) $$ [H]
+  ihave H : ghostMapElem (GF := GF) γl true (DFrac.own 1) (Sum.inr L : LessorGV) $$ [H]
   · rw [dfrac_own_half_half 1]; iexact H
-  imod ghost_map_update (Sum.inr L' : Loc ⊕ List w64) $$ Ha H with ⟨Ha, H⟩
+  imod ghost_map_update (Sum.inr (L ++ [id]) : LessorGV) $$ Ha H with ⟨Ha, H⟩
   rw [lessorGhost_insert]
-  iframe Ha
+  isplitl [Ha]
+  · iexists γga
+    iframe Ha
+    iframe Hl
   ihave H : ghostMapElem (GF := GF) γl true (DFrac.own ((1 : Qp).half + (1 : Qp).half))
-      (Sum.inr L' : Loc ⊕ List w64) $$ [H]
+      (Sum.inr (L ++ [id]) : LessorGV) $$ [H]
   · rw [Qp.half_add_half]; iexact H
-  iapply ((ghostMapElem_fractional (GF := GF) true γl (Sum.inr L' : Loc ⊕ List w64)).fractional
+  iapply ((ghostMapElem_fractional (GF := GF) true γl (Sum.inr (L ++ [id]) : LessorGV)).fractional
     (1 : Qp).half (1 : Qp).half).1 $$ H
 
 /-- Two whole points-to of one `int` field contradict. -/

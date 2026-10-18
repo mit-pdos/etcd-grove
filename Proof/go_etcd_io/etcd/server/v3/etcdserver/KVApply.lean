@@ -130,7 +130,7 @@ variable [sem : go.Semantics]
 auth disabled. -/
 theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
-      ⌜plainLog B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
+      ⌜plainLog γk.wl B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -156,7 +156,7 @@ theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = �
 every outcome's log is the entry's model log (auth disabled), which is certified. -/
 theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
     (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool)
-    (hp : plainReq rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hp : plainCover rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index)) :
     kvCert (GF := GF) γk (kvEntry c₀ x.chain x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   iintro #Hc
@@ -178,7 +178,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntry m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
+      ⌜plainEntry γr.kv.wl m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs

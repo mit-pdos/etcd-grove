@@ -160,7 +160,8 @@ theorem EtcdServer.start.wp_proof
   icases Hdone with ⟨%d0, Hdone⟩
   wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %stc %γst ⟨#Hstc, %Hstcap, Hsto⟩
-  imod start_bag (V := Unit) (fun _ => iprop(True)) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
+  -- `stop`: nothing is sent on it in the runs covered (no `Stop`/`HardStop`, D19m)
+  imod start_bag (V := Unit) (fun _ => iprop(False)) _ stc γst (by trivial) $$ Hstc Hsto with #Hstb
   icases Hstop with ⟨%st0, Hstop⟩
   wp_auto
   wp_apply chan.wp_make2 (V := Unit) (W64 1) as %sgc %γsg ⟨#Hsgc, %Hsgcap, Hsgo⟩
@@ -375,8 +376,6 @@ theorem EtcdServer.start.wp_proof
   ihave #Hrf : srvRunFieldsAt s γr γg γcx ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ $$ []
   · iunfold srvRunFieldsAt
     iframe #
-    isplitr
-    · iunfold isUnitBag; iexists γst; iexact Hstb
     iunfold context.cancelSpec
     iexact Hcancel
   -- the apply thread's resources

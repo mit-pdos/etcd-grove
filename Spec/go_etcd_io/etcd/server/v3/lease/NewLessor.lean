@@ -46,7 +46,16 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   So the live set is empty (`leaseOwn γl []`).
 * `go l.runLoop()`: until the lessor is promoted it only takes its lock, finds no expired lease
   and no due checkpoint; once promoted it sends expired leases on `expiredC` (the server's `run`
-  receives them) and calls the checkpointer the server installed (`ckptEffectsOk`).
+  receives them) and calls the checkpointer the server installed (`ckptEffectsOk`). **The grant
+  guard** (D19n, 2026-10-18): the caller picks a predicate `GA` on lease ids, saved and pinned in
+  the lessor's ghost map (`lessorGuard γl GA`); `Grant` adds a lease only with `leaseGranted`
+  (`GA` of its id, under the guard), which the lock keeps for every lease of the map
+  (`lessorAuth`). The loop's `revokeExpiredLeases` sends on `expiredC` only a non-empty slice
+  (`if len(ls) != 0`, `lessor.go:652`) of leases `findExpiredLeases` took from `leaseMap` under the
+  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so some lease
+  of it has `GA` of its id (the guard agrees with the saved one, after a step): `expiredC`'s
+  predicate `∃ id, GA id` (`lessorExpiredC lp GA`). The map starts empty (the fresh `Lease`
+  bucket; `Recover`, not called, would reload it).
 * The backend's contract (`lessorBackend lp Pk f T R`, used by `Grant` and `Checkpoint` through
   `Lease.persistTo`): `BatchTx()` returns the batch transaction; `LockInsideApply` needs the
   backend open (a share of `bOpen`, in the reader's token `mvcc.bkRTx`, lent) and runs the frozen
@@ -63,7 +72,7 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   2026-10-17: the store's and the apply thread's lease owner each hold one). -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
-    (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp),
+    (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
       ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
@@ -74,7 +83,7 @@ abbrev lease.NewLessor.spec : Prop :=
       (Val #cl)) (Val #cfg))
   {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗ ∃ (lp : Loc) (γl : GName),
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
-      lease.lessorExpiredC lp ∗
+      lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl [] ∗ lessorCkptOk l ∗
       □ (∀ f : GoFunc, backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗

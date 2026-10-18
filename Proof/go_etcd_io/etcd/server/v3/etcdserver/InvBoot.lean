@@ -94,7 +94,10 @@ opaque alarmFresh (a : Loc) : IProp GF
 a whole. `transportEffectsOk`: the transport's goroutines (`rafthttp`: each peer's readers and
 writers, the inbound messages) call into the server (`Process`, `ReportUnreachable`,
 `ReportSnapshot`, `IsIDRemoved`) and the network safely -- the cluster's message trust
-assumption. `ckptEffectsOk`: the lessor's loop, once its lessor is promoted, calls the server's
+assumption -- and report nothing on the server's `errorc` (`ErrorC`, a bag with predicate `False`
+since D19m, 2026-10-18): a peer's stream reader, pipeline or snapshot sender reports there only
+`errMemberRemoved`, a remote member saying this one was removed, which no member says of a member
+never removed (the server's policy removes none; a one-member cluster has no peer). `ckptEffectsOk`: the lessor's loop, once its lessor is promoted, calls the server's
 checkpointer (`NewServer`'s closure over `raftRequest`, installed when the `LeaseCheckpoint`
 feature is on), which proposes outside the request path's model. Premises of
 `rafthttp.Transport`'s and `lease.NewLessor`'s axioms and so of `NewServer.spec`; nothing in the

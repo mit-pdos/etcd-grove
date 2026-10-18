@@ -331,7 +331,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
-      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq false (Hpe Htyp hdata rq hdec) Hoff Htyp
+      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq false
+        (Hpe Htyp hdata rq hdec).1 Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       ihave HFSE : E.FS $$ [HFS]
       · rw [HEo.1]; iexact HFS
@@ -360,7 +361,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       (try wp_auto)
       have hes : entryStep m false x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.wl γr.kv.c0 m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m false x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -444,7 +445,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
-      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq true (Hpe Htyp hdata rq hdec) Hoff Htyp
+      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq true
+        (Hpe Htyp hdata rq hdec).1 Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
       -- the floor its proposer recorded with the entry's claim (the vertical slice's unit V2)
@@ -544,7 +546,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       have hes : entryStep m true x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
-      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 m x x' Hpe Hoff
+      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.wl γr.kv.c0 m x x' Hpe Hoff
         (batchStep_of_entryStep γr.kv.c0 m true x x' out Htyp HkA.2 hes)
       ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
@@ -582,7 +584,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Papp
       icases Hai with ⟨-, -, #Hev⟩
-      ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpace rq x x' ar out (Hpe Htyp hdata rq hdec)
+      ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpace rq x x' ar out (Hpe Htyp hdata rq hdec).1
         (Hxch.trans Hch0) Hstep $$ Hev HRes
       icases Hnn with (%Hn0 | ⟨%err', #Herr', #Hnn⟩)
       · exact absurd Hn0 Har0

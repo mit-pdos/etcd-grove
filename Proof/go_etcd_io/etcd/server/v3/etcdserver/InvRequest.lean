@@ -959,8 +959,8 @@ its latest revision: every key-value and the current revision), half of a ghost 
 other half is in the KV invariant (`kvInv`) with the server's half of raft's committed log `L`,
 `σ` being the state of the KV model of `L` (`kvStateOf (kvModel γk L)`). A client keeps `etcdKV`
 in its own invariant (a per-key view, if it wants one, is its ghost map beside it). The invariant
-also keeps `L` plain (`plainLog`): the only updates raft can fire over `L` are the ones built
-from it (`kv_prop_au`, `kv_noop_au`), which check. -/
+also keeps `L` plain at the workload (`plainLog γk.wl`, D19q): the only updates raft can fire
+over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 
 section kvGhost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -975,7 +975,10 @@ variable (`st`, halves: `etcdKV`'s and the KV invariant's), the consistent index
 variable whose halves the certificates' invariant and the apply thread hold). 2026-10-15 (unit
 T2): `st` replaces T1's points-to map and the non-plain credit's token. 2026-10-18 (D19c): the
 request ids' names `ids` (the generator's: `ReqNames.ids` is this), under which the KV invariant
-keeps every committed request's id claimed. -/
+keeps every committed request's id claimed. 2026-10-18 (D19q): the server's workload `wl`
+(`SrvWorkload`: the requests admitted, the lessor's grant guard), a parameter fixed with the names
+by whoever allocates them, as the start values are; the invariant keeps the log plain at it
+(`plainLog wl`) and a proposal must be admitted by it (`reqPropOk`). -/
 structure KVNames where
   st : GName
   c0 : w64
@@ -984,6 +987,7 @@ structure KVNames where
   cok : GName
   hi : GName
   ids : IdNames
+  wl : SrvWorkload
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -1051,7 +1055,7 @@ facts of `L` (`kvWork`), which every update the server hands raft checks of its 
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
-    ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    ⌜plainLog γk.wl L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft.reCfg γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
@@ -1167,12 +1171,12 @@ delete, no transaction: `Qr` trivial); or a plain request of the KV operation `o
 no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
 the client's `□ Q` at the state of `L`'s model). Since D19c (2026-10-18) either of a good shape
 (`rqShape`: the apply's premise at every log but for its size clauses) and, the first, with no
-range end `[0]` either. -/
+range end `[0]` either. Since D19q (2026-10-18) plain at the server's workload (`γk.wl`). -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+  iprop((⌜plainReq γk.wl rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
-    (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
+    (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq γk.wl rq ∧ reqKVOp rq = some op ∧
         irrNoZeroEnd rq ∧ rqShape rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q))
 

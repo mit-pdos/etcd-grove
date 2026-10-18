@@ -280,17 +280,17 @@ theorem logShape_append [FfiSyntax] (A B : List EntryModel) :
     · exact h1 m hm
     · exact h2 m hm
 
-/-- `dispatchOk` whatever the mode, of a plain request (`plainReq` excludes the compaction, the
+/-- `dispatchOk` whatever the mode, of a covered request (`plainCover` excludes the compaction, the
 empty request and `AuthEnable`). -/
-theorem dispatchOk_of_plain (rq : apply.IRRModel) (h : plainReq rq) (on : Bool) :
+theorem dispatchOk_of_plain (rq : apply.IRRModel) (h : plainCover rq) (on : Bool) :
     apply.dispatchOk on rq := by
-  unfold plainReq at h
+  unfold plainCover at h
   unfold apply.dispatchOk
   refine ⟨?_, ?_, ?_⟩ <;> intro hk <;> rw [hk] at h <;> exact h.elim
 
-/-- **The shape of a plain request whose premise is its size clauses** (a put, a delete, the
+/-- **The shape of a covered request whose premise is its size clauses** (a put, a delete, the
 kinds `rqOk` asks nothing of). -/
-theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainReq rq)
+theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
     (hk : apply.dispatchKind rq ≠ .range ∧ apply.dispatchKind rq ≠ .txn ∧
       apply.dispatchKind rq ≠ .clusterVersionSet ∧ apply.dispatchKind rq ≠ .authUserAdd ∧
       apply.dispatchKind rq ≠ .authRoleAdd ∧ apply.dispatchKind rq ≠ .leaseCheckpoint) :
@@ -298,12 +298,12 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainReq rq)
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
-  unfold plainReq at h
+  unfold plainCover at h
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hk
   split <;> simp_all
 
-/-- **The shape of a plain transaction request** from its transaction's shape. -/
-theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainReq rq)
+/-- **The shape of a covered transaction request** from its transaction's shape. -/
+theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
     (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t) :
     rqShape rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩

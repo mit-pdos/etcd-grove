@@ -13,6 +13,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressReportInterval
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.IsCreateEvent
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseRevoke
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewClusterServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
@@ -33,6 +35,8 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseGrant_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseRevoke_Handler
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled
 public import Proof.go_opentelemetry_io.otel.attribute.Bool
@@ -99,6 +103,7 @@ public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prome
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer__LeaseGrant
 public import Proof.math.rand.Int63n
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__isWatchPermitted
@@ -152,6 +157,30 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem rand.wp_Int63n :
     EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rand.Int63n.wp_proof
+
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
+
+theorem errors.wp_IsDeadlineExceeded :
+    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem wp_togRPCError :
+    EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
+
+theorem header.wp_fillWithoutRevision :
+    EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.header.fillWithoutRevision.wp_proof
+
+theorem header.wp_fill :
+    EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
 
 theorem wp_newHeader :
     EtcdGrove.v3rpc.newHeader.spec (GF := GF) (hG := hG) :=
@@ -253,33 +282,9 @@ theorem wp_checkRequestOp :
     EtcdGrove.v3rpc.checkRequestOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.checkRequestOp.wp_proof wp_checkRangeRequest wp_checkPutRequest wp_checkDeleteRequest wp_checkTxnRequest
 
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
-
-theorem errors.wp_IsDeadlineExceeded :
-    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
-
-theorem header.wp_fillWithoutRevision :
-    EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.header.fillWithoutRevision.wp_proof
-
 theorem headerFillingRangeStream.wp_Send :
     EtcdGrove.v3rpc.headerFillingRangeStream.Send.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.headerFillingRangeStream.Send.wp_proof header.wp_fillWithoutRevision
-
-theorem header.wp_fill :
-    EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
-
-theorem status.wp_Error :
-    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
-
-theorem wp_togRPCError :
-    EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
 
 theorem kvServer.wp_DeleteRange :
     EtcdGrove.v3rpc.kvServer.DeleteRange.spec (GF := GF) (hG := hG) :=
@@ -351,6 +356,14 @@ theorem wp_GetProgressReportInterval :
 theorem wp_IsCreateEvent :
     EtcdGrove.v3rpc.IsCreateEvent.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.IsCreateEvent.wp_proof
+
+theorem LeaseServer.wp_LeaseGrant :
+    EtcdGrove.v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseGrant.wp_proof wp_togRPCError header.wp_fill
+
+theorem LeaseServer.wp_LeaseRevoke :
+    EtcdGrove.v3rpc.LeaseServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.LeaseServer.LeaseRevoke.wp_proof wp_togRPCError header.wp_fill
 
 theorem wp_NewAuthServer :
     EtcdGrove.v3rpc.NewAuthServer.spec (GF := GF) (hG := hG) :=
@@ -552,6 +565,14 @@ theorem etcdserverpb.wp__KV_Txn_Handler :
     EtcdGrove.etcdserverpb._KV_Txn_Handler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdserverpb._KV_Txn_Handler.wp_proof
 
+theorem etcdserverpb.wp__Lease_LeaseGrant_Handler :
+    EtcdGrove.etcdserverpb._Lease_LeaseGrant_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Lease_LeaseGrant_Handler.wp_proof
+
+theorem etcdserverpb.wp__Lease_LeaseRevoke_Handler :
+    EtcdGrove.etcdserverpb._Lease_LeaseRevoke_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._Lease_LeaseRevoke_Handler.wp_proof
+
 theorem grpc.GenericServerStream.wp_Recv :
     EtcdGrove.grpc.GenericServerStream.Recv.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.GenericServerStream.Recv.wp_proof
@@ -595,6 +616,10 @@ theorem quotaKVServer.wp_Put :
 theorem quotaKVServer.wp_Txn :
     EtcdGrove.v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.quotaKVServer.Txn.wp_proof quotaAlarmer.wp_check
+
+theorem quotaLeaseServer.wp_LeaseGrant :
+    EtcdGrove.v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.quotaLeaseServer.LeaseGrant.wp_proof quotaAlarmer.wp_check
 
 theorem serverWatchStream.wp_close :
     EtcdGrove.v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG) :=

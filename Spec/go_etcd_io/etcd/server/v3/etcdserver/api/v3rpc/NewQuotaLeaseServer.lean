@@ -5,6 +5,7 @@ vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvGrpcStart
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 
 @[expose] public section
 
@@ -29,7 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`NewQuotaLeaseServer(s)`** returns a new `*quotaLeaseServer` as a `LeaseServer` (over
 `NewLeaseServer(s)`, with `newBackendQuota(s, "lease")`, the alarmer `s` and its member id);
-the reader slots come back. -/
+the reader slots come back; `quotaLeaseServerAt` over `leaseServerAt` (the client lease's stage
+(c)). -/
 abbrev v3rpc.NewQuotaLeaseServer.spec : Prop :=
   ∀ (s : Loc) (A : v3rpc.KVAns GF) (lg0 lg : Loc) (qb mid : w64),
   -- the backend stays under its quota (audit phase B3, D19h)
@@ -39,9 +41,10 @@ abbrev v3rpc.NewQuotaLeaseServer.spec : Prop :=
       srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb ∗ srvBemuReader s ∗
       srvMemberIDAddr s ↦□ mid }}
     (App (Val (@! v3rpc.NewQuotaLeaseServer)) (Val #s))
-  {{ (v : GoInterface), RET #v; ∃ q : Loc,
+  {{ (v : GoInterface), RET #v; ∃ (q p : Loc) (cid mid' : w64),
       ⌜v = interface.mkOk (go.GoType.PointerType v3rpc.quotaLeaseServer.ty) #q⌝ ∗
-      srvLgReader s ∗ srvBemuReader s }}
+      v3rpc.quotaLeaseServerAt q ⟨go.GoType.PointerType v3rpc.LeaseServer.ty, #p⟩ s ∗
+      v3rpc.leaseServerAt p s A cid mid' ∗ srvLgReader s ∗ srvBemuReader s }}
 
 end spec
 

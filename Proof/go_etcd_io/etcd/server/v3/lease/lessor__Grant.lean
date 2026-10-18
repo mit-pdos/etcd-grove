@@ -42,7 +42,7 @@ theorem lease.lessor.Grant.wp_proof
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Grant.spec (GF := GF) (hG := hG) := by
   intro lp γl id ttl L P f T R Pre Q Post
-  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hcs, Hwtk, Hrtk⟩
+  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hcs, Hwtk, Hrtk, #Hgr⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
@@ -208,7 +208,7 @@ theorem lease.lessor.Grant.wp_proof
       wp_join_done
     (try wp_auto)
     -- the live set grows; the lessor's state with the new lease
-    imod lessor_live_update γl lp L (L ++ [id]) $$ [$Ha $Hg $Hown] with ⟨Ha, Hg, Hown⟩
+    imod lessor_live_grant γl lp L id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
     · iunfold leaseMeta
       iframe HID HexG

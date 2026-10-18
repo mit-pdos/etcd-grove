@@ -5,7 +5,9 @@ counterpart).
 Go's `applyEntryNormal` raises the NOSPACE alarm (a goroutine proposing `{Alarm: ACTIVATE,
 NOSPACE}`, the trust-boundary contract `EtcdServer.raftRequestAlarm` until D19k) when
 `errors.Is(ar.Err, ErrNoSpace)` holds. In the model it never does: the entry's request is plain
-(`plainReq`: the KV writes and the monitors' requests, no auth field), the chain is the start's
+(`plainReq W`, within `plainCover`: the KV writes and the monitors' requests, no auth field;
+since D19q the proofs here are over `plainCover`, so they hold at every workload), the chain is
+the start's
 (`alarmChain false false false`: auth off, no capped or corrupt layer, the quota the identity under
 `backendUnderQuota`), so the result's error is `nil` or one of the backend's `errors.New`
 variables (`ErrKeyNotFound`, `ErrLeaseNotFound`, mvcc's `ErrFutureRev`, `ErrCompacted`), none of
@@ -32,20 +34,21 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 /-! ## The outcomes at the start's chain -/
 
-/-- A plain request has no auth field set. -/
-theorem plainReq_noAdmin (rq : apply.IRRModel) (hp : plainReq rq) :
+/-- A covered request has no auth field set. -/
+theorem plainReq_noAdmin (rq : apply.IRRModel) (hp : plainCover rq) :
     apply.needAdminPermission rq = false := by
-  unfold plainReq at hp
+  unfold plainCover at hp
   cases hk : apply.dispatchKind rq <;> simp only [hk] at hp
   all_goals first | exact hp | exact hp.2.1 | exact hp.2
 
-/-- **A plain request dispatched at the start's chain** (with `v3`): the backend's rejection or an
+/-- **A covered request dispatched at the start's chain** (with `v3`): the backend's rejection or an
 applied outcome without the quota's `ErrNoSpace`. -/
 theorem dispatchStep_start (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outcome)
-    (hp : plainReq rq) (h : apply.dispatchStep (apply.alarmChain false false false) rq true log o) :
+    (hp : plainCover rq)
+    (h : apply.dispatchStep (apply.alarmChain false false false) rq true log o) :
     o = .rejected .backend ∨ ∃ l, o = .applied l false := by
   have hna := plainReq_noAdmin rq hp
-  unfold plainReq at hp
+  unfold plainCover at hp
   unfold apply.dispatchStep at h
   cases hk : apply.dispatchKind rq <;> simp only [hk] at hp h <;>
     simp only [apply.preV3Kind, apply.storeKind, Bool.false_eq_true, false_or, or_false,
@@ -113,7 +116,7 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 /-- **The answer's error at the start's chain** (`dispatchAnswer`, given back): not
 `ErrNoSpace`'s. -/
 theorem dispatchAnswer_notNoSpace (rq : apply.IRRModel) (log : mvcc.Log) (skip : Bool)
-    (resp err : GoInterface) (o : apply.Outcome) (hp : plainReq rq)
+    (resp err : GoInterface) (o : apply.Outcome) (hp : plainCover rq)
     (ho : o = .rejected .backend ∨ ∃ l, o = .applied l false) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
       apply.dispatchAnswer rq log skip resp err o -∗
@@ -122,7 +125,7 @@ theorem dispatchAnswer_notNoSpace (rq : apply.IRRModel) (log : mvcc.Log) (skip :
   icases Hv with ⟨-, -, #HK, #HL, #HF, #HC, #AK, #AL, #AF, #AC⟩
   have hnil : ⊢ notNoSpaceErr (GF := GF) GoInterface.nil := by
     iunfold notNoSpaceErr; iintro; ileft; ipureintro; rfl
-  unfold plainReq at hp
+  unfold plainCover at hp
   unfold apply.dispatchAnswer
   cases hk : apply.dispatchKind rq <;> simp only [hk] at hp ⊢
   · -- clusterVersionSet
@@ -190,7 +193,7 @@ theorem dispatchAnswer_notNoSpace (rq : apply.IRRModel) (log : mvcc.Log) (skip :
 /-- **`apply.Apply`'s result at the start's chain** (given back): `nil`, or its `Err` is not
 `ErrNoSpace`'s. -/
 theorem applyResultIs_notNoSpace (rq : apply.IRRModel) (x x' : apply.ApplyKV) (ar : Loc)
-    (out : apply.ApplyOut) (hp : plainReq rq)
+    (out : apply.ApplyOut) (hp : plainCover rq)
     (hch : x.chain = apply.alarmChain false false false)
     (hs : apply.applyStep rq true x x' out) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢

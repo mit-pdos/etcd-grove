@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.quotaApplierV3.LeaseGrant.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.quotaIs p inner ∗ apply.applierSpec E c inner ∗
-      (∃ g : LeaseGrantModel, apply.leaseGrantIs r g) ∗
+      (∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗
       apply.mPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"LeaseGrant")) (Val #r))

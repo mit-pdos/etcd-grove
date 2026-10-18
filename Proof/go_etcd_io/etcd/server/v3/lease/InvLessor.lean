@@ -23,6 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.SavedProp
 
 @[expose] public section
 
@@ -109,25 +110,64 @@ def isLeaseObj (l : Loc) : IProp GF :=
 instance isLeaseObj_persistent (l : Loc) : Persistent (isLeaseObj (GF := GF) l) := by
   unfold isLeaseObj; infer_instance
 
-/-- The lessor's ghost map `γl`'s contents: its location at `false` (pinned for good), its live
-set at `true`. -/
-def lessorGhost (lp : Loc) (L : List w64) : GMap Bool (Loc ⊕ List w64) :=
-  (((∅ : GMap Bool (Loc ⊕ List w64)).insert false (Sum.inl lp)).insert true (Sum.inr L))
+/-- The values of the lessor's ghost map `γl`: at `false` its location and the name of its grant
+guard (D19n), at `true` its live set. -/
+abbrev LessorGV := (Loc × GName) ⊕ List w64
+
+/-- The lessor's ghost map `γl`'s contents: its location and its grant guard's name `γga` at
+`false` (pinned for good), its live set at `true`. -/
+def lessorGhost (lp : Loc) (γga : GName) (L : List w64) : GMap Bool LessorGV :=
+  (((∅ : GMap Bool LessorGV).insert false (Sum.inl (lp, γga))).insert true (Sum.inr L))
 
 /-- A share `q` of the live set `L` (the ghost map `γl`'s element `true`). -/
 def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
-  ghostMapElem γl true (DFrac.own q) (Sum.inr L : Loc ⊕ List w64)
+  ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
 
 instance leaseFrag_timeless (γl : GName) (q : Qp) (L : List w64) :
     Timeless (leaseFrag (GF := GF) γl q L) := by
   unfold leaseFrag; infer_instance
 
-/-- The lessor of `γl` is at `lp` (persistent: the ghost map's element `false`, discarded). -/
+/-- The lessor of `γl` is at `lp`, its grant guard named `γga` (persistent: the ghost map's
+element `false`, discarded). -/
+def lessorPinG (γl : GName) (lp : Loc) (γga : GName) : IProp GF :=
+  ghostMapElem γl false DFrac.discard (Sum.inl (lp, γga) : LessorGV)
+
+instance lessorPinG_persistent (γl : GName) (lp : Loc) (γga : GName) :
+    Persistent (lessorPinG (GF := GF) γl lp γga) := by
+  unfold lessorPinG; infer_instance
+
+/-- The lessor of `γl` is at `lp` (persistent). -/
 def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
-  ghostMapElem γl false DFrac.discard (Sum.inl lp : Loc ⊕ List w64)
+  iprop(∃ γga : GName, lessorPinG γl lp γga)
 
 instance lessorPin_persistent (γl : GName) (lp : Loc) : Persistent (lessorPin (GF := GF) γl lp) := by
   unfold lessorPin; infer_instance
+
+/-- **The lessor's grant guard** (D19n, 2026-10-18; persistent): the predicate `GA` its caller
+chose at `NewLessor`, a saved predicate pinned in the lessor's ghost map. A lease is granted only
+with `GA` of its id (`Grant`'s `leaseGranted`); so every lease of the lessor's map, and every
+lease its expiry loop sends on `expiredC`, has it. A server whose policy admits no `LeaseGrant`
+picks `GA := False`. -/
+def lessorGuard (γl : GName) (GA : w64 → IProp GF) : IProp GF :=
+  iprop(∃ (lp : Loc) (γga : GName), lessorPinG γl lp γga ∗ savedPredOwn γga DFrac.discard GA)
+
+instance lessorGuard_persistent (γl : GName) (GA : w64 → IProp GF) :
+    Persistent (lessorGuard (GF := GF) γl GA) := by
+  unfold lessorGuard; infer_instance
+
+/-- **The lease `id` may be granted** (D19n; persistent): it meets the lessor's grant guard. -/
+def leaseGranted (γl : GName) (id : w64) : IProp GF :=
+  iprop(∃ GA : w64 → IProp GF, lessorGuard γl GA ∗ □ GA id)
+
+instance leaseGranted_persistent (γl : GName) (id : w64) :
+    Persistent (leaseGranted (GF := GF) γl id) := by
+  unfold leaseGranted; infer_instance
+
+/-- **The lessor's share `q` of its ghost map's authority**, at the live set `L`, every lease of
+which may be granted (D19n). -/
+def lessorAuth (γl : GName) (q : Qp) (lp : Loc) (L : List w64) : IProp GF :=
+  iprop(∃ γga : GName, ghostMapAuth γl q (lessorGhost lp γga L) ∗
+    □ ([∗list] id ∈ L, leaseGranted γl id))
 
 /-! ### The lessor's apply-side state (2026-10-13, unit 9)
 
@@ -201,7 +241,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"leaseMap" lp ↦{DFrac.own q} lm ∗ lm ↦${DFrac.own q} M ∗
     lF go!"itemMap" lp ↦{DFrac.own q} im ∗ im ↦${DFrac.own q} I ∗
     lF go!"rd" lp ↦{DFrac.own q} rd ∗
-    ghostMapAuth γl q (lessorGhost lp L) ∗ leaseFrag γl q.half L ∗
+    lessorAuth γl q lp L ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
     ([∗map] _id ↦ l ∈ M, isLeaseObj l) ∗ lessorExtra lp M q)
 
@@ -275,8 +315,8 @@ def lessorUser (γl : GName) (L : List w64) : IProp GF :=
 /-- Two pins of one ghost map agree. -/
 theorem lessorPin_agree (γl : GName) (lp lp' : Loc) :
     lessorPin (GF := GF) γl lp ∗ lessorPin γl lp' ⊢ ⌜lp = lp'⌝ := by
-  unfold lessorPin
-  iintro ⟨H1, H2⟩
+  unfold lessorPin lessorPinG
+  iintro ⟨⟨%γ1, H1⟩, ⟨%γ2, H2⟩⟩
   icombine H1 H2 gives %H
   ipureintro
   have h2 := H.2

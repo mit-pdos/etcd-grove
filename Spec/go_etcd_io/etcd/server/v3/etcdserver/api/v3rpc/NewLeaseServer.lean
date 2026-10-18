@@ -5,6 +5,7 @@ vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvGrpcStart
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 
 @[expose] public section
 
@@ -28,13 +29,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`NewLeaseServer(s)`** returns a new `*LeaseServer` as a `LeaseServer` (its header
-`newHeader(s)`'s, its logger the configuration's or a no-op one). -/
+`newHeader(s)`'s, its logger the configuration's or a no-op one): `leaseServerAt` (its header,
+`le` the server `s`; the client lease's stage (c)). -/
 abbrev v3rpc.NewLeaseServer.spec : Prop :=
   ∀ (s : Loc) (A : v3rpc.KVAns GF) (lg0 : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.raftKV s A ∗ srvCfgFieldAddr s go!"Logger" ↦□ lg0 }}
     (App (Val (@! v3rpc.NewLeaseServer)) (Val #s))
-  {{ (v : GoInterface), RET #v; ∃ p : Loc,
-      ⌜v = interface.mkOk (go.GoType.PointerType v3rpc.LeaseServer.ty) #p⌝ }}
+  {{ (v : GoInterface), RET #v; ∃ (p : Loc) (cid mid : w64),
+      ⌜v = interface.mkOk (go.GoType.PointerType v3rpc.LeaseServer.ty) #p⌝ ∗
+      v3rpc.leaseServerAt p s A cid mid }}
 
 end spec
 
