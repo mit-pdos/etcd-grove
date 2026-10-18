@@ -41,27 +41,35 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **A watch start read by the cache, at the server** (K2e-6): `etcdRead (rev - 1)` at the
-server's model is mvcc's `startRead` of `rev` (for `rev > 1`: a certified log of the store reaches
+server's model is mvcc's `startRead` of `rev` (`rev > 0`: a certified log of the store reaches
 it). What the cache's watch brings to the client's `Watch`. -/
 theorem startRead_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E.γ)
-    (h1 : 1 < sint.Z rev) :
+    (h1 : 0 < sint.Z rev) :
     etcdRead (EM := V.EM) (rev - W64 1) ⊢ mvcc.startRead V.R.γ true rev := by
   unfold etcdRead
-  iintro ⟨(%h0 | ⟨%r1, %hr1, #H⟩), -⟩
-  · exfalso
-    have : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
-    omega
-  · rw [show (V.EM).etcdReadAt = v3rpc.srvReadAt V.R.E from rfl] at *
-    iunfold v3rpc.srvReadAt at H
-    icases H with ⟨%log, #Hc, %hl⟩
-    iunfold mvcc.startRead
-    iright
-    iexists log
-    rw [hst]
-    iframe Hc
-    ipureintro
-    have : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
-    omega
+  iintro ⟨⟨%r1, %hr1, #H⟩, -⟩
+  rw [show (V.EM).etcdReadAt = v3rpc.srvReadAt V.R.E from rfl] at *
+  iunfold v3rpc.srvReadAt at H
+  icases H with ⟨%log, #Hc, %hl⟩
+  iunfold mvcc.startRead
+  iright
+  iexists log
+  rw [hst]
+  iframe Hc
+  ipureintro
+  have : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
+  omega
+
+/-- **The cache's watch start, as the client's `Watch` takes it** (K2e-7d): `startOk` of a
+start-read watch from `etcdRead (rev - 1)`. -/
+theorem startOk_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E.γ)
+    (h1 : 0 < sint.Z rev) :
+    etcdRead (EM := V.EM) (rev - W64 1) ⊢ startOk V true rev := by
+  iintro #H
+  unfold startOk
+  isplitr
+  · iapply startRead_of_etcdRead V rev hst h1 $$ H
+  iright; iapply etcdRead_reached (EM := V.EM) (rev - W64 1) $$ H
 
 /-- **etcd's client's watcher meets the clients' range-watch contract** at the server's model
 (the closable one: the channel may be closed). -/

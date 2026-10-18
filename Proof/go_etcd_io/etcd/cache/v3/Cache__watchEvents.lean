@@ -488,7 +488,8 @@ theorem Cache.watchEvents.wp_proof
     isplit
     · ipureintro; rfl
     isplit
-    · iunfold isEtcdWatchChan at Hwch; iunfold isSpsc at Hwch; icases Hwch with ⟨$, -⟩
+    · iunfold isEtcdWatchChan at Hwch; icases Hwch with ⟨%Pw, #Hsp, -⟩
+      iunfold isSpsc at Hsp; icases Hsp with ⟨$, -⟩
     iapply etcdWatch_recv_au wch γw cf.pfx n k _ $$ Hwch [$Hlc1 $Hlc2] Hcons
     inext
     iintro %v %ok H
@@ -504,7 +505,7 @@ theorem Cache.watchEvents.wp_proof
       · iexact Hk0c
       ileft; iframe Haec; iapply errStrOk_nil
     simp only [↓reduceIte]
-    icases H with ⟨%r, %k', #Hr, #Hok, Hcons⟩
+    imod H with ⟨%r, %k', #Hr, #Hok, Hcons⟩
     wp_auto
     wp_apply sync.Once.wp_Do ro iprop(True) iprop(True) _ $$ [$Hsync $Honce]
     · imodintro

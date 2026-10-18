@@ -99,9 +99,9 @@ theorem etcdReached_zero : ⊢ etcdReached (GF := GF) (W64 0) := by
   ileft; ipureintro; simp
 
 /-- **etcd's store had committed revision `r`** (K2e-6), downward closed: a read showed some
-`r' ≥ r` (`etcdReadAt`), or `r ≤ 0`; (K2e-7d) and etcd had reached `r` (a read's revision is). -/
+`r' ≥ r` (`etcdReadAt`); (K2e-7d) and etcd had reached `r` (a read's revision is). -/
 def etcdRead (r : w64) : IProp GF :=
-  iprop((⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r') ∗ etcdReached r)
+  iprop((∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r') ∗ etcdReached r)
 
 instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := by
   unfold etcdRead; infer_instance
@@ -109,19 +109,16 @@ instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := b
 theorem etcdRead_mono (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
     etcdRead (GF := GF) r ⊢ etcdRead r' := by
   unfold etcdRead
-  iintro ⟨(%h0 | ⟨%r1, %h1, #H⟩), #Hr⟩
-  · isplitr
-    · ileft; ipureintro; omega
-    iapply etcdReached_mono r r' h $$ Hr
-  · isplitr
-    · iright; iexists r1; iframe H; ipureintro; omega
-    iapply etcdReached_mono r r' h $$ Hr
+  iintro ⟨⟨%r1, %h1, #H⟩, #Hr⟩
+  isplitr
+  · iexists r1; iframe H; ipureintro; omega
+  iapply etcdReached_mono r r' h $$ Hr
 
 theorem etcdRead_of_at (r : w64) : etcdReadAt (GF := GF) r ∗ etcdReached r ⊢ etcdRead r := by
   unfold etcdRead
   iintro ⟨#H, #Hr⟩
   iframe Hr
-  iright; iexists r; iframe H; ipureintro; exact Int.le_refl _
+  iexists r; iframe H; ipureintro; exact Int.le_refl _
 
 theorem etcdRead_reached (r : w64) : etcdRead (GF := GF) r ⊢ etcdReached r := by
   unfold etcdRead
@@ -883,9 +880,13 @@ def etcdWatchElem (γ : EtcdWatchNames) (pfx : GoString) (i : Int)
     monoListIdxOwn γ.cur (i.toNat + 1) c' ∗ watchRespOk pfx c c' v r)
 
 /-- `ch` is the channel of a client watch on the prefix `pfx` (persistent): every response it
-delivers satisfies etcd's watch contract (`etcdWatchElem`). -/
+delivers satisfies etcd's watch contract (`etcdWatchElem`; K2e-7d: its element is any `P` that
+gives it, after an update, so that a client's channel with a richer element is one). -/
 def isEtcdWatchChan (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) : IProp GF :=
-  isSpsc γ.spsc ch (etcdWatchElem γ pfx) (fun _ => iprop(True))
+  iprop(∃ P : Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF,
+    isSpsc γ.spsc ch P (fun _ => iprop(True)) ∗
+    □ (∀ (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse), P i v -∗
+      |==> etcdWatchElem γ pfx i v))
 
 instance isEtcdWatchChan_persistent (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) :
     Persistent (isEtcdWatchChan (GF := GF) ch γ pfx) := by
@@ -945,7 +946,7 @@ theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n :
     (cursor : w64) (Φ : go_etcd_io.etcd.client.v3.WatchResponse → Bool → IProp GF) :
     ⊢ isEtcdWatchChan ch γ pfx -∗ £ 1 ∗ £ 1 -∗ etcdWatchConsumer γ n cursor -∗
       ▷ (∀ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool),
-          (if ok then iprop(∃ (r : RespModel) (c' : w64), respAt v r ∗
+          (if ok then iprop(|==> ∃ (r : RespModel) (c' : w64), respAt v r ∗
               watchRespOk pfx cursor c' v r ∗ etcdWatchConsumer γ (n + 1) c')
            else iprop(⌜v = zero_val go_etcd_io.etcd.client.v3.WatchResponse⌝)) -∗ Φ v ok) -∗
       recvAu γ.spsc.chanName go_etcd_io.etcd.client.v3.WatchResponse Φ := by
@@ -953,7 +954,8 @@ theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n :
   unfold etcdWatchConsumer
   icases Hcons with ⟨%vs, Hcons, %Hlen, #Hcur⟩
   unfold isEtcdWatchChan
-  iapply spsc_rcv_au γ.spsc ch (etcdWatchElem γ pfx) (fun _ => iprop(True)) vs Φ $$ Hch Hlc Hcons
+  icases Hch with ⟨%P, #Hsp, #Hconv⟩
+  iapply spsc_rcv_au γ.spsc ch P (fun _ => iprop(True)) vs Φ $$ Hsp Hlc Hcons
   inext
   iintro %v %ok H
   cases ok
@@ -964,14 +966,16 @@ theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n :
     ipureintro; exact Hv
   · simp only [↓reduceIte]
     icases H with ⟨HP, Hcons⟩
+    iapply HΦ
+    simp only [↓reduceIte]
+    imod Hconv $$ %(vs.length : Int) %v HP with HP
     unfold etcdWatchElem
     icases HP with ⟨%r, %c0, %c', #Hr, #Hc0, #Hc', #Hok⟩
     have hi : ((vs.length : Int)).toNat = n := by rw [Hlen]; simp
     rw [hi]
     ihave %Heq := mono_list_idx_agree γ.cur n c0 cursor $$ Hc0 Hcur
     subst Heq
-    iapply HΦ
-    simp only [↓reduceIte]
+    imodintro
     iexists r, c'
     iframe Hr Hok
     iexists vs ++ [v]
