@@ -37,22 +37,28 @@ pending (no `Ready`'s entries being appended); not `memStorMeta`. The premises, 
   entry ("ents[i] has raft log position i+snapshot.Metadata.Index", `storage.go`), a
   fact of a storage raft appends to that `StorState` does not record.
 
-The error variable's value is passed in, as `Snapshot`'s spec does for its error. -/
+The error variable's value is passed in, as `Snapshot`'s spec does for its error.
+
+**The application's (D19i part 1, 2026-10-18).** etcd's apply loop calls it while raft owns the
+storage, so it no longer takes `ownMemoryStorage`: the application's token (the storage's boundary
+`σt.prev` and snapshot) and the floor's witness (`memFloorTok ms γs x`: raft's published floor at
+least `x`, the storage holding entries up to it). Premise, for a `ci` above the boundary: `ci`
+within the floor and at or below the storage's snapshot (a compacted storage keeps a snapshot
+covering its boundary). The entry at `ci` is numbered `ci`: the storage keeps its entries numbered
+by their positions (`HistOk`), which raft's batches are (`PendOk`). -/
 abbrev MemoryStorage.Compact.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (ci : w64) (ecomp : GoInterface),
-  σ.pend = [] →
-  (uint.Z σ.prev.index' < uint.Z ci →
-    uint.Z ci ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) ∧
-    ∀ e, σ.ents[(uint.Z ci - uint.Z σ.prev.index' - 1).toNat]? = some e → e.Index' = ci) →
+  ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x ci : w64) (ecomp : GoInterface),
+  (uint.Z σt.prev.index' < uint.Z ci →
+    uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms γs σ ∗
+      "Htok" ∷ memSnapTok ms γs σt ∗
+      "#Hfw" ∷ memFloorTok ms γs x ∗
       "#Herr" ∷ globalAddr ErrCompacted ↦□ ecomp }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Compact")) (Val #ci))
   {{ (err : GoInterface), RET #err;
-      (⌜uint.Z ci ≤ uint.Z σ.prev.index' ∧ err = ecomp⌝ ∗ ownMemoryStorage ms γs σ) ∨
-      (∃ (t : w64), ⌜uint.Z σ.prev.index' < uint.Z ci ∧ termAt σ.prev σ.ents ci = some t ∧
-          err = interface.nil⌝ ∗
-        ownMemoryStorage ms γs (memStorCompacted σ ci t)) }}
+      (⌜uint.Z ci ≤ uint.Z σt.prev.index' ∧ err = ecomp⌝ ∗ memSnapTok ms γs σt) ∨
+      (∃ (t : w64), ⌜uint.Z σt.prev.index' < uint.Z ci ∧ err = interface.nil⌝ ∗
+        memSnapTok ms γs { σt with prev := entryID.mk t ci }) }}
 
 end spec
 

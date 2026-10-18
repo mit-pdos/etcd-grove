@@ -98,7 +98,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s to pr Hto Hprto Hcompact
+  intro c r id s to pr Hto Hprto
   wp_start as H
   iNamed H
   -- `isInitialized_access` hands the globals out; the `raftLog.snapshot` call below
@@ -135,7 +135,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     exact ⟨fun _ h => (nomatch h), rfl⟩
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
-  wp_apply wp_raftLog_snapshot _ _ _ Hcompact $$ [$Hlog $ErrSnapUnavail] as %snap %err ⟨Hlog, Herr⟩
+  wp_apply wp_raftLog_snapshot _ _ _ $$ [$Hlog $ErrSnapUnavail $Hcompact] as %snap %err ⟨Hlog, Herr⟩
   -- (stage R8a) the commit index is within the log: `BecomeSnapshot`'s index is at most it
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   ihave Hphys := Hlogback $$ Hlog
@@ -176,7 +176,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
-    wp_apply wp_raftLog_firstIndex _ _ $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
+    wp_apply wp_raftLog_firstIndex _ _ $$ [$Hlog] as %fi ⟨Hlog, %Hfi, -⟩
     ihave Hphys := Hlogback $$ Hlog
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩

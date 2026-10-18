@@ -28,10 +28,10 @@ theorem MemoryStorage.Compact.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) := by
-  intro ms γs σ ci ecomp Hidle Hpre
-  wp_start as ⟨Hms, #Herr⟩
-  iunfold ownMemoryStorage at Hms
-  icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
+  intro ms γs σt x ci ecomp Hpre
+  wp_start as ⟨Htok, #Hfw, #Herr⟩
+  iunfold memSnapTok at Htok
+  icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsvt, Hcbt⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -39,12 +39,33 @@ theorem MemoryStorage.Compact.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σp, Hinv⟩
+  icases Hinv with ⟨%σL, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- with nothing pending the contents are the owner's state
-  icases memView_agree γs σ σp $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
-  have Hσp : σp = σ := Hvw.2.2.2 Hidle
-  subst Hσp
+  -- (D19i part 1) the floor's witness: the contents hold entries up to `x`, within the floor;
+  -- the lock's boundary and snapshot are the token's
+  icases memFloorTok_last ms γs σL x $$ Hfw Hgs_inv with ⟨%Hxl, Hgs_inv⟩
+  ihave #Hflx := memFloorTok_flLb ms γs x $$ Hfw
+  iunfold memInvGhost at Hgs_inv
+  icases Hgs_inv with ⟨%Dl, Hd_inv, #Hlb_inv, %HD, Hlk_inv⟩
+  have HidxL : PlogWf σL.prev σL.ents := (HD.2.2 σL (List.mem_of_getLast? HD.1)).2.2
+  iunfold memCutInv at Hcut_inv
+  iNamed Hcut_inv
+  icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
+  subst Hcbe
+  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsvt with %HagS
+  obtain ⟨HS1, -, -⟩ := snapPart_inj HagS
+  have Hlast := memCut_stLast Hcok.1
+  have Hcok1 := Hcok.1
+  have Hpbf : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) <
+      2^61 := by
+    unfold EtcdGrove.stLast at Hlast; omega
+  have HlastF : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) =
+      stLast σL := by
+    unfold EtcdGrove.stLast at Hlast; exact Hlast
+  have HprevF : (memCut σL σt.prev).prev = σt.prev := rfl
+  have Hpb_inv0 := Hpb_inv
+  generalize Hσf : memCut σL σt.prev = σp at Hpbf HlastF HprevF ⊢
+  have Hpb_inv := Hpbf
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
@@ -64,25 +85,47 @@ theorem MemoryStorage.Compact.wp_proof
   · -- `ErrCompacted`: nothing changes
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f
-      Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f
+      Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σp
-      iframe Hgs_inv
-      isplitl
+      iexists σL, σt.prev
+      isplitl [Hd_inv Hlk_inv]
+      · unfold memInvGhost
+        iexists Dl
+        iframe Hd_inv Hlb_inv Hlk_inv
+        ipureintro; exact HD
+      rw [Hσf]
+      isplitl [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · iexists hp, es, dummy, nfi, nli, nen, nte, nsn
         iframe # ∗
         ipureintro; exact ⟨Hd0i, Hd0t⟩
-      ipureintro; exact Hpb_inv
+      isplitr
+      · ipureintro; exact Hpb_inv0
+      iunfold memCutInv
+      iexists S
+      iframe Hcb Hbd Hcfl Hsq Hsrel
+      ipureintro; exact Hcok
     iapply HΦ
     ileft
     isplitr
-    · ipureintro; exact ⟨Hif, rfl⟩
-    unfold ownMemoryStorage
+    · ipureintro; rw [HprevF] at Hif; exact ⟨Hif, rfl⟩
+    unfold memSnapTok
     iframe # ∗
-    ipureintro; exact Hbounded
-  obtain ⟨Hle, Hidx⟩ := Hpre (by omega)
+  have Hgt : uint.Z σt.prev.index' < uint.Z ci := by rw [HprevF] at Hif; omega
+  obtain ⟨Hle0, Hsle⟩ := Hpre Hgt
+  have Hle : uint.Z ci ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by omega
+  -- the entry at `ci` is numbered `ci`: the contents keep their entries numbered by position
+  have Hidx : ∀ e, σp.ents[(uint.Z ci - uint.Z σp.prev.index' - 1).toNat]? = some e →
+      e.Index' = ci := by
+    intro e He
+    rw [← Hσf] at He
+    simp only [memCut, List.getElem?_drop] at He
+    have := HidxL _ e He
+    have h1 := Hcok1.1
+    apply uint_Z_inj.1
+    push_cast at this
+    omega
   ihave Hf : memstorageFields ms σp $$ [HhardState Hents_f Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
@@ -173,36 +216,66 @@ theorem MemoryStorage.Compact.wp_proof
       rfl
     iapply (BigSepL2.bigSepL2_cons).2
     iframe Hd' Hb2
-  have Hpb' : uint.Z (memStorCompacted σp ci e.Term').prev.index' +
-      ((memStorCompacted σp ci e.Term').ents.length : Int) < 2^61 := by
-    simp only [memStorCompacted, List.length_drop]
-    omega
-  imod memView_set γs σp σp (memStorCompacted σp ci e.Term') Hidle (by simp [memStorCompacted, Hidle])
-    $$ Hview Hgs_inv with ⟨-, Hview, Hgs_inv⟩
+  -- (D19i part 1) the new boundary: within the floor, at an entry of the contents, at most the
+  -- storage's snapshot
+  have HtermL : termAt σL.prev σL.ents ci = some e.Term' := by
+    rw [← termAt_memCut Hcok1 ci (by omega)]
+    rw [← Hσf] at Hterm
+    simpa only [memCut] using Hterm
+  have Hcok' : CutOk σL (entryID.mk e.Term' ci) := by
+    refine ⟨by have := Hcok1.1; simp only; omega, by simp only; omega, HtermL⟩
+  imod ghostVar_update_halves (entryID.mk e.Term' ci) γs.cb _ _ $$ Hcb Hcbt with ⟨Hcb, Hcbt⟩
+  imod mono_nat_own_update (uint.Z ci).toNat (by omega) $$ Hbd with ⟨Hbd, -⟩
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState_1
-    Hents_f_1 Hes'_cap Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState_1
+    Hents_f_1 Hes'_cap Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1
+    Hcb Hbd Hsq]
   · inext
-    unfold memstorageInv memstorageFields
-    iexists memStorCompacted σp ci e.Term'
-    iframe Hgs_inv
-    isplitl
-    · iexists hp1, es', d', nfi1, nli1, nen1, nte1, nsn1
-      rw [← HE]
-      iframe # ∗
-      ipureintro
-      exact ⟨by simp [d', memStorCompacted, Hei], rfl⟩
-    ipureintro; exact Hpb'
+    unfold memstorageInv
+    iexists σL, entryID.mk e.Term' ci
+    isplitl [Hd_inv Hlk_inv]
+    · unfold memInvGhost
+      iexists Dl
+      iframe Hd_inv Hlb_inv Hlk_inv
+      ipureintro; exact HD
+    isplitl [HhardState_1 Hents_f_1 Hes'_cap Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1
+      Hcs_term_1 Hcs_snapshot_1]
+    · ihave Hf : memstorageFields ms (memStorCompacted σp ci e.Term') $$ [HhardState_1 Hents_f_1
+        Hes'_cap Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1]
+      · unfold memstorageFields
+        iexists hp1, es', d', nfi1, nli1, nen1, nte1, nsn1
+        rw [← HE]
+        iframe # ∗
+        ipureintro
+        exact ⟨by simp [d', memStorCompacted, Hei], rfl⟩
+      iapply memstorageFields_congr $$ Hf
+      · rfl
+      · rw [← Hσf]
+        simp only [memCut, memStorCompacted, List.drop_drop]
+        congr 1
+        have := Hcok1.1
+        omega
+    isplitr
+    · ipureintro; exact Hpb_inv0
+    iunfold memCutInv
+    iexists S
+    iframe Hcb Hbd Hsq Hsrel
+    isplitr
+    · iright
+      iapply memFlLb_le γs x ci Hle0 $$ Hflx
+    ipureintro
+    refine ⟨Hcok', ?_⟩
+    simp only
+    rw [HS1]; exact Hsle
   iapply HΦ
   iright
   iexists e.Term'
   isplitr
-  · ipureintro; exact ⟨by omega, Hterm, rfl⟩
-  ihave Hsn := memSnapShare_congr ms γs σp (memStorCompacted σp ci e.Term') rfl rfl rfl $$ Hsn
-  unfold ownMemoryStorage
+  · ipureintro; exact ⟨Hgt, rfl⟩
+  unfold memSnapTok
+  rw [show snapPart { σt with prev := entryID.mk e.Term' ci } = snapPart σt from rfl]
   iframe # ∗
-  ipureintro; exact Hpb'
 
 end proof
 

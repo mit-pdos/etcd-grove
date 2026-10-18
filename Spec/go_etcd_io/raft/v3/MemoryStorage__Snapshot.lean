@@ -59,17 +59,27 @@ and its conf state, `proto.Clone` keeps them), and no error. etcd's `run` calls 
 goroutine owns the storage. -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
-    (esu : GoInterface),
+    (esu : GoInterface) (n : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
-      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
+      globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
+      -- (D19i part 1) what the caller knows of the storage's compaction
+      (⌜n ≤ 0⌝ ∨ memStorCut γs n) }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
        (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-        ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-          sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}) ∧
+        -- non-empty once compacted (the storage's boundary is at most its snapshot's index); the
+        -- view's snapshot or (D19i part 1) a newer one the application took, at or below the
+        -- floor, at an entry of the view
+        ⌜((σ.prev.index' ≠ W64 0 ∨ 1 ≤ n) → sv.Metadata'.Index' ≠ W64 0) ∧
+          ((snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
+            sv.Metadata'.ConfState'.lists = σ.scs) ∨
+           (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
+            uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
+            uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
+            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝)) }}) ∧
   -- (D17d, 2026-10-18) the application's: with its snapshot token
   (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

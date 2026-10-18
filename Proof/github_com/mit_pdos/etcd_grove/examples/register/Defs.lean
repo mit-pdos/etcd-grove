@@ -104,17 +104,18 @@ an instance. -/
 class RegStor (GF : BundledGFunctors) where
   regStorName : GName
 
-abbrev MemStorRec := Loc × GName × GName × GName × GName × GName × GName × GName × GName
+abbrev MemStorRec :=
+  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
 
 def memStorRec (ms : Loc) (γs : MemStorNames) : MemStorRec :=
-  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak)
+  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd)
 
 theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     memStorRec ms1 γs1 = memStorRec ms2 γs2 → ms1 = ms2 ∧ γs1 = γs2 := by
   intro h
   cases γs1; cases γs2
   simp only [memStorRec, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
 def regStorN : Namespace := nroot.@"register_storage"
@@ -159,11 +160,25 @@ def regAppendedTok (st : Storage) (σ : StorState) (p : List EntryM) : IProp GF 
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = regStorIface s⌝ ∗ regStorRec s ms γs ∗
     memAppendedTok ms γs σ p)
 
+/-- (D19i part 1) The storage's boundary has reached `n`: its `MemoryStorage`'s. -/
+def regStorCut (st : Storage) (n : Int) : IProp GF :=
+  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = regStorIface s⌝ ∗ regStorRec s ms γs ∗
+    memStorCut γs n)
+
+/-- (D19i part 1) The floor's witness: its `MemoryStorage`'s. -/
+def regStorFloor (st : Storage) (x : w64) : IProp GF :=
+  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = regStorIface s⌝ ∗ regStorRec s ms γs ∗
+    memFloorTok ms γs x)
+
 /-- The register's storage model: every `Storage` is a registered register storage. -/
 instance regStorageModel : StorageModel GF where
   ownStorage := regOwnStorage
   appendTok := regAppendTok
   appendedTok := regAppendedTok
+  storCut := regStorCut
+  storCut_persistent := fun st n => by unfold regStorCut; infer_instance
+  storFloor := regStorFloor
+  storFloor_persistent := fun st x => by unfold regStorFloor; infer_instance
 
 /-- The registry: each registered storage keeps half of its `MemoryStorage` field here
 (so that a storage is registered once: a new one has the whole field). -/

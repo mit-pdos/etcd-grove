@@ -33,7 +33,7 @@ theorem MemoryStorage.SetHardState.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σp, Hinv⟩
+  icases Hinv with ⟨%σp, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp0, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
@@ -48,11 +48,11 @@ theorem MemoryStorage.SetHardState.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState_f
     Hents_f_f Hents_f Hents_cap_f Hcs_firstIndex_f Hcs_lastIndex_f Hcs_entries_f Hcs_term_f
-    Hcs_snapshot_f]
+    Hcs_snapshot_f Hcut_inv]
   · inext
     unfold memstorageInv memstorageFields
-    iexists σp
-    iframe Hgs_inv
+    iexists σp, c
+    iframe Hgs_inv Hcut_inv
     isplitl
     · iexists st, es, dummy, nfi, nli, nen, nte, nsn
       iframe

@@ -67,6 +67,9 @@ theorem raftLog.maybeCommit.wp_proof
   wp_auto
   ihave Hlog := Hback $$ Hl
   wp_apply wp_raftLog_matchTerm _ ls _ $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
+  -- (D19i part 1) above `committed`, so above the floor: `matchTerm` is exact
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  have Hb := Hb.2 (by omega)
   cases b with
   | true =>
     -- `matchTerm`: commit. `commitTo`'s premise from the match.

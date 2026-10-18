@@ -61,11 +61,12 @@ until the retarget the snapshot came by value with its `ConfState` slices read-o
 The lists are the record's. -/
 abbrev raftLog.snapshot.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (esu : GoInterface),
-  -- (2026-10-16, stage R8a, D11) the log is compacted: `Storage.Snapshot` promises a non-empty
-  -- snapshot only then (`HSnapshot`); with a pending snapshot `LogStoreOk` gives it anyway
-  uint.Z ls.prev.index' ≠ 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
-      "#Hesu" ∷ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu }}
+      "#Hesu" ∷ globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
+      -- (2026-10-16, stage R8a, D11) the log is compacted: `Storage.Snapshot` promises a
+      -- non-empty snapshot only then (`HSnapshot`); with a pending snapshot `LogStoreOk` gives it
+      -- anyway. (D19i part 1, 2026-10-18) Or the storage is, by the application (`storPast`).
+      "#Hcompact" ∷ (⌜uint.Z ls.prev.index' ≠ 0⌝ ∨ storPast ls.storage 1) }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"snapshot")) (Val #()))
   {{ (snap : Loc) (err : GoInterface), RET (PairV #snap #err);
       ownRaftLog l ls ∗
@@ -75,8 +76,10 @@ abbrev raftLog.snapshot.spec : Prop :=
           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.committed ∧
           plogTermAt ls.prev (ls.sents ++ ls.uents) sv.Metadata'.Index'
             = some sv.Metadata'.Term' ∧
-          -- (2026-10-15, stage S) one the node may send
-          snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn⌝)) }}
+          -- (2026-10-15, stage S) one the node may send; (D19i part 1) or one the application
+          -- took, at or below the floor (its certificate is the application's: A3, `SnapObl`)
+          (snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∨
+           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝)) }}
 
 end spec
 

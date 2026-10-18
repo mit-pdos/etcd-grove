@@ -99,6 +99,8 @@ abbrev StartNode.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk γ.reCCOk ps bootLog →
+  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
+  σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)

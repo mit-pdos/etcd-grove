@@ -50,17 +50,22 @@ returns `nil` (until the retarget a zero snapshot value). So `cs` is read at any
 (`ownCSM cs dq c`, given back; until the retarget its slices were kept by the storage,
 read-only, `ownCSL`), and the bytes of `data` are taken (`data ↦* bs`, full: the storage's
 snapshot owns them; given back on the error path). `memStorMeta` is not needed any more. D17d (2026-10-18): it changes the snapshot, so it takes the
-application's snapshot token too (`memSnapTok`), given back at the new snapshot. -/
+application's snapshot token too (`memSnapTok`), given back at the new snapshot.
+
+**The application's (D19i part 1, 2026-10-18).** etcd's apply loop calls it while raft owns the
+storage, so it no longer takes `ownMemoryStorage`: the application's token (the storage's snapshot
+and boundary, `σt`) and the floor's witness (`memFloorTok ms γs x`, raft's published floor at
+least `x`, which also tells that the storage holds entries up to `x`). The premise: a newer `i`
+is at or above the boundary and at most `x`. The owner's view is unchanged: raft learns the new
+snapshot from `Snapshot()` (an application's snapshot at or below the floor). -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (i : w64) (cs : Loc) (dq : DFrac)
+  ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x i : w64) (cs : Loc) (dq : DFrac)
     (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
-  σ.pend = [] →
-  (uint.Z σ.ss.index' < uint.Z i →
-    uint.Z σ.prev.index' ≤ uint.Z i ∧
-    uint.Z i ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
+  (uint.Z σt.ss.index' < uint.Z i →
+    uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Htok" ∷ memSnapTok ms γs σt ∗
+      "#Hfw" ∷ memFloorTok ms γs x ∗
       "Hcs" ∷ (match oc with
                | none => iprop(⌜cs = null⌝)
                | some c => ownCSM cs dq c) ∗
@@ -72,17 +77,13 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
       (match oc with
        | none => iprop(⌜cs = null⌝)
        | some c => ownCSM cs dq c) ∗
-      ((⌜uint.Z i ≤ uint.Z σ.ss.index' ∧ snap' = null ∧ err = eood⌝ ∗
-        ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt ∗ data ↦* bs) ∨
-      (∃ (t : w64), ⌜uint.Z σ.ss.index' < uint.Z i ∧ termAt σ.prev σ.ents i = some t ∧
-          err = interface.nil⌝ ∗
-        ownSnapM snap' (DFrac.own 1) (memSnapCreated σ i t oc bs) ∗
-        ownMemoryStorage ms γs { σ with ss := entryID.mk t i,
-                                        scs := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.lists,
-                                        sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave' } ∗
-        memSnapTok ms γs { σ with ss := entryID.mk t i,
-                                  scs := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.lists,
-                                  sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave' })) }}
+      ((⌜uint.Z i ≤ uint.Z σt.ss.index' ∧ snap' = null ∧ err = eood⌝ ∗
+        memSnapTok ms γs σt ∗ data ↦* bs) ∨
+      (∃ (t : w64), ⌜uint.Z σt.ss.index' < uint.Z i ∧ err = interface.nil⌝ ∗
+        ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) ∗
+        memSnapTok ms γs { σt with ss := entryID.mk t i,
+                                   scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
+                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave' })) }}
 
 end spec
 

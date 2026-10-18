@@ -106,7 +106,7 @@ theorem raftLog.maybeAppend.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG)) :
     raftLog.maybeAppend.spec (GF := GF) (hG := hG) := by
-  intro l ls a ents committed Hwf Hnw Hci
+  intro l ls a ents committed Hwf Hnw Hci Hpfl
   wp_start as H
   iNamed H
   wp_auto
@@ -116,6 +116,7 @@ theorem raftLog.maybeAppend.wp_proof
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnwl, Hlog⟩
   wp_apply wp_raftLog_matchTerm _ ls a.prev' $$ [$Hlog]
     as %b ⟨Hlog, %Hb⟩
+  have Hb := Hb.2 Hpfl
   cases b with
   | false =>
     -- `a.prev` does not match: `(0, false)`
@@ -140,7 +141,12 @@ theorem raftLog.maybeAppend.wp_proof
       obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
       have := Hwf k e Hk
       omega
-    wp_apply wp_raftLog_findConflict _ ls _ _ ents Hge
+    have Hgefl : ∀ e ∈ ents, uint.Z ls.fl ≤ uint.Z e.Index' := by
+      intro e He
+      obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
+      have := Hwf k e Hk
+      omega
+    wp_apply wp_raftLog_findConflict _ ls _ _ ents Hge Hgefl
       $$ [$Hlog $Hents] as ⟨Hlog, -⟩
     have Hlni : a.prev'.index' + a.entries'.len = W64 (uint.Z a.prev'.index' + (ents.length : Int)) := by
       word

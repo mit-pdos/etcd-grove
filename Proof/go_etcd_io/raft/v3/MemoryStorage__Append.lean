@@ -44,6 +44,86 @@ private theorem append_end (dummy : EntryM) (σ : StorState) (e0 : EntryM)
   simp only [storApp, List.cons_append]
   rw [List.take_of_length_le (by omega)]
 
+/-- (D19i part 1) The lock's invariant after the append: `done` at the appended state, the fields
+the old ones (the contents cut at `c`) with the batch, which starts above the cut and above the
+application's snapshot (both within the floor, which the batch is above). -/
+private theorem append_close (ms : Loc) (γs : MemStorNames) (σ σL S0 : StorState) (c : entryID)
+    (H : List StorState) (p : List EntryM) (e0 : EntryM) (hp : p.head? = some e0)
+    (Hde : DataEq σ σL) (Hcok : CutOk σL c ∧ uint.Z c.index' ≤ uint.Z S0.ss.index')
+    (Hcb : uint.Z c.index' < uint.Z e0.Index')
+    (Hhi : uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1)
+    (Hsb : (S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal) ∨
+      uint.Z S0.ss.index' < uint.Z e0.Index')
+    (Hok : HistOk (H ++ [storAbsorb { σ with pend := p }]))
+    (Hpb : uint.Z σ.prev.index' + ((storApp σ p).length : Int) < 2^61) :
+    ⊢ monoListAuthOwn (GF := GF) γs.done (1 : Qp).half (H ++ [storAbsorb { σ with pend := p }]) -∗
+      monoListLbOwn γs.hist (H ++ [storAbsorb { σ with pend := p }]) -∗ memKey γs.lk -∗
+      memstorageFields ms { memCut σL c with ents := storApp (memCut σL c) p, pend := [] } -∗
+      ghostVar γs.cb (1 : Qp).half c -∗ monoNatAuthOwn γs.bd 1 (uint.Z c.index').toNat -∗
+      (⌜c = σL.prev⌝ ∨ memFlLb γs c.index') -∗ ghostVar γs.sn memQ (snapPart S0) -∗
+      (⌜S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal⌝ ∨
+        (⌜uint.Z σL.ss.index' < uint.Z S0.ss.index' ∧ uint.Z σL.prev.index' ≤ uint.Z S0.ss.index' ∧
+            termAt σL.prev σL.ents S0.ss.index' = some S0.ss.term'⌝ ∗ memFlLb γs S0.ss.index')) -∗
+      memstorageInv ms γs := by
+  iintro Hd #Hlb Hlk Hf Hcbv Hbd #Hcfl Hsq #Hsrel
+  obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5, -⟩ := Hde
+  have HcokS : CutOk σ c := by
+    obtain ⟨h1, h2, h3⟩ := Hcok.1
+    refine ⟨by rw [Hp1]; exact h1, ?_, by rw [Hp1, Hp2]; exact h3⟩
+    unfold EtcdGrove.stLast at h2 ⊢; rw [Hp1, Hp2]; exact h2
+  have Hc1 := HcokS.1
+  unfold memstorageInv
+  iexists storAbsorb { σ with pend := p }, c
+  isplitl [Hd Hlk]
+  · unfold memInvGhost
+    iexists H ++ [storAbsorb { σ with pend := p }]
+    iframe Hd Hlb Hlk
+    ipureintro; exact ⟨by simp, Hok⟩
+  isplitl [Hf]
+  · iapply memstorageFields_congr $$ Hf
+    · rfl
+    · simp only [memCut, storAbsorb, storApp_pend]
+      rw [← memCut]
+      rw [storApp_memCut Hcok.1 p (fun e he => by rw [hp] at he; cases he; exact Hcb)]
+      simp only [storApp]
+      rw [Hp1, Hp2]
+  isplitr
+  · ipureintro
+    simp only [storAbsorb, storApp_pend]
+    exact Hpb
+  iunfold memCutInv
+  iexists S0
+  iframe Hcbv Hbd Hsq
+  isplitr
+  · icases Hcfl with (%Hc | #Hc)
+    · ileft; ipureintro; rw [Hc]; simp only [storAbsorb]; exact Hp1.symm
+    · iright; iexact Hc
+  have Hhi' : ∀ e, p.head? = some e →
+      uint.Z e.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1 := by
+    intro e he; rw [hp] at he; cases he; exact Hhi
+  isplitr
+  · ipureintro
+    refine ⟨?_, Hcok.2⟩
+    have := HcokS.app p (fun e he => by rw [hp] at he; cases he; exact Hcb) Hhi'
+    simpa only [storAbsorb, storApp_pend] using this
+  icases Hsrel with (%Hs | ⟨%Hs, #Hc⟩)
+  · ileft; ipureintro
+    simp only [storAbsorb]
+    rw [Hp3, Hp4, Hp5]; exact Hs
+  · iright
+    iframe Hc
+    ipureintro
+    obtain ⟨h1, h2, h3⟩ := Hs
+    simp only [storAbsorb, storApp_pend]
+    have Hlt : uint.Z S0.ss.index' < uint.Z e0.Index' := by
+      rcases Hsb with ⟨Hs1, -, -⟩ | Hs
+      · rw [Hs1] at h1; omega
+      · exact Hs
+    refine ⟨by rw [Hp3]; exact h1, by rw [Hp1]; exact h2, ?_⟩
+    rw [termAt_storApp_below σ p _ (fun e he => by
+        rw [hp] at he; cases he; exact ⟨Hlt, Hhi⟩) (by rw [Hp1]; exact h2), Hp1, Hp2]
+    exact h3
+
 theorem MemoryStorage.Append.wp_proof
     (wp_MemoryStorage_firstIndex : MemoryStorage.firstIndex.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
@@ -72,13 +152,14 @@ theorem MemoryStorage.Append.wp_proof
       apply Hif
       word
   iunfold memAppendTok at Htok
-  icases Htok with ⟨#Hinit, #Hmu, %H, Hdone, #Hhist, Hep, %Htk⟩
-  obtain ⟨Hlast, Hpe, Hpne, Hpok⟩ := Htk
+  icases Htok with ⟨#Hinit, #Hmu, %H, %D, Hdone, Hhist, Hep, %Htk⟩
+  obtain ⟨Hlast, Hpe, ⟨Hpne, Hpok⟩, Hpab, HDH, HDne, HR, Hok⟩ := Htk
   obtain ⟨e0, rest, rfl⟩ : ∃ e0 rest, p = e0 :: rest := by
     cases p with
     | nil => exact absurd rfl Hpne
     | cons a b => exact ⟨a, b, rfl⟩
-  obtain ⟨He0lo, He0hi⟩ := Hpok e0 rfl
+  obtain ⟨He0lo0, He0hi0, -⟩ := Hpok e0 rfl
+  have Hab0 := Hpab e0 rfl
   have Hb0 := Hbnd e0 rfl
   ihave %Hslen := ownSlice_len $$ Hsb
   simp only [List.length_cons] at Hslen Hb0 Hblen
@@ -95,22 +176,72 @@ theorem MemoryStorage.Append.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σp, Hinv⟩
+  icases Hinv with ⟨%σL, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memInvGhost at Hgs_inv
-  icases Hgs_inv with ⟨%D, Hd_inv, #Hlb_inv, %HD, Hlk_inv⟩
-  -- the writer's half: the contents are the state the batch was handed out at
-  icases monoAuth_agree_keep γs.done _ _ D H $$ [$Hd_inv $Hdone] with ⟨⟨Hd_inv, Hdone⟩, %HDH⟩
-  subst HDH
-  have Hσp : σp = σ := by rw [Hlast] at HD; injection HD with h; exact h.symm
-  subst Hσp
+  icases Hgs_inv with ⟨%Dl, Hd_inv, #Hlb_inv, %HD, Hlk_inv⟩
+  -- the writer's half: the contents have the data of the state the batch was handed out at
+  -- (D19i part 1: `done` may lag by floor raises)
+  icases monoAuth_agree_keep γs.done _ _ Dl D $$ [$Hd_inv $Hdone] with ⟨⟨Hd_inv, Hdone⟩, %HDD⟩
+  subst HDD
+  have Hde : DataEq σ σL := RaiseOnly.last HDH HR HD.1 Hlast
+  iunfold memCutInv at Hcut_inv
+  iNamed Hcut_inv
+  -- (D19i part 1) the cut, and the application's snapshot, are below the batch: within the floor,
+  -- which the batch is above (the token's half of `hist` bounds every floor witness)
+  have Hflw : ∀ (Lc : List StorState) (w : StorState), Lc <+: H ++ [storAbsorb { σ with pend := e0 :: rest }] →
+      Lc.getLast? = some w → uint.Z w.fl < uint.Z e0.Index' := by
+    intro Lc w Hpre hw
+    have := Hok.last_mono Hpre hw
+      (show (H ++ [storAbsorb { σ with pend := e0 :: rest }]).getLast? =
+        some (storAbsorb { σ with pend := e0 :: rest }) by simp)
+    simp only [storAbsorb] at this
+    omega
+  ihave %Hcb : ⌜uint.Z c.index' < uint.Z e0.Index'⌝ $$ [Hhist]
+  · icases Hcfl with (%Hc | #Hc)
+    · ipureintro; rw [Hc, ← Hde.1]; exact He0lo0
+    · iunfold memFlLb at Hc
+      icases Hc with ⟨%Lc, #HLc, %HLcok⟩
+      icases mono_list_auth_lb_valid γs.hist _ _ Lc $$ Hhist HLc with %Hpre
+      obtain ⟨-, w, hw, hx⟩ := HLcok
+      ipureintro
+      have := Hflw Lc w Hpre.2 hw
+      omega
+  ihave %Hsb : ⌜(S.ss = σL.ss ∧ S.scs = σL.scs ∧ S.sal = σL.sal) ∨
+      uint.Z S.ss.index' < uint.Z e0.Index'⌝ $$ [Hhist]
+  · icases Hsrel with (%Hs | ⟨%Hs, #Hc⟩)
+    · ipureintro; left; exact Hs
+    · iunfold memFlLb at Hc
+      icases Hc with ⟨%Lc, #HLc, %HLcok⟩
+      icases mono_list_auth_lb_valid γs.hist _ _ Lc $$ Hhist HLc with %Hpre
+      obtain ⟨-, w, hw, hx⟩ := HLcok
+      ipureintro
+      right
+      have := Hflw Lc w Hpre.2 hw
+      omega
+  ihave #Hlbn := monoListLbOwn_get γs.hist _ _ $$ Hhist
+  -- the fields are the contents cut at `c`: the batch continues them, as the view
+  have Hlast' := memCut_stLast Hcok.1
+  have He0lo : uint.Z (memCut σL c).prev.index' < uint.Z e0.Index' := Hcb
+  have He0hi : uint.Z e0.Index' ≤ uint.Z (memCut σL c).prev.index' +
+      ((memCut σL c).ents.length : Int) + 1 := by
+    unfold EtcdGrove.stLast at Hlast'
+    rw [Hde.1, Hde.2.1] at He0hi0
+    simp only [memCut] at Hlast' ⊢
+    omega
+  have Hpb_inv' : uint.Z (memCut σL c).prev.index' + ((memCut σL c).ents.length : Int) < 2^61 := by
+    unfold EtcdGrove.stLast at Hlast'; simp only [memCut] at Hlast' ⊢; omega
+  have Hpbσ : uint.Z σ.prev.index' + ((storApp σ (e0 :: rest)).length : Int) < 2^61 := by
+    simp only [storApp, List.length_append, List.length_take, List.length_cons]
+    omega
+  generalize Hσf : memCut σL c = σp at He0lo He0hi Hpb_inv' ⊢
   iNamed Hfields_inv
   ihave Hf : memstorageFields ms σp $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists hp, es, dummy, nfi, nli, nen, nte, nsn
     iframe
     ipureintro; exact Hdummy
-  wp_apply wp_MemoryStorage_firstIndex ms σp Hpb_inv $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
+  wp_apply wp_MemoryStorage_firstIndex ms σp Hpb_inv' $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
   have Hlenz : uint.Z s.len = (rest.length : Int) + 1 := by
     have := Hslen.1; rw [Hblen] at this; word
   -- `entries[0].GetIndex()`, read four times
@@ -160,8 +291,8 @@ theorem MemoryStorage.Append.wp_proof
   have Hpb' : uint.Z σp.prev.index' + ((storApp σp (e0 :: rest)).length : Int) < 2^61 := by
     simp only [storApp, List.length_append, List.length_take, List.length_cons]
     omega
-  imod memDone_append γs D (storAbsorb { σp with pend := e0 :: rest }) $$ Hd_inv Hdone
-    with ⟨Hd_inv, Hdone⟩
+  imod monoHalves_update γs.done Dl (H ++ [storAbsorb { σ with pend := e0 :: rest }])
+    (HDH.trans (List.prefix_append _ _)) $$ Hd_inv Hdone with ⟨Hd_inv, Hdone⟩
   wp_if_destruct
   · -- the batch overwrites stored entries: `append(ms.ents[:offset:offset], entries...)`
     have Hcut := of_decide_eq_true Hif.symm
@@ -206,34 +337,27 @@ theorem MemoryStorage.Append.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock
-      $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+      $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
-      unfold memstorageInv
-      iexists storAbsorb { σp with pend := e0 :: rest }
-      isplitl [Hd_inv Hlk_inv]
-      · unfold memInvGhost
-        iexists D ++ [storAbsorb { σp with pend := e0 :: rest }]
-        iframe Hd_inv Hhist Hlk_inv
-        ipureintro; simp
-      isplitl
+      ihave Hf' : memstorageFields ms { σp with ents := storApp σp (e0 :: rest), pend := [] } $$ [HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · unfold memstorageFields
         iexists hp, es', dummy, nfi, nli, nen, nte, nsn
-        simp only [storAbsorb, storApp_pend, named]
+        simp only [named]
         iframe
         isplitr
         · iexact Hes2
         ipureintro
         exact ⟨Hd0i, Hd0t⟩
-      ipureintro
-      simp only [storAbsorb, storApp_pend]
-      exact Hpb'
+      rw [← Hσf]
+      iapply append_close ms γs σ σL S c H (e0 :: rest) e0 rfl Hde Hcok Hcb He0hi0 Hsb Hok Hpbσ
+        $$ Hd_inv Hlbn Hlk_inv Hf' Hcb Hbd Hcfl Hsq Hsrel
     iapply HΦ
     isplitr [Hsb]
     · iright
       unfold memAppendedTok
-      iexists D
-      iframe Hdone Hep
-      ipureintro; exact Hpb'
+      iexists H, Dl
+      iframe Hdone Hhist Hep
+      ipureintro; exact Hpbσ
     iunfold entsPts
     iexists lsb
     iframe Hsb Hbigb
@@ -256,34 +380,27 @@ theorem MemoryStorage.Append.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock
-      $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+      $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
-      unfold memstorageInv
-      iexists storAbsorb { σp with pend := e0 :: rest }
-      isplitl [Hd_inv Hlk_inv]
-      · unfold memInvGhost
-        iexists D ++ [storAbsorb { σp with pend := e0 :: rest }]
-        iframe Hd_inv Hhist Hlk_inv
-        ipureintro; simp
-      isplitl
+      ihave Hf' : memstorageFields ms { σp with ents := storApp σp (e0 :: rest), pend := [] } $$ [HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · unfold memstorageFields
         iexists hp, es', dummy, nfi, nli, nen, nte, nsn
-        simp only [storAbsorb, storApp_pend, named]
+        simp only [named]
         iframe
         isplitr
         · iexact Hes2
         ipureintro
         exact ⟨Hd0i, Hd0t⟩
-      ipureintro
-      simp only [storAbsorb, storApp_pend]
-      exact Hpb'
+      rw [← Hσf]
+      iapply append_close ms γs σ σL S c H (e0 :: rest) e0 rfl Hde Hcok Hcb He0hi0 Hsb Hok Hpbσ
+        $$ Hd_inv Hlbn Hlk_inv Hf' Hcb Hbd Hcfl Hsq Hsrel
     iapply HΦ
     isplitr [Hsb]
     · iright
       unfold memAppendedTok
-      iexists D
-      iframe Hdone Hep
-      ipureintro; exact Hpb'
+      iexists H, Dl
+      iframe Hdone Hhist Hep
+      ipureintro; exact Hpbσ
     iunfold entsPts
     iexists lsb
     iframe Hsb Hbigb

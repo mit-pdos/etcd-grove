@@ -89,6 +89,29 @@ theorem regOwnStorage_intro (s ms : Loc) (γs : MemStorNames) (σ : StorState) :
     ipureintro; rfl
   iexact H
 
+theorem regStorCut_at (s ms : Loc) (γs : MemStorNames) (n : Int) :
+    ⊢ regStorRec (GF := GF) s ms γs -∗ storCut (regStorIface s) n -∗ memStorCut γs n := by
+  iintro #Hrec Hc
+  ihave Hc : regStorCut (regStorIface s) n $$ [Hc]
+  · iexact Hc
+  unfold regStorCut
+  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc⟩
+  have := regStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases regStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
+  subst H1 H2
+  iexact Hc
+
+theorem regStorCut_intro (s ms : Loc) (γs : MemStorNames) (n : Int) :
+    ⊢ regStorRec (GF := GF) s ms γs -∗ memStorCut γs n -∗ storCut (regStorIface s) n := by
+  iintro #Hrec Hc
+  ihave H : regStorCut (regStorIface s) n $$ [Hc]
+  · unfold regStorCut
+    iexists s, ms, γs
+    iframe Hrec Hc
+    ipureintro; rfl
+  iexact H
+
 /-- **The register's storage is a raft `Storage`.** -/
 theorem regStorage_isStorage
     (wp_Snapshot : register.Storage.Snapshot.spec (GF := GF) (hG := hG))
@@ -125,39 +148,57 @@ theorem regStorage_isStorage
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, Hown⟩
+    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, #Hcut, Hown⟩
     iapply HΦ
     ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
-    ipureintro; exact Hfi
+    isplitr
+    · ipureintro; exact Hfi
+    icases Hcut with (%Hc | #Hc)
+    · ileft; ipureintro; exact Hc
+    · iright; iapply regStorCut_intro s ms γs _ $$ Hrec Hc
   isplitr
-  · iintro %σ %i0
+  · iintro %σ %i0 %ec
     imodintro
-    iintro %Φ ⟨Hown, %Hr, %Hpf⟩ HΦ
+    iintro %Φ ⟨Hown, %Hr, %Hpf, #Hec⟩ HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_Term $$ [$Hown] as %t ⟨%Ht, Hown⟩
+    wp_apply MemoryStorage.wp_Term ms γs σ i0 ec $$ [$Hown $Hec] as %t %err ⟨Ht, Hown⟩
     · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ
     ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
-    ipureintro; exact Ht
+    icases Ht with (%Ht | ⟨%Ht, #Hc⟩)
+    · ileft; ipureintro; exact Ht
+    · iright
+      isplitr
+      · ipureintro; exact Ht
+      iapply regStorCut_intro s ms γs _ $$ Hrec Hc
   isplitr
-  · iintro %σ %lo %hi %maxSize
+  · iintro %σ %lo %hi %maxSize %ec
     imodintro
-    iintro %Φ ⟨Hown, %Hr, %Hpf⟩ HΦ
+    iintro %Φ ⟨Hown, %Hr, %Hpf, #Hec⟩ HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_Entries $$ [$Hown] as %sl %es ⟨Hs, %Hp, Hown⟩
+    wp_apply MemoryStorage.wp_Entries ms γs σ lo hi maxSize ec $$ [$Hown $Hec]
+      as %sl %es %err Hres
     · ipureintro; exact ⟨Hr, Hpf⟩
-    iapply HΦ
-    ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
-    iframe Hown Hs
-    ipureintro; exact Hp
+    iapply HΦ $$ %sl %es %err
+    icases Hres with (⟨%He, #Hc, Hown⟩ | ⟨%He, Hs, %Hp, Hown⟩)
+    · ileft
+      ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
+      iframe Hown
+      isplitr
+      · ipureintro; exact He
+      iapply regStorCut_intro s ms γs _ $$ Hrec Hc
+    · iright
+      ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
+      iframe Hown Hs
+      ipureintro; exact ⟨He, Hp⟩
   isplitr
   · imodintro
     iintro %σ Hown
@@ -167,11 +208,15 @@ theorem regStorage_isStorage
     iframe Hown
     ipureintro; exact Hb
   isplitr
-  · iintro %σ %esu
+  · iintro %σ %esu %n
     imodintro
-    iintro %Φ ⟨Hown, #Hesu⟩ HΦ
+    iintro %Φ ⟨Hown, #Hesu, #Hn⟩ HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    wp_apply wp_Snapshot s ms γs σ esu $$ [$Hfield $Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+    ihave #Hn' : (⌜n ≤ 0⌝ ∨ memStorCut (GF := GF) γs n) $$ []
+    · icases Hn with (%Hc | #Hc)
+      · ileft; ipureintro; exact Hc
+      · iright; iapply regStorCut_at s ms γs _ $$ Hrec Hc
+    wp_apply wp_Snapshot s ms γs σ esu n $$ [$Hfield $Hown $Hesu $Hn'] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
     ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
@@ -184,7 +229,7 @@ theorem regStorage_isStorage
     iexists sv
     iframe Hv
     ipureintro
-    exact ⟨Hsv.1, fun _ => Hsv.2.1, Hsv.2.2.1, Hsv.2.2.2⟩
+    exact ⟨fun _ => Hsv.1, Hsv.2⟩
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo
@@ -199,6 +244,7 @@ theorem regStorage_isStorage
       iframe Hrec Htok
       ipureintro; rfl
     iexact H
+  isplitr
   imodintro
   iintro %σ1 %σ %p Hown Ht
   ihave Hown := regOwnStorage_at s ms γs σ1 $$ Hrec Hown
@@ -215,6 +261,18 @@ theorem regStorage_isStorage
   imodintro
   iframe Hown
   ipureintro; exact Heq
+  imodintro
+  iintro %σ %x Hown %Hx
+  ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
+  imod memStorage_floor ms γs σ x Hx $$ Hown with ⟨Hown, Hfw⟩
+  ihave Hown := regOwnStorage_intro s ms γs _ $$ Hrec Hown
+  ihave H : regStorFloor (regStorIface s) x $$ [Hfw]
+  · unfold regStorFloor
+    iexists s, ms, γs
+    iframe Hrec Hfw
+    ipureintro; rfl
+  imodintro
+  iframe Hown H
 
 /-- `InitialState`, as `RestartNode` asks of its storage (`RestartNode.spec`'s premise, the shape
 of `newRaft`'s): a fresh empty hard state (`hsOpt`) and the voters' conf state, read-only for

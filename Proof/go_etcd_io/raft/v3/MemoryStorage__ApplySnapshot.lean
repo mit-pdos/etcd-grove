@@ -33,14 +33,14 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs σ σt sp sv eood Hidle Hbnd
+  intro ms γs σ σt sp sv eood Hidle Hbnd Hfl
   wp_start as ⟨Hms, Htok, Hsnap, #Herr⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
   iunfold memSnapShare at Hsn
-  icases Hsn with ⟨#Hsinv, Hok, Hsv⟩
+  icases Hsn with ⟨#Hsinv, Hok⟩
   iunfold memSnapTok at Htok
-  icases Htok with ⟨-, -, -, Hak, Hsvt⟩
+  icases Htok with ⟨-, -, -, Hak, Hsvt, Hcbt⟩
   icases ownSnapM_not_null $$ Hsnap with ⟨Hsnap, %Hspnn⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -49,11 +49,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σp, Hinv⟩
+  icases Hinv with ⟨%σp, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  icases memView_agree γs σ σp $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
-  have Hσp : σp = σ := Hvw.2.2.2 Hidle
-  subst Hσp
+  iunfold memCutInv at Hcut_inv
+  iNamed Hcut_inv
+  icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
+  subst Hcbe
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
@@ -70,12 +71,14 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   ihave Hsnap := ownSnapE_weaken $$ Hr
   iunfold memSnapHome at Hhome
   icases Hhome with ⟨%σ1, Hsn, Hsnh⟩
-  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsv Hsnh with %Hag
+  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
   obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
-  ihave Hsn := memSnapOwn_congr ms σ1 σp Hs1 Hs2 Hs3 $$ Hsn
+  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %HagS
+  obtain ⟨HS1, -, -⟩ := snapPart_inj HagS
+  ihave Hsn := memSnapOwn_congr ms σ1 σt Hs1 Hs2 Hs3 $$ Hsn
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp0, %sv0, Hsnapshot, Hsnap0, %Hsnap_id⟩
-  have Hss : σp.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
+  have Hss : σt.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
   (try wp_auto)
   wp_apply wp_GetMetadata.1 sp0 (DFrac.own 1) sv0 $$ [Hsnap0] as %pm0 ⟨Hm0, Hmback0⟩
   · iframe Hsnap0
@@ -92,7 +95,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   rotate_left
   wp_if_destruct
   · -- `ErrSnapOutOfDate`: nothing changes
-    imod memSnap_put ms γs 1 σp ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] with Hk
+    imod memSnap_put ms γs 1 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] with Hk
     · iunfold memSnapOwn
       iexists sp0, sv0
       iframe
@@ -107,16 +110,21 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f
-      Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+      Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σp
+      iexists σp, σt.prev
       iframe Hgs_inv
-      isplitl
+      isplitl [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · iexists hp, es, dummy, nfi, nli, nen, nte, nsn
         iframe # ∗
         ipureintro; exact Hdummy
-      ipureintro; exact Hpb_inv
+      isplitr
+      · ipureintro; exact Hpb_inv
+      iunfold memCutInv
+      iexists S
+      iframe Hcb Hbd Hcfl Hsq Hsrel
+      ipureintro; exact Hcok
     iapply HΦ
     iframe Hsnap
     ileft
@@ -128,12 +136,24 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     ipureintro; exact Hbounded
   -- the snapshot is applied (either because the storage had none or because it is newer)
   all_goals
-    have Hnot : ¬ (σp.ss.index' ≠ W64 0 ∧
-        uint.Z sv.Metadata'.Index' ≤ uint.Z σp.ss.index') := by
+    have Hnot : ¬ (σt.ss.index' ≠ W64 0 ∧
+        uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index') := by
       intro ⟨h1, h2⟩
       first
-        | exact h1 ‹σp.ss.index' = W64 0›
-        | exact ‹¬ uint.Z sv.Metadata'.Index' ≤ uint.Z σp.ss.index'› h2
+        | exact h1 ‹σt.ss.index' = W64 0›
+        | exact ‹¬ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index'› h2
+    -- (D19i part 1) the new boundary is past the cut: the cut is at most the storage's snapshot,
+    -- which the new one is past (or is the empty one, and so the cut `0`)
+    have HcS : uint.Z σt.prev.index' ≤ uint.Z sv.Metadata'.Index' := by
+      have h2 := Hcok.2
+      rw [HS1, ← Hs1] at h2
+      by_cases h0 : σt.ss.index' = W64 0
+      · rw [h0] at h2
+        have : uint.Z (W64 0) = 0 := rfl
+        have := (word.unsigned_range sv.Metadata'.Index').1
+        omega
+      · have := not_and.1 Hnot h0
+        omega
     wp_apply wp_CloneSnapshot.1 sp (DFrac.own 1) sv $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
     · iframe Hsnap
     wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
@@ -169,7 +189,10 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     imod ownSlice_persist $$ Hsl with #Hsl
     wp_auto
     -- (D17d) the new snapshot's ghost value, and the snapshot back
-    imod memSnap_update γs _ _ _ (memStorApplied sv) $$ Hsv Hsvt Hsnh with ⟨Hsv, Hsvt, Hsnh⟩
+    imod memSnap_update γs _ _ _ (memStorApplied sv) $$ Hsq Hsvt Hsnh with ⟨Hsq, Hsvt, Hsnh⟩
+    imod ghostVar_update_halves (memStorApplied sv).prev γs.cb _ _ $$ Hcb Hcbt with ⟨Hcb, Hcbt⟩
+    imod mono_nat_own_update (uint.Z (memStorApplied sv).prev.index').toNat
+      (by simp only [memStorApplied, snapId]; omega) $$ Hbd with ⟨Hbd, -⟩
     imod memSnap_put ms γs 1 (memStorApplied sv) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hp'] Hsnh with Hk
     · iunfold memSnapOwn
       iexists p', sv
@@ -181,17 +204,19 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     · exact absurd Hk (by decide)
     · exact absurd Hk (by decide)
     ihave Hgs_inv := Hgs_back $$ Hlk
-    imod memView_set γs σp σp (memStorApplied sv) Hidle rfl $$ Hview Hgs_inv
-      with ⟨-, Hview, Hgs_inv⟩
+    imod memView_set γs σ σp { memStorApplied sv with fl := σ.fl } Hidle rfl (Int.le_refl _)
+      (by simp only [EtcdGrove.stLast, memStorApplied, snapId, List.length_nil]; omega)
+      (fun k e h => by simp [memStorApplied] at h)
+      $$ Hview Hgs_inv with ⟨-, Hview, Hgs_inv⟩
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f
-      Hsl_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+      Hsl_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists memStorApplied sv
+      iexists { memStorApplied sv with fl := σ.fl }, (memStorApplied sv).prev
       iframe Hgs_inv
-      isplitl
+      isplitl [HhardState Hents_f Hsl_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · iexists hp, _, _, nfi, nli, nen, nte, nsn
         iframe # ∗
         isplitr
@@ -200,10 +225,22 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
           iframe Hsl
           iapply (BigSepL2.bigSepL2_cons).2
           iframe He0
-          rw [show (memStorApplied sv).ents = [] from rfl]
+          rw [show (memCut { memStorApplied sv with fl := σ.fl } (memStorApplied sv).prev).ents = []
+            by simp [memCut, memStorApplied]]
           iapply entsBig_nil
         ipureintro; exact ⟨rfl, rfl⟩
-      ipureintro; simp only [memStorApplied, snapId, List.length_nil]; word
+      isplitr
+      · ipureintro; simp only [memStorApplied, snapId, List.length_nil]; word
+      iunfold memCutInv
+      iexists memStorApplied sv
+      iframe Hcb Hbd Hsq
+      isplitr
+      · ileft; ipureintro; rfl
+      isplitr
+      · ipureintro
+        refine ⟨CutOk.self _, ?_⟩
+        simp only [memStorApplied, snapId]; exact Int.le_refl _
+      ileft; ipureintro; exact ⟨rfl, rfl, rfl⟩
     iapply HΦ
     iframe Hsnap
     iright

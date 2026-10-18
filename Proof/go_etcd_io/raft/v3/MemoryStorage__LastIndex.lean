@@ -35,34 +35,41 @@ theorem MemoryStorage.LastIndex.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
-  icases Hinv with ⟨%σ0, Hinv⟩
+  icases Hinv with ⟨%σ0, %c, Hinv⟩
   iNamedSuffix Hinv "_inv"
-  -- with nothing pending the contents are the view (2026-10-10)
-  icases memView_agree γs σ σ0 $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
-  have Heq : σ0 = σ := Hvw.2.2.2 Hpnil
-  subst Heq
+  -- with nothing pending the contents have the view's entries (2026-10-10); (D19i part 1) the
+  -- cut keeps the last index
+  icases memCut_view γs σ σ0 c $$ Hview Hgs_inv Hcut_inv
+    with ⟨%Hvc, -, Hview, Hgs_inv, Hcut_inv⟩
+  obtain ⟨Hvw, Hcok, -⟩ := Hvc
+  have Hlast := memCut_stLast Hcok
+  have Hpb' : uint.Z (memCut σ0 c).prev.index' + ((memCut σ0 c).ents.length : Int) < 2^61 := by
+    unfold EtcdGrove.stLast at Hlast; omega
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
-  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms (memCut σ0 c) $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists hp, es, dummy, _, _, _, _, _
     simp only [named]
     iframe
     ipureintro; exact Hdummy
-  wp_apply wp_MemoryStorage_lastIndex _ _ Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex _ _ Hpb' $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf Hcut_inv]
   · unfold memstorageInv
-    iexists σ0
+    iexists σ0, c
     simp only [named]
     iframe
     ipureintro; exact Hpb_inv
   iapply HΦ
   isplitr
-  · ipureintro; exact Hli
+  · ipureintro
+    have He := Hvw.2.2.2 Hpnil
+    unfold EtcdGrove.stLast at Hlast
+    rw [Hli, Hlast, He, Hvw.1]
   unfold ownMemoryStorage
   simp only [named]
   iframe Hinit Hmu Hview Hsn

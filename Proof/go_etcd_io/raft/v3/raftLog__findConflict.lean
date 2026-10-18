@@ -37,7 +37,7 @@ theorem raftLog.findConflict.wp_proof
     (wp_raftLog_zeroTermOnOutOfBounds :
       raftLog.zeroTermOnOutOfBounds.spec (GF := GF) (hG := hG)) :
     raftLog.findConflict.spec (GF := GF) (hG := hG) := by
-  intro l ls es dq ents Hge
+  intro l ls es dq ents Hge Hgefl
   wp_start as ⟨Hlog, Hes⟩
   iNamed Hlog
   iNamed Hes
@@ -82,6 +82,7 @@ theorem raftLog.findConflict.wp_proof
       iexists lps
       iframe Hs Hb
     wp_apply wp_raftLog_matchTerm l _ (entId e) $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
+    have Hb := Hb.2 (Hgefl e (List.mem_of_getElem? He_lookup))
     have Hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
       have hlt : sint.nat n < ents.length := by word
       rw [List.drop_eq_getElem_cons hlt]
@@ -99,8 +100,9 @@ theorem raftLog.findConflict.wp_proof
       wp_apply wp_raftLog_lastIndex l _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
       wp_if_destruct
       · -- `id.index <= lastIndex()`: the `Infof`
-        wp_apply wp_raftLog_term l _ e.Index' $$ [$Hlog] as %t %err ⟨Hlog, %Herr, -, -⟩
-        have Herr0 : err = interface.nil := Herr.2 ⟨Hgee, by omega⟩
+        wp_apply wp_raftLog_term l _ e.Index' $$ [$Hlog] as %t %err ⟨Hlog, %Herr, -, -, -⟩
+        have Herr0 : err = interface.nil :=
+          Herr.2 ⟨Hgee, by omega⟩ (Hgefl e (List.mem_of_getElem? He_lookup))
         subst Herr0
         wp_apply wp_raftLog_zeroTermOnOutOfBounds l t interface.nil $$ [] as %t' -
         · ileft; ipureintro; rfl

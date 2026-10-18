@@ -39,6 +39,8 @@ abbrev raftLog.scan.spec : Prop :=
   uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
     uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
       + (ls.uents.length : Int) + 1 →
+  -- (D19i part 1) above the floor: no page is compacted
+  uint.Z ls.fl < uint.Z lo →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hlog" ∷ ownRaftLog l ls ∗
       "HI" ∷ I [] ∗ "#Hf" ∷ □ scanClosure f (scanRange ls lo hi) I B }}

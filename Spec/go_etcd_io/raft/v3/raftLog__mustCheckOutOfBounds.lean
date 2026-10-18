@@ -28,7 +28,11 @@ The range premise is about the log's state `ls`; the function calls `firstIndex`
 `lastIndex` on the log. The two `Panicf`s (`lo > hi`, and `hi` past the end) and the
 `ErrCompacted` return (`lo < firstIndex`) are all excluded by the range premise, so the
 result is exactly `nil` -- which is what lets `raftLog.slice` take its non-error
-path. -/
+path.
+
+(D19i part 1, 2026-10-18) The application may have compacted the storage up to the floor
+(`LogState.fl`): then `lo < firstIndex` is possible, and the result is `ErrCompacted`, with
+`lo` at most the floor and the storage compacted past it (`storPast`). -/
 abbrev raftLog.mustCheckOutOfBounds.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (lo hi : w64),
   uint.Z ls.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
@@ -37,7 +41,10 @@ abbrev raftLog.mustCheckOutOfBounds.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"mustCheckOutOfBounds"))
       (Val #lo)) (Val #hi))
-  {{ RET #interface.nil; ownRaftLog l ls }}
+  {{ (err : GoInterface), RET #err; ownRaftLog l ls ∗
+      (⌜err = interface.nil⌝ ∨
+       (⌜uint.Z lo ≤ uint.Z ls.fl⌝ ∗ globalAddr ErrCompacted ↦□ err ∗
+        storPast ls.storage (uint.Z lo))) }}
 
 end spec
 

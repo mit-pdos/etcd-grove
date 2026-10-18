@@ -89,7 +89,7 @@ theorem raftLog.term.wp_proof
     rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -108,7 +108,7 @@ theorem raftLog.term.wp_proof
     simp only [true_implies] at Hokt
     rcases Hokt with ⟨⟨Hlo, Hhi⟩, e, He, rfl⟩ | ⟨sid, Hs, rfl, rfl⟩
     · isplitr
-      · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ => rfl⟩
+      · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ _ => rfl⟩
       isplitr
       · ipureintro
         intro _
@@ -119,14 +119,18 @@ theorem raftLog.term.wp_proof
           congr 1
           omega
         · omega
-      ileft; ipureintro; rfl
+      isplitr
+      · ileft; ipureintro; rfl
+      ileft; ipureintro; left; rfl
     · obtain ⟨Hsid, -, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
       subst Hsid
       isplitr
-      · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ => rfl⟩
+      · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ _ => rfl⟩
       isplitr
       · ipureintro; exact fun _ => plogTermAt_base _ _
-      ileft; ipureintro; rfl
+      isplitr
+      · ileft; ipureintro; rfl
+      ileft; ipureintro; left; rfl
   | false =>
     have Hnotin : ¬ (uint.Z lv.unstable'.offset' ≤ uint.Z i ∧
         uint.Z i < uint.Z lv.unstable'.offset' + (ls.uents.length : Int)) := by
@@ -136,19 +140,34 @@ theorem raftLog.term.wp_proof
     wp_auto
     ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
+    wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi, #Hcut⟩
     by_cases Hb1 : uint.Z (i + W64 1) < uint.Z fi
-    · -- below the compaction boundary: `ErrCompacted`
+    · -- below the compaction boundary: `ErrCompacted` (D19i part 1: possibly the
+      -- application's, up to the floor)
       rw [decide_eq_true Hb1]
       wp_auto
       iapply HΦ $$ %(W64 0) %errCompacted
       iframe Hlog
       isplitr
       · ipureintro
-        exact ⟨fun Hc => absurd Hc HErrCompacted, fun _ => by exfalso; word⟩
+        refine ⟨fun Hc => absurd Hc HErrCompacted, fun Hr Hge => ?_⟩
+        exfalso
+        have : uint.Z (i + W64 1) = uint.Z i + 1 := by word
+        omega
       isplitr
       · ipureintro; intro Hc; exact absurd Hc HErrCompacted
-      iright; ileft; iexact ErrCompacted
+      isplitr
+      · iright; ileft; iexact ErrCompacted
+      by_cases Hr : uint.Z ls.prev.index' ≤ uint.Z i ∧
+          uint.Z i ≤ uint.Z ls.prev.index' + (ls.sents.length : Int) + (ls.uents.length : Int)
+      · have : uint.Z (i + W64 1) = uint.Z i + 1 := by word
+        icases Hcut with (%Hfe | #Hcut)
+        · exfalso; omega
+        iright
+        iapply storPast_mono _ _ _ (by omega : uint.Z i + 1 ≤ uint.Z fi - 1)
+        iapply storPast_of_cut
+        iexact Hcut
+      ileft; ipureintro; right; exact Hr
     rw [decide_eq_false Hb1]
     wp_auto
     wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
@@ -160,10 +179,12 @@ theorem raftLog.term.wp_proof
       iframe Hlog
       isplitr
       · ipureintro
-        exact ⟨fun Hc => absurd Hc HErrUnavailable, fun _ => by exfalso; omega⟩
+        exact ⟨fun Hc => absurd Hc HErrUnavailable, fun _ _ => by exfalso; omega⟩
       isplitr
       · ipureintro; intro Hc; exact absurd Hc HErrUnavailable
-      iright; iright; iexact ErrUnavailable
+      isplitr
+      · iright; iright; iexact ErrUnavailable
+      ileft; ipureintro; right; omega
     -- in range, and not in the unstable window: ask the `Storage`
     rw [decide_eq_false Hb2]
     wp_auto
@@ -185,15 +206,15 @@ theorem raftLog.term.wp_proof
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hsksn
+      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
       Hl_logger
-      Hu_logger Husnap Hpksn
+      Hu_logger Husnap Hpksn Hcut Hfloor
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto
     ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
@@ -201,20 +222,49 @@ theorem raftLog.term.wp_proof
     rw [Hstok]
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     have Hstlen := Hstored.length_le
-    wp_apply HTerm $$ %σ %i [$HStorage] as %t2 ⟨%Ht2, HStorage⟩
+    wp_apply HTerm $$ %σ %i %errCompacted [$HStorage] as %t2 %err2 ⟨Ht2, HStorage⟩
     · isplitr
       · ipureintro; rw [Hsp]; omega
+      isplitr
       · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hs _ (by omega)
-    rw [Hsp] at Ht2
+      iexact ErrCompacted
+    icases Ht2 with (%Ht2 | ⟨%Ht2, #Hcut⟩)
+    · obtain ⟨rfl, Ht2⟩ := Ht2
+      rw [Hsp] at Ht2
+      wp_auto
+      rw [← Hstok]
+      iapply HΦ $$ %t2 %interface.nil
+      isplitl [Hl HStorage Huents Huents_cap]
+      · reseal_raftLog
+      isplitr
+      · ipureintro; exact ⟨fun _ => ⟨Hrange.1, by omega⟩, fun _ _ => rfl⟩
+      isplitr
+      · ipureintro; exact fun _ => termAt_visible _ _ _ _ _ _ Hstored Hrange Ht2
+      isplitr
+      · ileft; ipureintro; rfl
+      ileft; ipureintro; left; rfl
+    -- (D19i part 1) the application compacted past `i`: `ErrCompacted`, returned
+    obtain ⟨rfl, Hlt⟩ := Ht2
+    rw [Hfl.1] at Hlt
+    obtain ⟨tyc, pc, Hec⟩ := HErrCompacted_new
+    have Hecn := HErrCompacted
+    subst Hec
+    wp_auto
     rw [← Hstok]
-    iapply HΦ $$ %t2 %interface.nil
+    iapply HΦ $$ %(W64 0) %(interface.mkOk (go.GoType.PointerType tyc) #pc)
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     isplitr
-    · ipureintro; exact ⟨fun _ => ⟨Hrange.1, by omega⟩, fun _ => rfl⟩
+    · ipureintro
+      exact ⟨fun Hc => absurd Hc Hecn, fun _ Hge => by exfalso; omega⟩
     isplitr
-    · ipureintro; exact fun _ => termAt_visible _ _ _ _ _ _ Hstored Hrange Ht2
-    ileft; ipureintro; rfl
+    · ipureintro; intro Hc; exact absurd Hc Hecn
+    isplitr
+    · iright; ileft; iexact ErrCompacted
+    iright
+    rw [← Hstor]
+    iapply storPast_of_cut
+    iexact Hcut
 
 end proof
 

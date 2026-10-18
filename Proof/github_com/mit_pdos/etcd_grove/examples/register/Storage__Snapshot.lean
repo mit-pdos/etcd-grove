@@ -37,8 +37,8 @@ theorem Storage.Snapshot.wp_proof
     (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
     Storage.Snapshot.spec (GF := GF) (hG := hG) := by
-  intro s ms γs σ esu
-  wp_start as ⟨#Hms, Hown, #Hesu⟩
+  intro s ms γs σ esu n
+  wp_start as ⟨#Hms, Hown, #Hesu, #Hn⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -49,7 +49,7 @@ theorem Storage.Snapshot.wp_proof
   iNamed Hinit
   icombine ErrSnapUnavail Hesu gives %Hesu_eq
   wp_auto
-  wp_apply wp_MemoryStorage_Snapshot.1 ms γs σ esu $$ [$Hraftinit $Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+  wp_apply wp_MemoryStorage_Snapshot.1 ms γs σ esu n $$ [$Hraftinit $Hown $Hesu $Hn] as %snap %err ⟨Hown, Hr⟩
   cases err with
   | nil =>
     -- no error: the clone; `ErrSnapshotTemporarilyUnavailable` is not `nil`
@@ -71,7 +71,7 @@ theorem Storage.Snapshot.wp_proof
       · ipureintro; rfl
       iexists sv
       iframe Hsv
-      ipureintro; exact ⟨Hsv.1, Hif, Hsv.2.1, Hsv.2.2⟩
+      ipureintro; exact ⟨Hif, Hsv.2⟩
   | ok i =>
     wp_auto
     iapply HΦ

@@ -36,16 +36,21 @@ read-only and for good, which `ownMemoryStorage` can allow because it holds `ms.
 read-only itself. -/
 abbrev MemoryStorage.Entries.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
-    (lo hi maxSize : w64),
+    (lo hi maxSize : w64) (ec : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
          uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
       -- below the pending batch (2026-10-10)
-      ⌜PendFrom σ (uint.Z hi)⌝ }}
+      ⌜PendFrom σ (uint.Z hi)⌝ ∗
+      "#Hec" ∷ globalAddr ErrCompacted ↦□ ec }}
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Entries"))
       (Val #lo)) (Val #hi)) (Val #maxSize))
-  {{ (s : GoSlice) (es : List EntryM), RET (PairV #s #interface.nil);
+  {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
+      -- (D19i part 1) `ErrCompacted` at or below the floor, the storage compacted up to `lo`
+      (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ memStorCut γs (uint.Z lo) ∗
+        ownMemoryStorage ms γs σ) ∨
+      (⌜err = interface.nil⌝ ∗
       entsRO s es ∗
       ⌜es ≠ [] ∧
         (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
@@ -53,7 +58,7 @@ abbrev MemoryStorage.Entries.spec : Prop :=
         s.cap = s.len ∧
         es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
                  (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
-      ownMemoryStorage ms γs σ }}
+      ownMemoryStorage ms γs σ) }}
 
 end spec
 

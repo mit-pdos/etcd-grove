@@ -34,12 +34,12 @@ theorem MemoryStorage.Snapshot.wp_proof
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
   constructor
   · -- raft's: the lock's key and the owner's
-    intro ms γs σ esu
-    wp_start as ⟨Hms, #Hesu⟩
+    intro ms γs σ esu n
+    wp_start as ⟨Hms, #Hesu, #Hn⟩
     iunfold ownMemoryStorage at Hms
     icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
     iunfold memSnapShare at Hsn
-    icases Hsn with ⟨#Hsinv, Hok, Hsv⟩
+    icases Hsn with ⟨#Hsinv, Hok⟩
     wp_apply wp_with_defer as %defer defer
     ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
     · iPkgInit
@@ -47,8 +47,34 @@ theorem MemoryStorage.Snapshot.wp_proof
     wp_call
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
     iunfold memstorageInv at Hinv
-    icases Hinv with ⟨%σ0, Hinv⟩
+    icases Hinv with ⟨%σ0, %c, Hinv⟩
     iNamedSuffix Hinv "_inv"
+    -- (D19i part 1) the contents, the cut, the snapshot as the lock relates them
+    icases memCut_view γs σ σ0 c $$ Hview Hgs_inv Hcut_inv
+      with ⟨%Hvc, -, Hview, Hgs_inv, Hcut_inv⟩
+    obtain ⟨Hvw, -, -⟩ := Hvc
+    icases memView_pend γs σ $$ Hview with ⟨%Hpend, Hview⟩
+    iunfold memCutInv at Hcut_inv
+    iNamed Hcut_inv
+    ihave %Hnc : ⌜n ≤ 0 ∨ n ≤ uint.Z c.index'⌝ $$ [Hbd]
+    · icases Hn with (%Hn | #Hn)
+      · ipureintro; left; exact Hn
+      · iunfold memStorCut at Hn
+        icases monoNatLbOwn_valid _ _ _ _ $$ Hbd Hn with %H
+        obtain ⟨-, H⟩ := H
+        have := (word.unsigned_range c.index').1
+        ipureintro
+        by_cases hn : n ≤ 0
+        · left; exact hn
+        · right; omega
+    ihave %Hrel : ⌜(S.ss = σ0.ss ∧ S.scs = σ0.scs ∧ S.sal = σ0.sal) ∨
+        (uint.Z σ0.ss.index' < uint.Z S.ss.index' ∧ uint.Z σ0.prev.index' ≤ uint.Z S.ss.index' ∧
+          termAt σ0.prev σ0.ents S.ss.index' = some S.ss.term' ∧
+          uint.Z S.ss.index' ≤ uint.Z σ.fl)⌝ $$ [Hview]
+    · icases Hsrel with (%Hs | ⟨%Hs, #Hfl⟩)
+      · ipureintro; left; exact Hs
+      · icases memFlLb_view γs σ S.ss.index' $$ Hview Hfl with ⟨%H, -⟩
+        ipureintro; right; exact ⟨Hs.1, Hs.2.1, Hs.2.2, H⟩
     icases memInvGhost_key $$ Hgs_inv with ⟨Hlk, Hgs_back⟩
     imod memSnap_take ms γs 1 ⊤ HN $$ Hsinv [Hlk Hok] with ⟨Hhome, Hrcpt⟩
     · iunfold memSnapKeys; ileft; iframe; ipureintro; rfl
@@ -58,7 +84,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     wp_auto
     iunfold memSnapHome at Hhome
     icases Hhome with ⟨%σp, Hown, Hsnh⟩
-    icases ghostVar_agree γs.sn _ _ _ _ $$ Hsv Hsnh with %Hag
+    icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %Hag
     obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
     iunfold memSnapOwn at Hown
     icases Hown with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
@@ -83,18 +109,23 @@ theorem MemoryStorage.Snapshot.wp_proof
     ihave Hgs_inv := Hgs_back $$ Hlk
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σ0
+      iexists σ0, c
       iframe Hgs_inv
-      isplitl
+      isplitl [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
       · iexists hp, es, dummy, _, _, _, _, _
         iframe # ∗
         ipureintro; exact Hdummy
-      ipureintro; exact Hpb_inv
+      isplitr
+      · ipureintro; exact Hpb_inv
+      iunfold memCutInv
+      iexists S
+      iframe Hcb Hbd Hcfl Hsq Hsrel
+      ipureintro; exact Hcok
     iapply HΦ
-    isplitl [Hview Hok Hsv]
+    isplitl [Hview Hok]
     · unfold ownMemoryStorage memSnapShare
       simp only [named]
       iframe # ∗
@@ -105,12 +136,36 @@ theorem MemoryStorage.Snapshot.wp_proof
     iexists sv
     iframe Hp'
     ipureintro
-    exact ⟨Hsnap_id.1.trans Hs1.symm, Hsnap_id.2.2.trans Hs3.symm, Hsnap_id.2.1.trans Hs2.symm⟩
+    have Hsid : snapId sv = S.ss := Hsnap_id.1.trans Hs1.symm
+    have Hidx : sv.Metadata'.Index' = S.ss.index' := by rw [← Hsid]; rfl
+    have Htm : sv.Metadata'.Term' = S.ss.term' := by rw [← Hsid]; rfl
+    obtain ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3⟩, Hve, Hvi⟩ := Hvw
+    have := (word.unsigned_range σ.prev.index').1
+    have Hcp := Hcok.1.1
+    have HcS := Hcok.2
+    refine ⟨fun h => ?_, ?_⟩
+    · rw [Hidx]
+      rcases h with h | h
+      · rw [Hvp] at Hcp
+        have : uint.Z σ.prev.index' ≠ 0 := fun hz => h (by word)
+        intro hz; rw [hz] at HcS; have : uint.Z (W64 0) = 0 := rfl; omega
+      · intro hz; rw [hz] at HcS; have : uint.Z (W64 0) = 0 := rfl; omega
+    rcases Hrel with ⟨Hr1, Hr2, Hr3⟩ | ⟨Hr1, Hr2, Hr3, Hr4⟩
+    · left
+      refine ⟨Hsid.trans (Hr1.trans Hvs1), ?_, ?_⟩
+      · rw [Hsnap_id.2.2, ← Hs3, Hr3, Hvs3]
+      · rw [Hsnap_id.2.1, ← Hs2, Hr2, Hvs2]
+    · right
+      rw [Hidx, Htm, ← Hvs1, ← Hvp]
+      refine ⟨Hr1, Hr2, Hr4, ?_⟩
+      rw [Hvp]
+      exact memView_termAt_below σ σ0 ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3⟩, Hve, Hvi⟩
+        Hpend.1 Hpend.2 _ _ Hr3 Hr4 (by rw [← Hvp]; exact Hr2)
   · -- the application's: the lock's key and the application's
     intro ms γs σ
     wp_start as Htok
     iunfold memSnapTok at Htok
-    icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsv⟩
+    icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsv, Hcbt⟩
     wp_apply wp_with_defer as %defer defer
     ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
     · iPkgInit
@@ -118,7 +173,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     wp_call
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
     iunfold memstorageInv at Hinv
-    icases Hinv with ⟨%σ0, Hinv⟩
+    icases Hinv with ⟨%σ0, %c, Hinv⟩
     iNamedSuffix Hinv "_inv"
     icases memInvGhost_key $$ Hgs_inv with ⟨Hlk, Hgs_back⟩
     imod memSnap_take ms γs 2 ⊤ HN $$ Hsinv [Hlk Hak] with ⟨Hhome, Hrcpt⟩
@@ -154,18 +209,18 @@ theorem MemoryStorage.Snapshot.wp_proof
     ihave Hgs_inv := Hgs_back $$ Hlk
     wp_method_call
     wp_call
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcut_inv]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σ0
-      iframe Hgs_inv
+      iexists σ0, c
+      iframe Hgs_inv Hcut_inv
       isplitl
       · iexists hp, es, dummy, _, _, _, _, _
         iframe # ∗
         ipureintro; exact Hdummy
       ipureintro; exact Hpb_inv
     iapply HΦ
-    isplitl [Hak Hsv]
+    isplitl [Hak Hsv Hcbt]
     · unfold memSnapTok
       simp only [named]
       iframe # ∗

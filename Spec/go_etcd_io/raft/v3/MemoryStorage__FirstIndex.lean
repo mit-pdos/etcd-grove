@@ -39,7 +39,10 @@ abbrev MemoryStorage.FirstIndex.spec : Prop :=
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"FirstIndex"))
       (Val #()))
   {{ (fi : w64), RET (PairV #fi #interface.nil);
-      ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗
+      -- (D19i part 1) the application may have compacted the storage, up to the floor
+      ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z fi ∧
+        uint.Z fi ≤ max (uint.Z σ.prev.index') (uint.Z σ.fl) + 1⌝ ∗
+      (⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∨ memStorCut γs (uint.Z fi - 1)) ∗
       ownMemoryStorage ms γs σ }}
 
 end spec

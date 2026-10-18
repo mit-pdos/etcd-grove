@@ -129,7 +129,20 @@ theorem raftLog.slice.wp_proof
   | ok eu =>
   wp_auto
   wp_apply wp_raftLog_mustCheckOutOfBounds l ls lo hi Hmc
-    $$ [$Hlog] as Hlog
+    $$ [$Hlog] as %err0 ⟨Hlog, Herr0⟩
+  icases Herr0 with (%Herr0 | ⟨%Hlo0, #Herr0, #Hcut0⟩)
+  rotate_left
+  · -- (D19i part 1) `ErrCompacted` from the bounds check: returned
+    icombine Herr0 ErrCompacted gives %Heq0
+    subst Heq0
+    wp_auto
+    iapply HΦ $$ %slice.nil %([] : List EntryM) %(GoInterface.ok ec)
+    iframe Hlog
+    iright
+    iframe Herr0 Hcut0
+    ipureintro; exact ⟨rfl, Hlo0⟩
+  subst Herr0
+  wp_auto
   rw [decide_eq_false (by rintro rfl; omega)]
   wp_auto
   iNamed Hlog
@@ -167,10 +180,13 @@ theorem raftLog.slice.wp_proof
     ihave Hcap := ownSliceCap_empty (V := Loc)
       (slice.fullSlice s1 Loc (W64 0) s1.len s1.len) rfl
       (by simp only [slice.fullSlice]; word)
-    iapply HΦ $$ %_ %(es0.take nlim)
-    iframe Hs2 Hcap
-    isplitl
+    iapply HΦ $$ %_ %(es0.take nlim) %interface.nil
+    isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
+    ileft
+    iframe Hs2 Hcap
+    isplitr
+    · ipureintro; rfl
     ipureintro
     refine ⟨Hnetake, ?_, ?_, ?_⟩
     · rw [List.length_take]; omega
@@ -194,7 +210,7 @@ theorem raftLog.slice.wp_proof
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hstlen := Hstored.length_le
     ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
@@ -222,22 +238,46 @@ theorem raftLog.slice.wp_proof
       rw [decide_eq_true Hcut]
       wp_auto
       rw [Hstok]
-      wp_apply HEntries $$ %σ %lo %hi %maxSize [$HStorage]
-        as %se %ese ⟨#Hse, %Hpost, HStorage⟩
+      wp_apply HEntries $$ %σ %lo %hi %maxSize %(GoInterface.ok ec) [$HStorage]
+        as %se %ese %errE HE
       · isplitr
         · ipureintro; rw [Hsp]; omega
+        isplitr
         · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hsn _ (by omega)
+        iexact ErrCompacted
+      icases HE with (⟨%HerrE, #HcutE, HStorage⟩ | ⟨%HerrE, #Hse, %Hpost, HStorage⟩)
+      · -- (D19i part 1) the application compacted past `lo`: `ErrCompacted`, returned
+        obtain ⟨rfl, HloE⟩ := HerrE
+        rw [← Hstok]
+        obtain ⟨tyc, pc, Hec⟩ := HErrCompacted_new
+        cases Hec
+        wp_auto
+        iapply HΦ $$ %slice.nil %([] : List EntryM) %(interface.mkOk (go.GoType.PointerType tyc) #pc)
+        isplitl [Hl HStorage Huents Huents_cap]
+        · reseal_raftLog
+        iright
+        isplitr
+        · ipureintro; exact ⟨rfl, by rw [← Hfl.1]; exact HloE⟩
+        iframe ErrCompacted
+        rw [← Hstor]
+        iapply storPast_of_cut
+        iexact HcutE
+      subst HerrE
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
+      wp_auto
       rw [decide_eq_true (by omega)]
       wp_auto
       ihave %Hselen := entsPts_len $$ Hse
       ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
-      iapply HΦ $$ %se %ese
-      iframe Hse Hcap
-      isplitl
+      iapply HΦ $$ %se %ese %interface.nil
+      isplitl [Hl HStorage Huents Huents_cap]
       · reseal_raftLog
+      ileft
+      iframe Hse Hcap
+      isplitr
+      · ipureintro; rfl
       ipureintro
       exact Hfin hi ese (by omega) (by omega) Hnee Hlene Hine Hpre
       done
@@ -245,31 +285,58 @@ theorem raftLog.slice.wp_proof
       rw [decide_eq_false Hcut]
       wp_auto
       rw [Hstok]
-      wp_apply HEntries $$ %σ %lo %lv.unstable'.offset' %maxSize [$HStorage]
-        as %se %ese ⟨#Hse, %Hpost, HStorage⟩
+      wp_apply HEntries $$ %σ %lo %lv.unstable'.offset' %maxSize %(GoInterface.ok ec) [$HStorage]
+        as %se %ese %errE HE
       · isplitr
         · ipureintro; rw [Hsp]; omega
+        isplitr
         · ipureintro; exact pendFrom_of_logOk σ ls Hpend Hsn _ (by omega)
+        iexact ErrCompacted
+      icases HE with (⟨%HerrE, #HcutE, HStorage⟩ | ⟨%HerrE, #Hse, %Hpost, HStorage⟩)
+      · -- (D19i part 1) the application compacted past `lo`: `ErrCompacted`, returned
+        obtain ⟨rfl, HloE⟩ := HerrE
+        rw [← Hstok]
+        obtain ⟨tyc, pc, Hec⟩ := HErrCompacted_new
+        cases Hec
+        wp_auto
+        iapply HΦ $$ %slice.nil %([] : List EntryM) %(interface.mkOk (go.GoType.PointerType tyc) #pc)
+        isplitl [Hl HStorage Huents Huents_cap]
+        · reseal_raftLog
+        iright
+        isplitr
+        · ipureintro; exact ⟨rfl, by rw [← Hfl.1]; exact HloE⟩
+        iframe ErrCompacted
+        rw [← Hstor]
+        iapply storPast_of_cut
+        iexact HcutE
+      subst HerrE
       rw [Hsp] at Hpost
       rw [← Hstok]
       obtain ⟨Hnee, Hlene, Hine, Hcape, Hpre⟩ := Hpost
       ihave %Hselen := entsPts_len $$ Hse
+      wp_auto
       wp_if_destruct
       · -- `hi <= offset`, i.e. `hi = offset`: the result is exactly the stable part
         ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
-        iapply HΦ $$ %se %ese
-        iframe Hse Hcap
-        isplitl
+        iapply HΦ $$ %se %ese %interface.nil
+        isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
+        ileft
+        iframe Hse Hcap
+        isplitr
+        · ipureintro; rfl
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       wp_if_destruct
       · -- storage returned fewer entries than asked for: stop there
         ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
-        iapply HΦ $$ %se %ese
-        iframe Hse Hcap
-        isplitl
+        iapply HΦ $$ %se %ese %interface.nil
+        isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
+        ileft
+        iframe Hse Hcap
+        isplitr
+        · ipureintro; rfl
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       rename_i Hnotshort0
@@ -277,10 +344,13 @@ theorem raftLog.slice.wp_proof
       wp_if_destruct
       · -- the stable part already reaches `maxSize`
         ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
-        iapply HΦ $$ %se %ese
-        iframe Hse Hcap
-        isplitl
+        iapply HΦ $$ %se %ese %interface.nil
+        isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
+        ileft
+        iframe Hse Hcap
+        isplitr
+        · ipureintro; rfl
         ipureintro
         exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
       have Hus : uint.Z lv.unstable'.offset' ≤ uint.Z lv.unstable'.offset' ∧
@@ -329,30 +399,39 @@ theorem raftLog.slice.wp_proof
         wp_if_destruct
         · -- the single unstable entry does not fit
           ihave Hcap := ownSliceCap_empty (V := Loc) se Hcape.symm (by omega)
-          iapply HΦ $$ %se %ese
-          iframe Hse Hcap
-          isplitl
+          iapply HΦ $$ %se %ese %interface.nil
+          isplitl [Hl HStorage Huents Huents_cap]
           · reseal_raftLog
+          ileft
+          iframe Hse Hcap
+          isplitr
+          · ipureintro; rfl
           ipureintro
           exact Hfin _ ese (by omega) (by omega) Hnee Hlene Hine Hpre
         iapply wp_fupd
         wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
         imod entsPts_persist _ _ _ $$ Hsx with #Hsx
         imodintro
-        iapply HΦ $$ %sx %_
-        iframe Hsx Hsxcap
-        isplitl
+        iapply HΦ $$ %sx %_ %interface.nil
+        isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
+        ileft
+        iframe Hsx Hsxcap
+        isplitr
+        · ipureintro; rfl
         ipureintro
         exact Hext
       · iapply wp_fupd
         wp_apply wp_extend _ _ _ _ _ _ Hcapx $$ [$Hse $Hs1] as %sx ⟨Hsx, Hsxcap, -, -⟩
         imod entsPts_persist _ _ _ $$ Hsx with #Hsx
         imodintro
-        iapply HΦ $$ %sx %_
-        iframe Hsx Hsxcap
-        isplitl
+        iapply HΦ $$ %sx %_ %interface.nil
+        isplitl [Hl HStorage Huents Huents_cap]
         · reseal_raftLog
+        ileft
+        iframe Hsx Hsxcap
+        isplitr
+        · ipureintro; rfl
         ipureintro
         exact Hext
 

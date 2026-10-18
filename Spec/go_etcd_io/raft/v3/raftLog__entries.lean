@@ -40,19 +40,26 @@ The result is read-only and the caller's for good, like `raftLog.slice`'s, and t
 comes back unchanged. Its contents are not described, because `maybeSendAppend` only
 takes its length (for `Progress.SentEntries`) and its payload size, and puts it in a
 message. (Until 2026-09-29 it was lent, and the log came back "on loan of the page",
-`logstate.page`.) -/
+`logstate.page`.)
+
+(D19i part 1, 2026-10-18) `ErrCompacted` is possible again, at or below the floor
+(`raftLog.slice`); `maybeSendAppend` then sends a snapshot, as Go does. -/
 abbrev raftLog.entries.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i maxSize : w64),
   uint.Z ls.prev.index' + 1 ≤ uint.Z i →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"entries")) (Val #i))
       (Val #maxSize))
-  {{ (s : GoSlice) (es : List EntryM), RET (PairV #s #interface.nil);
-      ownRaftLog l ls ∗ entsRO s es ∗
-      -- every entry returned is an entry of the log, and they are the log's from `i` on,
-      -- cut short by `maxSize` (`raftLog.slice`)
-      ⌜(∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
-        es <+: plogFrom ls.prev (ls.sents ++ ls.uents) i⌝ }}
+  {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
+      ownRaftLog l ls ∗
+      ((⌜err = interface.nil⌝ ∗ entsRO s es ∗
+        -- every entry returned is an entry of the log, and they are the log's from `i` on,
+        -- cut short by `maxSize` (`raftLog.slice`)
+        ⌜(∀ e, e ∈ es → e ∈ ls.sents ++ ls.uents) ∧
+          es <+: plogFrom ls.prev (ls.sents ++ ls.uents) i⌝) ∨
+       -- (D19i part 1) `ErrCompacted`: `i` at most the floor, the storage compacted past it
+       (⌜s = slice.nil ∧ uint.Z i ≤ uint.Z ls.fl⌝ ∗ globalAddr ErrCompacted ↦□ err ∗
+        storPast ls.storage (uint.Z i))) }}
 
 end spec
 

@@ -106,7 +106,7 @@ private theorem scanRange_page (ls : LogState) (lo cur hi n : w64) (es : List En
 theorem raftLog.scan.wp_proof
     (wp_raftLog_slice : raftLog.slice.spec (GF := GF) (hG := hG)) :
     raftLog.scan.spec (GF := GF) (hG := hG) := by
-  intro l ls lo hi pageSize f I B Hrange
+  intro l ls lo hi pageSize f I B Hrange Hlofl
   wp_start as H
   iNamed H
   wp_auto
@@ -129,7 +129,12 @@ theorem raftLog.scan.wp_proof
         uint.Z hi ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
           + (ls.uents.length : Int) + 1 := by omega
     wp_apply wp_raftLog_slice l ls cur hi pageSize Hsl $$ [$Hlog]
-      as %s %es ⟨Hlog, #Hes, ⟨%Hne, %Hlen, %_, %Hpre⟩, -⟩
+      as %s %es %err0 ⟨Hlog, Hsr⟩
+    icases Hsr with (⟨%Herr0, #Hes, ⟨%Hne, %Hlen, %_, %Hpre⟩, -⟩ | ⟨%Hle0, -, -⟩)
+    rotate_left
+    · exfalso; have := Hcur.1; omega
+    subst Herr0
+    wp_auto
     -- the "got 0 entries" error is dead: the page is non-empty
     ihave %Hslen := entsPts_len $$ Hes
     have Hlen0 : es.length ≠ 0 := fun h => Hne (List.eq_nil_of_length_eq_zero h)

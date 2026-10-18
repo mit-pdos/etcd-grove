@@ -139,11 +139,14 @@ theorem raft.hasUnappliedConfChanges.wp_proof
       uint.Z (s.logst.committed + W64 1) ≤ uint.Z s.logst.prev.index'
         + (s.logst.sents.length : Int) + (s.logst.uents.length : Int) + 1 := by
     word
+  -- (D19i part 1) from `applied + 1`, above the floor
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  have Hlofl : uint.Z s.logst.fl < uint.Z (s.logst.applied + W64 1) := by word
   wp_func_lits
   wp_apply wp_raftLog_scan _ s.logst _ _ _ _
     (fun acc => iprop(found_ptr ↦ false ∗ ⌜∀ e ∈ acc, ¬ IsConfEnt e⌝))
     (fun err => iprop(⌜err = eb⌝ ∗ found_ptr ↦ true ∗
-      ⌜∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝)) Hrange
+      ⌜∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝)) Hrange Hlofl
     $$ [$Hlog found] as %err ⟨Hlog, Hres⟩
   · isplitl [found]
     · simp only [named]

@@ -29,21 +29,22 @@ theorem raftLog.matchTerm.wp_proof
   wp_start as Hpre
   iNamed Hpre
   wp_auto
-  wp_apply wp_raftLog_term l ls $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
+  wp_apply wp_raftLog_term l ls $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -, -⟩
   cases err with
   | ok eok =>
-    -- `err != nil`: `id.index` is out of range, so `plogTermAt` is `none`
+    -- `err != nil`: `id.index` is out of range, or (D19i part 1) compacted below the floor
     wp_auto
     iapply HΦ
     iframe
     ipureintro
+    refine ⟨fun h => (by cases h), fun Hge => ?_⟩
     symm
     apply decide_eq_false
     intro Hm
     have Hr := plogTermAt_some_range _ _ _ _ Hm
     unfold plogLastIndexZ at Hr
     simp only [List.length_append] at Hr
-    have Hc := Herr.2 (by push_cast at Hr; omega)
+    have Hc := Herr.2 (by push_cast at Hr; omega) Hge
     cases Hc
   | nil =>
     have Ht := Ht rfl
@@ -53,7 +54,9 @@ theorem raftLog.matchTerm.wp_proof
     ipureintro
     have : PlogMatches ls.prev (ls.sents ++ ls.uents) id ↔ t = id.term' := by
       unfold PlogMatches; rw [Ht]; simp
-    simp only [this]
+    refine ⟨fun h => ?_, fun _ => (by simp only [this])⟩
+    rw [this]
+    simpa using h
 
 end proof
 

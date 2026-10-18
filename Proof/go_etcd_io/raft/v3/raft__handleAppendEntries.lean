@@ -142,9 +142,11 @@ theorem raft.handleAppendEntries.wp_proof
     wp_apply wp_GetCommit.1 $$ [$Hm] as Hm
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
+    -- (D19i part 1) `m.Index` at or above `committed`, so above the floor
+    icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
     wp_apply wp_raftLog_maybeAppend _ s.logst
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') es) ents m.Commit'
-        Hwf Hnw (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hcap]
+        Hwf Hnw (fun Hm => Hconf (by omega) Hm) (by simp only; omega) $$ [$Hlog $Hcap]
       as %lastnewi %ok %ls' ⟨Hlog, %Hma, %Hmagh⟩
     · simp only [named, entsPts]; iexists els; iframe Hes Hents
     ihave Hphys := Hlogback $$ %ls' Hlog
@@ -190,7 +192,7 @@ theorem raft.handleAppendEntries.wp_proof
       wp_apply wp_GetIndex.1 $$ [$Hm] as Hm
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
-      wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, -, -, #Herr⟩
+      wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, -, -, #Herr, -⟩
       ihave Hphys := Hlogback $$ Hlog
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       wp_apply wp_raftLog_zeroTermOnOutOfBounds $$ [$Herr] as %t' -
