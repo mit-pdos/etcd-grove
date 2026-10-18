@@ -145,12 +145,13 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
 
 /-! ## The receive -/
 
-/-- **A response of id `-1` lists the watchers registered before it** (persistent; K1b): for a
-watcher registered on the channel at an index at most `k` (the response's), with a later credit,
-the response's `regs` has it (the channel's invariant: `sentAuth_reg_regs`). -/
+/-- **A response of id `-1` lists the watchers registered before it** (persistent; K1b): for
+watchers registered on the channel at indices at most `k` (the response's; K2e-7d: any list of
+them, for one later credit), the response's `regs` has them (the channel's invariant:
+`sentAuth_reg_regsL`). -/
 def regsAt (γc : WatchChanNames) (k : Nat) (x : RespM) : IProp GF :=
-  iprop(□ ∀ (w : Loc) (n : Nat), chanRegAt γc w n -∗ ⌜n ≤ k⌝ -∗ ⌜x.id = W64 (-1)⌝ -∗ £ 1 ={⊤}=∗
-    ⌜w ∈ x.regs⌝)
+  iprop(□ ∀ ps : List (Loc × Nat), □ ([∗list] p ∈ ps, chanRegAt γc p.1 p.2) -∗
+    ⌜∀ p ∈ ps, p.2 ≤ k⌝ -∗ ⌜x.id = W64 (-1)⌝ -∗ £ 1 ={⊤}=∗ ⌜∀ p ∈ ps, p.1 ∈ x.regs⌝)
 
 instance regsAt_persistent (γc : WatchChanNames) (k : Nat) (x : RespM) :
     Persistent (regsAt (GF := GF) γc k x) := by
@@ -182,14 +183,14 @@ theorem recv_cov (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List R
   rotate_left
   · ipureintro; exact Hidx _ r hk
   iunfold regsAt
-  iintro !> %w %n #Hra %hn %hid Hlc
+  iintro !> %ps #Hra %hn %hid Hlc
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later $$ Hlc Hi with Hi
   iunfold watchChanInv at Hi
   icases Hi with ⟨%s, %sent', %recv', %vs, %L', Hi⟩
   iNamed Hi
   icases sentAuth_lb_valid γ γc sent' L' sent $$ [$Hsentl $Hlb] with ⟨Hsentl, %Hpp⟩
-  icases (persistent_entails_right (sentAuth_reg_regs (GF := GF) γ γc sent' L' w n))
+  icases (persistent_entails_right (sentAuth_reg_regsL (GF := GF) γ γc sent' L' ps))
     $$ [$Hsentl $Hra] with ⟨%Hrr, ⟨Hsentl, -⟩⟩
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
   · inext
@@ -204,7 +205,7 @@ theorem recv_cov (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List R
   have hk' : sent'[received.length]? = some r := by
     obtain ⟨t, ht2⟩ := Hpp
     rw [← ht2, List.getElem?_append_left (List.getElem?_eq_some_iff.1 hk).1]; exact hk
-  exact Hrr _ r hn hk' hid
+  exact fun p hp => Hrr p hp _ r (hn p hp) hk' hid
 
 /-- What the consumer gets from `v, ok := <-ch` with `received` received so far: on `ok`, the
 next response sent (`respIs v r`, `respOk r`), its consumer's view grown, and what it knows of

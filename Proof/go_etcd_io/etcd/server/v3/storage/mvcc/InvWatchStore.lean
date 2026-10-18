@@ -893,6 +893,25 @@ theorem sentAuth_reg_regs (γ : WsNames) (γc : WatchChanNames) (sent : List Res
   ipureintro; exact fun k x hk hx hid => HRI.2.2.1 w n k x Hl hk hx hid
 
 open Iris.ProofMode in
+/-- `sentAuth_reg_regs` for a list of registered watchers (K2e-7d). -/
+theorem sentAuth_reg_regsL (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
+    ∀ ps : List (Loc × Nat), sentAuth (GF := GF) γ γc sent L ∗
+      □ ([∗list] p ∈ ps, chanRegAt γc p.1 p.2) ⊢
+      ⌜∀ p ∈ ps, ∀ k x, p.2 ≤ k → sent[k]? = some x → x.id = W64 (-1) → p.1 ∈ x.regs⌝
+  | [] => by iintro -; ipureintro; intro p hp; cases hp
+  | p :: ps => by
+    iintro ⟨Hs, #Hl⟩
+    ihave ⟨#Hp, #Hl'⟩ := BigSepL.bigSepL_cons.1 $$ Hl
+    icases (persistent_entails_right (sentAuth_reg_regs (GF := GF) γ γc sent L p.1 p.2))
+      $$ [$Hs $Hp] with ⟨%H1, ⟨Hs, -⟩⟩
+    ihave %H2 := sentAuth_reg_regsL γ γc sent L ps $$ [$Hs $Hl']
+    ipureintro
+    intro q hq
+    rcases List.mem_cons.1 hq with rfl | hq
+    · exact H1
+    · exact H2 q hq
+
+open Iris.ProofMode in
 /-- **Each response sent is at its own position** (K1b). -/
 theorem sentAuth_idx (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc) :
     sentAuth (GF := GF) γ γc sent L ⊢ ⌜idxOk sent⌝ := by
