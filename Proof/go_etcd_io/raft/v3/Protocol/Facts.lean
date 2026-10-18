@@ -1239,17 +1239,20 @@ def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) →
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
 /-- `allocClient` at the committed log `L` the cluster starts with (2026-10-16, stage R8b: the
-bootstrap log; `[]` for `allocClient`, `allocClientBoot` is the static instance). -/
+bootstrap log; `[]` for `allocClient`, `allocClientBoot` is the static instance). Since
+2026-10-18 (item 9, point 7) the continuation also learns the conf-change policy `ccOk`
+(`γ.reCCOk = ccOk`): a client whose standing update admits raft's conf-change entries by the
+policy (the server's, `srvCCPolicy`) needs it before the allocation returns. -/
 def allocClientGen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
-    (L : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
-  iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reBoot = L⌝ -∗
+    (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
+  iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L⌝ -∗
     isCommitted γ L -∗ rLog γ L -∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
 theorem allocClient_gen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
-    (C : RaftNames → IProp GF) :
-    allocClient (GF := GF) E cfg dyn C ⊢ allocClientGen E cfg dyn [] C := by
+    (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
+    allocClient (GF := GF) E cfg dyn C ⊢ allocClientGen E cfg dyn ccOk [] C := by
   unfold allocClient allocClientGen
   iintro H %γ %Hγ #Hc HrL Hf Hrf
   iapply H $$ %γ %(And.intro Hγ.1 Hγ.2.1) Hc HrL Hf Hrf
@@ -1330,7 +1333,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) → (dyn = none ∨ L = []) →
-    ⊢ allocClientGen E cfg dyn L C -∗
+    ⊢ allocClientGen E cfg dyn ccOk L C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
@@ -1405,7 +1408,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   -- the client's part: its standing update
   iunfold allocClientGen at Hcl
   imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa with ⟨#Hnoop, HCl⟩
-  · ipureintro; exact ⟨e0, eD, eB⟩
+  · ipureintro; exact ⟨e0, eD, eCC, eB⟩
   · unfold rLog; iexact Hcl2
   imod inv_alloc rdCredN E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗
       ⌜B < 2 ^ 64 - 1⌝) $$ [HCa] with #Hcinv
@@ -1513,7 +1516,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
   intro Hcne Hnz
   iintro Hcl
-  ihave Hcl' := allocClient_gen E cfg dyn C $$ Hcl
+  ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C Hcne Hnz (BootWf_nil _)
     (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
@@ -1585,9 +1588,9 @@ theorem BootLogOk.wf {ccOk : w32 → List w8 → Prop} {ps : List w64} {bootLog 
 
 /-- `allocClient` for a cluster starting at the bootstrap log: the client's half of the committed
 log and its commit fact are at `bootLog`. -/
-def allocClientBoot (E : CoPset) (cfg : GSet w64) (bootLog : List EntryM)
-    (C : RaftNames → IProp GF) : IProp GF :=
-  iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reBoot = bootLog⌝ -∗
+def allocClientBoot (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → Prop)
+    (bootLog : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
+  iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ -∗
     isCommitted γ bootLog -∗ rLog γ bootLog -∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
@@ -1602,7 +1605,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     W64 0 ∉ ids →
     cfg = GMap.listToSet ps →
     BootLogOk ccOk ps bootLog →
-    ⊢ allocClientBoot E cfg bootLog C -∗
+    ⊢ allocClientBoot E cfg ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ ∗
         raftCommitInv (GF := GF) γ ∗
@@ -1612,7 +1615,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
   intro Hcne Hnz _ Hok
   iintro Hcl
-  ihave Hcl' : allocClientGen (GF := GF) E cfg none bootLog C $$ [Hcl]
+  ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _) (Or.inl rfl)
