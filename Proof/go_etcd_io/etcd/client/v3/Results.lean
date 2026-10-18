@@ -2529,7 +2529,11 @@ theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice
     iexists w
     isplitr; · ipureintro; exact Hwi
     iapply (client_watcher_rangeWatcher { V with wc := wc, lg := lg } w) $$ [Hw]
-    iframe #; iexact Hw
+    iframe #
+    iapply isClientWatcher_of_core
+    iframe Hw
+    iapply (show watchConnFacts (GF := GF) V ⊢ watchConnFacts { V with wc := wc, lg := lg } from by
+      unfold watchConnFacts; exact .rfl) $$ Hf
 
 end watcher
 

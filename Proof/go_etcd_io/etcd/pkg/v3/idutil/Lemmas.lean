@@ -33,7 +33,7 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   iunfold idGen at Hg
   icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >%Hk, >HI, >HS, >%Hdom, HF⟩
+  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%Hdom, HF⟩
   iunfold idUnclaimed at Hu
   icombine HI Hu gives %Hlk
   have Hlk' : I.lookup id = some none := Hlk
@@ -43,8 +43,6 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   · inext
     iexists k, (I.insert id (some (d, γf))), S
     iframe Hsuf Hcred HI HS
-    isplitr
-    · ipureintro; exact Hk
     isplitr
     · ipureintro
       refine fun id' => ⟨?_, (Hdom id').2⟩
@@ -72,7 +70,7 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   iunfold idGen at Hg
   icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >%Hk, >HI, >HS, >%Hdom, HF⟩
+  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%Hdom, HF⟩
   iunfold idClaim at Hc
   ihave %Hlk := ghost_map_lookup $$ HI Hc
   iunfold idClaimsFacts at HF
@@ -85,8 +83,6 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   · inext
     iexists k, I, S
     iframe Hsuf Hcred HI HS
-    isplitr
-    · ipureintro; exact Hk
     isplitr
     · ipureintro; exact Hdom
     iunfold idClaimsFacts
