@@ -28,7 +28,11 @@ variable [sem : go.Semantics]
 /-- **`conn.NewStream(ctx, desc, method, opts...)`** on a connection with no default call options
 (`grpcConn conn addr ics []`, what etcd's client dials with: `isEtcdConn`), for a streaming method
 registered at `addr` (`isGrpcStream addr method Up Spec`), a context (`ctxOk`), a stream
-descriptor `desc` (read-only) and the client's call options (`callOptsOk`: scalar options or the
+descriptor `desc` (read-only) of a client stream (`ClientStreams`; 2026-10-18, the axiom audit:
+for a server-streaming method with retries etcd's interceptor returns a
+`serverStreamingRetryingStream`, which on a failed first `RecvMsg` opens a second stream and
+replays the sends, so the handler runs twice, which one `γ` cannot describe) and the client's
+call options (`callOptsOk`: scalar options or the
 client's retry options): a client stream (`cliStreamIs`: a raw client end, both tokens at `[]`,
 and the method's stream specification `Spec γ Dn` for the content `Dn` its responses will carry),
 or a client error grpc's `status` accepts and a `nil` stream. Inside the boundary, besides the
@@ -45,7 +49,8 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (desc : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addr ics [] ∗
       isGrpcStream addr method Up Spec ∗ ctxOk ctx cd ∗
-      (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d) ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
+      opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"NewStream"))
       (Val #(GoInterface.ok ctx))) (Val #desc)) (Val #method)) (Val #opts))

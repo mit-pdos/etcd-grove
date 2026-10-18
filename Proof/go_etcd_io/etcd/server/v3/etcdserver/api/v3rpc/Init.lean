@@ -295,7 +295,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     ipureintro; rfl
   -- the six `ServiceDesc`s, from `etcdserverpb`'s fact
   icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM⟩
-  obtain ⟨rfl, HWp⟩ := HWp
+  obtain ⟨rfl, HWp, -⟩ := HWp
   ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []
   · unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods
     iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HL
