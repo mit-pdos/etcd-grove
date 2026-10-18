@@ -13,20 +13,19 @@ The test below runs these steps (output trimmed):
 
 ```
 --- FAIL: TestReadOnlyForNewSingleVoterLeader (0.00s)
-        	Error:      	Not equal: 
-        	            	expected: []raft.ReadState{raft.ReadState{Index:0x4, RequestCtx:[]uint8{0x63, 0x74, 0x78}}}
-        	            	actual  : []raft.ReadState{raft.ReadState{Index:0x2, RequestCtx:[]uint8{0x63, 0x74, 0x78}}}
+        	Error:      	"2" is not greater than or equal to "3"
+        	Messages:   	read index
 ```
 
 This affects any application that serves linearizable reads through `ReadIndex` after a removal leaves a single voter.
 
 ### What did you expect to happen?
 
-Node 1 answers only after committing an entry in its own term, as a new leader with more voters does (`TestReadOnlyForNewLeader`): read index 4, which includes `x`.
+Node 1's read index is at least 3, so the read includes `x`, which was committed before the read was issued.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2154-L2187) on branch [`upamanyus/etcd-raft:fix/raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
+Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2154-L2186) on branch [`upamanyus/etcd-raft:fix/raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
 
 ### Anything else we need to know?
 

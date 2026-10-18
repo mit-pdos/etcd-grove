@@ -29,7 +29,7 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
-- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (commit 69341e121, message rewritten and force-pushed 2026-10-18; was 32de820fe), pushed 2026-10-18 to `upamanyus/etcd-raft`
+- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (commit dcb4fe2; earlier 32de820fe, then 69341e121 with the message rewritten, then the test loosened to the read's guarantee, 2026-10-18), pushed 2026-10-18 to `upamanyus/etcd-raft`
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft
@@ -52,10 +52,10 @@ reused request context), #397 and #398 (the user's earlier work on that); etcd-i
 `newNetwork(nil, nil)`; peer 2 campaigns, proposes `remove 2` (index 2), then `x` (index 3) with a `msgHook` dropping
 messages to peer 1 whose commit is at least 3; asserts peer 2's commit is 3 and peer 1's is 2; peer 1
 `applyConfChange`s the removal, `becomeCandidate`, `becomeLeader`; steps a local `MsgReadIndex`, then
-`advanceMessagesAfterAppend` (its empty entry at index 4 commits); asserts `readStates == [{Index: 4}]`.
+`advanceMessagesAfterAppend`; asserts only that the read state for the read's context has an index of at least 3
+(`x`'s), the guarantee a read issued after `x` committed needs, not when or at which index the read is answered.
 
-- At the base (fix absent, test added): `go test . -run 'TestReadOnlyForNewSingleVoterLeader$'` fails, actual
-  `[{Index:0x2 ...}]`.
+- At the base (fix absent, test added): `go test . -run 'TestReadOnlyForNewSingleVoterLeader$'` fails: `"2" is not greater than or equal to "3"`, `read index`.
 - With the fix: the test passes; `go test . ./rafttest/` ok; `gofmt -l raft.go raft_test.go` empty;
   `go vet . ./rafttest/` clean.
 - The removed-leader case, not on the branch (temporary test, kept at
