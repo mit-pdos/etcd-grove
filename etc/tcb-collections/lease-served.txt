@@ -47,7 +47,7 @@ axiom grpcServesStream
 axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
-axiom lessor.closeRequireLeader.wp_proof
+axiom metadata.FromOutgoingContext.wp_proof
 axiom promSrvMetrics
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Marshal.wp_proof

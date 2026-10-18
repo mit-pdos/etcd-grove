@@ -30,7 +30,7 @@ axiom grpcServesStream
 axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
-axiom lessor.closeRequireLeader.wp_proof
+axiom metadata.FromOutgoingContext.wp_proof
 axiom status.FromError.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof

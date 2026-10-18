@@ -74,6 +74,9 @@ module system").
   axiom `metadata.FromOutgoingContext.wp_proof` (`Spec/google_golang_org/grpc/metadata/
   FromOutgoingContext.lean`: on a `context.isContext`, `(md, ok)` and if `ok` a fresh map of fresh
   string slices; audit row in `notes/audit.md`). Link: `etc/link-lean-first-client.txt`.
+- **Trust base**: one axiom for another (327 axioms, 8 `sorry`s, as before): `etc/tcb-baseline.txt`
+  and the collections `client`, `lease`, `lease-served` updated (`lessor.closeRequireLeader.wp_proof`
+  out, `metadata.FromOutgoingContext.wp_proof` in); every other collection unchanged.
 
 ## D19q: the server's workload parameter (2026-10-18, branch `raft-retarget`)
 
