@@ -9,8 +9,7 @@ it runs the consistent index's `UnsafeSave(tx)`, then, under `confStateLock`, sa
 
 - **The indexer's save** (`saveSpec`): the hook's contract of `ix.UnsafeSave(tx)`, with one put
   of room left (`hookSaveStep`: a hook step whose pending count stays below the hook's bound by
-  one) and the `confState` key a put may write (`csDupOk`: not in the write buffer's `Meta`
-  bucket, or the bucket may repeat a key, `wbDupOk`). The consistent index's save satisfies it
+  one). The consistent index's save satisfies it
   (`Proof/.../etcdserver/CindexBackend.lean`, `ci_saveSpec`).
 - **The hooks' state** (`isBackendHooks bh ix lg`, persistent): the indexer and the logger
   read-only, `confStateLock` guarding `confState` and `confStateDirty`. The struct `confState`
@@ -51,23 +50,17 @@ def hooksParams (P : BParams) : Prop :=
   P.has mvcc.metaBI ∧ P.HB mvcc.metaBI.name = true ∧
     P.HK mvcc.metaBI.name schema.confStateKeyBytes = false ∧ 3 ≤ P.hookMax
 
-/-- A put of the `confState` key in the state `st` may repeat a key only where the backend
-allows it. -/
-def csDupOk (st : BSess) : Prop :=
-  schema.confStateKeyBytes ∉ (bkOf st.W.bks mvcc.metaBI.id).map Prod.fst ∨
-    wbDupOk st mvcc.metaBI.id
-
 /-- **What the indexer's save leaves** of the hook's run from `st`: a hook step with one
-operation of room left, and a `confState` put allowed. -/
+operation of room left. -/
 def hookSaveStep (P : BParams) (st st' : BSess) : Prop :=
   st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend + 1 ≤ sint.Z st.pend + P.hookMax ∧
-  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt ∧ csDupOk st'
+  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
 
 theorem hookStep_of_save {P : BParams} {st st' : BSess} (h : hookSaveStep P st st') :
     hookStep P st st' := by
-  obtain ⟨hC, hR, hS, hW, hp1, hp2, hn, htx, hc, -⟩ := h
+  obtain ⟨hC, hR, hS, hW, hp1, hp2, hn, htx, hc⟩ := h
   exact ⟨hC, hR, hS, hW, hp1, by omega, hn, htx, hc⟩
 
 /-- A put in a hook's bucket leaves the writer's contents off the hook's buckets. -/
@@ -85,7 +78,7 @@ theorem sData_put_HB {P : BParams} {S : Data} {n k v : GoString} (h : P.HB n = t
 theorem hookStep_save_put {P : BParams} (hPw : P.Wf) (hP : hooksParams P) {st st' : BSess}
     {vb : GoString} (hpre : hookPre P st) (h : hookSaveStep P st st') :
     hookStep P st (st'.put mvcc.metaBI schema.confStateKeyBytes vb false) := by
-  obtain ⟨hC, hR, hS, hW, hp1, hp2, hn, htx, hc, -⟩ := h
+  obtain ⟨hC, hR, hS, hW, hp1, hp2, hn, htx, hc⟩ := h
   have h58 := hpre.2.1
   have hpz' : sint.Z (st'.pend + W64 1) = sint.Z st'.pend + 1 := by word
   refine ⟨hC, hR, ?_, ?_, ?_, ?_, hn, htx, hc⟩

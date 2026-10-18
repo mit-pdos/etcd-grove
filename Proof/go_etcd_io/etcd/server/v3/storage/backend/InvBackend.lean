@@ -503,9 +503,8 @@ def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
 
 /-- A `Hooks` value: nil, or one whose `OnPreCommitUnsafe(tx)`, on the batch transaction `t`
-held in a state `st` in the hook's window (`hookPre`: room for its operations, and it may re-put
-a key of a bucket whose read-buffer bucket is empty), with the hooks' resource `Pk`, makes a
-hook step (`hookStep`). -/
+held in a state `st` in the hook's window (`hookPre`: room for its operations), with the hooks'
+resource `Pk`, makes a hook step (`hookStep`). -/
 def hooksSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface) :
     IProp GF :=
   iprop(⌜h = GoInterface.nil⌝ ∨ ∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗

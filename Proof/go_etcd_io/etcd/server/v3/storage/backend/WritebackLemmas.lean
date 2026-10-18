@@ -93,7 +93,7 @@ theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt 
 theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0) :
     sessWf P (wbSt P st) := by
   obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
-  refine ⟨WBuf.WfR.of_Wf _ (writebackW_wf _ _), writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_writebackR hWi hRi,
+  refine ⟨writebackW_wf _ _, writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_writebackR hWi hRi,
     hp0, hp1, hn0, hnp, ?_, ?_, safeSt_writeback hsf⟩
   · intro hp
     exact absurd hp hpn
@@ -106,16 +106,6 @@ theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : s
     show agreeOff P.HB (dget st.S) (vOf P (st.C, writebackR st.W st.R))
     rw [vOf_writeback]
     exact this
-
-/-- Out of the hook's window, a write-buffer bucket repeats a key only where the read buffer has
-no bucket: what the write-back needs. -/
-theorem wfR_closed {st : BSess} (h : st.W.WfR (wbDupOk st)) (hw : st.cnt.hw = false) :
-    st.W.WfR (fun id => st.R.bks.lookup id = none) := by
-  apply h.mono
-  intro i hi
-  rcases hi with hi | ⟨hi, -⟩
-  · exact hi
-  · rw [hw] at hi; cases hi
 
 /-- The bounds after a write-back (one write-back token spent, one write-back more). -/
 theorem bgOk_writeback {P : BParams} {st : BSess} {n w u : Nat}

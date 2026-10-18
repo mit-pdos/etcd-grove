@@ -127,21 +127,15 @@ structure WBuf where
   seq : GMap w64 Bool
 
 /-- What `put` and `putSeq` may add without breaking the write-back's assumption: a bucket
-written by `put` has distinct keys; one written by `putSeq` only (no flag, or `true`) strictly
-increasing ones (`writeback` neither sorts nor deduplicates it). -/
+written by `put` anything (the write-back deduplicates it, `dedupe`, whether or not the read
+buffer has the bucket: the fork's fix of `issues/etcd-backend-duplicate-put-stale-read.md`,
+etcd-io/etcd#21987); one written by `putSeq` only (no flag, or `true`) strictly increasing keys
+(`writeback` neither sorts nor deduplicates it). -/
 def wbBucketOk (seq : Option Bool) (es : List Ent) : Prop :=
-  if seq = some false then (es.map Prod.fst).Nodup else entsSorted es
+  seq = some false ∨ entsSorted es
 
 /-- Every bucket of a write buffer is as `wbBucketOk` says. -/
 def WBuf.Wf (W : WBuf) : Prop := ∀ id es, W.bks.lookup id = some es → wbBucketOk (W.seq.lookup id) es
-
-/-- `WBuf.Wf` relaxed where `D` allows it: a bucket written by `put` may repeat a key (the
-write-back deduplicates a bucket the read buffer lacks: `writeback`'s `!ok` branch calls
-`dedupe`, so `D id` is "the read buffer has no bucket `id`" there; see
-`issues/etcd-backend-duplicate-put-stale-read.md`). -/
-def WBuf.WfR (W : WBuf) (D : w64 → Prop) : Prop :=
-  ∀ id es, W.bks.lookup id = some es →
-    wbBucketOk (W.seq.lookup id) es ∨ (W.seq.lookup id = some false ∧ D id)
 
 /-- The entries of a bucket (none if absent). -/
 def bkOf (B : GMap w64 (List Ent)) (id : w64) : List Ent := (B.lookup id).getD []

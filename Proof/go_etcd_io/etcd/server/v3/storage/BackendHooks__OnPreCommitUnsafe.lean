@@ -79,7 +79,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     · iintro !> %bk %key %val %vb %Φ' !> ⟨#HM, #Hkey, #Hval, Hl⟩ HΦ'
       ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hpkg3 $HM]
       wp_apply (hPut γ P W Pk b t st1 bk mvcc.metaBI key val schema.confStateKeyBytes vb hP.1
-          (by decide) (by decide) Hs1.2.2.2.2.2.2.2.2.2 hpend hSB)
+          (by decide) (by decide) hpend hSB)
         $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -⟩
       · iframe #
         simp only [hkPut, hhk, Bool.false_eq_true, ↓reduceIte]

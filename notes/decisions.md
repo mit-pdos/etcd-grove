@@ -9031,6 +9031,44 @@ the theorem says nothing.
       migrates (the storage version is detected as 3.5 on a new backend).
     - *Recommendation:* (A): it fixes a real (if mild) Go bug with an open upstream fix and
       simplifies the backend's premise.
+    - **(A) adopted (the user, 2026-10-18); part 2 carried out up to the restatement, which
+      stopped for a decision.** The fork commit is `ea78ec948` on `goose-lean`: etcd-io/etcd#21987
+      cherry-picked (`writeback`: `wb.dedupe()` in place of `sort.Sort(wb)` where the read buffer
+      has the bucket), with the two reproductions as regression tests. Chosen over #22298, which
+      makes the same one-line code change with a comment and its own test: #21987 is smaller and
+      is the fix of the filed issue #21986. The translation changes only `txWriteBuffer.writeback`
+      (and the line numbers after it). The backend's model drops the duplicate-key premise:
+      `wbBucketOk` is `seq = some false ∨ entsSorted es` (a `put` bucket may hold anything),
+      `WBuf.WfR` and `wbDupOk` are gone (`sessWf` has `W.Wf`), `UnsafePut` has no key premise,
+      `txWriteBuffer.writeback`'s spec takes `W.Wf`, and its proof uses `dedupe`'s spec on both
+      branches (`canon_append_canon`, `canon_isEmpty`; no more `sort.Sort`, `Len`/`Less`/`Swap`).
+      The hook's side simplifies with it: `CindexBackend.lean`'s `hookRun` loses its "only this
+      run's puts" clause and `hookRun_dup`, `InvHooks.lean`'s `hookSaveStep` loses `csDupOk`.
+      `hookPre`'s last clause (every write-buffer bucket empty or with an empty read-buffer
+      bucket) is kept, though no hook needs it now; dropping it would also drop the
+      batch lock's `bgOk` clauses that prove it, a separate cleanup.
+    - *The restatement of `monitorStorageVersion` stopped: a design decision.* Over the fixed
+      model the write is admitted: `LockOutsideApply` gives `batchLocked ∗ W ∗ Pk`; `meta` is a
+      hook bucket (`P.HB`), so `UnsafePut` of `storageVersion` (not a hook key, `P.hk` false)
+      leaves `sData` and so the readers' view unchanged, and `Unlock`'s first branch
+      (`viewSame`) gives `W ∗ Pk` back unchanged. But `Unlock` also takes a write-back token
+      (`wbTok γ`, one per `Unlock`), and the monitor's loop is unbounded: it migrates whenever
+      `StorageVersion()` (a `ReadTx` read of `meta`, about which the readers' view promises
+      nothing) differs from the cluster version. Options: *(i)* a share of the time-receipt
+      write-token pool (D19b: `srvWTPool`, `N + 7` of `wbInit` taken by `bootBackend`, the rest
+      dropped), split between the apply thread and the monitor, each `Unlock` paid by a receipt:
+      faithful, needs the pool's split threaded through `bootBackend`, `NewServer` and `Start`;
+      *(ii)* a fixed number of tokens (from `wbInit`'s leftover), with the axiom promising at most
+      that many migrations: not true of the Go code in general (a downgrade migrates again, and
+      the model cannot show `StorageVersion()` reads what was written), so a premise on the run;
+      *(iii)* the monitor's write access as part of `Start`'s precondition with an abstract
+      per-`Unlock` token supply, left to the closed theorem. Besides the tokens, the threading
+      needs (most of it already made by the construction): `isBackend` of the real backend at `lateW`/the
+      server's `Pk` and `bF batchTx ↦□ t` (`BuildLemmas`), a `bOpen` share (`bootBackend`'s
+      leftover `∃ qo`), a `bemu` reader slot, a `ReadTx` reader token for `StorageVersion()`,
+      a `clusterVersionChanged` notifier reader, a logger slot, `isRaftCluster`, and the WAL's
+      persistent contract (`UnsafeMigrate` reads `s.r.storage` for a downgrade's check).
+      *Recommendation:* (i). The axiom stays as it was (false: it writes without resources).
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for

@@ -180,6 +180,16 @@ structure StorState [FfiSyntax] where
   snapshot a fresh storage holds. -/
   scs : CSLists := ⟨[], [], [], []⟩
   sal : Bool := false
+  /-- (D19i part 1, 2026-10-18) The **floor** raft has published: the application may compact
+  the storage, and replace its snapshot, up to this index, never above it (`MemoryStorage.
+  Compact`: "It is the application's responsibility to not attempt to compact an index greater
+  than raftLog.applied"). Raft raises it (`isStorageWith`'s `Hfloor`) and keeps it at most its
+  `applying`, and at most its `applied` wherever an election may start (`ownRaftLog`). So the
+  rest of this record is raft's **view**: the storage's true compaction boundary lies between
+  `prev.index` and `max prev.index fl`, its true snapshot is `ss` or a newer one at most `fl`,
+  and the method triples answer accordingly (`ErrCompacted` possible below `fl`). `0` for a
+  fresh storage. -/
+  fl : w64 := 0
 
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
@@ -200,8 +210,27 @@ class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
   absorb law (`Habsorb`) gives it back to the storage's owner, whose state then holds
   the batch. -/
   appendedTok : Storage → StorState → List EntryM → IProp GF
+  /-- `storCut st n` (D19i part 1, 2026-10-18): the storage's true compaction boundary has
+  reached `n` (persistent; the boundary only rises). What an `ErrCompacted` answer, or a first
+  index above raft's view, tells raft: the storage is compacted, so its snapshot is not the
+  empty one (`HSnapshot`). -/
+  storCut : Storage → Int → IProp GF
+  storCut_persistent : ∀ st n, Persistent (storCut st n)
+  /-- `storFloor st x`: the floor raft published (`StorState.fl`) is at least `x`
+  (persistent): the application's right to compact, and to take a snapshot, up to `x`. The
+  floor law (`Hfloor`) hands it out. -/
+  storFloor : Storage → w64 → IProp GF
+  storFloor_persistent : ∀ st x, Persistent (storFloor st x)
 
-export StorageModel (ownStorage appendTok appendedTok)
+export StorageModel (ownStorage appendTok appendedTok storCut storFloor)
+
+instance storCut_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+    (n : Int) : Persistent (storCut (GF := GF) st n) :=
+  StorageModel.storCut_persistent st n
+
+instance storFloor_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+    (x : w64) : Persistent (storFloor (GF := GF) st x) :=
+  StorageModel.storFloor_persistent st x
 
 section termAt
 variable [FfiSyntax]
@@ -249,6 +278,12 @@ def PendOk (σ : StorState) (p : List EntryM) : Prop :=
     uint.Z σ.prev.index' < uint.Z e0.Index' ∧
     uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1
 
+/-- (D19i part 1) The batch starts above the floor (`StorState.fl`): an append never rewrites
+what the application may have compacted or snapshotted. Raft hands out entries from
+`offsetInProgress`, above its `applying` (`ownRaftLog`). -/
+def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
+  ∀ e0, p.head? = some e0 → uint.Z σ.fl < uint.Z e0.Index'
+
 end termAt
 
 section proof
@@ -266,7 +301,8 @@ of the storage's current contents -- those live in `P`. `isStorage` below is the
 of the interface is shown to satisfy the contract by proving `isStorageWith` for its
 own predicate (see `InvMemstorage.lean`). -/
 def isStorageWith (P : StorState → IProp GF)
-    (AT DT : StorState → List EntryM → IProp GF) (st : Storage) :
+    (AT DT : StorState → List EntryM → IProp GF) (CT : Int → IProp GF) (FW : w64 → IProp GF)
+    (st : Storage) :
     IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
@@ -277,32 +313,43 @@ def isStorageWith (P : StorState → IProp GF)
      {{ (li : w64), RET (PairV #li #interface.nil);
          ⌜uint.Z li = uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
          P σ }}) ∗
+  -- (D19i part 1) at least the view's, at most one past the floor; above the view's only
+  -- once compacted (`CT`)
   "#HFirstIndex" ∷ (∀ (σ : StorState),
      {{ P σ }}
        (App (Val #(methods i.ty go!"FirstIndex" i.v)) (Val #()))
      {{ (fi : w64), RET (PairV #fi #interface.nil);
-         ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗
+         ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z fi ∧
+           uint.Z fi ≤ max (uint.Z σ.prev.index') (uint.Z σ.fl) + 1⌝ ∗
+         (⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∨ CT (uint.Z fi - 1)) ∗
          P σ }}) ∗
-  "#HTerm" ∷ (∀ (σ : StorState) (i0 : w64),
+  -- (D19i part 1) or `ErrCompacted` below the floor, the storage then compacted past `i0`
+  "#HTerm" ∷ (∀ (σ : StorState) (i0 : w64) (ec : GoInterface),
      {{ P σ ∗
          ⌜uint.Z σ.prev.index' ≤ uint.Z i0 ∧
             uint.Z i0 ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ∗
          -- below the pending batch (2026-10-10)
-         ⌜PendFrom σ (uint.Z i0 + 1)⌝ }}
+         ⌜PendFrom σ (uint.Z i0 + 1)⌝ ∗
+         globalAddr ErrCompacted ↦□ ec }}
        (App (Val #(methods i.ty go!"Term" i.v)) (Val #i0))
-     {{ (t : w64), RET (PairV #t #interface.nil);
-         ⌜termAt σ.prev σ.ents i0 = some t⌝ ∗ P σ }}) ∗
+     {{ (t : w64) (err : GoInterface), RET (PairV #t #err);
+         (⌜err = interface.nil ∧ termAt σ.prev σ.ents i0 = some t⌝ ∨
+          (⌜err = ec ∧ uint.Z i0 < uint.Z σ.fl⌝ ∗ CT (uint.Z i0 + 1))) ∗ P σ }}) ∗
+  -- (D19i part 1) or `ErrCompacted` at or below the floor, the storage compacted up to `lo`
   "#HEntries" ∷ (∀ (σ : StorState)
-      (lo hi maxSize : w64),
+      (lo hi maxSize : w64) (ec : GoInterface),
      {{ P σ ∗
          ⌜uint.Z σ.prev.index' + 1 ≤ uint.Z lo ∧ uint.Z lo < uint.Z hi ∧
             uint.Z hi ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1⌝ ∗
          -- below the pending batch (2026-10-10)
-         ⌜PendFrom σ (uint.Z hi)⌝ }}
+         ⌜PendFrom σ (uint.Z hi)⌝ ∗
+         globalAddr ErrCompacted ↦□ ec }}
        (App (App (App (Val #(methods i.ty go!"Entries" i.v)) (Val #lo)) (Val #hi))
          (Val #maxSize))
-     {{ (s : GoSlice) (es : List EntryM),
-         RET (PairV #s #interface.nil);
+     {{ (s : GoSlice) (es : List EntryM) (err : GoInterface),
+         RET (PairV #s #err);
+         (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ CT (uint.Z lo) ∗ P σ) ∨
+         (⌜err = interface.nil⌝ ∗
          entsRO s es ∗
          ⌜es ≠ [] ∧
            (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
@@ -315,7 +362,7 @@ def isStorageWith (P : StorState → IProp GF)
            -- `AppOk`'s prefix clause.
            es <+: (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
                     (uint.Z lo - uint.Z σ.prev.index' - 1).toNat⌝ ∗
-         P σ }}) ∗
+         P σ) }}) ∗
   /- The stable log's last index is far below `2^64`.
 
      This is the one *pure* clause of the contract, and it is what makes appending to
@@ -404,9 +451,17 @@ def isStorageWith (P : StorState → IProp GF)
          P σ ∗
          (⌜err = esu⌝ ∨
           (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
-           ⌜snapId sv = σ.ss ∧ (σ.prev.index' ≠ W64 0 → sv.Metadata'.Index' ≠ W64 0) ∧
-             sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-             sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}) ∗
+           ⌜(σ.prev.index' ≠ W64 0 → sv.Metadata'.Index' ≠ W64 0) ∧
+             -- the view's snapshot, or (D19i part 1) a newer one the application made, at
+             -- most the floor, at an entry of the view
+             ((snapId sv = σ.ss ∧
+               sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
+               sv.Metadata'.ConfState'.lists = σ.scs) ∨
+              (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
+               uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
+               termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
+           -- (D19i part 1) non-empty once the storage is compacted
+           □ (∀ (n : Int), CT n -∗ ⌜1 ≤ n → sv.Metadata'.Index' ≠ W64 0⌝))) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
      pending append, for node.go"). The application appends a `Ready`'s entries on its own
      goroutine while raft keeps reading the storage. Two laws, ghost updates of the
@@ -422,18 +477,25 @@ def isStorageWith (P : StorState → IProp GF)
 
      `PendOk` is what the hand-out asks of the batch. -/
   "#Hhandout" ∷ □ (∀ (σ : StorState) (p : List EntryM),
-     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p⌝ ==∗ P { σ with pend := p } ∗ AT σ p) ∗
+     P σ -∗ ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ ==∗ P { σ with pend := p } ∗ AT σ p) ∗
   "#Habsorb" ∷ □ (∀ (σ1 σ : StorState) (p : List EntryM),
-     P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)))
+     P σ1 -∗ DT σ p ==∗ ⌜σ1 = { σ with pend := p }⌝ ∗ P (storAbsorb σ1)) ∗
+  /- **The floor** (D19i part 1, 2026-10-18): with nothing pending, the owner raises the floor
+     to `x`, at most the view's last index, and hands out the witness `FW x`, the application's
+     right to compact and snapshot up to `x` (`StorState.fl`). -/
+  "#Hfloor" ∷ □ (∀ (σ : StorState) (x : w64),
+     P σ -∗ ⌜σ.pend = [] ∧ uint.Z σ.fl ≤ uint.Z x ∧
+       uint.Z x ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)⌝ ==∗
+     P { σ with fl := x } ∗ FW x))
 
 /-- The contract against the abstract `ownStorage`: what every client of the interface
 assumes. -/
 def isStorage (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) st
+  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) (storCut st) (storFloor st) st
 
 instance isStorageWith_pers (P : StorState → IProp GF)
-    (AT DT : StorState → List EntryM → IProp GF)
-    (st : Storage) : Persistent (isStorageWith P AT DT st) := by
+    (AT DT : StorState → List EntryM → IProp GF) (CT : Int → IProp GF) (FW : w64 → IProp GF)
+    (st : Storage) : Persistent (isStorageWith P AT DT CT FW st) := by
   unfold isStorageWith; infer_instance
 
 instance isStorage_pers (st : Storage) : Persistent (isStorage (GF := GF) st) := by
@@ -454,7 +516,7 @@ def appendReceipt (st : Storage) (p : List EntryM) : IProp GF :=
 already has nothing pending), otherwise `Hhandout`. What `raftLog.acceptUnstable` runs
 for the entries a `Ready` hands out. -/
 theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM)
-    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p)) :
+    (Hpo : σ.pend = [] ∧ (p ≠ [] → PendOk σ p ∧ PendAbove σ p)) :
     ⊢ isStorage (GF := GF) st -∗ ownStorage st σ ==∗
       ownStorage st { σ with pend := p } ∗ appendRight st p := by
   iintro #Hst HS
@@ -469,9 +531,9 @@ theorem isStorage_handout (st : Storage) (σ : StorState) (p : List EntryM)
     ipureintro
     exact Hne
   unfold isStorage isStorageWith
-  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab⟩
-  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p⌝ $$ []
-  · ipureintro; exact ⟨Hpo.1, Hpo.2 Hne⟩
+  icases Hst with ⟨%i, %Hi, #HL, #HF, #HT, #HE, #Hb, #HSn, #Hho, #Hab, #Hfl⟩
+  ihave Hpo' : ⌜σ.pend = [] ∧ PendOk σ p ∧ PendAbove σ p⌝ $$ []
+  · ipureintro; exact ⟨Hpo.1, (Hpo.2 Hne).1, (Hpo.2 Hne).2⟩
   imod Hho $$ HS Hpo' with ⟨HS, Htok⟩
   imodintro
   iframe HS

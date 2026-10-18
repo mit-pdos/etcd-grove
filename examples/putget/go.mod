@@ -3,11 +3,11 @@ module github.com/mit-pdos/etcd-grove/examples/putget
 go 1.27
 
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261016214115-09669450f0ee
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261016214115-09669450f0ee
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261016214115-09669450f0ee
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261016214115-09669450f0ee
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261016214115-09669450f0ee
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261018151949-ea78ec948b5b
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261018151949-ea78ec948b5b
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261018151949-ea78ec948b5b
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261018151949-ea78ec948b5b
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261018151949-ea78ec948b5b
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261015121415-509271dac8a4
 )
 
