@@ -8440,7 +8440,8 @@ the theorem says nothing.
   `⊢ |==> netAddrFree a`), nor a contract that mints a bounded supply (`rnTickerOk`'s
   `tickCred`). Each of those is refutable (allocate or advance the same ghost state past the
   bound; use the minted resource twice), as D17a's credits were.
-- **D19b: the lifetime bounds from time receipts** (proposed). Perennial's receipts
+- **D19b: the lifetime bounds from time receipts** (proposed; **adopted 2026-10-18** by the user,
+  with the stage plan below). Perennial's receipts
   (`GooseLang/Receipts.lean`): every Go instruction step can raise a persistent `⧖ m`
   (`wp_GoInstruction_preceipt`), and `⧖ N ⊢ False` for the adequacy theorem's step bound `N`. Each
   counter behind a bound (ids issued by the generator, entries raft commits, ticks credited, changes
@@ -8450,6 +8451,16 @@ the theorem says nothing.
   invariants of `idutil`, raft's budget and commit (`tickCred`'s minting moves into the ticker's
   receive), the apply thread, mvcc's sealed logs and the watch store take receipts at their
   increments; the premises go from `NewServer.spec`, `start`, `New`.
+  *Adopted (2026-10-18): the stage plan.* Each bound becomes a count backed by as many receipts
+  (`⧗ k`, exclusive) in an invariant, taken at a non-blocking Go step at the increment
+  (`wp_go_step_receipt'` with `wp_bind`, or `sync.atomic.wp_AddUint64_receipt`), and its premise
+  the pure fact `receiptBound GF ≤ 2 ^ k`, which the closed theorem discharges by its choice of
+  `N` in `goose_adequacy` (D19a's rule). Stage 1 (done): `idLifeBound` (the generator's invariant
+  holds `⧗ k` for the `k` ids issued; `Next` takes one from `AddUint64`'s resolution step;
+  `idCred γi n := ⌜receiptBound GF ≤ 2 ^ 48⌝`). Stage 2: `srvLifeBound` (a receipt per applied
+  entry, from the apply loop's iteration). Stage 3: `storeSmall`, the watch store's
+  `srvLogsSmall`, `rnLogFits` if server-side. Raft's tick/term budget (`budgetInv`, `tickCred`,
+  `rnTickerOk`) after PreVote lands.
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
@@ -8491,7 +8502,20 @@ the theorem says nothing.
 - **D19f: `clientv3.New` without the watch facts** for a client that never watches: either compose
   `etcd_watch_served_chain` at the server's start (item 4's "not done"), or weaken `New`'s
   postcondition on the `Watcher` field so that its premise `watchAddrFacts` goes (a change to
-  `New`'s spec).
+  `New`'s spec). **Adopted 2026-10-18 (the user), the second:** constructing the watcher only
+  allocates it (`NewWatchFromWatchClient`: the struct, an empty streams map; no goroutine, no call
+  on the connection), and its lock's invariant (`watcherMu`, an empty map) needs no server fact, so
+  the facts are needed only by `Watch`. `isClientWatcherCore V w` (`InvWatcherCore.lean`) is
+  `isClientWatcher` with the stub on the connection (`watchStubAt`) in place of `watchSrvFacts`;
+  `isClientWatcher_of_core` adds `watchConnFacts V`. `NewWatchFromWatchClient.spec` takes the stub
+  instead of `watchSrvFacts`, `NewWatcher.spec` drops `watchConnFacts`; both give the core.
+  `isNewClient`'s watcher is the core plus `grpcConn conn ep ics []`; `newClient.spec`/`New.spec`
+  drop `watchAddrFacts V` and `V.addr = ep` (the caller still picks the watcher's environment `V`,
+  any one); `isNewClient_watcher` (with `V.addr = ep`) gives the old form from
+  `watchAddrFacts V`, to supply before the first `Watch`. `client_newWatcher_rangeWatcher`'s
+  statement unchanged (its proof adds the facts). The watcher's environment is still fixed at
+  `New` (the lock's invariant is stated over it); a client whose server is chosen later would need
+  the invariant over an existential environment, not needed here.
 - `rnSnapOnce`: D17d's option (1), planned after PreVote, unchanged.
 
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the

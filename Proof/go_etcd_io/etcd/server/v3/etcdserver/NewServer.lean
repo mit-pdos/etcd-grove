@@ -234,7 +234,7 @@ theorem NewServer.wp_proof
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hpv0 Hbnd Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hpv0 Hbnd Hrb Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
@@ -983,7 +983,7 @@ theorem NewServer.wp_proof
   isplitl [Hwts]
   · iexact Hwts
   -- the lifetime premises (D17): `storeSmall` at the store's names (`E₀`'s index names), the id
-  -- supply from the generator's bound, the thread bound; `ClusterVersion()` from the cluster's
+  -- supply from the time-receipt bound (D19b), the thread bound; `ClusterVersion()` from the cluster's
   -- `Version` contract
   isplitr
   · iunfold storeSmall
@@ -991,7 +991,7 @@ theorem NewServer.wp_proof
     iunfold storeSmall at Hsmall
     iexact Hsmall
   isplitr
-  · iapply idCred_supply $$ Hidl
+  · iapply (idCred_supply ρ.ids Hrb)
   isplitr
   · icases Hcvm with ⟨%γcv, #Hcvm⟩
     iunfold clusterVersionOk

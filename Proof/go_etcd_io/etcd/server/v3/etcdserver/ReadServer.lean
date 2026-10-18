@@ -164,11 +164,11 @@ theorem isReadServer_of_server
     iframe Hch HQ
   -- `NextRequestID()`: the id mints its context's token and a read credit
   isplitr
-  · iintro !> %Φ !> Hcred HΦ
+  · iintro !> %Φ !> #Hcred HΦ
     iapply wp_fupd
-    wp_apply hNR s v.gen ρ.ids $$ [Hcred] as %id Hfresh
-    · iframe #; iframe Hcred
-    imod srvRdFresh_mint ρ.raft ρ.ids v.gen (srvFloorFact E) id $$ Hgen Hrf Hfresh
+    wp_apply hNR s v.gen ρ.ids $$ [] as %id Hfresh
+    · iframe #
+    imod srvRdFresh_mint ρ.raft ρ.ids v.gen (srvFloorFact E) id $$ Hgen Hcred Hrf Hfresh
       with ⟨Hfr, Hcr⟩
     imodintro
     iapply HΦ

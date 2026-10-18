@@ -49,7 +49,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   intro γi memberID now Φc
   wp_start as Hfresh
   iunfold idNamesFresh at Hfresh
-  icases Hfresh with ⟨HCa, HI, HS⟩
+  icases Hfresh with ⟨HI, HS⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   wp_auto
@@ -66,13 +66,14 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     simp [uint.Z]; simp at h'; omega
   have Hpl : W64 (uint.Z memberID) <<< W64 48 &&& W64 (2 ^ 48 - 1) = W64 0 :=
     idutil_prefix_low _
-  obtain ⟨γc, γI, γS⟩ := γi
+  obtain ⟨γI, γS⟩ := γi
+  imod receipt_zero (GF := GF) with HCa
   imod inv_alloc idN ⊤ iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8 × GName))) (S : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" gp ↦
         (s0 + W64 (k : Int)) ∗
-      monoNatAuthOwn (⟨γc, γI, γS⟩ : IdNames).cred 1 k ∗ ⌜k ≤ 2 ^ 48 - 1⌝ ∗
-      ghostMapAuth (⟨γc, γI, γS⟩ : IdNames).issued 1 I ∗
-      ghostMapAuth (⟨γc, γI, γS⟩ : IdNames).slot 1 S ∗
+      ⧗ k ∗
+      ghostMapAuth (⟨γI, γS⟩ : IdNames).issued 1 I ∗
+      ghostMapAuth (⟨γI, γS⟩ : IdNames).slot 1 S ∗
       ⌜∀ id, ((I !! id).isSome ↔ idIssued (W64 (uint.Z memberID) <<< W64 48) s0 k id) ∧
         ((S !! id).isSome ↔ idIssued (W64 (uint.Z memberID) <<< W64 48) s0 k id)⌝ ∗
       idClaimsFacts Φc I)
@@ -81,8 +82,6 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     iexists 0, ∅, ∅
     rw [show s0 + W64 ((0 : Nat) : Int) = s0 by word]
     iframe suffix HI HS HCa
-    isplitr
-    · ipureintro; omega
     isplitr
     · ipureintro
       refine fun id => ⟨?_, ?_⟩ <;>

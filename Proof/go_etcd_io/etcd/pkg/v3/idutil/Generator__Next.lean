@@ -92,11 +92,28 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   iunfold idGen at Hg
   icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
   obtain ⟨Hs0, Hpl⟩ := Hs0
-  wp_auto
-  wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc g]
+  -- the steps up to `atomic.AddUint64`'s resolution, one by one (`wp_auto` would take that step
+  -- too, and its receipt with it)
+  wp_alloc g_ptr as Hgl
+  wp_pure
+  wp_pure
+  wp_load
+  wp_pure
+  wp_pure
+  wp_pure
+  wp_pure
+  wp_pure
+  -- the Go step resolving `atomic.AddUint64` gives one time receipt (D19b)
+  wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+  iapply wp_go_step_receipt'
+  case hv => exact isPanic_intoVal _
+  inext
+  iintro Hr -
+  iapply wp_value'
+  wp_apply_core sync.atomic.wp_AddUint64 $$ [] [HΦ Hc Hgl Hr]
   · iexact Hat
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcr, >%Hk, >HI, >HS, >%Hdom, HF⟩
+  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcr, >HI, >HS, >%Hdom, HF⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
@@ -104,11 +121,12 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
   iframe Hsuf
   iintro Hsuf
   imod Hmask with -
-  -- count the id, under the lifetime bound
-  imod mono_nat_own_update (k + 1) (by omega) $$ Hcr with ⟨Hcr, #Hlb⟩
+  -- count the id: its receipt and the `k` of the invariant bound `k + 1` (`receipt_add_one_lt`)
+  icases receipt_add_one_lt k $$ [Hr Hcr] with ⟨%Hlt, Hcr⟩
+  · iframe
   iunfold idCred at Hc
-  iunfold idLifeBound at Hc
-  icases Hc $$ %(k + 1) Hlb with %Hk1
+  icases Hc with %Hb
+  have Hk1 : k + 1 < 2 ^ 48 := Nat.lt_of_lt_of_le Hlt Hb
   have Hnew := idIssued_not_new pfx s0 k Hs0 Hpl Hk1
   generalize hid : pfx ||| ((s0 + W64 ((k + 1 : Nat) : Int)) &&& W64 (2 ^ 48 - 1)) = nid at Hnew
   have HIn : I !! nid = none := by
@@ -129,8 +147,6 @@ theorem idutil.Generator.Next.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG :
     rw [hsuf]
     iframe Hsuf
     iframe Hcr HI HS
-    isplitr
-    · ipureintro; omega
     isplitr
     · ipureintro
       refine fun id' => ⟨?_, ?_⟩
