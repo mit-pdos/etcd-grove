@@ -1651,7 +1651,7 @@ theorem watchGRPCStream.run.wp_proof
           · cases hcan : m.canceled
             · irevert Hcw
               simp only [v3rpc.ctrlWatcher, hcan, Bool.false_eq_true, ↓reduceIte]
-              iintro ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, #Hias, Hidt, -⟩
+              iintro ⟨%w, %rg, %fcs, %lo, %Hcrg, #Hwi, #Hfcs, #Hws, #Hias, Hidt, -⟩
               ihave ⟨%HXr, Hids, Hidt⟩ := client.id_fresh γs S.regs m.watchId γo γa $$ [Hids Hidt]
               · iframe; iframe #
               isplitr

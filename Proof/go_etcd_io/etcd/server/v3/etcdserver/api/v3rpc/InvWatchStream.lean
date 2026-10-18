@@ -496,6 +496,7 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
       iprop(∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
+        (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw ∗ ⌜γw.sr = c.sr⌝) ∗
         mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
         ∃ (l : List mvcc.RespM) (n : Nat), mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗
           ⌜n ≤ l.length⌝)
@@ -630,7 +631,7 @@ theorem ctrlWatcher_snap (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (c : Cre
   unfold ctrlWatcher
   rw [h]
   simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hia, Hit, %l, %n, #Hl, #Hn, %Hnl⟩
+  iintro ⟨%w, %rg, %fcs, %lo, %Hrg, #Hwi, #Hfcs, #Hws, #Hia, Hit, %l, %n, #Hl, #Hn, %Hnl⟩
   isplitl [Hit]
   · iexists w, rg, fcs, lo
     iframe Hit

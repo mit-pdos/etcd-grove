@@ -571,6 +571,8 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1 h2]
               iframe HIWF
               iframe Hia Hit Hfl
+              isplitr
+              · iexact HWS
               iexists l0, nr
               isplitr
               · iapply (mvcc.chanSentLb_stream r.γo r.γc l0 Hγoc.2.2.1).1 $$ Hl0
