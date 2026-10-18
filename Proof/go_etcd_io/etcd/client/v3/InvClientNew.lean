@@ -137,7 +137,7 @@ theorem clientNewVars_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, ⟨%sl, %vs, #Hsl, #Hvs, %Hv⟩, #Hn, #Hd, #Hf⟩
+  icases Hi with ⟨-, -, ⟨%sl, %vs, #Hsl, #Hvs, %Hv⟩, #Hn, #Hd, #Hf, -⟩
   unfold clientNewVars
   iframe #
   unfold callOptsAt

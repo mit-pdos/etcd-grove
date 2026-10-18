@@ -440,7 +440,13 @@ abbrev clientv3Init : IProp GF :=
           google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝) ∗
     (∃ n : w64, globalAddr go_etcd_io.etcd.client.v3.defaultUnaryMaxRetries ↦□ n) ∗
     (∃ d : time.Duration, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffWaitBetween ↦□ d) ∗
-    (∃ f : w64, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction ↦□ f))
+    (∃ f : w64, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction ↦□ f) ∗
+    -- (2026-10-18: `client/v3`'s `clientWatchVars`, which the watcher took as a premise)
+    -- `watch.go`'s `valCtxCh`, `zeroTime`, `maxBackoff`
+    (∃ (ch : GoChan) (t : time.Time) (d : time.Duration),
+      globalAddr go_etcd_io.etcd.client.v3.valCtxCh ↦□ ch ∗
+      globalAddr go_etcd_io.etcd.client.v3.zeroTime ↦□ t ∗
+      globalAddr go_etcd_io.etcd.client.v3.maxBackoff ↦□ d))
 
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   define_is_pkg_init clientv3Init

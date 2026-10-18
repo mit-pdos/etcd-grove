@@ -338,9 +338,9 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
 SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
     doc='''Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
-backoff function returns; the trust-boundary axiom `defaultOptions_init`). Its initializer also
-runs its translated `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom
-`time.Unix.wp_proof`) and `maxBackoff`, and its other untranslated initializers
+backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
+`valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
+`maxBackoff`. Its initializer also runs its other untranslated initializers
 (`opaqueInitsOk`).''',
     imports=['Proof.time.Unix'],
     alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
@@ -488,7 +488,8 @@ _C['custom'].update({
 })
 _C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
-                 'ipersist HdefaultBackoffJitterFraction'] + FIN_PRE[:6] +
+                 'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
+                 'ipersist HmaxBackoff'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
                  'ipureintro', 'exact PdefaultCallOpts'])
 

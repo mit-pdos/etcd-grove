@@ -6916,6 +6916,23 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
       `clientv3.New`'s result at `addr` these are `cache_end_to_end_new`'s premises.
     - **Next**: the closed theorem for a cache program (a `Main` with the server, `clientv3.New`
       and the cache's `New`, through `goose_adequacy`), after item 9 (the KV example) is closed.
+    - *The watch premises* (2026-10-18): `watchDescOk` and `clientWatchVars` are package facts
+      now (`watchDescOk_of_init` from `etcdserverpbDescs`; `clientWatchVars_of_init` from
+      `clientv3Init`, which gained `valCtxCh`/`zeroTime`/`maxBackoff`, `etc/gen-init.py`), gone
+      from `watchAddrFacts` (`watchConnFacts_of_addr`, `isNewClient_watcher` take `isPkgInit` of
+      `client/v3` and `etcdserverpb`). What remains, and why:
+      - `eofOk`: `io`'s fact is Perennial's (`Discard` only); a general `io.EOF` fact (an
+        `errors.New` leaf error) would be a Perennial change of its own.
+      - `errorsNewOk`: Perennial's `errors.New` model has no method sets (`clientErr`,
+        `grpcErrMethodsOk` need them): a trust-boundary fact.
+      - `ctxErrClientAllW`: Perennial's `isContext` says only that `Err()` returns a typed error
+        (a context's cause may be any error): a premise about the caller's contexts.
+      - `noRetryableStreamErr`, `srvNoDupKeys`: excluded behaviours, each with its issue
+        (`etcd-watch-resume-closing-substream.md`, `etcd-txn-check-intervals-sibling.md`).
+      - `watchTokSupply` (`□ |==> watchTok`): an unbounded supply against mvcc's finite budget
+        (`2 ^ 63 - 3` tokens), so as a hypothesis of a closed theorem it is refutable (item 9's
+        point 3, D17a's kind); D19b's time receipts (a create costs a receipt) would replace it:
+        a decision for the user.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`

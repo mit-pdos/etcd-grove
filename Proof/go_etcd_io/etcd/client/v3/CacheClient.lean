@@ -96,7 +96,7 @@ theorem isEtcdClient_of_new (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG)
       sortNamesOk ∗ kvAnyAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany⟩
-  ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher cl ep V hV $$ [$Hnc $Hf]
+  ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher cl ep V hV $$ [$P1 $P2 $Hnc $Hf]
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKV, #Hkv⟩, -⟩

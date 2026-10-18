@@ -237,14 +237,13 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
-        v3rpc.watchDescOk ∗ client.watchTokSupply V.R.γ ∗ client.noRetryableStreamErr ∗
-        client.srvNoDupKeys V.R ∗ client.eofOk ∗ client.errorsNewOk ∗ client.ctxErrClientAllW ∗
-        client.clientWatchVars ⊢
+        client.watchTokSupply V.R.γ ∗ client.noRetryableStreamErr ∗
+        client.srvNoDupKeys V.R ∗ client.eofOk ∗ client.errorsNewOk ∗ client.ctxErrClientAllW ⊢
       |={⊤}=> grpcServeTok gs lis ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
         watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hdesc, #Htok, #Hnr, #Hnd, #Heof, #Hen, #Hce, #Hvars⟩
+    #Hws, #Hims, #His, Hwslots, #Htok, #Hnr, #Hnd, #Heof, #Hen, #Hce⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
     hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, -, #Hrange, -, -⟩
   · iframe; iframe #
