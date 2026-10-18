@@ -140,8 +140,11 @@ instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) :=
 instance bemuP_fractional (s : Loc) : Fractional (bemuP (GF := GF) s) := by
   unfold bemuP
   exact fractional_exists_agree
-    (fun (b : GoInterface) q => iprop(srvBeAddr s ↦{DFrac.own q} b))
-    (fun b => fractional_of_dfractional (fun dq => typedPointsto (srvBeAddr s) b dq))
+    (fun (b : GoInterface) q => iprop(srvBeAddr s ↦{DFrac.own q.half} b))
+    (fun b => ⟨fun q1 q2 => by
+      rw [show (q1 + q2).half = q1.half + q2.half from Subtype.ext (by grind)]
+      exact (fractional_of_dfractional
+        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) b dq)).fractional q1.half q2.half⟩)
     (fun x y q1 q2 => by
       iintro ⟨H1, H2⟩
       icombine H1 H2 gives %H
@@ -797,11 +800,19 @@ theorem NewServer.wp_proof
   icases guard_of_slots _ _ $$ Hltslots with ⟨Hltslots, #Hltg⟩
   -- (D19g (b)) `leadTimeMu`'s reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hltslots with ⟨Hlts, -⟩
+  -- (D19i part 2) half of `s.be` kept out of `bemu`, for good: the storage version monitor's
+  icases (typedPointsto_dfractional (GF := GF) (srvBeAddr s) (srvBeIface d.be)).dfractional
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) |>.1 $$ [be] with ⟨be, beSV⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact be
+  imod (typedPointsto_dfractional (GF := GF) (srvBeAddr s) (srvBeIface d.be)).dfractional_persist _
+    $$ beSV with #beSV
   imod sync.init_RWMutex (bemuP s) (E := ⊤) (srvBemuAddr s) $$ [be] bemu with Hbmslots
   · inext; iunfold bemuP; iexists _; iexact be
   icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, Hbmslots⟩
   -- (D19g (b)) `v3rpc.Server`'s reader slot of `bemu`
-  icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, Hbmslots⟩
+  -- (D19i part 2) the storage version monitor's
+  icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨HbmSV, -⟩
   -- the raft node, its transport installed
   ihave #Henv : rnEnvOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn $$ []
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
@@ -859,7 +870,9 @@ theorem NewServer.wp_proof
   imod (mvcc.watchTokPool_alloc γw ⊤ (by omega)) $$ Hwtoks with #Hpool
   -- (D19g (b)) what serving needs: the configuration fields, the watchable store as the KV, the
   -- progress interval's field, `lgMu`'s reader slots for request goroutines and the others'
-  icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨Hlgs, -⟩
+  icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨Hlgs, Hlgrs⟩
+  -- (D19i part 2) the storage version monitor's `lgMu` reader slot
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨HlgSV, -⟩
   ipersist LoggerS
   ipersist MaxTxnOpsS
   ipersist WarningUnaryRequestDurationS
@@ -878,6 +891,24 @@ theorem NewServer.wp_proof
         ipureintro; rfl
       · iframe #
     iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs
+  -- (D19i part 2) the storage version monitor's read token, with an open share
+  icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨HwrSV, Hwrds⟩
+  iunfold mvcc.watchReader at HwrSV
+  icases HwrSV with ⟨HwrSV, -⟩
+  iunfold mvcc.storeReader at HwrSV
+  icases HwrSV with ⟨%-, -, -, -, -, HrtSV, -⟩
+  -- (D19i part 2) the storage version monitor's backend access
+  ihave HSV : srvSVRes s γw.st $$ [HbmSV HrtSV HlgSV]
+  · unfold srvSVRes srvBemuReader
+    iexists d, batchLockInv γA (metaTM d.γB d.P)
+    iframe beSV HbmSV HlgSV HB
+    isplitr
+    · ipureintro; exact Hγw.2.2.1
+    ihave HrtSV : mvcc.kbRT (GF := GF) (some d) $$ [HrtSV]
+    · rw [← Hγw.2.2.1]; iexact HrtSV
+    unfold mvcc.bkRTx
+    iunfold mvcc.kbRT at HrtSV
+    iexact HrtSV
   imodintro
   iapply HΦ
   iright
@@ -887,7 +918,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hgap Hserve
+  iframe Hgap Hserve HSV
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   isplitr

@@ -1100,7 +1100,7 @@ theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb) $$ [Hb]
   · iframe Hpkg Hb
   inext
-  iintro ⟨%γw, #Hreq, #Hrd, Hst⟩
+  iintro ⟨%γw, #Hreq, #Hrd, Hst, -⟩
   iunfold srvStarted at Hst
   iNamed Hst
   ihave #Hrs := read_server s E { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]

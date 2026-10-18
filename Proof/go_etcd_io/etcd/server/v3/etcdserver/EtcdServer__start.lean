@@ -477,7 +477,7 @@ theorem EtcdServer.start.wp_proof
   icases replicate_take1 _ _ (by have := actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
   iapply HΦ
   iexists γw
-  iframe Hreq Hrd
+  iframe Hreq Hrd HWB
   iunfold srvStarted
   iframe Hwg2 Hwgs HNR
   isplitr

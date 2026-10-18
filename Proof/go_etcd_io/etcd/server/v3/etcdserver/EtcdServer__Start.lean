@@ -60,10 +60,10 @@ theorem EtcdServer.Start.wp_proof
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb
-  wp_start as ⟨Hb, Htok, Hlg, Hlgm⟩
+  wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv⟩
   wp_auto
   wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb $$ [Hb]
-    as ⟨%γw, #Hreq, #Hrd, Hst⟩
+    as ⟨%γw, #Hreq, #Hrd, Hst, #Hwp⟩
   · iframe #; iframe Hb
   iunfold srvStarted at Hst
   iNamed Hst
@@ -133,12 +133,11 @@ theorem EtcdServer.Start.wp_proof
     · iframe #; iapply srvMonitorPermit_of $$ Hreq
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
-    isplitr
-    · itrivial
-    iintro !> %Φ' - HΦ'
-    wp_apply hMSV s
+  wp_apply hGA s _ (srvSVRes s E.γ) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
+  · iframe Hgr Hlg Hsv
+    iintro !> %Φ' HL HΦ'
+    wp_apply hMSV s E { wait := γw, rd := ρ.rd } $$ [HL]
+    · iframe #; iframe HL
     iapply HΦ'
     try itrivial
   -- `s.read.LinearizableReadLoop`, verified

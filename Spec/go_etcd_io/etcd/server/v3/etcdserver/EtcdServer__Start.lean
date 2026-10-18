@@ -5,6 +5,7 @@ through `GoAttach`. Lean-first (the request path's unit 4c, 2026-10-13); see `In
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
 
 @[expose] public section
 
@@ -34,7 +35,9 @@ abbrev EtcdServer.Start.spec : Prop :=
   receiptBound GF ≤ N + 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ threadTok ∗
-      srvLgReader s ∗ srvLgReader s }}
+      srvLgReader s ∗ srvLgReader s ∗
+      -- (D19i part 2) the storage version monitor's backend access (`NewServer`'s)
+      srvSVRes s E.γ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
       srvGoRes s ∗ srvLgReader s ∗

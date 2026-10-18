@@ -9069,6 +9069,26 @@ the theorem says nothing.
       a `clusterVersionChanged` notifier reader, a logger slot, `isRaftCluster`, and the WAL's
       persistent contract (`UnsafeMigrate` reads `s.r.storage` for a downgrade's check).
       *Recommendation:* (i). The axiom stays as it was (false: it writes without resources).
+    - **(i) adopted (the user, 2026-10-18) and carried out.** No split was needed: `srvWTPool` is a
+      persistent invariant counting all the receipts spent on it, so the monitor draws from the
+      apply thread's pool as `apply` does (`srvWTPool_take`: a fresh receipt gives a token). The
+      contract (`EtcdServer.monitorStorageVersion.spec`, still a trust-boundary axiom: names-only)
+      takes `isServerReq s E ρ ∗ srvSVRes s E.γ ∗ srvWTPool E.γ`, where `srvSVRes`
+      (`InvStorageVersion.lean`) is: `E.γ.kb = some d`, `s.be ↦□ d.be` (the backend for good),
+      a `bemu` reader slot, `isBackend d.γB d.P (lateW d.gx) Pk d.be`, a read token with an open
+      share (`mvcc.bkRTx`: `StorageVersion()`'s `ReadTx` and `LockOutsideApply`'s open share),
+      and an `lgMu` reader slot. Threading: `NewServer` makes `srvSVRes` (one more `bemu`, `lgMu`
+      and store-reader slot of the leftovers; the read token from the store reader's `storeRT`)
+      and returns it in its post; `Start` takes it, and `start`'s post gives the pool back
+      (allocated there as before). `s.be ↦□`: `bemuP s q` now holds the field at `q.half`, and
+      `NewServer` persists the other half before `bemu`'s `init_RWMutex` (nobody in the model
+      writes `s.be`: `applySnapshot`'s backend swap is outside it). Not in the contract, as for
+      the other monitors (`notes/audit.md`'s "suspect (minor)"): the reads of `s.cluster`
+      (named by `isServerReq`), `s.clusterVersionChanged`, `s.stopping` and the WAL's
+      `MinimalEtcdVersion` (a downgrade's check). Rejected: a separate pool for the monitor
+      (another `N` tokens from `wbInit`'s leftover and a stronger `bootstrap` budget premise, for
+      nothing the shared pool lacks); `bemuP` fixing the backend as a parameter (every holder of
+      `srvBemuReader` would change).
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for

@@ -62,6 +62,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
 
 @[expose] public section
 
@@ -154,7 +155,9 @@ abbrev NewServer.spec : Prop :=
           srvBuildGap srv (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
           -- watchable store, the progress interval's field, and the request slots
-          srvServeBuilt srv E cfg 64 }}
+          srvServeBuilt srv E cfg 64 ∗
+          -- (D19i part 2) the storage version monitor's backend access
+          srvSVRes srv E.γ }}
 
 end spec
 

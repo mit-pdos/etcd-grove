@@ -52,9 +52,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `s.bemu`'s lock invariant at fraction `q`: `s.be`. -/
+/-- `s.bemu`'s lock invariant at fraction `q`: `s.be`, at half the fraction (D19i part 2: the
+other half of the field is `↦□`, `NewServer`'s, so the backend `s.be` holds is known for good;
+`InvStorageVersion.lean`). -/
 def bemuP (s : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q} b)
+  iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q.half} b)
 
 /-- **A reader slot of `s.bemu`** (the apply thread's, for `Backend`). -/
 def srvBemuReader (s : Loc) : IProp GF :=
