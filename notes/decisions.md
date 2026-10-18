@@ -10008,3 +10008,83 @@ The user chose D19p (A); carried out after D19i part 1 landed, all of it (raft, 
 Trust base: two axioms fewer (`EtcdServer.createMergedSnapshotMessage`, `EtcdServer.sendMergedSnap`);
 `etc/tcb-baseline.txt` (325 axioms, 8 `sorry`s after the merged `lean` changes) and the `server`
 collection updated with `--check --update` on purpose; the raft collection unchanged.
+
+## Item 9, stage 3: the closed theorem's hypotheses beyond `io.EOF` (D19r, 2026-10-18 · proposed, stopped)
+
+Stage 2 (`Main`'s WP, `examples/putget`) is proved over named premises
+(`Proof/github_com/mit_pdos/etcd_grove/examples/putget/Defs.lean`, `putget.premises`). Stage 3
+was to state the closed theorem through `goose_adequacy_start` with D19a's kinds of hypotheses
+only, plus the one approved exception `EofFromIoInit` (`isPkgInit io ⊢ v3rpc.eofVar`, for the
+proposed Perennial `io` change). Going through every premise `Main` passes on shows five more
+that are not of D19a's kinds, two of them false of Go as stated, so a closed theorem taking them
+would be vacuous. Nothing was changed for them; the closed theorem is not written. Each needs a
+decision:
+
+- **(A) `∀ n : Loc, rnStopOk n`** (`NewServer.spec`, from `NodeStartSpec`): `{{ True }}
+  n.Stop() {{ True }}` for every location. False of Go: `(*node).Stop` on `nil` (or on memory
+  that is not a node) faults. As a hypothesis it is not refutable inside the logic, but it does
+  not hold in the model, so the theorem would say nothing. It is used only to build the raft
+  wrapper's interface contract (`isRaftNodeIfc`'s `Stop` clause, `NodeBridge.lean`), at the node
+  `StartNode` returned, which `raftNode.onStop` calls (on `<-r.stopped` and the loop's error
+  exits). Options: (a1) restate the premise at started nodes only (`□ ∀ γ id nl, isNode γ id nl
+  -∗ rnStopOk nl`, a triple of a called function whose postcondition is `True`); (a2) prove
+  `node.Stop` from raft's model (its `run` loop's stop case); (a3) make `onStop` unreachable in
+  the runs covered (as D19m did for `run`'s shutdown: `r.stopped` a bag with predicate `False`)
+  and drop the clause. Recommendation: (a1), the smallest statement change.
+- **(B) `bootstrapContract`'s `memStorReg`** (`bootOk`'s `"#Hreg" ∷ memStorReg bv.storage' γs`):
+  the contract hands out a persistent element of the storage registry at the class-fixed name
+  `MemStorReg.memStorRegName`, whose authority nobody holds. A triple whose postcondition adds an
+  element to a fixed ghost name without its authority is not a frame-preserving update: false in
+  the model (a frame may hold the authority at `∅`). It is not "fresh resources at fresh names"
+  (D19a). Options: (b1) `bootstrapContract` takes the registry's authority (`memStorRegAuth M`)
+  and gives it back with the new storage (as raft's `NewMemoryStorage` does for the register),
+  `NewServer.spec` takes `∃ M, memStorRegAuth M`, and `Main` allocates the registry (as the
+  register's `Main` does); (b2) `bootOk` gives the registry's name existentially (the wrapper
+  already keys the node by `γn.reg`, `rnIsNode`), and `NewServer.spec` loses `[MemStorReg GF]`.
+  Recommendation: (b1), smaller (two statements, the allocation in `Main`).
+- **(C) `rnRaftStatusOk`** (`sync.isMutex (globalAddr raftStatusMu) (∃ f, raftStatus ↦ f)`):
+  a fact about etcdserver's package variables, which no initializer theorem gives. Not a pure
+  fact or a triple. Option: make it a conjunct of `etcdserver`'s package fact, proved by its
+  generated initializer (`etc/gen-init.py`'s `SPECIAL`, as D19j did for v3rpc's progress
+  interval lock, `sync.init_RWMutex`); the `init()` that registers the `expvar` closure is
+  names-only, so the fact holds when the mutex is allocated, before it.
+- **(D) `waitClosecInit`** (`pkg/wait`'s `closec`, a broadcast channel closed by its `init`):
+  kept out of the package's fact because the broadcast idiom needs later credits (`HeapGS
+  HasLC.hasLC`), which the package-fact instances (at any `HasLC`) do not have
+  (`TimeList.lean`). Options: (d1) restate it with a closed channel's invariant, as Perennial's
+  `context.isClosedchanInit` (`inv closedchanN (ownChan γ Unit (.Closed []))`, no credits), and
+  prove it in `wait`'s initializer; (d2) the package-fact instances at `HasLC.hasLC` for this
+  package.
+- **(E) `context.isClosedchanInit`** (Perennial's `context`): "kept out of `isInit` because it
+  is ghost state" (`Perennial/Proof/context/Base.lean`); Perennial's `context.wp_initialize'`
+  does not return it. Of `eofVar`'s kind: a Perennial change (the initializer returns it, or
+  `isInit` keeps it), proposed independently, and meanwhile a named Prop as `EofFromIoInit`
+  (`isPkgInit context ⊢ context.isClosedchanInit`, false under the current pin).
+
+Also to settle for the closed theorem's statement (not blockers):
+- **(F) `bootstrap`'s contract's configuration.** `putget.premises` states it for every
+  configuration with the scalar fields `Main` sets (`cfgOk`), but `bootstrap` reads the
+  configuration's URL slices and peer map, which `Main` allocates: as a hypothesis true of Go
+  it should take their read-only points-tos (the triple's precondition `True` then becomes those
+  resources), and the member id and bootstrap log `BootFacts` names are what Go computes from
+  them.
+- **(G) `[go_etcd_io.etcd.cache.v3.Assumptions]`**: `wp_NewServer` (and the client lemmas
+  `grpcCfgOk_of_started`, `client_Put_own`) take the cache package's assumptions (their files'
+  section variables), although `putget` does not import the cache. Satisfiable (an extra
+  package's translated bodies), but out of place in a closed theorem about `putget`.
+
+**Recommendation:** (A) a1, (B) b1, (C) and (D) d1 as local units (no Perennial change),
+(E) a second named Prop beside `EofFromIoInit` with the Perennial proposal; then the closed
+theorem is mechanical (the ghost-state bundle `putgetGF` as `registerGF`, the package table of
+`putget`'s closure, `goose_adequacy_start` with `Ns` the read package's two names and `As =
+["127.0.0.1:23790"]`, `putget.wp_initialize'` then `putget_Main`).
+
+Choices made in stage 2 (no decision needed, recorded): (i) `context.Background()` is not an
+`isContext` (its `Done()` is `nil`), so the client's end-to-end `Put`/`Get` lemmas
+(`client_put_end_to_end`, `client_get_end_to_end`, `client_get_after_put`, the putget forms) now
+take `ctxOk` (a context with the model, or a quiet one), which is all their proofs used;
+`background_ctx` gives Background's. (ii) `net.Listener` was an axiomatized type with `sorry`
+instances; `Code/net.toml` now translates the interface (as `Addr`), since `Main` keeps the
+listener in a local variable. (iii) `Main` is linked by hand in `putget/Results.lean` (its callees'
+results are in three packages' Links under different namespaces, which no `etc/gen-link.py` mode
+combines).

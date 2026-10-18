@@ -128,6 +128,7 @@ axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcdserverpb.AlarmType.String.wp_proof
+axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
@@ -154,6 +155,7 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
+axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithResolvers.wp_proof
@@ -214,6 +216,8 @@ axiom mvcc.newKVHasher.wp_proof
 axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.HashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
+axiom net.Listen.wp_proof
+axiom netAddrFree
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
