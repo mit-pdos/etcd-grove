@@ -8738,7 +8738,7 @@ the theorem says nothing.
   `New` (the lock's invariant is stated over it); a client whose server is chosen later would need
   the invariant over an existential environment, not needed here.
 - **D19g: `Main`'s local pieces and two clashes with `NewServer.spec`** (item 9, point 7;
-  2026-10-18; proposed, waiting for clusterLogBound and rnSnapOnce to land).
+  2026-10-18; proposed; (a) and (b) adopted by the user and carried out the same day, below).
   - *The feature gate's contract was false of Go* (a spec bug of this repository).
     `isFeatureGate` said `Enabled(f)` returns some boolean for every `f`. `featureGate.Enabled`
     panics on a feature it has not registered (its own comment says so; the `FeatureGate`
@@ -8843,6 +8843,34 @@ the theorem says nothing.
   - *Recommendation:* (B) now, with the premise in the closed theorem's statement as
     `authRecordsFit` and `transportEffectsOk` are; (A) when a closed theorem should cover a full
     disk. Not started: the choice is the user's.
+  - *Carried out (2026-10-18, after clusterLogBound and rnSnapOnce landed).* (a):
+    `NewServer.spec` takes `"#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd`
+    (now in `InvBuild.lean`); its postcondition no longer has `etcdKV`, and `NewServer.lean`
+    no longer allocates `kvInv`. So `srvRaftBoot_alloc`'s output (`srvBootOut`) meets the
+    premises, and `putGetInv_alloc_log` turns its `etcdKV` into the client's invariant.
+    `clusterWorkloadOk` lost its unused `c₀`, `x₀`. (b): `NewServer.spec`'s postcondition gains
+    `srvServeBuilt srv E cfg 64` (`InvServe.lean`). Its persistent part `srvServeFacts` holds
+    the KV field as the watchable store and `srvServeCfg`'s eight configuration fields. It also
+    holds the owned `WatchProgressNotifyInterval` field, a `bemu` reader slot, and 64 reader
+    slots each of `leadTimeMu`, `lgMu`, the auth store (`E.RD`) and the store (from the watch
+    readers). The construction's proof used to drop these with `-`. `Start`'s postcondition
+    did not need to change: `isServerRead` already holds the `stopping` field and `stopChan`,
+    the logger field and the auth store's `isAuthStore`, and `isServerReq` holds the rest;
+    `raftKV` comes from both through `raftKV_server`, and `srvIdsOk`/`raftStatusOk` from its
+    `kvGetOk`. The lemmas are in `client/v3/ServeFromStart.lean`. `grpcCfgOk_of_started` gives
+    `∃ C, grpcCfgOk s C ∗ ⌜C.A = srvKVAns s E ρ γr 0 [] .none ∧ C.E = E⌝`.
+    `etcdGrpcSlots_of_started` gives `N` `etcdGrpcSlot`s from `2 N` slots each of `leadTimeMu`,
+    `lgMu` and `E.RD`, `N` of the store and `N` of the read loop's (`Start`'s). `etcd_kv_started`
+    and `etcd_watch_served_chain` are unchanged.
+    **Premises left to `Main`:** `v3rpc.watchVars`, the package variables `watch.go` reads.
+    They are not among `v3rpc`'s initialization facts (`v3rpcInit`); their natural home is
+    there, as item 8 did for `metricsVars`, a `gen-init.py` change. `v3rpc.runsNoRequireLeader`
+    is a statement about the clients' stream metadata, D19a's first kind.
+    `membership.localKept c` is an axiomatized predicate that nothing produces (unit P3b). As a
+    hypothesis `□ ∀ c, localKept c` it cannot be refuted, but it says nothing about Go, so it
+    needs a decision before the closed theorem: define it from the cluster's members map and
+    prove it for a single-member cluster, or keep it as the closed theorem's named
+    assumption. Also the tracer options' slice (`↦*□`; `Main` passes `nil`).
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
