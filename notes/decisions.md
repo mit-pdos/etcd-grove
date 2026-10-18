@@ -8643,7 +8643,13 @@ the theorem says nothing.
   statement unchanged (its proof adds the facts). The watcher's environment is still fixed at
   `New` (the lock's invariant is stated over it); a client whose server is chosen later would need
   the invariant over an existential environment, not needed here.
-- `rnSnapOnce`: D17d's option (1), planned after PreVote, unchanged.
+- `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
+- **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
+  (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
+  now; their Perennial proposals (D19d's FFI of bound addresses and registered names, D19e's `_lb`
+  form or `pkgInited` witness) are to be made later, independently, and would make both theorems.
+- `clusterLogBound`: the size clauses moved to the apply thread at execution, the txn package's
+  change-count premises replaced by receipts (the user, 2026-10-18; STATUS, D19c's last bullet).
 
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
 conclusion to executions where the bounds hold (they are ghost facts, not observable in the
