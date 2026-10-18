@@ -793,7 +793,7 @@ theorem NewServer.wp_proof
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
       Hrn4 (by rw [Hrn3, Hrn7]) Hrn2)
     iframe Hkvinv Hrli
-    iapply clusterWorkloadOk_of ρ E₀ (W64 0) bootKV
+    iapply clusterWorkloadOk_of ρ E₀
     iframe Hkvinv Hrli HNZ0
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
     [Henv] [Hcmi] [r] [Htrall] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, #Htrf⟩
