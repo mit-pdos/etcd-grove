@@ -5147,7 +5147,11 @@ class quotaLeaseServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_LeaseServer : ∀ (x : quotaLeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"LeaseServer") (PairV #x #y) (Val #(({ x with LeaseServer' := y } : quotaLeaseServer)))
   get_qa : ∀ (x : quotaLeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaLeaseServer.underlying go!"qa") #x (Val #(x.qa'))
   set_qa : ∀ (x : quotaLeaseServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaLeaseServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaLeaseServer)))
+  LeaseRevoke_unfold : MethodUnfold quotaLeaseServer.ty go!"LeaseRevoke" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (StructFieldGet quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r"))))
   ptr_LeaseGrant_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseGrant" quotaLeaseServer.LeaseGrant.impl
+  ptr_LeaseRevoke_unfold : MethodUnfold (go.GoType.PointerType quotaLeaseServer.ty) go!"LeaseRevoke" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaLeaseServer.ty go!"LeaseServer"))) (Var "$r")))))
 
 attribute [instance] quotaLeaseServer.TypeAssumptions.type_repr
   quotaLeaseServer.TypeAssumptions.underlying
@@ -5155,7 +5159,9 @@ attribute [instance] quotaLeaseServer.TypeAssumptions.type_repr
   quotaLeaseServer.TypeAssumptions.set_LeaseServer
   quotaLeaseServer.TypeAssumptions.get_qa
   quotaLeaseServer.TypeAssumptions.set_qa
+  quotaLeaseServer.TypeAssumptions.LeaseRevoke_unfold
   quotaLeaseServer.TypeAssumptions.ptr_LeaseGrant_unfold
+  quotaLeaseServer.TypeAssumptions.ptr_LeaseRevoke_unfold
 
 structure watchServer [FfiSyntax] where
   mk ::

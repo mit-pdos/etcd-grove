@@ -362,7 +362,7 @@ theorem v3rpc.Server.wp_proof
       v3rpc.watchDesc_nodup wsds HwD, ⟨_, rfl, v3rpc.ServerMethodSets.watch_te⟩⟩
     exact v3rpc.ServerMethodSets.watch_impl
   (try wp_auto)
-  wp_apply (hNewL s C.A C.lg0 C.lg C.qb C.mid Hbuq) $$ [Hlr Hbr] as %lv ⟨%ql, %Hlv, Hlr, Hbr⟩
+  wp_apply (hNewL s C.A C.lg0 C.lg C.qb C.mid Hbuq) $$ [Hlr Hbr] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, -, -, Hlr, Hbr⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hlv
   (try wp_auto)

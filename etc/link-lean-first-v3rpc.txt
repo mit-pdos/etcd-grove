@@ -200,6 +200,15 @@ RegisterMaintenanceServer: grpc_Server__RegisterService
 NewMaintenanceServer:
 NewLeaseServer: newHeader zap_NewNop
 NewQuotaLeaseServer: NewLeaseServer newBackendQuota EtcdServer__MemberID
+# The client lease's stage (c), its workload-free half (2026-10-18): lease.go's unary handlers over
+# the server's lease methods, whose triples are the contract `raftLessor s E S` (InvLease.lean, a
+# precondition, as `raftKV`), the quota wrapper's `LeaseGrant` (its `LeaseRevoke` is promoted:
+# QuotaLeaseLemmas.lean), the generated handlers of the Lease service's unary methods.
+LeaseServer__LeaseGrant: togRPCError header__fill
+LeaseServer__LeaseRevoke: togRPCError header__fill
+quotaLeaseServer__LeaseGrant: quotaAlarmer__check
+_Lease_LeaseGrant_Handler:
+_Lease_LeaseRevoke_Handler:
 NewClusterServer: EtcdServer__Cluster
 NewAuthServer:
 healthNotifier__startServe: zap_String zap_Logger__Info health_Server__SetServingStatus grpc_health_v1_HealthCheckResponse_ServingStatus__String
