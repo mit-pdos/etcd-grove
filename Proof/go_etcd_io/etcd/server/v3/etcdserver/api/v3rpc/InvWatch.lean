@@ -11,6 +11,10 @@ histograms: `Observe` returns), `traceutil.Tracer`, `context.Canceled`'s pointer
 progress interval's lock (`progressReportIntervalMu` guarding `progressReportInterval`, kept
 between `10` and `2 ^ 62` nanoseconds: `intervalP`), and the contract of mvcc's names-only
 `ReportEventReceived` (it returns). Assumptions about package initialization, as `v3rpcInit`.
+(D19j, 2026-10-18: all but `io.EOF` are now `v3rpc`'s package facts, `watchPkgVars`,
+`BaseWatch.lean` and `Base.lean`; `ReportEventReceived` is a callee of `sendLoop` with a
+trust-boundary spec, `0 ≤ n`; `io.EOF` (`eofVar`) stays a premise: Perennial's `io` fact does not
+keep it.)
 
 **The server's contract** (`watchSrvOk s E γ wsl`, persistent): the server's KV is the watchable
 store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread's store names
@@ -59,9 +63,6 @@ open go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (watchServer serverWatchStre
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- The progress interval's lock (the package variable `progressReportIntervalMu`). -/
-abbrev intervalMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.progressReportIntervalMu
-
 /-- The server `s` as an interface value (`apply.RaftStatusGetter`, `AuthGetter`). -/
 abbrev srvIface (s : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s
@@ -87,56 +88,6 @@ variable [sem : go.Semantics]
 
 /-! ## The package facts -/
 
-/-- The package variable `g` holds a fixed error whose `Error()` returns (persistent). -/
-def msgErrVar (g : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ errMsgOk e)
-
-instance msgErrVar_persistent (g : GoString) : Persistent (msgErrVar (GF := GF) g) := by
-  unfold msgErrVar errMsgOk; infer_instance
-
-/-- The package variable `g` holds a fixed histogram whose `Observe` returns (persistent). -/
-def histVar (g : GoString) : IProp GF :=
-  iprop(∃ h : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok h ∗
-    □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x))
-      {{ RET #(); True }}))
-
-instance histVar_persistent (g : GoString) : Persistent (histVar (GF := GF) g) := by
-  unfold histVar; infer_instance
-
-/-- **The progress interval** at the fraction `q` (what `progressReportIntervalMu` guards): a
-duration of at least `10` nanoseconds (`GetProgressReportInterval`'s jitter `rand.Int63n(d / 10)`
-needs `d / 10 > 0`) and at most `2 ^ 62` (`d + d / 10` must not wrap:
-`issues/etcd-watch-progress-interval-overflow.md`). -/
-def intervalP (q : Qp) : IProp GF :=
-  iprop(∃ d : w64, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.progressReportInterval)
-      d (DFrac.own q) ∗ ⌜10 ≤ sint.Z d ∧ sint.Z d ≤ 2 ^ 62⌝)
-
-instance intervalP_fractional : Fractional (intervalP (GF := GF)) where
-  fractional q1 q2 := by
-    unfold intervalP
-    constructor
-    · iintro ⟨%d, Hd, %Hb⟩
-      icases (ptsto_frac_add _ _ q1 q2).1 $$ Hd with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists d; iframe; ipureintro; exact Hb
-      · iexists d; iframe; ipureintro; exact Hb
-    · iintro ⟨⟨%d1, H1, %Hb⟩, ⟨%d2, H2, -⟩⟩
-      icombine H1 H2 gives %Hd
-      subst Hd
-      iexists d1
-      isplitl [H1 H2]
-      · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
-      · ipureintro; exact Hb
-
-/-- **mvcc's `ReportEventReceived(n)`** (names only: a metric) returns. -/
-def reportEventOk : IProp GF :=
-  iprop(□ ∀ n : w64, {{ True }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) (Val #n))
-    {{ RET #(); True }})
-
-instance reportEventOk_persistent : Persistent (reportEventOk (GF := GF)) := by
-  unfold reportEventOk; infer_instance
-
 /-- **`io.EOF`** (persistent): a fixed `errors.New` error (a pointer leaf with an `Error()`, of a
 type that implements `error`: `context.isTypedErr`). -/
 def eofVar : IProp GF :=
@@ -146,33 +97,24 @@ def eofVar : IProp GF :=
 instance eofVar_persistent : Persistent (eofVar (GF := GF)) := by
   unfold eofVar errMsgOk; infer_instance
 
-/-- **The package facts `watch.go` reads** (persistent; see the file header). -/
+/-- **The package facts `watch.go` reads** (persistent; see the file header): `io.EOF`
+(`eofVar`) and `v3rpc`'s package facts' part (`watchPkgVars`, D19j: `watchVars_of_init`). -/
 def watchVars : IProp GF :=
-  iprop(eofVar ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrUserEmpty ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.storage.mvcc.ErrEmptyWatcherRange ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherDuplicateID ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ∗
-    (∃ cv : Loc, globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.streamFailures ↦□ cv) ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDuration ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDurationPerEvent ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopControlStreamDuration ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopProgressDuration ∗
-    (∃ tr : GoInterfaceOk, globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr) ∗
-    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxCanceledPtr ∗
-    reportEventOk ∗
-    sync.isRWMutexGuard (hlc := HasLC.hasLC) intervalMu intervalP)
+  iprop(eofVar ∗ watchPkgVars)
 
 instance watchVars_persistent : Persistent (watchVars (GF := GF)) := by
   unfold watchVars; infer_instance
+
+/-- **`watchVars` from `v3rpc`'s package facts and `io.EOF`'s** (D19j, 2026-10-18). -/
+theorem watchVars_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ eofVar ⊢
+      watchVars := by
+  iintro ⟨#Hpkg, #Heof⟩
+  ihave Hi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hi with ⟨-, -, -, -, -, -, -, #Hw⟩
+  iunfold watchVars
+  iframe Heof Hw
 
 /-! ## The server's contract -/
 

@@ -26,7 +26,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 every lease's expiry, registers it with the expiry notifier and schedules its checkpoint, and
 spreads out the expiries of piled-up leases (float arithmetic, a float-to-integer conversion,
 `sort.Sort` of the leases by `Remaining()`, which read-locks each lease's `expiryMu`); it touches
-only the lessor's memory under its lock. -/
+only the lessor's memory under its lock. It indexes the sorted leases' first only when there are
+at least `leaseRevokeRate` of them, which `lessorCfg` makes positive (audit B4b, 2026-10-18: a
+negative rate with no lease panics; until then the configuration's rate was unconstrained). -/
 abbrev lease.lessor.Promote.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗

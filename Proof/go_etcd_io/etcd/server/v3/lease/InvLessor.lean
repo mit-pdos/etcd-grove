@@ -226,14 +226,16 @@ instance clusterOk_persistent (cl : GoInterface) : Persistent (clusterOk (GF := 
 
 /-- **The lessor's configuration** (2026-10-13, unit 9; persistent): the fields `newLessor` sets
 and nothing writes after (`minLeaseTTL`, `checkpointPersist`, `cluster` with its contract,
-`checkpointInterval`, `lg`, `leaseRevokeRate`). -/
+`checkpointInterval`, `lg`, `leaseRevokeRate`, positive: `Promote` indexes the sorted leases'
+first when there are at least `leaseRevokeRate` of them, so a rate below `1` with no lease panics;
+audit B4b, 2026-10-18). -/
 def lessorCfg (lp : Loc) : IProp GF :=
   iprop(∃ (mt : w64) (cpp : Bool) (cl : GoInterface) (ci : _root_.Perennial.time.Duration)
       (lg : Loc) (rr : w64),
     lF go!"minLeaseTTL" lp ↦□ mt ∗ lF go!"checkpointPersist" lp ↦□ cpp ∗
     lF go!"cluster" lp ↦□ cl ∗ clusterOk cl ∗
     lF go!"checkpointInterval" lp ↦□ ci ∗ lF go!"lg" lp ↦□ lg ∗
-    lF go!"leaseRevokeRate" lp ↦□ rr)
+    lF go!"leaseRevokeRate" lp ↦□ rr ∗ ⌜0 < sint.Z rr⌝)
 
 set_option synthInstance.maxHeartbeats 200000 in
 set_option synthInstance.maxSize 1024 in

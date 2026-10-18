@@ -23,7 +23,7 @@ public import Spec.github_com.dustin.go_humanize.Bytes
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmContract
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 
 @[expose] public section
@@ -241,6 +241,12 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   icases kvApplied_log γr.raft γr.kv A x $$ Hka with ⟨Hka, %Hxl⟩
   imod kv_applied_step E γr A m x (kvEntry_len _ _ x m Hok Hlx) $$ Hkvi Hka HAm with ⟨%Hpe, Hka⟩
   obtain ⟨Hpe, Hxch, Hoff⟩ := Hpe
+  -- the start's chain (D19k: no NOSPACE outcome there)
+  ihave #Hkvi'' := Hkvi
+  iunfold srvKVInvs at Hkvi''
+  icases Hkvi'' with ⟨#HkI, -, #HrI, -⟩
+  imod kv_log_plain γr.raft γr.kv (A ++ [m]) $$ HkI HrI HAm with %Hpc0
+  have Hch0 := Hpc0.2
   ihave ⟨Hka, #Hkc⟩ := kvAppliedL_cert _ _ _ _ $$ Hka
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
@@ -571,13 +577,20 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Perrs
       icases Hei with ⟨⟨%ens, #Hens, %Hensp⟩, -⟩
+      -- D19k: the result's error is not `ErrNoSpace`'s (a plain request at the start's chain),
+      -- so `errors.Is(ar.Err, ErrNoSpace)` is `false` and the NOSPACE alarm branch is dead
+      ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Papp
+      icases Hai with ⟨-, -, #Hev⟩
+      ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpace rq x x' ar out (Hpe Htyp hdata rq hdec)
+        (Hxch.trans Hch0) Hstep $$ Hev HRes
+      icases Hnn with (%Hn0 | ⟨%err', #Herr', #Hnn⟩)
+      · exact absurd Hn0 Har0
+      icombine Herr Herr' gives %Heq
+      subst Heq
       (try wp_auto)
-      ihave #HerrT := applyErrIs_tree err $$ HerrIs
-      ihave ⟨%S, %M, #Htree, %HS⟩ := HerrT $$ %(GoInterface.ok ens)
-      wp_apply hIs S M err (GoInterface.ok ens) (fun tii h => by cases h; exact Hensp)
-        (HS.2 (fun tii h => by cases h; exact Hensp))
-        $$ [$Htree] as %isns -
-      · ipureintro; exact HS.1
+      wp_apply (wp_Is_notNoSpace hIs err ens Hensp) $$ []
+      · iframe #
       iunfold waitInv at Hwok
       icases Hwok with ⟨%RD0, Hwok⟩
       iunfold isWait at Hwok
@@ -596,93 +609,17 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       -- the caller's certificate of the log after (unit W-M3)
       ihave #Hcx' : iprop(mvcc.certOk E.γ x'.log) $$ []
       · rw [hl']; iapply kvCert_certOk γr.kv E.γ Hcok $$ Hkc
-      cases isns
-      · -- not `ErrNoSpace`: hand the result to the waiter
-        (try wp_auto)
-        rw [Hwi]
-        (try wp_auto)
-        (try dsimp only)
-        ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-        wp_apply HT $$ [HRes HTr HMint]
-        · trig
-        (try wp_auto)
-        tail_any
-      · -- `ErrNoSpace`: raise the alarm unless it is raised already
-        (try wp_auto)
-        wp_apply hAG fv.alarmStore _ as %sl -
-        · iexact Halm
-        wp_if_destruct
-        · -- raised already: hand the result to the waiter
-          rw [Hwi]
-          (try wp_auto)
-          (try dsimp only)
-          ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
-            go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-          wp_apply HT $$ [HRes HTr HMint]
-          · trig
-          (try wp_auto)
-          tail_any
-        · wp_apply hLg s fv.lg $$ [Hlr] as ⟨%Hlg0, Hlr⟩
-          · iframe Hlg Hlr; ipureintro; exact Hlgnn
-          (try wp_auto)
-          wp_apply hZI _ _ as %f1 -
-          wp_apply hHB _ as %qs -
-          wp_apply hZS _ _ as %f2 -
-          (try wp_auto)
-          wp_apply hZE _ as %f3 -
-          (try wp_auto)
-          wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
-          isplitr
-          · ipureintro; rfl
-          iintro %fsl ⟨-, -⟩
-          (try wp_auto)
-          wp_apply hW fv.lg _ _ $$ []
-          · ipureintro; exact Hlg0
-          (try wp_auto)
-          -- the alarm goroutine (`GoAttach`): it proposes the alarm (the trust-boundary
-          -- contract `EtcdServer.raftRequestAlarm`, `AlarmContract.lean`) and hands the result to
-          -- the waiter (the trigger's premise is its precondition)
-          iunfold srvGoRes at Hgr
-          icases Hgr with ⟨Hwr, Htok⟩
-          iunfold srvWgReader at Hwr
-          icases Hwr with ⟨%γg, #Hgok, Hrd⟩
-          ihave #Hgok' := Hgok
-          iunfold srvGoAttachOk at Hgok'
-          icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, #Hctx, -, -⟩
-          ihave HTP : iprop(waitTrig (reqWaitR ρ E) id (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [HRes HTr HMint]
-          · trig'
-          ipersist s
-          ipersist id
-          ipersist ar
-          wp_func_lits
-          wp_apply hGA s _ iprop(waitTrig (reqWaitR ρ E) id (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [Hrd Htok Hlr HTP]
-            as ⟨Hgr, Hlr⟩
-          · iframe Hlr HTP
-            isplitl [Hrd Htok]
-            · iunfold srvGoRes; iframe Htok; iunfold srvWgReader; iexists γg; iframe Hgok Hrd
-            iintro !> %Φ' HTP HΦ'
-            wp_auto
-            wp_apply hMID s fv.memberID $$ []
-            · iframe #
-            wp_apply (EtcdServer.raftRequestAlarm.wp_proof s γ ci TM E ρ γr gc «$a1_ptr») $$ [«$a1»]
-              as %resp %err' -
-            · iframe #; iexists _; iexact «$a1»
-            (try wp_auto)
-            rw [Hwi]
-            (try wp_auto)
-            (try dsimp only)
-            ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-            wp_apply HT $$ [HTP]
-            · iright; iexact HTP
-            (try wp_auto)
-            iapply HΦ'
-            itrivial
-          (try wp_auto)
-          tail_any
+      -- not `ErrNoSpace` (D19k: `errors.Is` answered `false`): hand the result to the waiter
+      (try wp_auto)
+      rw [Hwi]
+      (try wp_auto)
+      (try dsimp only)
+      ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
+      wp_apply HT $$ [HRes HTr HMint]
+      · trig
+      (try wp_auto)
+      tail_any
 
 end proof
 

@@ -21,10 +21,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `WarnOfFailedRequest(lg, now, req, resp, err)` logs the failure: it returns. -/
+/-- `WarnOfFailedRequest(lg, now, req, resp, err)` logs the failure: it returns. The logger and
+the stringer as `WarnOfExpensiveRequest`'s (audit B4b, 2026-10-18). -/
 abbrev txn.WarnOfFailedRequest.spec : Prop :=
   ∀ (lg : Loc) (now : time.Time) (req resp err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+      (∃ (sp p : Loc), ⌜req = interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.ty) #sp ∧ p ≠ null⌝ ∗
+        sp ↦ (go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.mk p)) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest)) (Val #lg)) (Val #now))
       (Val #req)) (Val #resp)) (Val #err))
   {{ RET #(); True }}

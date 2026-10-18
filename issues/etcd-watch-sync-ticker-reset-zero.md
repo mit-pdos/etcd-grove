@@ -1,14 +1,16 @@
 ---
 upstream: known
-checked: 2026-10-16
+checked: 2026-10-18
 links:
   - etcd-io/etcd#22296 issue open: same bug (time.Since zero on Windows' coarse monotonic clock, Ticker.Reset panics); no maintainer response
-  - etcd-io/etcd#22297 pr open: same bug, fix
+  - etcd-io/etcd#22297 pr open: same bug, fix (`resyncDelay`); comments question the impact and prefer a clamp; cherry-picked into the fork as 5615016f6 (D19l)
 ---
 
 # server/storage/mvcc: `syncWatchersLoop` resets its ticker with a zero duration, a panic
 
-- **Status**: open (not filed; no fix branch yet).
+- **Status**: a bug (a reachable panic on a coarse monotonic clock). **Fixed in the fork**
+  (D19l, 2026-10-18): etcd-io/etcd#22297 cherry-picked with its test (`TestResyncDelay`) onto
+  `upamanyus/etcd` `goose-lean` as `5615016f6` (etc/goose.py's etcd pin since then).
 - **Where**: `server/storage/mvcc/watchable_store.go` at bc8b52a50 (`etc/goose.py`'s etcd pin),
   `watchableStore.syncWatchersLoop` (`watchable_store.go:224-258`): after a sync pass it takes
   `syncDuration := time.Since(st)` (line 240) and, when the pass made progress but left watchers
@@ -61,11 +63,12 @@ links:
 - **Expected**: the loop re-arms the ticker with the sync duration, or the default period when
   the duration is not usable; a zero duration is a valid reading of a clock.
 - **How the proof handles it**: `Spec/time/Ticker__Reset.lean` requires a positive duration (as
-  Go documents), and `Spec/time/Since.lean` assumes `time.Since` returns a positive duration —
-  an explicit, documented clock assumption (an axiom of this repository, in the mvcc collection);
-  under it `watchableStore.syncWatchersLoop` (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/
-  watchableStore__syncWatchersLoop.lean`) is panic-free. Without it the call is not provable, which
-  is how the finding surfaced.
+  Go documents). Until D19l a local axiom (`Spec/time/Since.lean`) assumed `time.Since` returns a
+  positive duration, which made `watchableStore.syncWatchersLoop` provable at the upstream code;
+  without it the call is not provable, which is how the finding surfaced. Since D19l the proof is
+  of the fork's fixed code: `resyncDelay` (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/
+  resyncDelay.lean`) returns a positive duration for any `syncDuration`, the loop uses Perennial's
+  `time.wp_Since` (any duration), and the local axiom is gone.
 - **Possible fixes**: `if syncDuration > 0 { delayTicker.Reset(syncDuration) }` (keeping the
   period just set), or `delayTicker.Reset(max(syncDuration, time.Millisecond))`.
 - **Found**: 2026-10-12, by the proof of `syncWatchersLoop` (the watchable store, unit 3b).

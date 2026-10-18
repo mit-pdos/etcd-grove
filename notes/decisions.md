@@ -8874,6 +8874,9 @@ the theorem says nothing.
     requests, whose answers are exact), (ii) Perennial's `errors.Is` spec and a lemma that none
     of those errors `Is` `ErrNoSpace`, (iii) at a `kvExact` chain no outcome is a NOSPACE one
     (`.rejected .noSpace`, `.applied _ true`); then the branch is dead.
+    **The unit, stopped (2026-10-18): D19k.** (i) and (iii) hold up, and (ii)'s `errors.Is`
+    spec is local, not Perennial's. But (ii)'s lemma needs the error variables told apart
+    (`ErrNoSpace`'s pointer differs from the backend errors'), which no package fact gives.
   - *Carried out (2026-10-18, after clusterLogBound and rnSnapOnce landed).* (a):
     `NewServer.spec` takes `"#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd`
     (now in `InvBuild.lean`); its postcondition no longer has `etcdKV`, and `NewServer.lean`
@@ -9069,6 +9072,26 @@ the theorem says nothing.
       a `clusterVersionChanged` notifier reader, a logger slot, `isRaftCluster`, and the WAL's
       persistent contract (`UnsafeMigrate` reads `s.r.storage` for a downgrade's check).
       *Recommendation:* (i). The axiom stays as it was (false: it writes without resources).
+    - **(i) adopted (the user, 2026-10-18) and carried out.** No split was needed: `srvWTPool` is a
+      persistent invariant counting all the receipts spent on it, so the monitor draws from the
+      apply thread's pool as `apply` does (`srvWTPool_take`: a fresh receipt gives a token). The
+      contract (`EtcdServer.monitorStorageVersion.spec`, still a trust-boundary axiom: names-only)
+      takes `isServerReq s E ρ ∗ srvSVRes s E.γ ∗ srvWTPool E.γ`, where `srvSVRes`
+      (`InvStorageVersion.lean`) is: `E.γ.kb = some d`, `s.be ↦□ d.be` (the backend for good),
+      a `bemu` reader slot, `isBackend d.γB d.P (lateW d.gx) Pk d.be`, a read token with an open
+      share (`mvcc.bkRTx`: `StorageVersion()`'s `ReadTx` and `LockOutsideApply`'s open share),
+      and an `lgMu` reader slot. Threading: `NewServer` makes `srvSVRes` (one more `bemu`, `lgMu`
+      and store-reader slot of the leftovers; the read token from the store reader's `storeRT`)
+      and returns it in its post; `Start` takes it, and `start`'s post gives the pool back
+      (allocated there as before). `s.be ↦□`: `bemuP s q` now holds the field at `q.half`, and
+      `NewServer` persists the other half before `bemu`'s `init_RWMutex` (nobody in the model
+      writes `s.be`: `applySnapshot`'s backend swap is outside it). Not in the contract, as for
+      the other monitors (`notes/audit.md`'s "suspect (minor)"): the reads of `s.cluster`
+      (named by `isServerReq`), `s.clusterVersionChanged`, `s.stopping` and the WAL's
+      `MinimalEtcdVersion` (a downgrade's check). Rejected: a separate pool for the monitor
+      (another `N` tokens from `wbInit`'s leftover and a stronger `bootstrap` budget premise, for
+      nothing the shared pool lacks); `bemuP` fixing the backend as a parameter (every holder of
+      `srvBemuReader` would change).
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
@@ -9081,6 +9104,10 @@ the theorem says nothing.
 - `NewServer.spec`'s two gaps found by item 9's point 7 (`kvInv` in place of the owned `rLog`; the
   post extended for `v3rpc.Server`'s `grpcCfgOk` and slots): adopted (the user, 2026-10-18), one
   round after `clusterLogBound` and `rnSnapOnce` land.
+- D19l and D19m: every recommendation adopted (the user, 2026-10-18). Sequenced: the fork fixes
+  (D19l (i) `Reset`, (ii) `AuthInfoFromTLS`) as one batch with one re-translation; D19l (iii) the
+  per-vector label facts after D19k (both edit `gen-init.py`); D19l (v) and D19m's four after D19i
+  part 1 lands (it touches `run` and raft); D19l (iv) in phase C.
 
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
 conclusion to executions where the bounds hold (they are ghost facts, not observable in the
@@ -9190,6 +9217,322 @@ must still meet, which it can only do from (1)'s statements. **Recommended: (1)*
 statements being of the same kind as the existing `<X>_init` axioms and true of Go (prometheus
 constructors return their collectors; `io.EOF = errors.New("EOF")`). Waiting for the user.
 
+## `raftRequestAlarm`'s dead branch needs the error variables told apart: stopped (D19k, 2026-10-18)
+
+The task (the user, 2026-10-18): D19h's last step. Under `apply.backendUnderQuota` Go never takes
+`applyEntryNormal`'s `ErrNoSpace` branch, so the model should show it dead and
+`EtcdServer.raftRequestAlarm` should leave the trust base. Stopped before any Lean change. D19h's
+three steps checked against the code:
+
+* **(ii) `errors.Is`: no Perennial change needed.** Perennial's `errors.Is.spec`
+  (`Perennial/Spec/errors/Is.lean`) already has the strong postcondition: `err == target` when
+  either is `nil`, and, for a non-`nil` `err` and a pointer target, `true` only if some error of
+  the tree is the target or an `Is` method said so. The weak spec is ours: `Spec/errors/Is.lean`
+  returns `RET #b; True`, and `Proof/errors/Is.lean` drops Perennial's facts. Restating it with
+  Perennial's postcondition is a local change.
+* **(i) the workload: narrowing is the smaller change.** The verified proposers send only puts,
+  deletes and transactions (`EtcdServer.Put`/`DeleteRange`/`Txn`) and the monitors'
+  `ClusterMemberAttrSet`/`ClusterVersionSet` (`monitorReq`). `plainReq`'s `_ => True` also admits
+  the auth requests, `Authenticate`, `AuthStatus`, the downgrade requests, `LeaseCheckpoint` and
+  `Range`, and the auth requests' answers say only `applyErrIs`. Narrowing `plainReq` to the
+  KV, cluster and downgrade kinds with `needAdminPermission rq = false` (so `monitorReq` gains that
+  clause, which the monitors' concrete requests meet) stays inside the server's KV files:
+  `plainReq` is used only there.
+* **(iii) the chain: provable.** `kvApplied` keeps `x.chain = γk.ch0 = alarmChain false false
+  false`, so the chain has no capped or corrupt layer and auth is off. Then no outcome is
+  `.rejected .noSpace`, `.corrupt` or `.auth`, and no applied outcome has `ns = true`: the quota
+  layer is the identity and the backend's outcomes carry `false`. So `ar.Err` is `nil` or one of
+  the backend's errors: for a put `ErrLeaseNotFound`/`ErrKeyNotFound` (`putOutcomeIs`); for a
+  transaction `checkErrIs` (those two, mvcc's `ErrFutureRev`, `ErrCompacted`); for a range `nil`
+  or `ErrFutureRev`.
+
+**The gap: nothing tells the error variables apart.** The backend's errors are leaf
+`*errorString`s, so `errors.Is(e, ErrNoSpace)` is `e == ErrNoSpace`, and showing it `false` needs
+`e`'s pointer to differ from `ErrNoSpace`'s. No fact gives that. Each package fact says only
+that a variable holds *some* `*errorString` `x` whose `Error()` returns its message
+(`errorsNewVar`, `leaseErrVar`, the postcondition of Perennial's `context.wp_New_errorString`).
+In the model two variables may hold the same `x`, and the `Error()` triples do not rule it out.
+In Go each `errors.New` allocates a fresh `errorString`. D19h's "a lemma that none of those errors
+`Is` `ErrNoSpace`" cannot be proved from the present facts.
+
+**Options.**
+* **(A) Carry `errors.New`'s field in the facts** (no new axiom). Perennial's `wp_New_errorString`
+  already persists the `errorString.s` cell in its proof (`ipersist s`); its postcondition drops
+  it. The change:
+  - `errorsNewVarInit`/`errorsNewVar` (`Proof/errors/NewVar.lean`) carry `s ↦□ msg` for `x`, so
+    `etcdserver/errors`' `errorsNewVarsInit` (and bbolt's, which share the abbreviation) are
+    restated stronger and stay true of Go;
+  - `lease`'s and `mvcc`'s initializers, which call Perennial's `wp_New_errorString`, get a local
+    variant that returns the cell, and the general fix (the postcondition with `s ↦□ msg`) is
+    proposed to Perennial;
+  - `leaseErrVar` carries the cell;
+  - the apply package's `applyErrVars` gains "`ErrNoSpace`'s error is none of `ErrKeyNotFound`'s,
+    `ErrLeaseNotFound`'s, `ErrFutureRev`'s, `ErrCompacted`'s", proved from the different messages
+    (two `↦□` at one cell agree).
+
+  These Init files are generated, so this is an `etc/gen-init.py` change. Then (i)-(iii) above,
+  the branch is dead, and `AlarmContract.lean` and its axiom go. Cost: one unit. It collides with
+  the `gen-init.py` work now uncommitted in the shared worktree (`gen-init.py`, `apply/Init.lean`,
+  `mvcc/Base.lean`), so it should come after that work lands.
+* **(B) A workload whose answers carry no error.** Puts and transactions without ignore flags
+  (`txn.needsPrev` false) and without failing checks, so every admitted answer's error is `nil` and
+  Perennial's nil clause gives `false`. No init change. But the client's `Put` with
+  `IgnoreValue`/`IgnoreLease` and such transactions leave the verified workload: `putPermit`,
+  `txnPermit` and the v3rpc and client specs above them narrow. That is a loss of coverage D19h
+  did not intend. Also `checkErrIs` would have to be made exact for plain transactions.
+* **(C) Keep the axiom, restated true of Go.** It would be stated for the one request the
+  goroutine proposes, `{Alarm: ACTIVATE NOSPACE}`. That request still enters the log, which the KV
+  model excludes (`plainReq` is `False` for `.alarm`), so this needs D19h's option (A), modeling
+  the alarm. Several units.
+
+**Recommended: (A)**, once the `gen-init.py` edits in progress have landed. It is the same kind of
+statement as the existing `<X>_init` axioms, made more exact about the Go line they describe.
+**Adopted by the user (2026-10-18): (A), to start once D19j (`watchVars`, `gen-init.py`) lands.**
+
+**Carried out (2026-10-18).**
+- **The cells.** `Proof/errors/NewVarCell.lean` adds:
+  - `errStrCell x msg` (`x.s ↦□ msg`);
+  - `errorsNewVarInitC`, `errorsNewVarInit` with the cell. The two `errorsNewVarsInit` axioms
+    are now stated with it, still true of Go;
+  - `errVarCell X msg` (the variable's pointer and its cell) and `errVarCells`;
+  - `errVarApart g h` (the two variables hold different errors) and `errVarApart_of`
+    (different messages give it: two `↦□` at one cell agree);
+  - `wp_New_errorString_cell`, Perennial's `context.wp_New_errorString` keeping the cell (the
+    general fix to propose to Perennial: its postcondition with `s ↦□ msg`).
+- **The facts.** The packages' facts carry the cells they need: `errorsInit` (`errVarCells
+  errorsMsgs`), `leaseInit` (`ErrLeaseNotFound`'s), `mvccInit` (`ErrCompacted`'s,
+  `ErrFutureRev`'s), each appended last. `applyErrVars` gains `errVarApart ErrNoSpace` of
+  `ErrKeyNotFound`, `ErrLeaseNotFound`, `ErrFutureRev`, `ErrCompacted`, proved by the
+  generated `apply/Init.lean`. All of it goes through `gen-init.py`.
+- **`errors.Is`.** `Spec/errors/Is.lean` now has Perennial's postcondition.
+- **The workload.** `plainReq` keeps the KV writes and the monitors'
+  `ClusterVersionSet`/`ClusterMemberAttrSet`, with `needAdminPermission` false; `monitorReq`
+  gains that clause. `plainReq_of_kind` takes the auth fields too.
+- **The proof.** `NoSpaceDead.lean` shows:
+  - `dispatchStep_start`: at the start's chain a plain request's outcome is the backend's
+    rejection or applied without `ErrNoSpace`;
+  - `applyResultIs_notNoSpace`: the result's `Err` is `nil` or a leaf other than
+    `ErrNoSpace`'s;
+  - `wp_Is_notNoSpace`: then `errors.Is` answers `false`.
+
+  `applyEntryNormal` takes the start's chain from `kv_log_plain` and calls `wp_Is_notNoSpace`;
+  the alarm branch is gone from its proof. Its callees in the link are unchanged (the Go code
+  calls them; the proof does not need them). `EtcdServer.raftRequestAlarm` and
+  `AlarmContract.lean` are removed: one axiom fewer.
+
+## Audit B4b: the latent axioms and premise gaps restated; ten stopped for a decision (D19l, 2026-10-18)
+
+Phase B4, part b (`notes/audit.md`, the Plan): the axioms false only in an instance no proof uses
+(latent) and those missing a premise every caller meets (premise gaps). Each restated true of Go
+by a premise its callers discharge, or a postcondition weakened. **Done** (the audit's rows say
+how): `strconv.FormatUint` (base `2..36`), `monitorFileDescriptor` (`lg ≠ null`),
+`storage.BackendQuota.Cost` (a non-nil request), `txn.WarnOfExpensiveRequest`/`WarnOfFailedRequest`
+(the logger and the uber-applier's stringer, of a non-nil request), `addFeatureGateMetrics`
+(`isFeatureGate`), `lease.lessor.Promote` (a positive `leaseRevokeRate` in `lessorCfg`, from
+`NewLessor` of a non-negative one, restated), `mvcc.hashStorage.Store` (`hashStorageOk`, a
+non-nil logger, from `NewHashStorage`, kept in `isStore`), `mvcc.kvHasher.WriteKeyValue`/`Hash`
+(`kvHasherOk`, opaque as the type, from `newKVHasher`, restated, and `bucketKeyOk` of the key),
+`bbolt.DB.Info_kv` (a live transaction of the database), `bbolt.Bucket.Cursor_kvw` (`ownWTx` comes
+back only with the cursor). (`grpc.ClientConn.NewStream`, the twelfth latent one, is fixed by the watch session on `lean`,
+`ba511d61f7`: left to it.)
+
+**Stopped** (options below; nothing changed in Lean for them):
+
+**(i) `time.Since`** (`Spec/time/Since.lean`: `0 < d`). The audit's suggested fix, `0 ≤ d`, is
+not true either for an arbitrary `t` (a `t` without a monotonic reading, or a later one, gives a
+negative duration), and it breaks `syncWatchersLoop`, whose `delayTicker.Reset(syncDuration)`
+panics on `0`: the Go hazard of `issues/etcd-watch-sync-ticker-reset-zero.md` (upstream
+etcd-io/etcd#22296). Perennial's time model has no monotonic clock (`runtimeNano` arbitrary), so
+its proved `time.wp_Since` gives any duration (the local axiom is false in that model too).
+- *(A) A named run premise* `time.clockAdvances` (opaque: "every `time.Since` of the run returns a
+  positive duration"; etcd calls it only on earlier `time.Now()` results), a premise of the axiom,
+  as a hypothesis class in gen-link's `SEM_PREMISES` (`[ClockAdvances]`: every result reaching
+  `syncWatchersLoop` takes it, up to `wp_NewServer` and the closed theorem; cheap) or a
+  precondition threaded `syncWatchersLoop` → `mvcc.New` → `NewServer.spec` (as
+  `backendUnderQuota`). `scheduleCompaction` and the other callers move to Perennial's proved
+  `time.wp_Since`. Loss: a premise false on a coarse clock, the very hazard filed.
+- *(B) A local monotonic clock*: a persistent `nowStamp t` from a local `time.Now` axiom, `Since`
+  of a stamped `t` at least `0` (true of Go), and (A)'s premise only for `syncWatchersLoop`'s
+  positivity. Two or three new axioms; callers switch from Perennial's `wp_Now`.
+- *(C) The fork carries the upstream fix* (`Reset` only for a positive `syncDuration`), as raft's
+  read-index fix and D19i part 2: then Perennial's `time.wp_Since` suffices, the axiom goes, no
+  premise. A retranslation (`etc/goose.py`) and a small change to `syncWatchersLoop`'s proof.
+- *(D) Perennial* (separately): a monotonic clock in the time model; (B) without local axioms.
+- *Recommendation:* (C); (A) with the class if the fork should stay at upstream's code.
+
+**(ii) `auth.authStore.AuthInfoFromTLS`** (any context; Go panics on a peer whose `AuthInfo` is
+not a `credentials.TLSInfo`: `issues/etcd-auth-tls-info-assert.md`). Its caller is the server's
+request contract (`isReqAuth`'s `AuthInfoFromTLS` clause, `AuthReqDerive.lean`), for any context.
+- *(A) A deployment premise* (opaque "etcd's gRPC servers are built with TLS credentials or
+  none", so a handler's peer has no `AuthInfo` or a `TLSInfo`), as a class (gen-link
+  `SEM_PREMISES`) or threaded through `isReqAuth`'s users (v3rpc's handlers) to `v3rpc.Server`.
+- *(B) In grpc's model*: the serving axioms give each handler context a persistent fact of its
+  peer's `AuthInfo` type, from the server's credentials (`grpc.NewServer`'s options);
+  `isReqAuth`'s clause takes it. Larger (grpc's server-side axioms, v3rpc's handlers).
+- *(C) The fork fixes the assertion* (`, ok :=`), the issue's proposed fix: the axiom true as
+  stated.
+- *Recommendation:* (C), else (A).
+
+**2026-10-18 · (i) (C) and (ii) (C) carried out (approved by the user), one fork batch.** The
+fork's `goose-lean` gains two commits on `06aa6e6e7` (local branch `goose-lean-d19l` of
+`/shared/etcd`, worktree `/shared/etcd-fork-d19l`; not pushed): `5615016f6`, etcd-io/etcd#22297
+cherry-picked with its test (`resyncDelay(syncDuration, last, now)`: the duration when the pass
+made progress with watchers left and it is positive, else `watchResyncPeriod`), and `17c88a667`,
+`AuthInfoFromTLS`'s two-result assertion (`nil` for a non-TLS peer) with the issue's
+reproduction as a test (it panics without the fix). `etc/goose.py`'s pin and putget's
+`go.mod`/`go.sum` follow (`v3.0.0-20261018175554-17c88a6678c3`); `mvcc.toml` translates
+`resyncDelay` with its body. The translation changes only `syncWatchersLoop` (the two `Reset`s
+become one `Reset(resyncDelay(...))`) and adds `resyncDelay` (plus source line numbers).
+- (i): `resyncDelay` proved (`Proof/.../mvcc/resyncDelay.lean`: its exact result, positive for any
+  `syncDuration`); `syncWatchersLoop` and `store.scheduleCompaction` use Perennial's
+  `time.wp_Since` (any duration); the local `Spec/time/Since.lean` and its axiom
+  `time.Since.wp_proof` are deleted (one axiom fewer; the mvcc, mvcc-compaction and server
+  collections lose it).
+- (ii): `AuthInfoFromTLS`'s axiom unchanged in statement (any context), now true of the fork's
+  code; only its doc comment changes. No caller changes.
+
+**(iii) prometheus `CounterVec.WithLabelValues`, `GaugeVec.WithLabelValues`,
+`HistogramVec.WithLabelValues`, `GaugeVec.With`** (Go panics on a label count other than the
+vector's, or a value that is not UTF-8). Nothing states a vector's label names today: the vectors
+are package variables built by untranslated initializers (`prometheus.NewCounterVec(opts,
+[]string{...})`).
+- *(A) A per-vector fact* `promVecLabels v ls` (persistent, an initialization fact of each
+  package's metric variables, `etc/gen-init.py`'s `SPECIAL`, trust-boundary axioms on the
+  initializers as now), and the four specs taking `lvs ↦*□ vs ∗ ⌜vs.length = ls.length ∧ ∀ v ∈ vs,
+  utf8Valid v⌝` (`With`: the map's keys `ls`). Nine call sites discharge it: constants (decidable),
+  ids and versions formatted by `strconv`/`fmt` (UTF-8 by construction), the client's API
+  version (v3rpc's interceptor checks `utf8.ValidString`, `interceptor.go:63,234`).
+- *(B) Per-vector axioms*: each spec restated for the global vector its callers use, with the
+  arity written in the axiom (`clientRequests`: 2, ...), and the UTF-8 premise. No init facts;
+  the arity checked by reading the initializer (trusted).
+- *Recommendation:* (A), after D19j's `gen-init.py` work lands (it edits the same script); the
+  call sites are in v3rpc (D19j's files) and the server's request path.
+
+**(iv) `backend.wBkt`, `wBkt_persistent`, `bbolt.Tx.DeleteBucket_kv`** (a persistent handle
+outlives `DeleteBucket(n)`; after `CreateBucketIfNotExists(n)` the old handle, whose `nodes` bbolt
+set to `nil`, passes `Put_kv`'s premises, and Go panics). A persistent fact cannot be revoked, so
+the fix is in what `ownWTx` records.
+- *(A) Generations*: `wBkt tx b n g`, `ownWTx` holding each bucket's current generation (a ghost
+  map `n ↦ g` in the model); `DeleteBucket` bumps it, `Put`/`Delete`/`Cursor_kvw` need the
+  current one. Every bbolt spec and backend proof that names `wBkt` (about 30 files).
+- *(B) Deleted names*: `ownWTx tx γ D S X` with `X` the names deleted in this transaction;
+  `CreateBucketIfNotExists_kv` requires `n ∉ X`, `DeleteBucket_kv` adds `n`. With
+  `S.lookup n = none` after the delete, no old handle passes `Put_kv`'s premise, and the name
+  cannot come back in that transaction (no verified proof deletes a bucket and re-creates it);
+  the same files as (A), a smaller change.
+- *(C) Keep, as now* (latent: no proof deletes and re-creates).
+- *Recommendation:* (B), in phase C with the bbolt model (`notes/audit.md`, Plan).
+
+**(v) `mvcc.store.restore`** (a `meta` bucket with a finished or scheduled compaction makes Go set
+`compactMainRev`/`currentRev` otherwise and call `compactLockfree`; the spec fixes only the `key`
+bucket). The store's backend contract (`isKeyBackendG`) does not model the `meta` bucket's
+compaction keys, so no caller can state their absence.
+- *(A) Model them*: the backend contract gains the compaction keys' view (the one
+  `UnsafeSetFinishedCompact`/`UnsafeSetScheduledCompact` write), and `NewStore`'s precondition
+  their absence, from the bootstrap's fresh backend (`bootOk`, `bkFresh`-like per key).
+- *(B) A named premise* (opaque `mvcc.metaNoCompaction`: "the backend `NewStore` opens records no
+  compaction"), a premise of the axiom threaded `NewStore` → `mvcc.New` → `NewServer.spec`, as
+  `backendUnderQuota` (true of putget's fresh data directory).
+- *(C) `restore` of a backend with data* (the index rebuilt): the general case, large.
+- *Recommendation:* (B) now (one premise on three specs), (A) with phase C's backend model.
+
+**Found on the way, not fixed:** `apply.isQuota` (which `storage.NewBackendQuota`'s axiom gives)
+has `Cost`'s nil-request gap in both its clauses (`Available` calls `Cost`): its callers
+(`quotaApplierV3`'s `Put`/`Txn`/`LeaseGrant`) hold non-nil request facts, but
+`v3rpc.quotaAlarmer.check`'s spec takes any `r`, so the premise would thread into v3rpc's quota
+servers (D19j's files). A premise gap of the same kind, left for a later round.
+
+## Audit B4a: the false etcd-internal axioms putget does not reach (D19m, 2026-10-18)
+
+**2026-10-18 · four restated (taken: each true of the Go code at the pin), four stopped for a
+decision (proposed).** Audit phase B4, part a (`notes/audit.md`): the eight false etcd-internal
+axioms off putget's Go path.
+
+- **Taken: the hash and downgrade monitors restricted to the configuration that turns them off.**
+  `monitorKVHash` (`CorruptCheckTime ≠ 0`) and `monitorCompactHash` (`CompactHashCheck` on) would
+  read the backend and may propose `Alarm{CORRUPT}`, which the KV model does not admit (an alarm is
+  not `plainReq`: the same obstacle as `raftRequestAlarm`, D19h/D19k); `monitorDowngrade`
+  (`DowngradeCheckTime ≠ 0`) may propose `DowngradeInfoSet`, which no permit covers. Giving them
+  resources would need those requests in the model; putget's configuration leaves all three off
+  (zero intervals, the feature at its default `false`), so each contract now takes the fact under
+  which the body returns at once: the interval's field `↦□ 0`, or the feature gate's
+  `featureIs fg "CompactHashCheck" false` (a new persistent contract of the gate,
+  `features/Defs.lean`, which `NewDefaultServerFeatureGate`'s trust-boundary spec now also
+  returns: the gate is not shared and nothing sets a feature, the argument its spec already made
+  for `isFeatureGate`); `monitorDowngrade` also a reader slot of `lgMu` and the logger field
+  (`NewMonitor(s.Logger(), …)` comes before the check). Threading: `NewServer`'s post gains
+  `srvMonitorCfg s cfg` (the two fields and the gate field at `cfg`'s values, one more `lgMu`
+  slot); `Start`'s pre gains `srvMonitorsOff s ∗ srvLgReader s`, which `srvMonitorsOff_of` gives
+  from `srvMonitorCfg` for a configuration with both intervals `0` and the gate's `featureIs`
+  (`InvMonitors.lean`; Main's proof, still to come, discharges it from putget's literal and
+  `NewDefaultServerFeatureGate`). Rejected: a pure premise on `cfg` alone (the feature's answer is
+  the gate's, not the configuration's); keeping the monitors' contracts unrestricted with a
+  workload premise "no corruption, no downgrade" (a premise where a configuration fact does).
+- **Taken: `RaftCluster.SetVersionChangedNotifier` with the field owned.** It writes
+  `c.versionChanged` without the lock; the contract takes the field's points-to and returns it at
+  `n`. `bootstrap`'s contract (`bootOk`, a premise, D13b) gives the field owned (`Hvcn`: the
+  cluster is not yet shared; fresh, D19a), `NewServer` persists it after the call, and the
+  cluster's apply contract `Hisc` (whose `SetVersion` reads the field under the lock) now takes
+  the read-only field as a premise, so a model of `bootstrap` can prove both (`SetVersion`'s own
+  truth, its notifier's `Notify` among it, stays that contract's row).
+- **Stopped: `EtcdServer.revokeExpiredLeases`.** For a non-empty slice its goroutine proposes
+  `LeaseRevoke`, which the KV model does not admit (`plainReq` excludes `leaseRevoke`; a revoke
+  deletes the lease's keys); even an empty slice calls `ensureLeadership` (the read loop's
+  `LinearizableReadNotify`, `raftStatus`, the tick mutex). `run`'s proof passes it whatever
+  `expiredC` delivers (a bag with predicate `True`, `lessorOk`). In the model no lease ever
+  exists (`plainReq` excludes `leaseGrant` and puts with a lease, the lease bucket is fresh:
+  `bootOk`'s `bkFresh "lease"`), and in Go the lessor sends only non-empty slices of its expired
+  leases, so the receive is dead -- but nothing says so. Options: *(A)* the lessor's map in the
+  model: `NewLessor`'s contract (names-only `runLoop`) gives `expiredC` the predicate "a lease
+  this lessor granted", `Grant`'s spec records the lease in a ghost set the KV invariant keeps
+  empty (no committed `LeaseGrant`), so `run`'s receive yields `False` and the axiom leaves the
+  link (as `Alarm` in B3); cost: the lessor's grant path and `kvInv`'s side, moderate. *(B)* A
+  named workload premise "no lease expires" (D19a's first kind, as `backendUnderQuota`), under
+  which `NewLessor`'s contract gives the bag `False`; cheap, but a premise where the model could
+  prove it. *(C)* Leases in the KV model (`LeaseGrant`/`LeaseRevoke` as requests, the revoke's
+  deletes): large. *Recommendation:* (A).
+- **Stopped: `EtcdServer.Cleanup`.** It closes the KV, the auth store and the backend (bbolt
+  closed) under `bemu`'s write lock after `s.wg.Wait()`, but request goroutines (not in `s.wg`)
+  keep persistent views of all three. Reached in the model on `run`'s two exits (`<-s.stop`,
+  `<-s.errorc`, bags with predicate `True`), not in putget's Go run (nothing stops the server).
+  Options: *(A)* the exits dead: `s.stop`'s and `s.errorc`'s bags with predicate `False` in the
+  runs covered (nobody calls `Stop`/`HardStop`: a fact of Main's proof; `errorc`'s senders --
+  `stopWithDelay` on the member's removal, which `ccApplyOk` excludes, and the raft loop's
+  fatal errors -- each shown not to send), `run`'s shutdown proof gone with `Cleanup`'s and
+  `raftNode.stop`'s axioms from the link; cost: the senders' contracts. *(B)* A "server open"
+  fractional token every request path holds and gives back, `Cleanup` taking the whole (the
+  backend's `bOpen` shares, the store's closer, the auth store's): faithful for a server that
+  stops, but the token threads through every request spec. *(C)* Closed states in the backend's
+  and the stores' models (operations after `Close` return errors): largest. *Recommendation:* (A)
+  for the closed theorem, (B) when a stopping server is in scope.
+- **Stopped: `EtcdServer.createMergedSnapshotMessage`.** It commits the KV, takes a backend
+  snapshot (a bbolt read transaction a goroutine streams), clones `*confState` and writes
+  `m.Snapshot`, a message raft hands out read-only (`rnMsgOk`: `msgAt`, persistent). Reached in
+  the model whenever `msgSnapC` delivers, never in a single-member cluster (raft sends `MsgSnap`
+  only to a follower). Options: *(A)* the receive dead: raft's messages carry `to ≠ self` among
+  the configuration's voters (`rnMsgOk`), the configuration stays `{self}` (`ccApplyOk` adds only
+  members of it), so `msgSnapC` carries nothing; cost: a raft-side fact on `Ready`'s messages
+  and the configuration's invariance through the server. *(B)* Its resources: the message owned
+  through `msgSnapC`'s bag (raft's message ownership, `processMessages`), a backend snapshot
+  model, the conf state's read: large, and only for multi-member clusters. *(C)* A premise "no
+  `MsgSnap`" on the run. *Recommendation:* (A).
+- **Stopped: `mvcc.store.Close`.** It stops the FIFO scheduler, but `isStore` (persistent) holds
+  `schedLive` (the stop token given up for good, `NewStore`), so the triple lets a holder of
+  `isStore` compact after `Close`, where Go's `Schedule` panics. Reached only on `NewServer`'s
+  error paths after `mvcc.New` (`restoreAlarms`, `tr.Start()` failing), where in Go nothing
+  schedules afterwards. Any true contract of `Close` needs the stop token, which `NewStore`
+  gives up (its `restore` may itself schedule a compaction). Options: *(A)* a fractional
+  "store open" token: `NewStore` keeps the stop token in an invariant with it, untracked
+  `Schedule` (the store's `compact`, `updateCompactRev`, `compactBarrier`) takes a share,
+  `Close` the whole; the apply thread holds a share for good; cost: mvcc's compaction specs and
+  their callers. *(B)* `NewServer`'s late error paths dead: `restoreAlarms` and
+  `rafthttp.Transport.Start` without errors on putget's configuration (a fresh alarm bucket, no
+  TLS), and `Close`'s contract taking the stop token (vacuous after `NewStore`); cost: two
+  trust-boundary contracts narrowed, premises on the configuration. *(C)* `NewStore` returns the
+  stop token and the caller gives it up (`schedLive_of_stopTok`) on success, `Close` on error;
+  needs `restore`'s scheduled compaction excluded (a fresh backend: none scheduled).
+  *Recommendation:* (C), with `restore`'s case from the fresh backend `bootOk` gives.
+
 ## Proof/Lib: facts that belong to no Go package (2026-10-18, branch `proof-lib`)
 
 *The decision.* A fact about Perennial's, Iris's or Lean's own definitions -- not about a Go
@@ -9231,3 +9574,49 @@ have the instance).
 Facts copied only within one package (raft's private `ite_pos`/`ite_neg`, `uint_nat_eq`) or once
 (`backend.strLt_total`, the `goStringLe_*` of `mvcc/BucketRange.lean`, mvcc's `wFractional_*`
 combinators) are left where they are; they can move when a second package needs them.
+
+## D19j carried out: `watch.go`'s package variables from `v3rpc`'s facts; `io.EOF` stays (2026-10-18)
+
+The user chose D19j's option (1). Carried out, but for `io.EOF`:
+
+* **`v3rpc.watchPkgVars`** (`v3rpc/Base.lean`, its pieces in `v3rpc/BaseWatch.lean`): everything
+  `watchVars` held but `io.EOF` and `reportEventOk`, now a conjunct of `v3rpcInit`, proved by
+  `v3rpc`'s initializer (`etc/gen-init.py`): `auth`'s four errors from `authInit`
+  (`errVarLeaf_of_authErrVar`); `mvcc`'s `ErrEmptyWatcherRange`/`ErrWatcherDuplicateID` from
+  `mvccInit`, which now keeps them as the `errors.New` errors they are (`errorsNewVar`, appended;
+  `errVarLeaf_of_newVar`); `rpctypes`' `ErrCompacted` (its `errorStringSpec`) and five `ErrGRPC*`
+  errors, which `rpctypesInit` now keeps (appended; five `<X>_init` axioms, `status.Error` values
+  whose `Error()` returns); `streamFailures` and the four `watchSendLoop*` histograms (five
+  `<X>_init` axioms, as `clientRequests_init`); `traceutil.Tracer` from `traceutilInit`;
+  `context.Canceled`'s pointer error; and the progress interval's lock, initialized by the
+  initializer (`sync.init_RWMutex` over `progressReportInterval`, `10 * time.Minute`, within
+  `intervalP`'s bounds; `guard_of_slots`).
+* **`mvcc.ReportEventReceived`**: a trust-boundary spec (`Spec/.../mvcc/ReportEventReceived.lean`,
+  axiom `mvcc.ReportEventReceived.wp_proof`, linked in mvcc's Link and `@` in v3rpc's), a callee
+  of `sendLoop`. Stated for `0 ≤ n`: its body's `totalEventsCounter.Add(float64(n))` panics on a
+  negative value (prometheus' counter), so the old package fact `reportEventOk` (every `n`) was
+  false; `sendLoop` passes `len(...)` of event slices it holds (`ownSlice_len` at its four calls).
+* **`watchVars` = `eofVar ∗ watchPkgVars`** (`InvWatch.lean`), `watchVars_of_init : isPkgInit
+  v3rpc ∗ eofVar ⊢ watchVars`; `grpcCfgOk_of_started` takes `isPkgInit v3rpc ∗ v3rpc.eofVar` in
+  place of `watchVars`.
+
+**`io.EOF` (not done as planned).** The planned premise class (`isPkgInit io ⊢ eofVar`, as
+`ContextReadErrs`) holds in no model: Perennial's `io.isInit` keeps only `Discard`'s cell, not
+`EOF`'s, so the entailment would conjure a points-to from nothing, the class would be
+uninhabitable and every theorem taking it vacuous (`ContextReadErrs` is sound because
+`context.isInit` has the `Canceled`/`DeadlineExceeded` cells). So `v3rpc.eofVar` stays a named
+premise, of the intermediate lemma `grpcCfgOk_of_started`, not of a closed theorem: as a
+points-to on a global it is not one of D19a's admissible hypotheses (pure facts, triples of
+called functions), so it must be discharged before the closed theorem, by the Perennial change
+below and a pin bump. True of Go: `io.EOF = errors.New("EOF")`, and Perennial's own
+`io.initialize'` stores that value (`Perennial/Proof/io/initialize.lean` drops it).
+**Proposed to Perennial, on its own:** `io.isInit` keeps `EOF ↦□ errors.New("EOF")`'s value with
+its `errors.New` facts (as `context.isInit` keeps `Canceled`), from the `wp_New` its proof already
+calls.
+
+Axioms: eleven added (five `v3rpc` `<X>_init`, five `rpctypes` `<X>_init`,
+`mvcc.ReportEventReceived.wp_proof`), each checked against the Go source (`notes/audit.md`,
+"Added after phase A"). The ten `<X>_init` are in the generated `Init.lean` files, which no
+linked result reaches yet (as the other `<X>_init`s): `etc/tcb-baseline.txt` gains only
+`mvcc.ReportEventReceived.wp_proof` (322 axioms, 12 `sorry`s; the `cache-client`, `mvcc`,
+`v3rpc` and `watch` collections too), updated with `--check --update` on purpose.

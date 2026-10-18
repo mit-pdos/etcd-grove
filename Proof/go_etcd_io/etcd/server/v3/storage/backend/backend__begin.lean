@@ -66,7 +66,7 @@ theorem backend.backend.begin.wp_proof
   wp_apply (hDB tx db 1) $$ [$Hlive $Htxdb] as Hlive
   wp_apply (hStats db) $$ [$Hisdb] as %stats -
   wp_apply (wp_metricStore b go!"size" sz (by simp)) $$ [$Hmi]
-  wp_apply (hInfo db) $$ [$Hisdb] as %i ⟨%iv, #Hi⟩
+  wp_apply (hInfo db tx 1) $$ [$Hisdb $Htxdb $Hlive] as %i ⟨⟨%iv, #Hi⟩, Hlive⟩
   iStructNamed Hi
   wp_auto
   wp_apply (wp_metricStore b go!"sizeInUse" _ (by simp)) $$ [$Hmi]

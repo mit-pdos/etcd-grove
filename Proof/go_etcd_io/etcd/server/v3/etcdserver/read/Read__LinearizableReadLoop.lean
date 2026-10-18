@@ -185,7 +185,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     · ipureintro; exact traceutil.fieldsWf_cons_int _ _ _ (.uint64 _) _ traceutil.fieldsWf_nil
     (try wp_auto)
     wp_apply HAI as %ai #Hai
-    wp_apply hFU as %str -
+    wp_apply hFU $$ [] as %str -
+    · iframe #; ipureintro; decide
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl

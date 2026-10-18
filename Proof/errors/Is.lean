@@ -1,5 +1,5 @@
 /-
-`errors.Is` (`Spec/errors/Is.lean`): Perennial's `errors.wp_Is`, which rests on the axiom
+`errors.Is` (`Spec/errors/Is.lean`): Perennial's `errors.wp_Is` (the same statement), which rests on the axiom
 `errors.wp_reflectliteComparable` (the model of `reflectlite.TypeOf(target).Comparable()`).
 -/
 module
@@ -26,12 +26,8 @@ open Iris.ProofMode in
 theorem errors.Is.wp_proof : errors.Is.spec (GF := GF) (hG := hG) := by
   intro S M err target htarget htyped
   iintro %Φ ⟨#Hinit, #Htree, %HS⟩ HΦ
-  iapply _root_.Perennial.errors.wp_Is S M err target htarget htyped $$ [] 
-  · iframe #; ipureintro; exact HS
-  inext
-  iintro %b -
-  iapply HΦ
-  itrivial
+  iapply _root_.Perennial.errors.wp_Is S M err target htarget htyped $$ [] HΦ
+  iframe #; ipureintro; exact HS
 
 end proof
 

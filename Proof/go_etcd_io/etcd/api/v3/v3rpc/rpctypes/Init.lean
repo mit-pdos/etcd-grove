@@ -7,7 +7,8 @@ Its fact (`rpctypesInit`, `cache/v3/Base.lean`): the errors `ErrFutureRev`, `Err
 errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, a
 premise on the method sets), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
 `ErrAuthOldRevision`, `ErrNoLeader` and the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors
-`v3rpc`'s checks and interceptors return and its metadata keys. Its variables'
+`v3rpc`'s checks and interceptors return and its metadata keys, and (D19j) the `ErrGRPC*` errors its
+watch server returns, whose `Error()` returns. Its variables'
 initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
 `<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.
 -/
@@ -51,7 +52,6 @@ axiom opaqueInitsOk :
         ErrGRPCLeaseNotFound.init,
         ErrGRPCLeaseExist.init,
         ErrGRPCLeaseTTLTooLarge.init,
-        ErrGRPCWatchCanceled.init,
         ErrGRPCMemberExist.init,
         ErrGRPCPeerURLExist.init,
         ErrGRPCMemberNotEnoughStarted.init,
@@ -67,20 +67,16 @@ axiom opaqueInitsOk :
         ErrGRPCRootUserNotExist.init,
         ErrGRPCRootRoleNotExist.init,
         ErrGRPCUserAlreadyExist.init,
-        ErrGRPCUserEmpty.init,
         ErrGRPCUserNotFound.init,
         ErrGRPCRoleAlreadyExist.init,
         ErrGRPCRoleNotFound.init,
         ErrGRPCRoleEmpty.init,
         ErrGRPCAuthFailed.init,
         ErrGRPCPermissionNotGiven.init,
-        ErrGRPCPermissionDenied.init,
         ErrGRPCRoleNotGranted.init,
         ErrGRPCPermissionNotGranted.init,
         ErrGRPCAuthNotEnabled.init,
-        ErrGRPCInvalidAuthToken.init,
         ErrGRPCInvalidAuthMgmt.init,
-        ErrGRPCAuthOldRevision.init,
         ErrGRPCNotLeader.init,
         ErrGRPCLeaderChanged.init,
         ErrGRPCStopped.init,
@@ -272,6 +268,31 @@ axiom MetadataHasLeader_init :
     {{ (True : IProp GF) }} (App (Val MetadataHasLeader.init) (Val #()))
     {{ RET #(); ∃ k : GoString, globalAddr MetadataHasLeader ↦ k }}
 
+/-- `ErrGRPCInvalidAuthToken = status.Error(codes.Unauthenticated, "etcdserver: invalid auth token")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+axiom ErrGRPCInvalidAuthToken_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCInvalidAuthToken.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCInvalidAuthToken ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+
+/-- `ErrGRPCAuthOldRevision = status.Error(codes.InvalidArgument, "etcdserver: revision of auth store is old")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+axiom ErrGRPCAuthOldRevision_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCAuthOldRevision.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCAuthOldRevision ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+
+/-- `ErrGRPCUserEmpty = status.Error(codes.InvalidArgument, "etcdserver: user name is empty")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+axiom ErrGRPCUserEmpty_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCUserEmpty.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCUserEmpty ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+
+/-- `ErrGRPCPermissionDenied = status.Error(codes.PermissionDenied, "etcdserver: permission denied")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+axiom ErrGRPCPermissionDenied_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCPermissionDenied.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCPermissionDenied ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+
+/-- `ErrGRPCWatchCanceled = status.Error(codes.Canceled, "etcdserver: watch canceled")` (`error.go`): a `*status.Error`, whose `Error()` returns. -/
+axiom ErrGRPCWatchCanceled_init :
+    {{ (True : IProp GF) }} (App (Val ErrGRPCWatchCanceled.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCWatchCanceled ↦ GoInterface.ok e ∗ go_etcd_io.etcd.cache.v3.errorStringSpec e }}
+
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 end opaqueInits
 
@@ -322,7 +343,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCLeaseNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaseTTLTooLarge.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCWatchCanceled.init (by mem_tac))
+  wp_apply ErrGRPCWatchCanceled_init as ⟨%eErrGRPCWatchCanceled, HErrGRPCWatchCanceled, #SErrGRPCWatchCanceled⟩
   wp_apply (opaqueInitsOk ErrGRPCMemberExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCPeerURLExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCMemberNotEnoughStarted.init (by mem_tac))
@@ -338,20 +359,20 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCRootUserNotExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCRootRoleNotExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCUserAlreadyExist.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCUserEmpty.init (by mem_tac))
+  wp_apply ErrGRPCUserEmpty_init as ⟨%eErrGRPCUserEmpty, HErrGRPCUserEmpty, #SErrGRPCUserEmpty⟩
   wp_apply (opaqueInitsOk ErrGRPCUserNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCRoleAlreadyExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCRoleNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCRoleEmpty.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCAuthFailed.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCPermissionNotGiven.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCPermissionDenied.init (by mem_tac))
+  wp_apply ErrGRPCPermissionDenied_init as ⟨%eErrGRPCPermissionDenied, HErrGRPCPermissionDenied, #SErrGRPCPermissionDenied⟩
   wp_apply (opaqueInitsOk ErrGRPCRoleNotGranted.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCPermissionNotGranted.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCAuthNotEnabled.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCInvalidAuthToken.init (by mem_tac))
+  wp_apply ErrGRPCInvalidAuthToken_init as ⟨%eErrGRPCInvalidAuthToken, HErrGRPCInvalidAuthToken, #SErrGRPCInvalidAuthToken⟩
   wp_apply (opaqueInitsOk ErrGRPCInvalidAuthMgmt.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrGRPCAuthOldRevision.init (by mem_tac))
+  wp_apply ErrGRPCAuthOldRevision_init as ⟨%eErrGRPCAuthOldRevision, HErrGRPCAuthOldRevision, #SErrGRPCAuthOldRevision⟩
   wp_apply ErrGRPCNoLeader_init as ⟨%eErrGRPCNoLeader, HErrGRPCNoLeader⟩
   wp_apply (opaqueInitsOk ErrGRPCNotLeader.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCLeaderChanged.init (by mem_tac))
@@ -450,6 +471,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HMetadataClientAPIVersionKey
   ipersist HMetadataRequireLeaderKey
   ipersist HMetadataHasLeader
+  ipersist HErrGRPCInvalidAuthToken
+  ipersist HErrGRPCAuthOldRevision
+  ipersist HErrGRPCUserEmpty
+  ipersist HErrGRPCPermissionDenied
+  ipersist HErrGRPCWatchCanceled
   ipersist HTokenFieldNameGRPC
   ipersist HTokenFieldNameSwagger
   ipersist HErrFutureRev

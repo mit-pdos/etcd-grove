@@ -18,7 +18,6 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
-axiom EtcdServer.raftRequestAlarm.wp_proof
 axiom EtcdServer.revokeExpiredLeases.wp_proof
 axiom EtcdServer.sendMergedSnap.wp_proof
 axiom EtcdServer.snapshot.wp_proof
@@ -202,6 +201,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
@@ -268,7 +268,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.NewTicker.wp_proof
-axiom time.Since.wp_proof
 axiom time.Ticker.Reset.wp_proof
 axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof

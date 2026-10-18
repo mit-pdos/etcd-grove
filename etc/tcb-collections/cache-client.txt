@@ -53,6 +53,7 @@ axiom grpcServes_persistent
 axiom grpcSrvNew
 axiom grpcStreamServerAt
 axiom grpcWrotePeer
+axiom mvcc.ReportEventReceived.wp_proof
 axiom netListenerAt
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof

@@ -21,12 +21,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- `q.Cost(r)` on one of the three request types the appliers pass (it panics on any other)
-returns some integer, whatever `*q` holds (it reads only the request: the capped applier's `q`
-is a zero `BackendQuota`). -/
+/-- `q.Cost(r)` on a non-nil request of one of the three types the appliers pass (it panics on
+any other type, and on a nil `*PutRequest`/`*TxnRequest`, whose fields it reads: the non-nil
+premise since audit B4b, 2026-10-18) returns some integer, whatever `*q` holds (it reads only the
+request: the capped applier's `q` is a zero `BackendQuota`). -/
 abbrev storage.BackendQuota.Cost.spec : Prop :=
   ∀ (q : Loc) (t : go.GoType) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ ⌜apply.quotaReqTy t⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ ⌜apply.quotaReqTy t ∧ r ≠ null⌝ }}
     (App (Val (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendQuota.ty
       @!! go!"Cost")) (Val #(interface.mkOk t #r)))
   {{ (c : w64), RET #c; True }}

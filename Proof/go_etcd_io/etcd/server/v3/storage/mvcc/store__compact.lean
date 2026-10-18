@@ -126,7 +126,7 @@ theorem mvcc.store.compact.wp_proof
         · iframe #; ipureintro; exact Hlgnn
         wp_join_done
       · (try wp_auto)
-        wp_apply (h6 shs h)
+        wp_apply (h6 shs h) $$ [$HhsOk]
         wp_join_done
       iunfold mvcc.compactCloser at Hcl
       icases Hcl with ⟨%γc', Hcl⟩

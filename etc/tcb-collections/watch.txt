@@ -59,6 +59,7 @@ axiom grpcServesStream
 axiom grpcServesStream_persistent
 axiom grpcStreamServerAt
 axiom metadata.MD.Get.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom rand.Int63n.wp_proof

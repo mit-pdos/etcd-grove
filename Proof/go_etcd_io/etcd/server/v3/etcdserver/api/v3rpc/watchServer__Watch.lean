@@ -171,9 +171,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ihave #HErrU := HErr $$ %Broadcast.Unknown
   ipersist stream
   iunfold v3rpc.watchVars at Hvars
-  icases Hvars with ⟨#Heof, #HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
+  icases Hvars with ⟨#Heof, #Hwpv⟩
+  iunfold v3rpc.watchPkgVars at Hwpv
+  icases Hwpv with ⟨#HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
     #HmInv, #HmOld, #HmEmpty, #HmDenied, #HmWC, #HstreamF, #Hh1, #Hh2, #Hh3, #Hh4, #Htracer,
-    #Hcanc, #Hrep, #Hguard'⟩
+    #Hcanc, #Hguard'⟩
   icases HstreamF with ⟨%cvF, #HcvF⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

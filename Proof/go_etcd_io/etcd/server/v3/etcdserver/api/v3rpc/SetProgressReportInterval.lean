@@ -34,7 +34,9 @@ theorem v3rpc.SetProgressReportInterval.wp_proof :
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold v3rpc.watchVars at Hv
-  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hg⟩
+  icases Hv with ⟨-, #Hv⟩
+  iunfold v3rpc.watchPkgVars at Hv
+  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hg⟩
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hl, HP⟩
   wp_auto_lc 1

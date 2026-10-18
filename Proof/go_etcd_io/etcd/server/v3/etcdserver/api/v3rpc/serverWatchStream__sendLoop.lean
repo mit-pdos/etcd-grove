@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.GetProgressRep
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Spec.time.NewTicker
 public import Spec.time.Ticker__Stop
@@ -646,14 +647,15 @@ local macro "send_return" : tactic => `(tactic| (
         ihave #Hm := BigSepL.bigSepL_lookup
           (Φ := fun _ q => v3rpc.watchRespMsg (GF := GF) q.1 (v3rpc.mvccResp q.2.1 q.2.2)) hz $$ Hmsgs
         iunfold v3rpc.watchRespMsg at Hm
-        icases Hm with ⟨%Hln, %h, %esl, %eps, -, -, -, -, -, -, -, -, #HEv, -⟩
+        icases Hm with ⟨%Hln, %h, %esl, %eps, -, -, -, -, -, -, -, -, #HEv, #HEsl, -⟩
+        ihave %HEsl' := ownSlice_len _ _ _ $$ HEsl
         have Hbnd : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj, Hif'⟩
         simp only [Hbnd, _root_.and_self, ↓reduceIte]
         wp_apply wp_load_slice_index sl (sint.Z j) ls DFrac.discard l Hj $$ [] as -
         · iframe Hls; ipureintro; exact hl
         wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
         iapply Hrep
-        · itrivial
+        · ipureintro; first | exact HEsl'.2 | omega | word
         iintro !> -
         wp_auto
         wp_for_post
@@ -678,11 +680,14 @@ local macro "send_return" : tactic => `(tactic| (
     iapply HΦ
     itrivial
   simp only [mvcc.watchRecvResult, ↓reduceIte]
-  icases Hres with ⟨%x, Hwc, -⟩
+  icases Hres with ⟨%x, Hwc, #HrIR, -⟩
+  iunfold mvcc.respIs at HrIR
+  icases HrIR with ⟨-, %psR, #HpsR, -⟩
+  ihave %HlR := ownSlice_len _ _ _ $$ HpsR
   wp_auto
   wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
   iapply Hrep
-  · itrivial
+  · ipureintro; first | exact HlR.2 | omega | word
   iintro !> -
   wp_auto
   wp_for_post
@@ -942,7 +947,7 @@ local macro "watch_resp" : tactic => `(tactic| (
       (try wp_auto)
       wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
       iapply Hrep
-      · itrivial
+      · ipureintro; first | exact Hpsn.2 | omega | word
       iintro !> -
       (try wp_auto)
       wp_apply sync.RWMutex.wp_RLock (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ [Hmu]
@@ -1298,7 +1303,8 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
       (Φ := fun _ q => v3rpc.watchRespMsg (GF := GF) q.1 (v3rpc.mvccResp q.2.1 q.2.2)) hz $$ Hmsgs
     ihave #Hml' := Hml
     iunfold v3rpc.watchRespMsg at Hml'
-    icases Hml' with ⟨%Hln', %h', %esl', %eps', -, -, -, -, -, -, -, -, #HEv', -⟩
+    icases Hml' with ⟨%Hln', %h', %esl', %eps', -, -, -, -, -, -, -, -, #HEv', #HEsl, -⟩
+    ihave %HEsl' := ownSlice_len _ _ _ $$ HEsl
     have Hbnd : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z ((PM !! $X).getD (zero_val GoSlice)).len := ⟨Hj0, Hif'⟩
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z j) ls DFrac.discard l Hj0 $$ [] as -
@@ -1306,7 +1312,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     (try wp_auto)
     wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
     iapply Hrep
-    · itrivial
+    · ipureintro; first | exact HEsl'.2 | omega | word
     iintro !> -
     (try wp_auto)
     have hpk : (v3rpc.upd pend $X ((pend $X).drop (sint.Z j).toNat)) $X =
@@ -1684,7 +1690,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (hZW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG))
-    (hChan : mvcc.watchStream.Chan.spec (GF := GF) (hG := hG)) :
+    (hChan : mvcc.watchStream.Chan.spec (GF := GF) (hG := hG))
+    (hRER : mvcc.ReportEventReceived.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r
   wp_start as ⟨#Hsws, Hst, Hcons, Hwc, Hres, Hmu⟩
@@ -1698,10 +1705,22 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -⟩
   ihave #Hvars' := Hvars
   iunfold v3rpc.watchVars at Hvars'
-  icases Hvars' with ⟨#Heof, #HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
+  icases Hvars' with ⟨#Heof, #Hwpv⟩
+  iunfold v3rpc.watchPkgVars at Hwpv
+  icases Hwpv with ⟨#HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
     #HmInv, #HmOld, #HmEmpty, #HmDenied, #HmWC, #HstreamF, #Hh1, #Hh2, #Hh3, #Hh4, #Htracer,
-    #Hcanc, #Hrep, #Hguard⟩
-  iunfold v3rpc.reportEventOk at Hrep
+    #Hcanc, #Hguard⟩
+  -- (D19j) `mvcc.ReportEventReceived`'s trust-boundary spec, of a non-negative count
+  ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
+  ihave #Hrep : iprop(□ ∀ n : w64, {{ ⌜0 ≤ sint.Z n⌝ }}
+      (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) (Val #n))
+      {{ RET #(); True }}) $$ []
+  · iintro !> %n
+    iintro !> %Φ' %Hn HΦ'
+    wp_apply (hRER n Hn)
+    iapply HΦ'
+    itrivial
   iunfold v3rpc.histVar at Hh1 Hh2 Hh3 Hh4
   icases Hh1 with ⟨%hs1, #Hg1, #Ho1⟩
   icases Hh2 with ⟨%hs2, #Hg2, #Ho2⟩

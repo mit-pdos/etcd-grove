@@ -164,6 +164,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
+    -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
+    -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
+    -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
+    "Hvcn" ∷ (∃ v : Loc, membership.rcVersionChangedAddr bc.cl' ↦ v) ∗
     "#Hrms" ∷ bc.remotes' ↦*□ rms ∗ "#Hrmsi" ∷ ([∗list] m ∈ rms, memberRO m) ∗
     -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
     -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
@@ -175,6 +179,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
     "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
       backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+      (∃ n : Loc, membership.rcVersionChangedAddr bc.cl' ↦□ n) -∗
       apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f) ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗

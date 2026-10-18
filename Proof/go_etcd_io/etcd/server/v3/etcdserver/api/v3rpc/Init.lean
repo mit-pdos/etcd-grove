@@ -10,6 +10,11 @@ facts), and `context.Canceled` a
 pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
 fact lacks it). Its precondition has the read package's registration rights
 (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to `etcdserver`'s initializer.
+(D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
+errors (from their facts), `rpctypes`' (from its), its metrics `streamFailures` and the four
+`watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
+`traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
+`progressReportInterval` (`10 * time.Minute`: `intervalP`).
 -/
 module
 
@@ -56,6 +61,7 @@ public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.status.Init
 public import Proof.math.rand.Init
 public import Proof.unicode.utf8.Init
+public import Proof.Lib.Sync
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -87,12 +93,7 @@ runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([sentBytes.init,
-        receivedBytes.init,
-        streamFailures.init,
-        watchSendLoopWatchStreamDuration.init,
-        watchSendLoopWatchStreamDurationPerEvent.init,
-        watchSendLoopControlStreamDuration.init,
-        watchSendLoopProgressDuration.init] : List val),
+        receivedBytes.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil. -/
@@ -104,6 +105,31 @@ axiom toGRPCErrorMap_init :
 axiom clientRequests_init :
     {{ (True : IProp GF) }} (App (Val clientRequests.init) (Val #()))
     {{ RET #(); ∃ cv : Loc, globalAddr clientRequests ↦ cv }}
+
+/-- `streamFailures = prometheus.NewCounterVec(...)` (`metrics.go`): a `*CounterVec`. -/
+axiom streamFailures_init :
+    {{ (True : IProp GF) }} (App (Val streamFailures.init) (Val #()))
+    {{ RET #(); ∃ cv : Loc, globalAddr streamFailures ↦ cv }}
+
+/-- `watchSendLoopWatchStreamDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
+axiom watchSendLoopWatchStreamDuration_init :
+    {{ (True : IProp GF) }} (App (Val watchSendLoopWatchStreamDuration.init) (Val #()))
+    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopWatchStreamDuration ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
+
+/-- `watchSendLoopWatchStreamDurationPerEvent = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
+axiom watchSendLoopWatchStreamDurationPerEvent_init :
+    {{ (True : IProp GF) }} (App (Val watchSendLoopWatchStreamDurationPerEvent.init) (Val #()))
+    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopWatchStreamDurationPerEvent ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
+
+/-- `watchSendLoopControlStreamDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
+axiom watchSendLoopControlStreamDuration_init :
+    {{ (True : IProp GF) }} (App (Val watchSendLoopControlStreamDuration.init) (Val #()))
+    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopControlStreamDuration ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
+
+/-- `watchSendLoopProgressDuration = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
+axiom watchSendLoopProgressDuration_init :
+    {{ (True : IProp GF) }} (App (Val watchSendLoopProgressDuration.init) (Val #()))
+    {{ RET #(); ∃ h : GoInterfaceOk, globalAddr watchSendLoopProgressDuration ↦ GoInterface.ok h ∗ □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}) }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 end opaqueInits
@@ -235,19 +261,19 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk sentBytes.init (by mem_tac))
   wp_apply (opaqueInitsOk receivedBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk streamFailures.init (by mem_tac))
+  wp_apply streamFailures_init as ⟨%cvstreamFailures, HstreamFailures⟩
   wp_apply clientRequests_init as ⟨%cvclientRequests, HclientRequests⟩
-  wp_apply (opaqueInitsOk watchSendLoopWatchStreamDuration.init (by mem_tac))
-  wp_apply (opaqueInitsOk watchSendLoopWatchStreamDurationPerEvent.init (by mem_tac))
-  wp_apply (opaqueInitsOk watchSendLoopControlStreamDuration.init (by mem_tac))
-  wp_apply (opaqueInitsOk watchSendLoopProgressDuration.init (by mem_tac))
+  wp_apply watchSendLoopWatchStreamDuration_init as ⟨%hwatchSendLoopWatchStreamDuration, HwatchSendLoopWatchStreamDuration, #SwatchSendLoopWatchStreamDuration⟩
+  wp_apply watchSendLoopWatchStreamDurationPerEvent_init as ⟨%hwatchSendLoopWatchStreamDurationPerEvent, HwatchSendLoopWatchStreamDurationPerEvent, #SwatchSendLoopWatchStreamDurationPerEvent⟩
+  wp_apply watchSendLoopControlStreamDuration_init as ⟨%hwatchSendLoopControlStreamDuration, HwatchSendLoopControlStreamDuration, #SwatchSendLoopControlStreamDuration⟩
+  wp_apply watchSendLoopProgressDuration_init as ⟨%hwatchSendLoopProgressDuration, HwatchSendLoopProgressDuration, #SwatchSendLoopProgressDuration⟩
   wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, %PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
   ipersist HtoGRPCErrorMap
   ipersist HclientRequests
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd22
-  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, -⟩
+  icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
@@ -280,6 +306,54 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iexists ws
     iframe HW
     ipureintro; exact HWp
+  -- (D19j) what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s errors
+  ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd3
+  icases Hai with ⟨#AUE, -, #APD, #AAO, #AIA, -⟩
+  ihave #WUE := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AUE
+  ihave #WPD := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ APD
+  ihave #WAO := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AAO
+  ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA
+  -- mvcc's
+  ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd36
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NEWR, #NWDI, -⟩
+  ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR
+  ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI
+  -- `rpctypes`'
+  ihave #MCP := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RCP
+  ihave #MRW0 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW0
+  ihave #MRW1 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW1
+  ihave #MRW2 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW2
+  ihave #MRW3 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW3
+  ihave #MRW4 := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW4
+  -- the metrics
+  ipersist HstreamFailures
+  ipersist HwatchSendLoopWatchStreamDuration
+  ipersist HwatchSendLoopWatchStreamDurationPerEvent
+  ipersist HwatchSendLoopControlStreamDuration
+  ipersist HwatchSendLoopProgressDuration
+  ihave #WH0 : (EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDuration : IProp GF) $$ []
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopWatchStreamDuration SwatchSendLoopWatchStreamDuration
+  ihave #WH1 : (EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDurationPerEvent : IProp GF) $$ []
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopWatchStreamDurationPerEvent SwatchSendLoopWatchStreamDurationPerEvent
+  ihave #WH2 : (EtcdGrove.v3rpc.histVar watchSendLoopControlStreamDuration : IProp GF) $$ []
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopControlStreamDuration SwatchSendLoopControlStreamDuration
+  ihave #WH3 : (EtcdGrove.v3rpc.histVar watchSendLoopProgressDuration : IProp GF) $$ []
+  · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopProgressDuration SwatchSendLoopProgressDuration
+  -- `traceutil.Tracer`
+  ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd43
+  icases Hti with #HTR
+  -- the progress interval's lock and what it guards (`progressReportInterval`, `10 * time.Minute`)
+  imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS
+  · inext
+    unfold EtcdGrove.v3rpc.intervalP
+    iexists _
+    iframe HprogressReportInterval
+    ipureintro
+    first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word
+  ihave ⟨-, #HIG⟩ := EtcdGrove.guard_of_slots _ _ $$ HIS
   iframe Hown
   imodintro
   isplitr
@@ -287,7 +361,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold v3rpcInit grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars
+  unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars
   iframe #
   ipureintro
   exact PtoGRPCErrorMap
