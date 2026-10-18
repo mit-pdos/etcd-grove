@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -37,22 +38,34 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Assumptio
 
 namespace go_etcd_io.etcd.pkg.v3.idutil
 
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.idutil get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil }} := by
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
+      EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  iframe Hown
+  is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.idutil get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply _root_.Perennial.math.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
-  iframe Hown
-  is_pkg_init_finish
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.pkg.v3.idutil

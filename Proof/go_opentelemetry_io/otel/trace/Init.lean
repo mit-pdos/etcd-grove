@@ -13,6 +13,7 @@ public import Perennial.Proof.context.Link
 public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.go_opentelemetry_io.otel.codes.Init
 public import Proof.go_opentelemetry_io.otel.trace.embedded.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -74,21 +75,22 @@ variable [_root_.Perennial.context.ErrorStringIsError]
 
 namespace go_opentelemetry_io.otel.trace
 
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace }} := by
   wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply _root_.Perennial.go_opentelemetry_io.otel.codes.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply _root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply _root_.Perennial.context.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.go_opentelemetry_io.otel.trace.embedded.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.go_opentelemetry_io.otel.codes.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk tracerProviderInstance.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
@@ -107,6 +109,15 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
 end go_opentelemetry_io.otel.trace

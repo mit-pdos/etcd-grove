@@ -8198,7 +8198,8 @@ its spec as a hypothesis).
   `{{ ownInitializing g ∗ EtcdGrove.read.readRegPerm }} initialize' #() {{ ... isPkgInit read }}`,
   and so are the theorems of the packages whose import closure contains `read` (`etcdserver`,
   `v3rpc`): each passes the rights to the one import that leads there (`etc/gen-init.py`'s
-  `PRE_RES`, which asserts there is one). Program start (the adequacy theorem, item 9) owns the
+  `PRE_RES`, which asserted there is one; since D19e any number may, the rights held until `read`
+  is initialized). Program start (the adequacy theorem, item 9) owns the
   rights to every name no default collector has and gives each out once, so the cross-package
   freshness of the names is discharged there: two packages registering one name would need one
   right twice. What item 9 needs of the Go code is stated and checked now (`read.names_ok`'s
@@ -8423,7 +8424,8 @@ the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and P
 
 ## What a closed adequacy theorem may take as a hypothesis (D19)
 
-**2026-10-18 · proposed (branch `raft-retarget`, open-work item 9; waiting for the user)**
+**2026-10-18 · proposed (branch `raft-retarget`, open-work item 9); D19a, D19b, D19d, D19e, D19f
+adopted by the user (D19d and D19e by the local route, below)**
 
 The adequacy example (`examples/putget`, `notes/STATUS.md`, "Item 9: the adequacy example") was to
 keep each undischarged premise of the server's construction as a named hypothesis of the closed
@@ -8439,7 +8441,7 @@ the theorem says nothing.
   `clusterWorkloadOk`), nor an abstract exclusive resource from nothing (`⊢ |==> nameFree n`,
   `⊢ |==> netAddrFree a`), nor a contract that mints a bounded supply (`rnTickerOk`'s
   `tickCred`). Each of those is refutable (allocate or advance the same ghost state past the
-  bound; use the minted resource twice), as D17a's credits were.
+  bound; use the minted resource twice), as D17a's credits were. **Adopted 2026-10-18** (the user).
 - **D19b: the lifetime bounds from time receipts** (proposed; **adopted 2026-10-18** by the user,
   with the stage plan below). Perennial's receipts
   (`GooseLang/Receipts.lean`): every Go instruction step can raise a persistent `⧖ m`
@@ -8495,12 +8497,77 @@ the theorem says nothing.
   ghost state instead of axioms: a Perennial FFI change (or a local FFI over the disk FFI);
   (3) the program-start rights as one exclusive token the theorem's proof gets from the initial
   package state, if Perennial's `ownGoState ∅` were split into fragments.
+  **Adopted 2026-10-18 (the user): the local route, a trust-boundary adequacy axiom.** What
+  Perennial offers was checked (`GooseLang/Adequacy.lean`): `goose_adequacy`'s `Hwp` receives the
+  FFI's `ffiGlobalStart`/`ffiLocalStart` (the disk FFI's: `True` and the disk's points-tos; the
+  Grove FFI's: the network's channels and the node's files: neither has a registry or free
+  addresses, and the etcd proofs are generic in the FFI), `ownGoState σ.packageState` (needed by
+  the initializers) and `threadTok` (needed by the main thread). None is a once-only resource the
+  program does not otherwise need, and no axiom of the form `ownGoState ∅ ==∗ ownGoState ∅ ∗
+  rights` is sound (usable twice). So the rights come from the adequacy statement itself:
+  `EtcdGrove.goose_adequacy_start` (`Proof/runtime/Start.lean`) is `goose_adequacy` whose WP proof
+  also receives `startRights Ns As` (`nameFree n` for each name of `Ns`, `netAddrFree a` for each
+  address of `As`, both lists `Nodup`), for a program `e` with `prometheus.namesUnclaimed e Ns`
+  (no code of `e` the proofs do not verify, and no default collector, registers a name of `Ns`)
+  and `addrsUnclaimed e As` (no other process and no unverified code of `e` binds an address of
+  `As`): axiomatized propositions, pure facts of the program and its environment (D19a's first
+  kind), hypotheses of the closed theorem. *Why true of Go:* every registration of a name of `Ns`
+  and every listen on an address of `As` is then made by verified code whose spec consumes the
+  right, and each right exists once in the proof, so no name is registered twice and no address
+  bound twice, which is all `MustRegister.spec` and `Listen.spec` assume. *Why once only:* nothing
+  else produces `nameFree` or `netAddrFree` (axiomatized predicates; no axiom or definition gives
+  one), and the axiom's conclusion is about executions (`goose_adequacy`'s), not an entailment: it
+  cannot be applied inside a proof to obtain rights, only to the one WP proof of one run.
+  *Satisfiable:* with `nameFree`/`netAddrFree` read as `True` (no axiom says either is exclusive)
+  and the names-only `MustRegister`/`Listen` as diverging functions, premise and conclusion are
+  `goose_adequacy`'s. *The adequacy example's facts* (checked 2026-10-18): over the 499 packages
+  `examples/putget` builds (`go list -deps`), the read package's two metric names occur only in
+  `server/etcdserver/read/metrics.go`, the address `127.0.0.1:23790` only in `putget.go` (and a
+  test file of the standard library's `math/rand/v2`, not built); the program's run (`go test`)
+  registers each name once (its initializers do not panic). So `Ns` = the read package's two
+  names (`readRegPerm`), `As = ["127.0.0.1:23790"]`.
+  *The Perennial proposal (independent of this repository):* option (2), an FFI (or an extension
+  point of `FfiInterpAdequacy`) whose global world has the bound addresses and the registered
+  metric names, with `Listen`/`MustRegister` as its operations (failing or panicking on a taken
+  address or name) and `ffiGlobalStart` the ownership of the free ones; `nameFree`/`netAddrFree`
+  become its ghost state and `goose_adequacy_start` follows from `goose_adequacy`. Option (1) alone
+  does not cover addresses (no package owns one).
 - **D19e: the read package's rights needed twice** (D16's cost met): a program that imports both
   `etcdserver` and `v3rpc` runs `v3rpc.initialize'` after `etcdserver.initialize'`; both theorems
   take `readRegPerm`. Options: (1) as D19d (1); (2) every `wp_initialize'` also returns its package
   map's entries (`gen-init.py`), so a local variant of `wp_package_init` (from Perennial's
   `wp_PackageInitCheck`) proves an initialized package's `package.init` without the body's proof,
   and the importers after the first take `isPkgInit read` instead of the rights.
+  **Adopted 2026-10-18 (the user): option (2), locally.** (In putget's order `v3rpc` runs first,
+  and runs `etcdserver` and `read`; `putget`'s own call of `etcdserver.initialize'` comes next.)
+  Perennial exposes the map (`ownInitializing_unseal`: `∃ σ, ownGoState σ ∗ □ ...`, and the
+  instructions' WPs `wp_PackageInitCheck`/`Start`/`Finish`), but every `wp_initialize'` returns an
+  arbitrary map, so after any call a proof no longer knows `read` is initialized. Hence two forms
+  (`Proof/runtime/PkgInit.lean`): `ownInitLb g σ0` (`ownInitializing g` whose map keeps `σ0`'s
+  initialized packages initialized, `initLe`) and `ownInitRes g q R` (`ownInitializing g` holding
+  `R` unless `q` is initialized), with local variants of `wp_package_init` proved from Perennial's
+  instructions: `wp_package_init_lb` (keeps `ownInitLb g σ0`), `wp_package_init_res` (passes
+  `R` on), `wp_package_init_res_self` (`q`'s own: the body gets `ownInitializing g ∗ R`), and
+  `initRes_carry` (an import's `_lb` form passes `R` on). `etc/gen-init.py` now proves every
+  generated package's `wp_initialize'_lb` (for all `σ0`), or, for a package whose closure contains
+  `read` (`read`, `etcdserver`, `v3rpc`, `putget`), `wp_initialize'_res`; `wp_initialize'` (both
+  of D16's shapes, unchanged statements) follows (`wp_init_of_lb`, `wp_init_of_res`). `PRE_RES`'s
+  "one import leads there" assertion is gone: `R` is spent by the first initializer that runs
+  `read` and every later one finds it initialized. `putget` is in the table (`ROOTS`; its fact
+  `True`, `examples/putget/Base.lean`); `putget.wp_initialize'` takes `ownInitializing g ∗
+  readRegPerm`. *The trust boundary:* Perennial's, raft's and the B-tree's initializers (18,
+  the generated `ExternalInit` list, `Proof/runtime/PkgInitExt.lean`) have only Perennial's form;
+  their `_lb` forms come from it by the axiom `EtcdGrove.initLb_of_spec`: a listed initializer
+  meeting Perennial's spec also keeps the initialized packages initialized. True of Go and of the
+  model: the map changes only by `PackageInitStart`/`Finish`, which Goose emits only in
+  `package.init` (`Start q` after `PackageInitCheck q` found `q` not initialized), and
+  initialization is sequential; stated of the listed initializers only (a raw `PackageInitStart`
+  could reset an entry), it holds in every model where its premise does. *The Perennial proposal
+  (independent):* Perennial's `wp_initialize'` theorems (and `wp_package_init`) in the `_lb` form,
+  or a persistent witness `pkgInited p` (a fragment of a monotone view of the package map, given by
+  `wp_package_init`) with a `wp_package_init` variant that skips the body given it; either makes
+  `initLb_of_spec` a theorem. D16's once-per-package token (D19d (1)) is the alternative for
+  resources a package's body needs.
 - **D19f: `clientv3.New` without the watch facts** for a client that never watches: either compose
   `etcd_watch_served_chain` at the server's start (item 4's "not done"), or weaken `New`'s
   postcondition on the `Watcher` field so that its premise `watchAddrFacts` goes (a change to

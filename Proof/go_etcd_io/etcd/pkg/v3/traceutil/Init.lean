@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_uber_org.zap.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -55,21 +56,23 @@ variable [_root_.Perennial.context.ErrorStringIsError]
 
 namespace go_etcd_io.etcd.pkg.v3.traceutil
 
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.traceutil get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.traceutil get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil }} := by
   wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply _root_.Perennial.go_uber_org.zap.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply _root_.Perennial.context.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply Tracer_init as ⟨%trTracer, HTracer⟩
   ipersist HTracer
   iframe Hown
@@ -81,6 +84,15 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold traceutilInit
   iframe #
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.traceutil get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.pkg.v3.traceutil

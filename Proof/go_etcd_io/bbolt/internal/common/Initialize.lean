@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.bbolt.internal.common.Init
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sort.Link
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -55,22 +56,33 @@ variable [package_sem : _root_.Perennial.go_etcd_io.bbolt.internal.common.Assump
 
 namespace go_etcd_io.bbolt.internal.common
 
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.internal.common get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common }} := by
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (opaqueInitsOk DefaultPageSize.init (by mem_tac))
+  iframe Hown
+  is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.internal.common get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk DefaultPageSize.init (by mem_tac))
-  iframe Hown
-  is_pkg_init_finish
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
 end go_etcd_io.bbolt.internal.common

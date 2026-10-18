@@ -9,6 +9,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -58,14 +59,14 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptio
 
 namespace go_etcd_io.etcd.api.v3.authpb
 
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.authpb get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.authpb get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb }} := by
   wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   wp_auto
@@ -77,6 +78,15 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk file_auth_proto_depIdxs.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.authpb get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.api.v3.authpb

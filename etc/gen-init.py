@@ -12,6 +12,14 @@ B-tree's (`initialize.lean`) and `NOT_YET`; a package whose fact is not `True` o
 initializer runs translated code needs an entry in `SPECIAL` (the per-package doc, axioms, the
 hand-written steps `before` an item, and the `finish`).
 
+Each theorem is proved in a form that keeps what is initialized (decision D19e,
+`Proof/runtime/PkgInit.lean`): `wp_initialize'_lb` (from `ownInitLb g σ0`, for every `σ0`) or,
+for a package whose import closure contains a `PRE_RES` package, `wp_initialize'_res` (from
+`ownInitRes g q R`: `R` held unless `q` is initialized); `wp_initialize'` (Perennial's form, with
+`R` for the latter) follows. The other packages' (Perennial's, raft's, the B-tree's) `_lb` forms
+come from their `wp_initialize'` by the trust-boundary axiom `EtcdGrove.initLb_of_spec`, over the
+initializers listed in the generated `Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
+
   etc/gen-init.py            regenerate every file
   etc/gen-init.py --check    exit 1 if a file differs from what would be generated
   etc/gen-init.py PKG...     regenerate these packages (Lean names, `go_etcd_io.etcd.pkg.v3.wait`)
@@ -23,7 +31,8 @@ os.chdir(ROOT)
 PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
 
 ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.server.v3.etcdserver',
-         'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read']
+         'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
+         'github_com.mit_pdos.etcd_grove.examples.putget']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -33,7 +42,9 @@ NOT_YET = set()
 ASSUMED = {}
 # Packages whose initializer needs a resource besides `ownInitializing` (decision D16): its
 # theorem's precondition is `ownInitializing get_is_pkg_init ∗ R`, and so is that of every package
-# whose import closure contains it (it passes `R` on to the one import that leads there).
+# whose import closure contains it. They are proved in the `_res` form (decision D19e): `R` is held
+# unless the package is initialized, so it is spent once, by the first initializer that runs the
+# package, however many imports lead there.
 PRE_RES = {'go_etcd_io.etcd.server.v3.etcdserver.read': 'EtcdGrove.read.readRegPerm'}
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
 PERENNIAL_HERE = {'math.rand', 'reflect'}
@@ -886,13 +897,31 @@ def init_call(q):
 
 
 def pre_res(p):
-    """The package below `p` (or `p`) whose initializer needs a resource (`PRE_RES`), if any;
-    at most one, reached through at most one of `p`'s imports (the resource is used once)."""
+    """The package below `p` (or `p`) whose initializer needs a resource (`PRE_RES`), if any
+    (at most one; any number of `p`'s imports may lead there: the `_res` form spends it once)."""
     rs = [q for q in sorted(closure(p)) if q in PRE_RES]
     assert len(rs) <= 1, (p, rs)
-    if rs and rs[0] != p:
-        assert len([x for x in inv[p]['imports'] if rs[0] in closure(x)]) == 1, (p, rs)
     return rs[0] if rs else None
+
+
+def external(q):
+    """`q`'s `wp_initialize'` is not generated here (Perennial's, raft's, the B-tree's)."""
+    return (q in RAFT_INIT or q == 'k8s_io.utils.third_party.forked.golang.btree' or
+            (inv[q]['perennial'] and q not in PERENNIAL_HERE))
+
+
+def ext_ctor(q):
+    return plain(q).replace('.', '_')
+
+
+def lb_term(q, hin):
+    """A proof of `∀ σ0, {{ ownInitLb g σ0 }} q.initialize' #() {{ ... }}` (`hin`: its
+    `GetIsPkgInitProp`)."""
+    assert q not in ASSUMED, q
+    if external(q):
+        return (f'(EtcdGrove.initLb_of_spec pkg_id.{q} _root_.Perennial.{q}.initialize\'\n'
+                f'      EtcdGrove.ExternalInit.{ext_ctor(q)} {init_thm(q)} _ {hin})')
+    return f'(_root_.Perennial.{q}.wp_initialize\'_lb _ {hin})'
 
 
 def pkginfo_imports(p):
@@ -940,6 +969,7 @@ def gen(p, cfg=None):
     assert sorted(imps) == sorted(pk), (p, imps, pk)
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg.get('imports', [])
     if newvars: mods.append('Proof.errors.NewVar')
+    mods.append('Proof.runtime.PkgInitExt')
     lines = []
     A = lines.append
     A('/-')
@@ -1037,29 +1067,37 @@ def gen(p, cfg=None):
     if len(items) > 50 or cfg.get('heavy'):
         A('set_option maxHeartbeats 8000000 in')
     res = pre_res(p)
-    if hyps(p):
-        A(f'theorem wp_initialize\'')
-        for q in hyps(p):
-            A(f'    ({ASSUMED[q][1]} : _root_.Perennial.{q}.initialize\'.spec (GF := GF) (hG := hG))')
-        A('    (get_is_pkg_init : GoString → IProp GF)')
-    else:
-        A(f'theorem wp_initialize\' (get_is_pkg_init : GoString → IProp GF)')
-    A(f'    (Hinit : GetIsPkgInitProp pkg_id.{p} get_is_pkg_init) :')
-    if res:
-        A(f'    {{{{ ownInitializing get_is_pkg_init ∗ {PRE_RES[res]} (GF := GF) }}}}')
-    else:
-        A('    {{ ownInitializing get_is_pkg_init }}')
-    A(f'      (App (Val initialize\') (Val #()))')
-    A('    {{ RET #(); ownInitializing get_is_pkg_init ∗')
-    A(f'        isPkgInit (PROP := IProp GF) pkg_id.{p} }}}} := by')
-    if res:
-        A('  wp_start as ⟨Hown, HR⟩')
-        A('  iapply wp_package_init (heq := Hinit.1) $$ [Hown HR] HΦ')
-    else:
+    assert not hyps(p), p
+    form = 'self' if res == p else ('res' if res else 'lb')
+    st = f'pkg_id.{p}'
+    if form == 'lb':
+        A('theorem wp_initialize\'_lb (get_is_pkg_init : GoString → IProp GF)')
+        A(f'    (Hinit : GetIsPkgInitProp {st} get_is_pkg_init) (σ0 : GMap GoString Bool) :')
+        A('    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}')
+        A(f'      (App (Val initialize\') (Val #()))')
+        A('    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗')
+        A(f'        isPkgInit (PROP := IProp GF) {st} }}}} := by')
         A('  wp_start as Hown')
-        A('  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ')
-    A('  iframe Hown')
-    A('  iintro Hown')
+        A('  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ')
+        A('  iframe Hown')
+        A('  iintro Hown')
+    else:
+        rres = f'pkg_id.{res} ({PRE_RES[res]} (GF := GF))'
+        A('theorem wp_initialize\'_res (get_is_pkg_init : GoString → IProp GF)')
+        A(f'    (Hinit : GetIsPkgInitProp {st} get_is_pkg_init) :')
+        A(f'    {{{{ EtcdGrove.ownInitRes get_is_pkg_init {rres} }}}}')
+        A(f'      (App (Val initialize\') (Val #()))')
+        A(f'    {{{{ RET #(); EtcdGrove.ownInitRes get_is_pkg_init {rres} ∗')
+        A(f'        isPkgInit (PROP := IProp GF) {st} }}}} := by')
+        A('  wp_start as Hown')
+        if form == 'self':
+            A('  iapply EtcdGrove.wp_package_init_res_self (heq := Hinit.1) $$ [Hown] HΦ')
+            A('  iframe Hown')
+            A('  iintro ⟨Hown, HR⟩')
+        else:
+            A('  iapply EtcdGrove.wp_package_init_res (heq := Hinit.1) $$ [Hown] HΦ')
+            A('  iframe Hown')
+            A('  iintro Hown')
     A('  wp_auto')
     if 'finish' in cfg:
         A('  iapply wp_fupd')
@@ -1074,11 +1112,16 @@ def gen(p, cfg=None):
                 A('  ' + hdsub(l))
         if kind == 'import':
             idx = pk.index(x) + 1
-            if res and res in closure(x):
-                A(f'  wp_apply {init_call(x)} _ Hinit{".2" * idx}.1 $$ [Hown HR] as ⟨Hown, #Hd{idx}⟩')
-                A('  · iframe Hown HR')
+            hin = f'Hinit{".2" * idx}.1'
+            if form == 'self':
+                A(f'  wp_apply {init_call(x)} _ {hin} $$ Hown as ⟨Hown, #Hd{idx}⟩')
+            elif form == 'lb':
+                A(f'  wp_apply {lb_term(x, hin)} _ $$ Hown as ⟨Hown, #Hd{idx}⟩')
+            elif res in closure(x):
+                A(f'  wp_apply _root_.Perennial.{x}.wp_initialize\'_res _ {hin} $$ Hown as ⟨Hown, #Hd{idx}⟩')
             else:
-                A(f'  wp_apply {init_call(x)} _ Hinit{".2" * idx}.1 $$ Hown as ⟨Hown, #Hd{idx}⟩')
+                A(f'  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ {lb_term(x, hin)})')
+                A(f'    $$ Hown as ⟨Hown, #Hd{idx}⟩')
         elif kind == 'opaque' and x in newvars:
             A(f'  wp_apply (errorsNewVarsInit {x}.init {x} go!{json.dumps(newvars[x])} (by mem_tac))\n    as ⟨%x{x}, H{x}, #M{x}⟩')
         elif kind == 'opaque' and x in custom:
@@ -1094,6 +1137,24 @@ def gen(p, cfg=None):
     assert not before, before
     for l in cfg.get('finish', ['iframe Hown', 'is_pkg_init_finish']):
         A('  ' + hdsub(l))
+    A('')
+    if form == 'lb':
+        A('/-- Perennial\'s form, from `wp_initialize\'_lb`. -/')
+    else:
+        A('/-- Perennial\'s form with the resource (decision D16), from `wp_initialize\'_res`. -/')
+    A(f'theorem wp_initialize\' (get_is_pkg_init : GoString → IProp GF)')
+    A(f'    (Hinit : GetIsPkgInitProp {st} get_is_pkg_init) :')
+    if form == 'lb':
+        A('    {{ ownInitializing get_is_pkg_init }}')
+    else:
+        A(f'    {{{{ ownInitializing get_is_pkg_init ∗ {PRE_RES[res]} (GF := GF) }}}}')
+    A(f'      (App (Val initialize\') (Val #()))')
+    A('    {{ RET #(); ownInitializing get_is_pkg_init ∗')
+    A(f'        isPkgInit (PROP := IProp GF) {st} }}}} :=')
+    if form == 'lb':
+        A('  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize\'_lb get_is_pkg_init Hinit)')
+    else:
+        A('  EtcdGrove.wp_init_of_res _ _ _ _ _ (wp_initialize\'_res get_is_pkg_init Hinit)')
     A('')
     A('')
     A(f'end {p}')
@@ -1123,12 +1184,82 @@ def packages():
     return out
 
 
+def code_module(q):
+    f = inv[q]['file']
+    if f.startswith('.lake/packages/perennial/'):
+        f = f[len('.lake/packages/perennial/'):]
+    return f[:-len('.lean')].replace('/', '.')
+
+
+EXT_DOC = """/-
+The package initializers whose `wp_initialize'` is not generated here (Perennial's, raft's, the
+B-tree's), and the trust-boundary axiom that gives their `_lb` forms (decision D19e). Generated by
+`etc/gen-init.py`; do not edit.
+
+**The trust boundary: a Goose-translated package initializer only initializes more.**
+`initLb_of_spec`: if the initializer `init` of the package `p`, one of the `ExternalInit` list,
+meets Perennial's spec (`{{ ownInitializing g }} init #() {{ ownInitializing g ∗ isPkgInit p }}`),
+then it also keeps every package initialized before initialized (`ownInitLb g σ0`, for every
+`σ0`). True of Go and of the model: the package-state map changes only by the instructions
+`PackageInitStart`/`PackageInitFinish`, which a Goose translation emits only in `package.init`
+(`Golang/Defn/Pkg.lean`): `Start q` after `PackageInitCheck q` found `q` not initialized, `Finish q`
+setting `q` initialized; initialization is sequential (`ownInitializing` holds the map's half), so
+no initialized entry is ever reset. The premise gives the rest (the initializer runs and gives
+`isPkgInit p`). Perennial's theorems return an arbitrary map, so this is not provable here from
+them; this repository's initializers prove their `_lb` forms (`etc/gen-init.py`). The general fix
+is Perennial's (`notes/decisions.md`, D19e). It is stated of the listed initializers only (an
+arbitrary expression could reset an entry with a raw `PackageInitStart`), so it is satisfiable:
+each conclusion holds in every model where the premise does (the map only grows along any run of
+these expressions).
+-/"""
+
+
+def gen_ext():
+    exts = sorted({x for p in packages() for x in inv[p]['imports'] if external(x)})
+    mods = sorted({code_module(q) for q in exts})
+    L = [EXT_DOC, 'module', '', 'public import Proof.runtime.PkgInit']
+    L += [f'public import {m}' for m in mods]
+    L += ['', '@[expose] public section', '', 'set_option linter.unusedSectionVars false', '',
+          'noncomputable section', '', 'namespace Perennial', 'namespace EtcdGrove', '',
+          'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '',
+          '/-- The initializers of the packages whose `wp_initialize\'` is not generated here. -/',
+          'inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop where']
+    for q in exts:
+        L.append(f'  | {ext_ctor(q)} : ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize\'')
+    L += ['',
+          'section ax',
+          'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+          'variable [go_gctx : GoGlobalContext]',
+          'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]',
+          'variable [sem : go.Semantics]',
+          '',
+          '/-- **The trust boundary: a listed initializer keeps the initialized packages** (see the',
+          'file header). -/',
+          'axiom initLb_of_spec (p : GoString) (init : val) (hext : ExternalInit p init)',
+          '    [IsPkgInit (IProp GF) p] [GetIsPkgInitWf (IProp GF) p]',
+          '    (Hstd : ∀ (get_is_pkg_init : GoString → IProp GF),',
+          '      GetIsPkgInitProp p get_is_pkg_init →',
+          '      {{ ownInitializing get_is_pkg_init }} (App (Val init) (Val #()))',
+          '      {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) p }}) :',
+          '    ∀ (get_is_pkg_init : GoString → IProp GF), GetIsPkgInitProp p get_is_pkg_init →',
+          '    ∀ σ0, {{ ownInitLb get_is_pkg_init σ0 }} (App (Val init) (Val #()))',
+          '      {{ RET #(); ownInitLb get_is_pkg_init σ0 ∗ isPkgInit (PROP := IProp GF) p }}',
+          '',
+          'end ax',
+          '',
+          'end EtcdGrove',
+          'end Perennial']
+    return 'Proof/runtime/PkgInitExt.lean', '\n'.join(L) + '\n'
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
     bad = []
-    for p in pkgs:
-        path, txt = gen(p, SPECIAL.get(p))
+    outs = [gen(p, SPECIAL.get(p)) for p in pkgs]
+    if not [a for a in argv if not a.startswith('--')]:
+        outs.append(gen_ext())
+    for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:
             continue

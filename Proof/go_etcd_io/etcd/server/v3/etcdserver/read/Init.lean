@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Metrics
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -84,16 +85,16 @@ variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.read
 
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.read.readRegPerm (GF := GF) }}
+    {{ EtcdGrove.ownInitRes get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read (EtcdGrove.read.readRegPerm (GF := GF)) }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
+    {{ RET #(); EtcdGrove.ownInitRes get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read (EtcdGrove.read.readRegPerm (GF := GF)) ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read }} := by
-  wp_start as ⟨Hown, HR⟩
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown HR] HΦ
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_res_self (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
-  iintro Hown
+  iintro ⟨Hown, HR⟩
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Duration) readIndexRetryTime _ as HreadIndexRetryTime
@@ -179,6 +180,15 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold readInit
   iframe #
+
+/-- Perennial's form with the resource (decision D16), from `wp_initialize'_res`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.read.readRegPerm (GF := GF) }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read }} :=
+  EtcdGrove.wp_init_of_res _ _ _ _ _ (wp_initialize'_res get_is_pkg_init Hinit)
 
 
 end go_etcd_io.etcd.server.v3.etcdserver.read
