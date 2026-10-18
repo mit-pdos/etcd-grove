@@ -2,14 +2,14 @@
 upstream: unchecked
 checked: 2026-10-18
 links:
-candidate: issues/upstream/raft-readindex-singleton-stale/
+candidate: issues/upstream/raft-readindex-removed-leader/
 ---
 
 # raft: a read at a leader that alone is a quorum of a joint configuration waits for heartbeat responses
 
 - **Status**: bug (liveness: a read index request is not answered although the leader's own acknowledgement is
   a quorum); found by the code review of the `raft-readindex-singleton-stale` fix (2026-10-18) and reproduced by a
-  temporary test; fixed by that candidate's fix commit, which tests whether the leader is a quorum on its own.
+  temporary test; fixed by the `IsSingleton(id)` change, in the `raft-readindex-removed-leader` candidate since the split (2026-10-18).
 - **Where** (etcd-io/raft `main` 638f42739): `stepLeader`'s single-voter shortcut (`raft.go:1355-1361`) uses
   `IsSingleton()`, false for a joint configuration; the `ReadOnlySafe` path of `sendMsgReadIndexResponse`
   (`raft.go:2146-2162`) records the leader's own acknowledgement but decides only in the `MsgHeartbeatResp` handler.

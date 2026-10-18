@@ -11,6 +11,9 @@ candidate: issues/upstream/raft-readindex-singleton-stale/
 
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change
 
+- **Upstream, split in two** (2026-10-18): this candidate reports execution 1 (a new single-voter leader before its
+  first commit in its term); execution 2 (a removed leader) is
+  [raft-readindex-removed-leader](raft-readindex-removed-leader.md), with its own candidate and fix branch.
 - **Status**: fixed in a fork commit, verified at `raft.Step` (2026-10-14, stage F): `0560cb7` (etcd-io/raft
   `40f8be7` plus the fix of `raft-conf-lag-model/readindex-singleton-fix.patch` and regression
   tests `readindex_singleton_test.go`, which fail without it), saved as

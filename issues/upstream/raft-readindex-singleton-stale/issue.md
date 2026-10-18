@@ -1,4 +1,4 @@
-Title: ReadIndex can return a stale index after a removal leaves a single voter
+Title: ReadIndex at a new single-voter leader can return a stale index
 
 ### What happened?
 
@@ -28,8 +28,6 @@ Node 1's read index is at least 3, so the read includes `x`, which was committed
 Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2154-L2188) on branch [`upamanyus/etcd-raft:fix/raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
 
 ### Anything else we need to know?
-
-A leader that removed itself has the same problem: unless `StepDownOnRemoval` is set, node 2 stays leader and answers a read index request at once, without hearing from node 1, which may have elected itself and committed newer entries since ([`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2190-L2223) on the same branch). `StepDownOnRemoval` avoids only this second case.
 
 I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
 

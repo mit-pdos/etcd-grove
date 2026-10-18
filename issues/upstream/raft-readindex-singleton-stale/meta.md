@@ -27,16 +27,18 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 
 ## Candidate
 
-- **Finding**: `issues/raft-readindex-singleton-stale.md`
+- **Finding**: `issues/raft-readindex-singleton-stale.md` (the new-leader case; the removed-leader case is the
+  sibling candidate `issues/upstream/raft-readindex-removed-leader/`, split off 2026-10-18)
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, two commits:
-  3130f9e adds the tests, which fail there; 77ab0c9 is the fix. Force-pushed 2026-10-18 to `upamanyus/etcd-raft`
-  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`, the branch the links in
-  `issue.md` name; its lines 2154-2188 and 2190-2223 are the two tests).
+  170b51a adds the test, which fails there; 3552656 is the fix. The fork's branch has the earlier combined fix
+  (77ab0c9) until this is force-pushed (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`,
+  the branch the links in `issue.md` name; its lines 2154-2188 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
-- **State**: draft, revised after the user's review and a code review (2026-10-18)
-- **Upstream issue**: —
-- **PR**: — (then replace `pull/TODO` in the fix commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number)
+- **State**: draft, revised after the user's review and a code review, split in two (2026-10-18)
+- **Upstream issue**: — (the issues do not mention each other; only the PRs do, in their conflict note)
+- **PR**: — (then replace `pull/TODO` in the fix commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
+  `#<other PR>` in `pr.md`)
 
 etcd-io/raft has no issue template: the issue uses etcd's bug-report sections, with "Raft version" for etcd's
 version and configuration sections.
@@ -48,57 +50,49 @@ Searches on `repo:etcd-io/raft repo:etcd-io/etcd`: `IsSingleton` (0 results), `R
 reused request context), #397 and #398 (the user's earlier work on that); etcd-io/raft#83 (open: make
 `StepDownOnRemoval` the default; would avoid the removed-leader case only).
 
+## The sibling PR
+
+This PR and `fix/raft-readindex-removed-leader` are independent, each off `main`, and conflict: in `raft.go` (this
+one removes the shortcut from `stepLeader`, the other changes its call to `IsSingleton(r.id)`) and in
+`CHANGELOG-3.8.md` (both add a Bug Fixes entry); their tests merge cleanly. After both, this PR's moved shortcut
+must call `IsSingleton(r.id)` (the other changes the signature), or it does not compile. Merged that way, `raft.go`
+and `tracker/tracker.go` are those of the combined fix (77ab0c9), checked 2026-10-18. Both PRs say so and offer
+one combined PR instead.
+
 ## Verification (go1.26.9 linux/amd64)
 
-Both tests use `newNetwork(nil, nil)` with peer 2 elected, deliver every message through `nt.send`, and apply the
-removal at each peer right after the `nt.send` in which the peer learns it is committed (a leader that applied its
-own removal drops proposals, so `x` is proposed in the same `nt.send` as the removal). Each asserts only the
-guarantee: a read state for the read must have an index at least that of the last entry committed before it.
+`TestReadOnlyForNewSingleVoterLeader` (the issue's example, after `TestReadOnlyForNewLeader`): `newNetwork(nil,
+nil)`, peer 2 elected; peer 2 proposes `remove 2` (index 2) and `x` (index 3) in one `nt.send` (a leader that
+applied its own removal drops proposals), with a `msgHook` dropping messages to peer 1 whose commit is at least 3;
+peer 1 has commit 2, peer 2 commit 3; both apply the removal right after that `nt.send`; peer 1 `becomeCandidate`,
+`becomeLeader`; a read sent to peer 1 through `nt.send` must have a read state with an index of at least 3 (only
+the guarantee: not when, nor at which index, it is answered).
 
-- `TestReadOnlyForNewSingleVoterLeader` (the issue's example): peer 2 proposes `remove 2` (index 2) and `x` (index
-  3) in one `nt.send`, with a `msgHook` dropping messages to peer 1 whose commit is at least 3; peer 1 has commit 2,
-  peer 2 commit 3; both apply the removal; peer 1 `becomeCandidate`, `becomeLeader`; a read at peer 1 must have an
-  index of at least 3.
-- `TestReadOnlyForRemovedLeader`: peer 2 proposes `remove 2`, which commits at both; both apply it; peer 1
-  `becomeCandidate`, `becomeLeader` and commits `y` (index 4); every read state of a read sent to peer 2 must have
-  an index of at least 4. With the fix peer 2 produces none (its heartbeat at term 1 is ignored by peer 1 at term 2,
-  CheckQuorum and PreVote being off), so the check is vacuous there; kept so on purpose (the user's decision,
-  2026-10-18): the test rules out a stale answer, not the absence of one.
-
-- At the tests commit 3130f9e (`go test . -run 'TestReadOnlyForNewSingleVoterLeader|TestReadOnlyForRemovedLeader'`):
-  both fail, `"2" is not greater than or equal to "3"` and `"2" is not greater than or equal to "4"` (`read index`).
-- At the fix commit 77ab0c9: both pass; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- At the test commit 170b51a (`go test . -run TestReadOnlyForNewSingleVoterLeader`): fails, `"2" is not greater
+  than or equal to "3"` (`read index`).
+- At the fix commit 3552656: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l` empty; `go vet ./...` clean.
-- A temporary test (not on the branch): a leader of `{1}` that enters the joint configuration `{1}&&{1}` (adding
-  a learner with an explicit transition) gets no answer to a read on `main` (it waits for heartbeat responses that
-  only the learner could send) and an immediate one with the fix.
 
 Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
 
 ## If a reviewer asks
 
-- `IsSingleton()` becomes `IsSingleton(id)`, "id on its own constitutes a quorum", implemented as `Voters.VoteResult({id: true})
-  == quorum.VoteWon`: the old one only counted voters, so a leader that removed itself saw one voter that is not
-  itself; the quorum form also covers a joint configuration whose halves are both `{leader}` (see above). An empty
-  configuration counts as won, but raft refuses to remove the last voter.
-- The signature change breaks callers of the exported `ProgressTracker.IsSingleton()` outside raft; there are none
-  in raft or in etcd (`main` b25719d10, `server/`, `client/`). Deliberate: a caller must now say which node it means,
-  which is the ambiguity behind this bug. Alternative if the API must stay: keep `IsSingleton()` (deprecated) and add
-  the id form under another name.
-- Why move the shortcut rather than add `committedEntryInCurrentTerm()` to it: postponed requests are released
-  through `sendMsgReadIndexResponse`; without the shortcut there, a postponed request at a single voter would go
-  through the heartbeat round, which nobody answers, and never be released.
+- Why move the shortcut into `sendMsgReadIndexResponse` rather than below the `committedEntryInCurrentTerm()`
+  check in `stepLeader`: postponed requests are released through `sendMsgReadIndexResponse`
+  (`releasePendingReadIndexMessages`), not `stepLeader`; there, a released request at a single voter would take the
+  `ReadOnlySafe` heartbeat round, which no other voter answers. The reorder-only variant was run (2026-10-18): the
+  test fails, the read is never answered.
+- Why the read's answer now waits: the no-op of the new term commits only once the leader has persisted it (its
+  own `MsgAppResp`); before that, its commit index can miss entries the previous leader committed.
 - A more general fix: in the `ReadOnlySafe` path, answer as soon as the leader's own acknowledgement wins the
   quorum (after `recvAck(r.id, ...)`), instead of only in the `MsgHeartbeatResp` handler. It would make the shortcut
   unnecessary; it is a larger change to the read-only state machine, not needed for this bug.
-- `ReadOnlyLeaseBased` at a removed leader still answers at once, as lease-based reads do anywhere: they are not
-  confirmed with a quorum by design, and raft requires CheckQuorum with them, under which the removed leader steps
-  down once the remaining voter stops answering. Not changed.
 - `ReadOnlyLeaseBased` at a single voter now also waits for the first commit of the leader's term (it used to take
   the shortcut too). Before that commit, its multi-voter path postpones as well.
 - Related, not changed: `switchToConfig`'s `maybeCommit` does not release postponed reads, only the `MsgAppResp`
   path does. Not reachable under `doc.go`'s protocol (a node does not campaign with committed conf changes
   unapplied, and a leader's first commit in its term goes through `MsgAppResp`); only with `Advance` before
   `ApplyConfChange` (`issues/raft-switchtoconfig-pending-reads.md`).
-- The verified fork (mit-pdos etcd-grove) carries the same change on v3.7.0 (`509271dac`), verified at `raft.Step`.
+- The verified fork (mit-pdos etcd-grove) carries the combined change on v3.7.0 (`509271dac`), verified at
+  `raft.Step`.
 - Backports: v3.7.0 (`raft.go:1355-1361`) has the same shortcut; not tried on a release branch.
