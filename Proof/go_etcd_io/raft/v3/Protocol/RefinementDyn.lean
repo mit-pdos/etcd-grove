@@ -725,7 +725,9 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
     imod ownRaftGhost_step_win γ r.cfg.cfg id r.p mt ms (B.toNat - γ.reBoot.length) h1 h2
-      (by omega) h4 h5 (fun _ => h6) (by omega) $$ Hrc Henv Hg with Hg
+      (by omega) h4 h5 (fun _ => h6)
+      (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
+      (by omega) $$ Hrc Henv Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
@@ -765,7 +767,9 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
-    imod ownRaftGhost_step_send_apps γ r.cfg.cfg id r.p ms h1 h2 (fun _ => h3) $$ Henv Hg with Hg
+    imod ownRaftGhost_step_send_apps γ r.cfg.cfg id r.p ms h1 h2 (fun _ => h3)
+      (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
+      $$ Henv Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr

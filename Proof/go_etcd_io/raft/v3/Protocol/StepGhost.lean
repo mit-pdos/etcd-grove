@@ -1200,6 +1200,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     ReplOk id s m → id ≠ W64 0 →
     -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp`'s I1 at its `Commit`
     (γ.reDyn ≠ none → m.ty = .app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) →
+    -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
+    (m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
     ⊢ isLeader (GF := GF) γ id s.term -∗
       leadPrefix γ id s.term s.base s.log -∗
       lpfull γ id s.term s.base s.log fp -∗
@@ -1208,7 +1210,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       isMessage γ m := by
-  intro Hr Hok Hid Hi1
+  intro Hr Hok Hid Hi1 Htr
   iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
@@ -1238,7 +1240,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     · ipureintro; exact Hid
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩
-    obtain ⟨Hty, Hfrom, Hterm, -, -, Hle, -⟩ := Hsnap
+    obtain ⟨Hty, Hfrom, Hterm, Hdst, -, Hle, -⟩ := Hsnap
+    have Htr' := Htr Hty
     unfold isMessage
     rw [Hty]
     dsimp only
@@ -1253,7 +1256,9 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       isplitr; · iapply commitIn_le γ _ s.commit m.index s.term HwF Hle $$ HrF Hc
       iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.index).toNat) (cprefix fp s)
         (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
+    isplitr
     · ipureintro; exact Hid
+    ipureintro; exact ⟨Hdst, Htr'⟩
 
 /-- A full log at its commit index has the history of an acknowledgement there, at any
 term at least the commit fact's. -/

@@ -2,14 +2,15 @@
 The apply loop's step `applyAll` (`server.go`: a batch from raft applied, the applied index's
 waiters triggered, the snapshot trigger): the shared vocabulary of the specs of `applyAll`,
 `applySnapshot`, `Backend`, `snapshotIfNeededAndCompactRaftLog`, `shouldSnapshotToDisk`,
-`shouldSnapshotToMemory` and the trust-boundary contracts `snapshot`, `compactRaftLog`,
-`createMergedSnapshotMessage`, `sendMergedSnap`. Lean-first (no Rocq counterpart); the request
+`shouldSnapshotToMemory` and the trust-boundary contracts `snapshot`, `compactRaftLog` (until
+D19p, 2026-10-18, also `createMergedSnapshotMessage`, `sendMergedSnap`). Lean-first (no Rocq counterpart); the request
 path's unit 4b (2026-10-13).
 
 **The server, as `applyAll` sees it** (`isServerApplyAll s γr`, persistent, beside the apply
 thread's `isServer`): the applied index's waiters (`applyWait`, a `WaitTime` for
-`appliedAtLeast γr`, `isWaitTime`), the raft wrapper's `msgSnapC` (a bag channel of messages:
-`applyAll` only passes a received one to the merged-snapshot contract), the configuration's
+`appliedAtLeast γr`, `isWaitTime`), the raft wrapper's `msgSnapC` (a bag channel of messages,
+which never delivers since D19p, 2026-10-18: a one-member cluster's raft sends no `MsgSnap`; until
+then `applyAll` passed a received one to the merged-snapshot contract), the configuration's
 `SnapshotCount`.
 
 **The apply thread's own snapshot state** (`srvSnapState s ep`): `ep.diskSnapshotIndex`,
@@ -67,7 +68,9 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (wt : GoInterface) (msc : Loc) (sc : w64),
     srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt (appliedAtLeast γr) ∗
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
+    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
+      -- (D19p, 2026-10-18) it never delivers: a one-member cluster's raft sends no `MsgSnap`
+      □ (∀ m : Loc, P m -∗ False)) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
     (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg))

@@ -1078,7 +1078,7 @@ theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List EntryM) (c 
     icases H with ⟨Hg, %HC⟩
     iframe Hg
     ipureintro
-    exact ⟨⟨HC.1, HC.2.1⟩, HC⟩
+    exact ⟨⟨HC.1.1, HC.1.2.1⟩, HC⟩
   | dyn dec c0 h0 _ =>
     simp only [RNMode.toG, ownStepGhost, ghostRest]
     icases H with ⟨Hg, %HC, Hr⟩
@@ -1272,14 +1272,19 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
     (fp : List EntryM) (cf : CfgM) (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) cf cf.voters r id s -∗
       ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s -∗
-      ownRaftPhys γ.reCfg r id s ∗ ownRaftGhost γ id (toPState s) := by
+      ownRaftPhys γ.reCfg r id s ∗ ownRaftGhost γ id (toPState s) ∗
+      -- (D19p, 2026-10-18) the tracker within the tracked bound
+      ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ := by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, GMode.isDyn]
   icases Hghost with ⟨Hghost, %HC⟩
-  icases ownRaftPhysC_toPhys cf r id s HC.2.1 $$ Hphys with ⟨Hphys, -⟩
-  rw [HC.1]
+  icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
+  rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
+  ipureintro
+  exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
+    (by rw [Hlrn]; rfl) HC.2
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -1292,7 +1297,9 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
-    (Hrnfl : RNFl rs s) :
+    (Hrnfl : RNFl rs s)
+    -- (D19p, 2026-10-18) the tracker within the ghost state's tracked bound
+    (Htrk : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1310,7 +1317,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · rw [Hm]
     simp only [RNMode.toG, ownStepGhost, ghostRest, GMode.isDyn]
     iframe Hghost
-    ipureintro; exact CfgStatic.simple γ _ Hst
+    ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs

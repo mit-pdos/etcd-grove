@@ -52,7 +52,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntrie
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommittedIndex
@@ -73,7 +72,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setLead
@@ -1104,17 +1102,9 @@ theorem EtcdServer.wp_snapshotIfNeededAndCompactRaftLog :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) :=
   EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof EtcdServer.wp_shouldSnapshotToDisk EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog
 
-theorem EtcdServer.wp_createMergedSnapshotMessage :
-    EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
-  EtcdServer.createMergedSnapshotMessage.wp_proof
-
-theorem EtcdServer.wp_sendMergedSnap :
-    EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
-  EtcdServer.sendMergedSnap.wp_proof
-
 theorem EtcdServer.wp_applyAll :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap
+  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog
 
 theorem EtcdServer.wp_setLead :
     EtcdServer.setLead.spec (GF := GF) (hG := hG) :=

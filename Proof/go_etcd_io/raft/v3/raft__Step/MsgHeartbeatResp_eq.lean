@@ -146,6 +146,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
   · -- Leader: `sendAppend` to a peer that is behind
     simp only [stepFuncOf]
     imod (preceipt_zero (GF := GF)) with #Hrc00
+    icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (.inr (.inr (.inl Hty))) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => Hfid)
@@ -159,7 +160,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
-      leader_hbresp_step (B := B) c id s m ents ctx dropped s' Hrole Hty Hto Hteq Hwf Hres
+      leader_hbresp_step (B := B) c id s m ents ctx dropped s' Hrole Hty Hto Hteq Hwf Hpc Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

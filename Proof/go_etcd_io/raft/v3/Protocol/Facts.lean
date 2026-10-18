@@ -1317,13 +1317,16 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-15, stage N) the conf-change bytes the cluster admits
     (ccOk : w32 → List w8 → Prop)
     -- (2026-10-16, stage R8b) the log the cluster starts with, committed, and the term
-    (L : List EntryM) (t : w64) (C : RaftNames → IProp GF) :
+    (L : List EntryM) (t : w64) (C : RaftNames → IProp GF)
+    -- (D19p, 2026-10-18) the tracked bound, if any: the voters' superset, the static mode's
+    (trk : Option (GSet w64)) (Htrk : ∀ T, trk = some T → cfg ⊆ T ∧ dyn = none) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) → (dyn = none ∨ L = []) →
     ⊢ allocClientGen E cfg dyn ccOk L C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L⌝ ∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
+          γ.reTracked = trk⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1362,7 +1365,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · rw [Qp.half_add_half]; iexact Hcl0
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
-        dyn, ccOk, L.map BootEntry.ofEntry, Hcne⟩ :=
+        dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1475,7 +1478,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
   imodintro
   iexists γ0
-  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB⟩
+  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1506,7 +1509,8 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   intro Hcne Hnz
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
-  imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C Hcne Hnz (BootWf_nil _)
+  imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
+    Hcne Hnz (BootWf_nil _)
     (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
@@ -1596,7 +1600,8 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     BootLogOk ccOk ps bootLog →
     ⊢ allocClientBoot E cfg ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
-        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ ∗
+        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
+          γ.reTracked = some cfg⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
@@ -1606,7 +1611,8 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   iintro Hcl
   ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
   · unfold allocClientGen allocClientBoot; iexact Hcl
-  imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C Hcne Hnz Hok.wf
+  imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
+    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _) (Or.inl rfl)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
@@ -1630,43 +1636,47 @@ theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   exact own_unit _
 
 /-- Taking a step that consumes a single known message, with its read credit (2026-10-13:
-one for a `MsgReadIndex`) and (2026-10-14, stage R) a later credit. -/
-theorem ownRaftGhost_step_1c (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64) (s : PState)
+one for a `MsgReadIndex`) and (2026-10-14, stage R) a later credit; (D19p, 2026-10-18) a step of
+`StepC` at a static configuration within the tracked bound (until then of `Step`). -/
+theorem ownRaftGhost_step_1c (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
     (m : Msg) (s' : PState) :
-    Step γ.reCfg id B s [m] s' →
+    StepC c id B s [m] s' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗ £ 1 -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
   intro Hstep
   iintro #Hrc #Hm Hcr Hlc Hown
-  iapply ownRaftGhost_step γ id B HB s [m] s' Hstep $$ Hrc [] Hcr Hlc Hown
+  iapply ownRaftGhost_stepC γ c HC id HT B HB s [m] s' Hstep $$ Hrc [] Hcr Hlc Hown
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
   iexact Hm
 
 /-- Taking a step that consumes a single known message other than a `MsgReadIndex`. -/
-theorem ownRaftGhost_step_1 (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64) (s : PState)
+theorem ownRaftGhost_step_1 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
     (m : Msg) (s' : PState) :
     m.ty ≠ .readIndex →
-    Step γ.reCfg id B s [m] s' →
+    StepC c id B s [m] s' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ £ 1 -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
   intro Hty Hstep
   iintro #Hrc #Hm Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step_1c γ id B HB s m s' Hstep $$ Hrc Hm [Hcr] Hlc Hown
+  iapply ownRaftGhost_step_1c γ c HC id HT B HB s m s' Hstep $$ Hrc Hm [Hcr] Hlc Hown
   rw [rdCount_singleton, ite_eq_right Hty]
   iexact Hcr
 
 /-- Taking a step that consumes nothing. -/
-theorem ownRaftGhost_step_0 (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64)
+theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64)
     (s s' : PState) :
-    Step γ.reCfg id B s [] s' →
+    StepC c id B s [] s' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ £ 1 -∗ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id s' := by
   intro Hstep
   iintro #Hrc Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step γ id B HB s [] s' Hstep $$ Hrc [] [Hcr] Hlc Hown
+  iapply ownRaftGhost_stepC γ c HC id HT B HB s [] s' Hstep $$ Hrc [] [Hcr] Hlc Hown
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr

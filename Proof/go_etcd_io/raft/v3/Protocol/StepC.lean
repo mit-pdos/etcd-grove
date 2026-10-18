@@ -17,9 +17,11 @@ matter to the protocol:
   (`campaign`'s `r.trk.Voters.IDs()`, the union);
 * the read-index acknowledgement test is `JQuorum` too (`JQuorumAcked`).
 
-The other rules are `Step`'s, unchanged. `step_iff_stepC` relates the two at a non-joint
-configuration with voters `cfg ≠ ∅` (learners arbitrary): the relations are equal, so the
-generalization loses nothing of what was proved at a fixed voter set. Nothing uses `StepC`
+The other rules are `Step`'s, unchanged but for one premise (D19p, 2026-10-18): a broadcast's
+(`win`, `sendApps`) `MsgSnap` goes to a voter or learner of `c` (`maybeSendSnapshot`'s peer, in the
+progress map), which `Step` (no learners) cannot state. `step_of_stepC` maps a `StepC` derivation
+at a non-joint configuration with voters `cfg ≠ ∅` to `Step cfg` (until D19p the relations were
+equal there, `step_iff_stepC`). Nothing uses `StepC`
 yet: the ghost state and the refinement stay at `Step` (stage A1 is code-level only; the
 protocol at joint configurations is later work).
 
@@ -452,6 +454,9 @@ inductive StepC : PState → List Msg → PState → Prop where
       plogLastIndexZ s.base s.log + 1 ≤ B →
       LeaderMatchOk id s mt →
       (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
+      -- (D19p, 2026-10-18) a snapshot goes to a tracked id (`maybeSendSnapshot`: a peer of
+      -- the progress map, which tracks the configuration's voters and learners)
+      (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
       StepC s [] (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms))
   | lose (s : PState) :
       s.role = .candidate →
@@ -535,6 +540,8 @@ inductive StepC : PState → List Msg → PState → Prop where
   | sendApps (s : PState) (ms : List Msg) :
       s.role = .leader →
       (∀ m ∈ ms, ReplOk id s m) →
+      -- (D19p, 2026-10-18) as `win`'s
+      (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
       StepC s [] (psendMsgs s ms)
   | propose (m : Msg) (s : PState) (ents : List EntryM) :
       m.ty = .propose →
@@ -651,54 +658,6 @@ end model
 section equiv
 variable [FfiSyntax]
 
-/-- `Step` at the voters of a non-joint configuration is `StepC` there. -/
-theorem stepC_of_step (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
-    {s : PState} {ms : List Msg} {s' : PState} (h : Step c.incoming id B s ms s') :
-    StepC c id B s ms s' := by
-  have Hv := CfgM.voters_of_out ho
-  induction h with
-  | refl s => exact .refl s
-  | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
-  | campaign s peers cl h1 h2 h3 h4 =>
-    exact .campaign s peers cl h1 (Hv ▸ h2) h3 (Hv ▸ h4)
-  | win s mt ms h1 h2 h3 h4 h5 => exact .win s mt ms h1 ((JQuorum_of_out hi ho _).2 h2) h3 h4 h5
-  | lose s h1 h2 => exact .lose s h1 ((JLost_of_out hi ho _).2 h2)
-  | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).2 h5)
-  | readAck m s N h1 h2 h3 h4 h5 h6 =>
-    exact .readAck m s N h1 h2 h3 h4 h5 ((JQuorumAcked_of_out hi ho _ _).2 h6)
-  | readSingle m s h1 h2 h3 h4 => exact .readSingle m s h1 h2 h3 ⟨h4, ho⟩
-  | readReleaseSingle s h1 h2 h3 => exact .readReleaseSingle s h1 h2 ⟨h3, ho⟩
-  | _ =>
-    first
-    | (apply StepC.higherTerm <;> assumption)
-    | (apply StepC.grantVote <;> assumption)
-    | (apply StepC.rejectVote <;> assumption)
-    | (apply StepC.recordVote <;> assumption)
-    | (apply StepC.drain <;> assumption)
-    | (apply StepC.appAccept <;> assumption)
-    | (apply StepC.appStale <;> assumption)
-    | (apply StepC.appReject <;> assumption)
-    | (apply StepC.heartbeat <;> assumption)
-    | (apply StepC.beat <;> assumption)
-    | (apply StepC.appResp <;> assumption)
-    | (apply StepC.sendApps <;> assumption)
-    | (apply StepC.propose <;> assumption)
-    | (apply StepC.propForward <;> assumption)
-    | (apply StepC.snapRestore <;> assumption)
-    | (apply StepC.snapFastfwd <;> assumption)
-    | (apply StepC.snapStale <;> assumption)
-    | (apply StepC.takeReads <;> assumption)
-    | (apply StepC.readFwd <;> assumption)
-    | (apply StepC.readPend <;> assumption)
-    | (apply StepC.readArrive <;> assumption)
-    | (apply StepC.readRelease <;> assumption)
-    | (apply StepC.readState <;> assumption)
-    | (apply StepC.sendFree <;> assumption)
-    | (apply StepC.abandon <;> assumption)
-    | (apply StepC.zeroAck <;> assumption)
-    | (apply StepC.reMatch <;> assumption)
-    | (apply StepC.stepDown <;> assumption)
-
 /-- `StepC` at a non-joint configuration is `Step` at its voters. -/
 theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
     {s : PState} {ms : List Msg} {s' : PState} (h : StepC c id B s ms s') :
@@ -709,7 +668,8 @@ theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) 
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
   | campaign s peers cl h1 h2 h3 h4 =>
     exact .campaign s peers cl h1 (Hv ▸ h2) h3 (Hv ▸ h4)
-  | win s mt ms h1 h2 h3 h4 h5 => exact .win s mt ms h1 ((JQuorum_of_out hi ho _).1 h2) h3 h4 h5
+  | win s mt ms h1 h2 h3 h4 h5 _ => exact .win s mt ms h1 ((JQuorum_of_out hi ho _).1 h2) h3 h4 h5
+  | sendApps s ms h1 h2 _ => exact .sendApps s ms h1 h2
   | lose s h1 h2 => exact .lose s h1 ((JLost_of_out hi ho _).1 h2)
   | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).1 h5)
   | readAck m s N h1 h2 h3 h4 h5 h6 =>
@@ -746,13 +706,6 @@ theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) 
     | (apply Step.zeroAck <;> assumption)
     | (apply Step.reMatch <;> assumption)
     | (apply Step.stepDown <;> assumption)
-
-/-- The two step relations agree at a non-joint configuration with voters `cfg ≠ ∅`,
-whatever its learners: `Step cfg` is `StepC (CfgM.simple cfg lrn)`. -/
-theorem step_iff_stepC (cfg lrn : GSet w64) (id : w64) (B : Int) (hne : cfg ≠ ∅)
-    (s : PState) (ms : List Msg) (s' : PState) :
-    Step cfg id B s ms s' ↔ StepC (CfgM.simple cfg lrn) id B s ms s' :=
-  ⟨stepC_of_step (CfgM.simple cfg lrn) id B hne rfl, step_of_stepC (CfgM.simple cfg lrn) id B hne rfl⟩
 
 end equiv
 

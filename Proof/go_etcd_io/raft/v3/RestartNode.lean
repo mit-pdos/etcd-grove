@@ -105,6 +105,8 @@ theorem RestartNode.wp_proof
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
+          (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
+            (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil

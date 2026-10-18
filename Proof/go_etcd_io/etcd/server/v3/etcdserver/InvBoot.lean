@@ -144,6 +144,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
       BootLogOk γ.reCCOk ps bootLog⌝ ∗
+    -- (D19p, 2026-10-18) a one-member cluster: raft's tracked bound this node alone (what
+    -- `ownRaftGhost_alloc_boot` gives for the peers `[id]`), so raft sends no snapshot
+    "%Hone" ∷ ⌜γ.reTracked = some (GMap.listToSet [id])⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗

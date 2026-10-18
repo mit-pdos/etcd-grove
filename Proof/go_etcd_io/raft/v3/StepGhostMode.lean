@@ -221,10 +221,11 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- What the mode keeps beyond `ownRaftGhost`: statically, the configuration's voters are the
-ghost state's; dynamically, `ownRaftGhostR`'s invariant, full prefix records and campaign
+ghost state's, and (D19p, 2026-10-18) its voters and learners -- the ids the tracker holds -- and
+the node are within the ghost state's tracked bound (`TrackedOk`); dynamically, `ownRaftGhostR`'s invariant, full prefix records and campaign
 record, with the ghost part over the configuration. -/
 def ghostRest (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
-  | .static, c, _, _ => iprop(⌜CfgStatic γ c⌝)
+  | .static, c, id, _ => iprop(⌜CfgStatic γ c ∧ TrackedOk γ c id⌝)
   | .dyn dec c0 h0 g, c, id, s =>
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ RInv dec c0 (rOf s g)⌝ ∗
       logRecs γ base0 g.fp ∗
@@ -301,8 +302,8 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   | static =>
     simp only [ghostRest, GMode.isDyn]
     iintro #Hrc Hrecv Hcr Hlc Hg %HC
-    imod ownRaftGhost_stepC γ c HC id B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc Hrecv Hcr
-      Hlc Hg
+    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
+      Hrecv Hcr Hlc Hg
       with Hg
     imodintro
     iexists GMode.static
@@ -399,7 +400,9 @@ dynamically, A3 -- the `ConfState` denotes the fold of the snapshot's prefix (`S
 any recorded prefix ending at the snapshot's entry id (records agree, so there is one; the
 message shows one exists, `isMessage_snap_prefix`). -/
 def GMode.SnapOk (γ : RaftNames) : GMode → SnapshotM → CSLists → IProp GF
-  | .static, _, scfg => iprop(⌜GMap.listToSet scfg.voters = γ.reCfg ∧ scfg.outgoing = []⌝)
+  | .static, sv, scfg => iprop(⌜GMap.listToSet scfg.voters = γ.reCfg ∧ scfg.outgoing = [] ∧
+      -- (D19p, 2026-10-18) its ids within the tracked bound
+      ∀ T, γ.reTracked = some T → (snapCfg sv scfg).voters ∪ (snapCfg sv scfg).learners ⊆ T⌝)
   | .dyn dec c0 _ _, sv, scfg => iprop(□ ∀ (fp : List EntryM), logRecs γ base0 fp -∗
       ⌜FullOk (snapId sv) fp⌝ -∗
       ⌜SnapConfOk dec c0 fp scfg.outgoing scfg.voters scfg.learners scfg.learnersNext
@@ -437,8 +440,8 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   | static =>
     simp only [ghostRest, GMode.isDyn, GMode.SnapOk]
     iintro #Hrc - Hrecv Hcr Hlc %Hso Hg %HC
-    imod ownRaftGhost_stepC γ c HC id B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc Hrecv Hcr
-      Hlc Hg
+    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
+      Hrecv Hcr Hlc Hg
       with Hg
     imodintro
     iexists GMode.static
@@ -448,9 +451,9 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     ipureintro
     rcases Hc' with rfl | rfl
     · exact HC
-    · refine ⟨?_, ?_, HC.2.2⟩
+    · refine ⟨⟨?_, ?_, HC.1.2.2⟩, fun T hT => ⟨Hso.2.2 T hT, (HC.2 T hT).2⟩⟩
       · simp only [snapCfg, csCfgM]; exact Hso.1
-      · simp only [snapCfg, csCfgM]; rw [Hso.2]; try rfl
+      · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
     simp only [ghostRest, GMode.isDyn, GMode.SnapOk]
     iintro #Hrc #Hm Hrecv Hcr Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩

@@ -1665,6 +1665,19 @@ theorem ownRaftPhysC_tracker (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with votes := votes' }
 
+/-- (D19p, 2026-10-18) The progress map tracks the configuration's voters and learners. -/
+theorem ownRaftPhysC_dom (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜domSet s.progress ⊆ c.voters ∪ c.learners⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_pure c tv _ $$ Htrk with ⟨%Hp, Htrk⟩
+  isplitr
+  · ipureintro
+    have h : domSet s.progress = c.voters ∪ c.learners := Hp.2.1
+    rw [h]; exact GMap.subseteq_refl _
+  iapply Hback $$ %tv %s.votes Hf Htrk
+
 /-- The tracker, given back with new `Progress` values. -/
 theorem ownRaftPhysC_tracker_prvals (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗

@@ -672,10 +672,13 @@ theorem applyCC_of_shrink (cfg : GSet w64) {V : Type} (prs : GMap w64 V)
     (t : raftpb.ConfChangeTransition) (ccs : List ConfChangeSingleM)
     (H : CCShrink cfg t ccs) (Hsub : cfg ⊆ domSet prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62) :
     ∃ lrn', (∀ k, k ∈ lrn' → k ∉ cfg) ∧ (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 ∧
-      ccApplyM t ccs (cfgState cfg (domSet prs \ cfg)) = some (cfgState cfg lrn') := by
+      ccApplyM t ccs (cfgState cfg (domSet prs \ cfg)) = some (cfgState cfg lrn') ∧
+      -- (D19p, 2026-10-18) the learners only shrink
+      (∀ k, k ∈ lrn' → k ∈ domSet prs) := by
   obtain ⟨lrn', Hl, Hm⟩ := H (domSet prs \ cfg) (fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2)
   refine ⟨lrn', fun k hk => ((GMap.elem_of_difference _ _ _).1
-    ((GMap.elem_of_subseteq _ _).1 Hl k hk)).2, ?_, Hm⟩
+    ((GMap.elem_of_subseteq _ _).1 Hl k hk)).2, ?_, Hm,
+    fun k hk => ((GMap.elem_of_difference _ _ _).1 ((GMap.elem_of_subseteq _ _).1 Hl k hk)).1⟩
   have h1 : cfg ∪ lrn' ⊆ domSet prs := by
     rw [GMap.union_subseteq]
     refine ⟨Hsub, ?_⟩

@@ -48,10 +48,11 @@ four new rules:
 `Adm l cs`: the configurations a node may take on after the full-log prefix `l` (by
 `applyConf`, or as a snapshot's by `snapRestore`). The dynamic model takes the fold of the
 prefix (`AdmFold`: A3, a snapshot's `ConfState` is its prefix's configuration; for `applyConf`
-it is implied by the decoder); the static one (`StaticAdm V`) the voters `V` unchanged, under
-which `StepR` projects to `StepC` (`stepR_static`) and so refines the ghost state as `StepC`
-does (`ownRaftGhost_stepR`, `RefinementR.lean`). `StepR.mono`: a derivation under `Adm` is
-one under any weaker `Adm'`.
+it is implied by the decoder); the static one (`StaticAdm V`) the voters `V` unchanged. (Until
+D19p, 2026-10-18, `StepR` projected to `StepC (CfgM.simple V ∅)` there, `stepR_static`, and so
+refined the ghost state, `ownRaftGhost_stepR`: `StepC`'s broadcasts now send a snapshot only to a
+voter or learner of their configuration, which a learner-free `StepC` cannot express; unused,
+both were removed.) `StepR.mono`: a derivation under `Adm` is one under any weaker `Adm'`.
 
 Nothing in the code produces a `StepR` witness yet (notes/STATUS.md, "Reconfiguration, stage
 B3").
@@ -481,15 +482,9 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
 
 end mono
 
-/-! ### At a static configuration, `StepR` is `StepC`
+/-! ### At a static configuration
 
-With the voters fixed at `V` (`StaticAdm V`: every configuration a node takes on has them,
-learners free), a `StepR` derivation from a state at `V` whose non-follower is a voter
-(`RoleVoter`, the code's `Hvoter`) is a `StepC (CfgM.simple V ∅)` derivation of its protocol
-states: the new rules are stuttering steps (`advance`, `applySnap`, `applyConf`, `propDrop`
-change no `PState`), `stepDown` is `StepC.stepDown` (2026-10-17; until then it could not fire, a
-leader being a voter), and the guards and the
-exact proposal loop only strengthen `StepC`'s premises (`propConf_repl`). -/
+(Until D19p, 2026-10-18, also `stepR_static`: see the file header.) -/
 
 section static
 variable [FfiSyntax]
@@ -521,88 +516,6 @@ theorem preadRespondAll_role (id : w64) (s : PState) (qs : List ReadReq) :
     (preadRespondAll id s qs).role = s.role := by
   obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
   rw [h]
-
-theorem stepR_static {V : GSet w64} {dec : CCDec} {id : w64} {B : Int} {r : RState}
-    {ms : List Msg} {r' : RState} (h : StepR (StaticAdm V) dec id B r ms r') (hs : StaticR V r)
-    (hv : RoleVoter id V r) :
-    StepC (CfgM.simple V ∅) id B r.p ms r'.p ∧ StaticR V r' ∧ RoleVoter id V r' := by
-  induction h with
-  | refl r => exact ⟨.refl _, hs, hv⟩
-  | trans _ _ _ _ _ _ _ ih1 ih2 =>
-    obtain ⟨h1, hs1, hv1⟩ := ih1 hs hv
-    obtain ⟨h2, hs2, hv2⟩ := ih2 hs1 hv1
-    exact ⟨.trans _ _ _ _ _ h1 h2, hs2, hv2⟩
-  | higherTerm m r h1 h2 h3 =>
-    exact ⟨.higherTerm m r.p h1 h2 h3, hs, fun h => absurd rfl h⟩
-  | campaign r peers cl h1 h2 _ _ h5 h6 =>
-    rw [hs.voters] at h2 h6
-    refine ⟨.campaign r.p peers cl h1 (by rw [CfgM.voters_simple]; exact h2) h5
-      (by rw [CfgM.voters_simple]; exact h6), hs, fun _ => h2⟩
-  | win r mt ms h1 h2 h3 h4 h5 _ =>
-    exact ⟨.win r.p mt ms h1 ((hs.jquorum _).1 h2) h3 h4 h5, hs,
-      fun _ => hv (by rw [h1]; intro h; cases h)⟩
-  | lose r h1 h2 =>
-    exact ⟨.lose r.p h1 ((hs.jlost _).1 h2), hs, fun h => absurd rfl h⟩
-  | commit r n h1 h2 h3 h4 h5 =>
-    exact ⟨.commit r.p n h1 h2 h3 h4 ((hs.jquorum _).1 h5), hs, hv⟩
-  | readAck m r N h1 h2 h3 h4 h5 h6 =>
-    refine ⟨.readAck m r.p N h1 h2 h3 h4 h5 ((hs.jquorumAcked _ _).1 h6), hs, ?_⟩
-    intro h; apply hv
-    simp only [preadRespondAll_role] at h
-    exact h
-  | readSingle m r h1 h2 h3 h4 =>
-    refine ⟨.readSingle m r.p h1 h2 h3 ⟨by rw [← hs.1]; exact h4.1, rfl⟩, hs, ?_⟩
-    intro h; apply hv
-    simp only [preadRespondAll_role] at h
-    exact h
-  | readReleaseSingle r h1 h2 h3 =>
-    refine ⟨.readReleaseSingle r.p h1 h2 ⟨by rw [← hs.1]; exact h3.1, rfl⟩, hs, ?_⟩
-    intro h; apply hv
-    simp only [preadRespondAll_role] at h
-    exact h
-  | propose m r cs h1 h2 h3 h4 =>
-    have hrep := propConf_repl (joint := CfgM.joint r.cfg.cfg) r.applied (plastIndex r.p) r.pci
-      m.entries cs h3
-    have hlen := hrep.length
-    refine ⟨.propose m r.p _ h1 hrep h2 (by unfold propBatch; rw [hlen]; exact h4), hs, hv⟩
-  | propDrop => exact ⟨.refl _, hs, hv⟩
-  | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 _ _ h10 =>
-    exact ⟨.snapRestore m r.p h1 h2 h3 h4 h5 h6 h7, h10, fun h => absurd rfl h⟩
-  | advance => exact ⟨.refl _, hs, hv⟩
-  | applySnap => exact ⟨.refl _, hs, hv⟩
-  | applyConf r k e op cs' _ _ _ _ _ _ _ _ h9 => exact ⟨.refl _, h9, hv⟩
-  | stepDown r h1 =>
-    exact ⟨.stepDown r.p h1, hs, fun h => absurd rfl h⟩
-  | _ =>
-    refine ⟨?_, hs, ?_⟩
-    · first
-      | (apply StepC.grantVote <;> assumption)
-      | (apply StepC.rejectVote <;> assumption)
-      | (apply StepC.recordVote <;> assumption)
-      | (apply StepC.drain <;> assumption)
-      | (apply StepC.appAccept <;> assumption)
-      | (apply StepC.appStale <;> assumption)
-      | (apply StepC.appReject <;> assumption)
-      | (apply StepC.heartbeat <;> assumption)
-      | (apply StepC.beat <;> assumption)
-      | (apply StepC.appResp <;> assumption)
-      | (apply StepC.sendApps <;> assumption)
-      | (apply StepC.propForward <;> assumption)
-      | (apply StepC.snapFastfwd <;> assumption)
-      | (apply StepC.snapStale <;> assumption)
-      | (apply StepC.takeReads <;> assumption)
-      | (apply StepC.readFwd <;> assumption)
-      | (apply StepC.readPend <;> assumption)
-      | (apply StepC.readArrive <;> assumption)
-      | (apply StepC.readRelease <;> assumption)
-      | (apply StepC.readState <;> assumption)
-      | (apply StepC.sendFree <;> assumption)
-      | (apply StepC.abandon <;> assumption)
-      | (apply StepC.zeroAck <;> assumption)
-      | (apply StepC.reMatch <;> assumption)
-    · first
-      | exact hv
-      | exact fun h => absurd rfl h
 
 end static
 

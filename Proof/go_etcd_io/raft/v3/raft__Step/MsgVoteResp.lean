@@ -383,7 +383,12 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             · rfl
           have Hac : ∀ m' ∈ ms, AppCommitEq (pwinState id { toPState s with
               votes := recordVote (toPState s).votes m.From' (!m.Reject') } (prvalsMatch pvs)) m' :=
-            fun m' Hm' h => (Hms m' Hm').2 h
+            fun m' Hm' h => (Hms m' Hm').2.1 h
+          -- (D19p) a snapshot to a tracked id: `becomeLeader` keeps the progress map
+          have Hsn : ∀ m' ∈ ms, m'.ty = .snap → m'.dst ∈ c.voters ∪ c.learners :=
+            Hms.snapTo (by
+              show domSet s.progress ⊆ _
+              rw [Hprd]; exact GMap.subseteq_refl _)
           have Hnw' : plogLastIndexZ (toPState s).base (toPState s).log + 1 < 2 ^ 64 := by
             simp only [plogLastIndexZ, toPState, List.length_append]
             push_cast
@@ -393,7 +398,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             unfold pvoteRespResult
             simp only [↓reduceIte]
             exact stepC_record_then_win c id (toPState s) (absMsg .voteResp m ents)
-              (prvalsMatch pvs) ms rfl Hto Hteq Hpr Hmt' Hms' Hq (Int.le_refl _)
+              (prvalsMatch pvs) ms rfl Hto Hteq Hpr Hmt' Hms' Hq (Int.le_refl _) Hsn
           · change StepR Adm dec id _ (rOf s g) ([absMsg .voteResp m ents] ++ [])
               (rOf { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } g)
             have Hr : rOf { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } g =

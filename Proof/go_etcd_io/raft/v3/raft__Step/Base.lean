@@ -309,7 +309,8 @@ theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : MessageM)
 theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
     (ps ps' : PState) (a : Msg) (recv : List Msg)
     (B : Int) (HB : B < 2 ^ 64)
-    (HC : CfgStatic γ c) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepC c id B ps recv ps')
+    (HC : CfgStatic γ c) (HT : TrackedOk γ c id) (Hrecv : ∀ m' ∈ recv, m' = a)
+    (Hstep : StepC c id B ps recv ps')
     (Hna : a.ty ≠ .readIndex) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ £ 1 -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
   iintro #Hrc #Hm Hlc Hg
@@ -323,7 +324,7 @@ theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  iapply ownRaftGhost_stepC γ c HC id B HB ps recv ps' Hstep $$ Hrc Hall [Hz] Hlc Hg
+  iapply ownRaftGhost_stepC γ c HC id HT B HB ps recv ps' Hstep $$ Hrc Hall [Hz] Hlc Hg
   rw [Hcnt]; iexact Hz
 
 /-- The one ghost update of a branch, in the mode `md`: `recv` is the incoming message, some

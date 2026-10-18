@@ -33,8 +33,11 @@ def ApplyCCOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
 `Step.sendApps`; at a non-leader `Step.refl`), and what is kept of the physical state: the
 role, `r.step`, `r.tick`, the term, pre-vote, the ghost bounds, the log but for a raised
 commit index. -/
-theorem applyCCOk_step {B : Int} (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCOk cfg id s s') :
-    Step cfg id B (toPState s) [] (toPState s') ∧
+theorem applyCCOk_step {B : Int} (cfg : GSet w64) (hne : cfg ≠ ∅) (id : w64) (s s' : NState)
+    (H : ApplyCCOk cfg id s s') :
+    -- (D19p, 2026-10-18) at the configuration the new progress map tracks (until then `Step cfg`,
+    -- which cannot say where a snapshot goes)
+    StepC (CfgM.simple cfg (domSet s'.progress \ cfg)) id B (toPState s) [] (toPState s') ∧
     s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
     s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
     s'.logst = { s.logst with committed := s'.logst.committed } ∧
@@ -47,7 +50,7 @@ theorem applyCCOk_step {B : Int} (cfg : GSet w64) (id : w64) (s s' : NState) (H 
     obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
     -- the new `Progress` values
-    have H1 : Step cfg id B (toPState s) []
+    have H1 : StepC (CfgM.simple cfg (domSet prs \ cfg)) id B (toPState s) []
         (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }) := by
       have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } =
           { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
@@ -68,7 +71,7 @@ theorem applyCCOk_step {B : Int} (cfg : GSet w64) (id : w64) (s s' : NState) (H 
     have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
     have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
     -- the commit
-    have H2 : Step cfg id B (toPState s1) []
+    have H2 : StepC (CfgM.simple cfg (domSet prs \ cfg)) id B (toPState s1) []
         (toPState { s1 with logst := { s1.logst with committed := c } }) := by
       rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
       · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
@@ -77,20 +80,30 @@ theorem applyCCOk_step {B : Int} (cfg : GSet w64) (id : w64) (s s' : NState) (H 
       · have e : toPState { s1 with logst := { s1.logst with committed := c } } =
             { toPState s1 with commit := c } := by simp [toPState, Hl1]
         rw [e]
-        exact .commit _ c Hpl1 Hlt Hle Htm Hq
+        exact .commit _ c Hpl1 Hlt Hle Htm
+          ((JQuorum_of_out (c := CfgM.simple cfg (domSet prs \ cfg)) hne rfl _).2 Hq)
     generalize Hs2 : ({ s1 with logst := { s1.logst with committed := c } } : NState) = s2
       at H2 Hms
     have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
+    have Hp2 : s2.progress = prs := by rw [← Hs2, ← Hs1]
     -- the appends
-    have H3 : Step cfg id B (toPState s2) []
+    have H3 : StepC (CfgM.simple cfg (domSet prs \ cfg)) id B (toPState s2) []
         (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
       have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
           toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
       rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
         rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
       exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
-    refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
+        (fun m hm h => by
+          have hd := (Hms m hm).2.2 h
+          rw [Hp2] at hd
+          rw [CfgM.voters_simple]
+          show m.dst ∈ cfg ∪ (domSet prs \ cfg)
+          by_cases hc : m.dst ∈ cfg
+          · exact (GMap.elem_of_union _ _ _).2 (Or.inl hc)
+          · exact (GMap.elem_of_union _ _ _).2 (Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨hd, hc⟩)))
     subst Hs1 Hs2
+    refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
     refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
     rcases Hc with rfl | ⟨Hlt, -⟩
     · exact Int.le_refl _
@@ -128,7 +141,7 @@ theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : Ap
     (s.role = .leader ∧ id ∉ c'.voters ∧
       ∃ ps1, StepC c' id B (toPState s) [] ps1 ∧
         toPState s' = pbecomeFollower ps1 s.term (W64 0)) := by
-  obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
+  obtain ⟨prs, pvs, Hdom, Hmk, Hsw⟩ := H
   unfold SwitchOkC at Hsw
   by_cases Hl : s.role = .leader
   · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
@@ -182,6 +195,10 @@ theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : Ap
         rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
           rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
         exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
+          (Hms.snapTo (by
+            rw [← Hs2, ← Hs1]
+            show domSet prs ⊆ c'.voters ∪ c'.learners
+            rw [Hdom]; exact GMap.subseteq_refl _))
       refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
       subst Hs1 Hs2
       refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
@@ -281,7 +298,9 @@ abbrev raft.applyConfChange.specS : Prop :=
       ownCCV2 cc dq ccm ∗
       csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
       ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn'⌝ ∗
-      ⌜ApplyCCOk cfg id s s'⌝ }}
+      ⌜ApplyCCOk cfg id s s'⌝ ∗
+      -- (D19p, 2026-10-18) the progress map tracks the new configuration's ids
+      ⌜domSet s'.progress ⊆ cfg ∪ lrn'⌝ }}
 
 
 open Iris.ProofMode in
@@ -305,6 +324,7 @@ theorem raft.applyConfChange.spec_simple
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩
   ihave Hphys := (show ownRaftPhysCV (GF := GF) (cfgState cfg lrn').cfg (cfgState cfg lrn').cfg.voters r id s'
       ⊢ ownRaftPhysC (CfgM.simple cfg lrn') r id s' from .rfl) $$ Hphys
+  icases ownRaftPhysC_dom _ r id s' $$ Hphys with ⟨%Hdom', Hphys⟩
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   obtain ⟨H1, H2, H3, H4⟩ := Hcs
   have Hos0 : os = [] := perm_elements_empty _ H2
@@ -316,7 +336,11 @@ theorem raft.applyConfChange.spec_simple
   · simp only [cfgState, cfgM]; iexact Hcs'
   ipureintro
   obtain ⟨prs, pvs, Hpd, Hmk, Hsw⟩ := Hok
-  refine ⟨⟨H1, H3⟩, prs, pvs, fun _ => Hmk, ?_⟩
+  refine ⟨⟨H1, H3⟩, ⟨prs, pvs, fun _ => Hmk, ?_⟩, ?_⟩
+  rotate_left
+  · have hv : (CfgM.simple cfg lrn').voters ∪ (CfgM.simple cfg lrn').learners = cfg ∪ lrn' := by
+      rw [CfgM.voters_simple]; rfl
+    rw [← hv]; exact Hdom'
   · have Hl : learnerOfC (cfgState cfg lrn').cfg id = learnerOf cfg prs id := by
       unfold learnerOfC learnerOf
       rw [Hpd, Hids]

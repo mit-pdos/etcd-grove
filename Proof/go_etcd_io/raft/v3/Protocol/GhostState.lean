@@ -246,7 +246,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          commitIn γ (fp ++ l) m.index m.term ∗
          -- the committed prefix the snapshot covers (2026-10-05)
          isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
-      ⌜m.src ≠ W64 0⌝)
+      ⌜m.src ≠ W64 0⌝ ∗
+      -- (D19p, 2026-10-18) to another node, both ids within the tracked bound (`reTracked`):
+      -- a leader sends a snapshot only to a peer its tracker holds (`maybeSendSnapshot`)
+      ⌜m.dst ≠ m.src ∧ ∀ T, γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝)
   | .propose =>
       -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
       -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,

@@ -143,10 +143,12 @@ def srvRunBuilt (s : Loc) (v : RunFields) : IProp GF :=
 instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBuilt (GF := GF) s v) := by
   unfold srvRunBuilt; infer_instance
 
-/-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`. -/
+/-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, which never
+delivers (D19p, 2026-10-18: a one-member cluster's raft sends no `MsgSnap`). -/
 def srvApplyAllBuilt (s : Loc) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
-    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P))
+    (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
+      □ (∀ m : Loc, P m -∗ False)))
 
 instance srvApplyAllBuilt_persistent (s : Loc) : Persistent (srvApplyAllBuilt (GF := GF) s) := by
   unfold srvApplyAllBuilt; infer_instance

@@ -167,6 +167,8 @@ inductive StepCF : PState → List Msg → PState → Prop where
       s.role = .leader →
       (∀ m ∈ ms, ReplOk id s m) →
       (∀ m ∈ ms, AppCommitEq s m) →
+      -- (D19p, 2026-10-18) a snapshot to a voter or learner of `c` (`StepC.sendApps`)
+      (∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners) →
       StepCF s [] (psendMsgs s ms)
   | propForward (m : Msg) (s : PState) :
       m.ty = .propose →
@@ -268,7 +270,7 @@ theorem StepCF.toC {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PSta
   induction h with
   | refl s => exact .refl s
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
-  | sendApps s ms h1 h2 _ => exact .sendApps s ms h1 h2
+  | sendApps s ms h1 h2 _ h4 => exact .sendApps s ms h1 h2 h4
   | _ =>
     first
     | (apply StepC.higherTerm <;> assumption)
@@ -414,7 +416,7 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
   | commit s n h1 h2 h3 h4 h5 =>
     intro r hp hc hz; subst hp
     exact StepR.pci_keep (.commit r n h1 h2 h3 h4 (hc ▸ h5)) (fun h => h) (fun h => h) hz
-  | sendApps s ms h1 h2 h3 =>
+  | sendApps s ms h1 h2 h3 _ =>
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.sendApps r ms h1 h2 h3) (fun h => h) (fun h => h) hz
   | propForward m s h1 h2 h3 =>
