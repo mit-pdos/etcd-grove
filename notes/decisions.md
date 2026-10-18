@@ -8553,14 +8553,6 @@ the theorem says nothing.
   `raft.Step`'s branches (`MsgProp`, `MsgVoteResp`, `MsgHup`), `StepGhostMode`, the node layer
   (`readyData`, `freshOk`/`staleOk`) and the register example; no trust-base change expected. The
   user decides whether to do it, and (3a) or (3b).
-  *Done (2026-10-18, option (3a) adopted by the user):* as (1)-(5), with two refinements: the
-  receipt `raft.Step` starts from is the node's last index's (`lastRec`, persistent, read off the
-  ghost state without consuming it), and only the two creating branches (`MsgProp` through
-  `stepLeader`/`appendEntry`, `MsgVoteResp` raising once itself) carry a raised receipt out;
-  every other branch is stated at any `B` and closed at `B` = the last index. `becomeLeader` passes
-  `⧖ 0` to `appendEntry` and drops the result. `readyIdx` is persistent (no update: the server
-  takes the receipt itself, `lastRec_receipt`); it is taken at the hand-out, so the stale `Ready`
-  needs no case of its own. The server's premise is `|reBoot| ≤ 2 ^ 60`.
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
@@ -8806,8 +8798,9 @@ the theorem says nothing.
     `etcdGrpcSlots_of_started` gives the `N ≤ K` slots from `srvServeOut`'s slots and `Start`'s
     read slots. `runsNoRequireLeader` stays a premise of the closed theorem: a statement about
     the clients' metadata, of D19a's first kind.
-- **D19h: the quota and the NOSPACE alarm** (audit phase B3, 2026-10-18; **proposed, waiting for
-  the user**). Three axioms on the `Put` path are false together (`notes/audit.md`): the quota's
+- **D19h: the quota and the NOSPACE alarm** (audit phase B3, 2026-10-18; **option (B) adopted by
+  the user, 2026-10-18; carried out for `NewBackendQuota` and `EtcdServer.Alarm`, not yet for
+  `raftRequestAlarm`**, below). Three axioms on the `Put` path are false together (`notes/audit.md`): the quota's
   `Available` always answers true (`storage.NewBackendQuota`'s `isQuota`), and the two contracts
   that propose the NOSPACE alarm (`EtcdServer.Alarm`, for `quotaAlarmer.check` in v3rpc;
   `EtcdServer.raftRequestAlarm`, for `applyEntryNormal`'s goroutine on an `ErrNoSpace` entry)
@@ -8850,7 +8843,29 @@ the theorem says nothing.
     NOSPACE path stays outside the model, so the closed theorem says nothing of such a run.
   - *Recommendation:* (B) now, with the premise in the closed theorem's statement as
     `authRecordsFit` and `transportEffectsOk` are; (A) when a closed theorem should cover a full
-    disk. Not started: the choice is the user's.
+    disk.
+  - *Adopted: (B)* (the user, 2026-10-18); **(A) stays the later route** for a theorem covering a
+    run that fills the quota. *Carried out:* `apply.backendUnderQuota` (opaque, `apply/Contracts.lean`)
+    is a premise of `storage.NewBackendQuota`'s axiom (restated: true of Go given it), of
+    `newQuotaApplierV3`, `newApplierV3`, `apply.NewUberApplier`, `EtcdServer.NewUberApplier` and
+    `NewServer.spec` (a precondition `⌜apply.backendUnderQuota⌝`, as `authRecordsFit`), and of
+    v3rpc's `newBackendQuota`, `NewQuotaKVServer`, `NewQuotaLeaseServer` and `Server`.
+    `quotaAlarmer.check`'s alarm branch is dead (`Available` answers true), so
+    `EtcdServer.Alarm`'s axiom is gone (its files removed; baseline one axiom fewer).
+  - *`raftRequestAlarm` not yet removed* (still false; the one alarm axiom left). Its branch in
+    `applyEntryNormal` is taken when `errors.Is(ar.Err, ErrNoSpace)` holds and the alarm store
+    has no NOSPACE alarm. Under the premise Go never takes it (the quota never answers false, the
+    capped applier is installed only with a NOSPACE alarm stored), but the model cannot show it:
+    the apply package's answers do not determine the error for every kind the KV model admits
+    (`dispatchAnswer` is `True` for the auth requests and `LeaseCheckpoint`, whose errors come from
+    names-only stores whose contracts say only `applyErrIs`), the server's `errors.Is` spec
+    (`Spec/errors/Is.lean`) answers some boolean (Perennial's has the tree facts), and the alarm
+    store's `Get` and the chain's `ns` are separate oracles. Removing it is a unit of its own:
+    (i) the answers' errors for every admitted kind (or the workload restricted to the kinds the
+    proposers here send: put, delete, transaction, range, the monitors' member and version
+    requests, whose answers are exact), (ii) Perennial's `errors.Is` spec and a lemma that none
+    of those errors `Is` `ErrNoSpace`, (iii) at a `kvExact` chain no outcome is a NOSPACE one
+    (`.rejected .noSpace`, `.applied _ true`); then the branch is dead.
   - *Carried out (2026-10-18, after clusterLogBound and rnSnapOnce landed).* (a):
     `NewServer.spec` takes `"#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd`
     (now in `InvBuild.lean`); its postcondition no longer has `etcdKV`, and `NewServer.lean`
