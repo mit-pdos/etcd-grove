@@ -7,6 +7,7 @@ Rocq counterpart); unit N4 (2026-10-17).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -24,13 +25,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `p.String()` loads the `ID` at `p` (read at any fraction, kept) and returns `(*p).String()`,
-some string (a hexadecimal rendering). -/
+its hexadecimal rendering, an ASCII string (D19l (iii), 2026-10-18: until then some string). -/
 abbrev types.ID.String_ptr.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (id : go_etcd_io.etcd.client.pkg.v3.types.ID),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗ p ↦{dq} id }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.types.ID.ty @!! go!"String"))
       (Val #()))
-  {{ (s : GoString), RET #s; p ↦{dq} id }}
+  {{ (s : GoString), RET #s; p ↦{dq} id ∗ ⌜asciiStr s⌝ }}
 
 end spec
 

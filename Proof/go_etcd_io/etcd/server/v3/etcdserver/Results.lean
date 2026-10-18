@@ -750,8 +750,10 @@ genuine assumption, nothing in etcd bounds a bucket's size), the clients' view o
 `Key` bucket, the lock resource's registration right, `N + 2` write-back tokens (`NewStore`
 spends two) and a reader token per reader slot; and, since the merge with the store's compaction
 (unit 5a, 2026-10-13), `NewStore`'s premise on its configuration (`0 ≤ CompactionBatchLimit`).
-The store is never compacted here: `NewStore`'s compaction right is given up
-(`compactRight_freeze`), so its readers are those of a never-compacted store (`storeReader`). -/
+The store is never compacted here: `NewStore`'s half of the compaction revision's authority is
+given up (`crevFrozen_alloc`), so its readers are those of a never-compacted store
+(`storeReader`); the backend records no compaction (`backendNoCompaction`, `NewStore`'s premise:
+D19l (v)), and the right to close the store holds its scheduler's stop token (D19m (C)). -/
 
 section backend
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -770,7 +772,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
     (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (hnc : mvcc.backendNoCompaction) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -792,21 +794,21 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
         ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReader s γ) ∗
-        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s }} := by
+        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw, Hrts, Hlrd, #Hle⟩ HΦ
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   iapply wp_fupd
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf hcfg hrb) $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
+  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf hcfg hrb hnc) $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
     as %s ⟨%γ, %Hγ, #Hst, Hcok, #Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
   · iframe #; iframe Hv Hrg Hrts Hlrd
     unfold backend.wbTok
     iframe Hw1 Hw2
   -- the apply thread's store is never compacted (the compaction is not in the server's model):
-  -- the compaction right given up, the readers those of a never-compacted store (as the
+  -- the compaction right's half given up, the readers those of a never-compacted store (as the
   -- watchable store's `newWatchableStore` does)
-  imod mvcc.compactRight_freeze γ ⊤ $$ Hright with #Hfrz
+  imod mvcc.crevFrozen_alloc γ ⊤ $$ Hright with #Hfrz
   ihave Hrds := mvcc.storeReaders_of s γ _ $$ [$Hfrz $Hrds]
   imodintro
   iapply HΦ
@@ -837,7 +839,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
     (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (hnc : mvcc.backendNoCompaction) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -868,7 +870,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st }} :=
+        mvcc.wsCloser ws st γw.st }} :=
   server_kv_watchable_of mvcc.wp_New backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
     backend.backend.wp_Size backend.backend.wp_SizeInUse
@@ -878,7 +880,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg hrb
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg hrb hnc
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
@@ -969,7 +971,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hci : ciKeys d.P)
     (hH : storage.hooksParams d.P) (γb γl : GName) (γA : ApplyNames) (ci bh lgh : Loc)
     (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (hnc : mvcc.backendNoCompaction) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -1000,7 +1002,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
         ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReader s γ) ∗
-        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s }} := by
+        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s γ }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hspkg, #Hcpkg, #Hnh, #Hh, #Hci, #Hinv, #Hhk, #Hsz, Hv, Hrg,
     Hw, Hrts, #Hlpkg, #Hlinv, Hlrd⟩ HΦ
   ihave #Hb := backend_server_hooks γA ci d.γB d.P (mvcc.lateW d.gx) d.be bh lgh hci hH $$
@@ -1008,7 +1010,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
   iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP γb γl
-    (batchLockInv γA (metaTM d.γB d.P)) f hf N hcfg hrb) $$ [Hv Hrg Hw Hrts Hlrd] HΦ
+    (batchLockInv γA (metaTM d.γB d.P)) f hf N hcfg hrb hnc) $$ [Hv Hrg Hw Hrts Hlrd] HΦ
   iframe #
   iframe Hv Hrg Hw Hrts Hlrd
 
@@ -1100,7 +1102,7 @@ theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb) $$ [Hb]
   · iframe Hpkg Hb
   inext
-  iintro ⟨%γw, #Hreq, #Hrd, Hst⟩
+  iintro ⟨%γw, #Hreq, #Hrd, Hst, -⟩
   iunfold srvStarted at Hst
   iNamed Hst
   ihave #Hrs := read_server s E { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]

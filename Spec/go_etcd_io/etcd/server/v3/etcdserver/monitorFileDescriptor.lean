@@ -21,11 +21,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `monitorFileDescriptor(lg, done)` returns (names-only: it logs the file descriptor usage until
-`done` is closed). -/
+/-- `monitorFileDescriptor(lg, done)` of a non-nil logger returns (names-only: it logs the file
+descriptor usage until `done` is closed; it calls `lg.Warn`, so a nil `lg` panics: the premise
+since audit B4b, 2026-10-18). -/
 abbrev monitorFileDescriptor.spec : Prop :=
   ∀ (lg : Loc) (done : GoChan),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜lg ≠ null⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor)) (Val #lg))
       (Val #done))
   {{ RET #(); True }}

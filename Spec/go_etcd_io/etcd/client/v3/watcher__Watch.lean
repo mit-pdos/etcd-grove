@@ -29,7 +29,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- **`w.Watch(ctx, key, opts...)`**, the contract's watch (`isEtcdRangeWatcher`'s triple at `w`):
 a range watch under the watcher's prefix from `rev ≥ 0` returns an SPSC channel of responses
 satisfying `rangeWatchElem` at the server's model, which may be closed, with the consumer's
-side. -/
+side; (K2e-8) the responses are complete at the second cursor (`γ.cpl`) when `cplCond` holds. -/
 abbrev watcher.Watch.spec : Prop :=
   ∀ (V : WEnv GF) (w : Loc) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64) (sr : Bool),
@@ -46,7 +46,8 @@ abbrev watcher.Watch.spec : Prop :=
       isSpsc γ.spsc ch (rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev)
         (fun _ => iprop(True)) ∗
       spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-      monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) }}
+      monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
+      ⌜γ.cpl = cplCond sr (opWatchModel key gs) rev⌝ }}
 
 end spec
 

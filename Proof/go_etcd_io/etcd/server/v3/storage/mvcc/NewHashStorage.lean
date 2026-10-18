@@ -26,12 +26,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.NewHashStorage.wp_proof : mvcc.NewHashStorage.spec (GF := GF) (hG := hG) := by
   intro lg s
-  wp_start as -
+  wp_start as %Hlg
   (try wp_auto)
   wp_alloc h as Hh
+  iStructNamed Hh
+  ipersist lg
   (try wp_auto)
   iapply HΦ
-  itrivial
+  unfold mvcc.hashStorageOk
+  iexists lg
+  iframe lg
+  ipureintro; exact Hlg
 
 end proof
 

@@ -33,7 +33,7 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # Since 2026-10-16 (stage R7c) also on `context.ErrDone` (raft's node API names the context's
 # error; the register passes `Background()`, where the case is vacuous).
 axiom DescribeConfChange.wp_proof
-axiom context.ErrDone.wp_proof
+axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof

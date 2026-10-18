@@ -6,7 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact
-public import Spec.time.Since
+public import Perennial.Proof.time
 public import Spec.encoding.binary.bigEndian__PutUint64
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
@@ -63,7 +63,7 @@ theorem mvcc.sc_u64Be_lt_inv (a b : w64) (x : List w8)
     exact absurd h (mvcc.sc_not_lt_prefix _ _)
   · have h2 := mvcc.RevOrder.u64Be_lt b a hlt [] x
     rw [List.append_nil] at h2
-    exact absurd h (adt.strLt_asymm h2)
+    exact absurd h (goStringLt_asymm h2)
 
 theorem mvcc.sc_entry {ilog : mvcc.Log} (hcs : ∀ cs ∈ ilog, cs.length < 2 ^ 63)
     (hlen : ilog.length < 2 ^ 63) {m' : mvcc.Bucket}
@@ -195,7 +195,6 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem mvcc.store.scheduleCompaction.wp_proof
     (h0 : mvcc.treeIndex.Compact.spec (GF := GF) (hG := hG))
-    (h1 : time.Since.spec (GF := GF) (hG := hG))
     (h2 : binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG))
     (h3 : mvcc.newKVHasher.spec (GF := GF) (hG := hG))
     (h4 : mvcc.BytesToRev.spec (GF := GF) (hG := hG))
@@ -215,7 +214,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   intro s γ rev prev
   wp_start as ⟨#Hjob, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, #Hstop, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
+  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
   have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
@@ -252,7 +251,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iunfold counterSpec at HKeys
   icases HKeys with ⟨-, -, #HKeysAdd⟩
   iunfold gaugeSetSpec at HLast
-  wp_apply h1 as %d1 -
+  wp_apply time.wp_Since as %d1 -
   (try wp_auto)
   wp_apply HIdx
   (try wp_auto)
@@ -266,7 +265,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #HcfgS := Hcfg
   iStructNamedSuffix HcfgS "C"
   (try wp_auto)
-  wp_apply h3 as %hv -
+  wp_apply h3 as %hv %Hhv
   (try wp_auto)
   wp_apply wp_slice_make2 (V := w8) (W64 17) as %lastS ⟨HlastS, HlastC⟩
   · ipureintro; decide
@@ -286,14 +285,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   -- `D`: the keys deleted so far (item 8): distinct keys of the job's space, below the cursor
   ihave HI : iprop(∃ (lst : GoSlice) (bs : List w8) (kc : w64) (hv' : kvHasher) (D : List GoString),
       "last" ∷ last_ptr ↦ lst ∗ "HlastS" ∷ lst ↦* bs ∗ "HlastC" ∷ ownSliceCap w8 lst (DFrac.own 1) ∗
-      "%Hbs" ∷ ⌜bs.length = 17⌝ ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗ "h" ∷ h_ptr ↦ hv' ∗
+      "%Hbs" ∷ ⌜bs.length = 17⌝ ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
+      "h" ∷ (h_ptr ↦ hv' ∗ ⌜mvcc.kvHasherOk hv'⌝) ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧
         ∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k ∧ go.GoStringLt k bs⌝)
     $$ [last HlastS HlastC keyCompactions h]
   · iexists lastS, _, W64 0, hv, []
     simp only [named]
     iframe
-    ipureintro; simp
+    ipureintro; simp [Hhv]
   wp_for HI
   wp_apply time.wp_Now as %tst -
   (try wp_auto)
@@ -359,14 +359,14 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     intro a b c h1 h2
     rcases h2 with rfl | h2
     · exact h1
-    · exact adt.strLt_trans h1 h2
+    · exact goStringLt_trans h1 h2
   iunfold mvcc.pairVals at Hpv
   icases Hpv with ⟨%kss, %vss, #Hks, #Hvs, %Hlens, #Hel⟩
   ihave %Hvl := ownSlice_len _ _ _ $$ Hvs
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave IH : iprop(∃ (n k kc : w64) (hv : kvHasher) (rv : Revision) (D : List GoString),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
-      "h" ∷ h_ptr ↦ hv ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ Locked [] ∗
+      "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗ "Hlocked" ∷ Locked [] ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ L.length⌝ ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧ (∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k) ∧
         (∀ k ∈ D, ∀ j (hj : j < L.length), sint.nat n ≤ j → go.GoStringLt k (L[j]).1) ∧
@@ -409,7 +409,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · ipureintro; trivial
     obtain ⟨HnL, HeL⟩ := List.getElem?_eq_some_iff.1 He
     have Henotin : e.1 ∉ D := fun hm =>
-      adt.strLt_irrefl _ (by have := HD.2.2.2.1 e.1 hm (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this)
+      goStringLt_irrefl _ (by have := HD.2.2.2.1 e.1 hm (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this)
     have Hesp : mvcc.sc_space log (sint.Z rev) e.1 :=
       mvcc.sc_mem log ilog rev Hrev.2 HilWf.2.1 Hpre Hsub (HLmem e (List.mem_of_getElem? He)).1 r t
         Hk Hrm
@@ -472,9 +472,12 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     wp_apply wp_load_slice_index vs (sint.Z n) vss DFrac.discard vsl Hn.1 $$ [$Hvs] as -
     · ipureintro; exact Hkv.2
     (try wp_auto)
+    icases h with ⟨h, %Hhv⟩
     wp_apply (h5 h_ptr hv keep (DFrac.own 1) A ksl vsl e.1 e.2 DFrac.discard DFrac.discard)
       $$ [$h $Hkeep] as ⟨⟨%hv2, h⟩, Hkeep, -, -⟩
     · iframe #
+      ipureintro
+      exact ⟨Hhv, r, _, Hkb, by cases t <;> simp, Hr0, Hs0⟩
     (try wp_auto)
     wp_for_post
     iframe
@@ -503,7 +506,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · intro k hk
       rcases HD'.2.2.2 k hk with rfl | hk
       · exact Hsucc
-      · exact adt.strLt_trans
+      · exact goStringLt_trans
           (by have := HD.2.2.2.1 k hk (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this) Hsucc
   -- the batch read: short (the last), or full
   wp_if_destruct
@@ -548,18 +551,20 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     inext
     iintro -
     (try wp_auto)
-    wp_apply h1 as %d2 -
+    wp_apply time.wp_Since as %d2 -
     (try wp_auto)
     wp_apply HPause
     (try wp_auto)
+    icases h with ⟨h, %Hhv⟩
     wp_apply h7 h_ptr hv $$ [$h] as %hash h
+    · ipureintro; exact Hhv
     (try wp_auto)
     wp_apply HSize as %sz -
     wp_apply HSizeU as %szu -
     (try wp_auto)
     wp_apply h8 as %f0 -
     (try wp_auto)
-    wp_apply h1 as %d3 -
+    wp_apply time.wp_Since as %d3 -
     (try wp_auto)
     wp_apply h9 as %f1 -
     (try wp_auto)
@@ -598,7 +603,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ihave #HKA := HKeysAdd $$ %kc %hkc0
     wp_apply HKA
     (try wp_auto)
-    wp_apply h1 as %d4 -
+    wp_apply time.wp_Since as %d4 -
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)
@@ -627,7 +632,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   wp_apply HForce $$ []
   · isplitl [] <;> itrivial
   (try wp_auto)
-  wp_apply h1 as %d5 -
+  wp_apply time.wp_Since as %d5 -
   (try wp_auto)
   wp_apply HPause
   (try wp_auto)
@@ -695,7 +700,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ihave #HKA := HKeysAdd $$ %kc %hkc0
     wp_apply HKA
     (try wp_auto)
-    wp_apply h1 as %d4 -
+    wp_apply time.wp_Since as %d4 -
     (try wp_auto)
     wp_apply HTot
     (try wp_auto)

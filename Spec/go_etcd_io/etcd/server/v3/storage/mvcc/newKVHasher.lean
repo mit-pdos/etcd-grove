@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 
 @[expose] public section
 
@@ -22,13 +23,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `newKVHasher(prev, rev, keep)` returns some hasher (its `keep` the map given; its value is
-opaque: `kvHasher` is an axiomatized type). -/
+opaque: `kvHasher` is an axiomatized type), one `kvHasherOk` (its `crc32` digest; audit B4b,
+2026-10-18, for `WriteKeyValue` and `Hash`). -/
 abbrev mvcc.newKVHasher.spec : Prop :=
   ∀ (prev rev : w64) (keep : GoMap),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher)) (Val #prev))
       (Val #rev)) (Val #keep))
-  {{ (h : kvHasher), RET #h; True }}
+  {{ (h : kvHasher), RET #h; ⌜mvcc.kvHasherOk h⌝ }}
 
 end spec
 

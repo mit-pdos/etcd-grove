@@ -53,12 +53,17 @@ row of `isServerBuilt` the built part leaves out, `run`'s snapshot contract `rnS
 `bootOk` hands the fresh `MemoryStorage`'s application snapshot token, which raft's `StartNode`
 lends `InitialState` and gives back, and `MemoryStorage.Snapshot`'s application triple reads
 (`rnSnapOnce_of_tok`); until then it was the residual premise of whoever composed `NewServer`
-with `start`.
+with `start`. The watch store
+(`srvWatchBuilt`, 2026-10-18): the server's `kv` the watchable store, with the watch-token pool
+allocated from `mvcc.New`'s tokens (`mvcc.watchTokPool_alloc`, under the time-receipt bound).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
 
 @[expose] public section
 
@@ -131,6 +136,8 @@ abbrev NewServer.spec : Prop :=
       -- goroutines' effects and the auth store's record bound
       "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
+      -- (D19l (v), 2026-10-18) the backend records no compaction (`mvcc.store.restore`'s premise)
+      "%Hnocmp" ∷ ⌜mvcc.backendNoCompaction⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗ "#Hrs" ∷ rnRaftStatusOk ∗
@@ -144,14 +151,19 @@ abbrev NewServer.spec : Prop :=
       ⌜err = GoInterface.nil⌝ ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γn : RNNames) (b : GoInterface),
-          ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
+          ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
           srvBuildGap srv (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
           -- watchable store, the progress interval's field, and the request slots
-          srvServeBuilt srv E cfg 64 }}
+          srvServeBuilt srv E cfg 64 ∗
+          -- (D19i part 2) the storage version monitor's backend access
+          srvSVRes srv E.γ ∗
+          -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
+          -- `monitorDowngrade`'s `lgMu` reader slot
+          srvMonitorCfg srv cfg }}
 
 end spec
 

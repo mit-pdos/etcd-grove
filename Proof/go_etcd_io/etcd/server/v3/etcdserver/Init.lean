@@ -3,7 +3,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
-trust-boundary axioms `<X>_init`), and from its imports' facts `traceutil.Tracer`, `schema`'s
+trust-boundary axioms `<X>_init`; the vectors with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
@@ -143,20 +143,23 @@ axiom proposalsPending_init :
     {{ (True : IProp GF) }} (App (Val proposalsPending.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr proposalsPending ↦ GoInterface.ok m ∗ go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec m }}
 
-/-- `serverFeatureEnabled = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/
+/-- `serverFeatureEnabled = prometheus.NewGaugeVec(..., []string{"name", "stage"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
 axiom serverFeatureEnabled_init :
     {{ (True : IProp GF) }} (App (Val serverFeatureEnabled.init) (Val #()))
-    {{ RET #(); ∃ gv : Loc, globalAddr serverFeatureEnabled ↦ gv }}
+    {{ RET #(); ∃ v : Loc, globalAddr serverFeatureEnabled ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"name", go!"stage"]⌝ }}
 
-/-- `serverID = prometheus.NewGaugeVec(...)` (`metrics.go`): a `*GaugeVec`. -/
+/-- `serverID = prometheus.NewGaugeVec(..., []string{"server_id"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
 axiom serverID_init :
     {{ (True : IProp GF) }} (App (Val serverID.init) (Val #()))
-    {{ RET #(); ∃ gv : Loc, globalAddr serverID ↦ gv }}
+    {{ RET #(); ∃ v : Loc, globalAddr serverID ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"server_id"]⌝ }}
 
-/-- `requestDurationSec = prometheus.NewHistogramVec(...)` (`metrics.go`): a `*HistogramVec`. -/
+/-- `requestDurationSec = prometheus.NewHistogramVec(..., []string{"type", "success"})`
+(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
 axiom requestDurationSec_init :
     {{ (True : IProp GF) }} (App (Val requestDurationSec.init) (Val #()))
-    {{ RET #(); ∃ hv : Loc, globalAddr requestDurationSec ↦ hv }}
+    {{ RET #(); ∃ v : Loc, globalAddr requestDurationSec ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"type", go!"success"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver
 end opaqueInits
@@ -314,12 +317,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply proposalsApplied_init as ⟨%mproposalsApplied, HproposalsApplied, #S0proposalsApplied⟩
   wp_apply proposalsPending_init as ⟨%mproposalsPending, HproposalsPending, #S0proposalsPending⟩
   wp_apply proposalsFailed_init as ⟨%mproposalsFailed, HproposalsFailed, #S0proposalsFailed⟩
-  wp_apply requestDurationSec_init as ⟨%hvrequestDurationSec, HrequestDurationSec⟩
+  wp_apply requestDurationSec_init as ⟨%vrequestDurationSec, HrequestDurationSec, #LrequestDurationSec⟩
   wp_apply (opaqueInitsOk leaseExpired.init (by mem_tac))
   wp_apply (opaqueInitsOk currentVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk currentGoVersion.init (by mem_tac))
-  wp_apply serverID_init as ⟨%gvserverID, HserverID⟩
-  wp_apply serverFeatureEnabled_init as ⟨%gvserverFeatureEnabled, HserverFeatureEnabled⟩
+  wp_apply serverID_init as ⟨%vserverID, HserverID, #LserverID⟩
+  wp_apply serverFeatureEnabled_init as ⟨%vserverFeatureEnabled, HserverFeatureEnabled, #LserverFeatureEnabled⟩
   wp_apply (opaqueInitsOk fdUsed.init (by mem_tac))
   wp_apply (opaqueInitsOk fdLimit.init (by mem_tac))
   wp_apply (opaqueInitsOk monitorVersionInterval.init (by mem_tac))
@@ -337,49 +340,49 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HrequestDurationSec
   ihave HeiTMR : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTMR with ⟨-, #HevTMR⟩
+  icases HeiTMR with ⟨-, #HevTMR, -⟩
   ihave #NTMR := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests) (m := go!"etcdserver: too many requests") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTMR
   ihave #LTMR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTMR
   iunfold EtcdGrove.errorsNewVar at NTMR
   icases NTMR with ⟨%xTMR, #HTMR, -⟩
   ihave HeiRTL : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiRTL with ⟨-, #HevRTL⟩
+  icases HeiRTL with ⟨-, #HevRTL, -⟩
   ihave #NRTL := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge) (m := go!"etcdserver: request is too large") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevRTL
   ihave #LRTL := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NRTL
   iunfold EtcdGrove.errorsNewVar at NRTL
   icases NRTL with ⟨%xRTL, #HRTL, -⟩
   ihave HeiSTP : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiSTP with ⟨-, #HevSTP⟩
+  icases HeiSTP with ⟨-, #HevSTP, -⟩
   ihave #NSTP := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped) (m := go!"etcdserver: server stopped") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevSTP
   ihave #LSTP := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NSTP
   iunfold EtcdGrove.errorsNewVar at NSTP
   icases NSTP with ⟨%xSTP, #HSTP, -⟩
   ihave HeiCAN : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiCAN with ⟨-, #HevCAN⟩
+  icases HeiCAN with ⟨-, #HevCAN, -⟩
   ihave #NCAN := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled) (m := go!"etcdserver: request cancelled") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevCAN
   ihave #LCAN := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NCAN
   iunfold EtcdGrove.errorsNewVar at NCAN
   icases NCAN with ⟨%xCAN, #HCAN, -⟩
   ihave HeiTMO : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTMO with ⟨-, #HevTMO⟩
+  icases HeiTMO with ⟨-, #HevTMO, -⟩
   ihave #NTMO := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout) (m := go!"etcdserver: request timed out") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTMO
   ihave #LTMO := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTMO
   iunfold EtcdGrove.errorsNewVar at NTMO
   icases NTMO with ⟨%xTMO, #HTMO, -⟩
   ihave HeiTLF : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTLF with ⟨-, #HevTLF⟩
+  icases HeiTLF with ⟨-, #HevTLF, -⟩
   ihave #NTLF := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail) (m := go!"etcdserver: request timed out, possibly due to previous leader failure") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTLF
   ihave #LTLF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTLF
   iunfold EtcdGrove.errorsNewVar at NTLF
   icases NTLF with ⟨%xTLF, #HTLF, -⟩
   ihave HeiTCL : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTCL with ⟨-, #HevTCL⟩
+  icases HeiTCL with ⟨-, #HevTCL, -⟩
   ihave #NTCL := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost) (m := go!"etcdserver: request timed out, possibly due to connection lost") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTCL
   ihave #LTCL := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTCL
   iunfold EtcdGrove.errorsNewVar at NTCL

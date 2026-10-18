@@ -70,7 +70,6 @@ theorem backendStep_plain (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outc
     rcases h with ⟨rfl, hn⟩ | ⟨rfl, -, hig⟩
     · rw [if_neg (hn (hp t hop))]; rfl
     · rw [if_pos hig]; rfl
-  case range => rw [h]; rfl
   all_goals (rcases h with h | h <;> (rw [h]; rfl))
 
 /-- **The chain's relation on a plain request is the function**, unless the chain is not

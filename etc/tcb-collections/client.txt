@@ -28,7 +28,7 @@ axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txLive
-axiom context.ErrDone.wp_proof
+axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof

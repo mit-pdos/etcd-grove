@@ -19,10 +19,22 @@ set) and, for a version, a valid one. So the committed entries they produce have
 invariant keeps (`rqShape`: `rqOk` asks nothing of a member's attributes, and a valid version of
 `ClusterVersionSet`). Until D19c their contracts took only the package's initialization (their
 proposals were not in the model).
+
+**The monitors that are off** (audit B4a, 2026-10-18; `notes/decisions.md`, D19m): three more
+goroutines `Start` attaches would read the backend and propose alarms (`Alarm{CORRUPT}`, which the
+KV model does not admit, as the NOSPACE alarm) or a downgrade's cancellation once configured:
+`monitorKVHash` (`CorruptCheckTime ≠ 0`), `monitorCompactHash` (the `CompactHashCheck` feature on)
+and `monitorDowngrade` (`DowngradeCheckTime ≠ 0`). Their contracts are restricted to the
+configuration under which each returns at once (putget's: the zero durations, the feature off by
+default): `srvMonitorsOff s`, the two fields at `0` and the feature gate answering `false` for
+`CompactHashCheck` (`featureIs`). `NewServer` leaves the fields at the configuration's values
+(`srvMonitorCfg s cfg`, with the `lgMu` reader slot `monitorDowngrade`'s `Logger()` needs), and
+`srvMonitorsOff_of` turns them into `srvMonitorsOff` for a configuration that leaves them off.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
 @[expose] public section
 
@@ -36,16 +48,17 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 /-- **The requests the monitors propose** (pure): a member's attributes, or a valid cluster
-version, with no range end `[0]`. -/
+version, with no range end `[0]` and no auth request field set (`needAdminPermission`: D19k,
+2026-10-18, the KV model's `plainReq` asks it). -/
 def monitorReq (rq : apply.IRRModel) : Prop :=
-  irrNoZeroEnd rq ∧
+  irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧
     (apply.dispatchKind rq = .clusterMemberAttrSet ∨
       (apply.dispatchKind rq = .clusterVersionSet ∧
         ∀ v, rq.clusterVersionSet = some v → apply.semverValid v))
 
 /-- A monitor's request has a good shape. -/
 theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShape rq := by
-  obtain ⟨-, hk⟩ := h
+  obtain ⟨-, -, hk⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk
     rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, by decide, fun h => by cases h⟩
@@ -82,15 +95,49 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   ileft
   ipureintro
   have hs := rqShape_of_monitorReq rq hrq
-  obtain ⟨hz, hk⟩ := hrq
+  obtain ⟨hz, hna, hk⟩ := hrq
   have hk' : apply.dispatchKind rq = .clusterMemberAttrSet ∨
       apply.dispatchKind rq = .clusterVersionSet := by
     rcases hk with hk | ⟨hk, -⟩
     · exact Or.inl hk
     · exact Or.inr hk
   refine ⟨?_, ?_, hz, hs, rfl⟩
-  · unfold plainReq; rcases hk' with hk' | hk' <;> rw [hk'] <;> trivial
+  · unfold plainReq; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact hna
   · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide
+
+/-- **The monitors' configuration, as `NewServer` leaves it** (audit B4a; see the file header):
+the corruption check's and the downgrade check's intervals and the feature gate at `cfg`'s values
+(read-only), and an `lgMu` reader slot (`monitorDowngrade`'s `Logger()`). -/
+def srvMonitorCfg (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
+  iprop(srvCfgFieldAddr s go!"CorruptCheckTime" ↦□ cfg.CorruptCheckTime' ∗
+    srvCfgFieldAddr s go!"DowngradeCheckTime" ↦□ cfg.DowngradeCheckTime' ∗
+    srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ cfg.ServerFeatureGate' ∗
+    srvLgReader s)
+
+/-- **The hash and downgrade monitors are off** (persistent; audit B4a, see the file header): no
+corruption check (`CorruptCheckTime = 0`), no downgrade check (`DowngradeCheckTime = 0`), and the
+feature gate answering `false` for `CompactHashCheck`. -/
+def srvMonitorsOff (s : Loc) : IProp GF :=
+  iprop(srvCfgFieldAddr s go!"CorruptCheckTime" ↦□ (W64 0) ∗
+    srvCfgFieldAddr s go!"DowngradeCheckTime" ↦□ (W64 0) ∗
+    ∃ fg : GoInterface, srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗
+      featureIs fg go!"CompactHashCheck" false)
+
+instance srvMonitorsOff_persistent (s : Loc) : Persistent (srvMonitorsOff (GF := GF) s) := by
+  unfold srvMonitorsOff; infer_instance
+
+/-- The monitors are off for a configuration with zero check intervals and a feature gate whose
+`CompactHashCheck` is off. -/
+theorem srvMonitorsOff_of (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (h1 : cfg.CorruptCheckTime' = W64 0) (h2 : cfg.DowngradeCheckTime' = W64 0) :
+    srvMonitorCfg (GF := GF) s cfg ∗ featureIs cfg.ServerFeatureGate' go!"CompactHashCheck" false ⊢
+      srvMonitorsOff s ∗ srvLgReader s := by
+  unfold srvMonitorCfg srvMonitorsOff
+  rw [h1, h2]
+  iintro ⟨⟨#Hc, #Hd, #Hf, Hl⟩, #Hfi⟩
+  iframe Hl Hc Hd
+  iexists cfg.ServerFeatureGate'
+  iframe Hf Hfi
 
 end defs
 

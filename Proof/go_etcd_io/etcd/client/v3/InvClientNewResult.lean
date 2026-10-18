@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -32,25 +33,76 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The watch facts of the server at `V.addr`** (persistent): `watchConnFacts V` but the
-connection's (`grpcConn`), which the dial gives. -/
+connection's (`grpcConn`), which the dial gives, and the packages' (`watchDescOk`,
+`clientWatchVars`: `watchDescOk_of_init`, `clientWatchVars_of_init`) and `errors.New`'s
+(`errorsNewOk`: `errorsNewOk_of`, from the method-set classes of `*errorString`) and every
+context's (`ctxErrClientAllW`: `ctxErrClientAllW_of`, from Go's `Err` contract). -/
 def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : IProp GF :=
   iprop(isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
-    v3rpc.watchDescOk ∗ watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
+    mvcc.watchTokPool V.R.γ ∗ noRetryableStreamErr ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
-    eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
+    eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
 instance watchAddrFacts_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : Persistent (watchAddrFacts V) := by
   unfold watchAddrFacts; infer_instance
 
+/-- **`etcdserverpb`'s fact gives the `Watch` service's descriptor** (`watchDescOk`: its
+`Streams`, the `Watch` stream's; `etcdserverpbDescs`). -/
+theorem watchDescOk_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ⊢ v3rpc.watchDescOk := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨-, -, -, ⟨%mds, %sds, Hd, %Hs⟩, -⟩
+  iunfold pbDescIs at Hd
+  icases Hd with ⟨%msl, %ssl, -, -, -, -, #Hst, #Hsds⟩
+  unfold v3rpc.watchDescOk
+  iexists ssl, sds
+  iframe Hst Hsds
+  ipureintro
+  have h := congrArg List.length Hs.2.1
+  simp at h
+  refine ⟨by omega, fun sd hsd => ?_⟩
+  have h3 := Hs.2.2
+  cases sds with
+  | nil => simp at hsd
+  | cons x xs =>
+    simp at hsd h3
+    subst hsd
+    exact h3.1
+
+/-- **`client/v3`'s fact gives `watch.go`'s variables** (`clientWatchVars`, `clientv3Init`). -/
+theorem clientWatchVars_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ⊢ clientWatchVars := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨-, -, -, -, -, -, ⟨%ch, %t, %d, #H1, #H2, #H3⟩⟩
+  unfold clientWatchVars
+  iexists ch, t, d
+  iframe #
+
 theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (V : WEnv GF) (conn : Loc) (ics : List GoFunc) :
-    grpcConn (GF := GF) conn V.addr ics [] ∗ watchAddrFacts V ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      grpcConn (GF := GF) conn V.addr ics [] ∗ watchAddrFacts V ⊢
       watchConnFacts { V with conn := conn, ics := ics } := by
   unfold watchAddrFacts watchConnFacts
-  iintro ⟨#Hc, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, %H11⟩
+  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H4, #H5, #H6, #H7, %H11⟩
+  ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
+  ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
+  ihave #H2 := watchDescOk_of_init $$ P2
+  ihave #H10 := clientWatchVars_of_init $$ P1
   iframe #
   ipureintro; exact H11
 
@@ -77,13 +129,21 @@ with `watchAddrFacts V` at its endpoint has a `Watcher` field that is a `*watche
 connection with the server's facts (`isClientWatcher`, what `watcher.Watch`'s spec and
 `client_watcher_rangeWatcher` take): the form `isNewClient` had before D19f. -/
 theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (cl : Loc) (ep : GoString) (V : WEnv GF) (hV : V.addr = ep) :
-    isNewClient cl ep V ∗ watchAddrFacts V ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      isNewClient cl ep V ∗ watchAddrFacts V ⊢
       ∃ (w conn wc lg : Loc) (ics : List GoFunc),
         clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
         isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
   unfold isNewClient
-  iintro ⟨⟨-, -, -, %w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, #Hf⟩
+  iintro ⟨#P1, #P2, #P3, ⟨-, -, -, %w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, #Hf⟩
   iexists w, conn, wc, lg, ics
   iframe Hw
   iapply isClientWatcher_of_core
@@ -91,8 +151,8 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
   iapply (show watchConnFacts (GF := GF) { V with conn := conn, ics := ics } ⊢
       watchConnFacts { V with conn := conn, ics := ics, wc := wc, lg := lg } from by
     unfold watchConnFacts; exact .rfl)
-  iapply watchConnFacts_of_addr
-  iframe Hf
+  iapply watchConnFacts_of_addr wp_ErrAny hAs
+  iframe P1 P2 P3 Hf
   rw [hV]
   iexact Hc
 

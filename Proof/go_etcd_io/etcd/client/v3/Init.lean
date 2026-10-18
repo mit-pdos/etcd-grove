@@ -4,9 +4,9 @@ Package initialization of `go_etcd_io.etcd.client.v3`
 
 Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
-backoff function returns; the trust-boundary axiom `defaultOptions_init`). Its initializer also
-runs its translated `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom
-`time.Unix.wp_proof`) and `maxBackoff`, and its other untranslated initializers
+backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
+`valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
+`maxBackoff`. Its initializer also runs its other untranslated initializers
 (`opaqueInitsOk`).
 -/
 module
@@ -199,6 +199,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HdefaultUnaryMaxRetries
   ipersist HdefaultBackoffWaitBetween
   ipersist HdefaultBackoffJitterFraction
+  ipersist HvalCtxCh
+  ipersist HzeroTime
+  ipersist HmaxBackoff
   iframe Hown
   imodintro
   isplitr

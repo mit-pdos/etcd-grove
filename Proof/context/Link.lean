@@ -9,6 +9,7 @@ hand.
 module
 
 public import Proof.context.Err
+public import Proof.context.ErrAny
 public import Proof.context.ErrDone
 
 @[expose] public section
@@ -42,9 +43,13 @@ theorem context.wp_Err :
     context.Err.spec (GF := GF) (hG := hG) :=
   context.Err.wp_proof
 
+theorem context.wp_ErrAny :
+    context.ErrAny.spec (GF := GF) (hG := hG) :=
+  context.ErrAny.wp_proof
+
 theorem context.wp_ErrDone :
     context.ErrDone.spec (GF := GF) (hG := hG) :=
-  context.ErrDone.wp_proof
+  context.ErrDone.wp_proof context.wp_ErrAny
 
 end links_hasLC
 

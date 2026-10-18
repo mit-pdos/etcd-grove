@@ -123,8 +123,8 @@ theorem backend.txWriteBuffer.putSeq.wp_proof
         have hgt : strLt e.1 kb := Hgt e (List.mem_of_getElem? He_lookup)
         have hcmp : bytes.compareResult kb e.1 = W64 1 := by
           unfold bytes.compareResult
-          have hne : ¬ kb = e.1 := fun h => strLt_irrefl kb (by rw [h] at hgt ⊢; exact hgt)
-          simp only [strLt_asymm hgt, hne, ↓reduceIte]
+          have hne : ¬ kb = e.1 := fun h => goStringLt_irrefl kb (by rw [h] at hgt ⊢; exact hgt)
+          simp only [goStringLt_asymm hgt, hne, ↓reduceIte]
         rw [hcmp]
         wp_auto
         ihave Hbks := Hback $$ %es [Hbb Hsl Hcap]

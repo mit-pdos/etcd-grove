@@ -99,9 +99,9 @@ theorem etcdReached_zero : ⊢ etcdReached (GF := GF) (W64 0) := by
   ileft; ipureintro; simp
 
 /-- **etcd's store had committed revision `r`** (K2e-6), downward closed: a read showed some
-`r' ≥ r` (`etcdReadAt`), or `r ≤ 0`; (K2e-7d) and etcd had reached `r` (a read's revision is). -/
+`r' ≥ r` (`etcdReadAt`); (K2e-7d) and etcd had reached `r` (a read's revision is). -/
 def etcdRead (r : w64) : IProp GF :=
-  iprop((⌜sint.Z r ≤ 0⌝ ∨ ∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r') ∗ etcdReached r)
+  iprop((∃ r' : w64, ⌜sint.Z r ≤ sint.Z r'⌝ ∗ etcdReadAt r') ∗ etcdReached r)
 
 instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := by
   unfold etcdRead; infer_instance
@@ -109,19 +109,16 @@ instance etcdRead_persistent (r : w64) : Persistent (etcdRead (GF := GF) r) := b
 theorem etcdRead_mono (r r' : w64) (h : sint.Z r' ≤ sint.Z r) :
     etcdRead (GF := GF) r ⊢ etcdRead r' := by
   unfold etcdRead
-  iintro ⟨(%h0 | ⟨%r1, %h1, #H⟩), #Hr⟩
-  · isplitr
-    · ileft; ipureintro; omega
-    iapply etcdReached_mono r r' h $$ Hr
-  · isplitr
-    · iright; iexists r1; iframe H; ipureintro; omega
-    iapply etcdReached_mono r r' h $$ Hr
+  iintro ⟨⟨%r1, %h1, #H⟩, #Hr⟩
+  isplitr
+  · iexists r1; iframe H; ipureintro; omega
+  iapply etcdReached_mono r r' h $$ Hr
 
 theorem etcdRead_of_at (r : w64) : etcdReadAt (GF := GF) r ∗ etcdReached r ⊢ etcdRead r := by
   unfold etcdRead
   iintro ⟨#H, #Hr⟩
   iframe Hr
-  iright; iexists r; iframe H; ipureintro; exact Int.le_refl _
+  iexists r; iframe H; ipureintro; exact Int.le_refl _
 
 theorem etcdRead_reached (r : w64) : etcdRead (GF := GF) r ⊢ etcdReached r := by
   unfold etcdRead
@@ -755,6 +752,47 @@ instance kvGetResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp :
     (err : GoInterface) : Persistent (kvGetResult (GF := GF) pfx lo o resp err) := by
   unfold kvGetResult; split <;> infer_instance
 
+omit EM in
+/-- **A get etcd's server answers as the model says** (the vertical slice's unit V2): not
+keys-only (a fast keys-only read zeroes the leases, `issues/etcd-range-keys-only-lease.md`), not
+sorted by a target other than the key with no order and a positive limit (mvcc then stops reading
+early, `issues/etcd-range-sort-none-limit.md`), a limit below `2 ^ 63 - 1` (`More` is then the
+model's), and a sort order and target among the protobuf's (`0` to `2`, `0` to `4`: the wire
+carries them as `int32`, and a transaction's operations are not checked by `IsSortOptionValid`).
+Every get the recipes make is one (`isEtcdKVTodo`). -/
+def OpFull.getExact (o : OpFull) : Prop :=
+  o.keysOnly = false ∧
+    ¬ (o.base.sortSet = true ∧ o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 ∧
+      0 < sint.Z o.base.limit) ∧
+    sint.Z o.base.limit < 2 ^ 63 - 1 ∧
+    0 ≤ sint.Z o.sortOrder ∧ sint.Z o.sortOrder ≤ 2 ∧ 0 ≤ sint.Z o.sortTarget ∧
+    sint.Z o.sortTarget ≤ 4
+
+/-- **etcd had a state at revision `r`** (for the prefix `pfx`; K3: what a linearizable
+`Cache.Get` says of the revision it caught up with). -/
+def etcdHasState (r : w64) (pfx : GoString) : IProp GF :=
+  iprop(∃ s : List EtcdKv, □ etcdState r pfx s)
+
+instance etcdHasState_persistent (r : w64) (pfx : GoString) :
+    Persistent (etcdHasState (GF := GF) r pfx) := by
+  unfold etcdHasState; infer_instance
+
+/-- **What `kv.Get` returns, for the cache** (K3): as `kvGetResult`, but etcd's state at `r`
+(`isEtcdKvs`, with the response's key-values) only for a prefix get, which lists it; for any get,
+that etcd had a state at `r` (`etcdHasState`: the cache's other get reads the revision only). -/
+def kvGetResultC (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
+    IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, getRespRev resp r ∗ etcdReached r ∗ etcdReadAt r ∗
+      etcdHasState r pfx ∗
+      ⌜(o.base.serializable = false → sint.Z lo ≤ sint.Z r) ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
+      (if o.isPrefixGet pfx then iprop(∃ m : KvMap, isEtcdKvs r pfx m ∗ getRespKvs resp m)
+       else getRespRange pfx r o resp)))
+
+instance kvGetResultC_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc)
+    (err : GoInterface) : Persistent (kvGetResultC (GF := GF) pfx lo o resp err) := by
+  unfold kvGetResultC; split <;> infer_instance
+
 /-- The `clientv3.KV` interface value `kv` talks to etcd, for a cache of prefix `pfx`: the triple
 of its `Get(ctx, key, opts...)` (a range request: `OpGet(key, opts...)` must not panic and must
 be a range), with any context, options with model transformers `gs`, and any revision `lo` the
@@ -774,19 +812,20 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKV (GF := GF) kv pfx) := by
   unfold isEtcdKV; infer_instance
 
-/-- **The cache's client `KV`**: `isEtcdKV`, and the `Error()` of a non-nil error its `Get`
-returns returns some string (`errStrOk`: the cache's watch loop prints it with `fmt.Printf`'s
-`%v`; etcd's client returns a context error, a gRPC status error or an `rpctypes` error, each an
-error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
+/-- **The cache's client `KV`**: `isEtcdKV` for the gets the cache makes (exact ones,
+`getExact`; K3: etcd's state only for a prefix get, `kvGetResultC`), and the `Error()` of a
+non-nil error its `Get` returns returns some string (`errStrOk`: the cache's watch loop prints it
+with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
+`rpctypes` error, each an error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
 def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
-        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        kvGetResult pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
+        kvGetResultC pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
 
 instance isEtcdKVE_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKVE (GF := GF) kv pfx) := by
@@ -883,9 +922,13 @@ def etcdWatchElem (γ : EtcdWatchNames) (pfx : GoString) (i : Int)
     monoListIdxOwn γ.cur (i.toNat + 1) c' ∗ watchRespOk pfx c c' v r)
 
 /-- `ch` is the channel of a client watch on the prefix `pfx` (persistent): every response it
-delivers satisfies etcd's watch contract (`etcdWatchElem`). -/
+delivers satisfies etcd's watch contract (`etcdWatchElem`; K2e-7d: its element is any `P` that
+gives it, after an update, so that a client's channel with a richer element is one). -/
 def isEtcdWatchChan (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) : IProp GF :=
-  isSpsc γ.spsc ch (etcdWatchElem γ pfx) (fun _ => iprop(True))
+  iprop(∃ P : Int → go_etcd_io.etcd.client.v3.WatchResponse → IProp GF,
+    isSpsc γ.spsc ch P (fun _ => iprop(True)) ∗
+    □ (∀ (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse), P i v -∗
+      |==> etcdWatchElem γ pfx i v))
 
 instance isEtcdWatchChan_persistent (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) :
     Persistent (isEtcdWatchChan (GF := GF) ch γ pfx) := by
@@ -945,7 +988,7 @@ theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n :
     (cursor : w64) (Φ : go_etcd_io.etcd.client.v3.WatchResponse → Bool → IProp GF) :
     ⊢ isEtcdWatchChan ch γ pfx -∗ £ 1 ∗ £ 1 -∗ etcdWatchConsumer γ n cursor -∗
       ▷ (∀ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool),
-          (if ok then iprop(∃ (r : RespModel) (c' : w64), respAt v r ∗
+          (if ok then iprop(|==> ∃ (r : RespModel) (c' : w64), respAt v r ∗
               watchRespOk pfx cursor c' v r ∗ etcdWatchConsumer γ (n + 1) c')
            else iprop(⌜v = zero_val go_etcd_io.etcd.client.v3.WatchResponse⌝)) -∗ Φ v ok) -∗
       recvAu γ.spsc.chanName go_etcd_io.etcd.client.v3.WatchResponse Φ := by
@@ -953,7 +996,8 @@ theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n :
   unfold etcdWatchConsumer
   icases Hcons with ⟨%vs, Hcons, %Hlen, #Hcur⟩
   unfold isEtcdWatchChan
-  iapply spsc_rcv_au γ.spsc ch (etcdWatchElem γ pfx) (fun _ => iprop(True)) vs Φ $$ Hch Hlc Hcons
+  icases Hch with ⟨%P, #Hsp, #Hconv⟩
+  iapply spsc_rcv_au γ.spsc ch P (fun _ => iprop(True)) vs Φ $$ Hsp Hlc Hcons
   inext
   iintro %v %ok H
   cases ok
@@ -964,14 +1008,16 @@ theorem etcdWatch_recv_au (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n :
     ipureintro; exact Hv
   · simp only [↓reduceIte]
     icases H with ⟨HP, Hcons⟩
+    iapply HΦ
+    simp only [↓reduceIte]
+    imod Hconv $$ %(vs.length : Int) %v HP with HP
     unfold etcdWatchElem
     icases HP with ⟨%r, %c0, %c', #Hr, #Hc0, #Hc', #Hok⟩
     have hi : ((vs.length : Int)).toNat = n := by rw [Hlen]; simp
     rw [hi]
     ihave %Heq := mono_list_idx_agree γ.cur n c0 cursor $$ Hc0 Hcur
     subst Heq
-    iapply HΦ
-    simp only [↓reduceIte]
+    imodintro
     iexists r, c'
     iframe Hr Hok
     iexists vs ++ [v]

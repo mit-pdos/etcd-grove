@@ -1,12 +1,15 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-18
 links:
 ---
 
 # auth: `AuthInfoFromTLS` panics for a peer whose credentials are not TLS (undocumented)
 
-- **Status**: open, documentation (an unstated precondition; unreachable in etcd's server, whose
+- **Status**: **fixed in the fork** (D19l, 2026-10-18): the two-result assertion below, with the
+  reproduction as a test (`TestAuthInfoFromTLSNonTLSPeer`, panics without the fix), on
+  `upamanyus/etcd` `goose-lean` as `17c88a667` (etc/goose.py's etcd pin since then; upstream main
+  unchanged). At upstream's code: documentation (an unstated precondition; unreachable in etcd's server, whose
   gRPC servers have TLS transport credentials or none: grpc then leaves `peer.AuthInfo` nil, and
   its HTTP handler transport sets a `credentials.TLSInfo` only for a TLS request).
 - **Where**: `server/auth/store.go` at the pinned revision (`etc/goose.py`, bc8b52a50319):
@@ -49,7 +52,8 @@ links:
 - **Expected**: `nil` (no TLS identity), as for a peer without auth info.
 - **How the proof handles it**: `AuthInfoFromTLS` is at the trust boundary (its peer's
   `credentials.TLSInfo` and x509 chains are axiomatized types); its axiom
-  (`Spec/go_etcd_io/etcd/server/v3/auth/authStore__AuthInfoFromTLS.lean`) does not state the
-  panic, which etcd's server configuration rules out.
+  (`Spec/go_etcd_io/etcd/server/v3/auth/authStore__AuthInfoFromTLS.lean`) takes any context. Until
+  D19l it did not state the panic (false of upstream's code for a non-TLS peer); since the fork's
+  fix it is true as stated (a non-TLS peer gets `nil`).
 - **Possible fixes**: `tlsInfo, ok := peer.AuthInfo.(credentials.TLSInfo); if !ok { return nil }`.
 - **Found**: 2026-10-14, the auth store's request side (unit P2).

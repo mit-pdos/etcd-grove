@@ -33,11 +33,16 @@ is locked and unlocked fresh (it is back at its zero value). The store of `1` in
 batch lock holds the other half since `NewStore`'s first `tx.Unlock()`, as the writers'
 resource); in the code the write is protected by `s.mu` held exclusively, which the model's
 `s.mu` (holding nothing) does not express. A backend with data is out of scope (the real
-`restore` would rebuild the index from it). -/
+`restore` would rebuild the index from it). The `meta` bucket's compaction keys, which the
+backend contract does not model, are absent by the named premise `backendNoCompaction` (D19l (v),
+2026-10-18; until then unstated, a premise gap: with a finished compaction recorded Go sets
+`compactMainRev` to it, with a scheduled one above it raises `currentRev` and calls
+`compactLockfree`, which schedules a job). -/
 abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop),
+  mvcc.backendNoCompaction →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦□ b ∗
       mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF ∗

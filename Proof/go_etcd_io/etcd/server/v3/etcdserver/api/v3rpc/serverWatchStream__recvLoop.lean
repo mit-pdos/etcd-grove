@@ -206,11 +206,13 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
   iunfold v3rpc.upOk at Hup
   iunfold v3rpc.watchSrvOk at Hsrv
-  icases Hsrv with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩
+  icases Hsrv with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -⟩
   iunfold v3rpc.watchVars at Hvars
-  icases Hvars with ⟨#Heof, #HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
+  icases Hvars with ⟨#Heof, #Hwpv⟩
+  iunfold v3rpc.watchPkgVars at Hwpv
+  icases Hwpv with ⟨#HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,
     #HmInv, #HmOld, #HmEmpty, #HmDenied, #HmWC, #HstreamF, #Hh1, #Hh2, #Hh3, #Hh4, #Htracer,
-    #Hcanc, #Hrep, #Hguard⟩
+    #Hcanc, #Hguard⟩
   iunfold v3rpc.eofVar at Heof
   icases Heof with ⟨%eofE, #HeofG, %HeofL, #HeofM⟩
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []

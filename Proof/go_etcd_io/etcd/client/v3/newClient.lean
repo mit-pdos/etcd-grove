@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__getToken
 public import Spec.go_etcd_io.etcd.client.v3.Client__autoSync
 public import Perennial.Proof.sync
 public import Perennial.Proof.context
+public import Proof.Lib.Sync
 
 @[expose] public section
 
@@ -43,21 +44,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-
-omit package_sem srv_sem in
-/-- A guard of an `RWMutex` from its slots (as the read loop's `read_guard_of_slots`). -/
-theorem client_guard_of_slots [sync.Assumptions] (rw : Loc) (P : Qp → IProp GF) :
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), sync.ownRWMutex rw P) ⊢
-      sync.isRWMutexGuard rw P := by
-  have hpos : 0 < Int.toNat sync.rwmutex.actualMaxReaders :=
-    Int.lt_toNat.2 (by simpa using sync.actualMaxReaders_pos)
-  obtain ⟨m, hm⟩ : ∃ m, Int.toNat sync.rwmutex.actualMaxReaders = m + 1 :=
-    ⟨_, (Nat.succ_pred_eq_of_pos hpos).symm⟩
-  rw [hm, List.replicate_succ]
-  iintro H
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨Htok, -⟩
-  icases sync.ownRWMutex_guard _ _ $$ Htok with ⟨-, #Hguard⟩
-  iexact Hguard
 
 theorem newClient.wp_proof
     (wp_TODO : context.TODO.spec (GF := GF) (hG := hG))
@@ -148,7 +134,7 @@ theorem newClient.wp_proof
   ipersist callOpts
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
-  ihave #Hguard := client_guard_of_slots _ _ $$ Hslots
+  icases guard_of_slots _ _ $$ Hslots with ⟨-, #Hguard⟩
   wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil [ep] cfg.Endpoints' [ep]
     $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
   ipersist endpoints

@@ -50,6 +50,8 @@ abbrev membership.rcMembersAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"members" c
 abbrev membership.rcLocalIDAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"localID" c
+abbrev membership.rcVersionChangedAddr (c : Loc) : Loc :=
+  structFieldRef membership.RaftCluster go!"versionChanged" c
 
 end addrs
 

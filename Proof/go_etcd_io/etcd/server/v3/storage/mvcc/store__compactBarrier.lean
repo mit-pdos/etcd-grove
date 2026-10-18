@@ -34,7 +34,7 @@ theorem mvcc.store.compactBarrier.wp_proof
     mvcc.store.compactBarrier.spec (GF := GF) (hG := hG) := by
   intro s γ ctx cd ch Q
   iloeb as IH generalizing %ctx %cd
-  wp_start as ⟨#Hs, #Hstop, #Hctx, Hcl, #HQ⟩
+  wp_start as ⟨#Hs, #Hstop, #Hlive, #Hctx, Hcl, #HQ⟩
   wp_auto
   ipersist s
   ipersist ch
@@ -126,9 +126,7 @@ theorem mvcc.store.compactBarrier.wp_proof
         iapply HΦj
         iframe Hrun
       (try wp_auto)
-      ihave #HisS := HisSched
-      iunfold schedule.isScheduler at HisS
-      icases HisS with ⟨#Hfifo, #Hlive⟩
+      ihave #Hfifo := HisSched
       ihave #Hfifo' := Hfifo
       iunfold schedule.isFifo at Hfifo'
       icases Hfifo' with ⟨%Hnn, -⟩

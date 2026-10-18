@@ -38,7 +38,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   subst Hti_eq'
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
-  have hsplit := mvcc.own_half_half (1 : Qp)
+  have hsplit := dfrac_own_half_half (1 : Qp)
   have hpend : pend = [] ↔ chs.len = 0 := by
     obtain ⟨h1, h2⟩ := Hlen
     constructor

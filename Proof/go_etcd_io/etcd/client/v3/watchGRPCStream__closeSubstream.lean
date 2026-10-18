@@ -454,7 +454,9 @@ theorem watchGRPCStream.closeSubstream.wp_proof
         · iunfold retcP
           iunfold retcRes at Hres0
           iexists P.γ
-          iframe Hspsc Hres0
+          icases Hres0 with ⟨Hr1, Hr2, Hr3⟩
+          iframe Hspsc Hr1 Hr2 Hr3
+          ipureintro; exact Hok.2.2
         inext
         close_rest
       iapply BigAndL.bigAndL_nil.2

@@ -35,6 +35,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -152,29 +153,10 @@ def rnClusterOk (cl : Loc) : IProp GF :=
 instance rnClusterOk_persistent (cl : Loc) : Persistent (rnClusterOk (GF := GF) cl) := by
   unfold rnClusterOk; infer_instance
 
-/-- An existential over a fractional body with agreement is fractional (a copy of the leasing
-client's `lc_fractional_exists_agree`, `InvLeaseCache.lean`: a shared-lemma candidate for
-Perennial's `IrisLib`). -/
-theorem rnFractional_exists_agree {Y : Type} (Φ : Y → Qp → IProp GF)
-    (hfrac : ∀ x, Fractional (Φ x)) (hagree : ∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) :
-    Fractional (fun q => iprop(∃ x, Φ x q)) where
-  fractional p q := by
-    constructor
-    · iintro ⟨%x, H⟩
-      icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists x; iexact H1
-      · iexists x; iexact H2
-    · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
-      refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
-      refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
-      subst h
-      exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
-
 /-- `tickMu`'s resource is fractional (for `sync.init_RWMutex`). -/
 instance rnTickInv_fractional (r : Loc) : Fractional (rnTickInv (GF := GF) r) := by
   unfold rnTickInv
-  exact rnFractional_exists_agree (fun (t : time.Time) q => iprop(rnLatestTickTsAddr r ↦{DFrac.own q} t))
+  exact fractional_exists_agree (fun (t : time.Time) q => iprop(rnLatestTickTsAddr r ↦{DFrac.own q} t))
     (fun t => fractional_of_dfractional (fun dq => typedPointsto (rnLatestTickTsAddr r) t dq))
     (fun x y q1 q2 => by
       iintro ⟨H1, H2⟩

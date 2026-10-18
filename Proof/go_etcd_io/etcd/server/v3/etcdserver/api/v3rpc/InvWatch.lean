@@ -11,6 +11,10 @@ histograms: `Observe` returns), `traceutil.Tracer`, `context.Canceled`'s pointer
 progress interval's lock (`progressReportIntervalMu` guarding `progressReportInterval`, kept
 between `10` and `2 ^ 62` nanoseconds: `intervalP`), and the contract of mvcc's names-only
 `ReportEventReceived` (it returns). Assumptions about package initialization, as `v3rpcInit`.
+(D19j, 2026-10-18: all but `io.EOF` are now `v3rpc`'s package facts, `watchPkgVars`,
+`BaseWatch.lean` and `Base.lean`; `ReportEventReceived` is a callee of `sendLoop` with a
+trust-boundary spec, `0 ≤ n`; `io.EOF` (`eofVar`) stays a premise: Perennial's `io` fact does not
+keep it.)
 
 **The server's contract** (`watchSrvOk s E γ wsl`, persistent): the server's KV is the watchable
 store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread's store names
@@ -39,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Proof.sync
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -57,9 +62,6 @@ open go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (watchServer serverWatchStre
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
-
-/-- The progress interval's lock (the package variable `progressReportIntervalMu`). -/
-abbrev intervalMu : Loc := globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.progressReportIntervalMu
 
 /-- The server `s` as an interface value (`apply.RaftStatusGetter`, `AuthGetter`). -/
 abbrev srvIface (s : Loc) : GoInterface :=
@@ -84,119 +86,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-! ## Map and points-to lemmas (as `lease/LessorLemmas.lean`'s, without its package's
-assumptions) -/
-
-/-- Two shares of a map points-to agree on the map. -/
-theorem ownMap_agree' {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
-    [go.IntoValInj V] (mref : Loc) (dq1 dq2 : DFrac) (m1 m2 : GMap K V) :
-    ownMap (GF := GF) mref dq1 m1 ∗ ownMap (GF := GF) mref dq2 m2 ⊢ ⌜m1 = m2⌝ := by
-  rw [ownMap_unseal]
-  iintro ⟨H1, H2⟩
-  unfold ownMapDef
-  iNamedSuffix H1 "1"
-  iNamedSuffix H2 "2"
-  icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-  subst Hmv
-  ipureintro
-  apply GMap.ext
-  intro k
-  have h1 := Hagree1 k
-  have h2 := Hagree2 k
-  rw [← go.mapLookup_pure _ _ _ His_map1, go.mapLookup_pure _ _ _ His_map2] at h1
-  rw [h1] at h2
-  change m1 !! k = m2 !! k
-  cases hk1 : m1 !! k <;> cases hk2 : m2 !! k <;> simp only [hk1, hk2] at h2
-  · rfl
-  · cases h2
-  · cases h2
-  · simp only [Prod.mk.injEq, true_and] at h2
-    rw [go.intoVal_inj h2]
-
-/-- A map points-to splits and combines by fraction. -/
-theorem ownMap_fractional' {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
-    [go.IntoValInj K] (mref : Loc) (m : GMap K V) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
-/-- A points-to at `q1 + q2` in two parts. -/
-theorem ptsto_frac_add' {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp) :
-    typedPointsto (GF := GF) l v (DFrac.own (q1 + q2)) ⊣⊢
-      typedPointsto (GF := GF) l v (DFrac.own q1) ∗ typedPointsto (GF := GF) l v (DFrac.own q2) :=
-  (typedPointsto_dfractional (GF := GF) l v).dfractional (DFrac.own q1) (DFrac.own q2)
-
 /-! ## The package facts -/
-
-/-- The package variable `g` holds a fixed error whose `Error()` returns (persistent). -/
-def msgErrVar (g : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ errMsgOk e)
-
-instance msgErrVar_persistent (g : GoString) : Persistent (msgErrVar (GF := GF) g) := by
-  unfold msgErrVar errMsgOk; infer_instance
-
-/-- The package variable `g` holds a fixed histogram whose `Observe` returns (persistent). -/
-def histVar (g : GoString) : IProp GF :=
-  iprop(∃ h : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok h ∗
-    □ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x))
-      {{ RET #(); True }}))
-
-instance histVar_persistent (g : GoString) : Persistent (histVar (GF := GF) g) := by
-  unfold histVar; infer_instance
-
-/-- **The progress interval** at the fraction `q` (what `progressReportIntervalMu` guards): a
-duration of at least `10` nanoseconds (`GetProgressReportInterval`'s jitter `rand.Int63n(d / 10)`
-needs `d / 10 > 0`) and at most `2 ^ 62` (`d + d / 10` must not wrap:
-`issues/etcd-watch-progress-interval-overflow.md`). -/
-def intervalP (q : Qp) : IProp GF :=
-  iprop(∃ d : w64, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.progressReportInterval)
-      d (DFrac.own q) ∗ ⌜10 ≤ sint.Z d ∧ sint.Z d ≤ 2 ^ 62⌝)
-
-instance intervalP_fractional : Fractional (intervalP (GF := GF)) where
-  fractional q1 q2 := by
-    unfold intervalP
-    constructor
-    · iintro ⟨%d, Hd, %Hb⟩
-      icases (ptsto_frac_add' _ _ q1 q2).1 $$ Hd with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists d; iframe; ipureintro; exact Hb
-      · iexists d; iframe; ipureintro; exact Hb
-    · iintro ⟨⟨%d1, H1, %Hb⟩, ⟨%d2, H2, -⟩⟩
-      icombine H1 H2 gives %Hd
-      subst Hd
-      iexists d1
-      isplitl [H1 H2]
-      · iapply (ptsto_frac_add' _ _ q1 q2).2; iframe
-      · ipureintro; exact Hb
-
-/-- **mvcc's `ReportEventReceived(n)`** (names only: a metric) returns. -/
-def reportEventOk : IProp GF :=
-  iprop(□ ∀ n : w64, {{ True }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) (Val #n))
-    {{ RET #(); True }})
-
-instance reportEventOk_persistent : Persistent (reportEventOk (GF := GF)) := by
-  unfold reportEventOk; infer_instance
 
 /-- **`io.EOF`** (persistent): a fixed `errors.New` error (a pointer leaf with an `Error()`, of a
 type that implements `error`: `context.isTypedErr`). -/
@@ -207,33 +97,24 @@ def eofVar : IProp GF :=
 instance eofVar_persistent : Persistent (eofVar (GF := GF)) := by
   unfold eofVar errMsgOk; infer_instance
 
-/-- **The package facts `watch.go` reads** (persistent; see the file header). -/
+/-- **The package facts `watch.go` reads** (persistent; see the file header): `io.EOF`
+(`eofVar`) and `v3rpc`'s package facts' part (`watchPkgVars`, D19j: `watchVars_of_init`). -/
 def watchVars : IProp GF :=
-  iprop(eofVar ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrUserEmpty ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.storage.mvcc.ErrEmptyWatcherRange ∗
-    errVarLeaf (hlc := HasLC.hasLC) go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherDuplicateID ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ∗
-    msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ∗
-    (∃ cv : Loc, globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.streamFailures ↦□ cv) ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDuration ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopWatchStreamDurationPerEvent ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopControlStreamDuration ∗
-    histVar go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchSendLoopProgressDuration ∗
-    (∃ tr : GoInterfaceOk, globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr) ∗
-    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxCanceledPtr ∗
-    reportEventOk ∗
-    sync.isRWMutexGuard (hlc := HasLC.hasLC) intervalMu intervalP)
+  iprop(eofVar ∗ watchPkgVars)
 
 instance watchVars_persistent : Persistent (watchVars (GF := GF)) := by
   unfold watchVars; infer_instance
+
+/-- **`watchVars` from `v3rpc`'s package facts and `io.EOF`'s** (D19j, 2026-10-18). -/
+theorem watchVars_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ eofVar ⊢
+      watchVars := by
+  iintro ⟨#Hpkg, #Heof⟩
+  ihave Hi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hi with ⟨-, -, -, -, -, -, -, #Hw⟩
+  iunfold watchVars
+  iframe Heof Hw
 
 /-! ## The server's contract -/
 
@@ -243,7 +124,7 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
     (∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authOn) ∗
-    watchVars)
+    watchVars ∗ mvcc.watchTokPool γ)
 
 instance watchSrvOk_persistent (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) :
     Persistent (watchSrvOk s E γ wsl) := by
@@ -368,24 +249,24 @@ instance swsMu_fractional (pm vm fm : Loc) : Fractional (swsMu (GF := GF) pm vm 
     unfold swsMu
     constructor
     · iintro ⟨%PM, %VM, %FM, HP, HV, HF, %Hn⟩
-      icases ((ownMap_fractional' (GF := GF) pm PM).fractional q1 q2).1 $$ HP with ⟨HP1, HP2⟩
-      icases ((ownMap_fractional' (GF := GF) vm VM).fractional q1 q2).1 $$ HV with ⟨HV1, HV2⟩
-      icases ((ownMap_fractional' (GF := GF) fm FM).fractional q1 q2).1 $$ HF with ⟨HF1, HF2⟩
+      icases ((ownMap_fractional (GF := GF) pm PM).fractional q1 q2).1 $$ HP with ⟨HP1, HP2⟩
+      icases ((ownMap_fractional (GF := GF) vm VM).fractional q1 q2).1 $$ HV with ⟨HV1, HV2⟩
+      icases ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).1 $$ HF with ⟨HF1, HF2⟩
       isplitl [HP1 HV1 HF1]
       · iexists PM, VM, FM; iframe; ipureintro; exact Hn
       · iexists PM, VM, FM; iframe; ipureintro; exact Hn
     · iintro ⟨⟨%PM, %VM, %FM, HP, HV, HF, %Hn⟩, ⟨%PM', %VM', %FM', HP', HV', HF', -⟩⟩
-      ihave %Ha := ownMap_agree' pm _ _ PM PM' $$ [$HP $HP']
-      ihave %Hb := ownMap_agree' vm _ _ VM VM' $$ [$HV $HV']
-      ihave %Hc := ownMap_agree' fm _ _ FM FM' $$ [$HF $HF']
+      ihave %Ha := ownMap_agree pm _ _ PM PM' $$ [$HP $HP']
+      ihave %Hb := ownMap_agree vm _ _ VM VM' $$ [$HV $HV']
+      ihave %Hc := ownMap_agree fm _ _ FM FM' $$ [$HF $HF']
       subst Ha Hb Hc
       iexists PM, VM, FM
       isplitl [HP HP']
-      · iapply ((ownMap_fractional' (GF := GF) pm PM).fractional q1 q2).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) pm PM).fractional q1 q2).2; iframe
       isplitl [HV HV']
-      · iapply ((ownMap_fractional' (GF := GF) vm VM).fractional q1 q2).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) vm VM).fractional q1 q2).2; iframe
       isplitl [HF HF']
-      · iapply ((ownMap_fractional' (GF := GF) fm FM).fractional q1 q2).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).2; iframe
       ipureintro; exact Hn
 
 /-- **A control response** `l` on the control stream: a response holding a model `m` with the

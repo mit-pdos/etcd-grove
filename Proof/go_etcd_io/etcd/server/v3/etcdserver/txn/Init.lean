@@ -130,7 +130,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   icases HLNF0 with ⟨%eLNF, #HLNF, -⟩
   ihave HeiKNF : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd10
-  icases HeiKNF with ⟨-, #HevKNF⟩
+  icases HeiKNF with ⟨-, #HevKNF, -⟩
   ihave #NKNF := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound) (m := go!"etcdserver: key not found") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevKNF
   iunfold EtcdGrove.errorsNewVar at NKNF
   icases NKNF with ⟨%xKNF, #HKNF, -⟩

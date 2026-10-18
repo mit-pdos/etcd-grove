@@ -1361,6 +1361,52 @@ theorem watchBudget_spend (γ : WsNames) (M : GMap Loc WatcherNames) (w : Loc)
   ipureintro
   rw [GMap.map_size_insert_None _ _ _ hM]; omega
 
+/-! ### The watch tokens backed by time receipts (D19b's method, 2026-10-18) -/
+
+def watchTokN : Namespace := nroot .@ "mvcc.watchTok"
+
+/-- **The watch-token pool** (persistent): an invariant holding, for the `a` tokens taken so
+far, `a` time receipts, and the `n` tokens left, with `receiptBound GF ≤ a + n + 1`. A token
+costs a receipt of the taker's own Go step (`watchTokPool_take`): `a + 1 < receiptBound GF`, so
+some token is left. Allocated from `New`'s `2 ^ 63 - 3` tokens (`watchTokPool_alloc`). -/
+def watchTokPool (γ : WsNames) : IProp GF :=
+  inv watchTokN iprop(∃ a n : Nat, ⧗ a ∗ ownToks γ.wt n ∗ ⌜receiptBound GF ≤ a + n + 1⌝)
+
+instance watchTokPool_persistent (γ : WsNames) : Persistent (watchTokPool (GF := GF) γ) := by
+  unfold watchTokPool; infer_instance
+
+/-- The pool from `New`'s tokens, under `receiptBound GF ≤ 2 ^ 63 - 2`. -/
+theorem watchTokPool_alloc (γ : WsNames) (E : CoPset) (h : receiptBound GF ≤ 2 ^ 63 - 2) :
+    watchToks (GF := GF) γ (2 ^ 63 - 3) ⊢ |={E}=> watchTokPool γ := by
+  iintro HW
+  iunfold watchToks at HW
+  imod receipt_zero (GF := GF) with H0
+  unfold watchTokPool
+  iapply inv_alloc watchTokN E
+  inext
+  iexists 0, 2 ^ 63 - 3
+  iframe
+  ipureintro; omega
+
+/-- **One watch token** off the pool, for a fresh time receipt. -/
+theorem watchTokPool_take (γ : WsNames) :
+    ⊢ watchTokPool (GF := GF) γ -∗ ⧗ 1 ={⊤}=∗ watchTok γ := by
+  iintro #Hp Hr
+  unfold watchTokPool
+  iinv Hp with ⟨%a, %n, >Ha, >Hn, >%Hb⟩ Hclose
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  icases ownToks_add_1 1 n' γ.wt $$ Hn with ⟨Hn, Ht⟩
+  imod Hclose $$ [Ha Hn] with -
+  · inext
+    iexists a + 1, n'
+    iframe Ha Hn
+    ipureintro; omega
+  imodintro
+  unfold watchTok
+  iexact Ht
+
 /-- **The notified log's ghosts** at the lock's fraction `q`: half of `γ.wlog` at it (the sole
 writer holds the other half) and `s.mu`'s quarter of the committed log's authority at it (the
 outer quarter, `logQ`; unit W-K: the commit happens under `s.mu` after the notify, so a reader

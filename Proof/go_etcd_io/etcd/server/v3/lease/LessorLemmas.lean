@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 public import Perennial.Proof.time
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -46,12 +47,6 @@ theorem Time.wp_ptr_Before_dq (l : Loc) (t u : _root_.Perennial.time.Time) (dq :
   wp_apply _root_.Perennial.time.Time.wp_Before as %b -
   iapply HΦ $$ Hl
 
-theorem dfrac_own_half_half (q : Qp) :
-    (DFrac.own q : DFrac) = DFrac.own q.half • DFrac.own q.half := by
-  have h := Qp.half_add_half q
-  calc (DFrac.own q : DFrac) = DFrac.own (q.half + q.half) := by rw [h]
-    _ = DFrac.own q.half • DFrac.own q.half := rfl
-
 /-- Two halves of a points-to agree and make the whole. -/
 theorem ptsto_halves_combine {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v w : V) :
     typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
@@ -75,68 +70,8 @@ theorem ptsto_halves_split {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v 
   rw [dfrac_own_half_half 1]
   iapply ((typedPointsto_dfractional (GF := GF) l v).dfractional _ _).1 $$ H
 
-/-- Two shares of a map points-to agree on the map. -/
-theorem ownMap_agree {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
-    [go.IntoValInj V] (mref : Loc) (dq1 dq2 : DFrac) (m1 m2 : GMap K V) :
-    ownMap (GF := GF) mref dq1 m1 ∗ ownMap (GF := GF) mref dq2 m2 ⊢ ⌜m1 = m2⌝ := by
-  rw [ownMap_unseal]
-  iintro ⟨H1, H2⟩
-  unfold ownMapDef
-  iNamedSuffix H1 "1"
-  iNamedSuffix H2 "2"
-  icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-  subst Hmv
-  ipureintro
-  apply GMap.ext
-  intro k
-  have h1 := Hagree1 k
-  have h2 := Hagree2 k
-  rw [← go.mapLookup_pure _ _ _ His_map1, go.mapLookup_pure _ _ _ His_map2] at h1
-  rw [h1] at h2
-  change m1 !! k = m2 !! k
-  cases hk1 : m1 !! k <;> cases hk2 : m2 !! k <;> simp only [hk1, hk2] at h2
-  · rfl
-  · cases h2
-  · cases h2
-  · simp only [Prod.mk.injEq, true_and] at h2
-    rw [go.intoVal_inj h2]
-
 instance unit_intoValInj : go.IntoValInj Unit where
   intoVal_inj x y _ := by cases x; cases y; rfl
-
-/-- A map points-to splits and combines by fraction (as `cache/v3/InvDemux.lean`'s
-`ownMap_fractional`). -/
-theorem lease_ownMap_fractional {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
-    [go.IntoValInj K] (mref : Loc) (m : GMap K V) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
-/-- A points-to at `q1 + q2` in two parts. -/
-theorem ptsto_frac_add {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp) :
-    typedPointsto (GF := GF) l v (DFrac.own (q1 + q2)) ⊣⊢
-      typedPointsto (GF := GF) l v (DFrac.own q1) ∗ typedPointsto (GF := GF) l v (DFrac.own q2) :=
-  (typedPointsto_dfractional (GF := GF) l v).dfractional (DFrac.own q1) (DFrac.own q2)
 
 /-- What a lease's `mu` guards is fractional. -/
 instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) where
@@ -145,7 +80,7 @@ instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) 
     constructor
     · iintro ⟨%sm, %S, Hsm, HS⟩
       icases (ptsto_frac_add _ _ q1 q2).1 $$ Hsm with ⟨Hs1, Hs2⟩
-      icases ((lease_ownMap_fractional (GF := GF) sm S).fractional q1 q2).1 $$ HS with ⟨HS1, HS2⟩
+      icases ((ownMap_fractional (GF := GF) sm S).fractional q1 q2).1 $$ HS with ⟨HS1, HS2⟩
       isplitl [Hs1 HS1]
       · iexists sm, S; iframe
       · iexists sm, S; iframe
@@ -157,18 +92,13 @@ instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) 
       iexists sm1, S1
       isplitl [Hsm1 Hsm2]
       · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
-      · iapply ((lease_ownMap_fractional (GF := GF) sm1 S1).fractional q1 q2).2; iframe
-
-theorem lease_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
+      · iapply ((ownMap_fractional (GF := GF) sm1 S1).fractional q1 q2).2; iframe
 
 /-- What a lease's `expiryMu` guards is fractional. -/
 instance leaseExpiry_fractional (l : Loc) : Fractional (leaseExpiry (GF := GF) l) where
   fractional q1 q2 := by
     unfold leaseExpiry
-    rw [lease_qp_half_add]
+    rw [qp_half_add]
     constructor
     · iintro ⟨%e, He⟩
       icases (ptsto_frac_add _ _ _ _).1 $$ He with ⟨H1, H2⟩

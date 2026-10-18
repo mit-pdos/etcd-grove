@@ -164,11 +164,11 @@ theorem Cache.get.wp_proof
   wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
   · iframe Hctx Hopts HRB
     ipureintro
-    refine ⟨?_, opGetModel_withPrefix_t cf.pfx⟩
+    refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word))⟩
     rintro ⟨-, h⟩
     simp [opFold, withPrefixM, OpFull.newOp] at h
-  iunfold kvGetResult at Hres
-  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, #Hreach, #Hread, %Hle0, Hkvs⟩)
+  iunfold kvGetResultC at Hres
+  icases Hres with (%Herr | ⟨%Herr, %r, #Hrev, #Hreach, #Hread, -, %Hle0, Hkvs⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr
@@ -184,6 +184,7 @@ theorem Cache.get.wp_proof
     ipureintro; exact HB0
   · subst Herr
     rw [ite_eq_left (opGetModel_withPrefix_isPrefixGet cf.pfx)]
+    icases Hkvs with ⟨%m, #Hm, Hkvs⟩
     have Hle : sint.Z B ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 :=
       ⟨Hle0.1 (opGetModel_withPrefix_serializable cf.pfx), Hle0.2⟩
     have Hr0 : 0 ≤ sint.Z r := by omega

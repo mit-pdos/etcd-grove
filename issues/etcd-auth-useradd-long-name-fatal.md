@@ -26,7 +26,7 @@ links:
   exits; on restart each replays the entry from the WAL and exits again. Reproduced at the pin
   with the test below (in package `server/storage/schema`; its logger turns `Fatal` into a panic
   so the test observes it): it logs `{"level":"fatal","msg":"failed to write to a bucket",
-  "bucket-name":"authUsers","error":"key too large"}`.
+  "bucket-name":"authUsers","error":"key too large"}`. Confirmed end to end through gRPC below.
 
   ```go
   package schema
@@ -76,6 +76,43 @@ links:
   	})
   }
   ```
+- **Through gRPC, end to end** (2026-10-18, upstream `main` at `22cc5d9`, `etcd` and `etcdctl`
+  built with `go build` from `server/` and `etcdctl/`): a three-member cluster on localhost with
+  the default configuration (auth disabled), then
+
+  ```sh
+  etcdctl --endpoints=$EP user add "$(head -c 40000 /dev/zero | tr '\0' a)" --no-password
+  ```
+
+  The client gets `rpc error: code = Unavailable desc = error reading from server: EOF`, and all
+  three members exit at once, each logging `{"level":"fatal","caller":"backend/batch_tx.go:184",
+  "msg":"failed to write to a bucket","bucket-name":"authUsers","error":"key too large"}`.
+  Restarting all three: they re-form a quorum, apply the entry again and all exit with the same
+  line, on each of two full restarts (30 s observed each time); the cluster stays down. A member
+  restarted alone stays up (it does not reach the entry without a quorum). `etcdctl role add
+  <name>` does the same (`"bucket-name":"authRoles"`): with a 32769-byte name all three exit; with
+  32768 bytes (`MaxKeySize`) the role is created and the cluster is fine. The script (members on
+  ports 23791-23793 / 23801-23803, data in a fresh directory):
+
+  ```sh
+  B=./bin; W=./run; mkdir -p $W
+  CL=m1=http://127.0.0.1:23801,m2=http://127.0.0.1:23802,m3=http://127.0.0.1:23803
+  start() { i=$1; $B/etcd --name m$i --data-dir $W/m$i.etcd \
+      --listen-client-urls http://127.0.0.1:2379$i --advertise-client-urls http://127.0.0.1:2379$i \
+      --listen-peer-urls http://127.0.0.1:2380$i --initial-advertise-peer-urls http://127.0.0.1:2380$i \
+      --initial-cluster $CL --initial-cluster-state new --initial-cluster-token authrepro \
+      >> $W/m$i.log 2>&1 & }
+  EP=http://127.0.0.1:23791,http://127.0.0.1:23792,http://127.0.0.1:23793
+  for i in 1 2 3; do start $i; done; sleep 5
+  $B/etcdctl --endpoints=$EP endpoint health
+  $B/etcdctl --endpoints=$EP user add "$(head -c 40000 /dev/zero | tr '\0' a)" --no-password
+  sleep 3; grep '"level":"fatal"' $W/m*.log      # all three
+  for i in 1 2 3; do start $i; done; sleep 15
+  grep -c '"level":"fatal"' $W/m*.log            # 2 each: they exit again
+  ```
+
+  For upstream this should become an e2e test (`tests/e2e`, which runs the members as processes:
+  an integration test's in-process members would take the test binary down with them).
 - **Expected**: the name's length checked like its emptiness, with an error (at `UserAdd`/
   `RoleAdd`, or where the request enters, before it is proposed), or the bound stated.
 - **How the proof handles it**: not yet. The apply package's contract of the auth store

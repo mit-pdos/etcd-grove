@@ -50,8 +50,11 @@ theorem apply.applierV3Capped.Txn.wp_proof
   ihave #Hcp := apply.certPre_capped E c rq log (by rw [Hk.2.1]; rfl) $$ Hcp
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
+  ihave #Hr' := Hr
+  iunfold txn.txnRequestIs at Hr'
+  icases Hr' with ⟨%Hrn, -⟩
   wp_apply hCost
-  · ipureintro; exact Or.inr (Or.inl rfl)
+  · ipureintro; exact ⟨Or.inr (Or.inl rfl), Hrn⟩
   iintro %cost -
   wp_auto
   wp_if_destruct

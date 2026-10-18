@@ -31,7 +31,7 @@ axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txLive
-axiom context.ErrDone.wp_proof
+axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -69,6 +69,7 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
+axiom mvcc.ReportEventReceived.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom promSrvMetrics
 axiom promSrvMetricsOpt

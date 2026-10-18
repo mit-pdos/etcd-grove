@@ -39,7 +39,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
   wp_start as ⟨#Hb, ⟨%am, #Hr⟩, Hpre, Hwt⟩
   ihave Hai : (applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨⟨%gv, #Hgv⟩, -⟩
+  icases Hai with ⟨⟨%gv, #Hgv, %Hgvl⟩, -⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.backendIs at Hb
@@ -106,14 +106,17 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_auto
     wp_apply (wp_slice_append (V := Loc) slice.nil [] _ [m] (DFrac.own 1)) $$ [$Hmsl] as %sl1 -
     · iframe #
-    wp_apply hID as %s1 -
-    wp_apply hAT $$ [$Hma] as %s2 -
+    wp_apply hID as %s1 %Hs1
+    wp_apply hAT $$ [$Hma] as %s2 ⟨-, %Hs2⟩
     wp_apply wp_slice_literal (l := [s1, s2])
     isplitr
     · ipureintro; rfl
-    iintro %lsl -
+    iintro %lsl ⟨Hlsl, -⟩
     wp_auto
-    wp_apply hWLV as %g ⟨%gi, %Hg, #Hgs⟩
+    wp_apply hWLV gv _ [go!"server_id", go!"alarm_type"] _ _ $$ [Hlsl] as %g ⟨%gi, %Hg, #Hgs, -⟩
+    · iframe #; iframe Hlsl; ipureintro
+      exact ⟨Hgvl, prometheus.labelValuesOk_two _ _ _ _ (utf8Valid_of_ascii _ Hs1)
+        (utf8Valid_of_ascii _ Hs2)⟩
     subst Hg
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hgs
     icases Hgs with ⟨#HInc, -⟩
@@ -153,14 +156,17 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_auto
     wp_apply (wp_slice_append (V := Loc) slice.nil [] _ [m] (DFrac.own 1)) $$ [$Hmsl] as %sl1 -
     · iframe #
-    wp_apply hID as %s1 -
-    wp_apply hAT $$ [$Hma] as %s2 -
+    wp_apply hID as %s1 %Hs1
+    wp_apply hAT $$ [$Hma] as %s2 ⟨-, %Hs2⟩
     wp_apply wp_slice_literal (l := [s1, s2])
     isplitr
     · ipureintro; rfl
-    iintro %lsl -
+    iintro %lsl ⟨Hlsl, -⟩
     wp_auto
-    wp_apply hWLV as %g ⟨%gi, %Hg, #Hgs⟩
+    wp_apply hWLV gv _ [go!"server_id", go!"alarm_type"] _ _ $$ [Hlsl] as %g ⟨%gi, %Hg, #Hgs, -⟩
+    · iframe #; iframe Hlsl; ipureintro
+      exact ⟨Hgvl, prometheus.labelValuesOk_two _ _ _ _ (utf8Valid_of_ascii _ Hs1)
+        (utf8Valid_of_ascii _ Hs2)⟩
     subst Hg
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hgs
     icases Hgs with ⟨-, #HDec, -⟩

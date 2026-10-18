@@ -1,5 +1,5 @@
 /-
-The trust boundary: `strconv.FormatUint` (Perennial's `strconv` is names-only; `FormatUint` is total: the decimal digits).
+The trust boundary: `strconv.FormatUint` (Perennial's `strconv` is names-only; `FormatUint` of a base in `2..36` returns its digits).
 -/
 module
 

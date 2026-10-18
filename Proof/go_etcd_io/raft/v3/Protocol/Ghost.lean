@@ -86,8 +86,9 @@ Lean notes:
 * `Pos.Countable` instances for `entryID`, `EntryM` and `Aev` (Rocq derives
   `Countable` for them; the ghost maps and the mono list store them) are added here.
 * `ite_persistent`/`ite_timeless` (no Rocq counterpart: Rocq's `case_decide; apply _`
-  inside the instance proofs) and `forall_prop_timeless` (iris-lean's `forall_timeless`
-  quantifies over a `Type`, not a proof of a `Prop`) are helper instances.
+  inside the instance proofs; in `Proof/Lib/Iris.lean`) and `forall_prop_timeless`
+  (iris-lean's `forall_timeless` quantifies over a `Type`, not a proof of a `Prop`) are
+  helper instances.
 -/
 module
 
@@ -99,6 +100,7 @@ public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.Token
 public import Perennial.GooseLang.Countable
 public import Perennial.GooseLang.Receipts
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -134,15 +136,6 @@ instance raftpbEntry_countable [FfiSyntax] : Pos.Countable EntryM :=
       simp only [Prod.mk.injEq] at h
       obtain ⟨h1, h2, h3, h4⟩ := h
       subst h1 h2 h3 h4; rfl)
-
-/-- Helper instances (Rocq proves these cases with `case_decide; apply _`). -/
-instance ite_persistent {PROP : Type _} [BI PROP] (c : Prop) [Decidable c] (P Q : PROP)
-    [Persistent P] [Persistent Q] : Persistent (if c then P else Q) := by
-  split <;> infer_instance
-
-instance ite_timeless {PROP : Type _} [BI PROP] (c : Prop) [Decidable c] (P Q : PROP)
-    [Timeless P] [Timeless Q] : Timeless (if c then P else Q) := by
-  split <;> infer_instance
 
 /-- A BI `∀` over the proofs of a proposition is timeless (iris-lean's `forall_timeless`
 is for `α : Type`; Rocq's `forall_timeless` covers `∀ _ : P, Q`). -/

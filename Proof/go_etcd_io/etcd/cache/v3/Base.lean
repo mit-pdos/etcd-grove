@@ -143,7 +143,8 @@ instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
 /-- **`etcdserverpb`'s six `ServiceDesc`s** (`rpc_grpc.pb.go`: generated literals, never written;
 item 8, 2026-10-17: until then an assumption of `v3rpc.Server`, `svcDescsOk`): their service names,
 handler types and distinct method and stream names; the KV service's methods and the Watch
-service's stream exactly. -/
+service's stream exactly (2026-10-18: the Watch stream a client stream, `ClientStreams`, which
+`grpc.ClientConn.NewStream`'s spec asks of its descriptor). -/
 abbrev etcdserverpbDescs : IProp GF :=
   iprop((∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
@@ -157,7 +158,8 @@ abbrev etcdserverpbDescs : IProp GF :=
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Watch_ServiceDesc) go!"etcdserverpb.Watch"
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty) #(null : Loc)) mds sds ∗
       ⌜mds = [] ∧ sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =
-        [(go!"Watch", @! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler)]⌝) ∗
+        [(go!"Watch", @! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler)] ∧
+        sds.map (·.ClientStreams') = [true]⌝) ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Lease_ServiceDesc) go!"etcdserverpb.Lease" go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth" go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer.ty ∗
@@ -310,7 +312,19 @@ abbrev rpctypesInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□ GoInterface.ok e) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataClientAPIVersionKey ↦□ k) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ k) ∗
-    (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k))
+    (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k) ∗
+    -- (D19j, 2026-10-18) the `ErrGRPC*` errors `v3rpc`'s watch server returns or reports, whose
+    -- `Error()` returns
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken ↦□ GoInterface.ok e ∗
+      errorStringSpec e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision ↦□ GoInterface.ok e ∗
+      errorStringSpec e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty ↦□ GoInterface.ok e ∗
+      errorStringSpec e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ↦□ GoInterface.ok e ∗
+      errorStringSpec e) ∗
+    (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ↦□ GoInterface.ok e ∗
+      errorStringSpec e))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
@@ -440,7 +454,13 @@ abbrev clientv3Init : IProp GF :=
           google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]⌝) ∗
     (∃ n : w64, globalAddr go_etcd_io.etcd.client.v3.defaultUnaryMaxRetries ↦□ n) ∗
     (∃ d : time.Duration, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffWaitBetween ↦□ d) ∗
-    (∃ f : w64, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction ↦□ f))
+    (∃ f : w64, globalAddr go_etcd_io.etcd.client.v3.defaultBackoffJitterFraction ↦□ f) ∗
+    -- (2026-10-18: `client/v3`'s `clientWatchVars`, which the watcher took as a premise)
+    -- `watch.go`'s `valCtxCh`, `zeroTime`, `maxBackoff`
+    (∃ (ch : GoChan) (t : time.Time) (d : time.Duration),
+      globalAddr go_etcd_io.etcd.client.v3.valCtxCh ↦□ ch ∗
+      globalAddr go_etcd_io.etcd.client.v3.zeroTime ↦□ t ∗
+      globalAddr go_etcd_io.etcd.client.v3.maxBackoff ↦□ d))
 
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   define_is_pkg_init clientv3Init

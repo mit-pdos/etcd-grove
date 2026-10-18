@@ -112,10 +112,6 @@ instance readIndexOk_persistent_r (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
   unfold readIndexOk; infer_instance
 
-instance ite_persistent_r (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
-    Persistent (if b then P else Q) := by
-  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
-
 /-- A range's answer without error has a response. -/
 theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) :
     txn.rangeResult (GF := GF) resp GoInterface.nil log rev o wt ⊢ ⌜resp ≠ null⌝ := by
@@ -158,13 +154,16 @@ local macro "range_defer_c" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hSec as %_ -
   (try wp_auto)
-  wp_apply hFB as %_ -
+  wp_apply hFB as %fb %Hfb
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %_ ⟨-, -⟩
+  iintro %lsl ⟨Hlsl, -⟩
   (try wp_auto)
-  wp_apply hWL hist as %_ ⟨%oi, %Hoi, #Hobs⟩
+  wp_apply hWL hist _ [go!"type", go!"success"] _ _ $$ [Hlsl] as %_ ⟨%oi, %Hoi, #Hobs, -⟩
+  · iframe #; iframe Hlsl; ipureintro
+    refine ⟨Hhl, prometheus.labelValuesOk_two _ _ _ _ (by decide) ?_⟩
+    rw [Hfb]; split <;> decide
   subst Hoi
   iunfold prometheus.observerSpec at Hobs
   (try wp_auto)
@@ -406,7 +405,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
+  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist, %Hhl⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, -, %Hleaf⟩⟩, -⟩
   ihave #Papply : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []

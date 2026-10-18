@@ -27,9 +27,9 @@ consumer's resources, `retcP`).
 **The premises about the server and the transport** (persistent; `watchSrvFacts`):
 * the stub, the connection and the registration of etcd's `Watch` stream (`isGrpcStream` with
   `watchUp`/`watchSpec`, what `etcd_watch_served*` give);
-* the watch-token supply (`watchTokSupply`: a token whenever one is needed; a create, and so
-  every `Watch`, spends one; a finite budget would need a bound on the creates, which the
-  client cannot give);
+* the watch-token pool (`mvcc.watchTokPool`, 2026-10-18: a create, and so every `Watch`, spends
+  a token, which `run` takes from the pool for a time receipt of its own Go step: D19b's
+  method, in place of the unbounded supply `watchTokSupply`);
 * `noRetryableStreamErr`: no stream error has the status code `Unavailable` or `Internal`, the
   codes `isHaltErr` lets `run` retry on. Under it `run` stops at the first receive error, and
   the reconnection (`newWatchClient` after `errc`, the resume queue, `waitCancelSubstreams`) is
@@ -62,9 +62,10 @@ consumer's resources, `retcP`).
   client's `status` and `errors` calls accept (`eofOk`, `errorsNewOk`, `ctxErrClientAllW`), and
   `watch.go`'s package variables (`clientWatchVars`).
 
-**What is not covered**: `RequestProgress` (its calls can make `run` panic:
-`issues/etcd-watch-progress-closed-substream.md`): the client verified here never sends a
-progress request.
+**Progress requests** (`RequestProgress`, unit K2e-9): a `*progressRequest` on `reqc` (`reqP`),
+which `run` forwards; the server's `-1` answer is broadcast to every registered substream (its
+panic on a canceled substream's closed `recvc`, `issues/etcd-watch-progress-closed-substream.md`,
+is fixed in the verified fork).
 -/
 module
 
@@ -230,14 +231,6 @@ theorem srvEventIdsAssigned_holds (R : v3rpc.WSrv GF) : ⊢ srvEventIdsAssigned 
   iapply He
   ipureintro; exact Or.inl Hs.2
 
-/-- **The watch-token supply** (a premise, persistent; the user's decision): a watch token of the
-store whenever one is needed (every create, so every `Watch`, spends one). -/
-def watchTokSupply (γ : mvcc.WsNames) : IProp GF := iprop(□ |==> mvcc.watchTok γ)
-
-instance watchTokSupply_persistent (γ : mvcc.WsNames) :
-    Persistent (watchTokSupply (GF := GF) γ) := by
-  unfold watchTokSupply; infer_instance
-
 /-- **The server's sealed logs are small** (persistent; the read path's `storeSmall`, unit
 W-M2b: over `mvcc.idxSealed`, the logs the watch events are of). -/
 def srvLogsSmall (R : v3rpc.WSrv GF) : IProp GF :=
@@ -307,7 +300,7 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
   iprop(grpcConn V.conn V.addr V.ics [] ∗
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
-    v3rpc.watchDescOk ∗ watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
+    v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗ noRetryableStreamErr ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
@@ -384,9 +377,12 @@ structure WsPrm (GF : BundledGFunctors) where
 store (`sr`), a non-zero one, and it is a prefix watch of a non-empty key not all `0xff` (its range
 end neither empty nor `[0]`, so that the registered range covers exactly the keys under it,
 `covers_prefix`). -/
-def cplOf (P : WsPrm GF) : Bool :=
-  P.sr && decide (P.o.key ≠ [] ∧ P.o.base.rangeEnd = prefixRangeEnd P.o.key ∧
-    prefixRangeEnd P.o.key ≠ [W8 0] ∧ P.rev ≠ W64 0)
+def cplCond (sr : Bool) (o : OpFull) (rev : w64) : Bool :=
+  sr && decide (o.key ≠ [] ∧ o.base.rangeEnd = prefixRangeEnd o.key ∧
+    prefixRangeEnd o.key ≠ [W8 0] ∧ rev ≠ W64 0)
+
+/-- `cplCond` of a watch's values. -/
+abbrev cplOf (P : WsPrm GF) : Bool := cplCond P.sr P.o P.rev
 
 /-- **The request is one of the contract's** (pure): a range watch under `pfx` from `rev ≥ 0`
 (`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's. -/
@@ -398,11 +394,12 @@ def wsReqOk (pfx : GoString) (P : WsPrm GF) : Prop :=
 
 /-- **What a watch's `retc` carries** (the bag's value predicate): the substream's `outc`, the
 contract's SPSC channel, with the consumer's resources (`Watch` returns them). -/
-def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (outc : Loc) : IProp GF :=
+def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (outc : Loc) : IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
     isSpsc γ.spsc outc (rangeWatchElem (EM := V.EM) γ V.pfx o rev) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-    monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1))
+    monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
+    ⌜γ.cpl = cplCond sr o rev⌝)
 
 /-- **The read-only fields of a `watchRequest`** at `l` (all but `rev` and `retc`), at the watch's
 values: the context, the key and range end, the flags (`fragment` and `prevKV` false: the
@@ -472,7 +469,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     isSpsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Unknown ∗
     context.isContext P.ctx P.cs ∗
-    isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
+    isChanBag P.γret P.retc (retcP V P.o P.rev P.sr) ∗
     ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
@@ -540,7 +537,7 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
     ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.watchRequest.ty) #wr ∧
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
-    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
+    context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr) ∗
     ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)

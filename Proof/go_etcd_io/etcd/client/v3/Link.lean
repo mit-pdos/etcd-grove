@@ -148,6 +148,7 @@ public import Proof.go_etcd_io.etcd.client.v3.watchGRPCStream__waitCancelSubstre
 public import Proof.go_etcd_io.etcd.client.v3.watchRequest__toPB
 public import Proof.go_etcd_io.etcd.client.v3.watcherStream__resetBufWait
 public import Proof.go_etcd_io.etcd.client.v3.watcher__Close
+public import Proof.go_etcd_io.etcd.client.v3.watcher__RequestProgress
 public import Proof.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Proof.go_etcd_io.etcd.client.v3.watcher__closeStream
 public import Proof.go_etcd_io.etcd.client.v3.watcher__newWatcherGRPCStream
@@ -812,6 +813,10 @@ theorem v3.watcher.wp_Close [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assu
 theorem v3.watcher.wp_newWatcherGRPCStream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watcher.newWatcherGRPCStream.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watcher.newWatcherGRPCStream.wp_proof context.wp_WithCancelValCtx v3.wp_streamKeyFromCtx v3.watchGRPCStream.wp_run
+
+theorem v3.watcher.wp_RequestProgress [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watcher.RequestProgress.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watcher.RequestProgress.wp_proof v3.wp_streamKeyFromCtx v3.watcher.wp_newWatcherGRPCStream
 
 theorem v3.watcher.wp_Watch [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watcher.Watch.spec (GF := GF) (hG := hG) :=

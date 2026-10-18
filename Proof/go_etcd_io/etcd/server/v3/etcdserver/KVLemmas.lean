@@ -502,12 +502,14 @@ theorem readQs_get (gs : List GName) (L : List EntryModel) (n : Nat) (g : GName)
 theorem dispatchKind_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     apply.dispatchKind (apply.withHeader rq hm) = apply.dispatchKind rq := rfl
 
-/-- Whether a request that is no write is plain depends only on its kind. -/
+/-- Whether a request that is no write is plain depends only on its kind and its auth fields
+(`needAdminPermission`, D19k). -/
 theorem plainReq_of_kind (rq rq' : apply.IRRModel) (hk : apply.dispatchKind rq' = apply.dispatchKind rq)
+    (hna : apply.needAdminPermission rq' = apply.needAdminPermission rq)
     (hnw : ¬ writeKind (apply.dispatchKind rq)) (hp : plainReq rq) : plainReq rq' := by
   unfold writeKind at hnw
   unfold plainReq at hp ⊢
-  rw [hk]
+  rw [hk, hna]
   revert hp hnw
   cases apply.dispatchKind rq <;> simp
 

@@ -100,8 +100,8 @@ newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__Is
 # Link (`@`). Trust boundary (axioms):
 # `isClientCtxErr` (grpc's `status.FromError`), `math/rand.Int63n`, `(*time.Duration).Seconds`
 # (the pointer wrapper of the untranslated `Duration.Seconds`); zap's, time's, otel's, verify's
-# and prometheus's names-only functions as elsewhere. `mvcc.ReportEventReceived` is a package
-# fact (`reportEventOk`, InvWatch.lean). Not linked: `sendFragments` and the prevKV branch of
+# and prometheus's names-only functions as elsewhere. `mvcc.ReportEventReceived` is mvcc's
+# (D19j, 2026-10-18: until then the package fact `reportEventOk`, for every count). Not linked: `sendFragments` and the prevKV branch of
 # `sendLoop` (unreachable: the requests are restricted, `watchReqOk`), `_Watch_Watch_Handler`.
 mvcc_watchableStore__NewWatchStream: @
 mvcc_watchStream__Watch: @
@@ -111,6 +111,7 @@ mvcc_watchStream__RequestProgressAll: @
 mvcc_watchStream__RequestProgress: @
 mvcc_watchStream__Close: @
 mvcc_watchStream__Chan: @
+mvcc_ReportEventReceived: @
 EtcdServer__AuthInfoFromCtx: @
 EtcdServer__AuthStore: @
 EtcdServer__Watchable: @
@@ -144,7 +145,7 @@ serverWatchStream__newResponseHeader:
 serverWatchStream__isWatchPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 NewWatchServer: zap_NewNop zap_Logger__Warn zap_Duration config_ServerConfig__MaxRequestBytesWithOverhead EtcdServer__Watchable SetProgressReportInterval
 serverWatchStream__recvLoop: mvcc_watchStream__Watch mvcc_watchStream__Rev mvcc_watchStream__Cancel mvcc_watchStream__RequestProgressAll serverWatchStream__isWatchPermitted serverWatchStream__newResponseHeader FiltersFromRequest errors_Is traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool zap_Logger__Error zap_Error
-serverWatchStream__sendLoop: serverWatchStream__newResponseHeader GetProgressReportInterval isClientCtxErr mvcc_watchStream__RequestProgress verify_Assert time_NewTicker time_Ticker__Stop time_Duration__Seconds time_Duration__Seconds_ptr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues mvcc_watchStream__Chan
+serverWatchStream__sendLoop: serverWatchStream__newResponseHeader GetProgressReportInterval isClientCtxErr mvcc_watchStream__RequestProgress verify_Assert time_NewTicker time_Ticker__Stop time_Duration__Seconds time_Duration__Seconds_ptr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues mvcc_watchStream__Chan mvcc_ReportEventReceived
 serverWatchStream__close: mvcc_watchStream__Close
 watchServer__Watch: mvcc_watchableStore__NewWatchStream serverWatchStream__recvLoop serverWatchStream__sendLoop serverWatchStream__close isClientCtxErr errors_IsCtxErr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues
 #

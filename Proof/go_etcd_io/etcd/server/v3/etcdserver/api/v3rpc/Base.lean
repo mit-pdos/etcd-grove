@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseWatch
 
 @[expose] public section
 
@@ -123,7 +124,8 @@ def interceptorVars : IProp GF :=
     (∃ k : GoString,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ k) ∗
     (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k) ∗
-    (∃ cv : Loc, globalAddr clientRequests ↦□ cv))
+    (∃ cv : Loc, globalAddr clientRequests ↦□ cv ∗
+      ⌜EtcdGrove.prometheus.vecLabels cv [go!"type", go!"client_api_version"]⌝))
 
 instance interceptorVars_persistent : Persistent (interceptorVars (GF := GF)) := by
   unfold interceptorVars; infer_instance
@@ -135,13 +137,50 @@ instance sortNameMaps_persistent : Persistent (sortNameMaps (GF := GF)) := by
 instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := by
   unfold ctxCanceledPtr; infer_instance
 
+/-- **The package facts `watch.go` reads, but `io.EOF`** (persistent; D19j, 2026-10-18: until
+then the premise `watchVars` of the watch path's results, now `v3rpc`'s): the `auth` and `mvcc`
+errors it compares with or reports (pointer leaves, `errVarLeaf`, from their packages' facts),
+the `rpctypes` errors whose `Error()` it calls (`msgErrVar`, from `rpctypes`' fact), its metrics
+(`streamFailures`, the four histograms: their initializers' trust-boundary axioms `<X>_init`),
+`traceutil.Tracer`, `context.Canceled`'s pointer error, and the progress interval's lock
+(`progressReportIntervalMu`, allocated by the initializer, guarding `progressReportInterval`,
+`10 * time.Minute`: `intervalP`). `io.EOF` is not among them: Perennial's `io` fact does not
+keep it (`v3rpc.eofVar`, `InvWatch.lean`). -/
+def _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars : IProp GF :=
+  iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrUserEmpty ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrEmptyWatcherRange ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherDuplicateID ∗
+    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ∗
+    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken ∗
+    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision ∗
+    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty ∗
+    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ∗
+    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ∗
+    (∃ cv : Loc, globalAddr streamFailures ↦□ cv ∗
+      ⌜EtcdGrove.prometheus.vecLabels cv [go!"Type", go!"API"]⌝) ∗
+    EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDuration ∗
+    EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDurationPerEvent ∗
+    EtcdGrove.v3rpc.histVar watchSendLoopControlStreamDuration ∗
+    EtcdGrove.v3rpc.histVar watchSendLoopProgressDuration ∗
+    (∃ tr : GoInterfaceOk, globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr) ∗
+    ctxCanceledPtr ∗
+    sync.isRWMutexGuard EtcdGrove.v3rpc.intervalMu EtcdGrove.v3rpc.intervalP)
+
+instance _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars_persistent :
+    Persistent (EtcdGrove.v3rpc.watchPkgVars (GF := GF)) := by
+  unfold EtcdGrove.v3rpc.watchPkgVars; infer_instance
+
 /-- The package's facts: the error map, the checks' errors, the sort-name maps,
 `context.Canceled`, (unit P3b) what the quota wrapper and the interceptors read, and (item 8,
 2026-10-17: until then premises of `getServerMetrics` and `Server`) `metricsServerLock` and what it
-guards (`metricsVars`) and `etcdserverpb`'s six `ServiceDesc`s (`svcDescsOk`). -/
+guards (`metricsVars`) and `etcdserverpb`'s six `ServiceDesc`s (`svcDescsOk`), and (D19j,
+2026-10-18) what `watch.go` reads but `io.EOF` (`watchPkgVars`). -/
 abbrev v3rpcInit : IProp GF :=
   iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr ∗ interceptorVars ∗
-    EtcdGrove.v3rpc.metricsVars ∗ EtcdGrove.v3rpc.svcDescsOk)
+    EtcdGrove.v3rpc.metricsVars ∗ EtcdGrove.v3rpc.svcDescsOk ∗ EtcdGrove.v3rpc.watchPkgVars)
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=

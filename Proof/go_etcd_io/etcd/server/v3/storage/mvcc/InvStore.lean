@@ -47,6 +47,8 @@ public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.Lib.Iris
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 
 @[expose] public section
 
@@ -191,6 +193,20 @@ theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantic
   unfold interface.mkOk at h
   simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
   exact go.intoVal_inj h
+
+/-- **The backends the stores open record no compaction** (opaque, a named premise about the
+program's environment, D19a's first kind, as `apply.backendUnderQuota`; D19l (v), 2026-10-18,
+adopted by the user): the `meta` bucket of every backend `NewStore` is called on holds neither
+the finished nor the scheduled compaction's key (`schema.FinishedCompactKeyName`,
+`ScheduledCompactKeyName`). `store.restore` reads both (`kvstore.go:330-342`): a finished one sets
+`compactMainRev`, a scheduled one above it raises `currentRev` and runs `compactLockfree`, which
+the store's backend contract (`isKeyBackendG`, the `Key` bucket only) does not model. A premise of
+`restore`'s axiom, so of `NewStore` ... `mvcc.New` and `NewServer.spec`. True of a fresh data
+directory (putget's): only the compaction (`UnsafeSetScheduledCompact` in `store.Compact`,
+`UnsafeSetFinishedCompact` in its job) writes the keys, and nothing compacts before the store
+exists; false of a restart after a compaction, which the closed theorem then does not cover (the
+backend contract with the `meta` keys, D19l (v)'s option (A), is the route for it). -/
+opaque backendNoCompaction : Prop
 
 section reprs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1065,12 +1081,6 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance
 
-/-- Halving distributes over a sum of fractions. -/
-theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
-
 /-! ## The backend instances (2026-10-13, unit 5)
 
 The store is over one of two backends, named by its `StoreNames.kb`: mvcc's assumed contract
@@ -1251,12 +1261,6 @@ theorem bucketView_agree (γ : StoreNames) (q1 q2 : Qp) (m1 m2 : Bucket) :
 counter stays below `2 ^ 63 - 2`. -/
 def revToken (γ : StoreNames) : IProp GF := ownToks γ.revs 1
 
-/-- A full fraction as two halves (for `currentRev`, half under `s.revMu`, half the writer's). -/
-theorem own_half_half (q : Qp) : (DFrac.own q : DFrac) = DFrac.own q.half • DFrac.own q.half := by
-  have h := Qp.half_add_half q
-  calc (DFrac.own q : DFrac) = DFrac.own (q.half + q.half) := by rw [h]
-    _ = DFrac.own q.half • DFrac.own q.half := rfl
-
 /-- The revision budget's authority in two parts (`s.revMu`'s and the writer's). -/
 theorem ownTokAuthDfrac_split (γr : GName) (dq dq' : DFrac) (n : Nat) :
     ownTokAuthDfrac (GF := GF) γr (dq • dq') n ⊣⊢ ownTokAuthDfrac γr dq n ∗ ownTokAuthDfrac γr dq' n := by
@@ -1269,7 +1273,7 @@ theorem ownTokAuthDfrac_split (γr : GName) (dq dq' : DFrac) (n : Nat) :
 theorem ownTokAuth_halves (γr : GName) (n : Nat) :
     ownTokAuth (GF := GF) γr n ⊣⊢
       ownTokAuthDfrac γr (DFrac.own (1 : Qp).half) n ∗ ownTokAuthDfrac γr (DFrac.own (1 : Qp).half) n := by
-  rw [ownTokAuth, own_half_half]
+  rw [ownTokAuth, dfrac_own_half_half]
   exact ownTokAuthDfrac_split γr _ _ n
 
 /-! ## Compaction: its revision, what it may delete, the meta keys -/
@@ -1327,9 +1331,13 @@ queue (`compactQueue`: the scheduler's tracked queue, its last job's `Post` givi
 compactor's token at or below `c`; 2026-10-13, unit 5c). `NewStore` returns it at `-1`;
 `store.Compact` takes it (it updates the revision under both locks, which hold the rest of the
 authority, then schedules the job, tracked, after `s.mu` is released: the right is what carries
-the queue there) and returns it at the new revision. -/
+the queue there) and returns it at the new revision. It also says the scheduler is never stopped
+(`schedLive`: the compaction's barrier jobs are untracked; D19m (C), 2026-10-18: until then
+`isStore` said it). `NewStore` returns the authority's half and the queue apart, the queue with
+the stop token in the right to close the store (`storeCloser`); the caller that will not close
+the store makes the right of them (`compactRight_of_closer`). -/
 def compactRight (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c)
+  iprop(crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c ∗ schedule.schedLive γ.sch)
 
 /-- The invariant's name of a frozen compaction revision. -/
 abbrev crevFrozenN : Namespace := nroot.@"mvcc_crevFrozen"
@@ -1467,16 +1475,23 @@ theorem snapThin_crev (γ : StoreNames) (q : Qp) (m m' : Bucket) :
         exact F.elim
       | some v' => have := Hsub k v' hm'; rw [hm] at this; rw [hm', hm, this] at hk; exact absurd rfl hk
 
+/-- **Freezing** from the compaction right's half of the revision's authority at `-1` (what
+`NewStore` returns besides the right to close the store): no compaction, ever. -/
+theorem crevFrozen_alloc (γ : StoreNames) (E : CoPset) :
+    ⊢ crevUB (GF := GF) γ.idx (1 : Qp).half (-1) ={E}=∗ crevFrozen γ := by
+  iintro H
+  iunfold crevFrozen
+  iapply inv_alloc
+  inext
+  iexact H
+
 /-- **Freezing**: the compaction right at `-1` given up (no compaction, ever). -/
 theorem compactRight_freeze (γ : StoreNames) (E : CoPset) :
     ⊢ compactRight (GF := GF) γ (-1) ={E}=∗ crevFrozen γ := by
   iintro H
   iunfold compactRight at H
   icases H with ⟨H, -⟩
-  iunfold crevFrozen
-  iapply inv_alloc
-  inext
-  iexact H
+  iapply crevFrozen_alloc γ E $$ H
 
 /-- A frozen compaction revision is `-1`. -/
 theorem crevFrozen_agree (γ : StoreNames) (q : Qp) (c : Int) (hc : -1 ≤ c) :
@@ -2059,7 +2074,10 @@ deposit witness: `NewStore`'s first `Unlock` deposited the batch lock's resource
 lessor, logger, and the two locks' guards; and what compaction uses: the configuration (a
 positive `CompactionBatchLimit`: the job's loop needs it to end,
 `issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel's field (its
-channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The fields `restore`
+channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The scheduler is
+`isFifo`, not `isScheduler`: that it is never stopped (`schedLive`) is not the store's but the
+compaction's (`compactRight`, `compactJobPre`), since `NewStore` returns the stop token for its
+caller to give up only once the store will not be closed (D19m (C), 2026-10-18: `storeCloser`). The fields `restore`
 and `Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
 (`muInv`, `revMuInv`); and the certificate of the initial log `[[], []]` (`NewStore`'s:
 revision 1, `currentRev = 1`), so every committed log extends it. The time receipts' bound is
@@ -2087,10 +2105,11 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hcfg" ∷ s.[store, go!"cfg"] ↦□ scfg ∗
     "%Hcfgl" ∷ ⌜0 < sint.Z scfg.CompactionBatchLimit'⌝ ∗
     "#Hsched" ∷ s.[store, go!"fifoSched"] ↦□ ssched ∗
-    "#HisSched" ∷ schedule.isScheduler ssched γ.sch ∗
+    "#HisSched" ∷ schedule.isFifo ssched γ.sch ∗
     "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
+    "#HhsOk" ∷ mvcc.hashStorageOk shs ∗
     "#Hc0" ∷ idxCert γ.idx [[], []] ∗
     "%Hrb" ∷ ⌜receiptBound GF ≤ 2 ^ 48⌝)
 
@@ -3133,10 +3152,30 @@ def storeStop (s : Loc) : IProp GF :=
 instance storeStop_persistent (s : Loc) : Persistent (storeStop (GF := GF) s) := by
   unfold storeStop; infer_instance
 
-/-- The right to close the store (`store.Close`, which closes its `stopc`: once): the stop
-channel's close (`stopCloser`; `NewStore` returns it). -/
-def storeCloser (s : Loc) : IProp GF :=
-  iprop(∃ c : GoChan, s.[store, go!"stopc"] ↦□ c ∗ stopCloser c)
+/-- **The right to close the store** `s` (`store.Close`: `close(s.stopc)`, once, and
+`s.fifoSched.Stop()`; `NewStore` returns it): the stop channel's close (`stopCloser`), the
+scheduler's stop token (`schedStopTok`: no untracked `Schedule` after `Stop`, which panics there)
+and the compaction jobs' queue at `-1` (`compactQueue`, which holds the scheduler's tracked queue:
+no tracked `Schedule` after `Stop` either; `Scheduler.Stop`'s spec takes both). D19m (C),
+2026-10-18: until then only the channel's close, with the stop token given up by `NewStore`, so
+`Close`'s contract let a holder of `isStore` compact after `Close`. A caller that will not close
+the store gives the token up for the compaction right (`compactRight_of_closer`), or drops this. -/
+def storeCloser (s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop((∃ c : GoChan, s.[store, go!"stopc"] ↦□ c ∗ stopCloser c) ∗
+    schedule.schedStopTok γ.sch ∗ compactQueue γ (-1))
+
+/-- **The store will not be closed**: the right to close it given up (the scheduler's stop token
+for good: `schedLive`) for the compaction right at `-1`, with the compaction revision's half
+`NewStore` returns. -/
+theorem compactRight_of_closer (s : Loc) (γ : StoreNames) :
+    ⊢ crevUB (GF := GF) γ.idx (1 : Qp).half (-1) -∗ storeCloser s γ ==∗ compactRight γ (-1) := by
+  iintro Hc Hcl
+  iunfold storeCloser at Hcl
+  icases Hcl with ⟨-, Hstop, Hq⟩
+  imod schedule.schedLive_of_stopTok γ.sch $$ Hstop with #Hlive
+  imodintro
+  iunfold compactRight
+  iframe Hc Hq Hlive
 
 end hookLc
 
@@ -3145,13 +3184,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- A ghost variable as two halves. -/
-theorem ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
-    ghostVar (GF := GF) γ 1 a ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
-  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h
 
 end halves
 

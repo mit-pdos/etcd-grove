@@ -134,7 +134,7 @@ theorem Cache.Get.wp_proof
         simp only [Bool.not_false]
         wp_auto
         wp_apply wp_serverRevision c cf γr γd cap ctx s $$ [$Hc $Hctx] as %srev %serr Hsr
-        icases Hsr with (⟨%Hsn, %m', #Hm'⟩ | %Hsne)
+        icases Hsr with (⟨%Hsn, #Hm'⟩ | %Hsne)
         rotate_left
         · -- the client's error
           obtain ⟨Hne, rfl⟩ := Hsne
@@ -165,7 +165,7 @@ theorem Cache.Get.wp_proof
           iframe HeFR
           isplitr
           · ipureintro; exact hs
-          iexists srev, m'
+          iexists srev
           iframe Hm'
           ipureintro; omega
         have Hle : sint.Z of.base.rev ≤ sint.Z srev := by omega
@@ -180,7 +180,7 @@ theorem Cache.Get.wp_proof
           wp_auto
           ihave Hfresh : iprop(∃ r0' : w64, storeRevLb cf.γs r0' ∗ ⌜sint.Z r0 ≤ sint.Z r0'⌝ ∗
               (if of.base.serializable then iprop(True)
-               else iprop(∃ (serverRev : w64) (m'' : KvMap), isEtcdKvs serverRev cf.pfx m'' ∗
+               else iprop(∃ serverRev : w64, etcdHasState serverRev cf.pfx ∗
                  ⌜sint.Z of.base.rev ≤ sint.Z serverRev ∧ sint.Z serverRev ≤ sint.Z r0'⌝))) $$ []
           · rw [hs]
             simp only [Bool.false_eq_true, ↓reduceIte]
@@ -189,14 +189,14 @@ theorem Cache.Get.wp_proof
               iframe Hlbs
               isplitr
               · ipureintro; exact hr
-              iexists srev, m'
+              iexists srev
               iframe Hm'
               ipureintro; omega
             · iexists r0
               iframe Hlb
               isplitr
               · ipureintro; omega
-              iexists srev, m'
+              iexists srev
               iframe Hm'
               ipureintro; omega
         rotate_left
@@ -235,7 +235,7 @@ theorem Cache.Get.wp_proof
         try wp_auto
         ihave Hfresh : iprop(∃ r0' : w64, storeRevLb cf.γs r0' ∗ ⌜sint.Z r0 ≤ sint.Z r0'⌝ ∗
               (if of.base.serializable then iprop(True)
-               else iprop(∃ (serverRev : w64) (m'' : KvMap), isEtcdKvs serverRev cf.pfx m'' ∗
+               else iprop(∃ serverRev : w64, etcdHasState serverRev cf.pfx ∗
                  ⌜sint.Z of.base.rev ≤ sint.Z serverRev ∧ sint.Z serverRev ≤ sint.Z r0'⌝))) $$ []
         · rw [hs]
           try simp only [↓reduceIte]
@@ -289,8 +289,8 @@ theorem Cache.Get.wp_proof
           cases hs' : of.base.serializable
           · rw [hs'] at *
             simp only [Bool.false_eq_true, ↓reduceIte] at *
-            icases Hfr with ⟨%sr, %m'', #Hsr, %Hsrle⟩
-            iexists sr, m''
+            icases Hfr with ⟨%sr, #Hsr, %Hsrle⟩
+            iexists sr
             iframe Hsr
             ipureintro; omega
           · simp only [↓reduceIte]; itrivial

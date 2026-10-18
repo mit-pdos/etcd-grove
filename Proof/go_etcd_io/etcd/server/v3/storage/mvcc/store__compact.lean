@@ -76,7 +76,7 @@ theorem mvcc.store.compact.wp_proof
   ipersist ch
   ihave #Hjob' := Hjob
   iunfold mvcc.compactJobPre at Hjob'
-  icases Hjob' with ⟨#Hs, #Hstop, %Hcmp, #Hlb, #Hcert⟩
+  icases Hjob' with ⟨#Hs, #Hstop, #Hlive, %Hcmp, #Hlb, #Hcert⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -126,7 +126,7 @@ theorem mvcc.store.compact.wp_proof
         · iframe #; ipureintro; exact Hlgnn
         wp_join_done
       · (try wp_auto)
-        wp_apply (h6 shs h)
+        wp_apply (h6 shs h) $$ [$HhsOk]
         wp_join_done
       iunfold mvcc.compactCloser at Hcl
       icases Hcl with ⟨%γc', Hcl⟩
@@ -163,9 +163,7 @@ theorem mvcc.store.compact.wp_proof
       iframe Hrun Htok
   (try wp_auto)
   -- `s.fifoSched.Schedule(j)`, tracked: `Q` the job's `Prev`, its `Post` saved as `post`
-  ihave #HisSched' := HisSched
-  iunfold schedule.isScheduler at HisSched'
-  icases HisSched' with ⟨#Hfifo, -⟩
+  ihave #Hfifo := HisSched
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hnn, -⟩

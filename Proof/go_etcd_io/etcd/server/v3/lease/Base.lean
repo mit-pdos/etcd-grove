@@ -24,6 +24,7 @@ standard-library package Perennial does not translate).
 module
 
 public import Code.go_etcd_io.etcd.server.v3.lease
+public import Proof.errors.NewVarCell
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
@@ -127,7 +128,8 @@ instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (G
 
 /-- The lessor package's facts: the error variables `ErrLeaseNotFound`, `ErrLeaseExists`,
 `ErrLeaseTTLTooLarge` (`leaseErrVar`), `forever` (the zero `time.Time`), the counters
-`leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`. -/
+`leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`; `ErrLeaseNotFound`'s message
+cell (`errVarCell`, D19k: what tells it apart from the server's `ErrNoSpace`). -/
 abbrev leaseInit : IProp GF :=
   iprop(leaseErrVar ErrLeaseNotFound ∗ leaseErrVar ErrLeaseExists ∗
     leaseErrVar ErrLeaseTTLTooLarge ∗
@@ -135,7 +137,8 @@ abbrev leaseInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr leaseGranted ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
-      go_etcd_io.etcd.server.v3.storage.backend.histSpec h))
+      go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
+    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit

@@ -10,7 +10,7 @@ trust-boundary axiom `errorsNewVarsInit` states.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
-public import Proof.errors.NewVar
+public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.errors`'s variables initialized by `errors.New`.** Each
 listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
-it. -/
+it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
 axiom errorsNewVarsInit :
     ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrUnknownMethod.init, ErrUnknownMethod, go!"etcdserver: unknown method"),
         (ErrStopped.init, ErrStopped, go!"etcdserver: server stopped"),
@@ -62,7 +62,7 @@ axiom errorsNewVarsInit :
         (ErrClusterVersionUnavailable.init, ErrClusterVersionUnavailable, go!"etcdserver: cluster version not found during downgrade"),
         (ErrWrongDowngradeVersionFormat.init, ErrWrongDowngradeVersionFormat, go!"etcdserver: wrong downgrade target version format"),
         (ErrKeyNotFound.init, ErrKeyNotFound, go!"etcdserver: key not found")] : List (val × GoString × GoString)) →
-    EtcdGrove.errorsNewVarInit (GF := GF) init X msg
+    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 end go_etcd_io.etcd.server.v3.etcdserver.errors
 end opaqueInits
@@ -89,49 +89,49 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply (errorsNewVarsInit ErrUnknownMethod.init ErrUnknownMethod go!"etcdserver: unknown method" (by mem_tac))
-    as ⟨%xErrUnknownMethod, HErrUnknownMethod, #MErrUnknownMethod⟩
+    as ⟨%xErrUnknownMethod, HErrUnknownMethod, #MErrUnknownMethod, #CErrUnknownMethod⟩
   wp_apply (errorsNewVarsInit ErrStopped.init ErrStopped go!"etcdserver: server stopped" (by mem_tac))
-    as ⟨%xErrStopped, HErrStopped, #MErrStopped⟩
+    as ⟨%xErrStopped, HErrStopped, #MErrStopped, #CErrStopped⟩
   wp_apply (errorsNewVarsInit ErrCanceled.init ErrCanceled go!"etcdserver: request cancelled" (by mem_tac))
-    as ⟨%xErrCanceled, HErrCanceled, #MErrCanceled⟩
+    as ⟨%xErrCanceled, HErrCanceled, #MErrCanceled, #CErrCanceled⟩
   wp_apply (errorsNewVarsInit ErrTimeout.init ErrTimeout go!"etcdserver: request timed out" (by mem_tac))
-    as ⟨%xErrTimeout, HErrTimeout, #MErrTimeout⟩
+    as ⟨%xErrTimeout, HErrTimeout, #MErrTimeout, #CErrTimeout⟩
   wp_apply (errorsNewVarsInit ErrTimeoutDueToLeaderFail.init ErrTimeoutDueToLeaderFail go!"etcdserver: request timed out, possibly due to previous leader failure" (by mem_tac))
-    as ⟨%xErrTimeoutDueToLeaderFail, HErrTimeoutDueToLeaderFail, #MErrTimeoutDueToLeaderFail⟩
+    as ⟨%xErrTimeoutDueToLeaderFail, HErrTimeoutDueToLeaderFail, #MErrTimeoutDueToLeaderFail, #CErrTimeoutDueToLeaderFail⟩
   wp_apply (errorsNewVarsInit ErrTimeoutDueToConnectionLost.init ErrTimeoutDueToConnectionLost go!"etcdserver: request timed out, possibly due to connection lost" (by mem_tac))
-    as ⟨%xErrTimeoutDueToConnectionLost, HErrTimeoutDueToConnectionLost, #MErrTimeoutDueToConnectionLost⟩
+    as ⟨%xErrTimeoutDueToConnectionLost, HErrTimeoutDueToConnectionLost, #MErrTimeoutDueToConnectionLost, #CErrTimeoutDueToConnectionLost⟩
   wp_apply (errorsNewVarsInit ErrTimeoutLeaderTransfer.init ErrTimeoutLeaderTransfer go!"etcdserver: request timed out, leader transfer took too long" (by mem_tac))
-    as ⟨%xErrTimeoutLeaderTransfer, HErrTimeoutLeaderTransfer, #MErrTimeoutLeaderTransfer⟩
+    as ⟨%xErrTimeoutLeaderTransfer, HErrTimeoutLeaderTransfer, #MErrTimeoutLeaderTransfer, #CErrTimeoutLeaderTransfer⟩
   wp_apply (errorsNewVarsInit ErrTimeoutWaitAppliedIndex.init ErrTimeoutWaitAppliedIndex go!"etcdserver: request timed out, waiting for the applied index took too long" (by mem_tac))
-    as ⟨%xErrTimeoutWaitAppliedIndex, HErrTimeoutWaitAppliedIndex, #MErrTimeoutWaitAppliedIndex⟩
+    as ⟨%xErrTimeoutWaitAppliedIndex, HErrTimeoutWaitAppliedIndex, #MErrTimeoutWaitAppliedIndex, #CErrTimeoutWaitAppliedIndex⟩
   wp_apply (errorsNewVarsInit ErrLeaderChanged.init ErrLeaderChanged go!"etcdserver: leader changed" (by mem_tac))
-    as ⟨%xErrLeaderChanged, HErrLeaderChanged, #MErrLeaderChanged⟩
+    as ⟨%xErrLeaderChanged, HErrLeaderChanged, #MErrLeaderChanged, #CErrLeaderChanged⟩
   wp_apply (errorsNewVarsInit ErrNotEnoughStartedMembers.init ErrNotEnoughStartedMembers go!"etcdserver: re-configuration failed due to not enough started members" (by mem_tac))
-    as ⟨%xErrNotEnoughStartedMembers, HErrNotEnoughStartedMembers, #MErrNotEnoughStartedMembers⟩
+    as ⟨%xErrNotEnoughStartedMembers, HErrNotEnoughStartedMembers, #MErrNotEnoughStartedMembers, #CErrNotEnoughStartedMembers⟩
   wp_apply (errorsNewVarsInit ErrLearnerNotReady.init ErrLearnerNotReady go!"etcdserver: can only promote a learner member which is in sync with leader" (by mem_tac))
-    as ⟨%xErrLearnerNotReady, HErrLearnerNotReady, #MErrLearnerNotReady⟩
+    as ⟨%xErrLearnerNotReady, HErrLearnerNotReady, #MErrLearnerNotReady, #CErrLearnerNotReady⟩
   wp_apply (errorsNewVarsInit ErrNoLeader.init ErrNoLeader go!"etcdserver: no leader" (by mem_tac))
-    as ⟨%xErrNoLeader, HErrNoLeader, #MErrNoLeader⟩
+    as ⟨%xErrNoLeader, HErrNoLeader, #MErrNoLeader, #CErrNoLeader⟩
   wp_apply (errorsNewVarsInit ErrNotLeader.init ErrNotLeader go!"etcdserver: not leader" (by mem_tac))
-    as ⟨%xErrNotLeader, HErrNotLeader, #MErrNotLeader⟩
+    as ⟨%xErrNotLeader, HErrNotLeader, #MErrNotLeader, #CErrNotLeader⟩
   wp_apply (errorsNewVarsInit ErrRequestTooLarge.init ErrRequestTooLarge go!"etcdserver: request is too large" (by mem_tac))
-    as ⟨%xErrRequestTooLarge, HErrRequestTooLarge, #MErrRequestTooLarge⟩
+    as ⟨%xErrRequestTooLarge, HErrRequestTooLarge, #MErrRequestTooLarge, #CErrRequestTooLarge⟩
   wp_apply (errorsNewVarsInit ErrNoSpace.init ErrNoSpace go!"etcdserver: no space" (by mem_tac))
-    as ⟨%xErrNoSpace, HErrNoSpace, #MErrNoSpace⟩
+    as ⟨%xErrNoSpace, HErrNoSpace, #MErrNoSpace, #CErrNoSpace⟩
   wp_apply (errorsNewVarsInit ErrTooManyRequests.init ErrTooManyRequests go!"etcdserver: too many requests" (by mem_tac))
-    as ⟨%xErrTooManyRequests, HErrTooManyRequests, #MErrTooManyRequests⟩
+    as ⟨%xErrTooManyRequests, HErrTooManyRequests, #MErrTooManyRequests, #CErrTooManyRequests⟩
   wp_apply (errorsNewVarsInit ErrUnhealthy.init ErrUnhealthy go!"etcdserver: unhealthy cluster" (by mem_tac))
-    as ⟨%xErrUnhealthy, HErrUnhealthy, #MErrUnhealthy⟩
+    as ⟨%xErrUnhealthy, HErrUnhealthy, #MErrUnhealthy, #CErrUnhealthy⟩
   wp_apply (errorsNewVarsInit ErrCorrupt.init ErrCorrupt go!"etcdserver: corrupt cluster" (by mem_tac))
-    as ⟨%xErrCorrupt, HErrCorrupt, #MErrCorrupt⟩
+    as ⟨%xErrCorrupt, HErrCorrupt, #MErrCorrupt, #CErrCorrupt⟩
   wp_apply (errorsNewVarsInit ErrBadLeaderTransferee.init ErrBadLeaderTransferee go!"etcdserver: bad leader transferee" (by mem_tac))
-    as ⟨%xErrBadLeaderTransferee, HErrBadLeaderTransferee, #MErrBadLeaderTransferee⟩
+    as ⟨%xErrBadLeaderTransferee, HErrBadLeaderTransferee, #MErrBadLeaderTransferee, #CErrBadLeaderTransferee⟩
   wp_apply (errorsNewVarsInit ErrClusterVersionUnavailable.init ErrClusterVersionUnavailable go!"etcdserver: cluster version not found during downgrade" (by mem_tac))
-    as ⟨%xErrClusterVersionUnavailable, HErrClusterVersionUnavailable, #MErrClusterVersionUnavailable⟩
+    as ⟨%xErrClusterVersionUnavailable, HErrClusterVersionUnavailable, #MErrClusterVersionUnavailable, #CErrClusterVersionUnavailable⟩
   wp_apply (errorsNewVarsInit ErrWrongDowngradeVersionFormat.init ErrWrongDowngradeVersionFormat go!"etcdserver: wrong downgrade target version format" (by mem_tac))
-    as ⟨%xErrWrongDowngradeVersionFormat, HErrWrongDowngradeVersionFormat, #MErrWrongDowngradeVersionFormat⟩
+    as ⟨%xErrWrongDowngradeVersionFormat, HErrWrongDowngradeVersionFormat, #MErrWrongDowngradeVersionFormat, #CErrWrongDowngradeVersionFormat⟩
   wp_apply (errorsNewVarsInit ErrKeyNotFound.init ErrKeyNotFound go!"etcdserver: key not found" (by mem_tac))
-    as ⟨%xErrKeyNotFound, HErrKeyNotFound, #MErrKeyNotFound⟩
+    as ⟨%xErrKeyNotFound, HErrKeyNotFound, #MErrKeyNotFound, #CErrKeyNotFound⟩
   ipersist HErrUnknownMethod
   ipersist HErrStopped
   ipersist HErrCanceled
@@ -163,7 +163,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try (isplitl []; · (imodintro; itrivial))
   imodintro
   unfold errorsInit errorsMsgs
-  simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]
+  simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]
   iframe #
   ipureintro
   exact ⟨_, _, rfl, rfl⟩

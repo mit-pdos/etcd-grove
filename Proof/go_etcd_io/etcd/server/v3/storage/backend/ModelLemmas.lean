@@ -21,7 +21,7 @@ namespace backend
 theorem strLt_total {a b : GoString} (h : ¬ strLt a b) : a = b ∨ strLt b a := by
   by_cases h' : strLt b a
   · exact Or.inr h'
-  · exact Or.inl (strLt_eq_of_not_lt h h')
+  · exact Or.inl (goStringLt_eq_of_not_lt h h')
 
 theorem entLe_true {a b : Ent} : entLe a b = true ↔ ¬ strLt b.1 a.1 := by
   simp [entLe]
@@ -32,11 +32,11 @@ theorem entLe_trans' (a b c : Ent) (h1 : entLe a b = true) (h2 : entLe b c = tru
   intro h
   rcases strLt_total h1 with e | e
   · rw [← e] at h; exact h2 h
-  · exact h2 (strLt_trans h e)
+  · exact h2 (goStringLt_trans h e)
 
 theorem entLe_total' (a b : Ent) : (entLe a b || entLe b a) = true := by
   by_cases h : strLt b.1 a.1
-  · have : entLe b a = true := entLe_true.mpr (strLt_asymm h)
+  · have : entLe b a = true := entLe_true.mpr (goStringLt_asymm h)
     simp [this]
   · have : entLe a b = true := entLe_true.mpr h
     simp [this]
@@ -118,14 +118,14 @@ theorem dedupLast_sorted {l : List Ent} (h : l.Pairwise (fun a b => ¬ strLt b.1
     · exact hef
     · rcases strLt_total (List.rel_of_pairwise_cons h.of_cons hx'') with e' | e'
       · rw [e']; exact hef
-      · exact strLt_trans hef e'
+      · exact goStringLt_trans hef e'
 
 theorem dedupLast_of_sorted {l : List Ent} (h : entsSorted l) : dedupLast l = l := by
   induction l using dedupLast.induct with
   | case1 => rfl
   | case2 e => rfl
   | case3 e f rest he ih =>
-    exact absurd (he ▸ List.rel_of_pairwise_cons h List.mem_cons_self) (strLt_irrefl _)
+    exact absurd (he ▸ List.rel_of_pairwise_cons h List.mem_cons_self) (goStringLt_irrefl _)
   | case4 e f rest he ih => rw [dedupLast_ne he, ih h.of_cons]
 
 theorem dedupLast_length_le (l : List Ent) : (dedupLast l).length ≤ l.length :=
@@ -142,7 +142,7 @@ theorem filter_mergeSort (l : List Ent) (k : GoString) :
     rw [List.pairwise_filter]
     refine List.pairwise_of_forall (fun a b ha hb => ?_)
     simp only [keyIs, decide_eq_true_eq] at ha hb
-    rw [entLe_true, ha, hb]; exact strLt_irrefl _
+    rw [entLe_true, ha, hb]; exact goStringLt_irrefl _
   have hs := List.sublist_mergeSort entLe_trans' entLe_total' hpw
     (List.filter_sublist (p := keyIs k))
   have hs' := hs.filter (keyIs k)
@@ -181,15 +181,15 @@ theorem entLt_swo :
     slices.StrictWeakOrder (fun a b : Ent => decide (strLt a.1 b.1) = true) := by
   simp only [decide_eq_true_eq]
   exact {
-    strict_weak_order_irrefl := fun _ => strLt_irrefl _
-    strict_weak_order_trans := fun _ _ _ h1 h2 => strLt_trans h1 h2
+    strict_weak_order_irrefl := fun _ => goStringLt_irrefl _
+    strict_weak_order_trans := fun _ _ _ h1 h2 => goStringLt_trans h1 h2
     strict_weak_order_equiv := {
-      refl := fun _ => ⟨strLt_irrefl _, strLt_irrefl _⟩
+      refl := fun _ => ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
       symm := fun h => ⟨h.2, h.1⟩
       trans := fun h1 h2 => by
-        have e1 := strLt_eq_of_not_lt h1.1 h1.2
-        have e2 := strLt_eq_of_not_lt h2.1 h2.2
-        refine ⟨?_, ?_⟩ <;> rw [e1, e2] <;> exact strLt_irrefl _ } }
+        have e1 := goStringLt_eq_of_not_lt h1.1 h1.2
+        have e2 := goStringLt_eq_of_not_lt h2.1 h2.2
+        refine ⟨?_, ?_⟩ <;> rw [e1, e2] <;> exact goStringLt_irrefl _ } }
 
 /-- Sorted entries have distinct keys. -/
 theorem entsSorted_nodup {es : List Ent} (h : entsSorted es) : (es.map Prod.fst).Nodup := by
@@ -197,7 +197,7 @@ theorem entsSorted_nodup {es : List Ent} (h : entsSorted es) : (es.map Prod.fst)
   refine h.imp ?_
   intro a b hab heq
   rw [heq] at hab
-  exact strLt_irrefl _ hab
+  exact goStringLt_irrefl _ hab
 
 theorem entsSorted_nil : entsSorted [] := List.Pairwise.nil
 
@@ -233,7 +233,7 @@ theorem canon_sorted (l : List Ent) : entsSorted (canon l) := by
 
 theorem canon_of_sorted {l : List Ent} (h : entsSorted l) : canon l = l := by
   unfold canon
-  rw [List.mergeSort_of_pairwise (h.imp (fun hab => entLe_true.mpr (strLt_asymm hab)))]
+  rw [List.mergeSort_of_pairwise (h.imp (fun hab => entLe_true.mpr (goStringLt_asymm hab)))]
   exact dedupLast_of_sorted h
 
 /-- A key's newest value is the canonical form's. -/
@@ -261,23 +261,23 @@ theorem eq_of_sorted_lastVal {a b : List Ent} (ha : entsSorted a) (hb : entsSort
       have hxa : ∀ e ∈ a, strLt x.1 e.1 := fun e he => List.rel_of_pairwise_cons ha he
       have hyb : ∀ e ∈ b, strLt y.1 e.1 := fun e he => List.rel_of_pairwise_cons hb he
       have hna : lastVal a x.1 = none :=
-        lastVal_eq_none (fun e he h' => strLt_irrefl x.1 (h' ▸ hxa e he))
+        lastVal_eq_none (fun e he h' => goStringLt_irrefl x.1 (h' ▸ hxa e he))
       have hnb : lastVal b y.1 = none :=
-        lastVal_eq_none (fun e he h' => strLt_irrefl y.1 (h' ▸ hyb e he))
+        lastVal_eq_none (fun e he h' => goStringLt_irrefl y.1 (h' ▸ hyb e he))
       have hk : x.1 = y.1 := by
-        apply strLt_eq_of_not_lt
+        apply goStringLt_eq_of_not_lt
         · intro hlt
           have := h x.1
-          have hyx : y.1 ≠ x.1 := fun h' => strLt_irrefl _ (h' ▸ hlt)
+          have hyx : y.1 ≠ x.1 := fun h' => goStringLt_irrefl _ (h' ▸ hlt)
           rw [lastVal_cons, lastVal_cons, hna, lastVal_eq_none (l := b)] at this
           · simp [hyx] at this
-          · intro e he h'; exact strLt_irrefl _ (strLt_trans hlt (h' ▸ hyb e he))
+          · intro e he h'; exact goStringLt_irrefl _ (goStringLt_trans hlt (h' ▸ hyb e he))
         · intro hlt
           have := h y.1
-          have hxy : x.1 ≠ y.1 := fun h' => strLt_irrefl _ (h' ▸ hlt)
+          have hxy : x.1 ≠ y.1 := fun h' => goStringLt_irrefl _ (h' ▸ hlt)
           rw [lastVal_cons, lastVal_cons, hnb, lastVal_eq_none (l := a)] at this
           · simp [hxy] at this
-          · intro e he h'; exact strLt_irrefl _ (strLt_trans hlt (h' ▸ hxa e he))
+          · intro e he h'; exact goStringLt_irrefl _ (goStringLt_trans hlt (h' ▸ hxa e he))
       have hv : x.2 = y.2 := by
         have := h x.1
         rw [lastVal_cons, lastVal_cons, hna, hk, hnb] at this

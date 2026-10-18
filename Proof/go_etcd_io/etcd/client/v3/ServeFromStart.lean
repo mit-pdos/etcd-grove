@@ -5,11 +5,13 @@
 * `grpcCfgOk_of_started`: the server's fields and contracts `v3rpc.Server` reads (`grpcCfgOk`),
   from `Start`'s views (`isServerReq`, `isServerRead`: `raftKV` through the server's linked
   specs, `raftKV_server`) and `NewServer`'s serving facts (`srvServeFacts`: the configuration
-  fields, the watchable store), at the answers `etcd_kv_started` takes
+  fields) and `srvWatchBuilt` (the watchable store with its watch-token pool, which `NewServer`
+  allocates), at the answers `etcd_kv_started` takes
   (`srvKVAns s E ρ γr 0 [] .none`). Two premises no construction gives, stated as such:
-  `v3rpc.watchVars` (package facts of `watch.go`'s variables, not yet among `v3rpc`'s
-  initialization facts) and `runsNoRequireLeader` (no client asks for a leader on a stream), and
-  the tracer options' slice. (`membership.localKept`, the local member stays in the cluster, was
+  `v3rpc.eofVar` (`io.EOF`'s value: Perennial's `io` fact does not keep it, D19j) and
+  `runsNoRequireLeader` (no client asks for a leader on a stream), and the tracer options' slice.
+  The rest of `watch.go`'s package variables (`watchVars`) comes from `isPkgInit v3rpc` (D19j,
+  2026-10-18: until then the premise `watchVars`). (`membership.localKept`, the local member stays in the cluster, was
   a third until 2026-10-18: now the cluster's own fact, `localKept_of_isRaftCluster`.)
 * `etcdGrpcSlots_of_started`: `N` of `etcd_kv_started`'s slots (`etcdGrpcSlot`) from `2 N` reader
   slots each of `leadTimeMu`, `lgMu` and the auth store and `N` of the store (`srvServeBuilt`'s)
@@ -21,6 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 
 @[expose] public section
 
@@ -52,11 +55,15 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     (hlg : cfg.Logger' ≠ null) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
-        v3rpc.watchVars ∗ v3rpc.runsNoRequireLeader ∗
+        srvWatchBuilt s E ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
         cfg.TracerOptions' ↦*□ tos ⊢
       ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwv, #Hnrl, #Htos⟩
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
+  · iframe #
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
   · iframe #
   ihave #Hkv' := Hkv
@@ -66,7 +73,9 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold v3rpc.kvGetOk at Hget
   icases Hget with ⟨-, -, -, #Hrs⟩
   iunfold srvServeFacts at Hf
-  icases Hf with ⟨⟨%wsl, %γ, #Hkvf, #Hws, %Hγ⟩, #Hcf⟩
+  icases Hf with ⟨-, #Hcf⟩
+  iunfold srvWatchBuilt at Hwb
+  icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool⟩
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
   iunfold isServerReq at Hsrv

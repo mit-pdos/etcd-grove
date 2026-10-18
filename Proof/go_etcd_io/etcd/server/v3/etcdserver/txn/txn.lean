@@ -30,10 +30,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-instance txn.ite_persistent_txn (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
-    Persistent (if b then P else Q) := by
-  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
-
 theorem txn.txn.wp_proof
     (hNew : txn.newTxnResp.spec (GF := GF) (hG := hG))
     (hExec : txn.executeTxn.spec (GF := GF) (hG := hG))

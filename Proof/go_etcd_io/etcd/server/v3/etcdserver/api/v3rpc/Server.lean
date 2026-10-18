@@ -154,7 +154,7 @@ theorem v3rpc.Server.wp_proof
     · iPkgInit
     ihave Hvi : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Pv
-    icases Hvi with ⟨-, -, -, -, -, -, #H⟩
+    icases Hvi with ⟨-, -, -, -, -, -, #H, -⟩
     iexact H
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit

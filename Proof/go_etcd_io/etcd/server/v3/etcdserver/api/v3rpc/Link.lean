@@ -626,7 +626,7 @@ theorem time.Ticker.wp_Stop :
 
 theorem serverWatchStream.wp_sendLoop :
     EtcdGrove.v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.watchStream.wp_RequestProgress verify.wp_Assert time.wp_NewTicker time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.watchStream.wp_Chan
+  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.watchStream.wp_RequestProgress verify.wp_Assert time.wp_NewTicker time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.watchStream.wp_Chan mvcc.wp_ReportEventReceived
 
 theorem watchServer.wp_Watch :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=

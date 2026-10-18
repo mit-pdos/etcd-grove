@@ -9,7 +9,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size
 public import Spec.time.NewTicker
 public import Spec.time.Ticker__Stop
 public import Spec.time.Ticker__Reset
-public import Spec.time.Since
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay
+public import Perennial.Proof.time
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
     (hStop : time.Ticker.Stop.spec (GF := GF) (hG := hG))
     (hSize : mvcc.watcherGroup.size.spec (GF := GF) (hG := hG))
     (hSync : mvcc.watchableStore.syncWatchers.spec (GF := GF) (hG := hG))
-    (hSince : time.Since.spec (GF := GF) (hG := hG))
+    (hDelay : mvcc.resyncDelay.spec (GF := GF) (hG := hG))
     (hReset : time.Ticker.Reset.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) := by
   intro s st γ
@@ -89,16 +90,11 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
     wp_apply hSync $$ [$Hws $HR] as %n HR
     (try wp_auto)
     wp_join_done
-  wp_apply +noauto hSince as %d %Hd
+  wp_apply +noauto time.wp_Since as %d -
   wp_auto_lc 2
+  wp_apply hDelay as %r %Hr
   wp_apply hReset $$ [$Ht]
-  · ipureintro; decide
-  wp_join with [delayTicker lastUnsyncedWatchers unsyncedWatchers syncDuration]
-  · wp_if_destruct
-    · wp_apply hReset $$ [$Ht]
-      · ipureintro; exact Hd
-      wp_join_done
-    · wp_join_done
+  · ipureintro; exact Hr.2
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit

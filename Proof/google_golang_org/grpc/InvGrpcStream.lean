@@ -44,7 +44,12 @@ the service `srv`, under the server's stream interceptor chain `ics` (`srvStream
 grpc's `chainStreamServerInterceptors` composes it), run by grpc with the run slot `S`, a fresh
 raw server end, both tokens at `[]`, and the stream specification `Spec γ Dn` (the handler's
 premise: the serving layer fixes `Dn` at the stream's creation); the run returns nothing (the
-slot stays with the run: `Watch` returns while its receive loop may be blocked). `Spec` is
+slot stays with the run: `Watch` returns while its receive loop may be blocked). Since
+2026-10-18 (the axiom audit: the model ran at most `n` streams in all, Go runs every one) the
+runtime's `n` slots are a pool (`grpcSlotPool S`, an invariant) that a run is given
+(`grpcStreamMethodOkR`) and may return its slot to from whichever thread frees it last
+(`grpcSlotPool_return`): the model bounds the runs holding a slot at once, not all runs.
+`grpcStreamMethodOk` (a run that keeps its slot) gives it (`grpcStreamMethodOk_R`). `Spec` is
 satisfiable per stream (`streamSpecOk`): the transport picks `Dn` with `□ Spec γ Dn` and gives a
 copy to each end. Served by `grpc.serveStream` from `grpcStreamServerAt addr ics sregs` (an
 axiomatized token of the server's construction, beside the unary `grpcServerAt`), obtaining
@@ -830,6 +835,33 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
         iframe
 
+/-- The namespace of grpc's stream-slot pools. -/
+def grpcSlotN : Namespace := nroot .@ "grpc.streamSlots"
+
+/-- **A pool of the per-run resource `S`** (persistent; 2026-10-18): the copies of `S` grpc's
+runtime holds for the stream runs it will start (`grpc.serveStream` makes it of its `n` copies
+and takes one for each run); a run, or a goroutine of it, returns its copy when done
+(`grpcSlotPool_return`). -/
+def grpcSlotPool (S : IProp GF) : IProp GF :=
+  inv grpcSlotN iprop(∃ k : Nat, [∗list] _x ∈ List.replicate k (), S)
+
+instance grpcSlotPool_persistent (S : IProp GF) : Persistent (grpcSlotPool S) := by
+  unfold grpcSlotPool; infer_instance
+
+/-- **A run returns its slot** to the pool. -/
+theorem grpcSlotPool_return (S : IProp GF) : ⊢ grpcSlotPool S -∗ S ={⊤}=∗ True := by
+  iintro #Hp HS
+  unfold grpcSlotPool
+  iinv Hp with ⟨%k, Hs⟩ Hclose
+  imod Hclose $$ [HS Hs] with -
+  · inext
+    iexists k + 1
+    simp only [List.replicate_succ]
+    iapply BigSepL.bigSepL_cons.2
+    iframe
+  imodintro
+  itrivial
+
 /-- **The stream method handler `mh` with the service `srv`, under the stream interceptor chain
 `ics`, meets `Spec` with the client's content `Up` and the per-run resource `S`** (persistent;
 what grpc's runtime runs for a streaming call, `processStreamingRPC`): the stream specification
@@ -846,6 +878,36 @@ def grpcStreamMethodOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
       srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
+
+/-- **`grpcStreamMethodOk` with the slot pool** (persistent; 2026-10-18): as `grpcStreamMethodOk`,
+and a run is also given the runtime's pool of `S` (`grpcSlotPool S`), to return its copy to
+when it is done (from any thread: `Watch` returns while its receive loop may hold its slot). What
+`grpc.serveStream` takes. -/
+def grpcStreamMethodOkR {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
+    IProp GF :=
+  iprop(streamSpecOk Spec ∗
+    □ ∀ (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (st : GoInterface) (info : Loc),
+      Spec γ Dn -∗ S -∗ grpcSlotPool S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
+      srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
+      srvStreamInfoIs info -∗
+      srvStreamChainWP #info ics mh #srv #st (fun _ => iprop(True)))
+
+instance grpcStreamMethodOkR_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
+    Persistent (grpcStreamMethodOkR mh srv ics S Up Spec) := by
+  unfold grpcStreamMethodOkR; infer_instance
+
+/-- A run that keeps its slot meets the pooled contract (it ignores the pool). -/
+theorem grpcStreamMethodOk_R {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
+    grpcStreamMethodOk mh srv ics S Up Spec ⊢ grpcStreamMethodOkR mh srv ics S Up Spec := by
+  unfold grpcStreamMethodOk grpcStreamMethodOkR
+  iintro ⟨#Hs, #Hr⟩
+  iframe Hs
+  iintro !> %γ %Dn %ci %cd %st %info HSp HS - Hraw HR HT Ha Hi
+  iapply Hr $$ HSp HS Hraw HR HT Ha Hi
 
 instance grpcStreamMethodOk_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
@@ -905,7 +967,7 @@ was served with. What a client's `NewStream` needs. -/
 def isGrpcStream {Req Rep : StreamMsg GF} (addr name : GoString) (Up : Nat → Req.M → IProp GF)
     (Spec : StreamSpec Rep) : IProp GF :=
   iprop(∃ (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-    grpcServesStream addr name mh srv ics S ∗ grpcStreamMethodOk mh srv ics S Up Spec)
+    grpcServesStream addr name mh srv ics S ∗ grpcStreamMethodOkR mh srv ics S Up Spec)
 
 instance isGrpcStream_persistent {Req Rep : StreamMsg GF} (addr name : GoString)
     (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
@@ -916,7 +978,7 @@ instance isGrpcStream_persistent {Req Rep : StreamMsg GF} (addr name : GoString)
 theorem isGrpcStream_intro {Req Rep : StreamMsg GF} (addr name : GoString) (mh : val)
     (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF)
     (Spec : StreamSpec Rep) :
-    grpcServesStream addr name mh srv ics S ∗ grpcStreamMethodOk mh srv ics S Up Spec ⊢
+    grpcServesStream addr name mh srv ics S ∗ grpcStreamMethodOkR mh srv ics S Up Spec ⊢
       isGrpcStream addr name Up Spec := by
   iintro ⟨#H1, #H2⟩
   unfold isGrpcStream
@@ -927,22 +989,26 @@ theorem isGrpcStream_intro {Req Rep : StreamMsg GF} (addr name : GoString) (mh :
 `grpc.serve`): a gRPC server at `addr`, built with the stream chain `ics`, with the streaming
 methods `sregs` registered (`grpcStreamServerAt`), of which the methods `ms` (distinct names),
 each meeting its stream specification with the per-run resource `S` as grpc runs it
-(`grpcStreamMethodOk`: its `StreamDesc.Handler` on the registered service value, a raw server end
-of a fresh stream with the run's context, through the chain), and that hands the runtime `n`
-copies of `S`, is served at `addr`. A run takes one copy of `S` and does not give it back
-(`grpcStreamMethodOk`'s run keeps it; grpc frees the stream's slot when the stream ends, which
-partial correctness need not see: past `n` runs, the model starts no more), a pool separate from
-the unary runs'. -/
+(`grpcStreamMethodOkR`: its `StreamDesc.Handler` on the registered service value, a raw server
+end of a fresh stream with the run's context, through the chain), and that hands the runtime `n`
+copies of `S`, is served at `addr`. The copies form a pool (`grpcSlotPool S`, separate from the
+unary runs'): a run takes one and is given the pool, to return its copy to when the run's
+resources are free (2026-10-18, the axiom audit; until then a run kept its copy, so the model
+started at most `n` streams in all while Go starts every one). The runtime starts a stream when
+the pool holds a copy, so the model bounds the runs holding a slot at once (`n`: etcd's watch
+runs hold reader slots of its locks, which Go's `RWMutex` bounds at about `2 ^ 30` concurrent
+readers). -/
 axiom grpc.serveStream (addr : GoString) (ics : List GoFunc)
     (sregs : List (GoString × val × GoInterface)) (ms : List (GrpcStreamMethod GF)) (S : IProp GF)
     (n : Nat) :
   (ms.map GrpcStreamMethod.name).Nodup → (∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ sregs) →
   (grpcStreamServerAt addr ics sregs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
-    [∗list] m ∈ ms, grpcStreamMethodOk m.handler m.srv ics S m.Up m.spec) ⊢
+    [∗list] m ∈ ms, grpcStreamMethodOkR m.handler m.srv ics S m.Up m.spec) ⊢
   |={⊤}=> [∗list] m ∈ ms, grpcServesStream addr m.name m.handler m.srv ics S
 
 /-- **The streaming methods of a served server are registered** (`grpc.serveStream`,
-`isGrpcStream_intro`). -/
+`isGrpcStream_intro`), for runs that keep their slots (`grpcStreamMethodOk`, as
+`grpcStreamMethodOk_R`). -/
 theorem grpc_serveStream_rpcs (addr : GoString) (ics : List GoFunc)
     (sregs : List (GoString × val × GoInterface)) (ms : List (GrpcStreamMethod GF)) (S : IProp GF)
     (n : Nat) (hnd : (ms.map GrpcStreamMethod.name).Nodup)
@@ -950,14 +1016,19 @@ theorem grpc_serveStream_rpcs (addr : GoString) (ics : List GoFunc)
     (grpcStreamServerAt addr ics sregs ∗ ([∗list] _x ∈ List.replicate n (), S) ∗
       □ [∗list] m ∈ ms, grpcStreamMethodOk m.handler m.srv ics S m.Up m.spec) ⊢
     |={⊤}=> [∗list] m ∈ ms, isGrpcStream addr m.name m.Up m.spec := by
-  iintro ⟨Hl, Hs, #Hh⟩
+  iintro ⟨Hl, Hs, #Hh0⟩
+  ihave #Hh : iprop([∗list] m ∈ ms, grpcStreamMethodOkR m.handler m.srv ics S m.Up m.spec) $$ []
+  · iapply (BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ms)
+      (Φ := fun _ m => grpcStreamMethodOk m.handler m.srv ics S m.Up m.spec)
+      (Ψ := fun _ m => grpcStreamMethodOkR m.handler m.srv ics S m.Up m.spec)
+      (fun {_ m} => grpcStreamMethodOk_R (GF := GF) m.handler m.srv ics S m.Up m.spec)) $$ Hh0
   imod (grpc.serveStream addr ics sregs ms S n hnd hreg) $$ [Hl Hs] with Hsv
   · iframe
     iexact Hh
   imodintro
   have Hm := BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ms)
     (Φ := fun _ m => iprop(grpcServesStream addr m.name m.handler m.srv ics S ∗
-      grpcStreamMethodOk m.handler m.srv ics S m.Up m.spec))
+      grpcStreamMethodOkR m.handler m.srv ics S m.Up m.spec))
     (Ψ := fun _ m => isGrpcStream addr m.name m.Up m.spec)
     (fun {_ m} => isGrpcStream_intro (GF := GF) addr m.name m.handler m.srv ics S m.Up m.spec)
   iapply Hm
