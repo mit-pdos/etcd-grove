@@ -8706,6 +8706,67 @@ the theorem says nothing.
   statement unchanged (its proof adds the facts). The watcher's environment is still fixed at
   `New` (the lock's invariant is stated over it); a client whose server is chosen later would need
   the invariant over an existential environment, not needed here.
+- **D19g: `Main`'s local pieces and two clashes with `NewServer.spec`** (item 9, point 7;
+  2026-10-18; proposed, waiting for clusterLogBound and rnSnapOnce to land).
+  - *The feature gate's contract was false of Go* (a spec bug of this repository).
+    `isFeatureGate` said `Enabled(f)` returns some boolean for every `f`. `featureGate.Enabled`
+    panics on a feature it has not registered (its own comment says so; the `FeatureGate`
+    interface's does not: `issues/etcd-featuregate-enabled-panic-undocumented.md`). As a premise
+    of `NewServer.spec` it could not be met, and the trust-boundary spec of
+    `NewDefaultServerFeatureGate` would have been a false axiom. Now `isFeatureGate`
+    (`Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`, moved there from `InvProposer.lean`)
+    covers only `serverFeatures`, the keys of `DefaultEtcdServerFeatureGates`.
+    `EtcdServer.FeatureEnabled.spec` takes `⌜f ∈ serverFeatures⌝`, and the seven call sites
+    discharge it by `simp`.
+  - *(a) `rLog` against `noopAu`: `NewServer.spec`'s ghost premises cannot all be met.* Raft's
+    allocation for a new cluster (`ownRaftGhost_alloc_boot`) runs the client's continuation
+    (`allocClientBoot`). The continuation must return raft's standing update `noopAu γ`, an
+    atomic update over `rLog γ`, so `rLog γ` must be in an invariant. For the server that
+    invariant is the KV invariant `kvInv`. But `NewServer.spec` takes `rLog γ bootLog` owned
+    (with `srvReadNamesFresh`) and allocates `kvInv` itself (`NewServer.lean`,
+    `kvInv_alloc_boot`). No caller can give `noopAu` to raft and also hand `rLog` to
+    `NewServer`. The achievable allocation (`NewServerAlloc.lean`, `srvRaftBoot_alloc`)
+    allocates the read names and `kvInv` inside the continuation and derives `noopAu` from it
+    (`kv_noop_au`, then `srvNoopAu_to_noopAu_of`, which needs only `srvRaftLogInv`'s pure facts,
+    since raft's commit invariant does not exist yet). To support it, raft's `allocClientGen`
+    and `allocClientBoot` now also tell the continuation `γ.reCCOk = ccOk`. The noop update
+    needs the conf-change policy (`srvCCPolicy`) inside the continuation.
+    **The spec change to make:** `NewServer.spec` takes `"#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv`
+    and `srvReadNamesFreshNK ρ.rd` (the read names' rows without `kv.st`) in place of
+    `"HrLog" ∷ rLog γ bootLog` and `"Hrd" ∷ srvReadNamesFresh ρ.rd …`. Its postcondition drops
+    `etcdKV ρ.rd.kv …`, which the allocation gives `Main` (and `putGetInv_alloc_log` turns into
+    the client's invariant). `NewServer.lean` drops its `kvInv_alloc_boot` step and unfolds
+    `srvReadNamesFreshNK` instead of `srvReadNamesFresh`. The premises `ρ.rd.raft = ⟨γ, [], 0⟩`,
+    `ρ.rd.kv.c0/ch0/log0/cok` stay; `srvBootOut` states the same equalities.
+  - *(b) `v3rpc.Server`'s and `etcd_kv_started`'s premises are not in `NewServer`'s and
+    `Start`'s postconditions.* `v3rpc.grpcCfgOk s C` needs, read-only, the configuration
+    fields `QuotaBackendBytes`, `MaxTxnOps`, `WarningUnaryRequestDuration`, `Logger`,
+    `Metrics`, `EnableDistributedTracing`, `TracerOptions` (with its slice) and
+    `MaxConcurrentStreams`. It also needs `watchSrvOk s E γ wsl` (the watchable store, auth
+    store, `raftStatusOk`, `watchVars`), `srvKVAddr s ↦□ wsIface wsl`, `srvIdsOk s`,
+    `membership.localKept`, `srvStoppingAddr s ↦□ ch ∗ stopChan ch`, and the client premise
+    `runsNoRequireLeader`. `srvBuilt` and `Start`'s postcondition give `raftKV` (from
+    `isServerReq`/`isServerRead`), the logger, member id, lead, cluster, ticks, request size
+    and feature gate, and nothing else of that list. `Server` also needs
+    `srvCfgFieldAddr s "WatchProgressNotifyInterval" ↦ d` owned (with
+    `sint.Z d ≤ 2 ^ 62`), `srvLgReader s`, `srvBemuReader s` and `srvGoRes s`. Each of the `N`
+    `etcdGrpcSlot`s needs `etcdRunSlot` (a reader slot each of `leadTimeMu`, `lgMu`, the
+    store's and the read loop's, plus `E.RD`), a further `leadTimeMu` slot and `E.RD`, and an
+    `lgMu` slot. `Start` returns the read loop's slots (`actualMaxReaders` of them) and one
+    `lgMu` slot. `NewServer`'s proof drops the rest: `leadTimeMu`'s slots
+    (`guard_of_slots … with ⟨-, …⟩`), the `lgMu`, `bemu`, auth (`RD`) and store reader slots
+    left after the construction (`replicate_take1 … ⟨…, -⟩`). **The spec change to make:**
+    `NewServer.spec`'s postcondition gains a row `srvServeOut s E C K`. It holds `grpcCfgOk`'s
+    configuration and watch facts for a `C` agreeing with `E` and `ρ` (as `srvGrpcFields`,
+    persistent), the field `WatchProgressNotifyInterval ↦ cfg.WatchProgressNotifyInterval'`,
+    and `K` request slots, each `srvLeadTimeReader s ∗ srvLgReader s ∗ mvcc.storeReader E.s E.γ
+    ∗ E.RD`, with `K` the slots left (`actualMaxReaders` minus those the construction uses), and
+    one `srvBemuReader`. `stopChan` and the `stopping` field's `↦□` come from `Start`, whose
+    postcondition gains them. A lemma `grpcCfgOk_of_started` then gives `grpcCfgOk` from
+    `srvServeOut`, `isServerReq` and `isServerRead` (`raftKV_server`), and
+    `etcdGrpcSlots_of_started` gives the `N ≤ K` slots from `srvServeOut`'s slots and `Start`'s
+    read slots. `runsNoRequireLeader` stays a premise of the closed theorem: a statement about
+    the clients' metadata, of D19a's first kind.
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
