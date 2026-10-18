@@ -225,6 +225,21 @@ theorem getElem?_mem_take_succ {α : Type _} (l : List α) (i : Nat) (x : α)
     (h : l[i]? = some x) : x ∈ l.take (i + 1) := by
   rw [List.take_add_one, h]; simp
 
+/-- An element of a big separating conjunction over a list, and the rest's over the list without
+it. -/
+theorem bigSepL_eraseIdx {PROP : Type _} [BI PROP] {A : Type _} (Φ : A → PROP) :
+    ∀ (l : List A) (i : Nat) (h : i < l.length),
+      ([∗list] x ∈ l, Φ x) ⊢ Φ (l[i]'h) ∗ [∗list] x ∈ l.eraseIdx i, Φ x
+  | [], _, h => absurd h (by simp)
+  | x :: xs, 0, _ => by
+    simp only [List.getElem_cons_zero, List.eraseIdx_cons_zero]
+    exact BigSepL.bigSepL_cons.1
+  | x :: xs, i + 1, h => by
+    simp only [List.getElem_cons_succ, List.eraseIdx_cons_succ]
+    refine BigSepL.bigSepL_cons.1.trans ?_
+    refine (sep_mono_right (bigSepL_eraseIdx Φ xs i (by simp at h; omega))).trans ?_
+    exact sep_left_comm.1.trans (sep_mono_right (BigSepL.bigSepL_cons (Φ := fun _ y => Φ y)).2)
+
 /-- An element of a big separating conjunction over a list, and the way back. -/
 theorem bigSepL_get_acc {PROP : Type _} [BI PROP] {A : Type _} (Φ : A → PROP) (l : List A) (i : Nat)
     (h : i < l.length) :
