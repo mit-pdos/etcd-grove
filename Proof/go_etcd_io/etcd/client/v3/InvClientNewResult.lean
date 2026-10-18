@@ -63,9 +63,16 @@ theorem watchDescOk_of_init :
   iexists ssl, sds
   iframe Hst Hsds
   ipureintro
-  have h := congrArg List.length Hs.2
+  have h := congrArg List.length Hs.2.1
   simp at h
-  omega
+  refine ⟨by omega, fun sd hsd => ?_⟩
+  have h3 := Hs.2.2
+  cases sds with
+  | nil => simp at hsd
+  | cons x xs =>
+    simp at hsd h3
+    subst hsd
+    exact h3.1
 
 /-- **`client/v3`'s fact gives `watch.go`'s variables** (`clientWatchVars`, `clientv3Init`). -/
 theorem clientWatchVars_of_init :

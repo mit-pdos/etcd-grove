@@ -55,6 +55,7 @@ theorem watchClient.Watch.wp_proof
     cases sds with
     | nil => simp at Hlen
     | cons x _ => exact ⟨x, rfl⟩
+  have hcs : sd0.ClientStreams' = true := Hlen.2 sd0 hsd0
   have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z dsl.len := by
     constructor
     · word
@@ -70,7 +71,8 @@ theorem watchClient.Watch.wp_proof
   · iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
-    iexact Hd0
+    iframe Hd0
+    ipureintro; exact hcs
   inext
   iintro %cs %err Hres
   wp_auto

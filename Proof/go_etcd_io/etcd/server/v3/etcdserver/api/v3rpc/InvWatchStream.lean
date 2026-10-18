@@ -665,12 +665,14 @@ instance watchStubAt_persistent (wc conn : Loc) : Persistent (watchStubAt (GF :=
 
 /-- **The `Watch` service's descriptor** (persistent; a fact of `etcdserverpb`'s initialization,
 as `watchVars`: `Watch_ServiceDesc` is the generated literal and nothing writes it): its
-`Streams` slice holds at least one `StreamDesc` (the `Watch` stream's), read-only. What the stub
-reads (`&Watch_ServiceDesc.Streams[0]`). -/
+`Streams` slice holds at least one `StreamDesc` (the `Watch` stream's), read-only, a client
+stream (`ClientStreams`: what `NewStream`'s spec asks). What the stub reads
+(`&Watch_ServiceDesc.Streams[0]`). -/
 def watchDescOk : IProp GF :=
   iprop(∃ (sl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
     structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams"
-      (globalAddr etcdserverpb.Watch_ServiceDesc) ↦□ sl ∗ sl ↦*□ sds ∗ ⌜0 < sds.length⌝)
+      (globalAddr etcdserverpb.Watch_ServiceDesc) ↦□ sl ∗ sl ↦*□ sds ∗
+    ⌜0 < sds.length ∧ ∀ sd, sds[0]? = some sd → sd.ClientStreams' = true⌝)
 
 instance watchDescOk_persistent : Persistent (watchDescOk (GF := GF)) := by
   unfold watchDescOk; infer_instance
