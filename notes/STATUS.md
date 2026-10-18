@@ -6496,33 +6496,34 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     a created response not published keeps the position), `outcProd` keeps `cur2`'s authority,
     `sendCloseSubstream`'s canceled response keeps the position, `Watch` returns `cur2`'s first
     position. `run` still dispatches with `cpl = false` (`γh2 := γhi`).
-    **Next, `run`'s dispatch at `cpl = true` (K2e-7d), blocked on `sendLoop`** (the user: don't
-    modify its proof while another session splits it). Every fact about a response reaches the
-    client through `sendLoop`'s proof (`watchDn`), and the dispatch needs, beyond the forwarding
-    fact below:
-    1. *the created response's header revision* (`recvLoop`'s `watchStream.Rev()`): etcd reached
-       it and it is below `2^63 - 1` (`watchRespOk`'s created case and its global bound);
-       `ctrlOk` says nothing of the header.
-    2. *an event response's header revision is below `2^63 - 1`* (`watchRespOk`'s global bound;
-       the cache's `RespRevsBounded`): `respOk` bounds the events by it, not it; `respRev` covers
-       event-less responses only. (Or weaken the cache's contract for event responses: the demux
-       takes the bound for every response.)
-    3. *a progress revision is not `0`* (else the client publishes it but `IsProgressNotify` is
-       false and no case of `watchRespOk` fits): true in etcd (the store starts at revision 1, the
-       model's initial log `[[], []]`), not yet derivable from `respRev`'s notified log. (Or a
-       case for an event-less non-progress response in the cache's contract.)
-    4. *the forwarding fact*, refined: for `r` sent down at `j` after the created response of a
-       watcher `w` (its id `X` announced at `jc < j`, no cancel of `X` in between), with
-       `r.id ∈ {-1, X}`: `sentEvsOf L w = (pre.filter (·.w = w)).filter evs≠[]` (`pre`:
-       `mvccCov`'s channel prefix before `r`), and every mvcc response sent down in `(jc, j)` was
-       queued before `r` (`∈ pre`; so an earlier progress revision is at most `r`'s, by
-       `respRev`). Both need the created condition: `sendLoop` buffers a not-yet-announced id's
-       responses (`pending`) and flushes them after its created response, so before it neither
-       holds; and drops a cancelled id's.
-    Not blocked: `w ∈ r.cov` for a broadcast after the created response (from `createdAfter` and
-    `regsAt`, K1b); the cursor2 invariant (`evsSoFar = watchEvents L rg lo (c2 + 1)`, `lo ≤ c2 + 1`,
-    with `rev ≥ 1`: `cpl` needs `sr ∧ prefix watch ∧ rev ≠ 0`, since from `0` the watch starts
-    "now" and misses earlier events) and its steps.
+    **K2e-7d (in progress, 2026-10-18; `sendLoop`'s split landed):**
+    - *The cache's contract asks only what the cache uses* (d-1): the header revision's bound
+      only for a progress notification, and the created case is any response without events that
+      is not a progress notification (cursor kept, no `etcdReached`): the server needs nothing on
+      the created response's header nor an event response's, and a progress at revision `0` fits.
+    - *Server facts* (d-2, d-2b, d-2c, d-7, d-9): `mvccCov`'s `fwdEvs` (a live id's watcher's
+      responses with events sent before `r` are those queued before it, in order) and `mvccOk`'s
+      `fwdIdx` (those sent before `r` while its id was live were queued before it), from a
+      history kept by `sendLoop` (`SendHist`, `WatchSendHist.lean`); a response's id is its
+      watcher's or `-1` (`progressIfSync`'s spec; `respOk`; `mvccExtra` assigns any id but `-1`);
+      `ctrlWatcher` carries the watcher's `sr` (`WS`); `regsAt` takes a list of watchers for one
+      credit (`sentAuth_reg_regsL`).
+    - *The watch's start reached* (d-3): `etcdRead r` says etcd reached `r` too; `Watch` takes
+      `startOk` (`startRead` and, with `sr`, `etcdReached (rev - 1)`).
+    - *The second cursor's lemmas* (d-4..d-8, d-12, `WatchCompl.lean`): `cur2Ok` (the events so far
+      are a watched log's watch events up to the cursor; the cursor is the start, a last event's
+      revision or a progress notification's, `progAt`), `cmpl_events`, `cmpl_prog`, `cmpl_mono`,
+      `cmpl_cov`, `covers_prefix`.
+    - *`run`'s model* (d-10, d-11): a registered id is live (`phOk`); `regFacts` keeps the
+      watcher's `sr` and the created response's channel snapshot (`regSnap`).
+    - **Next**: `cpl := sr ∧ prefix watch (key non-empty, not all `0xff`) ∧ rev ≠ 0` at the
+      substream's allocation (`γ.cur2`, `γh2` lists), the second cursor in `wsRest` (queued: `γh2`'s
+      authority; registered: `cur2Ok`), `wsRest_snoc_ctrl` an entailment (`progAt` indexes the
+      responses), the registration (`cur2Ok_init`), `reg_pre` (events: `cmpl_events`, needs
+      `dispatch_content` to expose its key-values; own-id progress: `cmpl_cov`, `cmpl_mono`,
+      `cmpl_prog`), the broadcast (`-1`: the registered substreams' watchers listed for
+      `regsAt`, one credit; `respCompl` and no cancel give `w ∈ x.cov`). Limitation: the cache's
+      prefix must be non-empty and not all `0xff` for the client to promise completeness.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
