@@ -110,7 +110,7 @@ theorem membership.RaftCluster.Members.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInv at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems⟩
+  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, #Hloc⟩
   wp_auto
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -190,7 +190,7 @@ theorem membership.RaftCluster.Members.wp_proof
   · inext
     iunfold membership.rcLockInv
     iexists mp, mm
-    iframe
+    iframe Hmf Hmap Hmems Hloc
     ipureintro; exact Hsz
   (try wp_auto)
   iapply HΦ

@@ -6,11 +6,11 @@
   from `Start`'s views (`isServerReq`, `isServerRead`: `raftKV` through the server's linked
   specs, `raftKV_server`) and `NewServer`'s serving facts (`srvServeFacts`: the configuration
   fields, the watchable store), at the answers `etcd_kv_started` takes
-  (`srvKVAns s E ρ γr 0 [] .none`). Three premises no construction gives, stated as such:
+  (`srvKVAns s E ρ γr 0 [] .none`). Two premises no construction gives, stated as such:
   `v3rpc.watchVars` (package facts of `watch.go`'s variables, not yet among `v3rpc`'s
-  initialization facts), `runsNoRequireLeader` (no client asks for a leader on a stream) and
-  `membership.localKept` (the local member stays in the cluster; an axiomatized predicate), and
-  the tracer options' slice.
+  initialization facts) and `runsNoRequireLeader` (no client asks for a leader on a stream), and
+  the tracer options' slice. (`membership.localKept`, the local member stays in the cluster, was
+  a third until 2026-10-18: now the cluster's own fact, `localKept_of_isRaftCluster`.)
 * `etcdGrpcSlots_of_started`: `N` of `etcd_kv_started`'s slots (`etcdGrpcSlot`) from `2 N` reader
   slots each of `leadTimeMu`, `lgMu` and the auth store and `N` of the store (`srvServeBuilt`'s)
   and `N` of the read loop's (`Start`'s).
@@ -52,11 +52,11 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     (hlg : cfg.Logger' ≠ null) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
-        v3rpc.watchVars ∗ v3rpc.runsNoRequireLeader ∗ (□ ∀ c : Loc, membership.localKept c) ∗
+        v3rpc.watchVars ∗ v3rpc.runsNoRequireLeader ∗
         cfg.TracerOptions' ↦*□ tos ⊢
       ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwv, #Hnrl, #Hlk, #Htos⟩
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwv, #Hnrl, #Htos⟩
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
   · iframe #
   ihave #Hkv' := Hkv
@@ -106,7 +106,8 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     · iunfold srvLeadInv
       iunfold srvAtomicU64 at Hlead
       iexact Hlead
-    iapply Hlk
+    iapply membership.localKept_of_isRaftCluster
+    iexact Hrc
   · ipureintro; exact ⟨rfl, rfl⟩
 
 /-- **`N` of `etcd_kv_started`'s slots** (see the file header). -/
