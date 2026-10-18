@@ -1,5 +1,6 @@
 module
 public import Proof.go_etcd_io.bbolt.WriteAlloc
+public import Proof.go_etcd_io.bbolt.DBWrite
 
 @[expose] public section
 
@@ -23,9 +24,10 @@ def allocT (T : WTx) (st : go_etcd_io.bbolt.TxStats) (hwm id : w64) (p : Loc) (b
 /-- What `tx.allocate(count)` did (the transaction `T`, possibly dereferenced first into
 `T0`, becomes `T'`): an error and nothing more, or the dirty page `p` with id `id`, its
 bytes `freshPage`, recorded in the page cache; the id is new (no page of the view covers its
-slots) and below the high-water mark, which does not go down. -/
+slots) and below the high-water mark, which does not go down; and no view of the database
+after the allocation (`ρ'`) sees its slots, none of which is the current freelist page's. -/
 def allocRes (W : WView) (T T0 T' : WTx) (count : w64) (p : Loc) (err : GoInterface)
-    (data' : Loc) : Prop :=
+    (data' : Loc) (ρ' : DBState) : Prop :=
   ((T0 = T ∧ data' = W.data) ∨ (derefRel T T0 ∧ noView T0)) ∧
   ((err ≠ interface.nil ∧ T' = T0) ∨
    (err = interface.nil ∧ ∃ (id : w64) (st : go_etcd_io.bbolt.TxStats) (hwm' : w64),
@@ -33,7 +35,16 @@ def allocRes (W : WView) (T T0 T' : WTx) (count : w64) (p : Loc) (err : GoInterf
       uint.nat id + uint.nat count ≤ uint.nat hwm' ∧
       uint.Z hwm' * W.ps < 2 ^ 48 ∧
       (∀ k < uint.nat count, ¬ coversSlot W.pages (uint.nat id + k)) ∧
+      (∀ k < uint.nat count, ∀ v0 v1, dbOK ρ' v0 v1 →
+        unseenBy ρ' (curPages ρ' v0 v1) (uint.nat id + k) ∧ ¬ inFlPage ρ' v0 v1 (uint.nat id + k)) ∧
       T' = allocT T0 st hwm' id p (freshPage id (uint.nat count) W.ps)))
+
+/-- What `tx.allocate(count)` did to the database (`ρ` to `ρ'`; the transaction `T` to `T'`):
+nothing on an error, else what `db.allocate` did (`allocOK`) for the writer `w`. -/
+def allocDB (ρ ρ' : DBState) (T T' : WTx) (count : w64) (err : GoInterface) : Prop :=
+  (err ≠ interface.nil → ρ' = ρ) ∧
+  (err = interface.nil → ∃ (w : Reader) (id : w64), ρ.wr = some w ∧
+    allocOK ρ ρ' w T.mv T'.mv T.mv.txid' id (uint.nat count))
 
 end defs
 
@@ -50,7 +61,8 @@ database's state an abstract resource `dbWR I γ W txl T.mv.txid' ρ` (the datab
 is `txl`, with the view `W`). If the allocation grows the mapping, the
 transaction is dereferenced (`Bucket.dereference.spec`, hence `derefReady`) and stands over a
 view at the new location `data'` (the same pages). If the remap fails after the
-transaction was dereferenced, the database is lost (an error, and nothing else). -/
+transaction was dereferenced, the database is lost (`dbLost`: the writer can only be rolled
+back, `Tx.rollback.lspec`) and the transaction is kept, dereferenced. -/
 abbrev Tx.allocate.wspec : Prop :=
   ∀ (I : FLImpl (GF := GF)) (γ : DBNames) (W : WView) (txl : Loc) (T : WTx) (ρ : DBState) (count : w64),
   0 < sint.Z count → sint.Z count ≤ 2 ^ 32 → sint.Z count * W.ps < 2 ^ 47 →
@@ -63,8 +75,9 @@ abbrev Tx.allocate.wspec : Prop :=
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
       (∃ (ρ' : DBState) (data' : Loc) (T0 T' : WTx), dbWR I γ { W with data := data' } txl T.mv.txid' ρ' ∗
         ownWriteTxG { W with data := data' } txl T' ∗ wView { W with data := data' } ∗
-        ⌜allocRes W T T0 T' count p err data'⌝) ∨
-      ⌜err ≠ interface.nil⌝ }}
+        ⌜allocRes W T T0 T' count p err data' ρ' ∧ allocDB ρ ρ' T T' count err⌝) ∨
+      (⌜err ≠ interface.nil⌝ ∗ ∃ (T0 : WTx), ⌜derefRel T T0 ∧ noView T0⌝ ∗
+        dbLost I W.dbl txl T.mv.txid' ρ.fl ∗ ownWriteTxG W txl T0) }}
 
 end spec
 

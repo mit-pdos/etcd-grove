@@ -48,6 +48,8 @@ theorem Tx.allocate.wp_wproof
   icases HR with ⟨Hown, %Hf⟩
   obtain ⟨HAS, Hrw, Hdata, Hps, Hfli, w, Hw, Hwp, Hwq, Hwh, Htxw, Htxb⟩ := Hf
   icases ownDB_logger I W.dbl γ σ $$ Hown with ⟨%lg, %dl, #Hlg2, #Hdl2, #Hdlok, %Hlgf, Hown⟩
+  icases persistent_entails_left (ownDB_dbOK I W.dbl γ σ) $$ Hown with ⟨Hown, %Hdbok⟩
+  obtain ⟨v0, v1, Hdbok⟩ := Hdbok
   unfold ownWriteTxG
   icases HG with ⟨Hrest, Hm, Hpm, Hbufs, Hbs⟩
   isimp only [TxW_rest_root] at Hrest
@@ -95,7 +97,7 @@ theorem Tx.allocate.wp_wproof
   · rw [Hwq, Hdata, Hps, Hwp, Hrw, ← Hfli]
     iframe
   try wp_auto
-  icases Hpost with (⟨%Herr, Hown, Hdatav, Hpv, Hfliv, Hmetaf, Hm, Hbs, Hstats⟩ | ⟨%Herr, Hmetaf, Hm, Hwr⟩ |
+  icases Hpost with (⟨%Herr, Hown, Hdatav, Hpv, Hfliv, Hmetaf, Hm, Hbs, Hstats⟩ | ⟨%Herr, Hmetaf, Hm, Hwr, Hlost⟩ |
     ⟨%Herr, %σ', %mv', %id, %Hok, Hown, Hdatav, Hpv, Hfliv, Hmetaf, Hm, Hwr, Hpg⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
@@ -125,7 +127,7 @@ theorem Tx.allocate.wp_wproof
     isplitl [Hdatav Hpv Hfliv]
     · unfold wView; rw [Hwq, Hdata, Hps, Hwp, Hfli]; iframe; iframe #; ipureintro; exact Hlgv
     ipureintro
-    exact ⟨Or.inl ⟨rfl, rfl⟩, Or.inl ⟨by nofun, rfl⟩⟩
+    exact ⟨⟨Or.inl ⟨rfl, rfl⟩, Or.inl ⟨by nofun, rfl⟩⟩, fun _ => rfl, fun h => by cases h⟩
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr
@@ -145,9 +147,28 @@ theorem Tx.allocate.wp_wproof
     try wp_auto
     iapply HΦ
     iright
-    ipureintro; nofun
+    isplitr
+    · ipureintro; nofun
+    icases Hwr with ⟨%T0, %Hrel, Hbs, Hstats⟩
+    iexists T0
+    isplitr
+    · ipureintro; exact ⟨Hrel, noView_of_derefRel T T0 Hrel⟩
+    isplitl [Hlost]
+    · rw [Htxw, ← Hrw]; iexact Hlost
+    obtain ⟨Hrt, Hrmv, Hrpm, Hrbufs, -, -⟩ := Hrel
+    try unfold ownWriteTxG
+    try unfold TxW_rest_root
+    rw [Hrt, Hrmv, Hrpm, Hrbufs]
+    simp only
+    try rw [Hdb]
+    try rw [Hrw]
+    iframe
+    ipureintro; exact Htxn
   · subst Herr
     obtain ⟨Hk1, Hk2, Hk3⟩ := allocOK_keeps σ σ' w T.mv mv' T.mv.txid' id (uint.nat count) Hok
+    have Hun := allocOK_unseen' σ σ' v0 v1 Hdbok w Hw T.mv mv' T.mv.txid' id (uint.nat count)
+      (by rw [Hwh]; exact Hhwm) Hok
+    have HokC := Hok
     obtain ⟨Hid2, Hslots, Hmv', Hle, Hhw48, Hidn, -⟩ := Hok
     have Hcnt : 0 < uint.nat count := by have := Hc0; unfold uint.nat; word
     have Hc32 : uint.nat count ≤ 2 ^ 32 := by have := Hc1; unfold uint.nat; word
@@ -196,7 +217,10 @@ theorem Tx.allocate.wp_wproof
         try rw [Hsd, Hdata]
         iframe; iframe #; ipureintro; exact Hlgv
       ipureintro
-      refine ⟨Or.inl ⟨rfl, by rw [Hsd, Hdata]⟩, Or.inr ⟨rfl, id, st2, mv'.pgid', ?_, ?_, ?_, ?_, ?_, rfl⟩⟩
+      refine ⟨?_, fun h => absurd rfl h, fun _ => ⟨w, id, Hw, by
+        show allocOK σ σ' w T.mv { T.mv with pgid' := mv'.pgid' } T.mv.txid' id (uint.nat count)
+        rw [← Hmv']; exact HokC⟩⟩
+      refine ⟨Or.inl ⟨rfl, by rw [Hsd, Hdata]⟩, Or.inr ⟨rfl, id, st2, mv'.pgid', ?_, ?_, ?_, ?_, ?_, Hun, rfl⟩⟩
       · unfold uint.nat; word
       · unfold uint.nat; word
       · unfold uint.nat at Hidn ⊢; word
@@ -235,7 +259,10 @@ theorem Tx.allocate.wp_wproof
         try rw [Hsd, Hdata]
         iframe; iframe #; ipureintro; exact Hlgv
       ipureintro
-      refine ⟨Or.inr ⟨Hrel, noView_of_derefRel T T0 Hrel⟩, Or.inr ⟨rfl, id, st2, mv'.pgid', ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+      refine ⟨?_, fun h => absurd rfl h, fun _ => ⟨w, id, Hw, by
+        show allocOK σ σ' w T.mv { T0.mv with pgid' := mv'.pgid' } T.mv.txid' id (uint.nat count)
+        rw [Hrmv, ← Hmv']; exact HokC⟩⟩
+      refine ⟨Or.inr ⟨Hrel, noView_of_derefRel T T0 Hrel⟩, Or.inr ⟨rfl, id, st2, mv'.pgid', ?_, ?_, ?_, ?_, ?_, Hun, ?_⟩⟩
       · unfold uint.nat; word
       · rw [Hrmv]; unfold uint.nat; word
       · unfold uint.nat at Hidn ⊢; word

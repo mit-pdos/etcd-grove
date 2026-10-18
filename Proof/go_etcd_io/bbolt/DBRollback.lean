@@ -71,6 +71,15 @@ theorem rb_pending (fl : FLState) (txid t : w64) (pd : Pending)
     obtain ⟨hne, h2⟩ := (GMap.lookup_delete_Some _ _ _ _).1 h
     exact ⟨Ne.symm hne, h2⟩
 
+theorem rb_pending_ne (fl : FLState) (txid t : w64) (hne : t ≠ txid) :
+    fl.pending !! t = (fl.rollback txid).pending !! t := by
+  cases hp : fl.pending !! txid with
+  | none => rw [rollback_none hp]
+  | some pd0 =>
+    rw [rollback_some hp]
+    simp only
+    rw [GMap.lookup_delete_ne _ (Ne.symm hne)]
+
 theorem rb_free (fl : FLState) (txid : w64) : (fl.rollback txid).free = fl.free := by
   cases hp : fl.pending !! txid with
   | none => rw [rollback_none hp]
@@ -117,7 +126,7 @@ theorem dbOK_rollbackW (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     dbOK { σ with fl := σ.fl.rollback (w.txid + W64 1) } v0 v1 := by
   have h' := h
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h'
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree⟩ := hcur
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree, crb, cfl⟩ := hcur
   obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
   have hmt := congrArg (fun x : w64 => uint.Z x) (b4 w hw).2
   have htxz := txid_succ_z w.txid (w.txid + W64 1) (by omega) rfl
@@ -152,7 +161,13 @@ theorem dbOK_rollbackW (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
         fun t pd p ht hp hle => b2 t pd p (rb_pending _ _ _ _ ht).2 hp hle,
         fun t pd p ht hp => b3 t pd p (rb_pending _ _ _ _ ht).2 hp, b4, b5,
         fun x hx => b6 x (by simp only at hx; rw [rb_free] at hx; exact hx),
-        fun t pd p ht hp => b7 t pd p (rb_pending _ _ _ _ ht).2 hp⟩, cagree⟩,
+        fun t pd p ht hp => b7 t pd p (rb_pending _ _ _ _ ht).2 hp⟩, cagree, crb,
+      flCurOK_fl σ { σ with fl := σ.fl.rollback (w.txid + W64 1) } _ _ cfl rfl rfl rfl rfl rfl
+        (fun x hx => Or.inl (by simp only at hx; rw [rb_free] at hx; exact hx))
+        (fun t pd x a ht hx => Or.inl ⟨pd, (rb_pending _ _ _ _ ht).2, hx⟩)
+        (fun x ⟨t, pd, a, ht, hx, htx'⟩ => Or.inl ⟨t, pd, a, by
+          rw [← rb_pending_ne σ.fl _ t (fun e => by rw [e] at htx'; omega)]; exact ht, hx, htx'⟩)
+        (fun x ⟨t, pd, a, ht, hx, htx'⟩ => ⟨b2 t pd (x, a) ht hx htx', b7 t pd (x, a) ht hx⟩)⟩,
     hrd, fun k r hk => hview _ _ (hmv k r hk), hsl, hfl,
     by show (σ.fl.rollback (w.txid + W64 1)).readonly.Perm _; rw [rb_readonly]; exact hro,
     hrs, ⟨hwr.1, fun w' hw' => ⟨(hwr.2 w' hw').1, hview _ _ (hwr.2 w' hw').2⟩⟩⟩
@@ -167,14 +182,16 @@ theorem dbOK_removeWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbO
     (w : Reader) (hw : σ.wr = some w) (hnp : σ.fl.pending !! (w.txid + W64 1) = none) :
     dbOK (σ.removeWriter w) v0 v1 := by
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩⟩ := hcur
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩, crb, cfl⟩ := hcur
   obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
   refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
     ⟨cwf, cdisj, cin, calloc, fun s hs => ⟨(cfree s hs).1, (cfree s hs).2.1,
         fun t pd a ht hp => ?_⟩,
       ⟨b1, b2, fun t pd p ht hp => ?_, fun w' h => by simp [DBState.removeWriter.proj_wr] at h, b5,
         b6, b7⟩,
-      ⟨va1, fun w' h => by simp [DBState.removeWriter.proj_wr] at h⟩⟩,
+      ⟨va1, fun w' h => by simp [DBState.removeWriter.proj_wr] at h⟩, crb,
+      flCurOK_congr σ _ _ _ cfl rfl rfl (Nat.le_refl _) rfl rfl (fun s ⟨u1, _, u3⟩ =>
+        ⟨u1, fun w' h => by simp [DBState.removeWriter.proj_wr] at h, u3⟩)⟩,
     hrd, hmv, fun s hs => ?_, ?_, hro, hrs, ?_⟩
   · -- the current tree's slots: pending only for the writer, which has nothing pending
     obtain ⟨⟨w', hw', ht'⟩, _⟩ := (cfree s hs).2.2 t pd a ht hp
@@ -207,6 +224,81 @@ theorem rb_pending_none (fl : FLState) (txid : w64) : (fl.rollback txid).pending
   cases h : (fl.rollback txid).pending !! txid with
   | none => rfl
   | some pd => exact absurd rfl (rb_pending fl txid txid pd h).1
+
+/-- A committed pending id is a pending id. -/
+theorem committed_mem_pendingIds (σ : DBState) (m : internal.common.Meta) (x : w64)
+    (h : committedPending σ m x) : x ∈ σ.fl.pendingIds := by
+  obtain ⟨t, pd, a, ht, hxa, -⟩ := h
+  rw [pendingIds_eq, mem_flatIds]
+  exact ⟨t, pd, ht, (List.of_mem_zip hxa).1⟩
+
+/-- The free ids reloaded from the current freelist page (its ids but the pending ones): the
+database's facts kept. -/
+theorem dbOK_reload (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
+    (free' : List w64)
+    (hf : ∀ x ∈ free', x ∈ flIds (pageAt σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist')) ∧
+      x ∉ σ.fl.pendingIds) :
+    dbOK { σ with fl := { σ.fl with free := free' } } v0 v1 := by
+  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree, crb, cfl⟩ := hcur
+  obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
+  have cfl' := cfl
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a8b, a9, a10, a11, a12⟩ := cfl'
+  -- a reloaded free id: seen by no view, below the high-water mark
+  have hre : ∀ x ∈ free', 2 ≤ uint.Z x ∧
+      uint.Z x < uint.Z (if metaPick v0 v1 then v1 else v0).pgid' ∧ uint.Z x < 2 ^ 62 ∧
+      unseenBy σ (treePages (filePages σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).pgid'))
+        (uint.nat (if metaPick v0 v1 then v1 else v0).root'.root')) (uint.nat x) := by
+    intro x hx
+    obtain ⟨hxi, hxp⟩ := hf x hx
+    rcases a12 x hxi with hc | hu
+    · exact absurd (committed_mem_pendingIds σ _ x hc) hxp
+    · exact hu
+  have hnf : ∀ s : Nat, (uint.nat (W64 (s : Int)) = s) →
+      (¬ ((∀ k r, σ.readers !! k = some r → ¬ coversSlot r.pages s) ∧
+        (∀ w, σ.wr = some w → ¬ coversSlot w.pages s) ∧
+        ¬ coversSlot (treePages (filePages σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).pgid'))
+          (uint.nat (if metaPick v0 v1 then v1 else v0).root'.root')) s)) → W64 (s : Int) ∉ free' := by
+    intro s hs hseen hx
+    have := (hre _ hx).2.2.2
+    rw [hs] at this
+    exact hseen this
+  have hs64 : ∀ s : Nat, s < σ.nslots → uint.nat (W64 (s : Int)) = s := fun s hs =>
+    dbp_uint_nat_W64 s (by have := nslots_mul_le σ; have := Nat.le_mul_of_pos_right σ.nslots (show 0 < σ.ps by omega); omega)
+  have hps16 : 16 ≤ σ.ps := by omega
+  have hcovlt : ∀ (P : GMap Nat (List w8)) (H : Nat),
+      (∀ id pg, P !! id = some pg → pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ min σ.nslots H) →
+      ∀ s, coversSlot P s → s < σ.nslots := by
+    intro P H hin s hc
+    obtain ⟨id, pg, hid, h1, h2⟩ := hc
+    have := span_of_pageAt σ.bs σ.ps id pg hps16 (hin id pg hid).1.symm
+    have := (hin id pg hid).2
+    have : min σ.nslots H ≤ σ.nslots := Nat.min_le_left _ _
+    omega
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
+    ⟨cwf, cdisj, cin, calloc, fun s hs => ⟨(cfree s hs).1, fun hx => ?_, (cfree s hs).2.2⟩,
+      ⟨fun x hx => (hre x hx).2.1, b2, b3, b4, b5, fun x hx => (hre x hx).2.2.1, b7⟩, cagree, crb,
+      ⟨a1, a2, a3, fun s h1 h2 => ⟨(a4 s h1 h2).1, fun hx => ?_, (a4 s h1 h2).2.2⟩, a5, a6, a7, a8, a8b, a9,
+        fun x hx => (hf x hx).1, a11, a12⟩⟩,
+    hrd, fun k r hk => ⟨(hmv k r hk).1, fun s hs => ⟨((hmv k r hk).2 s hs).1, fun hx => ?_,
+      ((hmv k r hk).2 s hs).2.2⟩⟩, hsl, hfl, hro, hrs,
+    ⟨hwr.1, fun w hw => ⟨(hwr.2 w hw).1, (hwr.2 w hw).2.1, fun s hs => ⟨((hwr.2 w hw).2.2 s hs).1,
+      fun hx => ?_, ((hwr.2 w hw).2.2 s hs).2.2⟩⟩⟩⟩
+  · -- the current tree covers no reloaded free id
+    have hlt := hcovlt _ _ (fun id pg hid => ⟨(filePages_some _ _ _ _ _ (treePages_lookup _ _ id pg hid)).symm,
+      cin id pg hid⟩) s hs
+    exact hnf s (hs64 s hlt) (fun ⟨_, _, u3⟩ => u3 hs) hx
+  · -- the freelist page's slots: none of its ids
+    have := (hf _ hx).1
+    apply a9 _ this
+    have h2' : s < uint.nat (if metaPick v0 v1 then v1 else v0).freelist' +
+        pageSpan σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist') := h2
+    rw [dbp_uint_nat_W64 s (by have := Nat.le_min.1 a3; have := dbp_uint_nat_lt (if metaPick v0 v1 then v1 else v0).pgid'; omega)]
+    exact ⟨h1, h2'⟩
+  · have hlt := hcovlt _ _ (fun id pg hid => (hrd k r hk).2.2 id pg hid) s hs
+    exact hnf s (hs64 s hlt) (fun ⟨u1, _, _⟩ => u1 k r hk hs) hx
+  · have hlt := hcovlt _ _ (fun id pg hid => (hwr.2 w hw).1.2.2 id pg hid) s hs
+    exact hnf s (hs64 s hlt) (fun ⟨_, u2, _⟩ => u2 w hw hs) hx
 
 open Iris.ProofMode in
 /-- An ending writer gives back its pages and its part of the fields. -/

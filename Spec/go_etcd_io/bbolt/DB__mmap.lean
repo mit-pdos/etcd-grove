@@ -43,12 +43,13 @@ it wait forever). A writer open (`rwtx`) is dereferenced (`WR` to `WR'`, the hyp
 (`mapRange`, and the `data` field) once no reader holds them (the wand, from `M = ∅` and
 `WR'`), keeping `K`.
 
-On an error before the dereference nothing changed (`WR`, the wand); after it, the mapping
-is gone or lost (`fileMap fd m'`, the fields cleared). -/
+The caller may lend the mapping's cells as `C` (given back with the wand on an early error).
+On an error before the dereference nothing changed (`WR`, `C`, the wand); after it, the mapping
+is gone or lost (`fileMap fd m'`, the fields cleared: `data` nil). -/
 abbrev DB.mmap.spec : Prop :=
   ∀ (dbl f : Loc) (fd : w64) (bs : List w8) (lg : GoInterface) (dl : Loc) (ps ms mf : w64)
     (rw : Loc) (dq : DFrac) (dr : GoSlice) (dp : Loc) (ds : w64) (m0 m1 : Loc)
-    (m : Option (Loc × Nat)) (n : Nat) (γ : GName) (M : GMap Nat Reader) (WR WR' K : IProp GF)
+    (m : Option (Loc × Nat)) (n : Nat) (γ : GName) (M : GMap Nat Reader) (WR WR' K C : IProp GF)
     (minsz : w64),
   dbl ≠ null → bs.length < 2 ^ 62 → 80 ≤ uint.Z ps → uint.Z ps < 2 ^ 32 →
   0 ≤ sint.Z minsz → sint.Z minsz < 2 ^ 62 → (lg = interface.nil ∨ lg = discardIface dl) →
@@ -70,8 +71,8 @@ abbrev DB.mmap.spec : Prop :=
       structFieldRef DB go!"meta0" dbl ↦ m0 ∗ structFieldRef DB go!"meta1" dbl ↦ m1 ∗
       osFile f fd ∗ fileBytes fd bs ∗ fileMap fd m ∗
       sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ) ∗
-      ([∗map] _k ↦ _r ∈ M, mmapTok γ sync.rfrac) ∗ WR ∗
-      (⌜M = ∅⌝ -∗ WR' -∗
+      ([∗map] _k ↦ _r ∈ M, mmapTok γ sync.rfrac) ∗ WR ∗ C ∗
+      (⌜M = ∅⌝ -∗ WR' -∗ C -∗
         structFieldRef DB go!"data" dbl ↦ dp ∗ mapRange m bs 0 n ∗ K) }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"mmap")) (Val #minsz))
   {{ (err : GoInterface), RET #err;
@@ -80,15 +81,15 @@ abbrev DB.mmap.spec : Prop :=
       structFieldRef DB go!"Mlock" dbl ↦□ false ∗ structFieldRef DB go!"rwtx" dbl ↦{dq} rw ∗
       structFieldRef DB go!"MmapFlags" dbl ↦{dq} mf ∗ fileBytes fd bs ∗
       sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ) ∗
-      ((⌜err ≠ interface.nil ∧ errWF err⌝ ∗ WR ∗
-          (⌜M = ∅⌝ -∗ WR' -∗
+      ((⌜err ≠ interface.nil ∧ errWF err⌝ ∗ WR ∗ C ∗
+          (⌜M = ∅⌝ -∗ WR' -∗ C -∗
             structFieldRef DB go!"data" dbl ↦ dp ∗ mapRange m bs 0 n ∗ K) ∗
           structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"datasz" dbl ↦ ds ∗
           structFieldRef DB go!"meta0" dbl ↦ m0 ∗ structFieldRef DB go!"meta1" dbl ↦ m1 ∗
           fileMap fd m) ∨
-       (⌜err ≠ interface.nil ∧ errWF err⌝ ∗ K ∗ ∃ (dp' : Loc) (ds' : w64) (m0' m1' : Loc)
+       (⌜err ≠ interface.nil ∧ errWF err⌝ ∗ K ∗ ∃ (ds' : w64) (m0' m1' : Loc)
           (m' : Option (Loc × Nat)) (n' : Nat),
-          structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗ structFieldRef DB go!"data" dbl ↦ dp' ∗
+          structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗ structFieldRef DB go!"data" dbl ↦ (null : Loc) ∗
           structFieldRef DB go!"datasz" dbl ↦ ds' ∗
           structFieldRef DB go!"meta0" dbl ↦ m0' ∗ structFieldRef DB go!"meta1" dbl ↦ m1' ∗
           fileMap fd m' ∗ mapRange m' bs 0 n') ∨

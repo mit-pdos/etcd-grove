@@ -9,13 +9,15 @@ none with them (`freedIn`: every slot of a freed page is pending for `txid`).
 
 **Written trees.** `wtree γ P hwm x lo hi`: in the pages `P` (the view's pages and the dirty
 pages), the tree under `x` is well-formed and strict, its keys within `[lo, hi)`, its pages'
-slots disjoint, and the transaction holds the token of each of its pages. `wbkt γ P hwm v`: a
+slots disjoint, its leaves at one depth (`pageHts`), and the transaction holds the token
+of each of its pages. `wbkt γ P hwm v`: a
 nested bucket's value: its tree's `wtree`, or a good inline page.
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.WriteTxShape
 public import Proof.go_etcd_io.bbolt.internal.freelist.Iface
+public import Proof.go_etcd_io.bbolt.RebalanceDefs
 
 @[expose] public section
 
@@ -63,10 +65,20 @@ def spillPages (W : WView) (T : WTx) : GMap Nat (List w8) := W.pages ∪ bufsN T
 def hiLe (H hi : Option (List w8)) : Prop :=
   ∀ h, hi = some h → ∃ h', H = some h' ∧ ¬ go.GoStringLt h h'
 
-/-- The facts of a written tree whose pages are exactly `Q` (`wtreeQ`). -/
-def wtreeF (Q : GMap Nat (List w8)) (x : Nat) (lo hi : Option (List w8)) : Prop :=
+/-- The tree of the pages `Q` from `x` has height `h`: its pages have heights (`pageHts`: a
+leaf 0, a branch one more than each of its children, so all leaves are at one depth), `x`'s
+being `h`. -/
+def qHt (Q : GMap Nat (List w8)) (x h : Nat) : Prop := ∃ pht, pageHts Q pht ∧ pht x = h
+
+/-- The facts of a written tree whose pages are exactly `Q`, but its height. -/
+def wtreeF0 (Q : GMap Nat (List w8)) (x : Nat) (lo hi : Option (List w8)) : Prop :=
   (∀ id, (Q !! id).isSome ↔ treeHas Q x id) ∧ treeWF Q (2 ^ 64) x ∧ pagesStrict Q ∧
     treeKeys Q x lo hi
+
+/-- The facts of a written tree whose pages are exactly `Q` (`wtreeQ`), its leaves at one
+depth (a height, `qHt`). -/
+def wtreeF (Q : GMap Nat (List w8)) (x : Nat) (lo hi : Option (List w8)) : Prop :=
+  wtreeF0 Q x lo hi ∧ ∃ h, qHt Q x h
 
 end pure
 
@@ -83,7 +95,7 @@ def wtree (γ : GName) (P : GMap Nat (List w8)) (hwm x : Nat) (lo hi : Option (L
     IProp GF :=
   iprop(pgToks γ (treePages P x) ∗
     ⌜treeWF P hwm x ∧ pagesStrict (treePages P x) ∧ treeKeys P x lo hi ∧
-      pagesDisjoint (treePages P x)⌝)
+      pagesDisjoint (treePages P x) ∧ ∃ pht, pageHts (treePages P x) pht⌝)
 
 /-- A written nested bucket's value (see the module doc). -/
 def wbkt (γ : GName) (P : GMap Nat (List w8)) (hwm : Nat) (v : List w8) : IProp GF :=

@@ -149,7 +149,7 @@ theorem dbOK_free (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 
     dbOK { σ with fl := σ.fl.freePages txid (W64 id) (1 + pageOverflow pg) } v0 v1 := by
   have h' := h
   obtain ⟨hps, hps2, hns, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h'
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩⟩ := hcur
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩, crb, cfl⟩ := hcur
   obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
   have hwo := writer_readerOK σ v0 v1 h w hw
   have hwm := (hwr.2 w hw).2
@@ -203,7 +203,7 @@ theorem dbOK_free (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 
       ⟨cwf, cdisj, cin, fun id' pg' h a hal => calloc id' pg' h a (freePages_allocs _ _ _ _ _ _ hal),
         fun s hs => ⟨(cfree s hs).1, (cfree s hs).2.1, fun t pd' a ht hp => ?_⟩,
         ⟨b1, fun t pd' p ht hp hle => ?_, fun t pd' p ht hp => ?_, b4, b5, b6,
-          fun t pd' p ht hp => ?_⟩, ⟨va1, va2⟩⟩,
+          fun t pd' p ht hp => ?_⟩, ⟨va1, va2⟩, crb, ?_⟩,
       hrd, fun k r hk => ?_, hsl, hfl, hro, hrs, ⟨hwr.1, fun w' hw' => ?_⟩⟩
     · -- the current tree: the writer's pending pages are its own
       rcases freePages_pairs σ.fl _ _ _ (fun pd h => hl _ pd h) t pd' _ ht hp with
@@ -226,6 +226,28 @@ theorem dbOK_free (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 
       · obtain ⟨k, hk, he⟩ := runIds_slot id _ (by omega) _ hr
         rw [he, w64_nat_z _ (by omega)]
         omega
+    · -- the freelist page: the run is the writer's (pending for its txid, newer than the meta)
+      have hne : ∀ t, uint.Z t ≤ uint.Z (if metaPick v0 v1 then v1 else v0).txid' → t ≠ txid := by
+        intro t ht e; subst e; omega
+      have hkeep : ∀ t, t ≠ txid →
+          (σ.fl.freePages txid (W64 id) (1 + pageOverflow pg)).pending !! t = σ.fl.pending !! t := by
+        intro t ht
+        unfold FLState.freePages; simp only
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm ht)]
+      refine flCurOK_fl σ { σ with fl := σ.fl.freePages txid (W64 id) (1 + pageOverflow pg) } _ _ cfl
+        rfl rfl rfl rfl rfl (fun x hx => Or.inl hx) (fun t pd x a ht hx => ?_)
+        (fun x ⟨t, pd, a, ht, hx, htx'⟩ => Or.inl ⟨t, pd, a, by rw [hkeep t (hne t htx')]; exact ht, hx, htx'⟩)
+        (fun x ⟨t, pd, a, ht, hx, htx'⟩ => ⟨b2 t pd (x, a) ht hx htx', b7 t pd (x, a) ht hx⟩)
+      rcases freePages_pairs σ.fl _ _ _ (fun pd h => hl _ pd h) t pd _ ht hx with
+        ⟨pd0, ht0, hp0⟩ | ⟨rfl, hr, -⟩
+      · exact Or.inl ⟨pd0, ht0, hp0⟩
+      · right
+        refine ⟨by omega, fun hin' => ?_⟩
+        obtain ⟨k, hk, he⟩ := runIds_slot id _ (by omega) _ hr
+        simp only at he
+        rw [he, dbp_uint_nat_W64 _ (by omega)] at hin'
+        have hcfl := cfl.2.2.2.1 (id + k) hin'.1 hin'.2
+        exact hcfl.1.2.1 w hw (hcov k hk)
     · -- a reader: older than the writer's txid, and it saw the run's allocation (the same page)
       refine mvccView_free σ txid (W64 (id : Int)) _ (fun pd h => hl _ pd h) r.txid r.pages
         (hmv k r hk) (by have := (va1 k r hk).1; omega) (fun s hs hr => ?_)

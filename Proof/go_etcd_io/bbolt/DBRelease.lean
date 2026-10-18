@@ -35,28 +35,33 @@ def safeRel (R : List w64) (t a : w64) : Prop :=
   ∀ r ∈ R, ¬ (uint.Z a ≤ uint.Z r ∧ uint.Z r < uint.Z t)
 
 /-- `σ'` frees only safe pending pairs of `σ`, keeps a subset of its pending pairs, and the same
-allocations. -/
+allocations; a pending pair it drops is safe. -/
 def relSafe (R : List w64) (σ σ' : FLState) : Prop :=
   σ'.allocs = σ.allocs ∧
   (∀ x, x ∈ σ'.free → x ∈ σ.free ∨
     ∃ t pd a, σ.pending !! t = some pd ∧ (x, a) ∈ pd.pairs ∧ safeRel R t a) ∧
-  ∀ t pd' p, σ'.pending !! t = some pd' → p ∈ pd'.pairs →
-    ∃ pd, σ.pending !! t = some pd ∧ p ∈ pd.pairs
+  (∀ t pd' p, σ'.pending !! t = some pd' → p ∈ pd'.pairs →
+    ∃ pd, σ.pending !! t = some pd ∧ p ∈ pd.pairs) ∧
+  ∀ t pd p, σ.pending !! t = some pd → p ∈ pd.pairs →
+    (∃ pd', σ'.pending !! t = some pd' ∧ p ∈ pd'.pairs) ∨ safeRel R t p.2
 
 theorem relSafe_refl (R : List w64) (σ : FLState) : relSafe R σ σ :=
-  ⟨rfl, fun _ h => Or.inl h, fun _ pd' _ h hp => ⟨pd', h, hp⟩⟩
+  ⟨rfl, fun _ h => Or.inl h, fun _ pd' _ h hp => ⟨pd', h, hp⟩, fun _ pd _ h hp => Or.inl ⟨pd, h, hp⟩⟩
 
 theorem relSafe_trans (R : List w64) (σ σ1 σ2 : FLState) (h1 : relSafe R σ σ1)
     (h2 : relSafe R σ1 σ2) : relSafe R σ σ2 := by
-  obtain ⟨a1, f1, p1⟩ := h1
-  obtain ⟨a2, f2, p2⟩ := h2
-  refine ⟨a2.trans a1, fun x hx => ?_, fun t pd' p ht hp => ?_⟩
+  obtain ⟨a1, f1, p1, k1⟩ := h1
+  obtain ⟨a2, f2, p2, k2⟩ := h2
+  refine ⟨a2.trans a1, fun x hx => ?_, fun t pd' p ht hp => ?_, fun t pd p ht hp => ?_⟩
   · rcases f2 x hx with h | ⟨t, pd, a, ht, hp, hs⟩
     · exact f1 x h
     · obtain ⟨pd0, ht0, hp0⟩ := p1 t pd (x, a) ht hp
       exact Or.inr ⟨t, pd0, a, ht0, hp0, hs⟩
   · obtain ⟨pd1, ht1, hp1⟩ := p2 t pd' p ht hp
     exact p1 t pd1 p ht1 hp1
+  · rcases k1 t pd p ht hp with ⟨pd1, ht1, hp1⟩ | hs
+    · exact k2 t pd1 p ht1 hp1
+    · exact Or.inr hs
 
 theorem ofilter_some {α : Type} (o : Option α) (p : α → Bool) (v : α) :
     o.filter p = some v ↔ o = some v ∧ p v = true := by
@@ -93,7 +98,7 @@ theorem release_relSafe (R : List w64) (σ : FLState) (txid : w64)
     (hR : ∀ r ∈ R, uint.Z txid < uint.Z r)
     (hl : ∀ t pd, σ.pending !! t = some pd → pd.ids.length = pd.alloctx.length) :
     relSafe R σ (σ.release txid) := by
-  refine ⟨rfl, fun x hx => ?_, fun t pd' p ht hp => ?_⟩
+  refine ⟨rfl, fun x hx => ?_, fun t pd' p ht hp => ?_, fun t pd p ht hp => ?_⟩
   · simp only [FLState.release, List.mem_append] at hx
     rcases hx with h | h
     · exact Or.inl h
@@ -109,6 +114,16 @@ theorem release_relSafe (R : List w64) (σ : FLState) (txid : w64)
   · simp only [FLState.release] at ht
     rw [GMap.lookup_filter, ofilter_some] at ht
     exact ⟨pd', ht.1, hp⟩
+  · by_cases hle : uint.Z t ≤ uint.Z txid
+    · right
+      intro r hr hb
+      have := hR r hr
+      omega
+    · left
+      refine ⟨pd, ?_, hp⟩
+      simp only [FLState.release]
+      rw [GMap.lookup_filter, ht]
+      simp [Option.filter, hle]
 
 /-- The pairs `releaseRange` keeps of an entry are some of its pairs. -/
 theorem rrKeep_pairs_sub (b e : w64) (pd : Pending) (p : w64 × w64) (h : p ∈ (rrKeep b e pd).pairs) :
@@ -118,6 +133,51 @@ theorem rrKeep_pairs_sub (b e : w64) (pd : Pending) (p : w64 × w64) (h : p ∈ 
   rw [zip_map_fst_snd'] at h
   exact (List.mem_filter.1 h).1
 
+/-- A pending pair `releaseRange(b, e)` drops is safe (no reader in `[b, e]`). -/
+theorem releaseRange_keep (R : List w64) (σ : FLState) (b e : w64)
+    (hR : ∀ r ∈ R, ¬ (uint.Z b ≤ uint.Z r ∧ uint.Z r ≤ uint.Z e)) (t : w64) (pd : Pending)
+    (p : w64 × w64) (ht : σ.pending !! t = some pd) (hp : p ∈ pd.pairs) :
+    (∃ pd', (σ.releaseRange b e).pending !! t = some pd' ∧ p ∈ pd'.pairs) ∨ safeRel R t p.2 := by
+  unfold FLState.releaseRange
+  split
+  · exact Or.inl ⟨pd, ht, hp⟩
+  · by_cases htouch : rrTouched b e t pd = true
+    · by_cases hin : inTxRange b e p.2 = true
+      · right
+        intro r hr hb
+        have hta : inTxRange b e t = true := by
+          unfold rrTouched at htouch; simp only [Bool.and_eq_true] at htouch; exact htouch.1
+        unfold inTxRange at hta hin
+        simp only [decide_eq_true_eq] at hta hin
+        exact hR r hr ⟨by omega, by omega⟩
+      · left
+        have hmem : p ∈ (rrKeep b e pd).pairs := by
+          unfold rrKeep Pending.pairs
+          simp only
+          rw [zip_map_fst_snd']
+          exact List.mem_filter.2 ⟨hp, by simpa using hin⟩
+        refine ⟨rrKeep b e pd, ?_, hmem⟩
+        rw [GMap.lookup_union_Some_raw]
+        right
+        constructor
+        · rw [GMap.lookup_filter, ht]; simp [Option.filter, htouch]
+        · rw [GMap.lookup_filter, GMap.lookup_fmap, GMap.lookup_filter, ht]
+          have hne : (rrKeep b e pd).ids.isEmpty = false := by
+            cases h : (rrKeep b e pd).ids with
+            | nil =>
+              exfalso
+              unfold Pending.pairs at hmem
+              rw [h] at hmem
+              simp at hmem
+            | cons _ _ => rfl
+          simp [Option.filter, htouch, hne]
+    · left
+      refine ⟨pd, ?_, hp⟩
+      rw [GMap.lookup_union_Some_raw]
+      left
+      rw [GMap.lookup_filter, ht]
+      simp [Option.filter, htouch]
+
 /-- `releaseRange(b, e)` with no reader in `[b, e]`. -/
 theorem releaseRange_relSafe (R : List w64) (σ : FLState) (b e : w64)
     (hR : ∀ r ∈ R, ¬ (uint.Z b ≤ uint.Z r ∧ uint.Z r ≤ uint.Z e)) :
@@ -125,7 +185,7 @@ theorem releaseRange_relSafe (R : List w64) (σ : FLState) (b e : w64)
   unfold FLState.releaseRange
   split
   · exact relSafe_refl R σ
-  refine ⟨rfl, fun x hx => ?_, fun t pd' p ht hp => ?_⟩
+  refine ⟨rfl, fun x hx => ?_, fun t pd' p ht hp => ?_, fun t pd p ht hp => ?_⟩
   · simp only [List.mem_append] at hx
     rcases hx with h | h
     · exact Or.inl h
@@ -152,6 +212,10 @@ theorem releaseRange_relSafe (R : List w64) (σ : FLState) (b e : w64)
       obtain ⟨⟨pd0, h0, rfl⟩, _⟩ := ht
       rw [GMap.lookup_filter, ofilter_some] at h0
       exact ⟨pd0, h0.1, rrKeep_pairs_sub b e pd0 p hp⟩
+  · have hk := releaseRange_keep R σ b e hR t pd p ht hp
+    unfold FLState.releaseRange at hk
+    rw [if_neg (by assumption)] at hk
+    exact hk
 
 /-- The fold of `ReleasePendingPages` over the sorted read-only transactions `l` still to visit:
 every reader visited is below `acc.2`, and those to visit are at least `acc.2 - 1`. -/
@@ -198,9 +262,17 @@ theorem releaseFold_relSafe (R : List w64) (σ : FLState) :
 /-- `relSafe` through the freelist's equivalence (the order of free ids and of pending pairs). -/
 theorem relSafe_equiv (R : List w64) (σ τ τ' : FLState) (h : relSafe R σ τ) (he : τ'.equiv τ) :
     relSafe R σ τ' := by
-  obtain ⟨ha, hf, hp⟩ := h
+  obtain ⟨ha, hf, hp, hk⟩ := h
   obtain ⟨efree, _, eallocs, edom, epairs⟩ := he
-  refine ⟨eallocs.trans ha, fun x hx => hf x (efree.mem_iff.1 hx), fun t pd' p ht hpp => ?_⟩
+  refine ⟨eallocs.trans ha, fun x hx => hf x (efree.mem_iff.1 hx), fun t pd' p ht hpp => ?_,
+    fun t pd p ht hpp => ?_⟩
+  rotate_left
+  · rcases hk t pd p ht hpp with ⟨q, hq, hpq⟩ | hs
+    · left
+      have hsome := (edom t).2 (by rw [hq]; rfl)
+      obtain ⟨pd', hpd'⟩ := Option.isSome_iff_exists.1 hsome
+      exact ⟨pd', hpd', ((epairs t pd' q hpd' hq).1).mem_iff.2 hpq⟩
+    · exact Or.inr hs
   have hsome := (edom t).1 (by rw [ht]; rfl)
   cases hq : τ.pending !! t with
   | none => rw [hq] at hsome; cases hsome
@@ -253,7 +325,7 @@ theorem releasePending_relSafe (σ : FLState)
   -- after the newest reader
   have h3 := relSafe_trans _ σ _ _ h2a (releaseRange_relSafe _ _ _ (W64 (2 ^ 64 - 1))
     (fun r hr hb => Int.lt_irrefl _ (Int.lt_of_lt_of_le (h2b r hr) hb.1)))
-  exact ⟨h3.1, h3.2.1, h3.2.2⟩
+  exact ⟨h3.1, h3.2.1, h3.2.2.1, h3.2.2.2⟩
 
 section db
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -278,11 +350,11 @@ theorem dbOK_release (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ 
     (fl' : FLState) (he : fl'.equiv σ.fl.releasePending) :
     dbOK { σ with fl := fl' } v0 v1 := by
   have hrs := relSafe_equiv _ _ _ _ (releasePending_relSafe σ.fl hrng hl) he
-  obtain ⟨ha, hf, hp⟩ := hrs
+  obtain ⟨ha, hf, hp, hk⟩ := hrs
   have h' := h
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h'
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree⟩ := hcur
-  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, ⟨cwf, cdisj, cin, ?_, ?_, ?_, cagree⟩, hrd, ?_, hsl, hfl,
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree, crb, cfl⟩ := hcur
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, ⟨cwf, cdisj, cin, ?_, ?_, ?_, cagree, crb, ?_⟩, hrd, ?_, hsl, hfl,
     ?_, hrs, ?_⟩
   · intro id pg hid a hal
     exact calloc id pg hid a (by rw [← ha]; exact hal)
@@ -313,6 +385,28 @@ theorem dbOK_release (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ 
       · exact b7 t pd (x, a) ht hpp
     · obtain ⟨pd, ht0, hpp0⟩ := hp t pd' p ht hp'
       exact b7 t pd p ht0 hpp0
+  · -- the freelist page: the freed ids were committed pending ones, the dropped ones are safe
+    obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
+    refine flCurOK_fl σ { σ with fl := fl' } _ _ cfl rfl rfl rfl rfl rfl (fun x hx => ?_)
+      (fun t pd x a ht hx => Or.inl (hp t pd (x, a) ht hx)) (fun x hc => ?_)
+      (fun x ⟨t, pd, a, ht, hx, htx⟩ => ⟨b2 t pd (x, a) ht hx htx, b7 t pd (x, a) ht hx⟩)
+    · rcases hf x hx with h | ⟨t, pd, a, ht, hpp, _⟩
+      · exact Or.inl h
+      · right
+        refine ⟨t, pd, a, ht, hpp, ?_⟩
+        rcases b3 t pd (x, a) ht hpp with h | ⟨w, hw', _⟩
+        · exact h
+        · rw [hw] at hw'; cases hw'
+    · obtain ⟨t, pd, a, ht, hxa, htx⟩ := hc
+      rcases hk t pd (x, a) ht hxa with ⟨pd', ht', hxa'⟩ | hsafe
+      · exact Or.inl ⟨t, pd', a, ht', hxa', htx⟩
+      · right
+        have hxe := dbp_W64_uint_nat x
+        refine ⟨fun k r hk' hc => ?_, ⟨fun w hw' => (by rw [hw] at hw'; cases hw'), fun hc => ?_⟩⟩
+        · have := ((hmv k r hk').2 (uint.nat x) hc).2.2 t pd a ht (by rw [hxe]; exact hxa)
+          exact hsafe r.txid (reader_txid_ro σ v0 v1 h k r hk') this
+        · obtain ⟨⟨w, hw', _⟩, _⟩ := (cfree (uint.nat x) hc).2.2 t pd a ht (by rw [hxe]; exact hxa)
+          rw [hw] at hw'; cases hw'
   · intro k r hk
     obtain ⟨malloc, mfree⟩ := hmv k r hk
     have hR := reader_txid_ro σ v0 v1 h k r hk

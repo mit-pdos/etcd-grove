@@ -136,7 +136,7 @@ theorem listOK_page (σ : DBState) (T : WTx) (L : List DPg) (h : listOK T L) (hd
       uint.nat e.id + dspan e.b ≤ σ.nslots ∧ ∀ k < dspan e.b, slotUnseen σ (uint.nat e.id + k) := by
   obtain ⟨h1, h2⟩ := h.1 e he
   obtain ⟨hl, hid, hk⟩ := hd.1 e.id e.b (by rw [h1]; rfl) h2
-  refine ⟨hl, hid, ?_, fun k hk' => (hk k hk').2⟩
+  refine ⟨hl, hid, ?_, fun k hk' => (hk k hk').2.1⟩
   have := (hk (dspan e.b - 1) (by unfold dspan; omega)).1
   unfold dspan at this ⊢; omega
 
@@ -180,7 +180,7 @@ theorem listOK_bytes (σ : DBState) (T : WTx) (L : List DPg) (h : listOK T L) (h
 /-- A dirty slot is the database's whole half (no view takes a part of it). -/
 theorem rem_dirty (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1) (T : WTx)
     (hd : dirtyOK σ T) (s : Nat) (hs : dirtySlot T s) : σ.rem s = halfQ := by
-  obtain ⟨hlt, -, hr, hw, -⟩ := dirty_unseen σ T hd s hs
+  obtain ⟨hlt, ⟨-, hr, hw, -⟩, -⟩ := dirty_unseen σ T hd s hs
   have H := h.2.2.2.2.2.2.2.2.2.2.2.1 s hlt
   have hn : readersQ σ.readers (fun r => r.sees s) = none :=
     readersQ_none _ _ (fun k r hk => by

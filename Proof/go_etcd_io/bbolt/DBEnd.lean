@@ -39,13 +39,16 @@ theorem dbOK_removeReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbO
     (hro : ro.Perm (σ.fl.readonly.erase r.txid)) :
     dbOK (σ.removeReader k r ro) v0 v1 := by
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hroP, hrs, hwr⟩ := h
-  obtain ⟨c1, c2, c3, c4, c5, c6, ⟨va1, va2⟩⟩ := hcur
+  obtain ⟨c1, c2, c3, c4, c5, c6, ⟨va1, va2⟩, crb, cfl⟩ := hcur
   have hdel : ∀ k' r', (σ.removeReader k r ro).readers !! k' = some r' → σ.readers !! k' = some r' :=
     fun k' r' hk' => by
       rw [DBState.removeReader.proj_readers, GMap.lookup_delete_Some] at hk'; exact hk'.2
   refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
-    ⟨c1, c2, c3, c4, c5, c6, fun k' r' hk' => va1 k' r' (hdel k' r' hk'),
+    ⟨c1, c2, c3, c4, c5, c6, ⟨fun k' r' hk' => va1 k' r' (hdel k' r' hk'),
       fun w hw => ⟨(va2 w hw).1, fun k' r' hk' => (va2 w hw).2 k' r' (hdel k' r' hk')⟩⟩,
+      fun k' r' hk' => crb k' r' (hdel k' r' hk'),
+      flCurOK_congr σ _ _ _ cfl rfl rfl (Nat.le_refl _) rfl rfl
+        (fun s ⟨u1, u2, u3⟩ => ⟨fun k' r' hk' => u1 k' r' (hdel k' r' hk'), u2, u3⟩)⟩,
     ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
   · intro k' r' hk'
     rw [DBState.removeReader.proj_readers, GMap.lookup_delete_Some] at hk'

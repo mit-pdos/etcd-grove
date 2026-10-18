@@ -74,7 +74,7 @@ theorem dbOK_allocate (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ
     (txid r : w64) (n : Nat) (hn : 0 < n) (hcan : σ.fl.canAllocate r n) :
     dbOK { σ with fl := σ.fl.allocate txid r n } v0 v1 := by
   obtain ⟨hps, hps2, hns, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree⟩ := hcur
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree, crb, cfl⟩ := hcur
   obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
   refine ⟨hps, hps2, hns, hsz, hdc, hm0, hm1, hv,
     ⟨cwf, cdisj, cin,
@@ -82,7 +82,11 @@ theorem dbOK_allocate (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ
       fun s hs => ⟨(cfree s hs).1, fun hf => (cfree s hs).2.1 (free_allocate σ.fl txid r n _ hf),
         (cfree s hs).2.2⟩,
       ⟨fun x hx => b1 x (free_allocate σ.fl txid r n x hx), b2, b3, b4, b5,
-        fun x hx => b6 x (free_allocate σ.fl txid r n x hx), b7⟩, cagree⟩,
+        fun x hx => b6 x (free_allocate σ.fl txid r n x hx), b7⟩, cagree, crb,
+      flCurOK_fl σ { σ with fl := σ.fl.allocate txid r n } _ _ cfl rfl rfl rfl rfl rfl
+        (fun x hx => Or.inl (free_allocate σ.fl txid r n x hx))
+        (fun t pd x a ht hx => Or.inl ⟨pd, ht, hx⟩) (fun x hc => Or.inl hc)
+        (fun x ⟨t, pd, a, ht, hx, htx⟩ => ⟨b2 t pd (x, a) ht hx htx, b7 t pd (x, a) ht hx⟩)⟩,
     hrd, fun k rd hk => mvccView_allocate σ txid r n hn hcan _ _ (hmv k rd hk), hsl, hfl, hro, hrs,
     ⟨hwr.1, fun w hw => ⟨(hwr.2 w hw).1,
       mvccView_allocate σ txid r n hn hcan _ _ (hwr.2 w hw).2⟩⟩⟩

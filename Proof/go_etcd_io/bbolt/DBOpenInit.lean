@@ -262,7 +262,7 @@ theorem fileWF_initBytes (ps : Nat) (h80 : 80 ≤ ps) (h32 : ps < 2 ^ 32) :
   have hn : flN (pageAt (initBytes ps) ps 2) = 0 := by rw [hfpg, oi_flN]
   rw [← hfpg] at hfl2 hl2
   simp only [hpg, hrt, hfl, hids, hoff, hn]
-  refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, by omega, ?_, ?_, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- the tree: the empty leaf
     refine treeWF.page 3 (initEmptyPage ps 3 (W16 2)) (by omega) ((ht _ _).2 ⟨rfl, rfl⟩) hid3 ?_
     refine pageTreeWF.leaf _ _ hfl3 ⟨Nat.le_refl _, ?_, ?_, ?_⟩ ?_
@@ -299,6 +299,12 @@ theorem fileWF_initBytes (ps : Nat) (h80 : 80 ≤ ps) (h32 : ps < 2 ^ 32) :
     · rw [hl2]; omega
   · intro x hx; simp at hx
   · show uint.Z (W64 ((1 : Nat) : Int)) + 1 < 2 ^ 64; decide
+  · rw [sp2]; omega
+  · rintro s ⟨id, pg, hid, h1, h2⟩ ⟨h3, h4⟩
+    obtain ⟨rfl, rfl⟩ := (ht _ _).1 hid
+    rw [sp2] at h4
+    omega
+  · intro x hx; simp at hx
 
 end pure
 

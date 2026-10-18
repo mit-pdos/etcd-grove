@@ -69,6 +69,49 @@ theorem fl_off (x : w64) (ps : Nat) (h : uint.nat x * ps < 2 ^ 62) :
   generalize uint.nat x * ps = n at h ⊢
   word
 
+/-- The writer `w` rolled back (no entry pending for its txid), the freelist well-formed: what
+`rollback` needs to reload the free ids from the current freelist page (`rbReloadOK`), out of the
+database's facts (`flCurOK`, `dbOK_reload`). -/
+theorem rbReloadOK_of_dbOK (σ : DBState) (hwf : σ.fl.WF) : rbReloadOK σ := by
+  intro v0 v1 h
+  have hok := h
+  obtain ⟨hps, -, -, hsz, -, -, -, -, hcur, -, -, -, -, -, -, -⟩ := h
+  obtain ⟨-, -, -, -, -, cbelow, -, -, cfl⟩ := hcur
+  obtain ⟨-, -, b3, -, -, -, b7⟩ := cbelow
+  have cfl' := cfl
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a8b, a9, a10, a11, a12⟩ := cfl'
+  refine ⟨a1, fun k hk => ⟨?_, ?_⟩, a5, a6, a7, a8, a8b, ?_, ?_, fun free' hinc hperm => ?_⟩
+  · have := Nat.le_min.1 a3; omega
+  · obtain ⟨u1, u2, u3⟩ := (a4 (uint.nat (if metaPick v0 v1 then v1 else v0).freelist' + k)
+      (by omega) (by omega)).1
+    refine ⟨by omega, u1, u2, fun v0' v1' h' => ?_⟩
+    obtain ⟨e0, e1⟩ := dbOK_metas_same σ σ v0 v1 v0' v1' hok h' rfl rfl
+    rw [e0, e1]; exact u3
+  · -- the page's ids fit it; the pending ids are distinct, below 2^62
+    have hpl : (pageAt σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist')).length < 2 ^ 62 := by
+      unfold pageAt; simp only [List.length_take, List.length_drop]; omega
+    have hfl := flIds_length (pageAt σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist'))
+    have hnd : σ.fl.pendingIds.Nodup := (List.nodup_append.1 hwf.1).2.1
+    have hb : ∀ x ∈ σ.fl.pendingIds, uint.Z x < 2 ^ 62 := by
+      intro x hx
+      rw [pendingIds_eq, mem_flatIds] at hx
+      obtain ⟨t, pd, ht, hxi⟩ := hx
+      obtain ⟨a, ha⟩ := mem_pairs_of_mem_ids pd x (hwf.2.2.2.2 t pd ht) hxi
+      exact b7 t pd (x, a) ht ha
+    have := nodup_length_le _ (2 ^ 62) hnd (fun x hx => by have := hb x hx; omega)
+    unfold FLState.pendingCount
+    omega
+  · cases hf : σ.fl.free with
+    | nil => exact Or.inr rfl
+    | cons x xs =>
+      left
+      intro he
+      have := a10 x (by rw [hf]; exact List.mem_cons_self)
+      rw [he] at this; cases this
+  · refine dbOK_reload σ v0 v1 hok free' (fun x hx => ?_)
+    have := (List.mem_filter.1 (hperm.mem_iff.1 hx))
+    exact ⟨this.1, by simpa using this.2⟩
+
 end lemmas
 
 section proof
@@ -87,7 +130,7 @@ theorem Tx.rollback.wp_wproof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
     (hPage : DB.page.spec (GF := GF) (hG := hG))
     (hclose : Tx.close.wspec (GF := GF) (hG := hG)) :
     Tx.rollback.wspec (GF := GF) (hG := hG) := by
-  intro I γ W txl txid σ T hRb hRl hFC hPC hEW Hwr Htdb Hroot Hmtx Hrbok
+  intro I γ W txl txid σ T hRb hRl hFC hPC hEW Hwr Htdb Hroot Hmtx
   wp_start as ⟨Hdbw, Hg, Hv⟩
   unfold dbWR
   icases Hdbw with ⟨Hdb, %Hdw⟩
@@ -143,6 +186,13 @@ theorem Tx.rollback.wp_wproof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
   wp_apply hSynced W.dbl _ _ (DFrac.own 1) _ _ v0 v1 hc16 hc1 Hvalid $$ [meta0 meta1 HM0 HM1]
     as ⟨meta0, meta1, HM0, HM1⟩
   · iframe
+  isimp only [ownFL] at Hfl
+  icases Hfl with ⟨#Hfh, Hfsh, Hfo⟩
+  ihave Hfsh := ownShared_wf _ _ _ $$ Hfsh
+  icases Hfsh with ⟨Hfsh, %Hwf1⟩
+  ihave Hfl : ownFL I fls _ $$ [Hfsh Hfo]
+  · simp only [ownFL]; iframe; iframe #
+  have Hrbok := rbReloadOK_of_dbOK { σ with fl := σ.fl.rollback (w.txid + W64 1) } Hwf1
   obtain ⟨Hnofl, Hrb⟩ := Hrbok v0 v1 Hok
   rw [decide_eq_false Hnofl]
   try wp_auto

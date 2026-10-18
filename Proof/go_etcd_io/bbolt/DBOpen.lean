@@ -41,7 +41,20 @@ def fileCurOK (bs : List w8) (ps : Nat) (m : internal.common.Meta) : Prop :=
   (∀ s, coversSlot cur s → 2 ≤ s ∧ W64 s ∉ flIds fpg) ∧
   m.freelist' ≠ W64 18446744073709551615 ∧ 2 ≤ fid ∧ fid + pageSpan bs ps fid ≤ bs.length / ps ∧
   flPageOK fpg ∧ (∀ x ∈ flIds fpg, uint.Z x < uint.Z m.pgid' ∧ uint.Z x < 2 ^ 62) ∧
-  uint.Z m.txid' + 1 < 2 ^ 64
+  uint.Z m.txid' + 1 < 2 ^ 64 ∧ fid + pageSpan bs ps fid ≤ hwm ∧
+  (∀ s, coversSlot cur s → ¬ (fid ≤ s ∧ s < fid + pageSpan bs ps fid)) ∧
+  (∀ x ∈ flIds fpg, ¬ (fid ≤ uint.nat x ∧ uint.nat x < fid + pageSpan bs ps fid))
+
+/-- An overflowing freelist page's count fits: its ids fit the page. -/
+theorem fl_count_nonneg (pg : List w8) (hfit : flOff pg + 8 * flN pg ≤ pg.length)
+    (hlen : pg.length < 2 ^ 62) :
+    fpOverflow (pageOf pg) → 0 ≤ sint.Z (flPageCount pg) := by
+  intro hov
+  unfold flN fpCount at hfit
+  rw [if_pos hov] at hfit
+  have : uint.nat (flPageCount pg) < 2 ^ 62 := by omega
+  unfold uint.nat at this
+  word
 
 /-- A well-formed database file (see the module doc). -/
 def fileWF (bs : List w8) (ps : Nat) : Prop :=
@@ -78,12 +91,12 @@ theorem dbOK_open (file : Loc) (fd : w64) (bs : List w8) (data : Loc) (sz ps : N
   obtain ⟨hps, hps2, h2, hlen, hcur⟩ := hwf
   obtain ⟨hm0, hm1, hv⟩ := hm
   have hc := hcur v0 v1 hm0 hm1 hv
-  obtain ⟨cwf, cdisj, cin, cfree, cfl, cfid2, cfid, cfpg, cids, ctx⟩ := hc
+  obtain ⟨cwf, cdisj, cin, cfree, cfl, cfid2, cfid, cfpg, cids, ctx, cf1, cf2, cf3⟩ := hc
   have hns : (openState file fd bs data sz ps free path).nslots = bs.length / ps := by
     unfold DBState.nslots openState; simp only; rw [Nat.min_eq_right hsz]
   have hfree' : ∀ x, x ∈ free ↔ x ∈ flIds (pageAt bs ps
       (uint.nat (if metaPick v0 v1 then v1 else v0).freelist')) := fun x => hfree.mem_iff
-  refine ⟨hps, hps2, ?_, ⟨hszb, by show bs.length < 2 ^ 62; omega⟩, hdata, hm0, hm1, hv, ⟨cwf, cdisj, ?_, ?_, ?_, ?_, ?_⟩,
+  refine ⟨hps, hps2, ?_, ⟨hszb, by show bs.length < 2 ^ 62; omega⟩, hdata, hm0, hm1, hv, ⟨cwf, cdisj, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩,
     ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hns]; exact (Nat.le_div_iff_mul_le (by omega)).2 (by omega)
   · intro id pg hid; rw [hns]; exact cin id pg hid
@@ -99,6 +112,33 @@ theorem dbOK_open (file : Loc) (fd : w64) (bs : List w8) (data : Loc) (sz ps : N
     · simp [openState] at hw
     · simp [openState, FLState.empty] at ht
   · exact ⟨fun k r hk => by simp [openState] at hk, fun w hw => by simp [openState] at hw⟩
+  · intro k r hk; simp [openState] at hk
+  · -- the freelist page: the free ids are its ids
+    have hno : ∀ s, unseenBy (openState file fd bs data sz ps free path)
+        (treePages (filePages bs ps (uint.nat (if metaPick v0 v1 then v1 else v0).pgid'))
+          (uint.nat (if metaPick v0 v1 then v1 else v0).root'.root')) s ↔
+        ¬ coversSlot (treePages (filePages bs ps (uint.nat (if metaPick v0 v1 then v1 else v0).pgid'))
+          (uint.nat (if metaPick v0 v1 then v1 else v0).root'.root')) s := by
+      intro s
+      unfold unseenBy
+      constructor
+      · exact fun h => h.2.2
+      · exact fun h => ⟨fun k r hk => by simp [openState] at hk, fun w hw => by simp [openState] at hw, h⟩
+    obtain ⟨fp1, fp2, fp3, fp4, fp5⟩ := cfpg
+    refine ⟨cfl, cfid2, ?_, fun s h1 h2 => ⟨(hno s).2 (fun hc => cf2 s hc ⟨h1, h2⟩), fun hf => ?_,
+      fun t pd a ht => by simp [openState, FLState.empty] at ht⟩, ?_, fp2, fl_count_nonneg _ fp2 fp3,
+      fp4, fp5, cf3, fun x hx => (hfree' x).1 hx, fun x ⟨t, pd, a, ht, _⟩ => by
+        simp [openState, FLState.empty] at ht, fun x hx => Or.inr ⟨fp5 x hx, (cids x hx).1, (cids x hx).2,
+        (hno _).2 (fun hc => (cfree _ hc).2 (by rw [dbp_W64_uint_nat]; exact hx))⟩⟩
+    · rw [hns]; exact Nat.le_min.2 ⟨cfid, cf1⟩
+    · have hx := (hfree' _).1 hf
+      apply cf3 _ hx
+      have h2' : s < uint.nat (if metaPick v0 v1 then v1 else v0).freelist' +
+          pageSpan bs ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist') := h2
+      rw [dbp_uint_nat_W64 _ (by have := dbp_uint_nat_lt (if metaPick v0 v1 then v1 else v0).pgid'; omega)]
+      exact ⟨h1, h2'⟩
+    · show pageFlags (pageAt bs ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist')) = 16
+      rw [fp1]; rfl
   · intro k r hk; simp [openState] at hk
   · intro k r hk; simp [openState] at hk
   · intro s _

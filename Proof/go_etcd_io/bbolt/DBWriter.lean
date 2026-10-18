@@ -42,7 +42,7 @@ theorem dbOK_addWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     dbOK (σ.addWriter txl (newReader σ v0 v1 (beginQ σ))) v0 v1 := by
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hcur' := hcur
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩⟩ := hcur'
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩, crb, cfl⟩ := hcur'
   have hps16 : 16 ≤ σ.ps := by omega
   have hsees := newReader_sees σ v0 v1 (beginQ σ) hps16 hcur
   refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
@@ -60,7 +60,10 @@ theorem dbOK_addWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
       ⟨va1, fun w hw' => (by
         simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
         subst hw'
-        exact ⟨pagesAgree_self cdisj, fun k r hk => (va1 k r hk).2⟩)⟩⟩,
+        exact ⟨pagesAgree_self cdisj, fun k r hk => (va1 k r hk).2⟩)⟩, crb,
+      flCurOK_congr σ _ _ _ cfl rfl rfl (Nat.le_refl _) rfl rfl (fun s ⟨u1, _, u3⟩ => ⟨u1, fun w hw' => (by
+        simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
+        subst hw'; exact u3), u3⟩)⟩,
     hrd, hmv, ?_, ?_, hro, hrs, ?_⟩
   · -- the slots
     intro s hs

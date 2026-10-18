@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Page__Id
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Pgid
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__SetPgid
 public import Proof.go_etcd_io.bbolt.DBAlloc
+public import Proof.go_etcd_io.bbolt.DBRollback
 public import Proof.go_etcd_io.bbolt.AllocPage
 public import Proof.go_etcd_io.bbolt.MmapSize
 
@@ -298,7 +299,11 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
               wp_apply hmmap dbl σ.file σ.fd σ.bs dv.logger' dl (W64 (σ.ps : Int)) dv.MaxSize' dv.MmapFlags'
                 σ.rwtx (DFrac.own 1) dv.dataref' σ.data dv.datasz' dv.meta0' dv.meta1' (some (σ.data, σ.sz))
                 σ.sz γ.mmap σ.readers iprop(WR ∗ pagesView σ.data σ.ps w.q w.pages)
-                iprop(WR' ∗ pagesView σ.data σ.ps w.q w.pages) WR' _ Hdbl Hok.2.2.2.1.2 (by word) (by word)
+                iprop(WR' ∗ pagesView σ.data σ.ps w.q w.pages) WR'
+                iprop(structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
+                  structFieldRef DB go!"data" dbl ↦{DFrac.own w.q} σ.data ∗
+                  slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗ mapTail σ.data σ.bs σ.sz σ.ps)
+                _ Hdbl Hok.2.2.2.1.2 (by word) (by word)
                 (by rw [hmz.2]; exact Int.mul_nonneg (by have := (word.unsigned_range mv.pgid').1; omega) (by omega))
                 (by rw [hmz.2]; simp only [Int.add_mul, Int.one_mul]; omega) Hlog
                 (Or.inr ⟨by rw [Hdr]; exact loc_ne_null_of_car _ Hok.2.2.2.2.1, by rw [Hdr], by rw [Hdr],
@@ -309,7 +314,7 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 as %e Hres
               · iframe
                 iframe #
-                iintro %hM ⟨HK, HPV⟩
+                iintro %hM ⟨HK, HPV⟩ ⟨Hdata, Hwd, Hslots, Htail⟩
                 have hf := fields_whole σ v0 v1 Hok hM w hw
                 iframe
                 isplitl [Hdata Hwd]
@@ -317,10 +322,47 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 iapply remap_gather σ v0 v1 Hok hM w hw
                 iframe
               icases Hres with ⟨%hM, file, MaxSize, Hml, rwtx, MmapFlags, Hbytes, Hmh, Hres⟩
-              icases Hres with (⟨%He, HWR, Hwand, dataref, datasz, meta0, meta1, Hmap⟩ |
-                ⟨%He, HK, %dp', %ds', %m0', %m1', %m', %n', dataref, Hd, datasz, meta0, meta1, Hmap, Hr⟩ |
+              icases Hres with (⟨%He, HWR, HC, Hwand, dataref, datasz, meta0, meta1, Hmap⟩ |
+                ⟨%He, HK, %ds', %m0', %m1', %m', %n', dataref, Hd, datasz, meta0, meta1, Hmap, Hr⟩ |
                 ⟨%He, HK, %b, %sz, %v0', %v1', %Hb, dataref, Hd, datasz, meta0, meta1, Hmap, Hr⟩)
-              · -- an early error of `db.mmap`: the database is lost (its cells are in the wand)
+              · -- an early error of `db.mmap`: nothing changed
+                icases HC with ⟨Hdata, Hwd, Hslots, Htail⟩
+                icases HWR with ⟨HWR, Hwp⟩
+                ihave Htoks : ([∗map] _k ↦ _r ∈ σ.readers, mmapTok (GF := GF) γ.mmap sync.rfrac) $$ []
+                · rw [hM]
+                  iapply (BigSepM.bigSepM_empty (PROP := IProp GF) (M := GMap Nat)
+                    (Φ := fun (_ : Nat) (_ : Reader) => mmapTok (GF := GF) γ.mmap sync.rfrac)).2
+                  itrivial
+                ihave Hmmaph := (show sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok (GF := GF) γ.mmap) ∗
+                      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size - 1) (),
+                        sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap)) ⊢
+                    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size) (),
+                      sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok (GF := GF) γ.mmap)) from by
+                  rw [show Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size =
+                    (Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size - 1) + 1 by omega, List.replicate_succ,
+                    Nat.add_sub_cancel]
+                  exact (BigSepL.bigSepL_cons (Φ := fun (_ : Nat) (_ : Unit) =>
+                    sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok (GF := GF) γ.mmap))).2)
+                  $$ [Hmh Hmmaph]
+                · iframe
+                ihave Hdone : ownDB I dbl γ σ $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly Hflf Hdata Hfp Hbytes Hmap Hslots Htail Hfl Hrwl Hmmaph Htoks Hstath Hstats Hrauth]
+                · try simp only [ownDB]
+                  iexists dv, fls, v0, v1, dl
+                  isplitr
+                  · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
+                  isplitr
+                  · ipureintro; exact Hok
+                  isplitr
+                  · ipureintro; exact Hdr
+                  isplitr
+                  · ipureintro; exact Hops
+                  ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
+                  · simp only [dbPlain]; (try rw [Hrw]); (try rw [Hfile']); iframe
+                  rw [Hfl']
+                  try simp only [FLImpl.iface, interface.mkOk]
+                  iframe
+                  iframe #
+                  try (ipureintro; exact Hlog)
                 cases e with
                 | nil => exact absurd rfl He.1
                 | ok ei =>
@@ -342,11 +384,13 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                     · rw [decide_eq_true hlp]
                       try wp_auto
                       iapply HΦ
-                      iright; ileft
+                      ileft
                       isplitr
                       · ipureintro; intro h; cases h
+                      isplitl [Hdone]
+                      · isimp only [ownDB, FLImpl.iface, interface.mkOk] at Hdone
+                        iexact Hdone
                       iframe
-                      try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
                     · rw [decide_eq_false hlp]
                       try wp_auto
                       wp_apply wp_slice_literal
@@ -356,11 +400,13 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
                       try wp_auto
                       iapply HΦ
-                      iright; ileft
+                      ileft
                       isplitr
                       · ipureintro; intro h; cases h
+                      isplitl [Hdone]
+                      · isimp only [ownDB, FLImpl.iface, interface.mkOk] at Hdone
+                        iexact Hdone
                       iframe
-                      try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
                   · rw [if_neg hty]
                     try wp_auto
                     wp_apply wp_slice_literal
@@ -370,13 +416,28 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                     wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
                     try wp_auto
                     iapply HΦ
-                    iright; ileft
+                    ileft
                     isplitr
                     · ipureintro; intro h; cases h
+                    isplitl [Hdone]
+                    · isimp only [ownDB, FLImpl.iface, interface.mkOk] at Hdone
+                      iexact Hdone
                     iframe
-                    try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
 
               · -- the mapping lost after the dereference
+                have hcan := (dbOK_rollbackW σ v0 v1 Hok Hwf w hw).1
+                ihave Hdone : dbLost I dbl σ.rwtx (w.txid + W64 1) σ.fl $$ [Hfl Hd Hflf Hwfl rwtx Hrwl Hstath stats Hstats]
+                · simp only [dbLost]
+                  iexists fls, dv.stats', W64 σ.ps
+                  isplitr
+                  · ipureintro; exact ⟨hcan, Hdbl⟩
+                  simp only [flfQ, hrw0, decide_false, ↓reduceIte, Bool.false_eq_true]
+                  try rw [Hfl']
+                  try simp only [FLImpl.iface, interface.mkOk]
+                  ihave Hflf := (pointsto_split' _ _ halfQ halfQ 1 (by simp [halfQ, Qp.half_add_half])).2 $$ [Hflf Hwfl]
+                  · iframe
+                  iframe
+                  iframe #
                 cases e with
                 | nil => exact absurd rfl He.1
                 | ok ei =>
@@ -402,7 +463,6 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       isplitr
                       · ipureintro; intro h; cases h
                       iframe
-                      try (iright; iexact HK)
                     · rw [decide_eq_false hlp]
                       try wp_auto
                       wp_apply wp_slice_literal
@@ -416,7 +476,6 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       isplitr
                       · ipureintro; intro h; cases h
                       iframe
-                      try (iright; iexact HK)
                   · rw [if_neg hty]
                     try wp_auto
                     wp_apply wp_slice_literal
@@ -430,7 +489,6 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                     isplitr
                     · ipureintro; intro h; cases h
                     iframe
-                    try (iright; iexact HK)
               · -- remapped
                 subst He
                 obtain ⟨Hbl, Hbc, Hbp, Hmsz, -⟩ := Hb
@@ -636,7 +694,11 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
           wp_apply hmmap dbl σ.file σ.fd σ.bs dv.logger' dl (W64 (σ.ps : Int)) dv.MaxSize' dv.MmapFlags'
             σ.rwtx (DFrac.own 1) dv.dataref' σ.data dv.datasz' dv.meta0' dv.meta1' (some (σ.data, σ.sz))
             σ.sz γ.mmap σ.readers iprop(WR ∗ pagesView σ.data σ.ps w.q w.pages)
-            iprop(WR' ∗ pagesView σ.data σ.ps w.q w.pages) WR' _ Hdbl Hok.2.2.2.1.2 (by word) (by word)
+            iprop(WR' ∗ pagesView σ.data σ.ps w.q w.pages) WR'
+            iprop(structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
+              structFieldRef DB go!"data" dbl ↦{DFrac.own w.q} σ.data ∗
+              slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗ mapTail σ.data σ.bs σ.sz σ.ps)
+            _ Hdbl Hok.2.2.2.1.2 (by word) (by word)
             (by rw [hmz.2]; exact Int.mul_nonneg (by have := (word.unsigned_range mv.pgid').1; omega) (by omega))
             (by rw [hmz.2]; simp only [Int.add_mul, Int.one_mul]; omega) Hlog
             (Or.inr ⟨by rw [Hdr]; exact loc_ne_null_of_car _ Hok.2.2.2.2.1, by rw [Hdr], by rw [Hdr],
@@ -647,7 +709,7 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
             as %e Hres
           · iframe
             iframe #
-            iintro %hM ⟨HK, HPV⟩
+            iintro %hM ⟨HK, HPV⟩ ⟨Hdata, Hwd, Hslots, Htail⟩
             have hf := fields_whole σ v0 v1 Hok hM w hw
             iframe
             isplitl [Hdata Hwd]
@@ -655,10 +717,47 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
             iapply remap_gather σ v0 v1 Hok hM w hw
             iframe
           icases Hres with ⟨%hM, file, MaxSize, Hml, rwtx, MmapFlags, Hbytes, Hmh, Hres⟩
-          icases Hres with (⟨%He, HWR, Hwand, dataref, datasz, meta0, meta1, Hmap⟩ |
-            ⟨%He, HK, %dp', %ds', %m0', %m1', %m', %n', dataref, Hd, datasz, meta0, meta1, Hmap, Hr⟩ |
+          icases Hres with (⟨%He, HWR, HC, Hwand, dataref, datasz, meta0, meta1, Hmap⟩ |
+            ⟨%He, HK, %ds', %m0', %m1', %m', %n', dataref, Hd, datasz, meta0, meta1, Hmap, Hr⟩ |
             ⟨%He, HK, %b, %sz, %v0', %v1', %Hb, dataref, Hd, datasz, meta0, meta1, Hmap, Hr⟩)
-          · -- an early error of `db.mmap`: the database is lost (its cells are in the wand)
+          · -- an early error of `db.mmap`: nothing changed
+            icases HC with ⟨Hdata, Hwd, Hslots, Htail⟩
+            icases HWR with ⟨HWR, Hwp⟩
+            ihave Htoks : ([∗map] _k ↦ _r ∈ σ.readers, mmapTok (GF := GF) γ.mmap sync.rfrac) $$ []
+            · rw [hM]
+              iapply (BigSepM.bigSepM_empty (PROP := IProp GF) (M := GMap Nat)
+                (Φ := fun (_ : Nat) (_ : Reader) => mmapTok (GF := GF) γ.mmap sync.rfrac)).2
+              itrivial
+            ihave Hmmaph := (show sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok (GF := GF) γ.mmap) ∗
+                  ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size - 1) (),
+                    sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap)) ⊢
+                ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size) (),
+                  sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok (GF := GF) γ.mmap)) from by
+              rw [show Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size =
+                (Int.toNat sync.rwmutex.actualMaxReaders - σ.readers.size - 1) + 1 by omega, List.replicate_succ,
+                Nat.add_sub_cancel]
+              exact (BigSepL.bigSepL_cons (Φ := fun (_ : Nat) (_ : Unit) =>
+                sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok (GF := GF) γ.mmap))).2)
+              $$ [Hmh Hmmaph]
+            · iframe
+            ihave Hdone : ownDB I dbl γ σ $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly Hflf Hdata Hfp Hbytes Hmap Hslots Htail Hfl Hrwl Hmmaph Htoks Hstath Hstats Hrauth]
+            · try simp only [ownDB]
+              iexists dv, fls, v0, v1, dl
+              isplitr
+              · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
+              isplitr
+              · ipureintro; exact Hok
+              isplitr
+              · ipureintro; exact Hdr
+              isplitr
+              · ipureintro; exact Hops
+              ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
+              · simp only [dbPlain]; (try rw [Hrw]); (try rw [Hfile']); iframe
+              rw [Hfl']
+              try simp only [FLImpl.iface, interface.mkOk]
+              iframe
+              iframe #
+              try (ipureintro; exact Hlog)
             cases e with
             | nil => exact absurd rfl He.1
             | ok ei =>
@@ -680,11 +779,13 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 · rw [decide_eq_true hlp]
                   try wp_auto
                   iapply HΦ
-                  iright; ileft
+                  ileft
                   isplitr
                   · ipureintro; intro h; cases h
+                  isplitl [Hdone]
+                  · isimp only [ownDB, FLImpl.iface, interface.mkOk] at Hdone
+                    iexact Hdone
                   iframe
-                  try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
                 · rw [decide_eq_false hlp]
                   try wp_auto
                   wp_apply wp_slice_literal
@@ -694,11 +795,13 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
                   try wp_auto
                   iapply HΦ
-                  iright; ileft
+                  ileft
                   isplitr
                   · ipureintro; intro h; cases h
+                  isplitl [Hdone]
+                  · isimp only [ownDB, FLImpl.iface, interface.mkOk] at Hdone
+                    iexact Hdone
                   iframe
-                  try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
               · rw [if_neg hty]
                 try wp_auto
                 wp_apply wp_slice_literal
@@ -708,13 +811,28 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
                 try wp_auto
                 iapply HΦ
-                iright; ileft
+                ileft
                 isplitr
                 · ipureintro; intro h; cases h
+                isplitl [Hdone]
+                · isimp only [ownDB, FLImpl.iface, interface.mkOk] at Hdone
+                  iexact Hdone
                 iframe
-                try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
 
           · -- the mapping lost after the dereference
+            have hcan := (dbOK_rollbackW σ v0 v1 Hok Hwf w hw).1
+            ihave Hdone : dbLost I dbl σ.rwtx (w.txid + W64 1) σ.fl $$ [Hfl Hd Hflf Hwfl rwtx Hrwl Hstath stats Hstats]
+            · simp only [dbLost]
+              iexists fls, dv.stats', W64 σ.ps
+              isplitr
+              · ipureintro; exact ⟨hcan, Hdbl⟩
+              simp only [flfQ, hrw0, decide_false, ↓reduceIte, Bool.false_eq_true]
+              try rw [Hfl']
+              try simp only [FLImpl.iface, interface.mkOk]
+              ihave Hflf := (pointsto_split' _ _ halfQ halfQ 1 (by simp [halfQ, Qp.half_add_half])).2 $$ [Hflf Hwfl]
+              · iframe
+              iframe
+              iframe #
             cases e with
             | nil => exact absurd rfl He.1
             | ok ei =>
@@ -740,7 +858,6 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   isplitr
                   · ipureintro; intro h; cases h
                   iframe
-                  try (iright; iexact HK)
                 · rw [decide_eq_false hlp]
                   try wp_auto
                   wp_apply wp_slice_literal
@@ -754,7 +871,6 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   isplitr
                   · ipureintro; intro h; cases h
                   iframe
-                  try (iright; iexact HK)
               · rw [if_neg hty]
                 try wp_auto
                 wp_apply wp_slice_literal
@@ -768,7 +884,6 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 isplitr
                 · ipureintro; intro h; cases h
                 iframe
-                try (iright; iexact HK)
           · -- remapped
             subst He
             obtain ⟨Hbl, Hbc, Hbp, Hmsz, -⟩ := Hb

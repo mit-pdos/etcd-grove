@@ -76,10 +76,10 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hValidate : Meta.Validate.spec (GF := GF) (hG := hG))
     (hErrorf : DefaultLogger.Errorf.spec (GF := GF) (hG := hG)) :
     DB.mmap.spec (GF := GF) (hG := hG) := by
-  intro dbl f fd bs lg dl ps ms mf rw dq dr dp ds m0 m1 m n γ M WR WR' K minsz
+  intro dbl f fd bs lg dl ps ms mf rw dq dr dp ds m0 m1 m n γ M WR WR' K C minsz
     Hdbl Hbl Hps80 Hps32 Hmin0 Hmin Hlg Hdr Hrw0 Hderef
   wp_start as ⟨#Hlgf, #Hdl, #Hdlok, #Hpsf, Hf, Hms, Hml, Hrw, Hmf, Hdrf, Hds, Hm0, Hm1, #Hfile,
-    Hbytes, Hmap, Hmmh, Htoks, HWR, Hold⟩
+    Hbytes, Hmap, Hmmh, Htoks, HWR, HC, Hold⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
@@ -184,7 +184,7 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         try wp_auto
         try wp_join_done
       -- the old mapping goes: no reader holds it now
-      ihave Hold := Hold $$ %rfl HWR
+      ihave Hold := Hold $$ %rfl HWR HC
       icases Hold with ⟨Hdata, Hrange, HK⟩
       ihave Hmd : iprop((⌜dr = slice.nil⌝ ∗ (fileBytes fd bs ∗ fileMap fd none)) ∨
           (⌜dr.ptr ≠ null ∧ dr.len = W64 (n : Int) ∧ dr.cap = W64 (n : Int)⌝ ∗ fileBytes fd bs ∗

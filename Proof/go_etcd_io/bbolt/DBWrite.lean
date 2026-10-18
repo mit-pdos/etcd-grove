@@ -10,6 +10,8 @@ module
 public import Proof.go_etcd_io.bbolt.DBAlloc
 public import Proof.go_etcd_io.bbolt.DBBegin
 public import Proof.go_etcd_io.bbolt.WriteTxModel
+public import Spec.go_etcd_io.bbolt.DB__allocate
+public import Proof.go_etcd_io.bbolt.MetaInj
 
 @[expose] public section
 
@@ -152,11 +154,18 @@ def curPages (σ : DBState) (v0 v1 : internal.common.Meta) : GMap Nat (List w8) 
   treePages (filePages σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).pgid'))
     (uint.nat (if metaPick v0 v1 then v1 else v0).root'.root')
 
-/-- A slot some view covers: a meta, the current tree's, a reader's, the writer's. -/
+/-- Slot `s` is one of the current meta's freelist page. -/
+def inFlPage (σ : DBState) (v0 v1 : internal.common.Meta) (s : Nat) : Prop :=
+  uint.nat (if metaPick v0 v1 then v1 else v0).freelist' ≤ s ∧
+  s < uint.nat (if metaPick v0 v1 then v1 else v0).freelist' +
+    pageSpan σ.bs σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist')
+
+/-- A slot some view covers: a meta, the current tree's, a reader's, the writer's, or the current
+freelist page's. -/
 def slotSeen (σ : DBState) (v0 v1 : internal.common.Meta) (s : Nat) : Prop :=
   s < 2 ∨ coversSlot (curPages σ v0 v1) s ∨
   (∃ k r, σ.readers !! k = some r ∧ coversSlot r.pages s) ∨
-  (∃ w, σ.wr = some w ∧ coversSlot w.pages s)
+  (∃ w, σ.wr = some w ∧ coversSlot w.pages s) ∨ inFlPage σ v0 v1 s
 
 /-- The pages of a view of the file, slot by slot the same in `bs'`, are the same there. -/
 theorem view_congr (bs bs' : List w8) (ps : Nat) (hps : 16 ≤ ps) (P : GMap Nat (List w8))
@@ -223,7 +232,7 @@ theorem dbOK_bytes (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0
     ?_, ?_, hv, ?_, fun k r hk => hread r (hrd k r hk) (fun s hs => hsame s (Or.inr (Or.inr
       (Or.inl ⟨k, r, hk, hs⟩)))), hmv, fun s hs => hsl s (by rw [hns] at hs; exact hs), hfl,
     hro, hrs, ⟨hwr.1, fun w hw => ⟨hread w (hwr.2 w hw).1 (fun s hs => hsame s (Or.inr (Or.inr
-      (Or.inr ⟨w, hw, hs⟩)))), (hwr.2 w hw).2⟩⟩⟩
+      (Or.inr (Or.inl ⟨w, hw, hs⟩))))), (hwr.2 w hw).2⟩⟩⟩
   · unfold metaIn; show ((slotAt bs' σ.ps 0).drop 16).take 64 = _
     rw [hsame 0 (Or.inl (by omega))]; exact hm0
   · unfold metaIn; show ((slotAt bs' σ.ps 1).drop 16).take 64 = _
@@ -232,9 +241,17 @@ theorem dbOK_bytes (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0
     unfold currentOK
     simp only
     rw [hfp]
-    refine ⟨cwf, cdisj, fun id pg hid => ?_, calloc, cfree, cbelow, cagree⟩
-    rw [(hcc id pg hid).1, hns]
-    exact cin id pg hid
+    obtain ⟨cagree, crb, cfl⟩ := cagree
+    refine ⟨cwf, cdisj, fun id pg hid => ?_, calloc, cfree, cbelow, cagree, crb, ?_⟩
+    · rw [(hcc id pg hid).1, hns]
+      exact cin id pg hid
+    · -- the freelist page: its slots unchanged
+      have hfl := pageAt_congr σ.bs bs' σ.ps (uint.nat (if metaPick v0 v1 then v1 else v0).freelist')
+        (fun j hj => hsame _ (Or.inr (Or.inr (Or.inr (Or.inr ⟨by omega, by omega⟩)))))
+      unfold flCurOK at cfl ⊢
+      simp only
+      rw [hfl.1, hfl.2, hns]
+      exact cfl
 
 
 /-! ### Bytes written inside a file -/
@@ -404,7 +421,8 @@ file and seen by no view; distinct pages have disjoint slots. -/
 def dirtyOK (σ : DBState) (T : WTx) : Prop :=
   (∀ id b, (T.pm !! id).isSome → T.bufs !! id = some b →
     b.length = dspan b * σ.ps ∧ pageId b = uint.nat id ∧
-    ∀ k < dspan b, uint.nat id + k < σ.nslots ∧ slotUnseen σ (uint.nat id + k)) ∧
+    ∀ k < dspan b, uint.nat id + k < σ.nslots ∧ slotUnseen σ (uint.nat id + k) ∧
+      ∀ v0 v1, dbOK σ v0 v1 → ¬ inFlPage σ v0 v1 (uint.nat id + k)) ∧
   ∀ i1 b1 i2 b2, (T.pm !! i1).isSome → T.bufs !! i1 = some b1 → (T.pm !! i2).isSome →
     T.bufs !! i2 = some b2 → i1 ≠ i2 →
     uint.nat i1 + dspan b1 ≤ uint.nat i2 ∨ uint.nat i2 + dspan b2 ≤ uint.nat i1
@@ -425,7 +443,7 @@ def dirtyAll (T : WTx) (ps : Nat) (bs' : List w8) : Prop :=
 
 /-- The dirty slots no view sees. -/
 theorem dirty_unseen (σ : DBState) (T : WTx) (h : dirtyOK σ T) (s : Nat) (hs : dirtySlot T s) :
-    s < σ.nslots ∧ slotUnseen σ s := by
+    s < σ.nslots ∧ slotUnseen σ s ∧ ∀ v0 v1, dbOK σ v0 v1 → ¬ inFlPage σ v0 v1 s := by
   obtain ⟨id, b, hp, hb, h1, h2⟩ := hs
   have := (h.1 id b hp hb).2.2 (s - uint.nat id) (by omega)
   rwa [show uint.nat id + (s - uint.nat id) = s by omega] at this
@@ -435,14 +453,143 @@ theorem dbOK_dirty (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0
     (hd : dirtyOK σ T) (bs' : List w8) (hw : dirtyOnly T σ.ps σ.bs bs') :
     dbOK { σ with bs := bs' } v0 v1 := by
   refine dbOK_bytes σ v0 v1 h bs' hw.1 (fun s hs => hw.2 s (fun hds => ?_))
-  obtain ⟨-, h2, hr, hwr, hc⟩ := dirty_unseen σ T hd s hds
-  rcases hs with hs | hs | ⟨k, r, hk, hs⟩ | ⟨w, hw', hs⟩
+  obtain ⟨-, ⟨h2, hr, hwr, hc⟩, hnf⟩ := dirty_unseen σ T hd s hds
+  rcases hs with hs | hs | ⟨k, r, hk, hs⟩ | ⟨w, hw', hs⟩ | hs
   · omega
   · exact hc v0 v1 h hs
   · exact hr k r hk hs
   · exact hwr w hw' hs
+  · exact hnf v0 v1 h hs
+
+/-! ### The slots an allocation takes -/
+
+/-- No reader is newer than the current tree: their high-water marks are at most its. -/
+theorem dbOK_readers_below (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1) :
+    ∀ k r, σ.readers !! k = some r → r.hwm ≤ uint.nat (if metaPick v0 v1 then v1 else v0).pgid' := by
+  obtain ⟨-, -, -, -, -, -, -, -, hcur, -⟩ := h
+  obtain ⟨-, -, -, -, -, -, -, crb, -⟩ := hcur
+  exact crb
+
+/-- A view whose pages are the file's, ending below `H`, covers only slots below `H`. -/
+theorem view_covers_lt (σ : DBState) (P : GMap Nat (List w8)) (H : Nat) (hps : 16 ≤ σ.ps)
+    (hin : ∀ id pg, P !! id = some pg → pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ H)
+    (s : Nat) (hc : coversSlot P s) : s < H := by
+  obtain ⟨id, pg, hid, h1, h2⟩ := hc
+  have := span_of_pageAt σ.bs σ.ps id pg hps (hin id pg hid).1.symm
+  have := (hin id pg hid).2
+  omega
+
+/-- The slots `db.allocate` takes (`allocOK`, for the writer `w` whose meta's high-water mark is
+at least its view's) are seen by no view and are none of the current freelist page's: free ones
+(which no view sees), or ones from the high-water mark on. -/
+theorem allocOK_unseen (σ σ' : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
+    (w : Reader) (hw : σ.wr = some w) (mv mv' : internal.common.Meta) (txid id : w64) (n : Nat)
+    (hmv : w.hwm ≤ uint.nat mv.pgid') (hal : allocOK σ σ' w mv mv' txid id n) :
+    ∀ k < n, unseenBy σ (curPages σ v0 v1) (uint.nat id + k) ∧ ¬ inFlPage σ v0 v1 (uint.nat id + k) := by
+  intro k hk
+  have hok := h
+  obtain ⟨hps, -, -, hsz, -, -, -, -, hcur, hrd, hmvc, -, -, -, -, hwr⟩ := h
+  obtain ⟨-, -, cin, -, cfree, cbelow, -, crb, cfl⟩ := hcur
+  obtain ⟨-, -, -, b4, -, -, -⟩ := cbelow
+  have hps16 : 16 ≤ σ.ps := by omega
+  have hwo := (hwr.2 w hw)
+  obtain ⟨hid2, -, -, -, -, hidn, hcases⟩ := hal
+  have z1 : uint.Z id = ((uint.nat id : Nat) : Int) := rfl
+  have z2 : uint.Z mv'.pgid' = ((uint.nat mv'.pgid' : Nat) : Int) := rfl
+  have hidk : uint.nat id + k < 2 ^ 64 := by
+    have := dbp_uint_nat_lt mv'.pgid'
+    omega
+  rcases hcases with ⟨hcan, -, -⟩ | ⟨hidm, -, -⟩
+  · -- a free run
+    have hf : W64 ((uint.nat id + k : Nat) : Int) ∈ σ.fl.free := by
+      have e : uint.Z (W64 ((uint.nat id + k : Nat) : Int)) = ((uint.nat id + k : Nat) : Int) := by
+        generalize uint.nat id + k = s at hidk ⊢
+        word
+      apply hcan.2
+      unfold inRun
+      rw [e, z1]; omega
+    refine ⟨⟨fun kr r hk' hc => ((hmvc kr r hk').2 _ hc).2.1 hf,
+      fun w' hw' hc => ((hwr.2 w' hw').2.2 _ hc).2.1 hf, fun hc => (cfree _ hc).2.1 hf⟩, fun hin => ?_⟩
+    exact (cfl.2.2.2.1 _ hin.1 hin.2).2.1 hf
+  · -- at the high-water mark: no view reaches it
+    have hb4 := (b4 w hw).1
+    have hge : uint.nat (if metaPick v0 v1 then v1 else v0).pgid' ≤ uint.nat id + k := by
+      rw [← hb4]; have : uint.nat id = uint.nat mv.pgid' := by rw [hidm]
+      omega
+    refine ⟨⟨fun kr r hk' hc => ?_, fun w' hw' hc => ?_, fun hc => ?_⟩, fun hin => ?_⟩
+    · have := view_covers_lt σ r.pages r.hwm hps16
+        (fun i pg hi => ⟨((hrd kr r hk').2.2 i pg hi).1, by
+          have := ((hrd kr r hk').2.2 i pg hi).2; exact Nat.le_trans this (Nat.min_le_right _ _)⟩) _ hc
+      have := crb kr r hk'
+      omega
+    · obtain rfl := Option.some.inj (hw.symm.trans hw')
+      have := view_covers_lt σ w.pages w.hwm hps16
+        (fun i pg hi => ⟨((hwo.1).2.2 i pg hi).1, by
+          have := ((hwo.1).2.2 i pg hi).2; exact Nat.le_trans this (Nat.min_le_right _ _)⟩) _ hc
+      omega
+    · unfold curPages at hc
+      have := view_covers_lt σ _ (uint.nat (if metaPick v0 v1 then v1 else v0).pgid') hps16
+        (fun i pg hi => ⟨(filePages_some _ _ _ _ _ (treePages_lookup _ _ i pg hi)).symm, by
+          have := cin i pg hi; exact Nat.le_trans this (Nat.min_le_right _ _)⟩) _ hc
+      omega
+    · have := Nat.le_min.1 cfl.2.2.1
+      unfold inFlPage at hin
+      omega
+
+/-- The database's facts determine its metas from the file. -/
+theorem dbOK_metas_same (σ σ' : DBState) (v0 v1 v0' v1' : internal.common.Meta) (h : dbOK σ v0 v1)
+    (h' : dbOK σ' v0' v1') (hbs : σ'.bs = σ.bs) (hps : σ'.ps = σ.ps) : v0' = v0 ∧ v1' = v1 := by
+  obtain ⟨-, -, -, -, -, m0, m1, -⟩ := h
+  obtain ⟨-, -, -, -, -, m0', m1', -⟩ := h'
+  unfold metaIn at m0 m1 m0' m1'
+  rw [hbs, hps] at m0' m1'
+  exact ⟨metaBytes_inj _ _ (m0'.symm.trans m0), metaBytes_inj _ _ (m1'.symm.trans m1)⟩
+
+/-- What `db.allocate` keeps of the database: the file, page size, readers and writer. -/
+theorem allocOK_same (σ σ' : DBState) (w : Reader) (mv mv' : internal.common.Meta) (txid id : w64)
+    (n : Nat) (h : allocOK σ σ' w mv mv' txid id n) :
+    σ'.bs = σ.bs ∧ σ'.ps = σ.ps ∧ σ'.readers = σ.readers ∧ σ'.wr = σ.wr := by
+  obtain ⟨-, -, -, -, -, -, h⟩ := h
+  rcases h with ⟨-, rfl, -⟩ | ⟨-, -, rfl | ⟨d', sz', -, rfl⟩⟩ <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- The allocated slots, seen by no view of the database after the allocation and none of its
+current freelist page's (for any metas its facts hold of). -/
+theorem allocOK_unseen' (σ σ' : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
+    (w : Reader) (hw : σ.wr = some w) (mv mv' : internal.common.Meta) (txid id : w64) (n : Nat)
+    (hmv : w.hwm ≤ uint.nat mv.pgid') (hal : allocOK σ σ' w mv mv' txid id n) :
+    ∀ k < n, ∀ v0' v1', dbOK σ' v0' v1' →
+      unseenBy σ' (curPages σ' v0' v1') (uint.nat id + k) ∧ ¬ inFlPage σ' v0' v1' (uint.nat id + k) := by
+  intro k hk v0' v1' h'
+  obtain ⟨hbs, hps, hrd, hwr⟩ := allocOK_same σ σ' w mv mv' txid id n hal
+  obtain ⟨e0, e1⟩ := dbOK_metas_same σ σ' v0 v1 v0' v1' h h' hbs hps
+  rw [e0, e1]
+  obtain ⟨⟨u1, u2, u3⟩, hnf⟩ := allocOK_unseen σ σ' v0 v1 h w hw mv mv' txid id n hmv hal k hk
+  have hc : curPages σ' v0 v1 = curPages σ v0 v1 := by unfold curPages; rw [hbs, hps]
+  refine ⟨⟨fun kr r hk' => u1 kr r (by rw [← hrd]; exact hk'), fun w' hw' => u2 w' (by rw [← hwr]; exact hw'),
+    by rw [hc]; exact u3⟩, ?_⟩
+  unfold inFlPage at hnf ⊢
+  rw [hbs, hps]; exact hnf
 
 end dirty
+
+section own
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+
+/-- The database's facts, out of its predicate. -/
+theorem ownDB_dbOK (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) :
+    ownDB I dbl γ σ ⊢ ⌜∃ v0 v1, dbOK σ v0 v1⌝ := by
+  iintro Hdb
+  isimp only [ownDB] at Hdb
+  iNamed Hdb
+  ipureintro
+  exact ⟨v0, v1, Hok⟩
+
+end own
 
 end bbolt
 end EtcdGrove

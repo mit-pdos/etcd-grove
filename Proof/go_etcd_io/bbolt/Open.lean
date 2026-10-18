@@ -224,6 +224,9 @@ instance statsInv_fractional : Fractional (statsInv (GF := GF)) :=
     · iintro _; isplitl; itrivial; itrivial
     · iintro _; itrivial⟩
 
+-- a linter does not finish on this proof (since the remap's error cases changed shape,
+-- `DB__mmap.lean`)
+set_option linter.all false in
 set_option maxRecDepth 20000 in
 set_option pp.deepTerms true in
 set_option pp.maxSteps 5000000 in
@@ -452,7 +455,7 @@ theorem Open.wp_proof (hDL : getDiscardLogger.spec (GF := GF) (hG := hG))
       exact BigSepL.bigSepL_cons.1) $$ Hmmh
     icases Hmmh with ⟨Hmm1, Hmmh⟩
     wp_apply hmmap «$r0_ptr» f fd bsF (discardIface dl) dl (W64 (ps : Int)) ov.MaxSize' ov.MmapFlags' null
-        (DFrac.own 1) slice.nil null (W64 0) null null none 0 γm ∅ iprop(emp) iprop(emp) iprop(emp)
+        (DFrac.own 1) slice.nil null (W64 0) null null none 0 γm ∅ iprop(emp) iprop(emp) iprop(emp) iprop(emp)
         ov.InitialMmapSize' Hdbnn (by omega) (by rw [w64_nat_z ps (by omega)]; omega)
         (by rw [w64_nat_z ps (by omega)]; omega) hims0 hims1 (Or.inr rfl) (Or.inl ⟨rfl, rfl⟩)
         (fun _ => .rfl) (fun h => absurd rfl h)
@@ -462,18 +465,19 @@ theorem Open.wp_proof (hDL : getDiscardLogger.spec (GF := GF) (hG := hG))
       iframe; iframe #
       isplitl []
       · iapply BigSepM.bigSepM_empty.2; iempintro
-      iintro %_ _
+      iintro %_ _ _
       iframe
       iapply (mapRange_empty none bsF 0 0 (Nat.le_refl _)).2; iempintro
     icases Hm with ⟨-, file, MaxSize, #Mlock2, rwtx, MmapFlags, Hfb, Hmm1, Hmr⟩
-    icases Hmr with (⟨%Hme, -, Hwand, dataref, datasz, meta0, meta1, Hfm⟩ |
-      ⟨%Hme, -, %dp', %ds', %m0', %m1', %mm', %n', dataref, data, datasz, meta0, meta1, Hfm, -⟩ |
+    icases Hmr with (⟨%Hme, -, -, Hwand, dataref, datasz, meta0, meta1, Hfm⟩ |
+      ⟨%Hme, -, %ds', %m0', %m1', %mm', %n', dataref, data, datasz, meta0, meta1, Hfm, -⟩ |
       ⟨%Hme, -, %b, %sz, %v0, %v1, %Hmb, dataref, data, datasz, meta0, meta1, Hfm, Hrange⟩)
     · -- the mapping failed, nothing mapped: close the file, the error
       ihave Hwd : (structFieldRef DB go!"data" «$r0_ptr» ↦ (null : Loc) ∗ mapRange none bsF 0 0 ∗ emp : IProp GF)
         $$ [Hwand]
       · iapply Hwand
         · ipureintro; first | rfl | trivial
+        · iempintro
         · iempintro
       icases Hwd with ⟨data, -, -⟩
       obtain ⟨Hne', -⟩ := Hme

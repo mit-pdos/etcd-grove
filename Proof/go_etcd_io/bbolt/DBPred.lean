@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.bbolt.DBSplit
 public import Proof.go_etcd_io.bbolt.DBModel
 public import Proof.go_etcd_io.bbolt.FilePages
 public import Proof.go_etcd_io.bbolt.TreeStrict
+public import Proof.go_etcd_io.bbolt.FLPage
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Spec.go_etcd_io.bbolt.DefaultLogger__Errorf
 public import Proof.os.FileModel
@@ -207,6 +208,43 @@ def viewsAgree (σ : DBState) (txid : w64) (cur : GMap Nat (List w8)) : Prop :=
   ∀ w, σ.wr = some w → pagesAgree cur w.pages ∧
     ∀ k r, σ.readers !! k = some r → pagesAgree w.pages r.pages
 
+/-- No view of the database covers slot `s`: no reader's, not the writer's, not the current
+tree `cur`. -/
+def unseenBy (σ : DBState) (cur : GMap Nat (List w8)) (s : Nat) : Prop :=
+  (∀ k r, σ.readers !! k = some r → ¬ coversSlot r.pages s) ∧
+  (∀ w, σ.wr = some w → ¬ coversSlot w.pages s) ∧ ¬ coversSlot cur s
+
+/-- `x` is pending for a committed transaction (`m`'s or before). -/
+def committedPending (σ : DBState) (m : internal.common.Meta) (x : w64) : Prop :=
+  ∃ t pd a, σ.fl.pending !! t = some pd ∧ (x, a) ∈ pd.pairs ∧ uint.Z t ≤ uint.Z m.txid'
+
+/-- The current meta `m`'s freelist page `fid` (`cur` the current tree): `m` names one, its
+slots are inside the mapping and below the high-water mark, seen by no view, neither free nor
+pending; it is a freelist page `Reload` can read (its ids distinct, none on its own slots); it
+records every free id and every id pending for a committed transaction; and each of its ids
+is pending for a committed transaction or could be free (seen by no view, below the
+high-water mark): the ids the open writer allocated from the free ones, since the commit
+that wrote the page. So the writer's `rollback` can reload the free ids from it
+(`dbOK_reload`). -/
+def flCurOK (σ : DBState) (m : internal.common.Meta) (cur : GMap Nat (List w8)) : Prop :=
+  m.freelist' ≠ W64 18446744073709551615 ∧ 2 ≤ uint.nat m.freelist' ∧
+  uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist') ≤ min σ.nslots (uint.nat m.pgid') ∧
+  (∀ s, uint.nat m.freelist' ≤ s → s < uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist') →
+    unseenBy σ cur s ∧ W64 s ∉ σ.fl.free ∧ ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs) ∧
+  pageFlags (pageAt σ.bs σ.ps (uint.nat m.freelist')) = 16 ∧
+  flOff (pageAt σ.bs σ.ps (uint.nat m.freelist')) + 8 * flN (pageAt σ.bs σ.ps (uint.nat m.freelist')) ≤
+    (pageAt σ.bs σ.ps (uint.nat m.freelist')).length ∧
+  (fpOverflow (pageOf (pageAt σ.bs σ.ps (uint.nat m.freelist'))) →
+    0 ≤ sint.Z (flPageCount (pageAt σ.bs σ.ps (uint.nat m.freelist')))) ∧
+  (flIds (pageAt σ.bs σ.ps (uint.nat m.freelist'))).Nodup ∧
+  (∀ x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist')), 2 ≤ uint.Z x) ∧
+  (∀ x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist')), ¬ (uint.nat m.freelist' ≤ uint.nat x ∧
+    uint.nat x < uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist'))) ∧
+  (∀ x ∈ σ.fl.free, x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist'))) ∧
+  (∀ x, committedPending σ m x → x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist'))) ∧
+  (∀ x ∈ flIds (pageAt σ.bs σ.ps (uint.nat m.freelist')), committedPending σ m x ∨
+    (2 ≤ uint.Z x ∧ uint.Z x < uint.Z m.pgid' ∧ uint.Z x < 2 ^ 62 ∧ unseenBy σ cur (uint.nat x)))
+
 /-- The current tree (of the meta `db.meta()` picks): well-formed and strict (`treeStrict`: what a
 writer needs of it), its pages disjoint, inside
 the mapping and below the high-water mark, allocated by its transaction or before, and none
@@ -224,7 +262,8 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
     ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∈ pd.pairs →
       (∃ w, σ.wr = some w ∧ t = w.txid + W64 1) ∧ uint.Z a ≤ uint.Z m.txid') ∧
-  flBelow σ m ∧ viewsAgree σ m.txid' ps
+  flBelow σ m ∧ viewsAgree σ m.txid' ps ∧
+  (∀ k r, σ.readers !! k = some r → r.hwm ≤ hwm) ∧ flCurOK σ m ps
 
 /-- The database's facts: the mapping, the two metas (one valid), the current tree, the
 readers, the accounting. -/
@@ -322,6 +361,74 @@ def ownReadTx (dbl : Loc) (γ : DBNames) (txl : Loc) (k : Nat) (r : Reader) (dat
     "Hpages" ∷ pagesView data ps r.q r.pages ∗
     "Hrl" ∷ ownRWMutexRLocked (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap) ∗
     "Hkey" ∷ k ↪[γ.readers] r)
+
+theorem dbp_uint_nat_W64 (s : Nat) (h : s < 2 ^ 64) : uint.nat (W64 (s : Int)) = s := by
+  unfold uint.nat; word
+
+theorem dbp_uint_nat_lt (x : w64) : uint.nat x < 2 ^ 64 := by unfold uint.nat; word
+
+theorem dbp_W64_uint_nat (x : w64) : W64 ((uint.nat x : Nat) : Int) = x := by unfold uint.nat; word
+
+/-! ### The current freelist page's facts through the database's changes -/
+
+/-- With the same file, page size, views and freelist, more slots mapped: the facts kept. -/
+theorem flCurOK_congr (σ σ' : DBState) (m : internal.common.Meta) (cur : GMap Nat (List w8))
+    (h : flCurOK σ m cur) (hbs : σ'.bs = σ.bs) (hps : σ'.ps = σ.ps) (hns : σ.nslots ≤ σ'.nslots)
+    (hfree : σ'.fl.free = σ.fl.free) (hpend : σ'.fl.pending = σ.fl.pending)
+    (hun : ∀ s, unseenBy σ cur s → unseenBy σ' cur s) : flCurOK σ' m cur := by
+  unfold flCurOK committedPending at *
+  rw [hbs, hps, hfree, hpend]
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a8b, a9, a10, a11, a12⟩ := h
+  refine ⟨a1, a2, ?_, fun s h1 h2 => ⟨hun s (a4 s h1 h2).1, (a4 s h1 h2).2⟩, a5, a6, a7, a8, a8b,
+    a9, a10, a11, fun x hx => (a12 x hx).imp id (fun b => ⟨b.1, b.2.1, b.2.2.1, hun _ b.2.2.2⟩)⟩
+  have := Nat.le_min.1 a3
+  exact Nat.le_min.2 ⟨by omega, this.2⟩
+
+/-- With the same file, page size, mapping and views, a freelist that frees only free ids or
+committed pending ones, pends only ids that were pending or are of a newer transaction (not the
+page's slots), and keeps each committed pending id pending or makes it seen by no view: the facts
+kept (the committed pending ids below the high-water mark: `hb2`, `hb7`). -/
+theorem flCurOK_fl (σ σ' : DBState) (m : internal.common.Meta) (cur : GMap Nat (List w8))
+    (h : flCurOK σ m cur) (hbs : σ'.bs = σ.bs) (hps : σ'.ps = σ.ps) (hns : σ'.nslots = σ.nslots)
+    (hrd : σ'.readers = σ.readers) (hwr : σ'.wr = σ.wr)
+    (hF1 : ∀ x ∈ σ'.fl.free, x ∈ σ.fl.free ∨ committedPending σ m x)
+    (hF2 : ∀ t pd x a, σ'.fl.pending !! t = some pd → (x, a) ∈ pd.pairs →
+      (∃ pd0, σ.fl.pending !! t = some pd0 ∧ (x, a) ∈ pd0.pairs) ∨
+      (uint.Z m.txid' < uint.Z t ∧ ¬ (uint.nat m.freelist' ≤ uint.nat x ∧
+        uint.nat x < uint.nat m.freelist' + pageSpan σ.bs σ.ps (uint.nat m.freelist'))))
+    (hF3 : ∀ x, committedPending σ m x → committedPending σ' m x ∨ unseenBy σ cur (uint.nat x))
+    (hb : ∀ x, committedPending σ m x → uint.Z x < uint.Z m.pgid' ∧ uint.Z x < 2 ^ 62) :
+    flCurOK σ' m cur := by
+  have hun : ∀ s, unseenBy σ cur s → unseenBy σ' cur s := by
+    intro s ⟨u1, u2, u3⟩
+    exact ⟨fun k r hk => u1 k r (by rw [← hrd]; exact hk), fun w hw => u2 w (by rw [← hwr]; exact hw), u3⟩
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a8b, a9, a10, a11, a12⟩ := h
+  unfold flCurOK
+  rw [hbs, hps, hns]
+  refine ⟨a1, a2, a3, fun s h1 h2 => ⟨hun s (a4 s h1 h2).1, fun hf => ?_, fun t pd a ht hx => ?_⟩, a5, a6,
+    a7, a8, a8b, a9, fun x hx => ?_, fun x hx => ?_, fun x hx => ?_⟩
+  · rcases hF1 _ hf with hf | hc
+    · exact (a4 s h1 h2).2.1 hf
+    · apply a9 _ (a11 _ hc)
+      rw [dbp_uint_nat_W64 s (by have := Nat.le_min.1 a3; have := dbp_uint_nat_lt m.pgid'; omega)]
+      exact ⟨h1, h2⟩
+  · rcases hF2 t pd _ a ht hx with ⟨pd0, ht0, hx0⟩ | ⟨-, hno⟩
+    · exact (a4 s h1 h2).2.2 t pd0 a ht0 hx0
+    · apply hno
+      rw [dbp_uint_nat_W64 s (by have := Nat.le_min.1 a3; have := dbp_uint_nat_lt m.pgid'; omega)]
+      exact ⟨h1, h2⟩
+  · rcases hF1 x hx with hf | hc
+    · exact a10 x hf
+    · exact a11 x hc
+  · obtain ⟨t, pd, a, ht, hxi, htx⟩ := hx
+    rcases hF2 t pd x a ht hxi with ⟨pd0, ht0, hx0⟩ | ⟨hlt, -⟩
+    · exact a11 x ⟨t, pd0, a, ht0, hx0, htx⟩
+    · omega
+  · rcases a12 x hx with hc | ⟨b1, b2, b3, b4⟩
+    · rcases hF3 x hc with hc' | hu
+      · exact Or.inl hc'
+      · exact Or.inr ⟨a8b x hx, (hb x hc).1, (hb x hc).2, hun _ hu⟩
+    · exact Or.inr ⟨b1, b2, b3, hun _ b4⟩
 
 end defs
 

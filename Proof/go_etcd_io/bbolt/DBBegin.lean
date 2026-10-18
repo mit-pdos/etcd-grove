@@ -191,12 +191,12 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hk := freshKey_none σ.readers
   have hcur' := hcur
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩⟩ := hcur'
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩, crb, cfl⟩ := hcur'
   have hps16 : 16 ≤ σ.ps := by omega
   -- what the new reader sees: the current tree's slots
   have hsees := newReader_sees σ v0 v1 (beginQ σ) hps16 hcur
   refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
-    ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
+    ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨?_, ?_⟩, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
   · -- the readers agree with the current tree (the new one is of it)
     intro k' r' hk'
     rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
@@ -210,6 +210,19 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
     · exact pagesAgree_symm (va2 w hw).1
     · exact (va2 w hw).2 k' r' hk'
+  · -- no reader newer than the current tree (the new one is of it)
+    intro k' r' hk'
+    rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
+    rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
+    · exact Nat.le_refl _
+    · exact crb k' r' hk'
+  · -- the freelist page: the new reader sees only the current tree
+    refine flCurOK_congr σ _ _ _ cfl rfl rfl (Nat.le_refl _) rfl rfl (fun s ⟨u1, u2, u3⟩ => ⟨?_, u2, u3⟩)
+    intro k' r' hk'
+    rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
+    rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
+    · exact u3
+    · exact u1 k' r' hk'
   · -- the readers' facts
     intro k' r' hk'
     rw [DBState.addReader, GMap.lookup_insert_Some] at hk'

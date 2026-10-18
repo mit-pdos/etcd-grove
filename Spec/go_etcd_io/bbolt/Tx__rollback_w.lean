@@ -25,9 +25,8 @@ free ids from the current meta's freelist page, for the metas the database's fac
 the meta records a freelist page (`hasSyncedFreelist`), whose slots are inside the mapping and
 seen by no view (so the database holds them whole), a well-formed freelist page whose ids
 `Reload` accepts; and the database's facts hold with the free ids reloaded (the page's ids but
-the pending ones, sorted). The database's facts do not record the freelist page (`dbOK` does not
-say that the current meta's freelist page holds the free and pending ids of its commit), so the
-caller (`Commit`) proves this. -/
+the pending ones, sorted). The database's facts give it (`rbReloadOK_of_dbOK`, from `flCurOK`:
+the current meta's freelist page holds the free and committed pending ids). -/
 def rbReloadOK (σ : DBState) : Prop :=
   ∀ v0 v1, dbOK σ v0 v1 →
     (if metaPick v0 v1 then v1 else v0).freelist' ≠ W64 18446744073709551615 ∧
@@ -54,14 +53,16 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 /-- `tx.rollback()` of the writer `txl` (its meta's txid `txid`), the current meta still the one
 its view is of: the freelist rolled back for `txid` (the pages it freed allocated again, those it
 allocated dropped), the free ids reloaded from the current meta's freelist page (`Reload`: the
-page's ids but the pending ones; `rbReloadOK`), and the writer closed (`Tx.close.wspec`). -/
+page's ids but the pending ones: `rbReloadOK_of_dbOK` from the database's facts), and the
+writer closed (`Tx.close.wspec`). The database is mapped here (`dbWR`); after a failed remap
+(`data` nil, no reload), see `Tx.rollback.lspec`. -/
 abbrev Tx.rollback.wspec : Prop :=
   ∀ (I : FLImpl (GF := GF)) (γ : DBNames) (W : WView) (txl : Loc) (txid : w64) (σ : DBState)
     (T : WTx),
   I.RollbackSpec → I.ReloadSpec → I.IfaceFreeCountSpec → I.PendingCountSpec →
   I.EstimatedWritePageSizeSpec →
   T.t.writable' = true → T.t.db' = W.dbl → (T.bs !! structFieldRef Tx go!"root" txl).isSome →
-  T.mv.txid' = txid → rbReloadOK { σ with fl := σ.fl.rollback txid } →
+  T.mv.txid' = txid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbWR I γ W txl txid σ ∗
       ownWriteTxG W txl T ∗ wView W }}
     (App (Val (txl @!! go.GoType.PointerType Tx.ty @!! go!"rollback")) (Val #()))

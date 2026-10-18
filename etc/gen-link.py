@@ -176,21 +176,16 @@ fns.sort()
 
 spec = {}
 # a second spec of a function (`<T>.<M>.wspec`, proved by `<T>.<M>.wp_wproof`: the writer's
-# view of a function a reader also calls) is linked as `<T>.wp_<M>_w`; a third
-# (`<T>.<M>.sspec`, `<T>.<M>.wp_sproof`: bbolt's writer with its shape, `WriteTxShape.lean`)
-# as `<T>.wp_<M>_s`
-wspec = set()
-sspec = set()
+# view of a function a reader also calls) is linked as `<T>.wp_<M>_w`; likewise any variant
+# `<T>.<M>.<x>spec` proved by `<T>.<M>.wp_<x>proof` (bbolt: `s`, the writer with its shape,
+# `WriteTxShape.lean`; `l`, the database lost after a failed remap) as `<T>.wp_<M>_<x>`
+variant = {}
 for fn in fns:
     src = open(spec_file(fn)).read()
     m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
     if m is None:
-        m = re.search(r"^abbrev ([\w.«»']+)\.wspec\b", src, re.M)
-        if m is not None:
-            wspec.add(fn)
-        else:
-            m = re.search(r"^abbrev ([\w.«»']+)\.sspec\b", src, re.M)
-            sspec.add(fn)
+        m = re.search(r"^abbrev ([\w.«»']+)\.([a-z])spec\b", src, re.M)
+        variant[fn] = m.group(2)
     # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
@@ -214,7 +209,7 @@ def result(fn):
             parts = parts[1:]
         elif where[fn].split(".")[:-1] == ["go_etcd_io", "etcd", "client", "v3"]:
             parts = ["v3"] + parts
-    suffix = "_w" if fn in wspec else "_s" if fn in sspec else ""
+    suffix = f"_{variant[fn]}" if fn in variant else ""
     return ".".join(parts[:-1] + [f"wp_{last}{suffix}"])
 
 
@@ -276,8 +271,8 @@ variable [package_sem : {assumptions}]
         # `DB.wp_munmap` itself
         args = " ".join((f"EtcdGrove.{nsd}.{result(c)}" if nsd else result(c))
                         for c in callees[fn])
-        sp, pf = (("wspec", "wp_wproof") if fn in wspec else ("sspec", "wp_sproof") if fn in sspec
-                  else ("spec", "wp_proof"))
+        v = variant.get(fn, "")
+        sp, pf = (f"{v}spec", f"wp_{v}proof") if v else ("spec", "wp_proof")
         body = f"{specref(fn)}.{pf}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()

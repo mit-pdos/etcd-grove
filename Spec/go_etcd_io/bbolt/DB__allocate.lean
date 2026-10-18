@@ -1,5 +1,6 @@
 module
 public import Proof.go_etcd_io.bbolt.DBRemap
+public import Proof.go_etcd_io.bbolt.DBLost
 public import Proof.go_etcd_io.bbolt.WriteTxDeref
 public import Spec.go_etcd_io.bbolt.getDiscardLogger
 public import Proof.os.FileInfoAlias
@@ -49,10 +50,10 @@ variable [linux : GOOSLinux]
 `ml`, the rest of it `WR`): a page of `count` slots, its bytes `freshPage` (a zeroed buffer
 but the header's id and overflow). If the page is at the high-water mark and the mapping too
 small, `db.mmap` remaps: the writer is dereferenced (`WR` to `WR'`, the hypothesis on
-`tx.root.dereference()`) and its share follows the mapping. Errors: before the remap, nothing
-changed; in it, the database is lost (only the writer remains, `WR` or `WR'`: after the
-dereference the mapping is gone; before it, `db.mmap`'s early errors (`Stat`, a size beyond
-`MaxMapSize`) keep the cells inside the wand it was lent, which this spec does not recover). -/
+`tx.root.dereference()`) and its share follows the mapping. Errors: before the remap, or in
+`db.mmap` before the dereference (`Stat`, a size beyond `MaxMapSize`), nothing changed; after
+the dereference, the mapping is lost: the writer dereferenced (`WR'`) and the database lost
+(`dbLost`, with all of `data` (nil) and of `freelist`: enough to roll the writer back). -/
 abbrev DB.allocate.spec : Prop :=
   ∀ (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) (w : Reader) (ml : Loc)
     (mv : internal.common.Meta) (WR WR' : IProp GF) (txid count : w64),
@@ -78,7 +79,8 @@ abbrev DB.allocate.spec : Prop :=
         pagesView σ.data σ.ps w.q w.pages ∗
         structFieldRef DB go!"freelist" dbl ↦{DFrac.own halfQ} I.iface ∗
         structFieldRef Tx go!"meta" σ.rwtx ↦ ml ∗ ml ↦ mv ∗ WR) ∨
-      (⌜err ≠ interface.nil⌝ ∗ structFieldRef Tx go!"meta" σ.rwtx ↦ ml ∗ ml ↦ mv ∗ (WR ∨ WR')) ∨
+      (⌜err ≠ interface.nil⌝ ∗ structFieldRef Tx go!"meta" σ.rwtx ↦ ml ∗ ml ↦ mv ∗ WR' ∗
+        dbLost I dbl σ.rwtx (w.txid + W64 1) σ.fl) ∨
       (⌜err = interface.nil⌝ ∗ ∃ (σ' : DBState) (mv' : internal.common.Meta) (id : w64),
         ⌜allocOK σ σ' w mv mv' txid id (uint.nat count)⌝ ∗ ownDB I dbl γ σ' ∗
         structFieldRef DB go!"data" dbl ↦{DFrac.own w.q} σ'.data ∗
