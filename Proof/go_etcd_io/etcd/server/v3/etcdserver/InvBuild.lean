@@ -88,6 +88,15 @@ def srvReadNamesFresh (γr : ReadNames) (σ : KVState) : IProp GF :=
     ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
     ghostVar γr.kv.st 1 σ ∗ ghostVar γr.kv.hi 1 γr.kv.log0.length)
 
+/-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
+`NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
+client's `etcdKV` at raft's allocation (`srvRaftBoot_alloc`, `NewServerAlloc.lean`). -/
+def srvReadNamesFreshNK (γr : ReadNames) : IProp GF :=
+  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
+    (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
+    ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
+    ghostVar γr.kv.hi 1 γr.kv.log0.length)
+
 /-! ## The workload clause (D13c; D19c) -/
 
 /-- **The cluster's workload** (persistent): every committed log `L` (after the server's start)

@@ -10,12 +10,15 @@
   `cfg.PreVote` had to be unset).
 * The cluster's ghost state, as `NodeStartSpec`'s: raft's names `γ` with this node's ghost state
   at the bootstrap log's state, the committed bootstrap log, raft's commit invariant, the budget;
-  and the outputs of `allocClientBoot`'s continuation for this server (the client's half of the
-  committed log, the fresh-token authorities) and raft's read credits
-  (`ownRaftGhost_alloc_boot`).
+  and the outputs of `allocClientBoot`'s continuation for this server (the fresh-token
+  authorities and, since D19g (a), 2026-10-18, the KV invariant `kvInv` at the bootstrap log, which
+  holds the client's half of the committed log and gives raft its standing update `noopAu`:
+  until then `NewServer` took `rLog γ bootLog` and allocated `kvInv` itself, which no caller of
+  raft's allocation could meet) and raft's read credits (`ownRaftGhost_alloc_boot`; all of it
+  `srvRaftBoot_alloc`, `NewServerAlloc.lean`).
 * **The names chosen before the call** (D13a): the request path's names `ρ` (the generator's,
   fresh; the read names at the cluster's raft names, the start log empty and the start index `0`,
-  fresh), the store's index names and certificate map and the revisions' map (fresh), which the
+  fresh, but the KV state's variable, `srvReadNamesFreshNK`), the store's index names and certificate map and the revisions' map (fresh), which the
   stand-in environment `E₀` carries (the construction's apply environment agrees with it,
   `envAgree`).
 * The start `bootKV` at the consistent index `0` (the workload clause `clusterWorkloadOk`, a
@@ -40,7 +43,8 @@
 
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
-agreeing with `E₀`, auth disabled, and the client's `etcdKV` at the bootstrap log's model. The
+agreeing with `E₀`, auth disabled (the client's `etcdKV` at the bootstrap log's model comes from
+the allocation since D19g (a)). The
 row of `isServerBuilt` the built part leaves out, `run`'s snapshot contract `rnSnapOnce`
 (`srvBuildGap`, `isServerBuilt_of_gap`, `BuildGap.lean`), is given too since D17d (2026-10-18):
 `bootOk` hands the fresh `MemoryStorage`'s application snapshot token, which raft's `StartNode`
@@ -105,7 +109,6 @@ abbrev NewServer.spec : Prop :=
       "Hghost" ∷ ownRaftGhost γ id (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
       "#Hcinv" ∷ raftCommitInv γ ∗
       "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
-      "HrLog" ∷ rLog γ bootLog ∗
       "Hfresh" ∷ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
       "HrdFresh" ∷ ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ∗
       "HrdCred" ∷ rdCred γ (2 ^ 64 - 2) ∗
@@ -113,7 +116,10 @@ abbrev NewServer.spec : Prop :=
       "Hids" ∷ idNamesFresh ρ.ids ∗ "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
       "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
-      "Hrd" ∷ srvReadNamesFresh ρ.rd (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) ∗
+      "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
+      -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
+      -- whose standing update `noopAu` it gives, `srvRaftBoot_alloc`)
+      "#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the background
       -- goroutines' effects and the auth store's record bound
       "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
@@ -136,8 +142,7 @@ abbrev NewServer.spec : Prop :=
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
-          srvBuildGap srv (W64 0) (W64 0) ∗
-          etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) }}
+          srvBuildGap srv (W64 0) (W64 0) }}
 
 end spec
 

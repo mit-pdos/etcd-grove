@@ -745,8 +745,8 @@ theorem NewServer.wp_proof
   iunfold transportStarted at Hts
   icases Hts with ⟨#Htrall, #Htrr⟩
   -- the read names
-  iunfold srvReadNamesFresh at Hrd
-  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkst, Hkhi⟩
+  iunfold srvReadNamesFreshNK at Hrd
+  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
   icases hHalves _ _ $$ Hkhi with ⟨Hkhi1, Hkhi2⟩
   ihave ⟨Hkvw, #Hcert0⟩ := txn.kvWriter_cert kst γw.st [[], []] $$ Hkvw
   ihave #Hrlb : srvRLogLb ρ.rd.raft [] $$ []
@@ -764,10 +764,6 @@ theorem NewServer.wp_proof
   · iapply hU64; iexact term
   · simp only [Hlog0]; rw [Hγw.2.2.2.1]; iexact Hcert0
   -- the KV invariants
-  imod (kvInv_alloc_boot ρ.rd.raft ρ.rd.kv γ.reCCOk ps bootLog ⊤ (by rw [HρRaft]) (by rw [HρRaft])
-      Hrbok (fun ty d h => (Hpol ty d (by rw [HρRaft]; exact h)).2.2) Hc0 Hch0
-      (by rw [Hlog0]; simp)) $$ [HrLog] Hkst with ⟨#Hkvinv, Hetcd⟩
-  · rw [HρRaft]; iexact HrLog
   imod (kvCertInv_alloc ρ.rd.raft ρ.rd.kv ⊤ (by rw [Hlog0]; simp)) $$ [Hcok] Hkhi1 Hrlb
     with #Hkci
   · rw [Hcok, ← Hγw.2.2.2.2]; iexact Hcok
@@ -852,7 +848,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hetcd Hgap
+  iframe Hgap
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   unfold srvBuilt
