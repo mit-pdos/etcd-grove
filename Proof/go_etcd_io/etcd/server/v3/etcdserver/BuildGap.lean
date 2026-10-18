@@ -127,7 +127,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   unfold rnEnvOk srvEr
   simp only
   isplitr
-  · ipureintro; trivial
+  · ipureintro; rw [hbud]
   isplitr
   · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
   isplitr
