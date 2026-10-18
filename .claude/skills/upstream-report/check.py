@@ -90,14 +90,22 @@ def main():
     diff = code_diff = ""
     if wt and base:
         n = int(git(wt, "rev-list", "--count", f"{base}..HEAD"))
-        if n != 1:
-            fail(f"commit: {n} commits on top of the base {base[:9]}, not one")
-        msg = git(wt, "log", "-1", "--format=%B")
-        if re.search(r"^(Co-Authored-By|Assisted-by|Generated-by):", msg, flags=re.M | re.I):
-            fail("commit: an AI trailer (Co-Authored-By/Assisted-by); upstream's AI policy forbids it")
-        if not re.search(r"^Signed-off-by: ", msg, flags=re.M):
-            fail("commit: no Signed-off-by (git commit -s)")
-        subject = msg.splitlines()[0]
+        if n != 2:
+            fail(f"commit: {n} commits on top of the base {base[:9]}, not two (the tests, then the fix)")
+        else:
+            tests = git(wt, "diff", "--name-only", f"{base}..HEAD~1").split()
+            if not tests or any(not f.endswith("_test.go") for f in tests):
+                fail(f"commit: the first commit should add only the tests (*_test.go), not {tests}")
+        for rev in ("HEAD~1", "HEAD") if n == 2 else ("HEAD",):
+            msg = git(wt, "log", "-1", "--format=%B", rev)
+            if re.search(r"^(Co-Authored-By|Assisted-by|Generated-by):", msg, flags=re.M | re.I):
+                fail(f"commit {rev}: an AI trailer (Co-Authored-By/Assisted-by); upstream's AI policy forbids it")
+            if not re.search(r"^Signed-off-by: ", msg, flags=re.M):
+                fail(f"commit {rev}: no Signed-off-by (git commit -s)")
+            body = [l for l in msg.split("\n\n", 1)[1:2] for l in l.splitlines() if l and not l.startswith("Signed-off-by:")]
+            if len(body) > 8:
+                warn(f"commit {rev}: {len(body)} lines of message body; a subject and one to three plain sentences")
+        subject = git(wt, "log", "-1", "--format=%s", "HEAD").strip()
         diff = git(wt, "diff", f"{base}..HEAD")
         code_diff = git(wt, "diff", f"{base}..HEAD", "--", ".", ":(exclude)*_test.go")
         files = [f for f in git(wt, "diff", "--name-only", f"{base}..HEAD").split() if f.endswith(".go")]

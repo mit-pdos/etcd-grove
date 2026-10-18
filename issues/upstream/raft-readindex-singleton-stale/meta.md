@@ -29,7 +29,7 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
-- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (commit dcb4fe2; earlier 32de820fe, then 69341e121 with the message rewritten, then the test loosened to the read's guarantee, 2026-10-18), pushed 2026-10-18 to `upamanyus/etcd-raft`
+- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (two commits: bf1d336 adds the tests, which fail there; 133c7df is the fix. Earlier, one commit: 32de820fe, then 69341e121 with the message rewritten, dcb4fe2 with the test loosened to the read's guarantee, bfb7224 with the removed-leader test added; 2026-10-18), pushed 2026-10-18 to `upamanyus/etcd-raft`
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`), the branch the links in `issue.md` name.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft
@@ -55,13 +55,16 @@ messages to peer 1 whose commit is at least 3; asserts peer 2's commit is 3 and 
 `advanceMessagesAfterAppend`; asserts only that the read state for the read's context has an index of at least 3
 (`x`'s), the guarantee a read issued after `x` committed needs, not when or at which index the read is answered.
 
-- At the base (fix absent, test added): `go test . -run 'TestReadOnlyForNewSingleVoterLeader$'` fails: `"2" is not greater than or equal to "3"`, `read index`.
-- With the fix: the test passes; `go test . ./rafttest/` ok; `gofmt -l raft.go raft_test.go` empty;
-  `go vet . ./rafttest/` clean.
-- The removed-leader case, not on the branch (temporary test, kept at
-  `.claude-D/jobs/685db998/tmp/raft-readindex-singleton-stale/removed_leader_tmp_test.go`): peers 1 and 2 apply
-  `remove 2` (commit 2), peer 2 is isolated, peer 1 wins term 2 and commits `y` (commit 4); a read at peer 2 (still
-  leader of term 1) gives `[{Index:2}]` at the base, no read state with the fix.
+`TestReadOnlyForRemovedLeader` (right after it) is the removed-leader case: peer 2 campaigns, proposes `remove 2`
+(index 2, committed by both), applies it and stays leader; it steps a local `MsgReadIndex` whose heartbeat is not
+delivered (peer 1 unreachable); asserts no read state. With the fix peer 2 would answer once peer 1, the only voter,
+acknowledges the heartbeat in its term, a valid confirmation; refusing reads at a removed leader outright is
+`StepDownOnRemoval` (etcd-io/raft#83).
+
+- At the tests commit bf1d336 (`go test . -run 'TestReadOnlyForNewSingleVoterLeader|TestReadOnlyForRemovedLeader'`):
+  both fail, `"2" is not greater than or equal to "3"` / `read index`, and `Should be empty, but was [{2 [99 116 120]}]`.
+- At the fix commit 133c7df: both pass; `go test . ./rafttest/` ok; `gofmt -l raft.go raft_test.go` empty;
+  `go vet .` clean. Its tree is identical to bfb7224's (the single commit it replaced).
 
 Not run: `confchange`, `quorum`, `tracker` and the other packages (the change is in package `raft` only), etcd's
 tests, `make verify`. Not reproduced on an etcd cluster.

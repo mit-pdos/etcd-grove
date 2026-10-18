@@ -7,8 +7,8 @@ description: Turn a finding in issues/<slug>.md into an upstream-ready candidate
 
 From one finding, `issues/<slug>.md`, produce for the user to review:
 
-- a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: one signed-off commit off current upstream `main`, with a test
-  that fails without the fix;
+- a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: two signed-off commits off current upstream `main`, first the
+  tests (which fail at that commit), then the fix;
 - `issues/upstream/<slug>/issue.md`, `pr.md` and `meta.md` (base commit, commands run and results, duplicates
   found, answers to likely reviewer questions, state).
 
@@ -27,9 +27,12 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 
 ## Upstream's rules
 
-- Commit: subject `<package>: <what changed>`, body says why (imperative), `git commit -s`, no AI trailer of any
-  kind. The message is a draft the user rewrites (etcd does not accept AI-written messages). One commit; amend it
-  until the PR is open.
+- Commits: two, so that the tests can be seen to fail before the fix: first the tests only (`*_test.go`, subject
+  `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title). Each message is a
+  subject and one to three plain sentences, as in the package's own fix commits: what was wrong and what changes,
+  in words rather than function names, without restating the diff. `git commit -s`, no AI trailer of any kind. The
+  messages are drafts the user rewrites (etcd does not accept AI-written messages). Amend the two commits until the
+  PR is open.
 - The issue and the PR each end with their standard AI disclosure (below). Replies to reviewers are the user's.
 - A bug a client with ordinary access can use to crash or hang a member, lose or corrupt acknowledged data, or
   bypass auth is a security report: before writing anything public, stop and let the user decide (etcd's
@@ -55,13 +58,16 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
    Ground the expectation in what you already have open (API docs, Go doc, an existing test); if the sources
    disagree, ask the maintainers in the issue.
 5. **The test** is the example (or, if the example is not a test, does what it does): same data, same requests,
-   nothing more; next to the package's tests, in their style. It must fail at the base; keep the output.
+   nothing more; next to the package's tests, in their style. It asserts the guarantee the bug breaks (a read
+   includes the writes committed before it), not incidental details of how the fix provides it (which index, how
+   many responses); setup checks that the scenario happened are fine. One test per distinct way the bug shows. It
+   must fail at the base; keep the output.
 6. **The fix**: in the layer where the defect is; the smallest change in the surrounding style; no refactoring, no
    comment that restates the code. Note in `meta.md`, "If a reviewer asks", the alternatives and costs you
    considered; do not research more for it.
-7. **Verify**: the new test (fails at the base, passes with the fix), the package's tests, `gofmt -l`, `go vet`;
+7. **Verify**: the new tests (fail at the tests commit, pass at the fix commit), the package's tests, `gofmt -l`, `go vet`;
    nothing broader unless the change leaves the package. Record the commands and results in `meta.md`.
-8. **Write** `issue.md` and `pr.md` (below), commit, and run
+8. **Write** `issue.md` and `pr.md` (below), commit the tests and then the fix, and run
    `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN.
 9. **Hand off**: branch and commit, base, the files, the commit message to rewrite, anything not verified, and the
    push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin fix/<slug>`. State `draft` in
@@ -93,7 +99,7 @@ may be trimmed to the assertion.
 A few plain sentences, as in `example/pr.md`, no sections. `Title:` the commit subject. Then: the root cause, saying
 what each piece of code does and which part is wrong, with permalinks at the base
 (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`); the change as "This PR ..."; `Fixes #<issue>`; one
-line that the new test runs the issue's example, fails on `main` and passes; and, word for word: "This PR was written
+line that the new tests (the first commit) run the issue's example and fail on `main`, and pass with the fix (the second); and, word for word: "This PR was written
 in part with the assistance of AI; I have reviewed and tested every change." Nothing else: alternatives,
 costs and backports stay in `meta.md`.
 

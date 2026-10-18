@@ -29,7 +29,7 @@ Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/
 
 ### Anything else we need to know?
 
-A leader that removed itself has the same problem: unless `StepDownOnRemoval` is set, node 2 stays leader after its removal, and if partitioned from node 1 it keeps answering at once with index 2 after node 1 has committed newer entries (reproduced with a test not on the branch). `StepDownOnRemoval` avoids only this second case.
+A leader that removed itself has the same problem: unless `StepDownOnRemoval` is set, node 2 stays leader after applying its removal and answers a read index request at once, without hearing from node 1, the only voter, which may have elected itself and committed newer entries since ([`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2188-L2209) on the same branch). `StepDownOnRemoval` avoids only this second case.
 
 I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
 
