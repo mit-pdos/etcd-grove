@@ -5,8 +5,8 @@ Title: A new leader of a single-voter configuration answers ReadIndex with a sta
 With `ReadOnlySafe`, a read index can miss a committed entry once a removal leaves a single voter:
 
 1. Nodes 1 and 2 are the voters; node 2 leads.
-2. Node 2 commits its own removal (index 2), then an entry `x` (index 3).
-3. Node 1 learns that index 2 is committed, but not index 3, and becomes leader as the only voter.
+2. Node 2 proposes its own removal (index 2) and, before applying it, an entry `x` (index 3). Both nodes append both entries, and node 2 commits them.
+3. The message telling node 1 that index 3 is committed is lost. Node 1 applies the removal and becomes leader as the only voter.
 4. Node 1 answers a read index request at once with index 2, which misses `x`.
 
 The test below runs these steps (output trimmed):
