@@ -742,6 +742,68 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     have e2 : sint.Z (W64 (p : Int)) = p := by word
     omega
 
+/-- **The events so far, by a progress notification's coverage** (`covFact` of the watcher `w`,
+a start-read watch of the range `rg` from `lo`, no filters; the forwarding fact `fwdEvs` for its
+live id): the watch events `[lo, dd)` of a watched log `Lc`, `dd` the notification's coverage
+(`p + 1 ≤ dd ≤ p + 1` unless no event was delivered), its revision `p ≥ lo - 1`. -/
+theorem cmpl_cov (V : WEnv GF) (Dm : List v3rpc.WatchRespM) (x : mvcc.RespM)
+    (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (w : Loc) (rg : mvcc.WatchRange)
+    (fcs : GoSlice) (lo : Nat) (hfe : v3rpc.sentEvsOf Dm w =
+      (pre.filter (fun y => decide (y.w = w))).filter (fun y => decide (y.evs ≠ [])))
+    (hlo1 : 1 ≤ lo) :
+    mvcc.covFact (GF := GF) V.R.γ γc pre w x.rev ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
+      fcs ↦*□ ([] : List GoFunc) ∗
+      (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = true⌝) ⊢
+      ∃ (Lc : mvcc.Log) (dd p : Nat), mvcc.evLog (GF := GF) V.R.γ.st Lc ∗
+        ⌜x.rev = W64 (p : Int) ∧ p < 2 ^ 63 ∧ evsOf Dm w = mvcc.watchEvents Lc rg lo dd ∧
+          p + 1 ≤ dd ∧ (dd ≤ p + 1 ∨ dd ≤ lo) ∧ (dd ≤ Lc.length ∨ dd ≤ lo) ∧ lo ≤ p + 1⌝ := by
+  iintro ⟨#Hcf, #Hw, #Hfcs, ⟨%γw1, #Hm1, %Hsr⟩⟩
+  iunfold mvcc.covFact at Hcf
+  icases Hcf with ⟨%γw, %r, %fcs', %D, %L, %d, #Hm, -, #Hf, #HL, #HDf, %HD⟩
+  iunfold mvcc.watcherIs at Hw
+  icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, -, %Hlo⟩
+  ihave %Hag : iprop(⌜rg = r ∧ fcs = fcs'⌝) $$ []
+  · iapply mvcc.watcherFixed_agree
+    isplit
+    · iexact Hf0
+    · iexact Hf
+  obtain ⟨rfl, rfl⟩ := Hag
+  iunfold mvcc.watcherMeta at Hm Hm0 Hm1
+  ihave %Hmeq := ghostMapElem_agree _ _ _ _ _ _ $$ Hm Hm0
+  ihave %Hmeq1 := ghostMapElem_agree _ _ _ _ _ _ $$ Hm Hm1
+  subst Hmeq Hmeq1
+  ihave %Hkeep : ⌜∀ dl ∈ D, dl.2 = dl.1⌝ $$ []
+  · iintro %dl %hdl
+    icases HDf $$ %dl %hdl with ⟨%fs, Hfi, %Hdl⟩
+    iunfold mvcc.filtersImpl at Hfi
+    icases Hfi with ⟨%fps, #Hfps, %Hlen, -⟩
+    ihave %Heq := ownSlice_agree _ _ _ _ _ $$ Hfps Hfcs
+    subst Heq
+    have hfs : fs = [] := List.eq_nil_of_length_eq_zero (by simpa using Hlen.symm)
+    subst hfs
+    ipureintro
+    rw [Hdl]
+    unfold mvcc.filtered
+    simp
+  obtain ⟨h1, h2, h3, h4, h5, -, h7⟩ := HD
+  have hlo' : (γw.lo : Int) ≤ sint.Z x.rev + 1 := h7 Hsr
+  rw [Hlo.1] at h2 h3 h5 hlo'
+  have hx0 : 0 ≤ sint.Z x.rev := by omega
+  iexists L, d, (sint.Z x.rev).toNat
+  iframe HL
+  ipureintro
+  have hall : D.filter mvcc.Deliv.sent = D := by
+    rw [List.filter_eq_self]
+    intro dl hdl
+    simp only [mvcc.Deliv.sent, Hkeep dl hdl, Bool.or_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true]
+    cases dl.1 <;> simp
+  have hx63 : sint.Z x.rev < 2 ^ 63 := by word
+  refine ⟨by word, by omega, ?_, by omega, by omega, h3, by omega⟩
+  show ((v3rpc.sentEvsOf Dm w).map mvcc.RespM.evs).flatten = _
+  rw [hfe, flatten_evs_filter, h1, hall, ← h2]
+  congr 1
+  exact List.map_congr_left (fun dl hdl => Hkeep dl hdl)
+
 end chain
 
 end client
