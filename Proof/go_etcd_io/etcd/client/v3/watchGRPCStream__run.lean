@@ -1721,7 +1721,7 @@ theorem watchGRPCStream.run.wp_proof
               simp only [_root_.decide_true, Bool.not_true]
               wp_auto
               obtain ⟨Hg1, Hold1, -⟩ := client.answer_ok (U := U) (reg := false) HgOk hpend hh0 hs0
-                hcr0 rfl HXf (fun h => by cases h) (fun h => by cases h) (fun h => absurd rfl h)
+                hcr0 rfl HXf (fun hc => by rcases hcase with ⟨-, h⟩ | ⟨h, -⟩ <;> simp_all) (fun h => by cases h) (fun h => by cases h) (fun h => absurd rfl h)
               isplitr
               · first | itrivial | (ipureintro; rfl)
               iexists S.answer m i m.watchId null false, e
@@ -1828,7 +1828,7 @@ theorem watchGRPCStream.run.wp_proof
               wp_apply wp_store_slice_index s (sint.Z (W64 0)) S.l null $$ [Hs] as Hs
               · iframe; ipureintro; exact ⟨by simp, by have := Hsll.1; word⟩
               obtain ⟨Hg1, Hold1, Hnew1⟩ := client.answer_ok (U := U) (reg := false) HgOk hpend hh0 hs0
-                hcr0 rfl HXf (fun h => by cases h) (fun h => by cases h) (fun _ => Hph)
+                hcr0 rfl HXf (fun hc => by rcases hcase with ⟨-, h⟩ | ⟨h, -⟩ <;> simp_all) (fun h => by cases h) (fun h => by cases h) (fun _ => Hph)
               isplitr
               · first | itrivial | (ipureintro; rfl)
               iexists S.answer m i m.watchId P.ws false, e'
@@ -1958,7 +1958,7 @@ theorem watchGRPCStream.run.wp_proof
               wp_apply wp_store_slice_index s (sint.Z (W64 0)) S.l null $$ [Hs] as Hs
               · iframe; ipureintro; exact ⟨by simp, by have := Hsll.1; word⟩
               obtain ⟨Hg1, Hold1, Hnew1⟩ := client.answer_ok (U := U) (reg := true) HgOk hpend hh0 hs0
-                hcr0 rfl HXf (fun _ => hMn) (fun _ => ⟨hn0, hXn, hca⟩) (fun _ => Hph)
+                hcr0 rfl HXf (fun hc => by rcases hcase with ⟨-, h⟩ | ⟨h, -⟩ <;> simp_all) (fun _ => hMn) (fun _ => ⟨hn0, hXn, hca⟩) (fun _ => Hph)
               isplitr
               · first | itrivial | (ipureintro; rfl)
               iexists S.answer m i m.watchId P.ws true, e
