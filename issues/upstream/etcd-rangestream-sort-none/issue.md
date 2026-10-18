@@ -40,7 +40,7 @@ Integration test: [`TestKVGetStreamSortByCreateRevision`](https://github.com/upa
 
 Without `--stream` (the unary `Range` RPC) the same request returns the right keys.
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 

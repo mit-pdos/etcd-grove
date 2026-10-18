@@ -47,7 +47,7 @@ After `m2.Lock` returns, `m2.IsOwner()` is false, so a transaction guarded by it
 
 Should `m2.Lock` return an error here, as it does when the key is gone, or keep waiting until `m3` unlocks?
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 

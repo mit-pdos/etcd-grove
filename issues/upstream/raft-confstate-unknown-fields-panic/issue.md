@@ -25,7 +25,7 @@ Unit test: [`TestRestoreFromSnapMsgUnknownField`](https://github.com/upamanyus/e
 
 A node started with a `MemoryStorage` whose snapshot has such a `ConfState` panics in the same way, so it cannot restart (reproduced with a test that is not on the branch).
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Raft version
 

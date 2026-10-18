@@ -31,7 +31,7 @@ Integration test [`TestV3WatchReuseCanceledID`](https://github.com/upamanyus/etc
 
 `etcdctl` and the Go client never set `WatchId`, so they are not affected.
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 

@@ -44,7 +44,7 @@ Unit test: [`TestRangeSortLimit`](https://github.com/upamanyus/etcd/blob/etcd-ra
 
 `rpc.proto` documents `NONE` as "default, no sorting", but with a non-key target the server sorts ascending (and `etcdctl get --order`'s help says "ASCEND by default"). Should the documentation of `NONE` be changed to say so?
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 

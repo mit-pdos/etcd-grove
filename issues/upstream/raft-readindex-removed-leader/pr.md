@@ -8,4 +8,4 @@ The first commit adds a test of the issue's example, which fails on `main`; the 
 
 This PR conflicts with #<other PR>, which fixes a related problem in the same lines; whichever merges second needs a rebase. I can combine both fixes in one PR if you prefer.
 
-This PR was written in part with the assistance of AI; I have reviewed and tested every change.
+Written with the assistance of generative AI; I reviewed and tested every change.

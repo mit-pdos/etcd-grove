@@ -15,12 +15,10 @@ import subprocess
 import sys
 
 ISSUE_DISCLOSURE = (
-    "I found this while formally verifying etcd, working with AI tools. "
-    "I reproduced the bug and reviewed this report myself."
+    "Found while formally verifying etcd. "
+    "Written with the assistance of generative AI; I reproduced the bug and reviewed the report."
 )
-PR_DISCLOSURE = (
-    "This PR was written in part with the assistance of AI; I have reviewed and tested every change."
-)
+PR_DISCLOSURE = "Written with the assistance of generative AI; I reviewed and tested every change."
 # Vocabulary of this repository that means nothing upstream.
 LOCAL_WORDS = r"\b(specs?|proofs?|premises?|Goose|Gooseable|ghost|verified code|Lean|Rocq|Perennial|Iris)\b"
 MAX_PROSE_WORDS = 250

@@ -31,7 +31,7 @@ Unit test: [`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-ra
 
 Setting `StepDownOnRemoval` avoids this.
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Raft version
 

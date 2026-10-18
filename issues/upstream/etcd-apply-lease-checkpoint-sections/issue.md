@@ -24,7 +24,7 @@ Unit test: [`TestLeaseCheckpointCommittedWithConsistentIndex`](https://github.co
 
 A member that crashes after such a commit, before the next one, restarts with entry 3 applied and lease 2's earlier remaining TTL (here the full TTL); if it becomes leader before lease 2's next checkpoint, lease 2 expires late. I reproduced what the commit persists, not a crash and restart.
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 

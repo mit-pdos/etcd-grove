@@ -28,7 +28,7 @@ With a joint conf change instead of "add 4", the same sequence panics with "conf
 
 Which fix do you prefer: ignore a snapshot while committed entries are being applied (the linked PR), make `ApplyConfChange` skip conf changes a restored snapshot covers, or forbid `Step` between `Ready` and `Advance`?
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Raft version
 

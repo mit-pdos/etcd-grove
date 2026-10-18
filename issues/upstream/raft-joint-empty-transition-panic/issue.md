@@ -27,7 +27,7 @@ Unit test: [`TestRawNodeProposeEmptyJointConfChange`](https://github.com/upamany
 
 ### Anything else we need to know?
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Raft version
 

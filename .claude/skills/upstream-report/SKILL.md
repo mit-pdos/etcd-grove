@@ -36,7 +36,8 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
   without restating the diff. Subjects at most 72 characters; the prefix the package's history uses (`client/v3:`,
   `etcdserver:`, `raft:`). `git commit -s`, no AI trailer of any kind. The messages are drafts the user rewrites
   (etcd does not accept AI-written messages). Amend the commits until the PR is open.
-- The issue and the PR each end with their standard AI disclosure (below). Replies to reviewers are the user's.
+- The issue and the PR each end with their AI disclosure (below; etcd's PR template asks for one, following
+  Kubernetes' AI guidance: disclosure in the PR description, no AI trailers, no AI-written commit messages). Replies to reviewers are the user's.
 - A bug a client with ordinary access can use to crash or hang a member, lose or corrupt acknowledged data, or
   bypass auth is a security report: before writing anything public, stop and let the user decide (etcd's
   `security/README.md`). A public duplicate of the root cause does not make the impact public.
@@ -90,8 +91,8 @@ no root cause, code names, code links, history, or claims about other releases.
   branch (`https://github.com/upamanyus/etcd/blob/fix/<slug>/<path>#L<a>-L<b>`, the test's lines from its doc
   comment to its closing brace, and `.../tree/fix/<slug>`), not described, with its failing assertion.
 - **Anything else?** Impact or workarounds if any; side findings as questions to the maintainers; then, word for
-  word: "I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this
-  report myself."
+  word: "Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and
+  reviewed the report."
 - **Version** and **configuration**: what the reproduction ran on (the base commit; `etcd --version` and `etcdctl
   version` if it ran binaries) and the configuration it needs.
 
@@ -103,8 +104,8 @@ may be trimmed to the assertion.
 A few plain sentences, as in `example/pr.md`, no sections. `Title:` the commit subject. Then: the root cause, saying
 what each piece of code does and which part is wrong, with permalinks at the base
 (`https://github.com/etcd-io/etcd/blob/<sha>/<path>#L<a>-L<b>`); the change as "This PR ..."; `Fixes #<issue>`; one
-line that the new tests (the first commit) run the issue's example and fail on `main`, and pass with the fix (the second); and, word for word: "This PR was written
-in part with the assistance of AI; I have reviewed and tested every change." Nothing else: alternatives,
+line that the new tests (the first commit) run the issue's example and fail on `main`, and pass with the fix (the second); and, word for word: "Written with the
+assistance of generative AI; I reviewed and tested every change." Nothing else: alternatives,
 costs and backports stay in `meta.md`.
 
 ## Writing

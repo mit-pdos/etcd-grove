@@ -26,7 +26,7 @@ Unit test: [`TestConcurrentReadTxAfterCommit`](https://github.com/upamanyus/etcd
 
 In other tests, a `ConcurrentReadTx` created after a commit also returned a key the commit deleted, and the old value of a key a pre-commit hook overwrote. `ConcurrentReadTx`'s comment says the copy of the read buffer it uses "is guaranteed to be up-to-date". I have not reproduced a wrong result through mvcc or the etcd API.
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 

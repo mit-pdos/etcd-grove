@@ -46,7 +46,7 @@ If a third campaigner `e3` (session `s3`) campaigns after the revoke and before 
 
 #11051 and #11777 reported the same bug and were closed as stale.
 
-I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
+Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
 
