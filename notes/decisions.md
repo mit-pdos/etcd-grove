@@ -8198,7 +8198,8 @@ its spec as a hypothesis).
   `{{ ownInitializing g ∗ EtcdGrove.read.readRegPerm }} initialize' #() {{ ... isPkgInit read }}`,
   and so are the theorems of the packages whose import closure contains `read` (`etcdserver`,
   `v3rpc`): each passes the rights to the one import that leads there (`etc/gen-init.py`'s
-  `PRE_RES`, which asserts there is one). Program start (the adequacy theorem, item 9) owns the
+  `PRE_RES`, which asserted there is one; since D19e any number may, the rights held until `read`
+  is initialized). Program start (the adequacy theorem, item 9) owns the
   rights to every name no default collector has and gives each out once, so the cross-package
   freshness of the names is discharged there: two packages registering one name would need one
   right twice. What item 9 needs of the Go code is stated and checked now (`read.names_ok`'s
@@ -8288,8 +8289,8 @@ is a resource the model cannot give (`rnSnapOnce`).
 
 ## A client's facts from persistent updates: monotone ghost state, a prophecy only for a general client (D18)
 
-**2026-10-17 · proposed (the monotone route implemented for the adequacy example's Put-then-Get;
-the prophecy route not started, needs the user's decision)** (open-work item 9's "client-local
+**2026-10-17 · proposed; 2026-10-18 · adopted by the user (the monotone route for the adequacy
+example's Put-then-Get; the prophecy for a general client deferred)** (open-work item 9's "client-local
 prophecy", `notes/STATUS.md`)
 
 The client's end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`, ...,
@@ -8411,7 +8412,8 @@ all safety needs. `r.checkQuorum` is recorded (`NState.cq`), like `r.preVote` an
 - `ReadOnlyLeaseBased` (which `CheckQuorum` would make a legal configuration) stays out of scope:
   `ReadOnlyOption = ReadOnlySafe` remains a premise; etcd uses `ReadOnlySafe`.
 
-**Pre-vote at the `RawNode` layer (not adopted, waiting for the user):** `readyWithoutAccept`'s
+**Pre-vote at the `RawNode` layer (adopted 2026-10-17, the user's approval of the ceiling design;
+what it became is below):** `readyWithoutAccept`'s
 `∀ m ∈ ms, m.Term ≤ rs.term` is false with pre-vote on (a `MsgPreVote` is at `term + 1`, a granted
 `MsgPreVoteResp` at the requester's term). The proposal: a ghost term ceiling `tc` in `NGhost`,
 raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), exposed as
@@ -8420,3 +8422,187 @@ raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), 
 `term + 1` past the message's, so `ownRawNode` must keep `preCandidate → term + 1 ≤ tc`, which
 needs a new `raft.Step` postcondition (`ownRaftPhys` cannot keep it: `reset` stores the term while
 the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and PreVote on".
+
+As built (stage P): `Ready`'s bound is `m.Term ≤ rs.tc` (the ceiling is kept at or above the term,
+`RNPv`, so this is the same as `max`); the ceiling is raised by the *client* (`ownRawNode_raise_tc`,
+a ghost step: `node.go` raises it with the budget before a tick, to `tc + 1`, and before a network
+step, to the bound `budget_step` gives) rather than inside `RawNode`'s methods, so the methods'
+specs take it as a premise (`RawNode.Step`: `m.Term ≤ rs.tc`, a `MsgTimeoutNow`'s campaign within
+it; `Tick`/`Campaign`: `rs.term + 1 ≤ rs.tc`). The pre-vote clauses of `OutTermOk`/`SendOk` (a
+queued message's term at most the node's when pre-vote is off) went: the ceiling bounds both modes.
+`raft.Step`'s new postcondition is `TermStep`'s `PreCandStep` (with `TickStep`'s, `hup`'s and
+`LocalFrame`'s role facts). A received `MsgPreVote` at a node of term `0` would be rejected at term
+`0`, which `send` refuses; `RawNode.Step` takes one only in a cluster started from a bootstrap log
+(`γ.reBoot ≠ []`, whose nodes are past term `0`: `ownLogGhost_boot`), which `node.go`'s `netP`
+carries. *Rejected:* proving "a node at term `0` has the empty log" for clusters without a bootstrap
+log (`RestartNode` at the initial state): no ghost fact says the log's entries are of terms `≥ 1`;
+the restriction costs nothing for etcd's server (`StartNode`) and the register example (no pre-vote).
+
+## What a closed adequacy theorem may take as a hypothesis (D19)
+
+**2026-10-18 · proposed (branch `raft-retarget`, open-work item 9); D19a, D19b, D19d, D19e, D19f
+adopted by the user (D19d and D19e by the local route, below)**
+
+The adequacy example (`examples/putget`, `notes/STATUS.md`, "Item 9: the adequacy example") was to
+keep each undischarged premise of the server's construction as a named hypothesis of the closed
+theorem. A hypothesis of a closed theorem quantifies over every instance of the ghost state
+(`∀ [HeapGS …]`) and every ghost name; if a proof can refute it inside the logic, it is false and
+the theorem says nothing.
+
+- **D19a: the rule.** A named hypothesis is either a pure fact (on the execution, `n + 2 ≤ 2 ^ 31`;
+  a method set; `transportEffectsOk`), or a Hoare triple of a function the program calls whose
+  postcondition holds only fresh resources at fresh names (`bootstrapContract`, the names-only
+  contracts `rnLoggerZapOk`, `rnNewStorageOk`, ...). Never an Iris statement about ghost state the
+  proof itself allocates (`srvLifeBound`, `idLifeBound`, `storeSmall`, `rnLogFits`, `srvLogsSmall`,
+  `clusterWorkloadOk`), nor an abstract exclusive resource from nothing (`⊢ |==> nameFree n`,
+  `⊢ |==> netAddrFree a`), nor a contract that mints a bounded supply (`rnTickerOk`'s
+  `tickCred`). Each of those is refutable (allocate or advance the same ghost state past the
+  bound; use the minted resource twice), as D17a's credits were. **Adopted 2026-10-18** (the user).
+- **D19b: the lifetime bounds from time receipts** (proposed; **adopted 2026-10-18** by the user,
+  with the stage plan below). Perennial's receipts
+  (`GooseLang/Receipts.lean`): every Go instruction step can raise a persistent `⧖ m`
+  (`wp_GoInstruction_preceipt`), and `⧖ N ⊢ False` for the adequacy theorem's step bound `N`. Each
+  counter behind a bound (ids issued by the generator, entries raft commits, ticks credited, changes
+  sealed by the store, the watch logs) keeps `⧖ k` of its value in its invariant, raised at the step
+  that increments it; the bound then follows from `N ≤ 2 ^ 40` (the tightest, the backend's
+  write-back budget), a hypothesis on the length of the executions the theorem covers. Costs: the
+  invariants of `idutil`, raft's budget and commit (`tickCred`'s minting moves into the ticker's
+  receive), the apply thread, mvcc's sealed logs and the watch store take receipts at their
+  increments; the premises go from `NewServer.spec`, `start`, `New`.
+  *Adopted (2026-10-18): the stage plan.* Each bound becomes a count backed by as many receipts
+  (`⧗ k`, exclusive) in an invariant, taken at a non-blocking Go step at the increment
+  (`wp_go_step_receipt'` with `wp_bind`, or `sync.atomic.wp_AddUint64_receipt`), and its premise
+  the pure fact `receiptBound GF ≤ 2 ^ k`, which the closed theorem discharges by its choice of
+  `N` in `goose_adequacy` (D19a's rule). Stage 1 (done): `idLifeBound` (the generator's invariant
+  holds `⧗ k` for the `k` ids issued; `Next` takes one from `AddUint64`'s resolution step;
+  `idCred γi n := ⌜receiptBound GF ≤ 2 ^ 48⌝`). Stage 2 (done): `srvLifeBound` (a receipt per
+  applied entry, from the apply loop's iteration, buys a token of a receipt-backed budget,
+  `srvWTPool`: the count is of tokens taken, not of committed entries, so no statement about
+  raft's log is needed; `run` no longer hands tokens per batch). Stage 3: `storeSmall`, the watch store's
+  `srvLogsSmall`, `rnLogFits` if server-side. Raft's tick/term budget (`budgetInv`, `tickCred`,
+  `rnTickerOk`) after PreVote lands.
+- **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
+  committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
+  (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
+  contracts then say what they propose) -- proved as an invariant on raft's committed log.
+  **2026-10-18: adopted by the user, attempted, stopped** (`notes/STATUS.md`, "D19c: unit N3
+  stopped"). The clause is not provable from the ghost allocations, and not as stated:
+  (1) every committed normal entry after the boot log is fired by a deposit of `kv_prop_au`
+  (`reqPropOk`) or `kv_noop_au` (`kvInv` holds the server's half of the log), so `entriesOk`
+  must come from the proposals, and `reqPropOk` carries none of `rqOk`: `EtcdServer.Txn.spec`
+  admits `Txn{Then: [DeleteRange [a, c), Put b IgnoreValue]}` (`txnPermit`: plain, no `[0]` range
+  end), whose `TxnPre` fails at every state where `b` exists (`IgnOk`), and which panics the Go
+  apply loop (only v3rpc's `checkIntervals` keeps it out; `issues/etcd-txn-delete-then-ignore-put.md`);
+  the length/count clauses (`putOk`, `delOk`, `TxnPre`'s `< 2 ^ 56`) need the committed log's
+  length bound inside `kvInv`'s updates (D19b's receipts). (2) `batchWaitOk` of the boot log's
+  conf changes (id `0`, raft's `Bootstrap`; the log is the server's `L`, start index `0`) needs
+  id `0` never claimed, which `idGen` allows when the prefix is `0`
+  (`issues/etcd-request-id-zero-bootstrap-confchange.md`). (3) `publishV3`/`monitorClusterVersions`
+  are names-only with `True` posts: their real proposals are outside the model. Options for the
+  user: (a) a per-request premise "`rqOk` at every state and `dispatchOk`" in `reqPropOk` (new
+  premises of `EtcdServer.Put`/`DeleteRange`/`Txn`, discharged at v3rpc from `checkIntervals` and
+  `txnNoZeroEnd`) with `idClaim` and the bound from receipts, the facts kept in `kvInv` (which then
+  takes `ρ.ids`, `E`); plus a pure premise `uint16(memberID) ≠ 0` from `bootstrapContract`;
+  (b) keep the clause a premise of `NewServer` and state the adequacy theorem for the workload
+  that satisfies it, as a pure property of the requests (out of D19a's rule as now written).
+- **D19d: program-start resources once** (`nameFree`, `netAddrFree`). Options: (1) Perennial's
+  `wp_package_init` gives the body a once-per-package token (D16's proposed general fix), from which
+  a package takes what was allocated for it at program start: covers `nameFree`, not `netAddrFree`;
+  (2) an FFI whose initial world holds the free addresses and an empty default registry, its
+  `ffiGlobalStart` the rights (given once by `goose_init`), `nameFree`/`netAddrFree` defined as its
+  ghost state instead of axioms: a Perennial FFI change (or a local FFI over the disk FFI);
+  (3) the program-start rights as one exclusive token the theorem's proof gets from the initial
+  package state, if Perennial's `ownGoState ∅` were split into fragments.
+  **Adopted 2026-10-18 (the user): the local route, a trust-boundary adequacy axiom.** What
+  Perennial offers was checked (`GooseLang/Adequacy.lean`): `goose_adequacy`'s `Hwp` receives the
+  FFI's `ffiGlobalStart`/`ffiLocalStart` (the disk FFI's: `True` and the disk's points-tos; the
+  Grove FFI's: the network's channels and the node's files: neither has a registry or free
+  addresses, and the etcd proofs are generic in the FFI), `ownGoState σ.packageState` (needed by
+  the initializers) and `threadTok` (needed by the main thread). None is a once-only resource the
+  program does not otherwise need, and no axiom of the form `ownGoState ∅ ==∗ ownGoState ∅ ∗
+  rights` is sound (usable twice). So the rights come from the adequacy statement itself:
+  `EtcdGrove.goose_adequacy_start` (`Proof/runtime/Start.lean`) is `goose_adequacy` whose WP proof
+  also receives `startRights Ns As` (`nameFree n` for each name of `Ns`, `netAddrFree a` for each
+  address of `As`, both lists `Nodup`), for a program `e` with `prometheus.namesUnclaimed e Ns`
+  (no code of `e` the proofs do not verify, and no default collector, registers a name of `Ns`)
+  and `addrsUnclaimed e As` (no other process and no unverified code of `e` binds an address of
+  `As`): axiomatized propositions, pure facts of the program and its environment (D19a's first
+  kind), hypotheses of the closed theorem. *Why true of Go:* every registration of a name of `Ns`
+  and every listen on an address of `As` is then made by verified code whose spec consumes the
+  right, and each right exists once in the proof, so no name is registered twice and no address
+  bound twice, which is all `MustRegister.spec` and `Listen.spec` assume. *Why once only:* nothing
+  else produces `nameFree` or `netAddrFree` (axiomatized predicates; no axiom or definition gives
+  one), and the axiom's conclusion is about executions (`goose_adequacy`'s), not an entailment: it
+  cannot be applied inside a proof to obtain rights, only to the one WP proof of one run.
+  *Satisfiable:* with `nameFree`/`netAddrFree` read as `True` (no axiom says either is exclusive)
+  and the names-only `MustRegister`/`Listen` as diverging functions, premise and conclusion are
+  `goose_adequacy`'s. *The adequacy example's facts* (checked 2026-10-18): over the 499 packages
+  `examples/putget` builds (`go list -deps`), the read package's two metric names occur only in
+  `server/etcdserver/read/metrics.go`, the address `127.0.0.1:23790` only in `putget.go` (and a
+  test file of the standard library's `math/rand/v2`, not built); the program's run (`go test`)
+  registers each name once (its initializers do not panic). So `Ns` = the read package's two
+  names (`readRegPerm`), `As = ["127.0.0.1:23790"]`.
+  *The Perennial proposal (independent of this repository):* option (2), an FFI (or an extension
+  point of `FfiInterpAdequacy`) whose global world has the bound addresses and the registered
+  metric names, with `Listen`/`MustRegister` as its operations (failing or panicking on a taken
+  address or name) and `ffiGlobalStart` the ownership of the free ones; `nameFree`/`netAddrFree`
+  become its ghost state and `goose_adequacy_start` follows from `goose_adequacy`. Option (1) alone
+  does not cover addresses (no package owns one).
+- **D19e: the read package's rights needed twice** (D16's cost met): a program that imports both
+  `etcdserver` and `v3rpc` runs `v3rpc.initialize'` after `etcdserver.initialize'`; both theorems
+  take `readRegPerm`. Options: (1) as D19d (1); (2) every `wp_initialize'` also returns its package
+  map's entries (`gen-init.py`), so a local variant of `wp_package_init` (from Perennial's
+  `wp_PackageInitCheck`) proves an initialized package's `package.init` without the body's proof,
+  and the importers after the first take `isPkgInit read` instead of the rights.
+  **Adopted 2026-10-18 (the user): option (2), locally.** (In putget's order `v3rpc` runs first,
+  and runs `etcdserver` and `read`; `putget`'s own call of `etcdserver.initialize'` comes next.)
+  Perennial exposes the map (`ownInitializing_unseal`: `∃ σ, ownGoState σ ∗ □ ...`, and the
+  instructions' WPs `wp_PackageInitCheck`/`Start`/`Finish`), but every `wp_initialize'` returns an
+  arbitrary map, so after any call a proof no longer knows `read` is initialized. Hence two forms
+  (`Proof/runtime/PkgInit.lean`): `ownInitLb g σ0` (`ownInitializing g` whose map keeps `σ0`'s
+  initialized packages initialized, `initLe`) and `ownInitRes g q R` (`ownInitializing g` holding
+  `R` unless `q` is initialized), with local variants of `wp_package_init` proved from Perennial's
+  instructions: `wp_package_init_lb` (keeps `ownInitLb g σ0`), `wp_package_init_res` (passes
+  `R` on), `wp_package_init_res_self` (`q`'s own: the body gets `ownInitializing g ∗ R`), and
+  `initRes_carry` (an import's `_lb` form passes `R` on). `etc/gen-init.py` now proves every
+  generated package's `wp_initialize'_lb` (for all `σ0`), or, for a package whose closure contains
+  `read` (`read`, `etcdserver`, `v3rpc`, `putget`), `wp_initialize'_res`; `wp_initialize'` (both
+  of D16's shapes, unchanged statements) follows (`wp_init_of_lb`, `wp_init_of_res`). `PRE_RES`'s
+  "one import leads there" assertion is gone: `R` is spent by the first initializer that runs
+  `read` and every later one finds it initialized. `putget` is in the table (`ROOTS`; its fact
+  `True`, `examples/putget/Base.lean`); `putget.wp_initialize'` takes `ownInitializing g ∗
+  readRegPerm`. *The trust boundary:* Perennial's, raft's and the B-tree's initializers (18,
+  the generated `ExternalInit` list, `Proof/runtime/PkgInitExt.lean`) have only Perennial's form;
+  their `_lb` forms come from it by the axiom `EtcdGrove.initLb_of_spec`: a listed initializer
+  meeting Perennial's spec also keeps the initialized packages initialized. True of Go and of the
+  model: the map changes only by `PackageInitStart`/`Finish`, which Goose emits only in
+  `package.init` (`Start q` after `PackageInitCheck q` found `q` not initialized), and
+  initialization is sequential; stated of the listed initializers only (a raw `PackageInitStart`
+  could reset an entry), it holds in every model where its premise does. *The Perennial proposal
+  (independent):* Perennial's `wp_initialize'` theorems (and `wp_package_init`) in the `_lb` form,
+  or a persistent witness `pkgInited p` (a fragment of a monotone view of the package map, given by
+  `wp_package_init`) with a `wp_package_init` variant that skips the body given it; either makes
+  `initLb_of_spec` a theorem. D16's once-per-package token (D19d (1)) is the alternative for
+  resources a package's body needs.
+- **D19f: `clientv3.New` without the watch facts** for a client that never watches: either compose
+  `etcd_watch_served_chain` at the server's start (item 4's "not done"), or weaken `New`'s
+  postcondition on the `Watcher` field so that its premise `watchAddrFacts` goes (a change to
+  `New`'s spec). **Adopted 2026-10-18 (the user), the second:** constructing the watcher only
+  allocates it (`NewWatchFromWatchClient`: the struct, an empty streams map; no goroutine, no call
+  on the connection), and its lock's invariant (`watcherMu`, an empty map) needs no server fact, so
+  the facts are needed only by `Watch`. `isClientWatcherCore V w` (`InvWatcherCore.lean`) is
+  `isClientWatcher` with the stub on the connection (`watchStubAt`) in place of `watchSrvFacts`;
+  `isClientWatcher_of_core` adds `watchConnFacts V`. `NewWatchFromWatchClient.spec` takes the stub
+  instead of `watchSrvFacts`, `NewWatcher.spec` drops `watchConnFacts`; both give the core.
+  `isNewClient`'s watcher is the core plus `grpcConn conn ep ics []`; `newClient.spec`/`New.spec`
+  drop `watchAddrFacts V` and `V.addr = ep` (the caller still picks the watcher's environment `V`,
+  any one); `isNewClient_watcher` (with `V.addr = ep`) gives the old form from
+  `watchAddrFacts V`, to supply before the first `Watch`. `client_newWatcher_rangeWatcher`'s
+  statement unchanged (its proof adds the facts). The watcher's environment is still fixed at
+  `New` (the lock's invariant is stated over it); a client whose server is chosen later would need
+  the invariant over an existential environment, not needed here.
+- `rnSnapOnce`: D17d's option (1), planned after PreVote, unchanged.
+
+*Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
+conclusion to executions where the bounds hold (they are ghost facts, not observable in the
+configuration `goose_adequacy` speaks of).

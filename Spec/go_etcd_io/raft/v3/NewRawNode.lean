@@ -111,8 +111,7 @@ abbrev NewRawNode.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- synchronous storage writes, nothing applied
   cv.AsyncStorageWrites' = false →
-  -- pre-vote off (2026-10-10): pre-vote is an optimization, out of scope (`ownRawNode`)
-  cv.PreVote' = false →
+  -- (2026-10-17) pre-vote either way (2026-10-10 to 2026-10-17: off, `cv.PreVote' = false`)
   cv.Applied' = W64 0 →
   -- an empty storage: no entries, no `HardState`
   σ.prev = entryID.mk (W64 0) (W64 0) →
@@ -143,7 +142,7 @@ abbrev NewRawNode.spec : Prop :=
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
-        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' s ∗
+        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' cv.PreVote' s ∗
         ⌜err = interface.nil⌝ }}
 
 end spec

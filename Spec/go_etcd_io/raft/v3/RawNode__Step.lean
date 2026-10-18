@@ -84,8 +84,15 @@ abbrev RawNode.Step.spec : Prop :=
   -- snapshot restore at a dynamic configuration is stage B8. (Implied today by `NetMsgOk`,
   -- which takes no `MsgSnap` in either mode; a separate premise so that B8 can drop it.)
   DynNoSnap rs st.msg →
-  -- (2026-10-13) a `MsgTimeoutNow`'s campaign does not wrap the term (`raft.Step`'s)
-  (st.msg.Type' = MsgTimeoutNow → uint.Z rs.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64) →
+  -- (2026-10-17) the term ceiling covers the message's term (a granted pre-vote answers at it)
+  -- and, for a `MsgTimeoutNow` (until then: does not wrap the term), its campaign's term;
+  -- the client raises the ceiling first (`ownRawNode_raise_tc`)
+  uint.Z st.msg.Term' ≤ uint.Z rs.tc →
+  (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
+  -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log (`StartNode`):
+  -- its nodes are past term `0`, at which a rejection could not be sent (`send` refuses a vote
+  -- response of term `0`)
+  (st.msg.Type' = MsgPreVote → γ.reBoot ≠ []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then
@@ -99,9 +106,12 @@ abbrev RawNode.Step.spec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (t : w64), RET #err;
       "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
-      "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧
-               uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
-                 (if st.msg.Type' = MsgTimeoutNow then 1 else 0)⌝ }}
+      "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.tc ∧
+               -- (2026-10-17) but a won pre-vote (on a response of the node's own term), at most
+               -- to the message's term (one past it after a transfer's campaign)
+               (st.msg.Type' ≠ MsgPreVoteResp →
+                 uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
+                   (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }}
 
 end spec
 

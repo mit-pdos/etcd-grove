@@ -43,8 +43,9 @@ entry committed (`batchCommittedIdx`: raft's batches, `rnApP`), each entry's log
 of its result (`applyEntryNormal`'s `srvAppliedPre`). **The KV model** (2026-10-14, unit T1): the
 apply thread at the committed raft log `A` through `f0 - 1` (`kvApplied`), the batch committed after
 it (`kvBatch`), at `A ++ ms` after. **The write budget**
-(2026-10-13, unit 6): one write token of the store per entry (`txn.storeWTs E.γ ms.length`,
-spent; a conf change's is wasted). -/
+(2026-10-13, unit 6): one write token of the store per entry, spent (a conf change's is wasted);
+since D19b (2026-10-18) taken from the budget `srvWTPool E.γ` with a time receipt of the entry's
+iteration, until then handed in (`txn.storeWTs E.γ ms.length`). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -54,7 +55,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
-      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ ms.length ∗ srvFS s ∗
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))

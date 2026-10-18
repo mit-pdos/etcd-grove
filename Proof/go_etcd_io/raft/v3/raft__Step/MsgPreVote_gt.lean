@@ -69,8 +69,8 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') = true) →
-    -- pre-vote on (2026-10-10; `raft.Step.spec`)
-    s.prevote = true →
+    -- (2026-10-17) the requested term within the ceiling (`NGhost.tc`): a grant answers at it
+    uint.Z m.Term' ≤ uint.Z s.gh.tc →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -83,7 +83,7 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hgt0 Hwf Hutd0 Hpvon
+  intro Hty Hto Hterm Hfnz Hfid Hgt0 Hwf Hutd0 Hptc
   have Hn5 : decide (m.Type' = W32 5) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)

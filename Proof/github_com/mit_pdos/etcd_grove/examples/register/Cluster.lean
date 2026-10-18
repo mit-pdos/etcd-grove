@@ -196,6 +196,18 @@ theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) 
     iexact Hmsg
   · rw [Hty0] at Hsn; cases Hsn; exact absurd rfl Hns
 
+/-- (2026-10-17) No pre-vote request is delivered (`regNetTypes`). -/
+theorem deliverable_not_prevote (st : MsgSt) (Hd : Deliverable st) : st.msg.Type' ≠ MsgPreVote := by
+  obtain ⟨Hty, -⟩ := Hd
+  rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
+  · rw [h]; simp [MsgProp, MsgPreVote]
+  · rw [h]; simp [MsgReadIndex, MsgPreVote]
+  · simp only [regNetTypes, List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with h | h | h | h | h | h | h <;> rw [h] <;>
+      simp [MsgPreVote, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+        MsgHeartbeatResp, MsgReadIndexResp]
+  · rw [h]; simp [MsgTimeoutNow, MsgPreVote]
+
 /-- A deliverable message other than a proposal, addressed to `id`, is what `RawNode.Step`
 takes from the network (`NetMsgOk`). -/
 theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
@@ -218,11 +230,12 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
     (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
        st.msg.Type' = MsgReadIndexResp → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-    (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = [])
+    (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+    (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id)
   rcases Hty with h | ⟨Hri, Ht0⟩ | ⟨Hn, Ht⟩ | ⟨Htn, Ht, -⟩
   · exact absurd h Hnp
   · refine ⟨by rw [Hri]; simp [netStepTypes], fun h => absurd (.inl Hri) h, fun _ => Ht0,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl⟩
+      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF'⟩
   · have Hun : ¬ UnstampedType st.msg.Type' := by
       simp only [regNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
       rcases Hn with h | h | h | h | h | h | h <;> rw [h] <;>
@@ -234,13 +247,13 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
       simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false]
       rcases Hn with h | h | h | h | h | h | h <;> simp [h]
     exact ⟨Hnet, fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun, fun _ => HF', fun _ _ => HF',
-      fun h => absurd h Hntl⟩
+      fun h => absurd h Hntl, fun _ => HF'⟩
   · have Hun : ¬ UnstampedType st.msg.Type' := by
       rw [Htn]
       simp [UnstampedType, MsgTimeoutNow, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
         MsgUnreachable, MsgSnapStatus]
     exact ⟨by rw [Htn]; simp [netStepTypes], fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun,
-      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl⟩
+      fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF'⟩
 
 /-- A deliverable message holding `st` at `l`, owned with its entries slice fresh (the elements
 at `1`, the capacity: `deliver`'s copy, `msgPtsC_store_Entries`), with its read credit and its
@@ -283,6 +296,9 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     · iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto
+    isplitr
+    · ipureintro; intro h; exfalso
+      exact deliverable_not_prevote st Hd h
     iframe Hmsg Hlb Hcr Htc
 
 end defs

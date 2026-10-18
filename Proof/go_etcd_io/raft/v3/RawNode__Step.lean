@@ -41,7 +41,9 @@ local macro "early_return" e:term : tactic => `(tactic| (
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv hprev steps Hwf Hin
       Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
-  ipureintro; refine ⟨Int.le_refl _, ?_⟩; split <;> omega))
+  ipureintro
+  refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
+  split <;> omega))
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type `RawNode.Step` does not take: vacuous. -/
@@ -57,7 +59,7 @@ local macro "not_net" : tactic => `(tactic| (intro h; first
 
 /-- A stamped type is not one of the unstamped ones. -/
 local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
-  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp,
+  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgPreVote, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
 
 /-- The two guards, each an early return or on (`all_goals` over the paths that go on),
@@ -70,11 +72,11 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok _Hdns Htn
+  intro γ rn id rs ml st Hok _Hdns Hmtc Htn Hpvb
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hok _Hdns Htn ⊢
+  simp only at Hok _Hdns Hmtc Htn Hpvb ⊢
   have Hok0 := Hok
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
       m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
     fun h ht => Hnri (h ▸ ht)
@@ -110,17 +112,30 @@ theorem RawNode.Step.wp_proof
   -- `rn.raft.Step(m)`
   all_goals (
       try wp_auto
+      icases ownStepGhost_boot_term γ _ cf id s (m.Type' = MsgPreVote) Hpvb $$ Hghost
+        with ⟨%Hb1, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net
       have Hsm : StepMsg m := netStepTypes_stepMsg Hty
-      have Hrest : RestMsgOk s m ents ctx := Hok.restMsgOk (by rw [← Htrm]; exact Htn)
-      have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
+      have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
+      have Hrest : RestMsgOk s m ents ctx := Hok.restMsgOk (fun h => by
+        have := Htn h; rw [Hpvoff.2.1, Htrm] at this
+        have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
+        have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
+        simp only at h ⊢
+        exact ⟨by omega, by omega⟩)
+      have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
+        (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) := by not_net
       have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
             (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) ∧
-          s.prevote = true := by
-        not_net
+          (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc) := fun h =>
+        ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2, Hpvf h,
+         fun hz => by exfalso; have := Hb1 h; rw [hz] at this; word,
+         .inr (by rw [← Hpvoff.2.1]; exact Hmtc)⟩
       have P3 : m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
-          (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := by not_net
+          (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := fun h =>
+        ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+         fun hp => by have := Hpvoff.2.2.2 hp; omega⟩
       have P4 : m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id := by not_net
       have P5 : m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0 := by not_net
@@ -132,7 +147,7 @@ theorem RawNode.Step.wp_proof
             StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-      icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+      icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
       wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp Hsm P1
         (fun h => Hnr h (by ty_ne))
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
@@ -172,20 +187,36 @@ theorem RawNode.Step.wp_proof
         revert h
         not_net
       simp only [HnP]
-      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, -⟩
       have Hc := Href.commit_mono
       have e1 := Href.keep (by not_net) (by not_net); subst e1
       have e2 := Hcc (by not_net); subst c'
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
-      obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
-      have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
+      obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm (by not_net)
+      have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
           (if m.Type' = MsgTimeoutNow then 1 else 0) := by
+        intro hpr
         by_cases h : m.Type' = MsgTimeoutNow
         · rw [ite_eq_left h]; exact Ht5 h
-        · rw [ite_eq_right h]; have := Ht3 (by not_net) (by not_net) h; omega
+        · rw [ite_eq_right h]; have := Ht3 (by not_net) hpr h; omega
+      -- (2026-10-17) the term within the ceiling: the message's, a transfer's campaign's, or a
+      -- pre-candidate's won pre-vote's
+      have Hmtc' : uint.Z m.Term' ≤ uint.Z s.gh.tc := by rw [← Hpvoff.2.1]; exact Hmtc
+      have Htc0 := Hpvoff.2.2.1
+      have Hle : uint.Z s'.term ≤ uint.Z s.gh.tc := by
+        by_cases hpr : m.Type' = MsgPreVoteResp
+        · rcases (Hresp.2 hpr).1 with h | ⟨hp, h⟩
+          · have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
+          · have := Hpvoff.2.2.2 hp; omega
+        · have h1 := Ht3' hpr
+          by_cases h : m.Type' = MsgTimeoutNow
+          · rw [ite_eq_left h] at h1
+            have := Htn h; rw [Hpvoff.2.1, Htrm] at this; omega
+          · rw [ite_eq_right h] at h1
+            have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
       -- the queue survives any step, a truncating `MsgApp`'s too: what it needs of the log
       -- is `prev` and `stored`, which no network step changes (`NetFrame`)
-      have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok
+      have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
       ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
       wp_auto
       iapply HΦ $$ %err %s'.term
@@ -193,12 +224,13 @@ theorem RawNode.Step.wp_proof
       · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
           Hal
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-          Hstok' rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
+          Hstok' rfl (by rw [Hsg]; exact Hstor)
+          (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
       ipureintro
       rw [Htrm]
-      exact ⟨Ht1, Ht3⟩)
+      exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)
 
 end proof
 

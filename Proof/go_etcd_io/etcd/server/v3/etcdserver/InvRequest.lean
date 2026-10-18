@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.Protocol.ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
 public import Perennial.Ghost.SavedProp
@@ -568,9 +569,9 @@ theorem srvRdFreshInv_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) 
   iexact Hi
 
 /-- The unclaimed ids of a list are issued ids of the generator's map `I`. -/
-theorem idFresh_issued (γi : IdNames) (I : GMap w64 (Option (List w8 × GName))) (U : List w64) :
-    ⊢ ghostMapAuth γi.issued 1 I -∗ ([∗list] id ∈ U, idFresh (GF := GF) γi id) -∗
-      ⌜∀ id ∈ U, I !! id = some none⌝ := by
+theorem idFresh_issued (γi : IdNames) (S : GMap w64 Unit) (U : List w64) :
+    ⊢ ghostMapAuth γi.slot 1 S -∗ ([∗list] id ∈ U, idFresh (GF := GF) γi id) -∗
+      ⌜∀ id ∈ U, S !! id = some ()⌝ := by
   induction U with
   | nil =>
     iintro - -
@@ -581,8 +582,8 @@ theorem idFresh_issued (γi : IdNames) (I : GMap w64 (Option (List w8 × GName))
     iintro Ha Hus
     icases BigSepL.bigSepL_cons.1 $$ Hus with ⟨Hf, Hus⟩
     iunfold idFresh at Hf
-    icases Hf with ⟨Hu, -⟩
-    iunfold idUnclaimed at Hu
+    icases Hf with ⟨-, Hu⟩
+    iunfold idSlot at Hu
     ihave %Hl := ghost_map_lookup $$ Ha Hu
     ihave %Hrest := ih $$ Ha Hus
     ipureintro
@@ -593,13 +594,15 @@ theorem idFresh_issued (γi : IdNames) (I : GMap w64 (Option (List w8 × GName))
 
 /-- **An id mints its context's token and a read credit**: the id is fresh (its slot is
 exclusive, so it is not among the minted ids), so its context is not in the map (`beBytes` is
-injective); and the minted ids are issued ids of the generator, fewer than `2 ^ 48`, so a credit
-of raft's budget is left. -/
+injective); and the minted ids are issued ids of the generator, fewer than `2 ^ 48` (its
+invariant's time receipts under the bound `idCred`, D19b), so a credit of raft's budget is left. -/
 theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
     (Φ : w64 → List w8 → GName → IProp GF) (id : w64) :
-    ⊢ idGen γi g Φ -∗ srvRdFreshInv (GF := GF) γ γi -∗ idFresh γi id ={⊤}=∗
+    ⊢ idGen γi g Φ -∗ idCred γi 1 -∗ srvRdFreshInv (GF := GF) γ γi -∗ idFresh γi id ={⊤}=∗
       srvRdFresh γ (beBytes id) ∗ srvRdCred γ := by
-  iintro #Hg #Hinv Hf
+  iintro #Hg #Hb #Hinv Hf
+  iunfold idCred at Hb
+  icases Hb with %Hb
   iunfold srvRdFreshInv at Hinv
   iinv Hinv with ⟨%U, >Ha, >Hc, >%Hnd, >Hus⟩ Hclose
   -- `id ∉ U`: its slot is exclusive
@@ -616,16 +619,19 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   -- the bound: the minted ids are issued ids
   iunfold idGen at Hg
   icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hgi⟩
-  iinv Hgi with ⟨%k, %I, %S, >Hsuf, >Hcred, >%Hk, >HI, >HS, >%HIS, Hfacts⟩ Hclose2
-  ihave %Hiss := idFresh_issued γi I U $$ HI Hus
+  iinv Hgi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%HIS, Hfacts⟩ Hclose2
+  imod receipt_snapshot k $$ Hcred with ⟨Hcred, #Hpk⟩
+  ihave %Hkb := preceipt_lt k $$ Hpk
+  have Hk : k ≤ 2 ^ 48 - 1 := by omega
+  ihave %Hiss := idFresh_issued γi S U $$ HS Hus
   have Hlen : U.length ≤ k := idIssued_length_le pfx s0 k U Hnd
-    (fun id' hid' => (HIS id').1.1 (by rw [Hiss id' hid']; rfl))
+    (fun id' hid' => (HIS id').2.1 (by rw [Hiss id' hid']; rfl))
   imod Hclose2 $$ [Hsuf Hcred HI HS Hfacts] with -
   · inext
     iexists k, I, S
     iframe Hsuf Hcred HI HS Hfacts
     ipureintro
-    exact ⟨Hk, HIS⟩
+    exact HIS
   -- the token and the credit
   imod ghost_map_insert (beBytes id) () (ctxMap_lookup_none U id hin) $$ Ha with ⟨Ha, Hfr⟩
   ihave Hc' : iprop(rdCred γ.raft ((2 ^ 64 - 2 - (U.length + 1)) + 1)) $$ [Hc]

@@ -235,21 +235,28 @@ theorem AAMsgOk.mono {id t t' : w64} {st : MsgSt} (Ht : uint.Z t ≤ uint.Z t')
   obtain ⟨H1, H2, H3, H4, H5⟩ := Hself Hto
   exact ⟨H1, H2, H3, H4, by omega⟩
 
-/-- A queued message's term (2026-10-10): with pre-vote off, at most the node's. `send`
+/-- A queued message's term (2026-10-10; 2026-10-17 the ceiling `tc`): at most the node's or the
+term ceiling `tc` (`NGhost.tc`; until 2026-10-17, with pre-vote off, at most the node's). `send`
 stamps the node's term into every message but a forwarded proposal (`Term = 0`) and a
 vote message, whose term the caller sets (`SendOk`): a vote request or response of the
 node's term, or (with pre-vote on) a pre-vote at the next term or a pre-vote response
 granting a candidate's. A receiver thus knows a message from the outbox is from a term
 no later than its sender's (`RawNode.readyWithoutAccept`'s `Hmsgs_term`). The bound holds
-at every later term too (`OutTermOk.mono`). And (2026-10-10) with pre-vote off no queued
-message is a pre-vote response: `RawNode.Advance` then never steps one, so it keeps the
-node's term (the budget `node.go`'s ticks spend). (Stage R4: on the message's scalars.) -/
-def OutTermOk (pv : Bool) (t : w64) (m : MessageM) : Prop :=
-  pv = false → uint.Z m.Term' ≤ uint.Z t ∧ m.Type' ≠ MsgPreVoteResp
+at every later term too (`OutTermOk.mono`). (2026-10-10 to 2026-10-17, with pre-vote off no
+queued message was a pre-vote response, so `RawNode.Advance` kept the node's term; since then it
+keeps it within the ceiling, which `node.go`'s budget covers.) (Stage R4: on the message's
+scalars.) -/
+def OutTermOk (t tc : w64) (m : MessageM) : Prop :=
+  uint.Z m.Term' ≤ uint.Z t ∨ uint.Z m.Term' ≤ uint.Z tc
 
-theorem OutTermOk.mono {pv : Bool} {t t' : w64} {m : MessageM}
-    (Ht : uint.Z t ≤ uint.Z t') (H : OutTermOk pv t m) : OutTermOk pv t' m :=
-  fun Hpv => ⟨Int.le_trans (H Hpv).1 Ht, (H Hpv).2⟩
+theorem OutTermOk.mono {t t' tc : w64} {m : MessageM}
+    (Ht : uint.Z t ≤ uint.Z t') (H : OutTermOk t tc m) : OutTermOk t' tc m :=
+  H.elim (fun h => .inl (Int.le_trans h Ht)) .inr
+
+/-- (2026-10-17) The ceiling raised. -/
+theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
+    (Ht : uint.Z tc ≤ uint.Z tc') (H : OutTermOk t tc m) : OutTermOk t tc' m :=
+  H.elim .inl (fun h => .inr (Int.le_trans h Ht))
 
 /-! ### Hard and soft states (from the old `InvRawnode.lean`, stage R4)
 
@@ -775,8 +782,8 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
   -- what `send` puts in `msgsAfterAppend` (2026-10-10): responses from the node, the
   -- self-addressed ones steppable by `RawNode.Advance` (`AAMsgOk`)
   "%HmsgsAA_ok" ∷ ⌜∀ m ∈ msgsAA, AAMsgOk id s.term m.st⌝ ∗
-  -- the queued messages' terms (2026-10-10): with pre-vote off, at most the node's
-  "%Hout_term" ∷ ⌜∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote s.term m.st.msg⌝ ∗
+  -- the queued messages' terms (2026-10-10): at most the node's or the term ceiling
+  "%Hout_term" ∷ ⌜∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
   -- the ghost lower bounds for `node.go` (2026-10-10, `NGhost`)
   "%Hgh_out" ∷ ⌜s.gh.outlb ≤ msgs.length + msgsAA.length⌝ ∗
   "%Hgh_unst" ∷ ⌜s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none⌝ ∗
@@ -888,7 +895,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
     (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
-    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote s.term m.st.msg) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
     (s.role ≠ .follower → id ∈ cfg) →
@@ -976,7 +983,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
     (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
-    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote s.term m.st.msg) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
     (s.role ≠ .follower → id ∈ V) →
@@ -1220,7 +1227,7 @@ theorem raft.wp_store_Term (r : Loc) (id : w64) (s : NState) (v : w64)
   wp_apply wp_store_access _ rv.Term' v _ _ (raftOwn_access_store_Term _ _ _) $$ Hr as Hr
   have HmsgsAA_ok' : ∀ m ∈ msgsAA, AAMsgOk id v m.st :=
     fun m Hm => (HmsgsAA_ok m Hm).mono Hle
-  have Hout_term' : ∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote v m.st.msg :=
+  have Hout_term' : ∀ m ∈ msgs ++ msgsAA, OutTermOk v s.gh.tc m.st.msg :=
     fun m Hm => (Hout_term m Hm).mono Hle
   iapply HΦ
   iapply ownRaftPhys_intro _ _ _ { s with term := v } _ msgs msgsAA lok
@@ -1526,7 +1533,7 @@ theorem ownRaftPhys_intro_trk (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     rv.raftLog' = s.log →
     (s.ticking = true → TickFnOk r rv.tick') →
     (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
-    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote s.term m.st.msg) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
     s.gh.outlb ≤ msgs.length + msgsAA.length →
     (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
     (s.role ≠ .follower → id ∈ cfg) →
@@ -2057,7 +2064,7 @@ theorem raft.wp_store_TermC (r : Loc) (id : w64) (s : NState) (v : w64)
   wp_apply wp_store_access _ rv.Term' v _ _ (raftOwn_access_store_Term _ _ _) $$ Hr as Hr
   have HmsgsAA_ok' : ∀ m ∈ msgsAA, AAMsgOk id v m.st :=
     fun m Hm => (HmsgsAA_ok m Hm).mono Hle
-  have Hout_term' : ∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote v m.st.msg :=
+  have Hout_term' : ∀ m ∈ msgs ++ msgsAA, OutTermOk v s.gh.tc m.st.msg :=
     fun m Hm => (Hout_term m Hm).mono Hle
   iapply HΦ
   iapply ownRaftPhysCV_intro c _ _ _ { s with term := v } _ msgs msgsAA lok
@@ -2065,6 +2072,24 @@ theorem raft.wp_store_TermC (r : Loc) (id : w64) (s : NState) (v : w64)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok' Hout_term' Hgh_out Hgh_unst Hvoter
+    (by phys_pure)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+
+/-- (2026-10-17) The term ceiling (`NGhost.tc`) raised: a ghost step; the queued messages' bound
+(`OutTermOk`) only weakens. The `RawNode` does it before a step, to a term the budget covers. -/
+theorem ownRaftPhysC_raise_tc (r : Loc) (id : w64) (s : NState) (tc : w64)
+    (Hle : uint.Z s.gh.tc ≤ uint.Z tc) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ownRaftPhysCV c V r id { s with gh := { s.gh with tc := tc } } := by
+  iintro H
+  iNamed_physC H
+  have Hout_term' : ∀ m ∈ msgs ++ msgsAA, OutTermOk s.term tc m.st.msg :=
+    fun m Hm => (Hout_term m Hm).mono_tc Hle
+  iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with tc := tc } } _ msgs msgsAA lok
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok Hout_term' Hgh_out Hgh_unst Hvoter
     (by phys_pure)
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -2380,7 +2405,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            r.[raft, go!"msgs"] ↦ sl' -∗ sl' ↦* (ls ++ [l']) -∗
            ownSliceCap Loc sl' (DFrac.own 1) -∗
            msgOwn l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
-           ⌜OutTermOk s.prevote s.term st'.msg⌝ -∗
+           ⌜OutTermOk s.term s.gh.tc st'.msg⌝ -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
@@ -2389,7 +2414,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
   iframe Hf Hmsgs Hmsgs_cap
   iintro %sl' %l' %st' %a Hf Hmsgs Hmsgs_cap Hm %Ha %Hot
   have Hout_term' : ∀ m ∈ (msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA,
-      OutTermOk s.prevote s.term m.st.msg := by
+      OutTermOk s.term s.gh.tc m.st.msg := by
     intro m Hm
     simp only [List.mem_append, List.mem_singleton] at Hm
     rcases Hm with (Hm | rfl) | Hm
@@ -2420,7 +2445,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            ownSliceCap Loc sl' (DFrac.own 1) -∗
            msgOwn l' (DFrac.own 1) st' -∗ ⌜msgAbs st' a⌝ -∗
            ⌜AAMsgOk id s.term st'⌝ -∗
-           ⌜OutTermOk s.prevote s.term st'.msg⌝ -∗
+           ⌜OutTermOk s.term s.gh.tc st'.msg⌝ -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
@@ -2429,7 +2454,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
   iframe Hf HmsgsAA HmsgsAA_cap
   iintro %sl' %l' %st' %a Hf HmsgsAA HmsgsAA_cap Hm %Ha %Hok %Hot
   have Hout_term' : ∀ m ∈ msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)]),
-      OutTermOk s.prevote s.term m.st.msg := by
+      OutTermOk s.term s.gh.tc m.st.msg := by
     intro m Hm
     simp only [List.mem_append, List.mem_singleton] at Hm
     rcases Hm with Hm | Hm | rfl
@@ -2560,7 +2585,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
         "HmsgsAA_cap" ∷ ownSliceCap Loc sl2 (DFrac.own 1) ∗
         "Houtbox" ∷ outboxRel s.outbox ms1 ms2 ∗
         "%HmsgsAA_ok" ∷ ⌜∀ m ∈ ms2, AAMsgOk id s.term m.st⌝ ∗
-        "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.prevote s.term m.st.msg⌝ ∗
+        "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
         "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
         "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
         "Hlog" ∷ ownRaftLog s.log s.logst ∗
@@ -2580,7 +2605,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             ownSliceCap Loc sl2' (DFrac.own 1) -∗
             outboxRel o ms1' ms2' -∗
             ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
-            ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.prevote s.term m.st.msg⌝ -∗
+            ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
             ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
             ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
             ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗

@@ -23,8 +23,8 @@ file is the bridge.
 * `StepCD c id m s recv s'`: what a branch of `raft.Step` delivers: the `StepC` witness (static
   mode) and, for every ghost part over `c` and the dynamic mode's premises (`DynHyp`: not a
   `MsgSnap` -- whose branch delivers `StepCDS` instead, below --, no pre-candidate --
-  pre-vote is off at the `RawNode` API, and the campaign after a won pre-vote checks nothing in
-  Go --, and for `MsgStorageApplyResp` no pending snapshot and A1: no conf entry between the
+  pre-vote is off at the `RawNode` API in the dynamic mode, and the campaign after a won pre-vote
+  checks nothing in Go --, and for `MsgStorageApplyResp` no pending snapshot and A1: no conf entry between the
   configuration index and the new `applied`), the `StepR` witness. `StepCD.frame` builds it from
   a `StepCF` witness and `RFrame`.
 * `StepCDS c c' cn id sid s recv s'` (2026-10-14, stage B8): what the `MsgSnap` branch delivers:

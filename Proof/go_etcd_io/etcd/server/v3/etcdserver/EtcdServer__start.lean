@@ -95,8 +95,8 @@ theorem EtcdServer.start.wp_proof
     (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  wp_start as ⟨#Hlife, Hb⟩
+  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb
+  wp_start as Hb
   iNamed Hb
   irename Hcancel => Hcancel0
   ihave #Hfb' := Hfb
@@ -395,11 +395,12 @@ theorem EtcdServer.start.wp_proof
     isplitr
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
-  -- `go s.run()`
-  wp_apply wp_fork $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr HWB]
+  -- `go s.run()`, with the write budget backed by time receipts (D19b)
+  imod srvWTPool_alloc E.γ N ⊤ Hrb $$ HWB with #HWB
+  wp_apply wp_fork $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
-      ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ N
-      $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr HWB]
+      ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
+      $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr]
     · iunfold isServerRun
       iframe
       iframe #

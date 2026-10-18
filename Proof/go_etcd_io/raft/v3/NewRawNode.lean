@@ -35,7 +35,7 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync HpvF
+  intro c cv lok si σ hs csm Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
     Happ Hprev Hents Hss Hpe Hhs Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
   wp_start as ⟨Hc, #Hlg, #Hst, HSt, Hinit⟩
   wp_auto
@@ -72,10 +72,10 @@ theorem NewRawNode.wp_proof
   iexists s
   isplitl [«$r0» Hphys]
   · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
-        s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
+        cv.PreVote' s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
           Hsn, Hsg⟩
-        Hgh (by rw [Hpv, HpvF]) Hsdr' Hdom
+        Hgh Hpv Hsdr' Hdom
       $$ «$r0» Hphys ss Hhp [] []
     all_goals first
       | iapply ownSlice_nil

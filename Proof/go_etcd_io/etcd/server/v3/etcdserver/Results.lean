@@ -256,8 +256,8 @@ side's tokens at `[]`, `srvRaftLogInv` at `pre = []`, and the installer of `isRa
 address `NewServer` copies the struct to, from the new cluster's ghost allocation
 (`ownRaftGhost_alloc_boot`: a stub, `sorryAx` below, until stage R8b-A lands), the budget, a fresh
 registered `MemoryStorage`, the server's own invariants and the trust-boundary premises
-(`NodeStart.lean`'s header classifies them). **Not etcd's default configuration**: `PreVote`
-must be off (`NewServer.spec` requires `cfg.PreVote` unset); `CheckQuorum` is covered. -/
+(`NodeStart.lean`'s header classifies them). `PreVote` and `CheckQuorum` either way (etcd's
+default configuration) since 2026-10-17. -/
 theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
   letI : MemStorReg GF := ⟨reg⟩
   raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
@@ -1081,18 +1081,19 @@ the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those resul
 on `isServerBuilt` alone (and each call's own resources). -/
 theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
+    (Hrb : receiptBound GF ≤ N + 1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        srvLifeBound ρ.raft N ∗ isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
+        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
           (idCred ρ.ids 1) ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
-  iintro %Φ ⟨#Hpkg, #Hlife, Hb⟩ HΦ
-  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N) $$ [Hb]
-  · iframe Hpkg Hlife Hb
+  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
+  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb) $$ [Hb]
+  · iframe Hpkg Hb
   inext
   iintro ⟨%γw, #Hreq, #Hrd, Hst⟩
   iunfold srvStarted at Hst

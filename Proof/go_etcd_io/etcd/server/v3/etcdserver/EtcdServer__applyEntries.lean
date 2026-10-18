@@ -76,7 +76,7 @@ theorem EtcdServer.applyEntries.wp_proof
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, HW, Hfs, Hka, #Hkb⟩
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, Hfs, Hka, #Hkb⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -172,8 +172,6 @@ theorem EtcdServer.applyEntries.wp_proof
     have hun : unapplied ai ms = ms.drop k := by
       rw [unapplied_eq_drop ai ms (uint.Z f0) (fun n m h => (Hfrom.2.2 n m h).1), hkdef, hoff]
     rw [hun] at hEok
-    ihave HW : txn.storeWTs E.γ (ms.drop k).length $$ [HW]
-    · rw [← hun]; iexact HW
     ihave #Hkb' : iprop(kvBatch γr (ciEff γ st.k) ai A (ms.drop k)) $$ []
     · rw [← hun]; iexact Hkb
     ihave #Hbw' : iprop(batchWaitOk ρ E (ms.drop k)) $$ []
@@ -191,7 +189,7 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr A hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hfs Hka]
+      (ai + 1) ep cs rac st a t x γr A hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka]
       as %appt %appi %stop ⟨Hfs, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao,
         ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]

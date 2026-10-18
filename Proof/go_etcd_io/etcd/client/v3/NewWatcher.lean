@@ -34,19 +34,15 @@ theorem NewWatcher.wp_proof
     (wp_NewWatchFromWatchClient : NewWatchFromWatchClient.spec (GF := GF) (hG := hG)) :
     NewWatcher.spec (GF := GF) (hG := hG) := by
   intro V c callSl vs
-  wp_start as ⟨#Hf, %Hc, #Hconn, #Hco, #Hvs, #Hok, #Hlg⟩
+  wp_start as ⟨%Hc, #Hconn, #Hco, #Hvs, #Hok, #Hlg⟩
   wp_auto
   wp_apply wp_NewWatchClient as %v ⟨%wc, %Hv, #Hcc⟩
   subst Hv
   wp_apply wp_NewWatchFromWatchClient { V with wc := wc } c callSl vs $$ [] as %wi ⟨%w, %lg, %Hwi, #Hw⟩
   · iframe #
     isplitr
-    · unfold watchSrvFacts
-      isplitr
-      · unfold v3rpc.watchStubAt
-        iexact Hcc
-      iapply (show watchConnFacts (GF := GF) V ⊢ watchConnFacts { V with wc := wc } from by
-        unfold watchConnFacts; exact .rfl) $$ Hf
+    · unfold v3rpc.watchStubAt
+      iexact Hcc
     ipureintro; exact Hc
   iapply HΦ
   iexists w, wc, lg

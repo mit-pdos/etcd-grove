@@ -50,6 +50,8 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' = W64 0 →
     -- an election increments the term; `send` panics if that wraps to zero
     uint.Z s.term + 1 < 2 ^ 64 →
+    -- (2026-10-17) a pre-election's next term within the ceiling
+    (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
     -- `r.step` matches the role
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -63,7 +65,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hnowrap Hwf
+  intro Hty Hterm Hnowrap Htc Hwf
   wp_start as ⟨Hphys, Hm⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
@@ -95,21 +97,22 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   all_goals
     wp_auto
     wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
-      as %s' ⟨Hphys, %Hok⟩
+      as %s' ⟨Hphys, %Hok, -⟩
     case Hpvt =>
       first
-        | exact fun _ => Hpv
+        | exact fun _ => ⟨Hpv, Htc Hpv⟩
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignPreElection] at this
     have HCD := stepCD_hup (m := m) Hok Hnowrap Hlogf
+    have Hpc := fun h => HupGuard.precand Hok.2.2.2.2 h
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
     exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
-      fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩
+      fun h => absurd (Hty.symm.trans h) (by w32_ne), fun h => ⟨Hpc h, .inr Hty⟩⟩
 
 end StepProof
 

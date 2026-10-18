@@ -428,7 +428,7 @@ theorem stepFollower.wp_proof
     wp_raft_logC
     wp_apply wp_raft_hup c r id s _ Hnw
         (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf
-      $$ [$Hphys] as %s' ⟨Hphys, %Hok⟩
+      $$ [$Hphys] as %s' ⟨Hphys, %Hok, %Hpc⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -438,7 +438,8 @@ theorem stepFollower.wp_proof
         MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32]
     simp
-    exact Hok
+    exact ⟨Hok, fun h => (Hpc h).resolve_right
+      (by simp [campaignTransfer, campaignPreElection])⟩
   · -- `MsgUnreachable` (2026-10-13): no arm
     simp only [Hty, MsgUnreachable]
     wp_auto

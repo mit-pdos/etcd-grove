@@ -148,7 +148,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg⟩
+    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg (fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx

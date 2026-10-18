@@ -36,8 +36,9 @@ request path's unit 4b): the apply thread's half of the ghost applied index (`sr
 at `ai`, with the log applied through `ai` the KV's (`appliedLogAt γr ai x.log`), goes to `ai'`, the
 log applied through `ai'` the KV's after (`apply` deposits one per entry; 2026-10-14, unit C2a:
 each entry committed, `batchCommittedIdx`). **The write budget**
-(2026-10-13, unit 6): one write token of the store per entry applied (`txn.storeWTs E.γ`,
-spent: `apply.Apply` may open one store write transaction per entry, and over the real backend
+(2026-10-13, unit 6): one write token of the store per entry applied (since D19b, 2026-10-18,
+taken by `apply` from the budget `srvWTPool E.γ` with a time receipt; until then
+`txn.storeWTs E.γ (unapplied ai ms).length`, handed in and spent: `apply.Apply` may open one store write transaction per entry, and over the real backend
 every write transaction's `Unlock` may write back, costing one of the backend's write-back
 tokens, `backend.wbTok`). **The KV model** (2026-10-14, unit T1): the apply thread at the committed
 raft log `A` through `ai` (`kvApplied`), the entries above `ai` committed after it (`kvBatch`), at
@@ -54,7 +55,7 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      batchCommittedIdx γr ms ∗ txn.storeWTs E.γ (unapplied ai ms).length ∗ srvFS s ∗
+      batchCommittedIdx γr ms ∗ srvWTPool E.γ ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))

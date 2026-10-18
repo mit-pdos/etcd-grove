@@ -33,7 +33,7 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   iunfold idGen at Hg
   icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >%Hk, >HI, >HS, >%Hdom, HF⟩
+  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%Hdom, HF⟩
   iunfold idUnclaimed at Hu
   icombine HI Hu gives %Hlk
   have Hlk' : I.lookup id = some none := Hlk
@@ -43,8 +43,6 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   · inext
     iexists k, (I.insert id (some (d, γf))), S
     iframe Hsuf Hcred HI HS
-    isplitr
-    · ipureintro; exact Hk
     isplitr
     · ipureintro
       refine fun id' => ⟨?_, (Hdom id').2⟩
@@ -72,7 +70,7 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   iunfold idGen at Hg
   icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >%Hk, >HI, >HS, >%Hdom, HF⟩
+  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%Hdom, HF⟩
   iunfold idClaim at Hc
   ihave %Hlk := ghost_map_lookup $$ HI Hc
   iunfold idClaimsFacts at HF
@@ -85,8 +83,6 @@ theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
   · inext
     iexists k, I, S
     iframe Hsuf Hcred HI HS
-    isplitr
-    · ipureintro; exact Hk
     isplitr
     · ipureintro; exact Hdom
     iunfold idClaimsFacts
@@ -108,6 +104,15 @@ theorem idClaim_unclaimed (γi : IdNames) (id : w64) (d : List w8) (γf : GName)
   iintro H1 H2
   iunfold idClaim at H1
   iunfold idUnclaimed at H2
+  icombine H1 H2 gives %Heq
+  cases Heq.2
+
+/-- **The reserved id `0` is claimed by no request** (D19c). -/
+theorem idClaim_noZero (γi : IdNames) (d : List w8) (γf : GName) :
+    ⊢ idNoZero (GF := GF) γi -∗ idClaim γi (W64 0) d γf -∗ False := by
+  iintro H1 H2
+  iunfold idNoZero at H1
+  iunfold idClaim at H2
   icombine H1 H2 gives %Heq
   cases Heq.2
 

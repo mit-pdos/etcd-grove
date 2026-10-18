@@ -9,6 +9,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -53,20 +54,29 @@ variable [package_sem : _root_.Perennial.google_golang_org.grpc.codes.Assumption
 
 namespace google_golang_org.grpc.codes
 
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc.codes get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc.codes get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
         isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.codes }} := by
   wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   wp_auto
   wp_apply (opaqueInitsOk strToCode.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc.codes get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.codes }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
 end google_golang_org.grpc.codes
