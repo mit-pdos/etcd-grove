@@ -6,6 +6,71 @@ axioms, 12 `sorry`s) has grown one names-only spec at a time. An axiom here is a
 code that nobody checked mechanically; a false one can make the closed theorem prove something
 false of Go. This file records each axiom's verdict, the reason, and the fix.
 
+## Phase A result (2026-10-18)
+
+All 330 axioms (the baseline's 327 and point 5's three) have a verdict in the table below:
+**39 false, 7 suspect, 222 ok, 62 benign**. Of the false ones, 11 are premise gaps (an argument
+every caller already gets right) and 12 are latent (no proof uses the failing instance). The
+false axioms, most important for putget (`examples/putget`, item 9) first:
+
+1. **`convert_float64_to_int64`: inconsistent in Lean.** It is stated for every `GoLocalContext`,
+   and Perennial's default instance (`is_go_step_pure := fun _ _ _ => False`) gives `False` from it
+   in any proof context. `NewServer` uses it. Fix it before anything else (phase B, first item).
+2. **`EtcdServer.monitorStorageVersion`: reached in putget's own Go run.** Once the cluster
+   version is set, it migrates the storage version, writing the backend's `meta` bucket under the
+   batch lock, which the apply thread owns.
+3. **`EtcdServer.snapshot`, `EtcdServer.compactRaftLog`** (points 2 and 1, confirmed). They change
+   raft's `MemoryStorage` (and the WAL) without `ownMemoryStorage`/`memSnapTok`. They run every
+   `memorySnapshotCount = 100` applied entries, not 10000: within the model's reach, though
+   putget's run applies only a handful.
+4. **`storage.NewBackendQuota`, `EtcdServer.Alarm`, `EtcdServer.raftRequestAlarm`**: on the
+   `Put` path. `NewBackendQuota` assumes the backend never reaches its quota without saying so.
+   The two alarm contracts propose a NOSPACE alarm, which is not `plainReq`, so the KV model
+   excludes it. In putget's run the 2 GiB quota is never reached.
+5. **`EtcdServer.applyConfChange`**: stated for every change. It applies the change to raft
+   without `node.ApplyConfChange`'s premise, panics on malformed contexts, and can remove the
+   local member, against `localKept`. It is reached at bootstrap with `AddNode(self)`, an instance
+   that is plausibly true.
+6. Not reached by putget:
+   - `EtcdServer.revokeExpiredLeases`: proposes `LeaseRevoke`.
+   - `Cleanup`: closes the backend and the KV.
+   - `createMergedSnapshotMessage`
+   - `monitorKVHash`, `monitorCompactHash`, `monitorDowngrade`: propose alarms or downgrade
+     changes once their configuration enables them.
+   - `mvcc.store.Close`: keeps `schedLive`.
+   - `RaftCluster.SetVersionChangedNotifier`: an unlocked write.
+7. Latent:
+   - `time.Since`: assumes a positive result (known, filed).
+   - `grpc.ClientConn.NewStream`: a retrying server stream.
+   - The four prometheus `WithLabelValues`/`With`: label count and UTF-8.
+   - bbolt's `wBkt`/`wBkt_persistent`/`DeleteBucket_kv`, `Cursor_kvw`, `DB.Info_kv`.
+   - `auth.authStore.AuthInfoFromTLS` (known, filed).
+8. Premise gaps:
+   - `strconv.FormatUint`
+   - `mvcc.store.restore`
+   - `lease.lessor.Promote`
+   - `addFeatureGateMetrics`
+   - `monitorFileDescriptor`
+   - `mvcc.hashStorage.Store`
+   - `kvHasher.WriteKeyValue`, `kvHasher.Hash`
+   - `BackendQuota.Cost`
+   - `txn.WarnOfExpensiveRequest`, `txn.WarnOfFailedRequest`
+
+Suspects:
+
+- `publishV3` and `monitorClusterVersions`: D19c's restriction of what they propose holds, but
+  `raftRequest`'s reader slots are not in their preconditions.
+- `sendMergedSnap`: unowned state.
+- `grpc.serve`: at most `n` concurrent handlers.
+- `grpc.serveStream`: at most `n` Watch streams per run. This one matters for long runs.
+- `errors.IsCtxErr`: any error's `Is` method.
+- `proto.Marshal`: unknown fields, and the `state'` cell.
+
+The predicate families (bbolt/backend, gRPC) have models, sketched in their sections.
+
+No new Go bug was found. The two Go issues the table cites were already filed:
+`issues/etcd-watch-sync-ticker-reset-zero.md` and `issues/etcd-auth-tls-info-assert.md`.
+
 ## Verdicts
 
 - **false**: the spec claims something the Go code does not do. Typically the code writes state
@@ -73,7 +138,9 @@ law of that family holds at once.
 Verdicts are for the instances the proofs use. **A caveat common to the names-only contracts** whose
 precondition is only `isPkgInit` (`∀ s, {{ isPkgInit }} s.m(…) {{ True }}`): read literally they
 are false for an `s` that is not a live server (the Go body dereferences `s`); no proof
-instantiates them so, and the rows below do not repeat it.
+instantiates them so, and the rows below do not count it. A missing premise on another argument
+(a nil logger, a malformed key) that every caller meets is recorded as **false (premise gap)**:
+literally false, harmless at every call site, fixed by stating the premise.
 
 ### `etcdserver` (`EtcdServer.*`, the names-only methods; Go: `server/etcdserver/server.go` unless
 named; specs: `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__<m>.lean`)
@@ -95,7 +162,6 @@ named; specs: `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__<m>.lean`)
 | `EtcdServer.monitorClusterVersions` | suspect (minor) | As `publishV3`: it proposes only `ClusterVersionSet` of a parsed `semver` (`updateClusterVersionV3`, through `GoAttach`), but the reader slots are not in its precondition. It also reads `s.cluster` and asks the peers' versions over HTTP (`getMembersVersions`). |
 | `EtcdServer.adjustTicks` | ok | Reads `s.cluster.Members()` under the cluster's mutex and the transport's active peers, and calls `s.r.advanceTicks` (single member: `ElectionTicks − 1` ticks), whose proof takes only the persistent `isRaftNode` (each tick's credit from a time receipt). Waits at most `ConnReadTimeout`. |
 | `EtcdServer.purgeFile` | ok | Removes old `*.snap.db` files in the snap directory (not the backend's `db`) and, with `MaxWALFiles > 0`, old WAL files; `lg.Fatal` on an error (diverges). No state the model owns. |
-| `monitorFileDescriptor` (`metrics.go:215`) | benign | Reads the fd usage and limit, sets two gauges, logs. |
 | `EtcdServer.stopWithDelay` | ok | Waits, then a non-blocking send on `s.errorc`, a bag with a trivial predicate (`InvRun.lean`). |
 | `EtcdServer.Cleanup` | **false** (as stated) | Stops the lessor and compactor and closes the KV, the auth store and the backend (`be.Close` commits the batch transaction and closes bbolt), which the model's invariants keep describing as live; request goroutines (not in `s.wg`) can still use them. Only on `run`'s shutdown, which putget never reaches. |
 | `EtcdServer.Alarm` (`v3_server.go:805`) | **false** | `raftRequest` with `{Alarm: r}` (the type assertion holds); the precondition is `raftRequest`'s without `reqPropOk`, and `reqPropOk` cannot hold for it: an alarm is not `plainReq` (`KVModelDefs.lean:63`), the KV model's condition on every proposal (see `raftRequestAlarm`). **On putget's proof path**: `quotaAlarmer.check` (verified, `quotaAlarmer__check.lean`), which every `Put` goes through, calls it when the quota's `Available` answers false, which the model leaves open. Not reached in putget's Go execution (one small key against a 2 GiB quota). Same fix as `raftRequestAlarm`. |
@@ -167,3 +233,62 @@ recorded at commit/rollback and at `Begin`.
 | `trace.SpanFromContext` | ok | The context's span or a noop span. |
 | `verify.Assert`, `verify.Verify` (2) | ok | `Assert(true, …)` returns; `Verify` needs `f` to return true, excluding the panic whatever `ETCD_VERIFY` is. |
 | `RangeRequest.String`, `NewLoggableTxnRequest`, `DescribeConfChange` (3) | ok | Read-only formatting (`raft/util.go:247` for the last). |
+
+### gRPC, the client and prometheus (96; grpc v1.84.0, go-grpc-middleware providers/prometheus v1.1.0, client_golang v1.24.1, otelgrpc v0.71.0, `client/v3`; Lean: `Proof/google_golang_org/grpc/{InvGrpc,InvGrpcStream,InvDial}.lean`, `Proof/go_etcd_io/etcd/client/v3/InvClientNew.lean`, `Spec/google_golang_org/grpc/`, ...)
+
+The predicate family is consistent: in the trivial model (`net.Listen` diverging, every server and
+registration predicate `False`) every law and triple holds. The intended model: a ghost token per
+server, resolver, listener and address for the exclusive predicates (`netListenerAt` only from
+`net.Listen` consuming `netAddrFree`, handed out once by `goose_adequacy_start`); a persistent
+ghost registry `addr ↦ name ↦ (handler, server, interceptors, S)` for `grpcServes`,
+`grpcServesStream`, `grpcConn`, `grpcHealthSrv`, `promSrvMetrics`, with an invariant holding the
+pool of `n` slots, `Invoke`/`NewStream` "take a slot, run the registered handler"; the pure
+properties (`grpcSrvOpt`, `grpcDialOptIs`, `etcdStreamInterceptor`, ...) equalities with the value
+the constructor's spec returns. Its idealisations are the two suspects and `NewStream`'s retry case.
+
+| axiom | verdict | reason |
+|---|---|---|
+| `grpc.ClientConn.NewStream` | **false** (latent) | Stated for any stream description and retry option. For a server-streaming method with `max > 0` etcd's interceptor returns a `serverStreamingRetryingStream` (`client/v3/retry_interceptor.go:129-146`) that, when the first `RecvMsg` fails, opens a new stream and replays the buffered sends (231-255): the handler runs twice, which the client's one `γ` cannot describe. The one caller, `Watch`, is bidirectional with `max = 0` (`client.go:269`). Fix: require `desc.ClientStreams` or no retry with `max > 0`. |
+| `prometheus.CounterVec.WithLabelValues`, `GaugeVec.WithLabelValues`, `HistogramVec.WithLabelValues`, `GaugeVec.With` (4) | **false** (latent) | Return for any labels; Go panics on a wrong label count or a value that is not UTF-8 (`counter.go:283`, `gauge.go:249`, `labels.go:166`). Every call site passes the right number of constants, ids or versions (`v3rpc/interceptor.go:63,234` checks the client version with `utf8.ValidString`). Fix: arity and UTF-8 premises. |
+| `grpc.serve` | suspect | Runs at most `n` handlers at once (each run takes one of `n` copies of `S`, `InvGrpc.lean:461`); grpc-go starts a goroutine per stream with only a per-connection `MaxConcurrentStreams`. Sound while the slots stand for a bound Go cannot reach (about 2^30 concurrent runs, `notes/decisions.md`). |
+| `grpc.serveStream` | suspect | A stream run keeps its copy of `S` for good (`InvGrpcStream.lean:936`), so the model starts at most `n` Watch streams **in a run**, while Go starts every one: a long run exceeds any fixed `n`. Fix: give the slot back when the stream ends. Not on putget's path (no Watch). |
+| `grpc.ClientConn.Invoke` | ok | `call.go`; one attempt runs the handler at most once (no retry policy in the service config; transparent retry only when the server never saw the call). |
+| `grpc.NewClient`, `grpc.NewServer`, `grpc.Server.RegisterService`, `grpc.start` (4) | ok | No connection at `NewClient`; chains concatenated in option order; one method map, covered by the distinct-names premise (`server.go:789-817`); `Serve` twice excluded by `grpcSrvNew`. |
+| server options `ChainUnaryInterceptor`, `ChainStreamInterceptor`, `CustomCodec`, `MaxConcurrentStreams`, `MaxRecvMsgSize`, `MaxSendMsgSize`, `StatsHandler`; dial and call options `WithResolvers`, `WithStreamInterceptor`, `WithUnaryInterceptor`, `WithTransportCredentials`, `Peer`, `StaticMethod` (13) | ok | Each matches its constructor. |
+| `GenericServerStream.Recv`/`Send`/`Context`, `GenericClientStream.Recv`/`Send`/`CloseSend`/`Context` (7) | ok | Their bodies (`stream_interfaces.go:176-237`). |
+| `grpc_health_v1.RegisterHealthServer`, `status.Code`/`Error`/`Errorf`/`FromError`, `metadata.FromIncomingContext`, `metadata.MD.Get`, `otelgrpc.NewServerHandler`, `prometheus.Register` (9) | ok | `FromError` a function of the error; incoming metadata always has a value per key in the closed program; `Register` returns an error (only `MustRegister` panics). |
+| `grpc_prometheus.NewServerMetrics`, `WithServerHandlingTimeHistogram`, `ServerMetrics.InitializeMetrics`, `UnaryServerInterceptor`, `StreamServerInterceptor` (5) | ok | The interceptors call the handler once and pass the stream through (`v2/interceptors/server.go:16-39`). |
+| `grpcServerAt`, `grpcStreamServerAt`, `grpcSrvNew`, `grpcServeTok`, `grpcResolverAt`, `etcdResolverOwn`, `netListenerAt` (7) | ok | Model above (exclusive tokens). |
+| `grpcServes`, `grpcServesStream`, `grpcConn`, `grpcHealthSrv`, `promSrvMetrics` and their `_persistent` laws (10) | ok | Model above (the persistent registry). |
+| `grpcSrvOpt`, `grpcProtoCodec`, `grpcStatsHandlerOk`, `grpcDialOptIs`, `etcdStreamInterceptor`, `grpcPeerOpt`, `grpcWrotePeer`, `promSrvMetricsOpt` (8) | ok | Model above (pure equalities). |
+| `v3rpc.codec_proto`, `etcdResolver_grpc`, `resolver.New`, `EtcdManualResolver.SetEndpoints`, `EtcdManualResolver.Close`, `endpoint.RequiresCredentials` (6) | ok | `v3rpc/codec.go`; `internal/resolver/resolver.go` (`Interpret(ep) = ep` for a plain endpoint, no-op callbacks); `endpoint.go:90-125`. |
+| `Client.dialWithBalancer.unfold`, `Client.dialWithBalancer.builderType` (2) | ok | `client.go:311-315`; the method is names-only, so no other unfold conflicts. |
+| `Client.Endpoints`, `getToken`, `roundRobinQuorumBackoff`, `streamClientInterceptor`, `waitRetryBackoff`, `withVersion` (6) | ok | `client.go:167,285,491`, `retry_interceptor.go:112,312,360`, `ctx.go:41`. |
+| `ClientConn.Target`, `insecure.NewCredentials`, `peer.Peer.String`, `HealthCheckResponse_ServingStatus.String`, `health.NewServer`, `health.Server.SetServingStatus`, `NewAuth`, `NewCluster`, `NewLease`, `NewMaintenance`, `streamKeyFromCtx` (11) | benign | Values, formatting, structs built from the connection. |
+
+### Other etcd-internal axioms (51) and audit point 5's three
+
+| axiom | verdict | reason |
+|---|---|---|
+| `convert_float64_to_int64` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/FloatToInt.lean`) | **false, inconsistent in Lean** | Stated for **every** `[GoLocalContext]`, whose one field is `is_go_step_pure`; Perennial has `Inhabited GoLocalContext := ⟨⟨fun _ _ _ => False⟩⟩` (`GooseLang/Lang.lean:476`). At that instance `isGoStep_pure_det` says `(fun _ => False) = Eq e`; applied to `e`, `False = (e = e)`: `False`, in any context with `[FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]`, which every proof here has. (Derived by hand, not checked by Lean: phase A builds nothing.) `NewServer` uses it (`int64(math.Ceil(minTTL.Seconds()))`), so it is in putget's trust base. Fix now: a premise tied to the semantics in use (a section or class assumption, as Perennial's `Float64Semantics`), not a global axiom over all contexts. |
+| `storage.NewBackendQuota` | **false** | Its post `isQuota` says `Available` always answers true (`apply/Contracts.lean`, "a construction premise"); Go's `Available` (`storage/quota.go:126-134`) is false once `be.Size() + cost ≥` the quota (2 GiB by default). It also panics on a nil backend, and with a negative quota on a nil logger (`quota.go:80`). On putget's `Put` path (the quota applier, `quotaKVServer`); putget stays far below the quota. This is what hides the NOSPACE alarm (`EtcdServer.Alarm`, `raftRequestAlarm` above) from the model. Fix: a named "the backend stays under its quota" premise. |
+| `mvcc.store.Close` | **false** | `kvstore.go:515-518` stops the FIFO scheduler, but `isStore` is persistent and contains `schedLive` ("never stopped"), so `store.Compact` after `Close` checks out while Go's `Schedule` panics ("schedule to stopped scheduler", `pkg/schedule/schedule.go`). Only on `NewServer`'s error path (`server.go:380`). |
+| `membership.RaftCluster.SetVersionChangedNotifier` | **false** | Writes `c.versionChanged` without the lock (`cluster.go:252-254`; the spec's comment says under it) with only the persistent `isRaftCluster`; a concurrent `SetVersion` would race. Called once in `NewServer` before `Start`. Fix: the field's points-to. |
+| `mvcc.store.restore` | **false** (premise gap) | The precondition fixes only the `key` bucket; a `meta` bucket with a finished or scheduled compaction and an empty `key` bucket makes Go set `compactMainRev`/`currentRev` to other values and call `compactLockfree` (`kvstore.go:330-417`). It also reads through `ReadTx` without `isKeyBackendG`'s `RT`, and writes `currentRev` with half of it (documented). putget's backend is fresh. |
+| `lease.lessor.Promote` | **false** (premise gap) | A negative `leaseRevokeRate` with an empty lease map indexes `leases[0]` (`lessor.go:494-503`); `NewLessor.spec` accepts any configuration (only 0 is defaulted). `NewServer` leaves it 0. |
+| `addFeatureGateMetrics` | **false** (premise gap) | Any non-null `*featureGate`; a zero one panics at `f.known.Load().(map…)` (`feature_gate.go:329,335`). Fix: `isFeatureGate`. |
+| `monitorFileDescriptor` (`metrics.go:215`) | **false** (premise gap) | No `lg ≠ null`; it calls `lg.Warn` when `FDUsage`/`FDLimit` fail or usage reaches 80 % (226-237). The caller passes `s.Logger()`. |
+| `mvcc.hashStorage.Store`, `mvcc.kvHasher.WriteKeyValue`, `mvcc.kvHasher.Hash` (3) | **false** (premise gap) | Any receiver (a zero `hashStorage` panics at `s.lg.Info`, `hash.go:157`; a zero `kvHasher`'s nil hash at `Sum32`, `hash.go:93`) and any key (`BytesToBucketKey` panics unless it is a 17/18-byte revision key, `revision.go:98-108`). Callers (`kvstore_compaction.go:48-74`) meet them. |
+| `storage.BackendQuota.Cost`, `txn.WarnOfExpensiveRequest`, `txn.WarnOfFailedRequest` (3) | **false** (premise gap) | A nil request (`quota.go:149`) or a nil logger/stringer (`txn/util.go:46-49, 93-98`) panics; callers pass real ones. |
+| `auth.authStore.AuthInfoFromTLS` | **false** (known) | `peer.AuthInfo.(credentials.TLSInfo)` (`auth/store.go:1019`) panics on a non-TLS `AuthInfo`; the spec takes any context. Filed: `issues/etcd-auth-tls-info-assert.md`. putget has no server credentials (`AuthInfo` nil). |
+| `membership.localKept`, `localKept_persistent` (2) | ok | Model: `True`. A premise of `IsLearner`'s spec that nothing produces: the closed theorem supplies it. True for a member that never removes itself (putget); `applyConfChange`'s unrestricted `RemoveNode(self)` (above) is what would contradict it. |
+| `lease.NewLessor`, `lessor.Demote`, `lessor.scheduleCheckpointIfNeeded` (3) | ok | Memory under `le.mu` only; `runLoop`'s proposals go through `expiredC` (the server's `revokeExpiredLeases`) and the checkpointer, under the named premise `ckptEffectsOk`. |
+| `auth.NewAuthStore`, `auth.NewTokenProvider`, `v3alarm.NewAlarmStore` (3) | ok | `auth/store.go:944-992, 1090-1157`, `alarms.go:44-114`; putget's empty `AuthToken` gives `tokenNop`. |
+| `rafthttp.Transport.Start`, `AddPeer`, `AddRemote` (3) | ok | `transport.go:134-325`; the peers' goroutines under the named premise `transportEffectsOk`; not called for a single member. |
+| `schedule.NewFIFOScheduler`, `Scheduler.Schedule`, `Scheduler.Stop` (3) | ok | The panic after `Stop` is excluded by the tokens (the flaw is `store.Close`'s). |
+| `v3compactor.New`, `pbutil.MustUnmarshalMessage`, `schema.MustUnsafePutLease`, `schema.MustUnsafeSaveConfStateToBackend`, `mvcc.newKVHasher`, `mvcc.store.HashStorage` (6) | ok | `New` starts no goroutine; the decode premises exclude the panic; one `UnsafePut` each; a fresh value, a field read. |
+| `membership.RaftCluster.String`, `auth.hasRootRole`, `config.ServerConfig.PeerDialTimeout`, `v3rpc.NewMaintenanceServer`, `v3rpc.logUnaryRequestStats`, `traceutil.Tracer.Start`, `traceutil.Trace.LogWithStepThreshold` (7) | ok | Reads and logging (no `traceutil.Init` in putget). |
+| `api.IsCapabilityEnabled`, `auth.redactToken`, `newCorruptionChecker`, `v2stats.NewLeaderStats`, `NewServerStats`, `ServerStats.BecomeLeader`, `txn.ApplySecObserve`, `txn.RangeSecObserve`, `v3rpc.isClientCtxErr` (9) | benign | Metrics, fresh values, stats under a lock, pure functions. |
+| `EtcdGrove.goose_adequacy_start` (point 5) | ok | Perennial's `goose_adequacy` (`GooseLang/Adequacy.lean:274`) plus the start rights handed out once; consistent with `nameFree`/`netAddrFree` as `True`, though the gRPC family's intended model needs `netAddrFree` exclusive per address. It rests on the user checking `namesUnclaimed`/`addrsUnclaimed`. |
+| `EtcdGrove.initLb_of_spec` (point 5) | ok | Only for the Goose-generated `ExternalInit`s, whose package-state map only grows. |
+| `features.NewDefaultServerFeatureGate` (point 5) | ok | `New` stores both maps and `Add` registers the 10 features (`etcd_features.go:99-118`), exactly `serverFeatures`. |
