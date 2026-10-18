@@ -29,12 +29,15 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
-- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale` (two commits: bf1d336 adds the tests, which fail there; 133c7df is the fix. Earlier, one commit: 32de820fe, then 69341e121 with the message rewritten, dcb4fe2 with the test loosened to the read's guarantee, bfb7224 with the removed-leader test added; 2026-10-18), pushed 2026-10-18 to `upamanyus/etcd-raft`
-  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`), the branch the links in `issue.md` name.
+- **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, two commits:
+  3130f9e adds the tests, which fail there; 3182f48 is the fix. Not yet pushed: `upamanyus/etcd-raft` has an
+  earlier single-commit version (dcb4fe2) until the force-push
+  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`, the branch the links in
+  `issue.md` name).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
-- **State**: draft
+- **State**: draft, revised after the user's review and a code review (2026-10-18)
 - **Upstream issue**: —
-- **PR**: —
+- **PR**: — (then replace `pull/TODO` in the fix commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number)
 
 etcd-io/raft has no issue template: the issue uses etcd's bug-report sections, with "Raft version" for etcd's
 version and configuration sections.
@@ -48,38 +51,51 @@ reused request context), #397 and #398 (the user's earlier work on that); etcd-i
 
 ## Verification (go1.26.9 linux/amd64)
 
-`TestReadOnlyForNewSingleVoterLeader` (in `raft_test.go`, after `TestReadOnlyForNewLeader`) is the issue's example:
-`newNetwork(nil, nil)`; peer 2 campaigns, proposes `remove 2` (index 2), then `x` (index 3) with a `msgHook` dropping
-messages to peer 1 whose commit is at least 3; asserts peer 2's commit is 3 and peer 1's is 2; peer 1
-`applyConfChange`s the removal, `becomeCandidate`, `becomeLeader`; steps a local `MsgReadIndex`, then
-`advanceMessagesAfterAppend`; asserts only that the read state for the read's context has an index of at least 3
-(`x`'s), the guarantee a read issued after `x` committed needs, not when or at which index the read is answered.
+Both tests use `newNetwork(nil, nil)` with peer 2 elected, deliver every message through `nt.send`, and apply the
+removal at each peer right after the `nt.send` in which the peer learns it is committed (a leader that applied its
+own removal drops proposals, so `x` is proposed in the same `nt.send` as the removal). Each asserts only the
+guarantee: a read state for the read must have an index at least that of the last entry committed before it.
 
-`TestReadOnlyForRemovedLeader` (right after it) is the removed-leader case: peer 2 campaigns, proposes `remove 2`
-(index 2, committed by both), applies it and stays leader; it steps a local `MsgReadIndex` whose heartbeat is not
-delivered (peer 1 unreachable); asserts no read state. With the fix peer 2 would answer once peer 1, the only voter,
-acknowledges the heartbeat in its term, a valid confirmation; refusing reads at a removed leader outright is
-`StepDownOnRemoval` (etcd-io/raft#83).
+- `TestReadOnlyForNewSingleVoterLeader` (the issue's example): peer 2 proposes `remove 2` (index 2) and `x` (index
+  3) in one `nt.send`, with a `msgHook` dropping messages to peer 1 whose commit is at least 3; peer 1 has commit 2,
+  peer 2 commit 3; both apply the removal; peer 1 `becomeCandidate`, `becomeLeader`; a read at peer 1 must have an
+  index of at least 3.
+- `TestReadOnlyForRemovedLeader`: peer 2 proposes `remove 2`, which commits at both; both apply it; peer 1
+  `becomeCandidate`, `becomeLeader` and commits `y` (index 4); every read state of a read sent to peer 2 must have
+  an index of at least 4. With the fix peer 2 produces none (its heartbeat at term 1 is ignored by peer 1 at term 2,
+  CheckQuorum and PreVote being off), so the check is vacuous there; kept so on purpose (the user's decision,
+  2026-10-18): the test rules out a stale answer, not the absence of one.
 
-- At the tests commit bf1d336 (`go test . -run 'TestReadOnlyForNewSingleVoterLeader|TestReadOnlyForRemovedLeader'`):
-  both fail, `"2" is not greater than or equal to "3"` / `read index`, and `Should be empty, but was [{2 [99 116 120]}]`.
-- At the fix commit 133c7df: both pass; `go test . ./rafttest/` ok; `gofmt -l raft.go raft_test.go` empty;
-  `go vet .` clean. Its tree is identical to bfb7224's (the single commit it replaced).
+- At the tests commit 3130f9e (`go test . -run 'TestReadOnlyForNewSingleVoterLeader|TestReadOnlyForRemovedLeader'`):
+  both fail, `"2" is not greater than or equal to "3"` and `"2" is not greater than or equal to "4"` (`read index`).
+- At the fix commit 3182f48: both pass; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+  `gofmt -l` empty; `go vet ./...` clean.
+- A temporary test (not on the branch): a leader of `{1}` that enters the joint configuration `{1}&&{1}` (adding
+  a learner with an explicit transition) gets no answer to a read on `main` (it waits for heartbeat responses that
+  only the learner could send) and an immediate one with the fix.
 
-Not run: `confchange`, `quorum`, `tracker` and the other packages (the change is in package `raft` only), etcd's
-tests, `make verify`. Not reproduced on an etcd cluster.
+Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
 
 ## If a reviewer asks
 
+- The guard is "the leader is a quorum on its own" (`r.trk.Voters.VoteResult({r.id: true}) == quorum.VoteWon`),
+  not `IsSingleton()`: a leader that removed itself sees one voter that is not itself; the quorum check also covers
+  a joint configuration whose halves are both `{leader}` (see above). An empty configuration counts as won, but
+  raft refuses to remove the last voter. `IsSingleton` has no caller left in package raft; it is exported, so it is
+  kept, with its comment corrected.
 - Why move the shortcut rather than add `committedEntryInCurrentTerm()` to it: postponed requests are released
   through `sendMsgReadIndexResponse`; without the shortcut there, a postponed request at a single voter would go
   through the heartbeat round, which nobody answers, and never be released.
-- Why the voter check: a leader that removed itself (`StepDownOnRemoval` false) sees `IsSingleton` for a
-  configuration it is not in; without the check it answers from a commit index that is no longer current after it
-  is deposed. With the check it goes through the heartbeat round, which needs the actual voter's acknowledgement.
-  Alternative: change `IsSingleton` to take the leader's id; it has no other caller, but it is exported on
-  `ProgressTracker`.
+- A more general fix: in the `ReadOnlySafe` path, answer as soon as the leader's own acknowledgement wins the
+  quorum (after `recvAck(r.id, ...)`), instead of only in the `MsgHeartbeatResp` handler. It would make the shortcut
+  unnecessary; it is a larger change to the read-only state machine, not needed for this bug.
+- `ReadOnlyLeaseBased` at a removed leader still answers at once, as lease-based reads do anywhere: they are not
+  confirmed with a quorum by design, and raft requires CheckQuorum with them, under which the removed leader steps
+  down once the remaining voter stops answering. Not changed.
 - `ReadOnlyLeaseBased` at a single voter now also waits for the first commit of the leader's term (it used to take
   the shortcut too). Before that commit, its multi-voter path postpones as well.
+- Related, not changed: reads postponed until the leader's first commit in its term are not released when that
+  commit happens through a configuration change (`switchToConfig`'s `maybeCommit`), only through `MsgAppResp`
+  (`issues/raft-switchtoconfig-pending-reads.md`).
 - The verified fork (mit-pdos etcd-grove) carries the same change on v3.7.0 (`509271dac`), verified at `raft.Step`.
 - Backports: v3.7.0 (`raft.go:1355-1361`) has the same shortcut; not tried on a release branch.
