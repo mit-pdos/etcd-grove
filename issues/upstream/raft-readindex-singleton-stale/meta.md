@@ -30,7 +30,7 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, two commits:
-  3130f9e adds the tests, which fail there; 004753f is the fix. Not yet pushed: `upamanyus/etcd-raft` has an
+  3130f9e adds the tests, which fail there; 77ab0c9 is the fix. Not yet pushed: `upamanyus/etcd-raft` has an
   earlier single-commit version (dcb4fe2) until the force-push
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`, the branch the links in
   `issue.md` name).
@@ -68,7 +68,7 @@ guarantee: a read state for the read must have an index at least that of the las
 
 - At the tests commit 3130f9e (`go test . -run 'TestReadOnlyForNewSingleVoterLeader|TestReadOnlyForRemovedLeader'`):
   both fail, `"2" is not greater than or equal to "3"` and `"2" is not greater than or equal to "4"` (`read index`).
-- At the fix commit 004753f: both pass; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- At the fix commit 77ab0c9: both pass; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l` empty; `go vet ./...` clean.
 - A temporary test (not on the branch): a leader of `{1}` that enters the joint configuration `{1}&&{1}` (adding
   a learner with an explicit transition) gets no answer to a read on `main` (it waits for heartbeat responses that
@@ -78,7 +78,7 @@ Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
 
 ## If a reviewer asks
 
-- `IsSingleton()` becomes `IsSingleton(id)`, "id is the only voter", implemented as `Voters.VoteResult({id: true})
+- `IsSingleton()` becomes `IsSingleton(id)`, "id on its own constitutes a quorum", implemented as `Voters.VoteResult({id: true})
   == quorum.VoteWon`: the old one only counted voters, so a leader that removed itself saw one voter that is not
   itself; the quorum form also covers a joint configuration whose halves are both `{leader}` (see above). An empty
   configuration counts as won, but raft refuses to remove the last voter.
