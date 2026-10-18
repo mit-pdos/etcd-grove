@@ -130,6 +130,12 @@ law of that family holds at once.
   axioms by giving each spec the resources its Go code touches, as D17d did for `Snapshot()`.
   For example, `MemoryStorage.Compact`/`CreateSnapshot` under the lock with the application's
   token, and a proposal permit for the methods that propose. Then re-prove the callers.
+  **Order (adopted by the user, 2026-10-18):** B1 `convert_float64_to_int64` (inconsistent;
+  started at once, not waiting for D19g); B2 `monitorStorageVersion`, `snapshot`,
+  `compactRaftLog` (the backend's batch lock, raft's storage token); B3 the alarm/quota path
+  (`NewBackendQuota`, `Alarm`, `raftRequestAlarm`) and `applyConfChange` (restricted to what
+  putget reaches, or a permit); B4 the false axioms putget does not reach, then the latent ones
+  and the premise gaps.
 - **Phase C:** models for the **suspect** predicate families (bbolt/backend, gRPC), or a
   narrower set of laws.
 
