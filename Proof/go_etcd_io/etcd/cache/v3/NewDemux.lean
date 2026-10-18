@@ -23,9 +23,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-theorem actualMaxReaders_ge_2 : 2 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-  rw [sync.rwmutex.actualMaxReaders_unseal]; decide
-
 /-- One element out of a replicated separating conjunction. -/
 theorem bigSepL_replicate_pop (P : IProp GF) (n m : Nat) (h : n = m + 1) :
     ([∗list] _x ∈ List.replicate n (), P) ⊢ P ∗ [∗list] _x ∈ List.replicate m (), P := by

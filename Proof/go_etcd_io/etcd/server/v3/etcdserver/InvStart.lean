@@ -281,10 +281,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- Perennial's `RWMutex` admits at least two readers. -/
-theorem maxReaders_ge2 : 2 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-  rw [sync.rwmutex.actualMaxReaders_unseal]; decide
-
 /-- One of `M ≥ 1` copies of `P`. -/
 theorem replicate_take1 (P : IProp GF) (M : Nat) (h : 1 ≤ M) :
     ([∗list] _x ∈ List.replicate M (), P) ⊢ P ∗ [∗list] _x ∈ List.replicate (M - 1) (), P := by
@@ -329,7 +325,7 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
   imod sync.init_WaitGroup goAttachWGN (srvWgAddr s) $$ Hwg with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
   imod ghostVar_alloc true with ⟨%γb, Hb⟩
-  icases (mvcc.ghostVar_halves γb true).1 $$ Hb with ⟨Hb1, Hb2⟩
+  icases ghostVar_halves γb true $$ Hb with ⟨Hb1, Hb2⟩
   imod token_alloc with ⟨%γclose, Hclose⟩
   imod ownTokAuth_alloc with ⟨%γrun, Hrun⟩
   ihave H0 := threadToks_zero (GF := GF)

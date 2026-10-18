@@ -11,6 +11,7 @@ every loop state (`WsOk.sync_step`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -402,20 +403,6 @@ structure SyncLoop (σ : WsState) (v : SyncVars) (PB PBv PBr : GMap Loc (Loc × 
   /-- (unit W-K) -/
   set : (v.st σ).settled
 
-theorem sw_not_mem_take (keys : List Loc) (hnd : keys.Nodup) (i : Nat) (key : Loc)
-    (hkey : keys[i]? = some key) : key ∉ keys.take i := by
-  intro hm
-  obtain ⟨j, hj, hjk⟩ := List.getElem_of_mem hm
-  rw [List.getElem_take] at hjk
-  have hj' : keys[j]? = some key := by
-    rw [List.getElem?_eq_getElem (by simp at hj; omega)]; exact congrArg some hjk
-  have := list_nodup_getElem?_inj keys hnd j i key hj' hkey
-  simp at hj; omega
-
-theorem sw_take_succ (keys : List Loc) (i : Nat) (key : Loc) (hkey : keys[i]? = some key) (k : Loc) :
-    k ∈ keys.take (i + 1) ↔ k ∈ keys.take i ∨ k = key := by
-  rw [List.take_add_one, hkey]; simp
-
 theorem SyncVars.step_ne (v : SyncVars) (w : Loc) (r : WatchRange) (dst : SyncDst)
     (st' : WatcherSt) (e' : List EvM × Nat) (k : Loc) (hk : k ≠ w) :
     (v.step w r dst st' e').ST !! k = v.ST !! k ∧ (v.step w r dst st' e').Wu !! k = v.Wu !! k ∧
@@ -442,7 +429,7 @@ theorem SyncLoop.step {σ : WsState} {v : SyncVars} {PB PBv PBr : GMap Loc (Loc 
     (hset : ((v.step key r dst st' e').st σ).settled) :
     SyncLoop σ (v.step key r dst st' e') PB PBv' PBr' keys (i + 1) := by
   refine ⟨hok, hbv, fun k hk => ?_, hset⟩
-  rw [sw_take_succ keys i key hkey] at hk
+  rw [mem_take_succ_iff hkey] at hk
   have hk1 : k ≠ key := fun e => hk (Or.inr e)
   have hk2 : k ∉ keys.take i := fun e => hk (Or.inl e)
   obtain ⟨h1, h2, h3, h4, h5⟩ := v.step_ne key r dst st' e' k hk1

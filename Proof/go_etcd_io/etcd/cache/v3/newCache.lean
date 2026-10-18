@@ -114,7 +114,7 @@ theorem newCache.wp_proof
   -- the client's fields
   ihave #Hcl' := Hcl
   iunfold isEtcdClient at Hcl'
-  icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN, -, -⟩
+  icases Hcl' with ⟨%kv, %w, #HKVf, #HWf, #HisKV, #HisW, #HisPN⟩
   try wp_auto
   wp_apply wp_newStore (etcdCert pfx) R0 cfg.BTreeDegree' cfg.HistoryWindowSize'
     $$ [$Hpkg $HstorePre]

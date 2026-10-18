@@ -9104,3 +9104,45 @@ five metrics, `reportEventOk`) a smaller named premise of `grpcCfgOk_of_started`
 must still meet, which it can only do from (1)'s statements. **Recommended: (1)**, the
 statements being of the same kind as the existing `<X>_init` axioms and true of Go (prometheus
 constructors return their collectors; `io.EOF = errors.New("EOF")`). Waiting for the user.
+
+## Proof/Lib: facts that belong to no Go package (2026-10-18, branch `proof-lib`)
+
+*The decision.* A fact about Perennial's, Iris's or Lean's own definitions -- not about a Go
+package's code or its predicates -- lives once, in `Proof/Lib/`, and every package imports it
+from there: `Iris.lean` (fractions `Qp`/`DFrac`, `Fractional` of an existential with agreeing
+witnesses, ghost variables' and ghost maps' halves, `Persistent`/`Timeless` of an `if`),
+`Heap.lean` (`ownMap` fractional and agreeing, the typed points-to at `q1 + q2`), `Sync.lean`
+(an `RWMutex` guard from its reader slots, at least two readers), `GoString.lean`
+(`go.GoStringLt` a strict total order, from Lean core's `List.lex_*`) and `List.lean` (the
+`i`-th key of a duplicate-free list is not among the first `i`, the first `i + 1`, a prefix
+with nothing past it). The modules are split by what they import, so that each sits low in the
+import graph: `Iris` needs only Perennial's ghost state (the raft protocol's `Ghost.lean` imports
+it without the heap), `GoString` only `Perennial.Golang.Defn.String`, `List` nothing.
+
+*Temporary, per fact.* `Proof/Lib/` is a holding place, not a library of this repository: each
+fact is one Perennial (or Lean core) is missing, and a candidate for an independent Perennial
+proposal under "Changes to Perennial" in CLAUDE.md (designed and reviewed on its own, not shaped
+by a proof here). A fact goes from `Proof/Lib/` when its Perennial counterpart lands, its users
+pointed at Perennial's name. Proofs of Go functions and package predicates never go there.
+
+*Why there were copies.* Each original was proved inside a package's section, under that
+package's `Assumptions` (`package_sem`) or in a module another package could not import without
+pulling in that package's proof tree (or an import cycle: the client could not import the
+server's `Base`). A second package needing the fact copied it under a new name (`lc_`, `lease_`,
+`wait_`, `...W`, `...'`): `ownMap_fractional` six times, `qp_half_add` nine, the `x ∉ l.take i`
+lemma seven, the `GoStringLt` order lemmas three times, `ite_persistent` seven.
+
+*Names.* The shared lemma keeps the name of the copy in `EtcdGrove`'s namespace where there was
+one; InvDemux's `ghostVar_halves` (any fraction, an equivalence) is now `ghostVar_split_half`,
+because Perennial's `ghostVar_halves` (the whole, one direction) is public in namespace
+`Perennial` and the `EtcdGrove` one shadowed it inside `EtcdGrove` (mvcc's own copy, the whole
+as an equivalence, was used only one way and is now Perennial's). `ownMap_agree` takes
+`[go.IntoValInj V]` (mvcc's copy took the injectivity as an argument; its users' value types
+have the instance).
+
+*Not moved (yet).* `Proof/go_etcd_io/raft/v3/FrameH.lean` and `ProjSimps.lean` (generic tactics:
+`iframe ∗` with a hypothesis list, `proj_simps`) are of the same kind and candidates to move to
+`Proof/Lib/` later; they stay for now because many files import them by their present names.
+Facts copied only within one package (raft's private `ite_pos`/`ite_neg`, `uint_nat_eq`) or once
+(`backend.strLt_total`, the `goStringLe_*` of `mvcc/BucketRange.lean`, mvcc's `wFractional_*`
+combinators) are left where they are; they can move when a second package needs them.

@@ -46,6 +46,8 @@ public import Perennial.Golang.Theory.Map
 public import Spec.go_etcd_io.etcd.cache.v3.watcher__enqueueResponse
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp
+public import Proof.Lib.Heap
+public import Proof.Lib.Sync
 
 @[expose] public section
 
@@ -1783,62 +1785,6 @@ theorem predIs_agree (pn : GName) (p1 p2 : Option (GoString → Bool)) :
   exact (forall_intro hk).trans (later_forall_2.trans (later_mono (pure_forall.2.trans
     (pure_mono (fun h => predCode_inj (funext h))))))
 
-/-- An existential of fractional predicates whose witnesses agree is fractional. -/
-theorem fractional_exists_agree {X : Type} (Φ : X → Qp → IProp GF) (hfrac : ∀ x, Fractional (Φ x))
-    (hagree : ∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) :
-    Fractional (fun q => iprop(∃ x, Φ x q)) where
-  fractional p q := by
-    constructor
-    · iintro ⟨%x, H⟩
-      icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists x; iexact H1
-      · iexists x; iexact H2
-    · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
-      refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
-      refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
-      subst h
-      exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
-
-theorem ghostVar_half_fractional {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
-    Fractional (fun q : Qp => ghostVar (GF := GF) γ q.half a) where
-  fractional p q := by
-    rw [qp_half_add]
-    exact (ghostVar_fractional γ a).fractional p.half q.half
-
-theorem ghostMapAuth_half_fractional {K V : Type} [DecidableEq K] [Pos.Countable K]
-    [Pos.Countable V] (γ : GName) (m : GMap K V) :
-    Fractional (fun q : Qp => ghostMapAuth (GF := GF) γ q.half m) where
-  fractional p q := by
-    rw [qp_half_add]
-    exact (ghostMapAuth_fractional γ m).fractional p.half q.half
-
-theorem ownMap_fractional {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
-    (mref : Loc) (m : GMap K V) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
 /-- `demuxLockRest`'s body, for a tuple of its witnesses. -/
 def demuxRestBody (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF)
     (x : DemuxCore × GMap Loc RegInfo × GMap Loc View × Loc × Loc) (q : Qp) : IProp GF :=
@@ -1873,11 +1819,6 @@ theorem demuxLockRest_equiv (d : Loc) (γd : DemuxNames) (cap : Nat) (q : Qp) :
     iframe
     iframe #
     ipureintro; exact ⟨Hinv, Hok, Hstart⟩
-
-theorem fractional_of_equiv {Φ Ψ : Qp → IProp GF} (h : ∀ q, Φ q ⊣⊢ Ψ q) [hΨ : Fractional Ψ] :
-    Fractional Φ where
-  fractional p q :=
-    (h (p + q)).trans ((hΨ.fractional p q).trans (sep_congr (h p).symm (h q).symm))
 
 theorem demuxRestBody_fractional (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert GF)
     (x : DemuxCore × GMap Loc RegInfo × GMap Loc View × Loc × Loc) :
@@ -1917,44 +1858,6 @@ instance demuxLockInv_fractional (d : Loc) (γd : DemuxNames) (cap : Nat) :
   unfold demuxLockInv
   haveI := demuxLockRest_fractional (hG := hG) (C := C) d γd cap
   infer_instance
-
-theorem qp_one_add_not_le (q : Qp) : ¬ ((1 : Qp) + q ≤ 1) := by
-  intro h
-  have h' : ((1 : Qp) + q).val ≤ (1 : Qp).val := h
-  have := q.2
-  simp at h'
-  grind
-
-theorem qp_add_one_not_le (q : Qp) : ¬ (q + (1 : Qp) ≤ 1) := by
-  intro h
-  have h' : (q + (1 : Qp)).val ≤ (1 : Qp).val := h
-  have := q.2
-  simp at h'
-  grind
-
-theorem ghostMapAuth_halves {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
-    (γ : GName) (m : GMap K V) :
-    (ghostMapAuth (GF := GF) γ 1 m : IProp GF) ⊣⊢
-      ghostMapAuth γ (1 : Qp).half m ∗ ghostMapAuth γ (1 : Qp).half m := by
-  conv => lhs; rw [← Qp.half_add_half 1]
-  exact (ghostMapAuth_fractional γ m).fractional _ _
-
-theorem ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (q : Qp) (a : A) :
-    (ghostVar (GF := GF) γ q a : IProp GF) ⊣⊢ ghostVar γ q.half a ∗ ghostVar γ q.half a := by
-  conv => lhs; rw [← Qp.half_add_half q]
-  exact (ghostVar_fractional γ a).fractional _ _
-
-theorem ghostMapElem_halves {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
-    (γ : GName) (k : K) (v : V) :
-    (k ↪[γ] v : IProp GF) ⊣⊢ k ↪[γ]{#(1 : Qp).half} v ∗ k ↪[γ]{#(1 : Qp).half} v := by
-  conv => lhs; rw [← Qp.half_add_half 1]
-  exact (ghostMapElem_fractional k γ v).fractional _ _
-
-theorem dfrac_own_one_op_invalid (dq : DFrac) : ¬ ✓ (DFrac.own 1 • dq) := by
-  intro h
-  have := DFrac.valid_own_op h
-  have : (1 : Qp).val = 1 := rfl
-  grind
 
 /-- With the whole writer token, no slot is borrowed: take every registration's resources. -/
 theorem slots_take_all (γd : DemuxNames) (regs : GMap Loc RegInfo) :
@@ -2076,7 +1979,7 @@ theorem demux_slot_borrow (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HP with HP
   unfold demuxLockInv
   icases HP with ⟨Hwtok, HR⟩
-  icases (ghostVar_halves γd.wtok sync.rfrac ()).1 $$ Hwtok with ⟨Hwt1, Hwt2⟩
+  icases (ghostVar_split_half γd.wtok sync.rfrac ()).1 $$ Hwtok with ⟨Hwt1, Hwt2⟩
   unfold demuxRegistered
   icases Hreg with ⟨%pn, %sr, Hel, #Hpred⟩
   icases (ghostMapElem_halves γd.reg w (RegInfo.mk γ s pn sr)).1 $$ Hel with ⟨Hel1, Hel2⟩
@@ -2149,7 +2052,7 @@ theorem demux_slot_return (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ
     iapply (ghostMapElem_halves γd.reg w (RegInfo.mk γ s pn sr)).2
     iframe
   isplitl [Hwt1 Hwt2]
-  · iapply (ghostVar_halves γd.wtok sync.rfrac ()).2
+  · iapply (ghostVar_split_half γd.wtok sync.rfrac ()).2
     iframe
   iexact HR
 

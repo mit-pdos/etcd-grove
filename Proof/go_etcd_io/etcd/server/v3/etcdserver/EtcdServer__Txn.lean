@@ -65,10 +65,6 @@ instance readIndexOk_persistent_t (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
   unfold readIndexOk; infer_instance
 
-instance ite_persistent_t (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
-    Persistent (if b then P else Q) := by
-  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
-
 /-- A transaction check's error is one the gRPC layer can take (`applyErrVars`). -/
 theorem checkErrIs_applyErrIs [_root_.Perennial.errors.Assumptions] (err : GoInterface) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢

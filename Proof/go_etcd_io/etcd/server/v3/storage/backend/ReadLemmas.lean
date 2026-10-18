@@ -9,6 +9,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RangeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BksLemmas
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -155,24 +156,6 @@ theorem ownMap_combine (l : Loc) (q1 q2 : Qp) (m : GMap K V) :
   · iapply ((heapPointsto_fractional l mv2).fractional q1 q2).2
     iframe
   ipureintro; exact ⟨Hm, Ha, Hd, Hdef⟩
-
-theorem ownMap_agree [go.IntoValInj V] (l : Loc) (dq1 dq2 : DFrac) (m1 m2 : GMap K V) :
-    ownMap (GF := GF) l dq1 m1 ∗ ownMap l dq2 m2 ⊢ ⌜m1 = m2⌝ := by
-  rw [ownMap_unseal]
-  unfold ownMapDef
-  iintro ⟨⟨%mv, %mp, H1, %Hm, %Ha, -⟩, ⟨%mv2, %mp2, H2, %Hm2, %Ha2, -⟩⟩
-  ihave %Hv := heapPointsto_agree _ _ _ _ _ $$ [H1 H2]
-  · iframe
-  subst Hv
-  ipureintro
-  apply GMap.ext_iff'.2
-  intro k
-  have h1 := Ha k
-  have h2 := Ha2 k
-  rw [← go.mapLookup_pure _ _ _ Hm, go.mapLookup_pure _ _ _ Hm2, h2] at h1
-  cases e1 : m1.lookup k <;> cases e2 : m2.lookup k <;>
-    rw [e1, e2] at h1 <;> simp at h1
-  all_goals first | rfl | (congr 1; exact (go.intoVal_inj h1).symm)
 
 theorem ownMap_valid (l : Loc) (q : Qp) (m : GMap K V) :
     ownMap (GF := GF) l (DFrac.own q) m ⊢ ⌜q.val ≤ 1⌝ := by
@@ -1039,7 +1022,7 @@ theorem single_sorted (es : List Ent) (kb : GoString) (h : entsSorted es) :
     · rw [List.dropWhile_cons, _root_.decide_eq_true hlt]
       simp only [ite_true]
       rw [ih ht]
-      have : ¬ a.1 = kb := fun he => strLt_irrefl _ (he ▸ hlt)
+      have : ¬ a.1 = kb := fun he => goStringLt_irrefl _ (he ▸ hlt)
       simp only [this, ite_false, Option.or_none]
     · rw [List.dropWhile_cons, _root_.decide_eq_false hlt]
       simp only [Bool.false_eq_true, ite_false]
@@ -1049,8 +1032,8 @@ theorem single_sorted (es : List Ent) (kb : GoString) (h : entsSorted es) :
         have := hall e he
         rw [hek] at this
         rcases strLt_total hlt with h1 | h1
-        · rw [h1] at this; exact strLt_irrefl _ this
-        · exact strLt_asymm h1 this
+        · rw [h1] at this; exact goStringLt_irrefl _ this
+        · exact goStringLt_asymm h1 this
       rw [hnone, Option.none_or]
       by_cases hk : a.1 = kb
       · simp only [hk, ite_true]

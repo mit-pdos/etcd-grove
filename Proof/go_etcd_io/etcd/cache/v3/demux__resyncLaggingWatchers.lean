@@ -223,21 +223,11 @@ def demuxRLW_done (c : DemuxCore) (views : GMap Loc View) (keys : List Loc) (i :
     if w ∈ keys.take i then ∃ v', views' !! w = some v' ∧ ResyncOutcome c v v'
     else views' !! w = some v
 
-theorem demuxRLW_not_mem_take {α : Type} {l : List α} (h : l.Nodup) {i : Nat} {x : α}
-    (hx : l[i]? = some x) : x ∉ l.take i := by
-  intro hm
-  have hsplit : l = l.take i ++ l.drop i := (List.take_append_drop i l).symm
-  rw [hsplit] at h
-  have hdrop : x ∈ l.drop i := by
-    apply List.mem_of_getElem? (i := 0)
-    rw [List.getElem?_drop]; simpa using hx
-  exact (List.nodup_append.1 h).2.2 x hm x hdrop rfl
-
 theorem demuxRLW_done_cur {c : DemuxCore} {views views' : GMap Loc View} {keys : List Loc} {i : Nat}
     (hd : demuxRLW_done c views keys i views') (hnd : keys.Nodup) {key : Loc} {v : View}
     (hk : keys[i]? = some key) (hv : views !! key = some v) : views' !! key = some v := by
   have := hd key v hv
-  rw [ite_eq_right_of_eq_false _ _ (eq_false (demuxRLW_not_mem_take hnd hk))] at this
+  rw [ite_eq_right_of_eq_false _ _ (eq_false (not_mem_take_of_nodup hnd hk))] at this
   exact this
 
 theorem demuxRLW_done_step {c : DemuxCore} {views views' : GMap Loc View} {keys : List Loc}

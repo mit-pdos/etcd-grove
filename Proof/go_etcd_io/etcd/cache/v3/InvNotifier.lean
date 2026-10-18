@@ -30,6 +30,7 @@ public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -70,11 +71,6 @@ theorem NotifierCur.enc_inj : Function.Injective NotifierCur.enc := by
 instance NotifierCur.countable : Pos.Countable NotifierCur :=
   .ofInjective (fun c => Pos.Countable.encode c.enc)
     (fun _ _ h => NotifierCur.enc_inj (Pos.encode_inj h))
-
-theorem qp_half_add' (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -125,7 +121,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : NotifierNames) :
     · iintro H
       unfold notifierLockInv
       iNamed H
-      rw [qp_half_add'] at *
+      rw [qp_half_add] at *
       icases (hcur c).1 $$ Hcur with ⟨Hc1, Hc2⟩
       icases (hch _).1 $$ Hch with ⟨Hl1, Hl2⟩
       icases (hmono _).1 $$ Hauth with ⟨Ha1, Ha2⟩
@@ -149,7 +145,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : NotifierNames) :
       · iapply (hmono _).2; iframe
       isplitr
       · iexact Hbc1
-      rw [qp_half_add']
+      rw [qp_half_add]
       iapply (hpend _).2; iframe
 
 /-- A handle on the `notifier` `n` with ghost names `γ`: a token of `n.mu` (one of the

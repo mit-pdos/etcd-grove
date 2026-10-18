@@ -68,7 +68,7 @@ theorem backend.txReadBuffer.unsafeCopy.wp_proof
     obtain ⟨x, hPk, rfl⟩ : ∃ x, P !! k = some x ∧ x.1 = v := by
       simp only [GMap.lookup_fmap, Option.map_eq_some_iff] at Hmv
       exact Hmv
-    have hnotin : k ∉ keys.take i.toNat := not_mem_take_of_getElem? Hknodup Hki
+    have hnotin : k ∉ keys.take i.toNat := not_mem_take_of_nodup Hknodup Hki
     have hBi : (R.bks.filter (fun j _ => decide (j ∈ keys.take i.toNat))) !! k = none := by
       simp [GMap.lookup_filter, hnotin]
     ihave %hP'k := bbs_lookup_none_r P' _ (DFrac.own 1) k hBi $$ Hnew

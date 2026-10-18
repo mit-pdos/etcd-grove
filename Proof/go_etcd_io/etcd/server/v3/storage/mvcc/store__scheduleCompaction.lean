@@ -63,7 +63,7 @@ theorem mvcc.sc_u64Be_lt_inv (a b : w64) (x : List w8)
     exact absurd h (mvcc.sc_not_lt_prefix _ _)
   · have h2 := mvcc.RevOrder.u64Be_lt b a hlt [] x
     rw [List.append_nil] at h2
-    exact absurd h (adt.strLt_asymm h2)
+    exact absurd h (goStringLt_asymm h2)
 
 theorem mvcc.sc_entry {ilog : mvcc.Log} (hcs : ∀ cs ∈ ilog, cs.length < 2 ^ 63)
     (hlen : ilog.length < 2 ^ 63) {m' : mvcc.Bucket}
@@ -359,7 +359,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     intro a b c h1 h2
     rcases h2 with rfl | h2
     · exact h1
-    · exact adt.strLt_trans h1 h2
+    · exact goStringLt_trans h1 h2
   iunfold mvcc.pairVals at Hpv
   icases Hpv with ⟨%kss, %vss, #Hks, #Hvs, %Hlens, #Hel⟩
   ihave %Hvl := ownSlice_len _ _ _ $$ Hvs
@@ -409,7 +409,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · ipureintro; trivial
     obtain ⟨HnL, HeL⟩ := List.getElem?_eq_some_iff.1 He
     have Henotin : e.1 ∉ D := fun hm =>
-      adt.strLt_irrefl _ (by have := HD.2.2.2.1 e.1 hm (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this)
+      goStringLt_irrefl _ (by have := HD.2.2.2.1 e.1 hm (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this)
     have Hesp : mvcc.sc_space log (sint.Z rev) e.1 :=
       mvcc.sc_mem log ilog rev Hrev.2 HilWf.2.1 Hpre Hsub (HLmem e (List.mem_of_getElem? He)).1 r t
         Hk Hrm
@@ -503,7 +503,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · intro k hk
       rcases HD'.2.2.2 k hk with rfl | hk
       · exact Hsucc
-      · exact adt.strLt_trans
+      · exact goStringLt_trans
           (by have := HD.2.2.2.1 k hk (sint.nat n) HnL (Nat.le_refl _); rwa [HeL] at this) Hsucc
   -- the batch read: short (the last), or full
   wp_if_destruct

@@ -29,7 +29,7 @@ roots \bv3rpc\.(watch_server|new_watch_server|watchStreamSpec_step|srvStep_of_wa
 roots \bv3rpc\.(watch_handler|watch_streamHandlerOk|etcd_watchMethodOk|etcd_watch_served|etcd_watch_served_chain)$
 roots \bclient\.watchClient_Watch$
 roots \bv3rpc\.(new_stream_interceptor|etcd_watch_served_etcd_chain)$
-roots \bclient\.(client_watcher_rangeWatcher|client_newWatcher_rangeWatcher)$
+roots \bclient\.(client_watcher_rangeWatcher|client_newWatcher_rangeWatcher|client_watcher_etcdWatcher|client_watcher_progressNotifier)$
 axiom EtcdServer.IsLearner.wp_proof
 axiom EtcdServer.IsMemberExist.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof

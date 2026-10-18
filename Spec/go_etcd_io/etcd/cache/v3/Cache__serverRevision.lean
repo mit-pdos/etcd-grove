@@ -33,7 +33,7 @@ abbrev Cache.serverRevision.spec : Prop :=
       isCacheFields c cf γr γd cap ∗ context.isContext ctx s }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"serverRevision")) (Val #(GoInterface.ok ctx)))
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ m : KvMap, isEtcdKvs r cf.pfx m) ∨
+      (⌜err = GoInterface.nil⌝ ∗ etcdHasState r cf.pfx) ∨
       ⌜err ≠ GoInterface.nil ∧ r = W64 0⌝ }}
 
 end spec

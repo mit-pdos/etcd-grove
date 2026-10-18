@@ -127,7 +127,7 @@ theorem named_blank_clear {A : Type _} (P : A) : Perennial.named "_" P = Perenni
 /-- `leadTimeMu`'s resource is fractional (for `sync.init_RWMutex`). -/
 instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) := by
   unfold leadTimeP
-  exact rnFractional_exists_agree
+  exact fractional_exists_agree
     (fun (t : time.Time) q => iprop(structFieldRef EtcdServer go!"leadElectedTime" s ↦{DFrac.own q} t))
     (fun t => fractional_of_dfractional
       (fun dq => typedPointsto (structFieldRef EtcdServer go!"leadElectedTime" s) t dq))
@@ -139,7 +139,7 @@ instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) :=
 /-- `bemu`'s resource is fractional (for `sync.init_RWMutex`). -/
 instance bemuP_fractional (s : Loc) : Fractional (bemuP (GF := GF) s) := by
   unfold bemuP
-  exact rnFractional_exists_agree
+  exact fractional_exists_agree
     (fun (b : GoInterface) q => iprop(srvBeAddr s ↦{DFrac.own q} b))
     (fun b => fractional_of_dfractional (fun dq => typedPointsto (srvBeAddr s) b dq))
     (fun x y q1 q2 => by

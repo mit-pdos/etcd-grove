@@ -112,10 +112,6 @@ instance readIndexOk_persistent_r (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
   unfold readIndexOk; infer_instance
 
-instance ite_persistent_r (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
-    Persistent (if b then P else Q) := by
-  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
-
 /-- A range's answer without error has a response. -/
 theorem rangeResult_nil_ne (resp : Loc) (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) :
     txn.rangeResult (GF := GF) resp GoInterface.nil log rev o wt ⊢ ⌜resp ≠ null⌝ := by

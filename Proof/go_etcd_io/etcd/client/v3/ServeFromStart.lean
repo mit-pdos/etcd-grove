@@ -5,7 +5,9 @@
 * `grpcCfgOk_of_started`: the server's fields and contracts `v3rpc.Server` reads (`grpcCfgOk`),
   from `Start`'s views (`isServerReq`, `isServerRead`: `raftKV` through the server's linked
   specs, `raftKV_server`) and `NewServer`'s serving facts (`srvServeFacts`: the configuration
-  fields, the watchable store), at the answers `etcd_kv_started` takes
+  fields) and the watchable store with its watch-token pool (`mvcc.watchTokPool`, the
+  watch server's since the tokens are receipt-backed; a premise here, `NewServer` does not yet
+  allocate it), at the answers `etcd_kv_started` takes
   (`srvKVAns s E ρ γr 0 [] .none`). Three premises no construction gives, stated as such:
   `v3rpc.watchVars` (package facts of `watch.go`'s variables, not yet among `v3rpc`'s
   initialization facts), `runsNoRequireLeader` (no client asks for a leader on a stream) and
@@ -52,11 +54,15 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     (hlg : cfg.Logger' ≠ null) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
+        (∃ (wsl : Loc) (γ : mvcc.WsNames),
+          srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+          mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝ ∗ mvcc.watchTokPool γ) ∗
         v3rpc.watchVars ∗ v3rpc.runsNoRequireLeader ∗ (□ ∀ c : Loc, membership.localKept c) ∗
         cfg.TracerOptions' ↦*□ tos ⊢
       ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
         ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, #Hwv, #Hnrl, #Hlk, #Htos⟩
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool⟩, #Hwv, #Hnrl, #Hlk, #Htos⟩
   ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
   · iframe #
   ihave #Hkv' := Hkv
@@ -66,7 +72,7 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iunfold v3rpc.kvGetOk at Hget
   icases Hget with ⟨-, -, -, #Hrs⟩
   iunfold srvServeFacts at Hf
-  icases Hf with ⟨⟨%wsl, %γ, #Hkvf, #Hws, %Hγ⟩, #Hcf⟩
+  icases Hf with ⟨-, #Hcf⟩
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs⟩
   iunfold isServerReq at Hsrv

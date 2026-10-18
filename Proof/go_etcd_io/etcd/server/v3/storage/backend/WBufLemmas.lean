@@ -9,6 +9,7 @@ Lemmas on a writable buckets map (`ownBks`), for the write buffer's proofs
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -23,16 +24,6 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 /-! ## Pure facts -/
-
-/-- A key at index `i` of a list without duplicates is not among the first `i`. -/
-theorem not_mem_take_of_getElem?' {α} {l : List α} {i : Nat} {a : α} (hnd : l.Nodup)
-    (h : l[i]? = some a) : a ∉ l.take i := by
-  intro hmem
-  have hl := List.take_append_drop i l
-  have hd : a ∈ l.drop i := by
-    rw [List.mem_iff_getElem?]; exact ⟨0, by rw [List.getElem?_drop]; simpa using h⟩
-  rw [← hl, List.nodup_append] at hnd
-  exact hnd.2.2 _ hmem _ hd rfl
 
 theorem take_succ_of_getElem? {α} {l : List α} {i : Nat} {a : α} (h : l[i]? = some a) :
     l.take (i + 1) = l.take i ++ [a] := by

@@ -47,6 +47,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -1065,12 +1066,6 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance
 
-/-- Halving distributes over a sum of fractions. -/
-theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
-
 /-! ## The backend instances (2026-10-13, unit 5)
 
 The store is over one of two backends, named by its `StoreNames.kb`: mvcc's assumed contract
@@ -1251,12 +1246,6 @@ theorem bucketView_agree (γ : StoreNames) (q1 q2 : Qp) (m1 m2 : Bucket) :
 counter stays below `2 ^ 63 - 2`. -/
 def revToken (γ : StoreNames) : IProp GF := ownToks γ.revs 1
 
-/-- A full fraction as two halves (for `currentRev`, half under `s.revMu`, half the writer's). -/
-theorem own_half_half (q : Qp) : (DFrac.own q : DFrac) = DFrac.own q.half • DFrac.own q.half := by
-  have h := Qp.half_add_half q
-  calc (DFrac.own q : DFrac) = DFrac.own (q.half + q.half) := by rw [h]
-    _ = DFrac.own q.half • DFrac.own q.half := rfl
-
 /-- The revision budget's authority in two parts (`s.revMu`'s and the writer's). -/
 theorem ownTokAuthDfrac_split (γr : GName) (dq dq' : DFrac) (n : Nat) :
     ownTokAuthDfrac (GF := GF) γr (dq • dq') n ⊣⊢ ownTokAuthDfrac γr dq n ∗ ownTokAuthDfrac γr dq' n := by
@@ -1269,7 +1258,7 @@ theorem ownTokAuthDfrac_split (γr : GName) (dq dq' : DFrac) (n : Nat) :
 theorem ownTokAuth_halves (γr : GName) (n : Nat) :
     ownTokAuth (GF := GF) γr n ⊣⊢
       ownTokAuthDfrac γr (DFrac.own (1 : Qp).half) n ∗ ownTokAuthDfrac γr (DFrac.own (1 : Qp).half) n := by
-  rw [ownTokAuth, own_half_half]
+  rw [ownTokAuth, dfrac_own_half_half]
   exact ownTokAuthDfrac_split γr _ _ n
 
 /-! ## Compaction: its revision, what it may delete, the meta keys -/
@@ -3145,13 +3134,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- A ghost variable as two halves. -/
-theorem ghostVar_halves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
-    ghostVar (GF := GF) γ 1 a ⊣⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
-  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h
 
 end halves
 

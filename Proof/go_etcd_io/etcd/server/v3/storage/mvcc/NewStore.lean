@@ -160,7 +160,7 @@ theorem mvcc.NewStore.wp_proof
   have hlog : (([] : mvcc.Log) ++ [[]] ++ [[]]) = [[], []] := rfl
   rw [hlog]
   imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γc, Hc⟩
-  icases (mvcc.ghostVar_halves γc _).1 $$ Hc with ⟨Hc1, Hc2⟩
+  icases ghostVar_halves γc _ $$ Hc with ⟨Hc1, Hc2⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γr, Hauth⟩
   imod ownTokAuth_add (2 ^ 63 - 5) γr 0 $$ Hauth with ⟨Hauth, Htoks⟩
   rw [Nat.zero_add]
@@ -277,7 +277,7 @@ theorem mvcc.NewStore.wp_proof
   -- `tx.Unlock()`: the batch lock's resource deposited (half of `currentRev`, half the
   -- committed log, half the bucket's view, the index writer, the revision budget, compaction's
   -- part), registered in the backend's late-bound slot; the deposit witness
-  have hsplit := mvcc.own_half_half (1 : Qp)
+  have hsplit := dfrac_own_half_half (1 : Qp)
   ihave Hcur2 : («$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
       (W64 1 : w64) : IProp GF) $$ [currentRev]
   · rw [← hsplit]; iexact currentRev

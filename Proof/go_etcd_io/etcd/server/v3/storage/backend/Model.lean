@@ -22,6 +22,7 @@ version. `wbPut`, `wbReset`, `rbReset`, `writebackR`/`writebackW` are the code's
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
+public import Proof.Lib.GoString
 
 @[expose] public section
 
@@ -37,50 +38,6 @@ namespace backend
 
 /-- Go's `<` on byte strings. -/
 abbrev strLt (a b : GoString) : Prop := go.GoStringLt a b
-
-theorem strLt_irrefl (a : GoString) : ¬ strLt a a := by
-  induction a with
-  | nil => intro h; cases h
-  | cons x xs ih =>
-    intro h
-    cases h with
-    | cons h => exact ih h
-    | rel h => exact Int.lt_irrefl _ h
-
-theorem strLt_trans {a b c : GoString} (h1 : strLt a b) (h2 : strLt b c) : strLt a c := by
-  induction h1 generalizing c with
-  | nil => cases h2 <;> exact List.Lex.nil
-  | cons h ih =>
-    cases h2 with
-    | cons h' => exact List.Lex.cons (ih h')
-    | rel h' => exact List.Lex.rel h'
-  | rel h =>
-    cases h2 with
-    | cons _ => exact List.Lex.rel h
-    | rel h' => exact List.Lex.rel (Int.lt_trans h h')
-
-theorem strLt_asymm {a b : GoString} (h : strLt a b) : ¬ strLt b a :=
-  fun h' => strLt_irrefl _ (strLt_trans h h')
-
-/-- Go's `<` on strings is total. -/
-theorem strLt_eq_of_not_lt {a b : GoString} (h1 : ¬ strLt a b) (h2 : ¬ strLt b a) : a = b := by
-  induction a generalizing b with
-  | nil =>
-    cases b with
-    | nil => rfl
-    | cons y ys => exact absurd (List.Lex.nil : go.GoStringLt [] (y :: ys)) h1
-  | cons x xs ih =>
-    cases b with
-    | nil => exact absurd (List.Lex.nil : go.GoStringLt [] (x :: xs)) h2
-    | cons y ys =>
-      have hxy : x = y := by
-        apply BitVec.eq_of_toNat_eq
-        have a1 : ¬ (uint.Z x < uint.Z y) := fun h => h1 (List.Lex.rel h)
-        have a2 : ¬ (uint.Z y < uint.Z x) := fun h => h2 (List.Lex.rel h)
-        simp only [uint.Z] at a1 a2
-        omega
-      subst hxy
-      rw [ih (fun h => h1 (List.Lex.cons h)) (fun h => h2 (List.Lex.cons h))]
 
 /-! ## Entries -/
 

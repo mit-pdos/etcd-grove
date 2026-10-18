@@ -588,22 +588,6 @@ instance txnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
   unfold txnBuilderSpec; infer_instance
 
 omit EM in
-/-- **A get etcd's server answers as the model says** (the vertical slice's unit V2): not
-keys-only (a fast keys-only read zeroes the leases, `issues/etcd-range-keys-only-lease.md`), not
-sorted by a target other than the key with no order and a positive limit (mvcc then stops reading
-early, `issues/etcd-range-sort-none-limit.md`), a limit below `2 ^ 63 - 1` (`More` is then the
-model's), and a sort order and target among the protobuf's (`0` to `2`, `0` to `4`: the wire
-carries them as `int32`, and a transaction's operations are not checked by `IsSortOptionValid`).
-Every get the recipes make is one (`isEtcdKVTodo`). -/
-def OpFull.getExact (o : OpFull) : Prop :=
-  o.keysOnly = false ∧
-    ¬ (o.base.sortSet = true ∧ o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 ∧
-      0 < sint.Z o.base.limit) ∧
-    sint.Z o.base.limit < 2 ^ 63 - 1 ∧
-    0 ≤ sint.Z o.sortOrder ∧ sint.Z o.sortOrder ≤ 2 ∧ 0 ≤ sint.Z o.sortTarget ∧
-    sint.Z o.sortTarget ≤ 4
-
-omit EM in
 /-- An operation that is a get. -/
 def TxnOp.isGet : TxnOp → Bool
   | .get _ => true

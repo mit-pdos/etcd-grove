@@ -202,7 +202,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       have hrl : sint.Z rev < log.length := by omega
       ihave Hcmpf : (s.[store, go!"compactMainRev"] ↦ (W64 c' : w64) : IProp GF) $$ [Hcmp HcmpM]
       · rw [show (DFrac.own 1 : DFrac) = DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half from
-          mvcc.own_half_half 1]
+          dfrac_own_half_half 1]
         iapply ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2
         iframe
       wp_auto
@@ -211,7 +211,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       have hrw : (W64 (sint.Z rev) : w64) = rev := by word
       ihave Hcmpf2 : (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
           (W64 (sint.Z rev) : w64) : IProp GF) $$ [Hcmpf]
-      · rw [← mvcc.own_half_half 1, hrw]; iexact Hcmpf
+      · rw [← dfrac_own_half_half 1, hrw]; iexact Hcmpf
       icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcmpf2 with ⟨Hcmp, HcmpM⟩
       -- the caller's hook is the store's
       imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc2 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩

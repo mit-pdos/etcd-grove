@@ -44,7 +44,7 @@ theorem read.NewRead.wp_proof
   ipersist raft
   ipersist waitC
   imod ghostVar_update (nc, γn) γr.notifier x $$ Hgx with Hg
-  icases (mvcc.ghostVar_halves γr.notifier (nc, γn)).1 $$ Hg with ⟨Hg1, Hg2⟩
+  icases ghostVar_halves γr.notifier (nc, γn) $$ Hg with ⟨Hg1, Hg2⟩
   imod monoNatLbOwn_0 γr.committed with #H0
   ihave #Hc0 : committedAtLeast (GF := GF) γr (W64 0) $$ []
   · iunfold committedAtLeast; rw [show uint.nat (W64 0) = 0 by word]; iexact H0

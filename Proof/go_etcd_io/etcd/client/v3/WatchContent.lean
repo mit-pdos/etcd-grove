@@ -251,7 +251,7 @@ theorem covers_inRange (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange) (k : G
       · rw [he] at hcov
         simp only [decide_eq_true_eq] at hcov
         rw [hcov, ← hk]
-        exact adt.strLt_irrefl _
+        exact goStringLt_irrefl _
     · rw [if_neg h1] at he
       rw [he] at hcov
       simp only [decide_eq_true_eq] at hcov
