@@ -140,6 +140,60 @@ theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Et
   iapply ctxErrClient_todo hAs ⟨γc, γc⟩
   iexact Hc
 
+/-- **`context.Background()` is quiet** (item 9, stage 2, 2026-10-18: the adequacy example's
+context): its `Err()` (the embedded `emptyCtx`'s) returns `nil`. -/
+theorem ctxQuiet_background : ⊢ ctxQuiet (GF := GF) context.backgroundCtxVal := by
+  unfold ctxQuiet
+  iintro !> %Φ HΦ
+  wp_method_call
+  wp_auto
+  wp_method_call
+  wp_auto
+  iexact HΦ
+
+/-- **`context.Background()`'s `Err()` returns client errors** (`nil`, always), at a descriptor
+whose closed flag is `false` for good (as `ctxErrClient_todo`). -/
+theorem ctxErrClient_background
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (γ : context.ContextNames) :
+    dghostVar (GF := GF) γ.closedGn DFrac.discard false ⊢
+      ctxErrClient context.backgroundCtxVal (todoCd γ) := by
+  iintro #Hf
+  unfold ctxErrClient
+  imodintro
+  iintro %cl %Φ Hcl HΦ
+  wp_method_call
+  wp_auto
+  wp_method_call
+  wp_auto
+  cases cl with
+  | Done =>
+    iunfold context.ContextClosed at Hcl
+    ihave %Hag := dghostVar_agree _ _ _ _ _ $$ Hf Hcl
+    simp at Hag
+  | _ =>
+    iapply HΦ
+    · simp only [↓reduceIte]; itrivial
+    · ipureintro
+      exact ⟨hAs, fun ii h => by cases h⟩
+    · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+
+/-- **A descriptor for `context.Background()`** (as `todo_ctx`): quiet, with `ctxErrClient`. -/
+theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    ⊢ |==> ∃ cd : context.ContextDesc (IProp GF),
+      ctxOk context.backgroundCtxVal cd ∗ ctxErrClient context.backgroundCtxVal cd := by
+  iintro
+  imod dghostVar_alloc (GF := GF) false with ⟨%γc, Hc⟩
+  imod dghostVar_persist γc 1 false $$ Hc with #Hc
+  imodintro
+  iexists (todoCd ⟨γc, γc⟩)
+  isplitl []
+  · unfold ctxOk
+    iright
+    iapply ctxQuiet_background
+  iapply ctxErrClient_background hAs ⟨γc, γc⟩
+  iexact Hc
+
 end todo
 
 /-! ## A client that does not track the abstract state (2026-10-15, unit T2) -/
