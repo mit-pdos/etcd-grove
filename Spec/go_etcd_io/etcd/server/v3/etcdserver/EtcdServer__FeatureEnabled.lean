@@ -22,11 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.FeatureEnabled(f)`: some boolean (the feature gate's contract, `isFeatureGate`). -/
+/-- `s.FeatureEnabled(f)` of a registered feature `f`: some boolean (the feature gate's
+contract, `isFeatureGate`; a feature not registered panics). -/
 abbrev EtcdServer.FeatureEnabled.spec : Prop :=
   ∀ (s : Loc) (fg : GoInterface) (f : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg }}
+      srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗ ⌜f ∈ serverFeatures⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"FeatureEnabled")) (Val #f))
   {{ (b : Bool), RET #b; True }}
 

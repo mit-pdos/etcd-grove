@@ -394,7 +394,8 @@ theorem NewServer.wp_proof
   icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
   rw [Hfgi]
   (try wp_auto)
-  wp_apply Hen as %ckpp -
+  wp_apply Hen $$ [] as %ckpp -
+  · ipureintro; simp [serverFeatures]
   (try wp_auto)
   wp_apply h20 $$ [] as %reqto -
   · iframe #
@@ -558,7 +559,7 @@ theorem NewServer.wp_proof
   iunfold lessorCkptOk at Hlck'
   icases Hlck' with ⟨%lci, %Hlci, #Hsetcp⟩
   wp_apply h21 as %fe -
-  · iframe #
+  · iframe #; ipureintro; simp [serverFeatures]
   unfold lease.lessorIface at Hlci
   cases Hlci
   wp_join iprop(srv_ptr ↦ s) with [srv] as srv

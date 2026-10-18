@@ -408,7 +408,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iframe #; iunfold srvCommittedOwnOpt; itrivial
   (try wp_auto)
   wp_apply hFE s v.fg _ $$ [] as %en -
-  · iframe #
+  · iframe #; ipureintro; simp [serverFeatures]
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,

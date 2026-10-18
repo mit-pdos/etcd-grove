@@ -42,7 +42,8 @@ theorem EtcdServer.NewUberApplier.wp_proof
   · iframe #
   subst Hfi
   wp_auto
-  wp_apply HEn as %b -
+  wp_apply HEn $$ [] as %b -
+  · ipureintro; simp [serverFeatures]
   ihave #Hapkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit

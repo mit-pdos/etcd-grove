@@ -26,13 +26,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.FeatureEnabled.wp_proof :
     EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG) := by
   intro s fg f
-  wp_start as ⟨#Hfg, #Hgate⟩
+  wp_start as ⟨#Hfg, #Hgate, %Hf⟩
   iunfold isFeatureGate at Hgate
   icases Hgate with ⟨%fi, %Hfi, #HEn⟩
   wp_auto
   subst Hfi
   wp_auto
-  wp_apply HEn as %b -
+  wp_apply HEn $$ [] as %b -
+  · ipureintro; exact Hf
   iapply HΦ
   itrivial
 

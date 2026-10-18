@@ -48,7 +48,7 @@ theorem v3rpc.newHealthNotifier.wp_proof
   · iframe; iframe #; ipureintro; exact Hlgn
   (try wp_auto)
   wp_apply (hFE s fg _) as %b -
-  · iframe #
+  · iframe #; ipureintro; simp [serverFeatures]
   (try wp_auto)
   iStructNamed «$r0»
   ipersist hs

@@ -36,6 +36,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
+public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
@@ -345,16 +346,6 @@ def srvDoneChan (ch : GoChan) : IProp GF :=
 
 instance srvDoneChan_persistent (ch : GoChan) : Persistent (srvDoneChan (GF := GF) ch) := by
   unfold srvDoneChan; infer_instance
-
-/-- **The feature gate** `fg` (`featuregate.FeatureGate`, names-only: the trust boundary, a
-contract): `Enabled(f)` returns some boolean. -/
-def isFeatureGate (fg : GoInterface) : IProp GF :=
-  iprop(∃ fi : GoInterfaceOk, ⌜fg = GoInterface.ok fi⌝ ∗
-    □ (∀ f : GoString,
-      {{ True }} (App (Val #(methods fi.ty go!"Enabled" fi.v)) (Val #f)) {{ (b : Bool), RET #b; True }}))
-
-instance isFeatureGate_persistent (fg : GoInterface) : Persistent (isFeatureGate (GF := GF) fg) := by
-  unfold isFeatureGate; infer_instance
 
 /-- An atomic `uint64` field of the server, in an invariant (any value). -/
 def srvAtomicU64 (a : Loc) : IProp GF :=

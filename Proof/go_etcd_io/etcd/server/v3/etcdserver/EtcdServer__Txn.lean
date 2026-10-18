@@ -205,7 +205,8 @@ local macro "txn_tail" : tactic => `(tactic| (
       (try wp_auto)
       rw [Hfi]
       (try wp_auto)
-      wp_apply HEn as %en -
+      wp_apply HEn $$ [] as %en -
+      · ipureintro; simp [serverFeatures]
       (try wp_auto)
       wp_apply hKV s w.kv $$ []
       · iframe #
