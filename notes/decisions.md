@@ -8610,6 +8610,33 @@ the theorem says nothing.
     `clusterLogBound ρ c₀ x₀ := □ ∀ L, srvRLogLb L -∗ ⌜entriesSmall c₀ L x₀⌝` (`InvBuild.lean`),
     which replaces it among `NewServer.spec`'s premises. The residual is for D19b's receipts
     (stage 3): a bound on the store's changes, keys and revisions at every reachable state.
+  **2026-10-18: the residual's move adopted by the user and carried out** (`notes/STATUS.md`,
+  "D19c's move: the size clauses at execution"). `clusterLogBound` was not derivable from D19b's
+  counters: they bound work already executed (sealed logs), while it was asked of every log raft
+  will commit and of every run of `batchStep`, and a transaction's change count or a delete's
+  range is known only as it runs. So the size clauses moved from the raft contract's `E.C` to the
+  apply thread at execution, and the txn package's change-count premises to receipts:
+  - *Where each bound comes from.* The store's write transaction holds a receipt per change
+    (D19b stage 3's `idxWriter`), and `isStore` holds `receiptBound GF ≤ 2 ^ 48` (`NewStore`'s
+    pure premise, as `NewServer.spec`'s): so its pending changes stay below the real backend's
+    `2 ^ 56` puts per session (`storeTxnWriteIs_small`), at every change, without a premise on the
+    transaction or the delete; and the state a transaction's get reads is small by the same count
+    (`txnViewIs_small`, the sort's premise). The apply thread's log is the sole writer's, which now
+    keeps a revision per change past `NewStore`'s two (`soleLog`; every commit is of a non-empty
+    pending revision) and is certified, so it has fewer than `2 ^ 48` changes and revisions
+    (`soleWriter_small`, `srvApplyKV_small`), and the remaining size clauses (`rqSmall`: room for a
+    revision, `LogSmall`) hold at it (`rqSmall_of_small`).
+  - *What the contract asks.* `srvC` (raft's `E.C`) and the apply specs take the entries' shapes
+    (`logShape`) instead of `entriesOk` over every run; the apply loop derives each entry's
+    `entryOk` at the log it meets (`entryOk_of_shape`). The txn premises lose their size parts:
+    `TxnPre` (its third conjunct now `LogSmall log`, a read-only transaction's sort premise),
+    `GetOk` (no `sortSmall`), `apply.delOk` (room for a revision), and every `putMax` premise of the
+    txn and mvcc write specs.
+  - *Why the receipts' bound lives in `isStore` and `soleWriter`* (pure facts at allocation): the
+    leaf write specs (`storeTxnWrite.put`/`delete`) see only the store's resources, and the apply
+    thread only its KV resources (`kvOwn`, the sole writer); a premise threaded through every spec
+    between them would have changed many more statements. The constant stays `2 ^ 48`
+    (`NewServer.spec`'s, D19b), below the `2 ^ 56` the backend needs and the `2 ^ 62` of the sort.
 - **D19d: program-start resources once** (`nameFree`, `netAddrFree`). Options: (1) Perennial's
   `wp_package_init` gives the body a once-per-package token (D16's proposed general fix), from which
   a package takes what was allocated for it at program start: covers `nameFree`, not `netAddrFree`;
