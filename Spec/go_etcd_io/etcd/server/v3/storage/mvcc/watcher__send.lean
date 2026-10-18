@@ -28,7 +28,7 @@ channel without blocking (the channel is open: `w` is live), unless all its even
 out (then `true` without sending). On `true` the delivery is recorded (the events delivered
 grow by `evm`; `wr`'s events are the channel's for good); on `false` (the channel full) nothing
 changed. A progress response (`evm = []`) needs no delivered events. Unit W-M2: the response
-carries `w`'s own id, or the channel's progress fact (`progressAll`'s response of id `-1`): the
+carries `w`'s own id, or `-1` and the channel's progress fact (`progressAll`'s response of id `-1`): the
 channel's invariant keeps it for every response of id `-1`. Unit W-K (K1b): the response covers
 the watchers `cs` (`covPre`: each delivered past the response's revision, registered on the
 channel), which the channel's invariant keeps (`respCov`); `[]` for any but a progress response;
@@ -51,7 +51,8 @@ abbrev mvcc.watcher.send.spec : Prop :=
       mvcc.covPre γ γw.wc wr.Revision' cs ∗ mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗
       ⌜evm = [] → ∃ q L, nl = some (q, L) ∧ sint.Z wr.Revision' + 1 = (L.length : Int)⌝ ∗
       ⌜evm = [] → w ∈ cs.map mvcc.CovArg.w⌝ ∗
-      CS ∗ (⌜wr.WatchID' = r.id⌝ ∨ mvcc.complW γw ql CS (cs.map mvcc.CovArg.w) wr.WatchID' wr.Revision' evm) ∗
+      CS ∗ (⌜wr.WatchID' = r.id⌝ ∨
+        ⌜wr.WatchID' = W64 (-1)⌝ ∗ mvcc.complW γw ql CS (cs.map mvcc.CovArg.w) wr.WatchID' wr.Revision' evm) ∗
       ⌜es.length = evm.length ∧ wr.CompactRevision' = W64 0 ∧ (evm ≠ [] → wr.WatchID' = r.id) ∧
         (∀ ev ∈ evm, sint.Z ev.kv.modRev ≤ sint.Z wr.Revision') ∧
         (0 < sint.Z r.startRev → ∀ ev ∈ evm, sint.Z r.startRev ≤ sint.Z ev.kv.modRev)⌝ }}

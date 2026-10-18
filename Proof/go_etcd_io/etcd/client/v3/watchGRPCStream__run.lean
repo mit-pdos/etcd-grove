@@ -398,7 +398,7 @@ theorem wsRest_snoc_other (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.Wat
       ipureintro
       right
       refine Classical.byContradiction fun hn => hX ?_
-      rw [Hid hn]; exact Hcr.2.2.1
+      rw [Hid.1 hn]; exact Hcr.2.2.1
     · ipureintro; left; exact hw
   have hev : evsSoFar (Dm ++ [m]) w = evsSoFar Dm w := by
     unfold evsSoFar
@@ -824,7 +824,7 @@ theorem evsSoFar_fresh {S : RunSt} {U : GMap Loc Unit} (X : w64) (w : Loc) (rg :
     · iexact Hf
     · iexact Hf'
   obtain ⟨rfl, -⟩ := Hag
-  have hid := Hid hρe
+  have hid := Hid.1 hρe
   have hl := hg.2.2.2.2.2.2.2.2.2.2.2.1 j m' ρ hj hsrc' (by rw [hid, hrg]; exact hX1)
   obtain ⟨mc, hmc, hs, hw, hcr, hca⟩ := idLive_exists hl
   have := hg.2.2.2.2.2.2.2.2.2.2.2.2 mc (List.mem_of_mem_take hmc) hs hcr hca

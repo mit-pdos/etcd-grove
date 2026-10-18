@@ -533,10 +533,11 @@ instance progQ_timeless (γs : StreamNames) : Timeless (progQ (GF := GF) γs) :=
   unfold progQ upAtW; infer_instance
 
 /-- **What an mvcc response says of the stream** (persistent; unit W-M2, what the client's watch
-needs, formerly its premises S2 and S3): if it has events, its id is one the stream (named in its
-auxiliary name) assigned to its watcher; if its id is `-1`, it answers a progress request. -/
+needs, formerly its premises S2 and S3): if it has events, or (K2e-7d) an id other than `-1`, its
+id is one the stream (named in its auxiliary name) assigned to its watcher; if its id is `-1`, it
+answers a progress request. -/
 def mvccExtra (γs : StreamNames) (r : mvcc.RespM) : IProp GF :=
-  iprop(□ (⌜r.evs ≠ []⌝ -∗ ∃ (γo : mvcc.WsStreamNames) (γa : GName),
+  iprop(□ (⌜r.evs ≠ [] ∨ r.id ≠ W64 (-1)⌝ -∗ ∃ (γo : mvcc.WsStreamNames) (γa : GName),
       streamAuxIs γs (auxOf γo γa) ∗ mvcc.idAssigned γo r.id r.w) ∗
     □ (⌜r.id = W64 (-1)⌝ -∗ progQ γs))
 

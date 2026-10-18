@@ -532,14 +532,16 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     obtain ⟨rfl, rfl⟩ := Hag2
     subst Hag1
     -- the response's id, and (K1b) for `-1`, the registered watchers: the map's, or cancelled
-    ihave #Hidc : iprop(⌜rid = rr.id⌝ ∨
+    ihave #Hidc : iprop(⌜rid = rr.id⌝ ∨ ⌜rid = W64 (-1)⌝ ∗
         mvcc.complW γw sync.rfrac.half CS (cs.map mvcc.CovArg.w) rid r []) $$ []
-    · icases Hrid with (%h | #Hp)
+    · icases Hrid with (%h | ⟨%hm1, #Hp⟩)
       · ileft; ipureintro; exact h
       icases Hcw with (%hne | #Hcw')
-      · iright; iunfold mvcc.complW; iintro !> %L %hm
-        exact absurd hm hne
-      iright; iunfold mvcc.complW
+      · exact absurd hm1 hne
+      iright
+      isplitr
+      · ipureintro; exact hm1
+      iunfold mvcc.complW
       iintro !> %L %hm HCS Hregl Hlv
       iunfold mvcc.complWS at Hcw'
       have hex : ∃ id : w64, M !! id = some u := ⟨key, Hu⟩

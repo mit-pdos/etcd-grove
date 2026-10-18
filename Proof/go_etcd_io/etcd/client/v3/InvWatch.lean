@@ -228,7 +228,7 @@ theorem srvEventIdsAssigned_holds (R : v3rpc.WSrv GF) : ⊢ srvEventIdsAssigned 
     rw [Hs.1] at this; exact (Option.some.inj this).symm
   subst hr
   iapply He
-  ipureintro; exact Hs.2
+  ipureintro; exact Or.inl Hs.2
 
 /-- **The watch-token supply** (a premise, persistent; the user's decision): a watch token of the
 store whenever one is needed (every create, so every `Watch`, spends one). -/

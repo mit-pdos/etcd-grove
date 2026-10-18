@@ -203,7 +203,7 @@ theorem v3rpc.rcvOk_same (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (γc : mv
     ihave %Hag := v3rpc.watcherFixed_id x2.w rr1 rr2 f1 f2 $$ [$Hf1 $Hf2]
     ipureintro
     intro _ _ _ _ _
-    rw [Hid1 he1, Hid2 he2, Hag]
+    rw [Hid1.1 he1, Hid2.1 he2, Hag]
   · iintro _
     ipureintro
     intro a b c d e
@@ -228,7 +228,7 @@ theorem v3rpc.rcvOk_wid' (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (γc : mv
     ihave %Hag := v3rpc.watcherFixed_id w rr1 rr f1 fcs $$ [$Hf1 $Hf]
     ipureintro
     intro _ _ _
-    rw [Hid1 he, Hag]
+    rw [Hid1.1 he, Hag]
   · iintro _
     ipureintro
     intro a b c
@@ -330,7 +330,7 @@ theorem v3rpc.mvccExtra_of_recv (γs : v3rpc.StreamNames) (γo : mvcc.WsStreamNa
       mvcc.respOk x ∗ mvcc.chanRegFact γc x.w ∗ (⌜x.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ⊢
       ◇ v3rpc.mvccExtra γs x := by
   iintro ⟨#Haux, #Hsp, #Hok, #Hrf, #Hpf⟩
-  ihave #HI : □ (⌜x.evs ≠ []⌝ -∗ ∃ (γo' : mvcc.WsStreamNames) (γa' : GName),
+  ihave #HI : □ (⌜x.evs ≠ [] ∨ x.id ≠ W64 (-1)⌝ -∗ ∃ (γo' : mvcc.WsStreamNames) (γa' : GName),
       streamAuxIs γs (v3rpc.auxOf γo' γa') ∗ mvcc.idAssigned γo' x.id x.w) $$ []
   · iintro !> %hne
     iexists γo, γa
@@ -342,7 +342,11 @@ theorem v3rpc.mvccExtra_of_recv (γs : v3rpc.StreamNames) (γo : mvcc.WsStreamNa
     ihave %Hag := v3rpc.watcherFixed_id x.w rr rr' fcs fcs' $$ [$Hf $Hf']
     unfold mvcc.idAssigned
     iunfold mvcc.chanIdAssigned at Hida
-    rw [h.1, Hid hne, Hag]
+    have hid : x.id = rr.id := by
+      rcases hne with hne | hne
+      · exact Hid.1 hne
+      · exact Hid.2.resolve_right hne
+    rw [h.1, hid, Hag]
     iexact Hida
   by_cases hx : x.id = W64 (-1)
   · ihave #Hp := Hpf $$ %hx

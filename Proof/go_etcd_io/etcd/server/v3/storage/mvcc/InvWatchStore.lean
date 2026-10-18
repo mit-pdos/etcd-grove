@@ -459,7 +459,8 @@ instance respsIs_persistent (vs : List WatchResponse) (rs : List RespM) :
 with events carries its watcher's id. -/
 def respOk (r : RespM) : IProp GF :=
   iprop(⌜∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev⌝ ∗
-    ∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed r.w rr fcs ∗ ⌜r.evs ≠ [] → r.id = rr.id⌝)
+    ∃ (rr : WatchRange) (fcs : GoSlice), watcherFixed r.w rr fcs ∗
+      ⌜(r.evs ≠ [] → r.id = rr.id) ∧ (r.id = rr.id ∨ r.id = W64 (-1))⌝)
 
 instance respOk_persistent (r : RespM) : Persistent (respOk (GF := GF) r) := by
   unfold respOk; infer_instance
@@ -945,15 +946,15 @@ open Iris.ProofMode in
 reason. -/
 theorem complW_facts (γw : WatcherNames) (ql : Qp) (CS : IProp GF) (L covl : List Loc)
     (id rid rev : w64) (evm : List EvM) (hrid : rid ≠ W64 (-1)) :
-    CS ∗ (⌜id = rid⌝ ∨ complW γw ql CS covl id rev evm) ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗
-      dghostVar γw.live (DFrac.own ql) true ⊢
+    CS ∗ (⌜id = rid⌝ ∨ ⌜id = W64 (-1)⌝ ∗ complW γw ql CS covl id rev evm) ∗
+      ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ⊢
     CS ∗ ghostVar γw.wc.regl (1 : Qp).half L ∗ dghostVar γw.live (DFrac.own ql) true ∗
       (⌜id = W64 (-1)⌝ → progFact γw.wc.prog) ∗
       (⌜id ≠ W64 (-1)⌝ ∨ ((□ ∀ w : Loc, ⌜w ∈ L⌝ -∗ ⌜w ∈ covl⌝ ∨ rsnW γw.wc w) ∗
         ⌜1 ≤ sint.Z rev ∧ evm = []⌝)) := by
   iintro ⟨HCS, #Hid, Hregl, Hlv⟩
   by_cases hm : id = W64 (-1)
-  · icases Hid with (%Heq | #Hw)
+  · icases Hid with (%Heq | ⟨-, #Hw⟩)
     · exact absurd (Heq ▸ hm) hrid
     iunfold complW at Hw
     icases Hw $$ %L %hm HCS Hregl Hlv with ⟨HCS, Hregl, Hlv, #Hp, #Hcm, %Hr1⟩

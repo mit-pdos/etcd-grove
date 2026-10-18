@@ -721,9 +721,9 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 · ipureintro; intro ev hev; exact Hrevle ev (mvcc.mem_filtered hev)
                 iexists r, fcs
                 iframe Hfix
-                ipureintro
-                intro hne
-                exact Hid (fun h => hne (by rw [h]; rfl))
+                icases Hidc with (%hid1 | ⟨%hid1, -⟩)
+                · ipureintro; exact ⟨fun hne => Hid (fun h => hne (by rw [h]; rfl)), Or.inl hid1⟩
+                · ipureintro; exact ⟨fun hne => Hid (fun h => hne (by rw [h]; rfl)), Or.inr hid1⟩
               imod mvcc.entries_deliver γ γw.wc _ sent L w γw r fcs fs evsw d evm
                 (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length⟩ Hnd.1 Hwl
                 rfl rfl rfl $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩

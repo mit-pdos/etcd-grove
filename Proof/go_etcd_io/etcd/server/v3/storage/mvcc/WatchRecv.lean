@@ -564,7 +564,7 @@ theorem watchRecvOk_revs (γ : WsNames) (w : Loc) (rs : List RespM) :
   ihave %Hag := watcherFixed_agree w r rr fcs fcs' $$ [$Hf $Hf']
   obtain ⟨rfl, rfl⟩ := Hag
   ipureintro
-  exact ⟨by first | rfl | exact hxw, Hrev, Hid⟩
+  exact ⟨by first | rfl | exact hxw, Hrev, Hid.1⟩
 
 /-- **The deliveries start at the start revision.** Every event a client received for the
 watcher `w` (range `r`) is at a revision `j` at or above `w`'s first revision `γw.lo`, which is
