@@ -8553,6 +8553,14 @@ the theorem says nothing.
   `raft.Step`'s branches (`MsgProp`, `MsgVoteResp`, `MsgHup`), `StepGhostMode`, the node layer
   (`readyData`, `freshOk`/`staleOk`) and the register example; no trust-base change expected. The
   user decides whether to do it, and (3a) or (3b).
+  *Done (2026-10-18, option (3a) adopted by the user):* as (1)-(5), with two refinements: the
+  receipt `raft.Step` starts from is the node's last index's (`lastRec`, persistent, read off the
+  ghost state without consuming it), and only the two creating branches (`MsgProp` through
+  `stepLeader`/`appendEntry`, `MsgVoteResp` raising once itself) carry a raised receipt out;
+  every other branch is stated at any `B` and closed at `B` = the last index. `becomeLeader` passes
+  `⧖ 0` to `appendEntry` and drops the result. `readyIdx` is persistent (no update: the server
+  takes the receipt itself, `lastRec_receipt`); it is taken at the hand-out, so the stale `Ready`
+  needs no case of its own. The server's premise is `|reBoot| ≤ 2 ^ 60`.
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
