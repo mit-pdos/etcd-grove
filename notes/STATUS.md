@@ -6973,10 +6973,21 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
       `client/v3` and `etcdserverpb`). What remains, and why:
       - `eofOk`: `io`'s fact is Perennial's (`Discard` only); a general `io.EOF` fact (an
         `errors.New` leaf error) would be a Perennial change of its own.
-      - `errorsNewOk`: Perennial's `errors.New` model has no method sets (`clientErr`,
-        `grpcErrMethodsOk` need them): a trust-boundary fact.
+      - ~~`errorsNewOk`~~ (done 2026-10-18): `client.errorsNewOk_of` (`ErrorsNewOk.lean`), from
+        `mvcc.wp_New_errorString` and the method-set classes of `*errorString` (the semantics
+        leaves method sets uninterpreted): `ErrorStringLeaf` (existing: a leaf, no `Is`) and
+        the new `ErrorStringNoGRPCStatus` (no `GRPCStatus`), with `hAs` (`EtcdError`
+        implements `error`, the KV path's premise). `watchConnFacts_of_addr`,
+        `isNewClient_watcher`, `isEtcdClient_of_new`, `cache_end_to_end_new` take the classes
+        and `hAs`; `watchAddrFacts` and `etcd_cache_served` no longer list it.
       - `ctxErrClientAllW`: Perennial's `isContext` says only that `Err()` returns a typed error
-        (a context's cause may be any error): a premise about the caller's contexts.
+        (a context's cause may be any error): a premise about every context, which a context
+        whose `Err()` returns an error with `As` or `GRPCStatus` would falsify. The narrowing
+        (not done): `Watch`/`RequestProgress` take `ctxErrClient ctx cs` of their own context
+        (as the KV's `kv.Get` does), the cache supplies it for its internal
+        `WithCancel(Background())` context (its `Err()` returns `context.Canceled`, an
+        `errors.New` leaf: `ContextReadErrs`, `errorsNewOk_of`'s classes), and `run`'s own
+        contexts are `WithCancelValCtx`'s.
       - `noRetryableStreamErr`, `srvNoDupKeys`: excluded behaviours, each with its issue
         (`etcd-watch-resume-closing-substream.md`, `etcd-txn-check-intervals-sibling.md`).
       - ~~`watchTokSupply`~~ (done 2026-10-18, the user's choice: D19b's time receipts): the
