@@ -13,7 +13,6 @@
 roots \bv3rpc\.(etcd_model_of_server|etcdReached_of_hdr|etcdState_of_range|etcdState_of_txnRead|revToken_of_put)$
 roots \bclient\.(client_(put|get|delete|txn)_end_to_end|client_get_after_put|etcd_kv_served)$
 roots \brecipes\.(recipes_kv_of_server|recipes_client_of_server|queue_end_to_end|queue_end_to_end_once)$
-axiom EtcdServer.Alarm.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom attribute.Bool.wp_proof
