@@ -37,9 +37,9 @@ def apply.Chain.kvExact (c : apply.Chain) : Bool := !c.authOn && c.capFree
 
 /-- **The backend's relation on a plain request is the function.** -/
 theorem backendStep_plain (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outcome)
-    (hp : plainReq rq) (h : apply.backendStep rq log o) :
+    (hp : plainCover rq) (h : apply.backendStep rq log o) :
     o.logAfter log = backendLog rq log := by
-  unfold plainReq at hp
+  unfold plainCover at hp
   unfold apply.backendStep at h
   unfold backendLog
   cases hk : apply.dispatchKind rq <;> simp only [hk] at hp h ⊢
@@ -76,7 +76,7 @@ theorem backendStep_plain (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outc
 `kvExact` and the request was rejected (the log unchanged): an enabled auth layer's rejection, or
 a capped layer's. -/
 theorem chainStep_plain : ∀ (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log)
-    (o : apply.Outcome), plainReq rq → apply.chainStep apply.backendStep c rq log o →
+    (o : apply.Outcome), plainCover rq → apply.chainStep apply.backendStep c rq log o →
       o.logAfter log = chainLog c rq log ∨ (o.logAfter log = log ∧ c.kvExact = false)
   | .backend, rq, log, o, hp, h => Or.inl (backendStep_plain rq log o hp h)
   | .corrupt c, rq, log, o, hp, h => by
@@ -113,7 +113,7 @@ theorem chainStep_plain : ∀ (c : apply.Chain) (rq : apply.IRRModel) (log : mvc
         · -- auth disabled: the rejection is of a request whose log does not change
           rw [hon] at hm
           have hk : ¬ writeKind (apply.dispatchKind rq) := by
-            unfold plainReq at hp
+            unfold plainCover at hp
             unfold writeKind
             rcases hm with hm | hm | hm
             · cases hm
@@ -140,7 +140,7 @@ theorem chainStep_plain : ∀ (c : apply.Chain) (rq : apply.IRRModel) (log : mvc
 /-- **`dispatch`'s relation on a plain request is the function**, unless the chain is not
 `kvExact` and the log is unchanged. -/
 theorem dispatchStep_plain (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (log : mvcc.Log)
-    (o : apply.Outcome) (hp : plainReq rq) (h : apply.dispatchStep c rq v3 log o) :
+    (o : apply.Outcome) (hp : plainCover rq) (h : apply.dispatchStep c rq v3 log o) :
     o.logAfter log = dispatchLog c rq v3 log ∨ (o.logAfter log = log ∧ c.kvExact = false) := by
   unfold apply.dispatchStep at h
   unfold dispatchLog
@@ -152,17 +152,17 @@ theorem dispatchStep_plain (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (
     · rename_i hs; rw [if_pos hs]; exact chainStep_plain c rq log o hp h
     · rename_i hs; rw [if_neg hs]; left; exact h
 
-/-- A plain request is not an alarm request. -/
-theorem plainReq_not_alarm (rq : apply.IRRModel) (hp : plainReq rq) :
+/-- A covered request is not an alarm request. -/
+theorem plainReq_not_alarm (rq : apply.IRRModel) (hp : plainCover rq) :
     apply.dispatchKind rq ≠ .alarm := by
-  intro hk; unfold plainReq at hp; rw [hk] at hp; exact hp
+  intro hk; unfold plainCover at hp; rw [hk] at hp; exact hp
 
 /-- **`apply.Apply`'s relation on a plain request**: the chain unchanged, and the log as
 `dispatchLog` says, unless the chain is not `kvExact` (the log unchanged). A skipped or
 admin-rejected request changes nothing, and `dispatchLog` agrees: a plain request that `Apply`
 may skip or reject is no put, no delete and no transaction. -/
 theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
-    (out : apply.ApplyOut) (hp : plainReq rq) (h : apply.applyStep rq v3 x x' out) :
+    (out : apply.ApplyOut) (hp : plainCover rq) (h : apply.applyStep rq v3 x x' out) :
     x'.chain = x.chain ∧
       (x'.log = dispatchLog x.chain rq v3 x.log ∨ (x.chain.kvExact = false ∧ x'.log = x.log)) := by
   have hnochg : (apply.noSideEffect rq = true ∨ apply.needAdminPermission rq = true) →
@@ -173,7 +173,7 @@ theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
     · rfl
     · split
       · have hk : ¬ writeKind (apply.dispatchKind rq) := by
-          unfold plainReq at hp
+          unfold plainCover at hp
           unfold writeKind
           rintro (hk | hk | hk) <;> rw [hk] at hp <;> rcases hn with hn | hn
           all_goals first | (rw [hp.1] at hn; cases hn) | (rw [hp.2.1] at hn; cases hn) |
@@ -200,8 +200,8 @@ theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
 
 /-- **A raft entry's step on a plain entry, at a `kvExact` chain**: the chain unchanged, and the
 log as `kvEntry` says. -/
-theorem batchStep_plain (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
-    (hp : plainEntry m) (hoff : x.chain.kvExact = true) (h : batchStep c₀ m x x') :
+theorem batchStep_plain (W : SrvWorkload) (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
+    (hp : plainEntry W m) (hoff : x.chain.kvExact = true) (h : batchStep c₀ m x x') :
     x'.chain = x.chain ∧ x'.log = kvEntry c₀ x.chain x.log m := by
   unfold batchStep at h
   unfold kvEntry
@@ -219,7 +219,7 @@ theorem batchStep_plain (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
       rw [if_neg hd]
       obtain ⟨rq, id, hdec, -, h⟩ := h
       rw [hdec]
-      obtain ⟨hc, h⟩ := applyStep_plain rq _ x x' out (hp ht hd rq hdec) h
+      obtain ⟨hc, h⟩ := applyStep_plain rq _ x x' out (hp ht hd rq hdec).1 h
       refine ⟨hc, ?_⟩
       rcases h with h | ⟨hon, -⟩
       · exact h
@@ -231,16 +231,16 @@ theorem batchStep_plain (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
 
 /-- **The apply relation on a plain log, at a `kvExact` chain, is the model**: the chain
 unchanged and the log `kvRaftOf` of the entries. -/
-theorem entriesStep_plain (c₀ : w64) (A : List EntryModel) :
-    ∀ (x x' : apply.ApplyKV), plainLog A → x.chain.kvExact = true → entriesStep c₀ A x x' →
+theorem entriesStep_plain (W : SrvWorkload) (c₀ : w64) (A : List EntryModel) :
+    ∀ (x x' : apply.ApplyKV), plainLog W A → x.chain.kvExact = true → entriesStep c₀ A x x' →
       x'.chain = x.chain ∧ x'.log = kvRaftOf c₀ x.chain x.log A := by
   induction A with
   | nil => intro x x' _ _ h; simp only [entriesStep] at h; subst h; exact ⟨rfl, rfl⟩
   | cons m A ih =>
     intro x x' hp hoff h
     obtain ⟨x1, h1, h2⟩ := h
-    have hp' : plainLog A := fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')
-    obtain ⟨hc1, hl1⟩ := batchStep_plain c₀ m x x1 (hp m (List.mem_cons_self ..)) hoff h1
+    have hp' : plainLog W A := fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')
+    obtain ⟨hc1, hl1⟩ := batchStep_plain W c₀ m x x1 (hp m (List.mem_cons_self ..)) hoff h1
     obtain ⟨hc2, hl2⟩ := ih x1 x' hp' (by rw [hc1]; exact hoff) h2
     refine ⟨hc2.trans hc1, ?_⟩
     rw [hl2, hc1, hl1]

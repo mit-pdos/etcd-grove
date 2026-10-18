@@ -428,7 +428,7 @@ theorem EtcdServer.run.wp_proof
   -- `expiredLeaseC`: the lessor is non-nil (`lessorOk`)
   ihave #Hlok' := Hlok
   iunfold lessorOk at Hlok'
-  icases Hlok' with ⟨%li, %Hli, -, -, #HExp⟩
+  icases Hlok' with ⟨%li, %Hli, -, -, #HExp, %HnoG⟩
   rw [Hli]
   (try wp_auto)
   wp_apply HExp as %elc ⟨%γel, #Helc⟩
@@ -561,8 +561,9 @@ theorem EtcdServer.run.wp_proof
     iunfold named
     iintro !> ⟨H, -⟩
     iexact H
-  -- `leases := <-expiredLeaseC`: nothing is sent on it (D19n: the lessor's grant guard is `False`,
-  -- so no lease is granted and none expires); `revokeExpiredLeases` is never reached
+  -- `leases := <-expiredLeaseC`: nothing is sent on it (D19n, D19q: the workload's grant guard
+  -- holds of no lease, `lessorOk`'s `noGrant`, so no lease is granted and none expires);
+  -- `revokeExpiredLeases` is never reached
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -574,9 +575,10 @@ theorem EtcdServer.run.wp_proof
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
     iintro %ls Hf
-    icases Hf with ⟨%_, Hf⟩
+    icases Hf with ⟨%id, Hf⟩
     iunfold srvGrantGuard at Hf
-    iexfalso; iexact Hf
+    icases Hf with %Hg
+    exact absurd Hg (HnoG id)
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2

@@ -241,8 +241,8 @@ theorem NewServer.wp_proof
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hboot
-    Hmid Hfgp
+  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr Hbnd
+    Hrb HrbN Hboot Hmid Hfgp
   wp_start
   iNamed Hpre
   wp_apply wp_with_defer as %defer defer
@@ -434,10 +434,10 @@ theorem NewServer.wp_proof
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
   rw [Hbe0]
-  -- the grant guard `srvGrantGuard` (`False`, D19n): the server's policy admits no `LeaseGrant`
-  -- (`plainReq`), so the lessor's `expiredC` never delivers
+  -- the grant guard: the workload's (`srvGrantGuard ρ.rd.kv.wl`, D19n, D19q), which grants no
+  -- lease (`HnoG`), so the lessor's `expiredC` never delivers
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
-      srvGrantGuard)
+      (srvGrantGuard ρ.rd.kv.wl))
     $$ [Hopen Hwl Hfl]
     as %l ⟨Hopen, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, #Hlbe, #Hllk⟩
   · iframe #
@@ -845,8 +845,8 @@ theorem NewServer.wp_proof
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
   -- the lessor
-  ihave #Hlok : lessorOk (lease.lessorIface lp) $$ []
-  · iapply lessorOk_of_lessorInv h57 h58 h59 lp γl
+  ihave #Hlok : lessorOk ρ.rd.kv.wl (lease.lessorIface lp) $$ []
+  · iapply lessorOk_of_lessorInv h57 h58 h59 ρ.rd.kv.wl HnoG lp γl
     iframe #
   ihave #Hapl : apply.isApplyLessor (lease.lessorIface lp) kst γw.st
       (batchLockInv γA (metaTM d.γB d.P)) #hook $$ []

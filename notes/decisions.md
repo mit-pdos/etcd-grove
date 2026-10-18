@@ -9871,3 +9871,71 @@ state) or as a premise threaded from `RawNode.Step` down to `maybeSendSnapshot`.
 `RawNode`'s files, which D19i part 1 is changing; so it waits for D19i part 1, with the server half.
 The protocol half alone (`reTracked` in `RaftNames`, the `.snap` clause, the allocation's
 argument) would leave the clause unprovable at its only send site, so it was not started either.
+
+## D19q: the server's workload parameter (2026-10-18, carried out)
+
+The user's choice (2026-10-18): parametrize the server by the request kinds admitted, so that
+putget's instance keeps leases off (D19k's dead NOSPACE branch and D19n's guard `False` exactly as
+before) and a later session can build a lease-enabled instance. Carried out, shape-preserving: no
+axiom or `sorry` added or removed (319 / 12), no result renamed; statements now take the
+workload, and the leases-off instance discharges its obligations with the earlier proofs.
+
+**The parameter** (`SrvWorkload`, `KVModelDefs.lean`; pure):
+- `admits : apply.IRRModel → Prop`, the requests the instance lets into the log. A plain request
+  is now `plainReq W rq := plainCover rq ∧ W.admits rq`, where `plainCover` is D19k's `plainReq`
+  unchanged (renamed): the requests the generic proofs cover (the KV model, `KVModel.lean`; the
+  dead branch, `NoSpaceDead.lean`; the shapes, `WorkloadDefs.lean`), which stay stated over
+  `plainCover` and so hold at every workload;
+- `grant : w64 → Prop`, the lessor's grant guard; `srvGrantGuard W id := ⌜W.grant id⌝` is what
+  `NewServer` gives `lease.NewLessor` and what `lessorOk W`'s `expiredC` carries;
+- the instance's obligations: `admits_header` (admission ignores the header the server stamps,
+  `apply.withHeader`: `reqPropOk_wire`), `admits_kv` (the KV writes `EtcdServer.Put`/
+  `DeleteRange`/`Txn` propose are admitted: `putPermit_reqPropOk` and the delete and txn ones),
+  `admits_cluster` (the monitors' `ClusterMemberAttrSet`/`ClusterVersionSet`:
+  `srvMonitorPermit_of`).
+- `SrvWorkload.noGrant W := ∀ id, ¬ W.grant id` (not a field: a premise, below).
+
+**The instance** `putgetWorkload`: `admits` the kinds `putgetKind` (put, delete, txn, member
+attributes, cluster version), `grant := False`; `plainCover_putget` (`plainReq putgetWorkload` is
+`plainCover`: behaviour unchanged), `putgetWorkload_noGrant`.
+
+**Where it lives.** In the KV names, `KVNames.wl`, beside the start values `c0`/`ch0`/`log0`: fixed
+by whoever allocates the names (`srvReadNamesFresh_alloc`, `srvBootClient`/`srvRaftBoot_alloc`,
+`srvBootOut`, `kvInv_alloc` take it), so every spec over `ρ`/`γk` is at `ρ.kv.wl` without a new
+argument: `kvInv` keeps `plainLog γk.wl`, `reqPropOk γk` asks `plainReq γk.wl`. `lessorOk` takes
+the workload (`lessorOk W l`), and so do `srvFieldsBuilt`/`srvFieldsBuiltNA` (at `ρ.kv.wl` in
+`isServerBuilt`/`srvBuilt`; `srvFieldsAt` uses `ρ.kv.wl`); `lessorOk_of_lessorInv` and
+`lessor_server_contract` take `W` and `W.noGrant`.
+
+**The one design choice: `run`'s expired-lease receive.** With a non-`False` guard `run` receives a
+slice of leases and calls `revokeExpiredLeases`, whose spec and axiom D19n removed. So `run`'s
+proof needs, for now, that the workload grants nothing. Options were (a) a field
+`noGrant` of `SrvWorkload` (no lease instance could then exist without changing the structure);
+(b) a premise. Taken: (b), placed where it is used. `lessorOk W` carries `⌜W.noGrant⌝` (so `run`'s
+receive refutes the bag's `∃ id, ⌜W.grant id⌝`), and `NewServer.spec` gains the premise
+`ρ.rd.kv.wl.noGrant` (the only spec that changed beyond the threading). A lease instance is a
+`SrvWorkload` as it stands; only the `run`/`NewServer` chain refuses it until the lease path is
+proved.
+
+**What a lease-enabled instance must provide** (the other session's unit; nothing of it built):
+1. its `SrvWorkload`: `admits` including `LeaseGrant`/`LeaseRevoke` (and, if wanted, puts and
+   transactions naming a lease), its `grant` (any pure predicate the appliers can establish for a
+   committed `LeaseGrant`'s id; `fun _ => True` suffices for safety, since the `expiredC` bag's
+   predicate is not tied to the slice), and the three obligations (`admits_header`, `admits_kv`,
+   `admits_cluster`: immediate for a kind-based `admits`);
+2. `plainCover` extended to the lease kinds (keeping `putgetWorkload` at the old set: give it its
+   own predicate, or keep `putgetKind`, which already excludes the lease kinds, and add a lease
+   clause per instance if leased puts are admitted), with the generic proofs over it extended:
+   `backendStep_plain`/`chainStep_plain`/`applyStep_plain` (the KV model: a revoke deletes the
+   lease's keys, so the model must know the lessor, or leased puts stay excluded and a revoke
+   deletes nothing), `dispatchOk_of_plain`/`rqShape_of_plain` (and the apply package's `rqOk`,
+   whose `.leaseGrant` clause is `False`), and NoSpaceDead's `dispatchStep_start`/
+   `dispatchAnswer_notNoSpace` for the lease kinds' answers (their errors told apart from
+   `ErrNoSpace`'s: `applyErrVars` already tells `ErrNoSpace` from `lease.ErrLeaseNotFound`, D19k;
+   any other error the lease appliers return needs its message cell, through `etc/gen-init.py`);
+3. the lease path: `revokeExpiredLeases` with a true spec (back in `run`'s callees, `etc/
+   link-lean-first-server.txt`), `run`'s receive branch calling it, then `⌜W.noGrant⌝` dropped
+   from `lessorOk` and `NewServer.spec`'s premise with it;
+4. the appliers' `Grant` premise (`lease.leaseGranted E.γ.leases id`, D19n): from `W.grant id` of a
+   committed `LeaseGrant` (the KV invariant's `plainLog W` gives `plainReq W` of each committed
+   request).

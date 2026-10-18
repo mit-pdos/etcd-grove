@@ -59,10 +59,10 @@ private theorem buildMonoNatHalves (γ : GName) (n : Nat) :
 `log0`), the KV names' certificate map `cok` (the store's, chosen before `mvcc.New`), and the KV
 state's variable at `σ`. -/
 theorem srvReadNamesFresh_alloc (raft : ServerRaftNames) (c0 : w64) (ch0 : apply.Chain)
-    (log0 : mvcc.Log) (cok : GName) (ids : IdNames) (σ : KVState) :
+    (log0 : mvcc.Log) (cok : GName) (ids : IdNames) (W : SrvWorkload) (σ : KVState) :
     ⊢ |==> ∃ γr : ReadNames,
       ⌜γr.raft = raft ∧ γr.kv.c0 = c0 ∧ γr.kv.ch0 = ch0 ∧ γr.kv.log0 = log0 ∧ γr.kv.cok = cok ∧
-        γr.kv.ids = ids⌝ ∗
+        γr.kv.ids = ids ∧ γr.kv.wl = W⌝ ∗
       srvReadNamesFresh (GF := GF) γr σ := by
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
@@ -72,9 +72,9 @@ theorem srvReadNamesFresh_alloc (raft : ServerRaftNames) (c0 : w64) (ch0 : apply
   imod ghostVar_alloc (GF := GF) σ with ⟨%γst, Hst⟩
   imod ghostVar_alloc (GF := GF) log0.length with ⟨%γhi, Hhi⟩
   imodintro
-  iexists ⟨γa, γc, γn, γl, γp, raft, ⟨γst, c0, ch0, log0, cok, γhi, ids⟩⟩
+  iexists ⟨γa, γc, γn, γl, γp, raft, ⟨γst, c0, ch0, log0, cok, γhi, ids, W⟩⟩
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   unfold srvReadNamesFresh
   iframe Ha Hc Hl Hp Hst Hhi
   iexists _
@@ -130,7 +130,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       show (ccDecodeV1 e.Data').isSome = true
       rw [hd]; rfl
   have hent' := hent
-  have hok : plainLog (bootEntries bootLog) ∧ srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
+  have hok : plainLog γk.wl (bootEntries bootLog) ∧ srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 + (bootEntries bootLog).length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] := by
     refine ⟨?_, ?_, ?_, hch, hlog⟩
@@ -174,7 +174,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
-      ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
+      ⌜plainLog γk.wl L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
         γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft.reCfg γk L))
     $$ [HL Hv1] with #Hinv
   · inext
