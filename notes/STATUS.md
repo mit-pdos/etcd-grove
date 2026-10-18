@@ -6989,9 +6989,12 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
         receipt of `toPB`'s resolution for each create it sends (`wp_take_receipt`). The pool is
         a conjunct of the server's `watchSrvOk` (so of `isWatchServer`), `watchConnFacts` and
         `watchAddrFacts` list it in place of the supply, and `etcd_cache_served` reads it off
-        `isWatchServer` (`watchTokPool_of_server`). Its producer: whoever builds `watchSrvOk`
-        from `NewServer` (item 9's point 7) allocates the pool from the tokens `NewServer` now
-        drops (`Hwtoks`).
+        `isWatchServer` (`watchTokPool_of_server`). Its producer (2026-10-18): `NewServer` allocates the pool from
+        `mvcc.New`'s tokens (it dropped them before, `Hwtoks`) and its postcondition gains
+        `srvWatchBuilt srv E` (`InvWatchBuilt.lean`): the server's `kv` field the watchable
+        store `wsl`, `isWatchableStore wsl E.s γw`, `γw.st = E.γ` and `watchTokPool γw`: the part
+        of `watchSrvOk` the construction gives. The rest of `watchSrvOk` (`raftStatusOk`, the
+        auth store's, `watchVars`) and building `isWatchServer` from it stay item 9's point 7.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`

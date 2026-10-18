@@ -837,6 +837,8 @@ theorem NewServer.wp_proof
   ipersist ClientCertAuthEnabledS
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr5, -⟩
   icases replicate_take1 _ _ hM1 $$ Hfcnr with ⟨Hfcr, -⟩
+  -- the watch-token pool (D19b's method), from `mvcc.New`'s tokens
+  imod (mvcc.watchTokPool_alloc γw ⊤ (by omega)) $$ Hwtoks with #Hpool
   imodintro
   iapply HΦ
   iright
@@ -849,6 +851,11 @@ theorem NewServer.wp_proof
   iframe Hetcd
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
+  isplitr
+  · unfold srvWatchBuilt
+    iexists ws, γw
+    iframe #
+    ipureintro; rfl
   unfold srvBuilt
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr

@@ -38,11 +38,14 @@
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
 agreeing with `E₀`, auth disabled, and the client's `etcdKV` at the bootstrap log's model. The
 row of `isServerBuilt` no `NewServer` proof gives (`rnSnapOnce`) is the residual `srvBuildGap`
-(`isServerBuilt_of_gap`, `BuildGap.lean`).
+(`isServerBuilt_of_gap`, `BuildGap.lean`). The watch store (`srvWatchBuilt`, 2026-10-18): the
+server's `kv` the watchable store, with the watch-token pool allocated from `mvcc.New`'s tokens
+(`mvcc.watchTokPool_alloc`, under the time-receipt bound).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 
 @[expose] public section
 
@@ -126,7 +129,7 @@ abbrev NewServer.spec : Prop :=
       ⌜err = GoInterface.nil⌝ ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γn : RNNames) (b : GoInterface),
-          ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
+          ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
             (W64 0) bootKV N ∗
           etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) }}
