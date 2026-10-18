@@ -96,3 +96,9 @@ Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
 - The verified fork (mit-pdos etcd-grove) carries the combined change on v3.7.0 (`509271dac`), verified at
   `raft.Step`.
 - Backports: v3.7.0 (`raft.go:1355-1361`) has the same shortcut; not tried on a release branch.
+  The changelog entry is in `CHANGELOG-3.8.md` (v3.8.0, Bug Fixes): v3.7.0 was released 2026-06-21, `main` is
+  the 3.8 line, and raft keeps its changelogs on `main` only (`release-3.6` removed its copy; `release-3.7`'s is a
+  stale alpha one). etcd uses v3.7.0, so the fix reaches etcd only with v3.8.0 or a v3.7.1 patch release, which
+  raft has never made (3.6 stopped at v3.6.0; `release-3.7` has only Go bumps since v3.7.0): the maintainers'
+  call; if wanted, cherry-pick the fix commits to `release-3.7` in a separate PR and add a v3.7.1 section to
+  `CHANGELOG-3.7.md` on `main`. (Checked 2026-10-18.)
