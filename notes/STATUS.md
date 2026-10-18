@@ -6866,12 +6866,20 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
       requests: covered, or cancelled at the client's request, so the substream stopped).
     - Limitation: the client promises completeness only for a non-empty prefix not all `0xff`
       (the cache's prefix must be such; `issues/` not needed: a proof scope, not a bug).
-    - **Next**: `isEtcdWatcher_of_watcher`: the client's channel is `isSpsc γ.spsc ch
-      (rangeWatchElem γ ...)`, the cache's `isEtcdWatchChan ch γ' pfx` = `isSpsc γ'.spsc ch
-      (etcdWatchElem γ' pfx)` with `γ'.cur := γ.cur2`; an SPSC channel's element predicate is
-      fixed (no weakening lemma: `Spsc.lean`), so either the cache's watcher contract is stated
-      over the client's element (a weaker `etcdWatchElem` that the cache's proof can use), or the
-      client's `Watch` returns the cache's channel directly; then `RequestProgress`, K3.
+    **K2e-8 (done, 2026-10-18): etcd's client's watcher is the cache's**
+    (`client_watcher_etcdWatcher`, client/v3/Results.lean; `isEtcdWatcher_of_watcher`,
+    `ServerWatcher.lean`).
+    - *The cache's channel*: `isEtcdWatchChan` is an SPSC channel of any element that gives
+      `etcdWatchElem` after an update (`Spsc.lean` has no weakening of an element, and the
+      client's element is richer). The receive hands over the facts under `|==>`, which persists
+      an event response's header.
+    - *The client's `Watch`* returns `γ.cpl = cplCond sr o rev`; `retcP` carries it from the
+      substream, and the closed channels are allocated with it (`cur2 = cur`).
+    - `etcdWatchElem_of_rangeWatchElem`: a response of a prefix watch with `cpl` set is etcd's at
+      `γ.cur2`. `etcdRead` lost its free `r ≤ 0` case, which no producer used.
+    - Premise: the cache's prefix is not all `0xff` (non-empty comes from `watchConnFacts`).
+    - **Next**: `RequestProgress`'s spec (`isEtcdProgressNotifier` of the client's watcher), then
+      K3, the cache bundle over etcd's client.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
