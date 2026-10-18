@@ -242,7 +242,9 @@ theorem raft.maybeSendSnapshot.wp_proof
       intro m' Hm'
       rw [List.mem_singleton] at Hm'
       subst Hm'
-      refine ⟨?_, fun h => absurd h (by simp [absSnapFrom])⟩
+      -- (D19p) to `to`, a peer of the progress map
+      refine ⟨?_, fun h => absurd h (by simp [absSnapFrom]),
+        fun _ => GMap.elem_of_dom_2 s.progress to pr Hprto⟩
       right
       exact ⟨rfl, rfl, rfl, Hto, Hnz, Hsle, Hsterm⟩
     · exact prvalsMatch_insert_same _ _ pp _ Hpl rfl

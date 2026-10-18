@@ -295,6 +295,14 @@ structure RaftNames where
   (`IsQuorum`), which an empty set has none of. Go's `confchange` refuses a change that
   removes every voter, and `ownRaftGhost_alloc` takes the initial one non-empty. -/
   reCfg_ne : reCfg ≠ ∅
+  /-- The ids a node may ever track (D19p, 2026-10-18): `some T` in the static mode, `T` the
+  voters and every learner the cluster may have (a static configuration only drops learners,
+  `CCShrink`), or `none` (no bound: the dynamic mode, or a static cluster that does not state
+  one). A leader's `MsgSnap` goes from and to ids of `T` (`isMessage`), which the node's static
+  ghost state keeps of its tracker (`TrackedOk`). -/
+  reTracked : Option (GSet w64)
+  /-- A bound covers the voters and is the static mode's. -/
+  reTracked_ok : ∀ T, reTracked = some T → reCfg ⊆ T ∧ reDyn = none
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -322,11 +330,60 @@ theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
   have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
   rw [← HC.1]; exact (JQuorumAcked_of_out hi HC.2.1 f N).1 H
 
-/-- The ghost state's step relation at a static configuration is `Step` at its voters. -/
-theorem CfgStatic.stepC_iff [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64) (B : Int)
+/-- A step at a static configuration is `Step` at the ghost state's voters. -/
+theorem CfgStatic.toStep [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64) (B : Int)
     (s : PState) (ms : List Msg) (s' : PState) :
-    Step γ.reCfg id B s ms s' ↔ StepC (CfgM.simple γ.reCfg lrn) id B s ms s' :=
-  step_iff_stepC γ.reCfg lrn id B γ.reCfg_ne s ms s'
+    StepC (CfgM.simple γ.reCfg lrn) id B s ms s' → Step γ.reCfg id B s ms s' :=
+  step_of_stepC (CfgM.simple γ.reCfg lrn) id B γ.reCfg_ne rfl
+
+/-- **The node `id` at the configuration `c` within the ghost state's tracked bound** (D19p,
+2026-10-18): what the node's static ghost state keeps (`ghostRest`), with `c` its tracker's
+configuration. A `MsgSnap` it sends goes from it to an id of `c`, so from and to ids of the
+bound (`isMessage`). -/
+def TrackedOk (γ : RaftNames) (c : CfgM) (id : w64) : Prop :=
+  ∀ T, γ.reTracked = some T → c.voters ∪ c.learners ⊆ T ∧ id ∈ T
+
+theorem TrackedOk.of_eq {γ : RaftNames} {c c' : CfgM} {id : w64} (h1 : c'.voters = c.voters)
+    (h2 : c'.learners = c.learners) (H : TrackedOk γ c id) : TrackedOk γ c' id :=
+  fun T hT => by rw [h1, h2]; exact H T hT
+
+/-- At a simple configuration, fewer learners (up to the voters) keep the bound. -/
+theorem TrackedOk.simple_mono {γ : RaftNames} {id : w64} {cfg A B : GSet w64}
+    (hAB : ∀ k, k ∈ A → k ∈ cfg ∨ k ∈ B) (H : TrackedOk γ (CfgM.simple cfg B) id) :
+    TrackedOk γ (CfgM.simple cfg A) id := by
+  intro T hT
+  obtain ⟨H1, H2⟩ := H T hT
+  refine ⟨?_, H2⟩
+  rw [CfgM.voters_simple] at H1 ⊢
+  rw [GMap.elem_of_subseteq] at H1 ⊢
+  intro k hk
+  rcases (GMap.elem_of_union _ _ _).1 hk with h | h
+  · exact H1 k ((GMap.elem_of_union _ _ _).2 (Or.inl h))
+  · rcases hAB k h with h' | h'
+    · exact H1 k ((GMap.elem_of_union _ _ _).2 (Or.inl h'))
+    · exact H1 k ((GMap.elem_of_union _ _ _).2 (Or.inr h'))
+
+/-- A voter whose tracker holds only voters is within any bound (which covers the voters). -/
+theorem TrackedOk.of_sub {γ : RaftNames} {P : GSet w64} {id : w64} (hP : P ⊆ γ.reCfg)
+    (hid : id ∈ γ.reCfg) : TrackedOk γ (CfgM.simple γ.reCfg (P \ γ.reCfg)) id := by
+  intro T hT
+  have hT' := (γ.reTracked_ok T hT).1
+  refine ⟨?_, (GMap.elem_of_subseteq _ _).1 hT' _ hid⟩
+  rw [CfgM.voters_simple, GMap.elem_of_subseteq]
+  intro k hk
+  apply (GMap.elem_of_subseteq _ _).1 hT'
+  rcases (GMap.elem_of_union _ _ _).1 hk with h | h
+  · exact h
+  · exact (GMap.elem_of_subseteq _ _).1 hP _ ((GMap.elem_of_difference _ _ _).1 h).1
+
+theorem TrackedOk.of_none {γ : RaftNames} (c : CfgM) (id : w64) (h : γ.reTracked = none) :
+    TrackedOk γ c id := fun T hT => by rw [h] at hT; cases hT
+
+/-- No bound in the dynamic mode. -/
+theorem RaftNames.reTracked_of_dyn {γ : RaftNames} (h : γ.reDyn ≠ none) : γ.reTracked = none := by
+  cases hT : γ.reTracked with
+  | none => rfl
+  | some T => exact absurd (γ.reTracked_ok T hT).2 h
 
 /-! ### The configurations the ghost state records (2026-10-14, reconfiguration stage B4)
 

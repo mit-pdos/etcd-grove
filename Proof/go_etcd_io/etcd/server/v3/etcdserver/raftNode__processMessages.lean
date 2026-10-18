@@ -123,9 +123,16 @@ theorem raftNode.processMessages.wp_proof
     · wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
       wp_if_destruct
       · -- `MsgSnap`: to `msgSnapC` if it has room, then `continue`
+        -- (D19p) handed on with its type
+        ihave #HmS : iprop(rnMsgOk E m ∗ ∃ to' : w64, msgAt m to' MsgSnap) $$ []
+        · iframe HmOk
+          iexists to
+          rw [show MsgSnap = (W32 7 : w32) from rfl]
+          iexact Hmat
         iunfold isRNMsgSnapC at Hmsci
         icases Hmsci with ⟨%γc, #Hbag⟩
-        ihave #Hbagch := is_bag_is_chan γc msc (rnMsgOk E) $$ Hbag
+        ihave #Hbagch := is_bag_is_chan γc msc
+          (fun m => iprop(rnMsgOk E m ∗ ∃ to : w64, msgAt m to MsgSnap)) $$ Hbag
         rw [isChanBag_unseal]
         iunfold isChanBagDef at Hbag
         icases Hbag with ⟨#Hch, #Hinv⟩
@@ -155,7 +162,7 @@ theorem raftNode.processMessages.wp_proof
                 iintro Hoc
                 imod Hmask with -
                 imod Hclose $$ [Hoc] with -
-                · inext; iexists .SndCommit m; iframe Hoc; dsimp only; iexact HmOk
+                · inext; iexists .SndCommit m; iframe Hoc; dsimp only; iexact HmS
                 imodintro
                 wp_auto
                 wp_for_post
@@ -169,7 +176,7 @@ theorem raftNode.processMessages.wp_proof
                 imod Hmask with -
                 imod Hclose $$ [Hoc Hi] with -
                 · inext; iexists .Buffered (buff ++ [m]); iframe Hoc; dsimp only
-                  iapply BigSepL.bigSepL_snoc.2; iframe Hi HmOk
+                  iapply BigSepL.bigSepL_snoc.2; iframe Hi HmS
                 imodintro
                 wp_auto
                 wp_for_post

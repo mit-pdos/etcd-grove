@@ -110,13 +110,14 @@ theorem stepC_record_then_win (id : w64) (s : PState) (m : Msg) (mt : GMap w64 w
     (Hms : ∀ m' ∈ ms, ReplOk id
       (pwinState id { s with votes := recordVote s.votes m.src (!m.reject) } mt) m')
     (Hq : JQuorum c (granted (recordVote s.votes m.src (!m.reject))))
-    (Hnw : plogLastIndexZ s.base s.log + 1 ≤ B) :
+    (Hnw : plogLastIndexZ s.base s.log + 1 ≤ B)
+    (Hsn : ∀ m' ∈ ms, m'.ty = .snap → m'.dst ∈ c.voters ∪ c.learners) :
     StepC c id B s ([m] ++ [])
       (psendMsgs (pwinState id { s with votes := recordVote s.votes m.src (!m.reject) } mt)
         ([pselfAck id (pwinState id { s with votes := recordVote s.votes m.src (!m.reject) } mt)]
           ++ ms)) :=
   .trans _ _ _ _ _ (StepC.recordVote m s Hty Hto Hterm Hrole)
-    (StepC.win _ mt ms Hrole Hq Hnw Hmt Hms)
+    (StepC.win _ mt ms Hrole Hq Hnw Hmt Hms Hsn)
 
 omit [GoGlobalContext] [GoSemanticsFunctions] in
 /-- Recording a vote response and then losing, at `c`. -/

@@ -289,6 +289,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iright; iexact Herrn
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
+    icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs k0 (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
@@ -356,6 +357,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         rw [← Hspv] at Hpvs
         have Hsps : toPState sp = toPState s := by rw [← Hsp]; rfl
         have Hspt : sp.term = s.term := by rw [← Hsp]
+        have Hspp : sp.progress = s.progress := by rw [← Hsp]
         have HP : toPState { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms with
               prvals := pvs } =
             psendMsgs (psendMsgs
@@ -383,7 +385,11 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           exact .trans _ _ _ _ _
             (.propose (absMsg .propose m ents ctx) _ (leaderPropConf s ents cs' c.joint).1 rfl Hrepl
               Hrl (by have := Hrepl.length; omega))
-            (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1))
+            (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1)
+              (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
+                have := (Hms m hm).2.2 h
+                simp only [proposed, sendMsgs] at this
+                rw [Hspp] at this; exact this)))
         · -- `StepR.propose`: the loop exactly, `pendingConfIndex` moved; then the broadcast
           change StepR Adm dec id _ (rOf s g) ([absMsg .propose m ents ctx] ++ [])
             (rOf { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms with
@@ -410,7 +416,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (StepR.propose (absMsg .propose m ents ctx) (rOf s g) cs' rfl Hrl Hct
               (Int.le_refl _)) ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
-          exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2)
+          exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
       ileft; ipureintro; rfl
     · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
       -- `pendingConfIndex` moved, 2026-10-13)

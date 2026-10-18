@@ -97,7 +97,8 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
   have Hm := hm
   have Hap0 := Hap0 hm
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with ⟨Hphys, Hghost⟩
+  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+    ⟨Hphys, Hghost, %Htrk⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   rcases o with m | m
@@ -113,12 +114,13 @@ theorem RawNode.ApplyConfChange.wp_proof
       have Hn0 : CCShrink γ.reCfg m.asV2.transition m.asV2.changes := Hsh
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
-      obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
+      obtain ⟨lrn', Hd', Hsz', Hn, Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
           id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn
-        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok⟩
+        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
+        (trackedOk_shrink Htrk Hlp Hdom')
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
@@ -196,12 +198,13 @@ theorem RawNode.ApplyConfChange.wp_proof
       have Hn0 : CCShrink γ.reCfg m.transition m.changes := Hsh
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
-      obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
+      obtain ⟨lrn', Hd', Hsz', Hn, Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
           id s p m dq lrn' Hd' Hsz' Hn
-        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
+        $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
+        (trackedOk_shrink Htrk Hlp Hdom')
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)

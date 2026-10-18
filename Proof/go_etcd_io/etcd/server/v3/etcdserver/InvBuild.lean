@@ -69,13 +69,72 @@ def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
 /-- The bootstrap log as the server's entries. -/
 def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryModel.ofM
 
-/-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message
-admitted (the transport's contract, `rafthttp.Transport`, asks nothing of them), a tick's
-resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
-registrations. -/
+/-- **A message raft hands the server is no `MsgSnap`** (D19p, 2026-10-18): the server is a
+one-member cluster, raft's tracked bound its one node, and a snapshot goes from one node of the
+bound to another (`isMessage`), so raft sends none. -/
+def srvMsgNoSnap (m : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝)
+
+/-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
+hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
+contract, `rafthttp.Transport`, asking nothing of them), a tick's resource raft's tick credit of
+the budget `bud`, the read names `ρ.rd`, raft's read registrations. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, fun _ => iprop(True), iprop(True), ρ.rd, srvRQ ρ.rd.raft⟩
+  ⟨srvC ρ E ai₀ c₀ x₀, srvMsgNoSnap, iprop(True), ρ.rd, srvRQ ρ.rd.raft⟩
+
+/-- **A one-member cluster's raft sends no snapshot** (D19p): with raft's tracked bound one
+node, a `MsgSnap`'s sender and receiver (two nodes of the bound, `isMessage`) would be the same. -/
+theorem isRaftMsg_not_snap (γ : RaftNames) (k : w64)
+    (hT : γ.reTracked = some (GMap.listToSet [k])) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+  iintro Hr
+  iunfold isRaftMsg at Hr
+  icases Hr with ⟨%a, %Habs, #Hl⟩
+  rcases Habs with ⟨hn, -⟩ | ⟨ty, hty, hne, -⟩ | ⟨sv, hty, -, rfl⟩
+  · ipureintro; intro h; rw [h, mtypeOf_MsgSnap] at hn; cases hn
+  · ipureintro; intro h; rw [h, mtypeOf_MsgSnap] at hty; cases hty; exact hne rfl
+  · simp only [Option.toList_some]
+    icases (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl with #Hm
+    unfold isMessage absSnap absSnapFrom
+    icases Hm with ⟨-, -, -, -, %Hd⟩
+    ipureintro
+    intro _
+    obtain ⟨Hne, Hin⟩ := Hd
+    obtain ⟨h1, h2⟩ := Hin _ hT
+    rw [GMap.elem_of_list_to_set, List.mem_singleton] at h1 h2
+    exact Hne (h2.trans h1.symm)
+
+/-- Two read-only views of a message agree on its type. -/
+theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
+    msgOwn (GF := GF) m DFrac.discard st1 ∗ msgOwn m DFrac.discard st2 ⊢
+      ⌜st1.msg.Type' = st2.msg.Type'⌝ := by
+  simp only [msgOwn, msgPts, msgPtsC]
+  iintro ⟨⟨%pty1, %pto1, %pfr1, %pte1, %plt1, %pix1, %pco1, %pvo1, %prj1, %prh1, %es1, %els1,
+      %ps1, %cs1, %rs1, %uf1, -, #HTy1, #cTy1, -⟩,
+    ⟨%pty2, %pto2, %pfr2, %pte2, %plt2, %pix2, %pco2, %pvo2, %prj2, %prh2, %es2, %els2,
+      %ps2, %cs2, %rs2, %uf2, -, #HTy2, #cTy2, -⟩⟩
+  icombine HTy1 HTy2 gives %Heq
+  subst Heq
+  iunfold named at cTy1 cTy2
+  iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
+
+/-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is a
+`MsgSnap` (`isRNMsgSnapC`), which no message of `srvEr`'s is. -/
+theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
+    (x₀ : apply.ApplyKV) (bud : BudgetNames) (m : Loc) :
+    rnMsgOk (srvEr ρ E ai₀ c₀ x₀ bud) m ∗ (∃ to : w64, msgAt m to MsgSnap) ⊢ (False : IProp GF) := by
+  iintro ⟨H1, H2⟩
+  iunfold rnMsgOk at H1
+  icases H1 with ⟨%to0, %ty0, -, #HM⟩
+  icases H2 with ⟨%to, H2⟩
+  iunfold msgAt at H2
+  icases H2 with ⟨%st', #Hst', %Hst'⟩
+  simp only [srvEr]
+  iunfold srvMsgNoSnap at HM
+  icases HM with ⟨%st, #Hst, %Hns⟩
+  ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']
+  exact absurd (Hag.trans Hst'.2) Hns
 
 /-- **The read names, fresh** (the caller's allocation, `srvReadNamesFresh_alloc`): the applied
 and committed indices' authorities at `0`, the read loop's notifier variable, the applied logs'

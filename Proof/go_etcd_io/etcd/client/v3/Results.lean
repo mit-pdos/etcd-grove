@@ -2065,7 +2065,7 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
     (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         kvOpAu γr.kv (.put (putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
@@ -2073,9 +2073,7 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E γr F (txn.putOpOf key val (W64 0) false false false) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hau, #HF⟩ HΦ
-  ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
-  iclear Hctx
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #Hau, #HF⟩ HΦ
   iapply (v3.kv.wp_Put api addr ci cd key val sl [] (etcdPutSpec E γr cid mid)
     (fun m => iprop(putReplied E γr F (txn.putOpOf key val (W64 0) false false false) Q cid mid m)))
     $$ []
@@ -2124,7 +2122,7 @@ theorem client_get_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -2133,9 +2131,7 @@ theorem client_get_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
             rangeReplyOk E γr c F (txn.rangeOpOf key [] (W64 0) (W64 0) (W32 0) (W32 0) false false
               false (W64 0) (W64 0) (W64 0) (W64 0)) cid mid Q m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hc0, #Hdq, #HF⟩ HΦ
-  ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
-  iclear Hctx
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #Hc0, #Hdq, #HF⟩ HΦ
   ihave #Hopts' := optsAt_res sl [] iprop(True) $$ Hopts
   iapply (v3.kv.wp_Get api addr ci cd key sl [] iprop(True) (etcdRangeSpec E γr cid mid)
     (rangeReplyOk E γr c F (txn.rangeOpOf key [] (W64 0) (W64 0) (W32 0) (W32 0) false false false
@@ -2311,7 +2307,7 @@ theorem client_get_after_put (api : Loc) (addr : GoString) (E : apply.AEnv GF) (
     (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putReplyOk E γr Fp (putKeyOp key val) cid mid mp }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))

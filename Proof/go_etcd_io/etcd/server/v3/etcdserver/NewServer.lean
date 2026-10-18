@@ -826,7 +826,8 @@ theorem NewServer.wp_proof
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2)
+      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2 id
+      (by first | (rw [← hργ]; exact Hone) | (rw [hργ]; exact Hone) | exact Hone))
     iframe Hkvinv Hrli
     iapply clusterWorkloadOk_of ρ E₀
     iframe Hkvinv Hrli HNZ0
@@ -988,14 +989,16 @@ theorem NewServer.wp_proof
     iframe #
     ileft; ipureintro; rfl
   isplitr
-  · -- `#Hsab`
+  · -- `#Hsab`: (D19p) `msgSnapC` never delivers
     unfold srvApplyAllBuilt
     iexists _
     iframe NHmsc
     iunfold isRNMsgSnapC at NHmsci
     icases NHmsci with ⟨%γmc, #Hmcb⟩
     iexists γmc, _
-    iexact Hmcb
+    iframe Hmcb
+    iintro !> %mm Hmm
+    iapply srvMsgSnapC_false $$ Hmm
   isplitr
   · -- `#Hkvi`
     unfold srvKVInvs Perennial.named

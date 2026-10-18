@@ -53,7 +53,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putGetInv γr γf key val ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
@@ -80,7 +80,7 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         putGetInv γr γf key val ∗ monoNatLbOwn γf 1 ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))

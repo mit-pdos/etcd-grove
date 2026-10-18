@@ -9,7 +9,6 @@ axiom EtcdServer.IsMemberExist.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.compactRaftLog.wp_proof
-axiom EtcdServer.createMergedSnapshotMessage.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -17,7 +16,6 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
-axiom EtcdServer.sendMergedSnap.wp_proof
 axiom EtcdServer.snapshot.wp_proof
 axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof

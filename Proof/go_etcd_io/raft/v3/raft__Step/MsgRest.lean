@@ -116,6 +116,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)
     (Hr : s.role = .leader) (Hwf : NStateWf s)
+    (Hpc : domSet s.progress ⊆ c.voters ∪ c.learners)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
@@ -130,7 +131,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   · refine ⟨rfl, Hwf, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
     rw [toPState_prvals (sendMsgs { s with lt := lt' } ms) pvs (fun _ => Hpm), toPState_sendMsgs]
-    exact StepCF.sendApps _ ms Hpr Hms.replOk (fun m hm => (Hms m hm).2)
+    exact StepCF.sendApps _ ms Hpr Hms.replOk Hms.commitEq (Hms.snapTo Hpc)
   all_goals exfalso
   all_goals rcases Hty with h | h | h | h | h <;> rw [h] at Hc
   all_goals first
@@ -231,6 +232,7 @@ set_option hygiene false in
 local macro "local_leader" : tactic => `(tactic| (
   wp_gets
   imod (preceipt_zero (GF := GF)) with #Hrc00
+  icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by simp [Hty]) Hrole
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
@@ -240,7 +242,7 @@ local macro "local_leader" : tactic => `(tactic| (
     iframe Hm
     ity_other
   obtain ⟨rfl, Hwf', Hst, Hl, Ht, Hpv, Hg⟩ :=
-    leaderStepResult_rest (B := B) _ _ _ _ _ _ _ _ Hty5 Hrole Hwf Hres
+    leaderStepResult_rest (B := B) _ _ _ _ _ _ _ _ Hty5 Hrole Hwf Hpc Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn

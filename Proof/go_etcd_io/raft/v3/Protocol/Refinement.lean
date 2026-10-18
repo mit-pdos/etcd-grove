@@ -273,7 +273,8 @@ private theorem isMessage_snap_inv (γ : RaftNames) (m : Msg) :
       ⌜m.src ≠ W64 0⌝ := by
   intro Hty
   unfold isMessage; rw [Hty]
-  iintro H; iexact H
+  iintro ⟨H1, H2, H3, H4, -⟩
+  iframe H1 H2 H3 H4
 
 /-- What the leader-adopting rules share: the sender is the leader of the term. -/
 private theorem isMessage_leader (γ : RaftNames) (m : Msg) :
@@ -563,12 +564,14 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
     -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp` carries the commit index
     (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq (pwinState id s mt) m) →
+    -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
+    (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
     -- (2026-10-18, D19b stage 5) the new entry's index is covered by the receipt `⧖ n`
     plogLastIndexZ s.base s.log + 1 ≤ (n : Int) + γ.reBoot.length →
     ⊢ ⧖ n -∗ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤ \ ↑raftRegN}=∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt)
                            ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
-  intro Hrole Hq Hnw Hmt Hms Hce Hrb
+  intro Hrole Hq Hnw Hmt Hms Hce Htr Hrb
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
   have Hs2out : (pwinState id s mt).outbox = s.outbox := rfl
@@ -1014,7 +1017,8 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       iapply replOk_message γ id s2 x fp Hwl2' (Hms x (List.mem_of_getElem? Hk)) Hidnz
         (fun hD hty => by
           rw [Hce hD x (List.mem_of_getElem? Hk) hty, HF2, Hs2commit]
-          exact ConfI1_snoc (Hi1 hD) (by rw [← He]; exact not_isConfEnt_zero)) $$
+          exact ConfI1_snoc (Hi1 hD) (by rw [← He]; exact not_isConfEnt_zero))
+        (Htr x (List.mem_of_getElem? Hk)) $$
         Hnewlead2 Hp2 Hpf2 Hrecs2' Hcommit2 Hbase2 Hcmt2
   · iapply tally_empty γ id _ (by show s2.votes = ∅; exact Hs2votes)
   · unfold leaderWit
@@ -1118,9 +1122,11 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     (∀ m ∈ ms, ReplOk id s m) →
     -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp` carries the commit index
     (γ.reDyn ≠ none → ∀ m ∈ ms, AppCommitEq s m) →
+    -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
+    (∀ m ∈ ms, m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
     ⊢ dynEnv γ id c s -∗
       ownRaftGhost (GF := GF) γ id s md ==∗ ownRaftGhost γ id (psendMsgs s ms) md := by
-  intro Hrole Hms Hce
+  intro Hrole Hms Hce Htr
   have Hcnt := rdCount_replOk id s ms Hms
   iintro #Henv Hown
   iunfold ownRaftGhost at Hown
@@ -1149,7 +1155,8 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (c : CfgM) (id : w64) (s : 
     iapply BigSepL.bigSepL_forall_elim
     iintro %k %m %Hk
     iapply replOk_message γ id s m fp Hok.1 (Hms m (List.mem_of_getElem? Hk)) Hidnz
-      (fun hD hty => by rw [Hce hD m (List.mem_of_getElem? Hk) hty]; exact Hi1 hD) $$
+      (fun hD hty => by rw [Hce hD m (List.mem_of_getElem? Hk) hty]; exact Hi1 hD)
+      (Htr m (List.mem_of_getElem? Hk)) $$
       Hl Hp Hpf Hrecs Hc Hb Hcmt
   · iapply tally_eq γ id s (psendMsgs s _) rfl rfl $$ Htally
   · iapply leaderWit_eq γ id s (psendMsgs s _) rfl rfl $$ Hlead
@@ -4326,6 +4333,7 @@ credits. The configuration is constrained to the ghost state's (`CfgStatic`); on
 `commit` and `readAck` read it, converting its joint quorum to an `IsQuorum γ.reCfg`
 (`CfgStatic.isQuorum`) at their start. -/
 theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (HT : TrackedOk γ c id)
     (B : Int) (HB : B < 2 ^ 64) (s : PState) (recv : List Msg) (s' : PState) :
     StepC c id B s recv s' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ regsOwn γ -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
@@ -4359,10 +4367,13 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     exact rcpt_frame (regs_frame γ (ownRaftGhost_step_rejectVote γ id m s Hty Hto))
   | recordVote m s Hty Hto Hterm Hrole =>
     exact rcpt_frame (regs_frame γ (ownRaftGhost_step_recordVote γ id m s Hty Hto Hterm Hrole))
-  | win s mt ms Hrole Hq Hnw Hmt Hms =>
+  | win s mt ms Hrole Hq Hnw Hmt Hms Hsn =>
     iintro #Hrc Hregs _ - Hown
     imod ownRaftGhost_step_win γ c id s mt ms (B.toNat - γ.reBoot.length) Hrole Hq (by omega)
-      Hmt Hms (fun h => absurd HC.2.2 h) (by omega) $$ Hrc [] Hown with Hown
+      Hmt Hms (fun h => absurd HC.2.2 h)
+      (fun m hm hs T hT => ⟨(HT T hT).2,
+        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) (by omega) $$ Hrc [] Hown
+      with Hown
     · iapply dynEnv_static γ id c s HC
     imodintro; iframe Hregs Hown
   | lose s Hrole Hnq =>
@@ -4406,9 +4417,11 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     iintro #Hrc Hregs _ - Hown
     iapply ownRaftGhost_step_commit γ c id s n Hrole Hlt Hle Htm Hq $$ [] Hregs Hown
     iapply dynEnv_static γ id c s HC
-  | sendApps s ms Hrole Hms =>
+  | sendApps s ms Hrole Hms Hsn =>
     iintro #Hrc Hregs _ - Hown
-    imod ownRaftGhost_step_send_apps γ c id s ms Hrole Hms (fun h => absurd HC.2.2 h) $$ [] Hown
+    imod ownRaftGhost_step_send_apps γ c id s ms Hrole Hms (fun h => absurd HC.2.2 h)
+      (fun m hm hs T hT => ⟨(HT T hT).2,
+        (GMap.elem_of_subseteq _ _).1 (HT T hT).1 _ (Hsn m hm hs)⟩) $$ [] Hown
       with Hown
     · iapply dynEnv_static γ id c s HC
     imodintro; iframe Hregs Hown
@@ -4501,6 +4514,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
 /-- The refinement (see `ownRaftGhost_stepC_in`), at `⊤`, given one later credit (2026-10-14,
 stage R): the commit invariant's registry half opened around the step (`regs_open`). -/
 theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (HT : TrackedOk γ c id)
     (B : Int) (HB : B < 2 ^ 64) (s : PState) (recv : List Msg) (s' : PState) :
     StepC c id B s recv s' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
@@ -4514,23 +4528,8 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
       rdCred γ (rdCount recv) ∗ ownRaftGhost γ id s md) (ownRaftGhost γ id s' md)
     $$ Hinv Hlc [] [Hrecv Hcr Hown]
   · iintro Hregs ⟨Hrecv, Hcr, Hown⟩
-    iapply ownRaftGhost_stepC_in γ c HC id B HB s recv s' Hstep $$ Hrc Hregs Hrecv Hcr Hown
+    iapply ownRaftGhost_stepC_in γ c HC id HT B HB s recv s' Hstep $$ Hrc Hregs Hrecv Hcr Hown
   · iframe Hrecv Hcr Hown
-
-/-- `ownRaftGhost_stepC` for a step of `Step` at the ghost state's voters, the form the
-code's branch lemmas produce (`step_iff_stepC` at `CfgM.simple γ.reCfg ∅`). -/
-theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (B : Int) (HB : B < 2 ^ 64) (s : PState)
-    (recv : List Msg) (s' : PState) :
-    Step γ.reCfg id B s recv s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
-      rdCred γ (rdCount recv) -∗ £ 1 -∗
-      ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id s' := by
-  intro Hstep
-  iintro #Hrc Hrecv Hcr Hlc Hown
-  ihave %Hst := ownRaftGhost_static γ id s $$ Hown
-  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hst) id B HB s recv s'
-    ((CfgStatic.stepC_iff γ ∅ id B s recv s').1 Hstep) $$ Hrc Hrecv Hcr Hlc Hown
 
 end ghost
 

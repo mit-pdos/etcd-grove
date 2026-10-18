@@ -242,6 +242,7 @@ theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (ctx : List w8) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgHeartbeatResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
+    (Hpc : domSet s.progress ⊆ c.voters ∪ c.learners)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents ctx) ∧
@@ -264,7 +265,7 @@ theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     | (rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)))
   have H1 : StepCF c id (toPState s) [] (toPState { sendMsgs s ms with prvals := pvs }) := by
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
-    exact .sendApps _ ms Hpr Hok.replOk (fun m hm => (Hok m hm).2)
+    exact .sendApps _ ms Hpr Hok.replOk Hok.commitEq (Hok.snapTo Hpc)
   rcases Hrd with ⟨-, rfl⟩ | ⟨Hne, N, HN, Hs'⟩
   · exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame H1 ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩⟩, rfl, rfl,
       rfl, rfl⟩
@@ -307,6 +308,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
     (ents0 ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgAppResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
+    (Hpc : domSet s.progress ⊆ c.voters ∪ c.learners)
     (H : LeaderStepResultC c id s m ents0 dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
@@ -337,7 +339,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
     refine ⟨Hwf, ⟨[], fun _ Hin => absurd Hin (List.not_mem_nil), StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩⟩,
       keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
-    exact .sendApps _ ms Hpr Hok.replOk (fun m hm => (Hok m hm).2)
+    exact .sendApps _ ms Hpr Hok.replOk Hok.commitEq (Hok.snapTo Hpc)
   · -- accepted
     obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
     by_cases Hcc : n0 ≠ s.logst.committed
@@ -371,7 +373,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
               outbox := o3, rd := rd3 } ms) :=
           .sendApps _ ms Hpr1 (fun m' Hm' =>
             replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
-            (fun m' Hm' h => (Hms m' Hm').2 h)
+            (fun m' Hm' h => (Hms m' Hm').2.1 h) (Hms.snapTo Hpc)
         have Hrr := readRespondAll_eq id
           ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
           (pendReqs { s with logst := { s.logst with committed := n0 } })
@@ -440,7 +442,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
       have H5 : StepCF c id (psendMsgs ps3 hb) [] (psendMsgs (psendMsgs ps3 hb) ms) :=
         .sendApps _ ms Hpr1 (fun m' Hm' =>
           replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
-          (fun m' Hm' h => (Hms m' Hm').2 h)
+          (fun m' Hm' h => (Hms m' Hm').2.1 h) (Hms.snapTo Hpc)
       refine ⟨[absMsg .appResp m ents] ++ ([] ++ ([] ++ ([] ++ []))), ?_, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩⟩
       · intro m' Hin; simpa using Hin
       · have He : toPState { sendMsgs (sendMsgs (releasedState id
@@ -470,7 +472,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
         (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ms) :=
       .sendApps _ ms Hpr1 (fun m' Hm' =>
         replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
-        (fun m' Hm' h => (Hms m' Hm').2 h)
+        (fun m' Hm' h => (Hms m' Hm').2.1 h) (Hms.snapTo Hpc)
     refine ⟨[absMsg .appResp m ents] ++ ([] ++ []), ?_, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩⟩
     · intro m' Hin; simpa using Hin
     · have He : toPState { sendMsgs { s with logst := { s.logst with committed := n0 } } ms with

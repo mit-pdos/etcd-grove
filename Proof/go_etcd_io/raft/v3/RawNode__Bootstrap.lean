@@ -396,6 +396,13 @@ theorem RawNode.Bootstrap.wp_proof
     rw [Hklen, ← Hpslen]; exact List.take_length
   ihave Hphys : ownRaftPhysC (CfgM.simple (GMap.listToSet ps) ∅) rnv.raft' id sk $$ [Hphys]
   · iExactEq Hphys; rw [Htakek]
+  -- (D19p) the tracker holds the voters only
+  icases ownRaftPhysC_dom _ rnv.raft' id sk $$ Hphys with ⟨%Hpd, Hphys⟩
+  have Hsub : domSet sk.progress ⊆ γ.reCfg := by
+    rw [R7, GMap.elem_of_subseteq]; intro k hk
+    rcases (GMap.elem_of_union _ _ _).1 ((GMap.elem_of_subseteq _ _).1 Hpd k hk) with h | h
+    · rw [CfgM.voters_simple] at h; exact h
+    · simp only [CfgM.simple] at h; exact absurd h (GMap.not_elem_of_empty _)
   icases ownRaftPhysC_sdr _ rnv.raft' id sk $$ Hphys with ⟨#Hsd0, Hphys⟩
   ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
   · iunfold sdrOk; iexists sk.sdr; iframe Hsd0; ipureintro; intro h; cases h
@@ -456,6 +463,7 @@ theorem RawNode.Bootstrap.wp_proof
         ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
           fun h => by simp only at h; rw [HNr] at h; cases h⟩
         (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
+        (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
     · rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil

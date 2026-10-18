@@ -9781,7 +9781,7 @@ choice is where it lives.
 *Recommendation:* (A), with the saved predicate (the lessor specs' signatures unchanged).
 `revokeExpiredLeases` stays a false axiom until then (`notes/audit.md`).
 
-## Raft's `MsgSnap` in a one-member cluster (D19o, 2026-10-18 · (A) adopted; raft half stopped, D19p)
+## Raft's `MsgSnap` in a one-member cluster (D19o, 2026-10-18 · (A) adopted, carried out as D19p)
 
 D19m (A) for `createMergedSnapshotMessage`: `msgSnapC` never delivers because raft sends `MsgSnap`
 only to another voter and the configuration stays `{self}`. Two things stop it now:
@@ -9847,7 +9847,7 @@ The user chose (A), with the saved predicate. Carried out:
 Trust base: one axiom fewer (`EtcdServer.revokeExpiredLeases`): `etc/tcb-baseline.txt` 319 axioms,
 12 `sorry`s; the `server` collection too; updated with `--check --update` on purpose.
 
-## D19o's raft half: a `MsgSnap` may go to a learner (D19p, 2026-10-18 · proposed)
+## D19o's raft half: a `MsgSnap` may go to a learner (D19p, 2026-10-18 · (A) adopted, carried out)
 
 D19o (A) asks for `isMessage`'s `.snap` clause to gain `dst ≠ src ∧ dst ∈ reCfg` in the static
 mode. **As stated it is false of raft**: `maybeSendSnapshot` sends to any tracked peer that needs
@@ -9957,3 +9957,54 @@ proved.
 4. the appliers' `Grant` premise (`lease.leaseGranted E.γ.leases id`, D19n): from `W.grant id` of a
    committed `LeaseGrant` (the KV invariant's `plainLog W` gives `plainReq W` of each committed
    request).
+
+## D19p carried out: raft's tracked bound; `createMergedSnapshotMessage` and `sendMergedSnap` removed (2026-10-18)
+
+**The one-member restriction (the user, 2026-10-18):** kept for now (`bootOk`'s `reTracked = some
+{id}`, a premise of `NewServer.spec`), until a first end-to-end result is closed (putget's adequacy
+theorem). Then generalizing the server's proofs to a multi-member cluster is a priority: a real
+`MsgSnap` path (`createMergedSnapshotMessage`/`sendMergedSnap` with true specs, raft's snapshot
+receive), learners and membership changes beyond `ccApplyOk`'s add-an-existing-member, peers in
+`transportEffectsOk`'s scope.
+
+The user chose D19p (A); carried out after D19i part 1 landed, all of it (raft, protocol, server).
+
+* **The protocol.** `RaftNames` gains `reTracked : Option (GSet w64)` and `reTracked_ok` (a bound
+  covers the voters and is the static mode's). `TrackedOk γ c id` (`Protocol/Ghost.lean`): `c`'s
+  voters and learners, and the node, within the bound. `isMessage`'s `.snap` clause gains
+  `⌜m.dst ≠ m.src ∧ ∀ T, γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝` (the sender as well as
+  the receiver: what lets a one-member bound refute the message; `dst ≠ src` is `SnapOk`'s). It is
+  proved at the broadcast (`replOk_message`, `ownRaftGhost_step_send_apps`/`_win`) from a new
+  premise of `StepC.sendApps`/`StepC.win` and `StepCF.sendApps`: a snapshot goes to a voter or
+  learner of the step's configuration. `Step` (voters only) cannot state it: `step_of_stepC` stays,
+  `stepC_of_step`/`step_iff_stepC` are gone, and so are `stepR_static` and `ownRaftGhost_stepR`
+  (unused); the `Step`-form ghost steps (`ownRaftGhost_step`, `_step_0/1/1c`) take `StepC` at a
+  static configuration within the bound. In the dynamic mode the bound is `none`.
+* **The static-mode tracker invariant: a conjunct next to `CfgStatic`** (the choice asked for):
+  `ghostRest .static c id` is `⌜CfgStatic γ c ∧ TrackedOk γ c id⌝`, `c` the tracker's configuration
+  (so `domSet s.progress ⊆ T`, `ownRaftPhysC_dom`). Kept by every step at `c`
+  (`ghost_stepCD`), by a snapshot's restore (`GMode.SnapOk`'s static clause gains the snapshot's
+  ids within the bound; `RawNode` takes no `MsgSnap`), and by `RawNode.ApplyConfChange`'s shrinking
+  change (`applyCC_of_shrink` now says the learners only shrink, `applyConfChange.specS` returns the
+  new progress map's ids, `trackedOk_shrink`), whose ghost step is now a `StepC` at the new tracker
+  (`applyCCOk_step`). `ownRawNode_static_open` hands it out; `ownRawNode_intro_static` takes it
+  (`Bootstrap`, `RestartNode`: a tracker of voters only, `TrackedOk.of_sub`).
+* **The code.** `ReplSends` gains the snapshot's peer (`m.dst ∈ domSet s.progress`, proved at
+  `maybeSendSnapshot` from its `pr`); the branch lemmas that build `StepCF.sendApps`/`StepC.win`
+  take `domSet s.progress ⊆ c.voters ∪ c.learners` (`ownRaftPhysC_dom`). Nothing in `node.go`'s
+  `run`/`advancec` changed.
+* **The allocation.** `ownRaftGhost_alloc_core` takes the bound; `ownRaftGhost_alloc_gen`/`_alloc`
+  (the register, the dynamic results) give `none`, `ownRaftGhost_alloc_boot` (a new cluster)
+  `some cfg`, the bootstrap peers.
+* **The server.** `bootOk` gains `γ.reTracked = some {id}` (`"%Hone"`: a one-member cluster, what
+  `alloc_boot` gives for the peers `[id]`; a new premise of `NewServer.spec` through `bootstrap`'s
+  contract, pure, on the names). `srvEr`'s message predicate is `srvMsgNoSnap` (no `MsgSnap`),
+  proved in `rnEnvOk_of_cluster` from `isRaftMsg_not_snap`; `isRNMsgSnapC`'s bag carries messages
+  of type `MsgSnap` (`processMessages`' branch), so `srvApplyAllBuilt`/`isServerApplyAll` record
+  that `msgSnapC` never delivers (`srvMsgSnapC_false`), and `applyAll`'s receive is dead: it no
+  longer calls `createMergedSnapshotMessage`/`sendMergedSnap`, whose specs and axioms are removed
+  (`sendMergedSnap` had no other caller).
+
+Trust base: two axioms fewer (`EtcdServer.createMergedSnapshotMessage`, `EtcdServer.sendMergedSnap`);
+`etc/tcb-baseline.txt` (325 axioms, 8 `sorry`s after the merged `lean` changes) and the `server`
+collection updated with `--check --update` on purpose; the raft collection unchanged.

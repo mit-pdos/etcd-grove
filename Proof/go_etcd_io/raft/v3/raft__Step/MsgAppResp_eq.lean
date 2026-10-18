@@ -146,6 +146,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Leader: the replication path
     simp only [stepFuncOf]
     imod (preceipt_zero (GF := GF)) with #Hrc00
+    icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (.inr (.inr (.inr (.inl Hty)))) Hrole
         (fun _ => Hfnz)
         (fun Hc => by
@@ -162,7 +163,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', ⟨recv, Hrecv, Hstep⟩, Hft⟩ :=
-      leader_appresp_step (B := B) c id s m ents ents dropped s' Hrole Hty Hto Hteq Hwf Hres
+      leader_appresp_step (B := B) c id s m ents ents dropped s' Hrole Hty Hto Hteq Hwf Hpc Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

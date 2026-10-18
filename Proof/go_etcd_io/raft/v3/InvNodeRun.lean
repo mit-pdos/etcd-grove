@@ -714,7 +714,7 @@ removed or demoted leader takes `reMatch` and steps down (`StepR.stepDown`, with
 theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {B : Int} (c' : CfgM)
     (id : w64) (s s' : NState) (g : RGh) (H : ApplyCCOkC c' id s s') (hc : g.cfg.cfg = c') :
     StepR Adm dec id B (rOf s g) [] (rOf s' g) := by
-  obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
+  obtain ⟨prs, pvs, Hdom, Hmk, Hsw⟩ := H
   unfold SwitchOkC at Hsw
   by_cases Hl : s.role = .leader
   · rw [ite_eq_left (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
@@ -767,8 +767,11 @@ theorem applyCCOkC_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} 
             toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
         rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
           rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
-        exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
-          (fun m hm => (Hms m hm).2)
+        exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk Hms.commitEq
+          (Hms.snapTo (by
+            rw [← Hs2, ← Hs1]
+            show domSet prs ⊆ c'.voters ∪ c'.learners
+            rw [Hdom]; exact GMap.subseteq_refl _))
       have HF := StepCF.trans _ _ _ _ _ H1 (StepCF.trans _ _ _ _ _ H2 H3)
       have HR := HF.toR (Adm := Adm) (dec := dec) (B := B) (rOf s g) rfl hc Hz
       have Hfr : RFrame s { sendMsgs s2 ms with prvals := pvs2, lt := lt' } := by
@@ -1009,6 +1012,20 @@ theorem wp_applyConf_dyn
 
 /-! ### The static mode -/
 
+/-- (D19p, 2026-10-18) A shrinking change keeps the tracker within the tracked bound: the new
+progress map tracks the voters and some of the old learners. -/
+theorem trackedOk_shrink {γ : RaftNames} {id : w64} {s s' : NState} {lrn' : GSet w64}
+    (H : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
+    (Hlp : ∀ k, k ∈ lrn' → k ∈ domSet s.progress) (Hd : domSet s'.progress ⊆ γ.reCfg ∪ lrn') :
+    TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id := by
+  refine TrackedOk.simple_mono (fun k hk => ?_) H
+  have hk' := ((GMap.elem_of_difference _ _ _).1 hk).1
+  rcases (GMap.elem_of_union _ _ _).1 ((GMap.elem_of_subseteq _ _).1 Hd k hk') with h | h
+  · exact Or.inl h
+  · by_cases hc : k ∈ γ.reCfg
+    · exact Or.inl hc
+    · exact Or.inr ((GMap.elem_of_difference _ _ _).2 ⟨Hlp k h, hc⟩)
+
 /-- After `applyConfChange`: the ghost step its result is (`applyCCOk_step`,
 `ownRaftGhost_step_0`), and `ownRawNode` re-sealed at the same client-facing state. -/
 theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
@@ -1021,7 +1038,9 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s)
-    (Hok : ApplyCCOk γ.reCfg id s s') :
+    (Hok : ApplyCCOk γ.reCfg id s s')
+    -- (D19p, 2026-10-18) the new tracker within the tracked bound
+    (Htrk' : TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1030,7 +1049,8 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       isCommitted γ rs.delivered -∗
       storedRecs γ s.logst.prev s.logst.stored -∗ £ 1 ={⊤}=∗
       ownRawNode γ rn id rs := by
-  obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ := applyCCOk_step (B := 0) _ _ _ _ Hok
+  obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ :=
+    applyCCOk_step (B := 0) _ γ.reCfg_ne _ _ _ Hok
   have Hprev : s'.logst.prev = s.logst.prev := by rw [Hls]
   have Hstored : s'.logst.stored = s.logst.stored := by rw [Hls]
   have Happ : s'.logst.applying = s.logst.applying := by rw [Hls]
@@ -1043,14 +1063,16 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs Hlc
   rw [← Hrel.1] at *
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
-  imod ownRaftGhost_step_0 γ id 0 (by decide) _ _ Hst $$ Hrc0 Hlc Hghost with Hghost
+  ihave %Hst0 := ownRaftGhost_static γ id _ $$ Hghost
+  imod ownRaftGhost_step_0 γ _ (CfgStatic.simple γ _ Hst0) id Htrk' 0 (by decide) _ _ Hst
+    $$ Hrc0 Hlc Hghost with Hghost
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hprev Hstored $$ Hstrecs
   iapply ownRawNode_intro_static γ rn id rs s' (toPState s') rnv sv hprev steps Hm ⟨rfl, Hwf'⟩ Hin Hasync
     (by rw [Happ]; exact Hdlen) (by rw [Hunp']; exact Hunp) (by rw [Hsnap']; exact Hsnap)
     (stepsOk_mono_le s s' _ (by rw [Htm]; exact Int.le_refl _) ⟨Hprev, Hstored⟩ Hc Happ (tc_le_of_gh Hgh) Hstok)
     (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keep rfl rfl Hpv Hgh Htm Hro)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-    (by unfold RNFl; rw [Hls]; exact Hrnfl)
+    (by unfold RNFl; rw [Hls]; exact Hrnfl) Htrk'
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr'
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
@@ -1075,18 +1097,20 @@ theorem wp_rn_raft_applyConfChange
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with ⟨Hphys, Hghost⟩
+  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+    ⟨Hphys, Hghost, %Htrk⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   iapply wp_fupd
   icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
   icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
-  obtain ⟨lrn', Hd', Hsz', Hn'⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
+  obtain ⟨lrn', Hd', Hsz', Hn', Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
       s cc ccm DFrac.discard lrn' Hd' Hsz' Hn'
-    $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok⟩
+    $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
+    (trackedOk_shrink Htrk Hlp Hdom')
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc with Hrn
   try wp_auto
   imodintro
@@ -1106,7 +1130,8 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases ownRawNode_mode γ rn id rs $$ H with ⟨%Hmd, H⟩
   have Hm : rs.mode = .static := Hmd.2 Hst
   iNamed H
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with ⟨Hphys, Hghost⟩
+  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+    ⟨Hphys, Hghost, %Htrk⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
@@ -1119,7 +1144,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   · iexact Hphys
   iintro Hphys
   iapply ownRawNode_intro_static γ rn id rs s _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Htrk
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- `r.applyConfChange(cc)` on the node's raft struct in the dynamic mode (2026-10-15, stage N;

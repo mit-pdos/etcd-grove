@@ -10,8 +10,6 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 
 @[expose] public section
@@ -42,9 +40,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
-    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG))
-    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
-    (hSM : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG)) :
+    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs Hms Hai1 Hok hEok
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
@@ -56,7 +52,7 @@ theorem EtcdServer.applyAll.wp_proof
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb⟩, #Hsc,
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb, #Hnosnap⟩, #Hsc,
     ⟨%stg, #Hstgf, #Hstgc⟩⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -197,52 +193,13 @@ theorem EtcdServer.applyAll.wp_proof
         rcases st0 with (_ | ⟨v, rest⟩) | _ | v | _ | _ | _ | (_ | ⟨_, _⟩)
         all_goals dsimp only
         case Buffered.cons =>
-          iintro Hoc
-          icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨-, Hi⟩
-          imod Hmask with -
-          imod Hclose $$ [Hoc Hi] with -
-          · inext; iexists .Buffered rest; iframe
-          imodintro
-          (try wp_auto)
-          wp_apply hCM s v at' ai' cs' as %merged -
-          (try wp_auto)
-          wp_apply hSM s merged
-          (try wp_auto)
-          ihave Hcs : epConfState ep cs' $$ [Hcs]
-          · iunfold epConfState; iframe Hcs Hcsok
-          iapply HΦ
-          iexists st'', ai', at', a', t', cs'
-          iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
-          isplitl [Hao]
-          · iexact Hao
-          isplitr
-          · iexact Hlb
-          isplitl [HKV Hka]
-          · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-          ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
+          -- (D19p) nothing is ever sent on `msgSnapC`
+          iintro -
+          icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨Hv, -⟩
+          iexfalso; iapply Hnosnap $$ Hv
         case SndPending =>
-          iintro Hoc
-          imod Hmask with -
-          imod Hclose $$ [Hoc] with -
-          · inext; iexists .RcvCommit; iframe Hoc
-          imodintro
-          (try wp_auto)
-          wp_apply hCM s v at' ai' cs' as %merged -
-          (try wp_auto)
-          wp_apply hSM s merged
-          (try wp_auto)
-          ihave Hcs : epConfState ep cs' $$ [Hcs]
-          · iunfold epConfState; iframe Hcs Hcsok
-          iapply HΦ
-          iexists st'', ai', at', a', t', cs'
-          iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
-          isplitl [Hao]
-          · iexact Hao
-          isplitr
-          · iexact Hlb
-          isplitl [HKV Hka]
-          · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-          ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
+          iintro -
+          iexfalso; iapply Hnosnap $$ Hi
         all_goals first | itrivial | (iexfalso; iexact Hi)
       · itrivial
     iapply BigAndL.bigAndL_nil.2

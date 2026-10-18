@@ -1422,14 +1422,14 @@ theorem wp_stepLeader_appresp
             (by simp [sendMsgs]) $$ Hphys
           iframe
           ipureintro
-          refine ⟨Or.inr HcN, ?_, fun m' hm => replAC_proper _ _ _ _ ?_ ?_ ?_ ?_ (Hms m' hm),
+          refine ⟨Or.inr HcN, ?_, fun m' hm => replACS_proper _ _ _ _ ?_ ?_ ?_ ?_ ?_ (Hms m' hm),
             Hmm4⟩
           · simp only [HNne, ↓reduceIte]
             first
               | exact Or.inr ⟨Hsg, rfl, rfl⟩
               | exact Or.inr ⟨Hsg, rfl, trivial⟩
               | exact Or.inr ⟨Hsg, trivial, trivial⟩
-          all_goals simp only [toPState, Hf.1, Hf.2.2]
+          all_goals first | rfl | (rw [readRespondAll_progress]) | simp only [toPState, Hf.1, Hf.2.2]
         wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
           as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
         wp_join_done
@@ -1441,7 +1441,7 @@ theorem wp_stepLeader_appresp
           (by simp [sendMsgs, releasedState]) $$ Hphys
         iframe
         ipureintro
-        refine ⟨Or.inr HcN, ?_, fun m' hm => replAC_proper _ _ _ _ rfl rfl rfl rfl (Hms m' hm),
+        refine ⟨Or.inr HcN, ?_, fun m' hm => replACS_proper _ _ _ _ rfl rfl rfl rfl rfl (Hms m' hm),
           Hmm4.trans HmmR⟩
         simp only [HNne, ↓reduceIte]
         first
@@ -1504,11 +1504,12 @@ theorem wp_stepLeader_appresp
       have Hms3 : ReplSends id sc (ms' ++ ms'') :=
         replSends_app _ _ _ _ Hms' (by
           intro m' hm
-          refine replAC_proper _ _ _ _ ?_ ?_ ?_ ?_ (Hms'' m' hm)
+          refine replACS_proper _ _ _ _ ?_ ?_ ?_ ?_ ?_ (Hms'' m' hm)
           · exact Hs2l.1.symm
           · exact congrArg LogState.prev Hs2l.2.symm
           · exact congrArg (fun l => l.sents ++ l.uents) Hs2l.2.symm
-          · exact congrArg LogState.committed Hs2l.2.symm)
+          · exact congrArg LogState.committed Hs2l.2.symm
+          · rw [← Hsc]; exact Hs2p.symm)
       ihave Hphys := ownRaftPhysC_eq c r id _
         { sendMsgs (sendMsgs s2 hb) (ms ++ (ms' ++ ms'')) with prvals := pvs'' }
         (by simp [sendMsgs, List.append_assoc]) $$ Hphys

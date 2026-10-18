@@ -746,9 +746,11 @@ payloads received, the log `A` forwarded so far. -/
 def rnApplyTok (γ : RNNames) (A : List EntryModel) : IProp GF :=
   iprop(∃ rcv : List toApply, spscConsumer γ.ap rcv ∗ monoListIdxOwn γ.cum rcv.length A)
 
-/-- `msgSnapC`: a channel of messages raft may send. -/
+/-- `msgSnapC`: a channel of messages raft may send, each a `MsgSnap` (D19p, 2026-10-18: so that
+a server whose raft sends none, `srvEr`'s `E.M`, knows the channel never delivers). -/
 def isRNMsgSnapC (E : RNEnv GF) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc) (rnMsgOk E))
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc)
+    (fun m => iprop(rnMsgOk E m ∗ ∃ to : w64, msgAt m to MsgSnap)))
 
 instance isRNMsgSnapC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNMsgSnapC E c) := by
   unfold isRNMsgSnapC; infer_instance

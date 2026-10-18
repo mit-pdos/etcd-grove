@@ -190,7 +190,8 @@ theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → Li
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ |={E}=> ∃ γ : RaftNames,
-        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ ∗
+        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
+          γ.reTracked = some cfg⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
         srvBootOut ids cok W bootLog γ ∗
