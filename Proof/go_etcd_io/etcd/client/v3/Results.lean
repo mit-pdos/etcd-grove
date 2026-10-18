@@ -70,6 +70,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher
+public import Proof.go_etcd_io.etcd.client.v3.LeaseClient
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
@@ -2691,6 +2692,41 @@ theorem etcd_kv_started [v3rpc.ServerMethodSets] (addr : GoString) (gs q p s : L
 
 end start
 
+section lease
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [EM : EtcdModel GF]
+
+/-- **etcd's client's lessor meets the clients' lease contract** (item 1, the client lease,
+2026-10-18; `LeaseClient.lean`): a `*lessor` over a connection to a server registering etcd's specs
+of `LeaseGrant` and `LeaseRevoke` and serving the keep-alive stream meets `isEtcdLease`
+(`lessor.Grant`, `lessor.Revoke`, `lessor.KeepAlive` and its goroutines, linked). -/
+theorem client_lessor_isEtcdLease (l : Loc) (addr : GoString) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
+      leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
+    isEtcdLease (lessorIfaceOf l) :=
+  isEtcdLease_of_lessor v3.lessor.wp_Grant v3.lessor.wp_Revoke v3.lessor.wp_KeepAlive l addr
+
+/-- **`clientv3.New`'s client has the clients' lease contract** (`isEtcdLeaseClient`; item 1):
+its `Lease` field holds `NewLease(c)`'s `*lessor` (`isNewClient`), which meets `isEtcdLease`
+under `client_lessor_isEtcdLease`'s premises. -/
+theorem client_new_isEtcdLeaseClient
+    [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (ep : GoString) (V : WEnv GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+      isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
+      isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
+      leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
+    isEtcdLeaseClient cl :=
+  isEtcdLeaseClient_of_new v3.lessor.wp_Grant v3.lessor.wp_Revoke v3.lessor.wp_KeepAlive cl ep V
+
+end lease
+
 end client
 
 #print axioms Perennial.EtcdGrove.client.client_get_value
@@ -2716,6 +2752,8 @@ end client
 #print axioms Perennial.EtcdGrove.client.client_watcher_etcdWatcher
 #print axioms Perennial.EtcdGrove.client.client_watcher_progressNotifier
 #print axioms Perennial.EtcdGrove.client.client_newWatcher_rangeWatcher
+#print axioms Perennial.EtcdGrove.client.client_lessor_isEtcdLease
+#print axioms Perennial.EtcdGrove.client.client_new_isEtcdLeaseClient
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Put
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Get
 #print axioms Perennial.EtcdGrove.client.v3.kv.wp_Do

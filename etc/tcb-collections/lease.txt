@@ -1,0 +1,37 @@
+# The client lease, item 1 (2026-10-18, branch `lease-client`): etcd's client's lessor
+# (client/v3/lease.go: `Grant`, `Revoke`, `KeepAlive` and its goroutines, `NewLease`) meets the
+# clients' lease contract (`isEtcdLease`), and `clientv3.New`'s client has it
+# (`isEtcdLeaseClient`), client/v3/Results.lean's lease section, under the registrations of etcd's
+# lease specs at the server (premises: the server side is stage (c)). The trust boundary: grpc's
+# transport (`ClientConn.Invoke`, `NewStream`, the generic stream wrappers), the names-only
+# `closeRequireLeader` and `WithRequireLeader` (grpc's `metadata`), a context's `Value` at
+# `keepAliveCtxKey`, `context.WithValue`, `errors.Is` of a status error, zap's logging.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/lease.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bclient\.(client_lessor_isEtcdLease|client_new_isEtcdLeaseClient)$
+axiom context.ValueKeepAlive.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsStatusErr.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcPeerOpt
+axiom grpcServes
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom grpcServes_persistent
+axiom grpcWrotePeer
+axiom lessor.closeRequireLeader.wp_proof
+axiom status.FromError.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Logger.Warn.wp_proof

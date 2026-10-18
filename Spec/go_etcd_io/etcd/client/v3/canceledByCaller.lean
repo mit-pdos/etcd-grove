@@ -24,11 +24,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `canceledByCaller(stopCtx, err)`, for a context whose `Err()` returns client errors
 (`ctxErrClient`) and an error grpc's `status` accepts: some boolean (`stopCtx.Err()` and
 `errors.Is` against `context.Canceled` and `context.DeadlineExceeded`, which `context`'s facts
-give: `ContextReadErrs`). -/
+give: `ctxErrTargets`). -/
 abbrev canceledByCaller.spec : Prop :=
   ∀ (sc : GoInterfaceOk) (scd : context.ContextDesc (IProp GF)) (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxErrClient sc scd ∗
-      go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      ctxErrTargets ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.canceledByCaller)) (Val #(GoInterface.ok sc)))
       (Val #err))
   {{ (b : Bool), RET #b; True }}

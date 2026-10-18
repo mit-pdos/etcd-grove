@@ -38,7 +38,7 @@ theorem lessor.KeepAlive.wp_proof
     (wp_deadlineLoop : lessor.deadlineLoop.spec (GF := GF) (hG := hG)) :
     lessor.KeepAlive.spec (GF := GF) (hG := hG) := by
   intro l addr ctx cd id
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Hctx⟩
+  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,

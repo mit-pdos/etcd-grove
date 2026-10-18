@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -142,6 +143,19 @@ def leaseDescOk : IProp GF :=
 instance leaseDescOk_persistent : Persistent (leaseDescOk (GF := GF)) := by
   unfold leaseDescOk; infer_instance
 
+/-- **`context.Canceled` and `context.DeadlineExceeded` are targets `errors.Is` takes** (persistent;
+`canceledByCaller` compares a stream's error with them): a pointer error and a comparable one.
+Go's (`context.go`: `errors.New(...)`, `deadlineExceededError{}`); from `context`'s facts as the
+read package states them (`EtcdGrove.ContextReadErrs`), `ctxErrTargets_of`. -/
+def ctxErrTargets : IProp GF :=
+  iprop((∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
+      ⌜_root_.Perennial.errors.IsPointerError e⌝) ∗
+    (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e ∗
+      ⌜SafeMapKey (GF := GF) go.error (GoInterface.ok e)⌝))
+
+instance ctxErrTargets_persistent : Persistent (ctxErrTargets (GF := GF)) := by
+  unfold ctxErrTargets; infer_instance
+
 /-! ## Keep-alives -/
 
 /-- A keep-alive's context (`ka.ctxs`'s element): a context. -/
@@ -206,24 +220,6 @@ instance lessorAt_persistent (l : Loc) (addr : GoString) :
 end defs
 
 /-! ## Lemmas -/
-
-/-- The `i`th key of a list without duplicates is not among the keys before it. -/
-theorem nodup_getElem?_not_mem_take {α : Type _} (l : List α) (hnd : l.Nodup) (i : Nat) (x : α)
-    (h : l[i]? = some x) : x ∉ l.take i := by
-  intro hm
-  obtain ⟨j, hj, hjx⟩ := List.getElem_of_mem hm
-  rw [List.getElem_take] at hjx
-  have hjl : j < l.length := by
-    have := List.length_take_le' i l; simp at hj; omega
-  have hil : i < l.length := (List.getElem?_eq_some_iff.1 h).1
-  have hji : j < i := by simp at hj; omega
-  have := list_nodup_getElem?_inj l hnd i j x h (by rw [List.getElem?_eq_getElem hjl, hjx])
-  omega
-
-/-- The `i`th key is among the first `i + 1`. -/
-theorem getElem?_mem_take_succ {α : Type _} (l : List α) (i : Nat) (x : α)
-    (h : l[i]? = some x) : x ∈ l.take (i + 1) := by
-  rw [List.take_add_one, h]; simp
 
 /-- An element of a big separating conjunction over a list, and the rest's over the list without
 it. -/

@@ -24,10 +24,10 @@ axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
 axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof
-axiom NewLease.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom RangeRequest.String.wp_proof
+axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
 axiom attribute.Bool.wp_proof
@@ -112,6 +112,7 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrAny.wp_proof
+axiom context.ValueKeepAlive.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -195,6 +196,7 @@ axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lessor.closeRequireLeader.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof

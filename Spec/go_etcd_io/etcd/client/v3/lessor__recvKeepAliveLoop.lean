@@ -30,7 +30,7 @@ forever). -/
 abbrev lessor.recvKeepAliveLoop.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (dc : GoChan) (γd : ChanNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
-      leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗
+      leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗
       lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd iprop(True) .Pending }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"recvKeepAliveLoop")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}

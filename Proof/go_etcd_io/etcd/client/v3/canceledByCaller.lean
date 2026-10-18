@@ -6,7 +6,6 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.canceledByCaller
 public import Spec.errors.IsStatusErr
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Init
 
 @[expose] public section
 
@@ -27,21 +26,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
-variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 
 set_option maxHeartbeats 0 in
 theorem canceledByCaller.wp_proof (wp_Is : errors.IsStatusErr.spec (GF := GF) (hG := hG)) :
     canceledByCaller.spec (GF := GF) (hG := hG) := by
   intro sc scd err
-  wp_start as ⟨#Hce, #Hse⟩
+  wp_start as ⟨#Hce, #Htg, #Hse⟩
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Herrp : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
-  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hctxp
-  iunfold EtcdGrove.errVarLeaf at HC
-  icases HC with ⟨%ec, #Hec, %Hlc, -⟩
-  icases HD with ⟨%ed, #Hed, %Hld, -⟩
+  iunfold ctxErrTargets at Htg
+  icases Htg with ⟨⟨%ec, #Hec, %Hlc⟩, ⟨%ed, #Hed, %Hld⟩⟩
   wp_auto
   iunfold ctxErrClient at Hce
   ihave #HU := Hce $$ %Broadcast.Unknown
@@ -59,12 +55,12 @@ theorem canceledByCaller.wp_proof (wp_Is : errors.IsStatusErr.spec (GF := GF) (h
     | ok erri =>
       wp_auto
       wp_apply (wp_Is (GoInterface.ok erri) (GoInterface.ok ec)
-        (Or.inr (Or.inl ⟨ec, rfl, Hlc.1⟩))) $$ [] as %b1 -
+        (Or.inr (Or.inl ⟨ec, rfl, Hlc⟩))) $$ [] as %b1 -
       · iframe #
       cases b1
       · wp_auto
         wp_apply (wp_Is (GoInterface.ok erri) (GoInterface.ok ed)
-          (Or.inr (Or.inr ⟨ed, rfl, Hld.2.2.2⟩))) $$ [] as %b2 -
+          (Or.inr (Or.inr ⟨ed, rfl, Hld⟩))) $$ [] as %b2 -
         · iframe #
         (try wp_auto)
         iapply HΦ; itrivial

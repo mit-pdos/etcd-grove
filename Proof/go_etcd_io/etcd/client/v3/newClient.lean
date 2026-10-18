@@ -181,7 +181,7 @@ theorem newClient.wp_proof
       iframe Hgc Hic
     wp_apply wp_NewCluster «$r0_ptr» $$ [$Hcore] as %vc -
     wp_apply wp_NewKV «$r0_ptr» ep $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi⟩
-    wp_apply wp_NewLease «$r0_ptr» $$ [$Hcore] as %vl -
+    wp_apply wp_NewLease «$r0_ptr» ep $$ [$Hcore $Hkv] as %vl ⟨%lp, %Hvl, #Hlp⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok⟩
     have Htb := HV
@@ -194,6 +194,7 @@ theorem newClient.wp_proof
     wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
     ipersist KV
     ipersist Watcher
+    ipersist Lease
     ihave #Hu : clientF «$r0_ptr» go!"Username" ↦□ ([] : GoString) $$ []
     · rw [← Hun]; iexact Username
     ihave #Hcfgf := cfg
@@ -243,9 +244,13 @@ theorem newClient.wp_proof
     · iexists api
       subst Hvkv
       iframe KV Hapi
-    iexists w, conn, wc, wlg, [ic]
-    subst Hwi
-    iframe Watcher Hgc Hcw
+    isplitl []
+    · iexists w, conn, wc, wlg, [ic]
+      subst Hwi
+      iframe Watcher Hgc Hcw
+    iexists lp
+    subst Hvl
+    iframe Lease Hlp
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>

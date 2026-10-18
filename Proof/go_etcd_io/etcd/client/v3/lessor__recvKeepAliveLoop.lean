@@ -48,7 +48,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.recvKeepAliveLoop.spec (GF := GF) (hG := hG) := by
   intro l addr dc0 γd0
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Hdc0, Hpend⟩
+  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
@@ -186,7 +186,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
-                · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+                · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
                 wp_apply wp_close v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
@@ -202,7 +202,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
-                    have := getElem?_mem_take_succ keys i.toNat key Hki
+                    have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                     rwa [show (i + 1).toNat = i.toNat + 1 by omega]
                   iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                     List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -298,7 +298,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
-                · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+                · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
                 wp_apply wp_close v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
@@ -314,7 +314,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
-                    have := getElem?_mem_take_succ keys i.toNat key Hki
+                    have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                     rwa [show (i + 1).toNat = i.toNat + 1 by omega]
                   iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                     List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -370,7 +370,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
               (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
             icases Hka with (%Hin | Hka)
-            · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+            · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
             wp_apply wp_close v $$ [$Hka]
             (try wp_auto)
             unfold forMapPostcondition
@@ -386,7 +386,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (m := mm) Hmv).2
               isplitl []
               · ileft; ipureintro
-                have := getElem?_mem_take_succ keys i.toNat key Hki
+                have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                 rwa [show (i + 1).toNat = i.toNat + 1 by omega]
               iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                 List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -497,7 +497,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
-                · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+                · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
                 wp_apply wp_close v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
@@ -513,7 +513,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
-                    have := getElem?_mem_take_succ keys i.toNat key Hki
+                    have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                     rwa [show (i + 1).toNat = i.toNat + 1 by omega]
                   iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                     List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -609,7 +609,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
-                · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+                · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
                 wp_apply wp_close v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
@@ -625,7 +625,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
-                    have := getElem?_mem_take_succ keys i.toNat key Hki
+                    have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                     rwa [show (i + 1).toNat = i.toNat + 1 by omega]
                   iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                     List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -681,7 +681,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
               (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
             icases Hka with (%Hin | Hka)
-            · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+            · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
             wp_apply wp_close v $$ [$Hka]
             (try wp_auto)
             unfold forMapPostcondition
@@ -697,7 +697,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (m := mm) Hmv).2
               isplitl []
               · ileft; ipureintro
-                have := getElem?_mem_take_succ keys i.toNat key Hki
+                have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                 rwa [show (i + 1).toNat = i.toNat + 1 by omega]
               iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                 List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -808,7 +808,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
               (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
             icases Hka with (%Hin | Hka)
-            · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+            · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
             wp_apply wp_close v $$ [$Hka]
             (try wp_auto)
             unfold forMapPostcondition
@@ -824,7 +824,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (m := mm) Hmv).2
               isplitl []
               · ileft; ipureintro
-                have := getElem?_mem_take_succ keys i.toNat key Hki
+                have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
                 rwa [show (i + 1).toNat = i.toNat + 1 by omega]
               iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
                 List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr
@@ -879,7 +879,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
             (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
           icases Hka with (%Hin | Hka)
-          · exfalso; exact nodup_getElem?_not_mem_take keys Hknodup _ key Hki Hin
+          · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
           wp_apply wp_close v $$ [$Hka]
           (try wp_auto)
           unfold forMapPostcondition
@@ -895,7 +895,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (m := mm) Hmv).2
             isplitl []
             · ileft; ipureintro
-              have := getElem?_mem_take_succ keys i.toNat key Hki
+              have := (mem_take_succ_iff Hki key).2 (Or.inr rfl)
               rwa [show (i + 1).toNat = i.toNat + 1 by omega]
             iapply BigSepM.bigSepM_mono (fun _ => or_mono (BI.pure_mono (fun h =>
               List.take_subset_take_left _ (by omega) h)) .rfl) $$ HMr

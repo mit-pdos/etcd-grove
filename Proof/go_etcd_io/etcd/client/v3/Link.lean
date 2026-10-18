@@ -28,7 +28,11 @@ public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
 public import Proof.go_etcd_io.etcd.client.v3.ContextError
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse__GetHeader
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse__GetHeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLeaseClient
+public import Proof.go_etcd_io.etcd.client.v3.NewLeaseFromLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewWatchClient
 public import Proof.go_etcd_io.etcd.client.v3.NewWatchFromWatchClient
@@ -44,15 +48,20 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__toRangeRequest
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
+public import Proof.go_etcd_io.etcd.client.v3.RetryLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.WithRequireLeader
 public import Proof.go_etcd_io.etcd.client.v3.authority
 public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
+public import Proof.go_etcd_io.etcd.client.v3.canceledByCaller
 public import Proof.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.context.TODO
+public import Proof.context.ValueKeepAlive
 public import Proof.context.WithCancelTodo
 public import Proof.context.WithCancelValCtx
+public import Proof.context.WithValue
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.IsStatusErr
@@ -83,11 +92,15 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Txn
+public import Proof.go_etcd_io.etcd.client.v3.keepAlive__close
 public import Proof.go_etcd_io.etcd.client.v3.kv__Delete
 public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
 public import Proof.go_etcd_io.etcd.client.v3.kv__Put
 public import Proof.go_etcd_io.etcd.client.v3.kv__Txn
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseGrant
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseKeepAlive
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseRevoke
 public import Proof.go_etcd_io.etcd.client.v3.newBlockLogger
 public import Proof.go_etcd_io.etcd.client.v3.newClient
 public import Proof.google_golang_org.grpc.peer.Peer__String
@@ -100,6 +113,9 @@ public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Put
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Range
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Txn
+public import Proof.go_etcd_io.etcd.client.v3.retryLeaseClient__LeaseGrant
+public import Proof.go_etcd_io.etcd.client.v3.retryLeaseClient__LeaseKeepAlive
+public import Proof.go_etcd_io.etcd.client.v3.retryLeaseClient__LeaseRevoke
 public import Proof.go_etcd_io.etcd.client.v3.retryPolicy__String
 public import Proof.go_etcd_io.etcd.client.v3.reuseOrNewWithCallOptions
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
@@ -121,6 +137,16 @@ public import Proof.go_etcd_io.etcd.client.v3.NewCluster
 public import Proof.go_etcd_io.etcd.client.v3.NewKV
 public import Proof.go_etcd_io.etcd.client.v3.NewLease
 public import Proof.go_etcd_io.etcd.client.v3.NewMaintenance
+public import Proof.go_etcd_io.etcd.client.v3.lessor__Grant
+public import Proof.go_etcd_io.etcd.client.v3.lessor__KeepAlive
+public import Proof.go_etcd_io.etcd.client.v3.lessor__Revoke
+public import Proof.go_etcd_io.etcd.client.v3.lessor__closeRequireLeader
+public import Proof.go_etcd_io.etcd.client.v3.lessor__deadlineLoop
+public import Proof.go_etcd_io.etcd.client.v3.lessor__keepAliveCtxCloser
+public import Proof.go_etcd_io.etcd.client.v3.lessor__recvKeepAlive
+public import Proof.go_etcd_io.etcd.client.v3.lessor__recvKeepAliveLoop
+public import Proof.go_etcd_io.etcd.client.v3.lessor__resetRecv
+public import Proof.go_etcd_io.etcd.client.v3.lessor__sendKeepAliveLoop
 public import Proof.go_etcd_io.etcd.client.v3.valCtx__Deadline
 public import Proof.go_etcd_io.etcd.client.v3.valCtx__Done
 public import Proof.go_etcd_io.etcd.client.v3.valCtx__Err
@@ -315,13 +341,13 @@ theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Time.IsZero.wp_proof
 
-theorem zap.wp_Int64 :
-    EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Int64.wp_proof
-
 theorem zap.wp_Int' :
     EtcdGrove.zap.Int'.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Int'.wp_proof
+
+theorem zap.wp_Int64 :
+    EtcdGrove.zap.Int64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int64.wp_proof
 
 theorem zap.wp_Duration :
     EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
@@ -494,9 +520,29 @@ theorem v3.wp_ContextError :
     EtcdGrove.ContextError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ContextError.wp_proof rpctypes.wp_Error status.wp_FromError
 
+theorem LeaseGrantResponse.wp_GetHeader :
+    EtcdGrove.LeaseGrantResponse.GetHeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.LeaseGrantResponse.GetHeader.wp_proof
+
+theorem LeaseKeepAliveResponse.wp_GetHeader :
+    EtcdGrove.LeaseKeepAliveResponse.GetHeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.LeaseKeepAliveResponse.GetHeader.wp_proof
+
 theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKVClient.wp_proof
+
+theorem wp_NewLeaseClient :
+    EtcdGrove.NewLeaseClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewLeaseClient.wp_proof
+
+theorem v3.wp_WithRequireLeader :
+    EtcdGrove.WithRequireLeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRequireLeader.wp_proof
+
+theorem v3.wp_NewLeaseFromLeaseClient :
+    EtcdGrove.NewLeaseFromLeaseClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewLeaseFromLeaseClient.wp_proof v3.wp_WithRequireLeader v3.Client.wp_GetLogger
 
 theorem wp_NewWatchClient :
     EtcdGrove.NewWatchClient.spec (GF := GF) (hG := hG) :=
@@ -530,9 +576,17 @@ theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryKVClient.wp_proof wp_NewKVClient
 
+theorem v3.wp_RetryLeaseClient :
+    EtcdGrove.RetryLeaseClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RetryLeaseClient.wp_proof wp_NewLeaseClient
+
 theorem v3.blockLogger.wp_recordWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=
   EtcdGrove.blockLogger.recordWait.wp_proof
+
+theorem v3.wp_canceledByCaller :
+    EtcdGrove.canceledByCaller.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.canceledByCaller.wp_proof errors.wp_IsStatusErr
 
 theorem context.wp_WithCancelTodo :
     EtcdGrove.context.WithCancelTodo.spec (GF := GF) (hG := hG) :=
@@ -556,7 +610,7 @@ theorem v3.wp_NewKV :
 
 theorem v3.wp_NewLease :
     EtcdGrove.NewLease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewLease.wp_proof
+  EtcdGrove.NewLease.wp_proof v3.wp_RetryLeaseClient v3.wp_NewLeaseFromLeaseClient
 
 theorem v3.wp_NewAuth :
     EtcdGrove.NewAuth.spec (GF := GF) (hG := hG) :=
@@ -574,9 +628,17 @@ theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assum
     EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.clientv3.New.wp_proof v3.wp_newClient
 
+theorem context.wp_ValueKeepAlive :
+    EtcdGrove.context.ValueKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.ValueKeepAlive.wp_proof
+
 theorem context.wp_WithCancelValCtx :
     EtcdGrove.context.WithCancelValCtx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithCancelValCtx.wp_proof
+
+theorem context.wp_WithValue :
+    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValue.wp_proof
 
 theorem v3.wp_ensureWatchHeader [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.ensureWatchHeader.spec (GF := GF) (hG := hG) :=
@@ -634,6 +696,10 @@ theorem kVClient.wp_Txn :
     EtcdGrove.kVClient.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kVClient.Txn.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
 
+theorem v3.keepAlive.wp_close :
+    EtcdGrove.keepAlive.close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.keepAlive.close.wp_proof
+
 theorem v3.wp_withRepeatablePolicy :
     EtcdGrove.withRepeatablePolicy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.withRepeatablePolicy.wp_proof
@@ -670,6 +736,18 @@ theorem v3.kv.wp_Txn :
     EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Txn.wp_proof
 
+theorem leaseClient.wp_LeaseGrant :
+    EtcdGrove.leaseClient.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leaseClient.LeaseGrant.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem leaseClient.wp_LeaseKeepAlive :
+    EtcdGrove.leaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leaseClient.LeaseKeepAlive.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_NewStream grpc.GenericClientStream.wp_Send grpc.GenericClientStream.wp_Recv grpc.GenericClientStream.wp_CloseSend grpc.GenericClientStream.wp_Context
+
+theorem leaseClient.wp_LeaseRevoke :
+    EtcdGrove.leaseClient.LeaseRevoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leaseClient.LeaseRevoke.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
 theorem v3.wp_newBlockLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.newBlockLogger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.newBlockLogger.wp_proof
@@ -681,6 +759,18 @@ theorem v3.progressRequest.wp_toPB [go_etcd_io.etcd.server.v3.etcdserver.api.v3r
 theorem v3.retryKVClient.wp_Txn :
     EtcdGrove.retryKVClient.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.retryKVClient.Txn.wp_proof kVClient.wp_Txn
+
+theorem v3.retryLeaseClient.wp_LeaseGrant :
+    EtcdGrove.retryLeaseClient.LeaseGrant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryLeaseClient.LeaseGrant.wp_proof v3.wp_withRepeatablePolicy leaseClient.wp_LeaseGrant
+
+theorem v3.retryLeaseClient.wp_LeaseKeepAlive :
+    EtcdGrove.retryLeaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryLeaseClient.LeaseKeepAlive.wp_proof v3.wp_withRepeatablePolicy leaseClient.wp_LeaseKeepAlive
+
+theorem v3.retryLeaseClient.wp_LeaseRevoke :
+    EtcdGrove.retryLeaseClient.LeaseRevoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryLeaseClient.LeaseRevoke.wp_proof v3.wp_withRepeatablePolicy leaseClient.wp_LeaseRevoke
 
 theorem v3.wp_streamKeyFromCtx [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.streamKeyFromCtx.spec (GF := GF) (hG := hG) :=
@@ -701,6 +791,46 @@ theorem v3.txn.wp_If :
 theorem v3.txn.wp_Then :
     EtcdGrove.txn.Then.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Then.wp_proof v3.Op.wp_isWrite v3.Op.wp_toRequestOp
+
+theorem v3.lessor.wp_Grant :
+    EtcdGrove.lessor.Grant.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.Grant.wp_proof v3.retryLeaseClient.wp_LeaseGrant LeaseGrantResponse.wp_GetHeader v3.wp_ContextError
+
+theorem v3.lessor.wp_keepAliveCtxCloser :
+    EtcdGrove.lessor.keepAliveCtxCloser.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.keepAliveCtxCloser.wp_proof context.wp_ValueKeepAlive
+
+theorem v3.lessor.wp_sendKeepAliveLoop :
+    EtcdGrove.lessor.sendKeepAliveLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.sendKeepAliveLoop.wp_proof zap.wp_Error zap.Logger.wp_Warn
+
+theorem v3.lessor.wp_resetRecv :
+    EtcdGrove.lessor.resetRecv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.resetRecv.wp_proof v3.wp_withMax v3.retryLeaseClient.wp_LeaseKeepAlive v3.lessor.wp_sendKeepAliveLoop
+
+theorem v3.lessor.wp_recvKeepAlive :
+    EtcdGrove.lessor.recvKeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.recvKeepAlive.wp_proof LeaseKeepAliveResponse.wp_GetHeader v3.keepAlive.wp_close zap.wp_Int' zap.Logger.wp_Warn
+
+theorem v3.lessor.wp_closeRequireLeader :
+    EtcdGrove.lessor.closeRequireLeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.closeRequireLeader.wp_proof
+
+theorem v3.lessor.wp_recvKeepAliveLoop :
+    EtcdGrove.lessor.recvKeepAliveLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.recvKeepAliveLoop.wp_proof v3.lessor.wp_resetRecv v3.lessor.wp_recvKeepAlive v3.lessor.wp_closeRequireLeader v3.keepAlive.wp_close v3.wp_canceledByCaller v3.wp_ContextError errors.wp_IsStatusErr zap.wp_Error zap.Logger.wp_Warn
+
+theorem v3.lessor.wp_deadlineLoop :
+    EtcdGrove.lessor.deadlineLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.deadlineLoop.wp_proof v3.keepAlive.wp_close
+
+theorem v3.lessor.wp_KeepAlive :
+    EtcdGrove.lessor.KeepAlive.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.KeepAlive.wp_proof context.wp_WithValue v3.lessor.wp_keepAliveCtxCloser v3.lessor.wp_recvKeepAliveLoop v3.lessor.wp_deadlineLoop
+
+theorem v3.lessor.wp_Revoke :
+    EtcdGrove.lessor.Revoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lessor.Revoke.wp_proof v3.retryLeaseClient.wp_LeaseRevoke v3.wp_ContextError
 
 theorem v3.valCtx.wp_Deadline [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.valCtx.Deadline.spec (GF := GF) (hG := hG) :=

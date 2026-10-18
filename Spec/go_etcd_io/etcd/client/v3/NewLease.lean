@@ -1,10 +1,11 @@
 /-
-`clientv3.NewLease(c)` (`client/v3`, names only; item 5: `newClient` calls it). Lean-first (no Rocq
-counterpart).
+`clientv3.NewLease(c)` (`client/v3/lease.go`; item 5: `newClient` calls it; with its body since
+item 1, the client lease). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -22,13 +23,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewLease(c)` of a client `New` builds (its connection, call options, configuration and
-logger, read-only: `clientCoreAt`): some value (the client's API, unused by the results). -/
+/-- `NewLease(c)` of a client `New` builds (its connection to the server at `addr`, call options,
+configuration and logger, read-only: `clientCoreAt`, `clientKVAt`):
+`NewLeaseFromLeaseClient(RetryLeaseClient(c), c, c.cfg.DialTimeout + time.Second)`, a `*lessor`
+over the connection (`lessorAt`), as a `Lease`. -/
 abbrev NewLease.spec : Prop :=
-  ∀ (c : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c }}
+  ∀ (c : Loc) (addr : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c ∗
+      clientKVAt c addr }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewLease)) (Val #c))
-  {{ (v : GoInterface), RET #v; True }}
+  {{ (v : GoInterface), RET #v; ∃ l : Loc,
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l⌝ ∗
+      lessorAt l addr }}
 
 end spec
 
