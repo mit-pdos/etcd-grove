@@ -13,8 +13,8 @@ decides how to file, as for the sibling.
   2026-10-18)
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-removed-leader` in `~/etcd-fixes/raft-readindex-removed-leader`, three commits:
-  a15b631 adds the test, which fails there; 9fa83d5 is the fix; 30d3548 adds the changelog entry. Not yet pushed
-  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader`, the branch the links in
+  a15b631 adds the test, which fails there; 9fa83d5 is the fix; 30d3548 adds the changelog entry. Pushed 2026-10-18
+  to `upamanyus/etcd-raft` (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader`, the branch the links in
   `issue.md` name; its lines 2227-2260 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft (2026-10-18)

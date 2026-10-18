@@ -31,8 +31,8 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
   sibling candidate `issues/upstream/raft-readindex-removed-leader/`, split off 2026-10-18)
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, three commits:
-  14d36dd adds the test, which fails there; b8a3280 is the fix; 3d0bd8a adds the changelog entry. The fork's branch has the earlier combined fix
-  (77ab0c9) until this is force-pushed (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`,
+  14d36dd adds the test, which fails there; b8a3280 is the fix; 3d0bd8a adds the changelog entry. Force-pushed 2026-10-18 to `upamanyus/etcd-raft`,
+  replacing the earlier combined fix 77ab0c9 (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`,
   the branch the links in `issue.md` name; its lines 2154-2188 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft, revised after the user's review and a code review, split in two (2026-10-18)
