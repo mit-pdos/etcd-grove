@@ -1,10 +1,10 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-18
 links:
   - etcd-io/etcd#22082 issue open: related, not this bug (same-session key recreated with a newer create revision; Unlock deletes it unfenced, here Lock returns without checking myRev)
   - etcd-io/etcd#22115 pr open: related, not this bug (fences Unlock with IsOwner; Lock's final existence-only check unchanged)
-  - etcd-io/etcd#22387 pr open: related (fixes #19597): Lock returns ErrSessionExpired when its key is deleted during the wait, which hides this issue's example but not deletion and recreation between Lock's RPCs
+  - etcd-io/etcd#22387 pr open: related (fixes #19597): Lock returns ErrSessionExpired when its key is deleted during the wait, which narrows this bug but does not fix it (deletion and recreation between Lock's RPCs): the candidate's test still fails in 15 of 20 runs with it (2026-10-18)
 candidate: issues/upstream/mutex-lock-recreated/
 ---
 
@@ -76,4 +76,4 @@ D's key is now the first-created key, and D's `Lock` returns nil. B's `waitDelet
 
 ## Proposed fix
 
-The upstream candidate (`issues/upstream/mutex-lock-recreated/`, 2026-10-16, branch `mutex-lock-recreated` rebuilt off `main` b25719d10) takes the smaller option: `Lock` returns `ErrSessionExpired` when the key it waited for is missing or has a create revision other than `m.myRev` (one line, consistent with the existing missing-key check and with open PR #22387), and its issue asks the maintainers whether they prefer `Lock` to keep waiting. The earlier draft (113b0b324) did the following: after the final `Get`, if the key's create revision differs from `m.myRev`, set `m.myRev` to the new revision and wait again for the keys created before it, looping until the key found is the one waited for. This is how `tryAcquire` already treats an existing key of the same session, as that session's place in the queue. I considered returning an error instead (a new error, or `ErrSessionExpired`), but that would make `Lock` fail for a caller whose context was not canceled and whose session is alive, only because another `Mutex` on the same session was canceled, and would leave retrying to every caller. `TryLock` does not wait and is unchanged.
+The upstream candidate (`issues/upstream/mutex-lock-recreated/`, branch `fix/mutex-lock-recreated`, rebuilt 2026-10-18 off `main` 22cc5d9ac as a tests commit and a fix commit; test `TestMutexLockKeyRecreated`, which asserts only that `Lock` does not succeed while another session holds the lock, so it passes with either option) takes the smaller option: `Lock` returns `ErrSessionExpired` when the key it waited for is missing or has a create revision other than `m.myRev` (one line, consistent with the existing missing-key check and with open PR #22387), and its issue asks the maintainers whether they prefer `Lock` to keep waiting. The earlier draft (113b0b324) did the following: after the final `Get`, if the key's create revision differs from `m.myRev`, set `m.myRev` to the new revision and wait again for the keys created before it, looping until the key found is the one waited for. This is how `tryAcquire` already treats an existing key of the same session, as that session's place in the queue. I considered returning an error instead (a new error, or `ErrSessionExpired`), but that would make `Lock` fail for a caller whose context was not canceled and whose session is alive, only because another `Mutex` on the same session was canceled, and would leave retrying to every caller. `TryLock` does not wait and is unchanged.

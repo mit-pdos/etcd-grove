@@ -1,9 +1,9 @@
-Title: server/lease: persist a lease checkpoint entry in one batch transaction
+Title: lease: persist all checkpoints of a request in one backend transaction
 
-When lease checkpoints are persisted, [`applierV3backend.LeaseCheckpoint`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/etcdserver/apply/backend.go#L99-L107) calls [`lessor.Checkpoint`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/lease/lessor.go#L367-L383) once per lease, and each call writes its lease in its own [section of the batch transaction](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/lease/lease.go#L55-L61). [The post-lock hook](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/etcdserver/server.go#L2448-L2455) sets the consistent index to the entry at each section, so a backend commit between two sections persists the entry's index with only the first leases. This PR makes `Lessor.Checkpoint` take the request's checkpoints and write them in one section.
+[`applierV3backend.LeaseCheckpoint`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/etcdserver/apply/backend.go#L99-L107) calls [`lessor.Checkpoint`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/lease/lessor.go#L367-L383) once per lease, and each call [persists its lease](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/lease/lease.go#L55-L61) under its own `LockInsideApply`. The [post-lock hook](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/etcdserver/server.go#L2448-L2455) sets the consistent index to the entry at the first of these locks, assuming the entry's writes are all under that lock, so a backend commit between two leases persists the index without the later leases. This PR makes `Lessor.Checkpoint` take the request's checkpoints and persist them under one lock.
 
 Fixes #<issue>
 
-`TestLeaseCheckpointCommittedWithConsistentIndex` runs the issue's example; it fails on `main` and passes with this change.
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
 
 Written with the assistance of generative AI; I reviewed and tested every change.

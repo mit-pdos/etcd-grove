@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-18
 links:
 candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
 ---
@@ -8,7 +8,10 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
 # raft: a snapshot restored while a `Ready`'s conf changes are being applied makes `ApplyConfChange` apply them on top of the snapshot's configuration
 
 - **Status**: open (not reported upstream). Reproduced on raft by Go tests with hand-built
-  leader messages; not demonstrated in a full cluster or on etcd.
+  leader messages; not demonstrated in a full cluster or on etcd. On etcd-io/raft `main`
+  638f42739 also with a real leader `raft` (a temporary test, 2026-10-18,
+  `issues/upstream/raft-snapshot-during-apply-stale-confchange/meta.md`, which also records that the
+  candidate fix makes the leader's resend depend on `ReportSnapshot`).
 - **Where** (etcd-io/raft at `40f8be730b18`):
   - `node.go:380-445` (`node.run`): while it waits for `Advance` (`advancec != nil`) it still
     steps the messages it receives (`case m := <-n.recvc: r.Step(m)`); `doc.go:110` ("when

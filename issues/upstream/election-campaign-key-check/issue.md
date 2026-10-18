@@ -1,50 +1,37 @@
-Title: Election.Campaign returns nil after its session's lease was revoked while it waited
+Title: Election.Campaign returns nil when its session's lease is revoked or expires while it waits
 
 ### What happened?
 
-With `e1` the leader and `e2.Campaign` waiting behind `e1`, revoking the lease of `e2`'s session and then `e1.Resign` make `e2.Campaign` return nil, although `e2` is not the leader:
+With elections `e1` and `e2` on the same prefix, on sessions `s1` and `s2`:
 
-```go
-e1.Campaign(ctx, "e1")    // e1, e2 on sessions s1, s2, same prefix
-go e2.Campaign(ctx, "e2") // waits for e1
-cli.Revoke(ctx, s2.Lease())
-e1.Resign(ctx)
-```
+1. `e1.Campaign` returns nil: `e1` leads.
+2. `e2.Campaign` is called and waits for `e1`'s key to be deleted.
+3. While `e2.Campaign` waits, `s2`'s lease is revoked, which deletes `e2`'s key.
+4. `e1.Resign` returns nil. Then `e2.Campaign` returns nil, although `e2`'s key is gone: `e2.Leader` returns `election: no leader`, and `e2.Proclaim` returns `election: not leader`.
 
-Each call's result, in order, at `main`, then `e2.Proclaim` and `e2.Leader` after `e2.Campaign` returns:
+The test below runs these steps (output trimmed):
 
 ```
-e1.Campaign: <nil>
-cli.Revoke(s2.Lease()): <nil>
-e1.Resign: <nil>
-e2.Campaign: <nil>
-e2.Proclaim: election: not leader
-e2.Leader: election: no leader
-```
-
-The same happens for any `Campaign` whose key (`Key()`) is deleted while it waits, as when its session's lease expires.
-
-### What did you expect to happen?
-
-`e2.Campaign` returns an error, since `e2`'s key no longer exists and `e2` is not the leader.
-
-### How can we reproduce it (as minimally and precisely as possible)?
-
-Integration test: [`TestElectionCampaignKeyDeleted`](https://github.com/upamanyus/etcd/blob/fix/election-campaign-key-check/tests/integration/clientv3/concurrency/election_test.go) on branch [`upamanyus/etcd:fix/election-campaign-key-check`](https://github.com/upamanyus/etcd/tree/fix/election-campaign-key-check), which runs the calls above. On `main` (b25719d10) it fails:
-
-```
---- FAIL: TestElectionCampaignKeyDeleted (0.26s)
-    election_test.go:137: 
-        	Error:      	Expected error with "mutex: session is expired" in chain but got nil.
+--- FAIL: TestElectionCampaignKeyDeleted (0.16s)
+    election_test.go:138: 
+        	Error:      	An error is expected but got nil.
         	Test:       	TestElectionCampaignKeyDeleted
         	Messages:   	e2 elected after its key was deleted
 ```
 
+This affects any client whose session's lease is revoked or expires while its `Campaign` waits.
+
+### What did you expect to happen?
+
+`e2.Campaign` should return an error, since `e2`'s key was deleted and `e2` is not the leader.
+
+### How can we reproduce it (as minimally and precisely as possible)?
+
+Integration test: [`TestElectionCampaignKeyDeleted`](https://github.com/upamanyus/etcd/blob/fix/election-campaign-key-check/tests/integration/clientv3/concurrency/election_test.go#L107-L139) on branch [`upamanyus/etcd:fix/election-campaign-key-check`](https://github.com/upamanyus/etcd/tree/fix/election-campaign-key-check), off `main` (22cc5d9ac). On `main` it fails as above.
+
 ### Anything else we need to know?
 
-If a third campaigner `e3` (session `s3`) campaigns after the revoke and before `e1.Resign`, `e3.Campaign` and `e2.Campaign` both return nil, so code that acts on `Campaign` returning nil runs with two leaders.
-
-#11051 and #11777 reported the same bug and were closed as stale.
+If an election `e3` on a third session campaigns after step 3 and before step 4, `e3.Campaign` and `e2.Campaign` both return nil, so two campaigners act as leader at once.
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
@@ -52,7 +39,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-`main` at b25719d10cdc41fb707b0d9f819c2529dec5d590, `go test` with go1.27.2 linux/amd64; no `etcd` or `etcdctl` binaries.
+`main` (22cc5d9ac), `go test` with go1.27.2 linux/amd64; no `etcd` or `etcdctl` binaries.
 
 </details>
 

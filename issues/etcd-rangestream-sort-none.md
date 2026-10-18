@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-18
 links:
   - etcd-io/etcd#21631 pr merged: related, not this bug (the RangeStream server, whose IsDefaultOrdering check is the defect)
   - etcd-io/etcd@9acc0ebe3: related, not this bug (clones the chunk's last key before appending \x00 in rangeStream; does not touch the sort check)

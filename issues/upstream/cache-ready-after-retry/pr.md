@@ -1,9 +1,9 @@
 Title: cache: initialize the demux before registering the store watcher
 
-[`Cache.watch`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/cache/cache.go#L348-L370) registers its store watcher with the demux, and [`watchEvents`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/cache/cache.go#L405-L408) calls `demux.Init` and `ready.Set` under a `sync.Once` on the first response of the upstream watch. On a retry, [`demux.Init`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/cache/demux.go#L119-L143) purges the demux unless the watch starts right after the demux's last revision, stopping the store watcher just registered; `watch` then loops with the `sync.Once` used, so `ready.Set` never runs again. This PR calls `demux.Init` when `watch` is entered, before the store watcher is registered.
+[`Cache.watch`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/cache/cache.go#L348-L370) registers its store watcher with the demux, then calls `demux.Init` and sets the cache ready on the upstream watch's first response, once per call ([`watchEvents`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/cache/cache.go#L405-L408)). On a resync, [`demux.Init`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/cache/demux.go#L119-L143) purges the demux unless the watch continues from its last revision, assuming that only the previous watch's watchers are registered; the purge also stops the new store watcher, and `watch` reopens the upstream watch but never sets the cache ready again. This PR calls `demux.Init` before the store watcher is registered.
 
 Fixes #<issue>
 
-`TestCacheReadyAfterWatchRetry` runs the issue's example; it fails on `main` and passes with this change.
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
 
 Written with the assistance of generative AI; I reviewed and tested every change.

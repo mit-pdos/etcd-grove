@@ -1,9 +1,9 @@
 Title: client/v3: fail Election.Campaign when its key was deleted while waiting
 
-[`Campaign`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/client/v3/concurrency/election.go#L93-L106) waits until every key created before its own under the prefix is deleted, then returns nil without checking that its own key still exists. This PR gets the key after the wait and returns `ErrSessionExpired` unless the key still exists at the create revision `Campaign` waited for, as [`Mutex.Lock`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/client/v3/concurrency/mutex.go#L95-L105) does for its key. `TestElectionWithAuthEnabled` now keeps a waiting campaigner's session alive, since its key expired with the leader's.
+[`Campaign`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/client/v3/concurrency/election.go#L93-L106) waits until every key created before its own under the prefix is deleted, then returns nil, assuming its own key still exists. If the session's lease is revoked or expires during the wait, that key is gone, and `Campaign` returns nil although the campaigner is not the leader. This PR gets the key after the wait and returns `ErrSessionExpired` unless it still exists at the create revision `Campaign` waited for, as [`Mutex.Lock`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/client/v3/concurrency/mutex.go#L96-L104) does.
 
 Fixes #<issue>
 
-`TestElectionCampaignKeyDeleted` runs the issue's example; it fails on `main` and passes with this change.
+The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass. The first commit also stops orphaning the sessions that `TestElectionWithAuthEnabled` elects second: that test passed only because of this bug.
 
 Written with the assistance of generative AI; I reviewed and tested every change.

@@ -24,13 +24,13 @@ The same happens for any client sending `SortOrder: NONE` with a non-key sort ta
 
 ### What did you expect to happen?
 
-`--limit=N` returns the first `N` results of the response without a limit: `c` for `--limit=1`, as with `--order=ASCEND`.
+`--limit=N` should return the first `N` results of the same `get` without a limit: `c` for `--limit=1`, as with `--order=ASCEND`.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Run the `etcdctl` commands above against a single-member cluster built from `main` (ea8b59433).
+Run the `etcdctl` commands above against a single-member cluster built from `main` (22cc5d9ac).
 
-Unit test: [`TestRangeSortLimit`](https://github.com/upamanyus/etcd/blob/etcd-range-sort-none-limit/server/etcdserver/txn/range_test.go) on branch [`upamanyus/etcd:etcd-range-sort-none-limit`](https://github.com/upamanyus/etcd/tree/etcd-range-sort-none-limit). On `main` it fails (output trimmed):
+Unit test: [`TestRangeSortLimit`](https://github.com/upamanyus/etcd/blob/fix/etcd-range-sort-none-limit/server/etcdserver/txn/txn_test.go#L279-L310) on branch [`upamanyus/etcd:fix/etcd-range-sort-none-limit`](https://github.com/upamanyus/etcd/tree/fix/etcd-range-sort-none-limit), off `main` (22cc5d9ac). On `main` it fails (output trimmed):
 
 ```
 --- FAIL: TestRangeSortLimit (0.01s)
@@ -53,7 +53,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 ```console
 $ etcd --version
 etcd Version: 3.8.0-alpha.0
-Git SHA: ea8b59433
+Git SHA: 22cc5d9ac
 Go Version: go1.27.2
 Go OS/Arch: linux/amd64
 

@@ -1,9 +1,9 @@
 Title: v3rpc: reject RangeStream sorted by a non-key target without an order
 
-`RangeStream` starts each chunk just after the last key of the previous chunk ([`rangeStream`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/etcdserver/v3_server.go#L244-L247)), so every chunk must be in key order. [`checkRangeStreamRequest`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/etcdserver/api/v3rpc/key.go#L173-L175) checks this with [`IsDefaultOrdering`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/etcdserver/txn/range.go#L97-L103), which is true for `SortOrder: NONE` with any target, but a non-key target with `NONE` is sorted ascending by that target ([`sortRangeResults`](https://github.com/etcd-io/etcd/blob/b25719d10cdc41fb707b0d9f819c2529dec5d590/server/etcdserver/txn/range.go#L125-L129)). This PR makes `checkRangeStreamRequest` reject every non-key sort target, and updates the two tests that expected such a stream to be accepted.
+`RangeStream` starts each chunk just after the previous chunk's last key ([`rangeStream`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/etcdserver/v3_server.go#L245-L248)), so chunks must be in key order. [`checkRangeStreamRequest`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/etcdserver/api/v3rpc/key.go#L173-L175) rejects other orders, assuming that [`IsDefaultOrdering`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/etcdserver/txn/range.go#L97-L103) holds only for key order, but it also holds for `SortOrder: NONE` with a non-key target, which [`sortRangeResults`](https://github.com/etcd-io/etcd/blob/22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4/server/etcdserver/txn/range.go#L125-L129) sorts ascending by that target. This PR makes `checkRangeStreamRequest` reject every non-key sort target.
 
 Fixes #<issue>
 
-`TestKVGetStreamSortByCreateRevision` runs the issue's example; it fails on `main` and passes with this change.
+The first commit adds a test of the issue's example, which fails on `main`, and stops two tests from streaming such a sort; the second, the fix, makes the new test pass.
 
 Written with the assistance of generative AI; I reviewed and tested every change.

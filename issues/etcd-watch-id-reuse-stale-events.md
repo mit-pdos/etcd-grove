@@ -8,12 +8,13 @@ candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
 
 # A reused watch id can deliver the canceled watcher's events on the new watch
 
-- **Status**: bug, reproduced (2026-10-16) at upstream `main` b25719d10 by the integration test
-  `TestV3WatchReuseCanceledID` on the fork branch `etcd-watch-id-reuse-stale-events` (the upstream
-  candidate): one raw watch stream, watch id 1 on `a`, ten 100 KiB puts of `a` while the client does
-  not read (gRPC flow control holds them in mvcc's channel), cancel, re-create id 1 on `b` from the
-  next revision, put `b`: the new watch receives 3-7 events of `a` before `b` (failed 10 of 10 runs).
-  The auto-assigned-id variant below is not reproduced.
+- **Status**: bug, reproduced (2026-10-16 at upstream `main` b25719d10; again 2026-10-18 at
+  22cc5d9ac) by the integration test `TestV3WatchReuseCanceledID` on the fork branch
+  `fix/etcd-watch-id-reuse-stale-events` (the upstream candidate): one raw watch stream, watch id 1
+  on `a`, ten 100 KiB puts of `a` while the client does not read (gRPC flow control holds them in
+  mvcc's channel), cancel (the test waits for the member's watcher count to drop), re-create id 1 on
+  `b` from the next revision, put `b`: the new watch receives 5-7 events of `a` before `b` (failed 80
+  of 80 runs at 22cc5d9ac). The auto-assigned-id variant below is not reproduced.
 - **Where**: `server/etcdserver/api/v3rpc/watch.go` at the pinned revision (`upamanyus/etcd`
   `bc8b52a50`): `serverWatchStream.sendLoop`, the buffering of a response whose id is not
   announced (lines 470–476: `pending[wresp.WatchID] = append(...)`), the cancel case
