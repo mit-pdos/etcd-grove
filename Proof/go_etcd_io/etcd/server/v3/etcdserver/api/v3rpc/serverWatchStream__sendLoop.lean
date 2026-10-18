@@ -480,16 +480,98 @@ theorem v3rpc.sendSt_neg1 (r : v3rpc.WRun GF) (idsL pendL : Loc) (rcv : List mvc
   obtain ⟨hI, hD, -, -⟩ := HSI
   ipureintro; exact v3rpc.neg1_sent hI hD
 
+/-! ## The proof's program points
+
+The proof below is split at three program points, so that the code after each is elaborated
+once: the `sendWatch` closure (its spec, `HsW`, proved once before the loop and used by the loop's
+`watchStream.Chan()` case and by the drain before a created response), the loop's `return`
+(the loop's postcondition `sendRet`, from which the deferred function runs once) and the end of
+the control case's `if c.Created` (`ctrlMid`, after which the rest of the control case runs
+once). -/
+
+/-- **What the send loop's return needs** (the deferred function, `send_return`): the mvcc
+channel's consumer and the buffered responses (`pending`, with `sendSt`'s slices). -/
+def v3rpc.retSt (r : v3rpc.WRun GF) (pendL : Loc) : IProp GF :=
+  iprop(∃ (rcvc rcv : List mvcc.RespM) (pend : w64 → List Nat) (PM : GMap w64 GoSlice),
+    mvcc.watchConsumer r.γc rcvc ∗ ownMap pendL (DFrac.own 1) PM ∗
+    [∗map] X ↦ sl ∈ PM, v3rpc.pendSl r rcv (pend X) sl)
+
+theorem v3rpc.retSt_intro (r : v3rpc.WRun GF) (pendL : Loc) (rcvc rcv : List mvcc.RespM)
+    (pend : w64 → List Nat) (PM : GMap w64 GoSlice) :
+    mvcc.watchConsumer r.γc rcvc ∗ ownMap pendL (DFrac.own 1) PM ∗
+      ([∗map] X ↦ sl ∈ PM, v3rpc.pendSl r rcv (pend X) sl) ⊢ v3rpc.retSt r pendL := by
+  iintro ⟨Hwc, HPM, Hpsl⟩
+  iunfold v3rpc.retSt
+  iexists rcvc, rcv, pend, PM
+  iframe
+
+theorem v3rpc.retSt_of_sendSt (r : v3rpc.WRun GF) (idsL pendL : Loc) (rcvc rcv : List mvcc.RespM)
+    (D : List v3rpc.WatchRespM) :
+    mvcc.watchConsumer r.γc rcvc ∗ v3rpc.sendSt r idsL pendL rcv D ⊢ v3rpc.retSt r pendL := by
+  iintro ⟨Hwc, HS⟩
+  iunfold v3rpc.sendSt at HS
+  icases HS with ⟨%S, %pend, %IM, %PM, -, -, HPM, -, #Hpsl, -⟩
+  iapply (v3rpc.retSt_intro r pendL rcvc rcv pend PM)
+  iframe Hwc HPM
+  iexact Hpsl
+
+/-- **The send loop's postcondition**: it returns (every exit of the loop is a `return`), with
+what the deferred function needs (`retSt`). -/
+def v3rpc.sendRet (r : v3rpc.WRun GF) (pendL : Loc) (v : val) : IProp GF :=
+  iprop(⌜v = returnVal #()⌝ ∗ v3rpc.retSt r pendL)
+
+theorem v3rpc.sendRet_intro (r : v3rpc.WRun GF) (pendL : Loc) :
+    v3rpc.retSt r pendL ⊢ v3rpc.sendRet r pendL (returnVal #()) := by
+  iintro H
+  iunfold v3rpc.sendRet
+  iframe H
+  ipureintro; rfl
+
+/-- **After the control case's `if c.Created`** (the drain before a created response, unit W-K,
+or nothing): the send loop's state, the created response's watcher and its `createdAfter`, for
+the rest of the control case; or (a failed send in the drain) the return. -/
+def v3rpc.ctrlMid (r : v3rpc.WRun GF) (sws idsL pendL : Loc) (γo : mvcc.WsStreamNames)
+    (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) (v : val) : IProp GF :=
+  iprop((⌜v = executeVal⌝ ∗ ∃ (rcv : List mvcc.RespM) (D : List v3rpc.WatchRespM),
+      v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.watchConsumer r.γc rcv ∗
+      v3rpc.sendSt r idsL pendL rcv D ∗
+      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗
+      v3rpc.ctrlWatcher r.srv.γ γo req m ∗ v3rpc.createdAfter r.γs D.length m) ∨
+    (⌜v = returnVal #()⌝ ∗ v3rpc.retSt r pendL))
+
+theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (sws idsL pendL : Loc) (γo : mvcc.WsStreamNames)
+    (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) (rcv : List mvcc.RespM)
+    (D : List v3rpc.WatchRespM) :
+    v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.watchConsumer r.γc rcv ∗
+      v3rpc.sendSt r idsL pendL rcv D ∗
+      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗
+      v3rpc.ctrlWatcher r.srv.γ γo req m ∗ v3rpc.createdAfter r.γs D.length m ⊢
+    v3rpc.ctrlMid r sws idsL pendL γo req m executeVal := by
+  iintro H
+  iunfold v3rpc.ctrlMid
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexists rcv, D
+  iexact H
+
+theorem v3rpc.ctrlMid_ret (r : v3rpc.WRun GF) (sws idsL pendL : Loc) (γo : mvcc.WsStreamNames)
+    (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) :
+    v3rpc.retSt r pendL ⊢ v3rpc.ctrlMid r sws idsL pendL γo req m (returnVal #()) := by
+  iintro H
+  iunfold v3rpc.ctrlMid
+  iright
+  iframe H
+  ipureintro; rfl
+
 end defs
 
 set_option hygiene false in
-/-- **The send loop's return** (any `return` of the loop): the deferred function stops the
-ticker, drains the mvcc stream's channel (`watchConsumer`) and reports the buffered responses
-(`pending`, from `sendSt`). -/
+/-- **The send loop's return** (the loop's postcondition `sendRet`, once for every `return` of
+the loop): the deferred function stops the ticker, drains the mvcc stream's channel
+(`watchConsumer`) and reports the buffered responses (`pending`, from `retSt`). -/
 local macro "send_return" : tactic => `(tactic| (
-  wp_for_post
   (try wp_auto)
-  (try wp_for_post)
   wp_apply hStop tk $$ []
   · iexact Htk
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty)
@@ -609,9 +691,45 @@ local macro "observe" h:term:max Ho:ident : tactic => `(tactic| (
   iintro !> -))
 
 set_option hygiene false in
+/-- `retSt` from the context: `Hret`, or the consumer `Hwc` and the send state `HS` (whole, or
+its buffer map `HPM` and slices `Hpsl`). -/
+local macro "ret_frame" : tactic => `(tactic| (
+  first
+  | iexact Hret
+  | (iapply (v3rpc.retSt_of_sendSt _ _ _ _ _ _)
+     isplitl [Hwc]
+     · iexact Hwc
+     iexact HS)
+  | (iapply (v3rpc.retSt_intro _ _ _ _ _ _)
+     isplitl [Hwc]
+     · iexact Hwc
+     isplitl [HPM]
+     · iexact HPM
+     iexact Hpsl)))
+
+set_option hygiene false in
+/-- **A `return` of the loop** (from its body, or a loop inside it): its postcondition
+`sendRet` (the deferred function runs after the loop, `send_return`). -/
+local macro "ret_exit" : tactic => `(tactic| (
+  wp_for_post
+  (try wp_auto)
+  (try wp_for_post)
+  iapply v3rpc.sendRet_intro
+  ret_frame))
+
+set_option hygiene false in
+/-- **A `return` inside the control case's `if c.Created`** (the drain's): `ctrlMid`'s return. -/
+local macro "ret_mid" : tactic => `(tactic| (
+  wp_for_post
+  (try wp_auto)
+  iapply v3rpc.ctrlMid_ret
+  ret_frame))
+
+set_option hygiene false in
 /-- **A failed send** (`serr != nil`, from `Send`'s error case `Hne`): the context's error and
-`isClientCtxErr` choose the log, then the loop returns (`send_return`). -/
-local macro "send_fail" : tactic => `(tactic| (
+`isClientCtxErr` choose the log, then the loop returns (`k`: `ret_exit`, or the `sendWatch`
+closure's `false`). -/
+local macro "send_fail" k:tactic : tactic => `(tactic| (
   rcases serr with ei | _
   rotate_left
   · exact absurd rfl Hne
@@ -645,7 +763,7 @@ local macro "send_fail" : tactic => `(tactic| (
     iunfold prometheus.counterSpec at Hcs
     wp_apply Hcs
     (try wp_auto)
-    send_return
+    $k
   · wp_apply hZE as %f -
     wp_apply wp_slice_literal (l := [f])
     isplitr
@@ -655,7 +773,7 @@ local macro "send_fail" : tactic => `(tactic| (
     wp_apply hZD r.srv.lg _ _ $$ []
     · iframe #; ipureintro; exact Hnn.2
     (try wp_auto)
-    send_return))
+    $k))
 
 set_option hygiene false in
 /-- `verify.Assert` of the control response's check, its condition computed to `true`. -/
@@ -668,11 +786,11 @@ local macro "ctrl_assert" : tactic => `(tactic| (
   wp_apply hAssert))
 
 set_option hygiene false in
-/-- **A received mvcc watch response, sent or buffered** (the `sendWatch` closure, inlined: the
-loop's `watchStream.Chan()` case and the drain before a `Created` response, unit W-K), from the
-receive (`Hres`) to the invariant of the loop it ends in: the main loop's (`rcv`, `cs`, `D`) or the
-drain's (`rcv`, `D`, `drained`): `k` gives the loop's witnesses for the responses sent `Dn`. -/
-local macro "watch_resp" k:tactic : tactic => `(tactic| (
+/-- **A received mvcc watch response, sent or buffered** (the `sendWatch` closure, called by the
+loop's `watchStream.Chan()` case and the drain before a `Created` response, unit W-K; its spec
+`HsW`), from the receive (`Hres`) to the closure's result: `true` (`Htrue`, with the responses
+sent `Dn`) or, a send failed, `false` (`Hfalse`). -/
+local macro "watch_resp" : tactic => `(tactic| (
   icases Hres with ⟨%x, Hwc, #HrI, #HrO, #HrW, #HrF, #HrP, #HrC, #HrR, #HrL, %Hridx⟩
   -- what the response says of the stream (unit W-M2)
   imod v3rpc.mvccExtra_of_recv r.γs r.γo r.γa r.γc x ⟨Hγoc.1, Hγoc.2.1⟩ $$ [Haux Hsp HrO HrF HrP]
@@ -794,13 +912,14 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
     iexact Hevs
   rw [HwvI.1]
   by_cases hd : ((IM !! x.id).isSome = true ∨ x.id = W64 (-1))
-  · by_cases h1 : x.id = W64 (-1)
-    all_goals (
-      simp only [h1, _root_.decide_true, decide_false, Bool.not_true, Bool.not_false, ↓reduceIte]
+  · -- an announced id, or `-1`: the response is sent (after the `if` on the id, once)
+    wp_bind (If _ _ _)
+    iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+        ownMap idsL (DFrac.own 1) IM ∗ wresp_ptr ↦ wv))) $$ [HIM wresp]
+    rotate_left
+    · iintro %v ⟨%Hv, HIM, wresp⟩
+      subst Hv
       (try wp_auto)
-      first
-      | (have hIMs : (IM !! wv.WatchID').isSome = true := (by rw [HwvI.1]; exact hd.resolve_right h1); wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.StructType []) idsL IM wv.WatchID' (DFrac.own 1)) $$ HIM as HIM; simp only [hIMs, _root_.decide_true, Bool.not_true, ↓reduceIte]; (try wp_auto))
-      | skip
       wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived)) _)
       iapply Hrep
       · itrivial
@@ -877,7 +996,7 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
       iintro !> %serr Hsr
       icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
       rotate_left
-      · send_fail
+      · send_fail (iapply Hfalse; ret_frame)
       subst Hserr
       (try wp_auto)
       wp_apply sync.RWMutex.wp_Lock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) $$ []
@@ -886,86 +1005,13 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
       iunfold v3rpc.swsMu at HP
       icases HP with ⟨%PM3, %VM3, %FM3, HPm, HVm, HFm, %HVF3⟩
       (try wp_auto)
-      by_cases hl : sint.Z (W64 0) < sint.Z wv.Events'.len
-      · simp only [hl, _root_.decide_true, ↓reduceIte]
-        (try wp_auto)
-        wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.pm PM3
-          wv.WatchID' _) $$ HPm as HPm
-        cases hb : (PM3 !! wv.WatchID').getD false
-        · (try wp_auto)
-          wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-            $$ [Hlk HPm HVm HFm]
-          · iframe #
-            iframe Hlk
-            inext
-            iunfold v3rpc.swsMu
-            iexists _, VM3, FM3
-            iframe HPm HVm HFm
-            ipureintro; exact HVF3
-          wp_apply time.wp_Since as %du -
-          wp_apply hSecP _ du $$ [totalDur] as %fs totalDur
-          · iframe totalDur; try iframe #
-          observe hs1 Ho1
-          (try wp_auto)
-          wp_apply hSecP _ du $$ [totalDur] as %fs2 totalDur
-          · iframe totalDur; try iframe #
-          (try wp_auto)
-          observe hs2 Ho2
-          (try wp_auto)
-          wp_for_post
-          iframe
-          obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩] := ⟨_, rfl⟩
-          $k
-          subst hDn
-          iframe
-          iunfold v3rpc.sendSt
-          iexists S ++ [rcv.length], pend, IM, PM
-          ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
-          iframe HIM HPM Hcaps Hpsl2 Hrok2
-          ipureintro
-          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
-            v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
-          rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
-          simp [v3rpc.mvccResp]
-        · (try wp_auto)
-          wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.pm PM3
-            wv.WatchID' false) $$ HPm as HPm
-          (try wp_auto)
-          wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
-            $$ [Hlk HPm HVm HFm]
-          · iframe #
-            iframe Hlk
-            inext
-            iunfold v3rpc.swsMu
-            iexists _, VM3, FM3
-            iframe HPm HVm HFm
-            ipureintro; exact HVF3
-          wp_apply time.wp_Since as %du -
-          wp_apply hSecP _ du $$ [totalDur] as %fs totalDur
-          · iframe totalDur; try iframe #
-          observe hs1 Ho1
-          (try wp_auto)
-          wp_apply hSecP _ du $$ [totalDur] as %fs2 totalDur
-          · iframe totalDur; try iframe #
-          (try wp_auto)
-          observe hs2 Ho2
-          (try wp_auto)
-          wp_for_post
-          iframe
-          obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩] := ⟨_, rfl⟩
-          $k
-          subst hDn
-          iframe
-          iunfold v3rpc.sendSt
-          iexists S ++ [rcv.length], pend, IM, PM
-          ihave #Hpsl2 := v3rpc.pendSls_snoc r rcv x pend PM $$ Hpsl
-          iframe HIM HPM Hcaps Hpsl2 Hrok2
-          ipureintro
-          refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
-            v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
-          rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
-          simp [v3rpc.mvccResp]
-      · simp only [hl, decide_false, ↓reduceIte]
+      -- `if len(evs) > 0 && sws.progress[wresp.WatchID]` (then the rest, once)
+      wp_bind (If (If _ _ _) _ _)
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
+          (∃ PMx : GMap w64 Bool, ownMap r.pm (DFrac.own 1) PMx) ∗ wresp_ptr ↦ wv))) $$ [HPm wresp]
+      rotate_left
+      · iintro %v ⟨%Hv, ⟨%PMx, HPm⟩, wresp⟩
+        subst Hv
         (try wp_auto)
         wp_apply sync.RWMutex.wp_Unlock_guard (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm)
           $$ [Hlk HPm HVm HFm]
@@ -986,10 +1032,8 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
         (try wp_auto)
         observe hs2 Ho2
         (try wp_auto)
-        wp_for_post
-        iframe
         obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D ++ [v3rpc.mvccResp x ⟨r.srv.cid, r.srv.mid, wv.Revision', tt, ll⟩] := ⟨_, rfl⟩
-        $k
+        iapply Htrue $$ %x %Dn
         subst hDn
         iframe
         iunfold v3rpc.sendSt
@@ -1000,7 +1044,45 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
         refine ⟨v3rpc.sendInv_recv_direct hI hd, ?_, hPM,
             v3rpc.idsLive_src _ _ _ (by simp [v3rpc.mvccResp]) hL⟩
         rw [List.filterMap_append, hD, List.filterMap_append, v3rpc.filterMap_snoc_bound _ _ _ hI.bound]
-        simp [v3rpc.mvccResp])
+        simp [v3rpc.mvccResp]
+      by_cases hl : sint.Z (W64 0) < sint.Z wv.Events'.len
+      · simp only [hl, _root_.decide_true, ↓reduceIte]
+        (try wp_auto)
+        wp_apply (wp_map_lookup1 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool r.pm PM3
+          wv.WatchID' _) $$ HPm as HPm
+        cases hb : (PM3 !! wv.WatchID').getD false
+        · (try wp_auto)
+          isplitr
+          · ipureintro; rfl
+          iframe wresp
+          iexists _
+          iexact HPm
+        · (try wp_auto)
+          wp_apply (wp_mapInsert go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty r.pm PM3
+            wv.WatchID' false) $$ HPm as HPm
+          (try wp_auto)
+          isplitr
+          · ipureintro; rfl
+          iframe wresp
+          iexists _
+          iexact HPm
+      · simp only [hl, decide_false, ↓reduceIte]
+        (try wp_auto)
+        isplitr
+        · ipureintro; rfl
+        iframe wresp
+        iexists _
+        iexact HPm
+    by_cases h1 : x.id = W64 (-1)
+    all_goals (
+      simp only [h1, _root_.decide_true, decide_false, Bool.not_true, Bool.not_false, ↓reduceIte]
+      (try wp_auto)
+      first
+      | (have hIMs : (IM !! wv.WatchID').isSome = true := (by rw [HwvI.1]; exact hd.resolve_right h1); wp_apply (wp_map_lookup2 go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty (go.StructType []) idsL IM wv.WatchID' (DFrac.own 1)) $$ HIM as HIM; simp only [hIMs, _root_.decide_true, Bool.not_true, ↓reduceIte]; (try wp_auto))
+      | skip
+      isplitr
+      · ipureintro; rfl
+      iframe HIM wresp)
   · have hX1 : x.id ≠ W64 (-1) := fun h => hd (Or.inr h)
     have hIMn : (IM !! x.id) = none := by
       cases h : IM !! x.id with
@@ -1050,10 +1132,8 @@ local macro "watch_resp" k:tactic : tactic => `(tactic| (
       $$ HPM as HPM
     rw [HwvI.1]
     (try wp_auto)
-    wp_for_post
-    iframe
     obtain ⟨Dn, hDn⟩ : ∃ Dn : List v3rpc.WatchRespM, Dn = D := ⟨_, rfl⟩
-    $k
+    iapply Htrue $$ %x %Dn
     subst hDn
     iframe
     iunfold v3rpc.sendSt
@@ -1253,7 +1333,7 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
     iintro !> %serr Hsr
     icases Hsr with (⟨%Hserr, Hst⟩ | ⟨%Hne, #Hse, Hst⟩)
     rotate_left
-    · send_fail
+    · send_fail ret_exit
     subst Hserr
     (try wp_auto)
     wp_for_post
@@ -1311,8 +1391,8 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
         exact hY))
 
 set_option hygiene false in
-/-- The drain's invariant after a response it sent or buffered (`watch_resp`'s exit; not drained,
-`hdr0`). -/
+/-- The drain's invariant after a response it sent or buffered (`sendWatch` returned `true`; not
+drained, `hdr0`). -/
 local macro "drain_exit" : tactic => `(tactic| (
   iexists rcv ++ [x], Dn, dr
   isplitr
@@ -1322,7 +1402,7 @@ local macro "drain_exit" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- **The drain before a created response** (unit W-K): the watch responses queued on the
-channel are sent (`watch_resp`) until a non-blocking receive finds it empty
+channel are sent (`sendWatch`, `HsW`) until a non-blocking receive finds it empty
 (`watch_tryrecv_au_alt`), which shows that every response sent on the channel by then was
 received, so the received list `rcv` extends the snapshot `l0` (`Hl0`); after the loop, `Hdl`. -/
 local macro "drain_created" : tactic => `(tactic| (
@@ -1371,9 +1451,20 @@ local macro "drain_created" : tactic => `(tactic| (
         · simp only [mvcc.watchRecvResult, Bool.false_eq_true, ↓reduceIte]
           irename Hres => Hwc
           wp_auto
-          send_return
-        simp only [mvcc.watchRecvResult, ↓reduceIte]
-        watch_resp drain_exit
+          ret_mid
+        -- `sendWatch(wresp)` (`HsW`)
+        wp_auto
+        wp_bind (App (App (Val (GoInstruction (GoLoad _))) (Val #sendWatch_ptr)) _)
+        iapply HsW $$ Hres Hst HS Hmu [-] []
+        · iintro %x %Dn ⟨Hst, Hwc, HS, Hmu⟩
+          wp_auto
+          wp_for_post
+          iframe
+          drain_exit
+          iframe
+        · iintro Hret
+          wp_auto
+          ret_mid
       · iintro Hwc %Hpre #Hsnap
         iframe
         iframe #
@@ -1509,7 +1600,16 @@ local macro "ctrl_rest" : tactic => `(tactic| (
       wp_auto
       ctrl_assert
       ctrl_created (W64 (-1))
-  send_fail))
+  send_fail ret_exit))
+
+set_option hygiene false in
+/-- **The end of the control case's `if c.Created`**: `ctrlMid` (the rest of the control case
+follows it, `ctrl_rest`). -/
+local macro "ctrl_mid_exec" : tactic => `(tactic| (
+  (try wp_auto)
+  iapply (v3rpc.ctrlMid_exec r sws idsL pendL γo req m rcv D)
+  iframe
+  iexact Hord))
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1598,6 +1698,26 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ipersist ids
   ipersist pending
   ipersist progressTicker
+  -- **the `sendWatch` closure** (its spec, for its calls in the loop and in the drain)
+  ipersist sendWatch
+  ihave #HsW : iprop(□ ∀ (rcv : List mvcc.RespM) (D : List v3rpc.WatchRespM)
+      (wv : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (Ψ : val → IProp GF),
+      mvcc.watchRecvResult r.srv.γ r.γc rcv wv true -∗
+      v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D -∗ v3rpc.sendSt r idsL pendL rcv D -∗
+      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) -∗
+      (∀ (x : mvcc.RespM) (Dn : List v3rpc.WatchRespM),
+        v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs Dn ∗
+          mvcc.watchConsumer r.γc (rcv ++ [x]) ∗ v3rpc.sendSt r idsL pendL (rcv ++ [x]) Dn ∗
+          sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) -∗ Ψ #true) -∗
+      (v3rpc.retSt r pendL -∗ Ψ #false) -∗
+      WP (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature
+          [go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse.ty] false [go.bool])))))
+          (Val #sendWatch_ptr)) (Val #wv)) {{ Ψ }}) $$ []
+  · iintro !> %rcv %D %wv %Ψ Hres Hst HS Hmu Htrue Hfalse
+    as_aux_lemma =>
+      simp only [mvcc.watchRecvResult, ↓reduceIte]
+      watch_resp
+  iclear sendWatch
   ihave Hinv : iprop(∃ (rcv : List mvcc.RespM) (cs : List Loc) (D : List v3rpc.WatchRespM),
       "Hst" ∷ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗
       "Hcons" ∷ spscConsumer r.γctrl cs ∗ "Hwc" ∷ mvcc.watchConsumer r.γc rcv ∗
@@ -1617,6 +1737,18 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     iunfold v3rpc.rcvOk
     iintro !> %n %x %h
     simp at h
+  -- the loop's postcondition: it returns (`sendRet`), then the deferred function runs
+  wp_bind (App (App (App (Val doFor) _) _) _)
+  iapply (wp_wand (Φ := v3rpc.sendRet r pendL)) $$ [- HΦ Hdefer]
+  rotate_left
+  · iintro %v Hv
+    iunfold v3rpc.sendRet at Hv
+    icases Hv with ⟨%Hv, Hret⟩
+    subst Hv
+    iunfold v3rpc.retSt at Hret
+    icases Hret with ⟨%rcv', %rcv, %pend, %PM, Hwc, HPM, #Hpsl⟩
+    as_aux_lemma =>
+      send_return
   wp_for Hinv
   wp_apply +noauto hChan r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo as %ch' ⟨-, #Hch'⟩
   · iframe #
@@ -1640,9 +1772,20 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     · simp only [mvcc.watchRecvResult, Bool.false_eq_true, ↓reduceIte]
       irename Hres => Hwc
       wp_auto
-      send_return
-    simp only [mvcc.watchRecvResult, ↓reduceIte]
-    watch_resp (iexists rcv ++ [x], cs, Dn)
+      ret_exit
+    -- `sendWatch(wresp)` (`HsW`)
+    wp_auto
+    wp_bind (App (App (Val (GoInstruction (GoLoad _))) (Val #sendWatch_ptr)) _)
+    iapply HsW $$ Hres Hst HS Hmu [-] []
+    · iintro %x %Dn ⟨Hst, Hwc, HS, Hmu⟩
+      wp_auto
+      wp_for_post
+      iframe
+      iexists rcv ++ [x], cs, Dn
+      iframe
+    · iintro Hret
+      wp_auto
+      ret_exit
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `c, ok := <-sws.ctrlStream`
@@ -1660,7 +1803,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hres with ⟨-, %Hz⟩
       wp_auto
-      send_return
+      ret_exit
     simp only [↓reduceIte]
     icases Hres with ⟨HP, Hcons⟩
     iunfold v3rpc.ctrlP at HP
@@ -1673,6 +1816,20 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     iunfold v3rpc.watchRespMsg at Hmsg0
     icases Hmsg0 with ⟨%Hln0, %hh0, %esl0, %eps0, -, -, -, #HfCr0, -, -, -, -, -, -, -, -⟩
     wp_auto
+    wp_bind (If _ _ _)
+    iapply (wp_wand (Φ := v3rpc.ctrlMid r sws idsL pendL γo req m)) $$ [Hst Hwc HS Hmu Hcw]
+    rotate_left
+    · -- after the `if` (`ctrlMid`): the rest of the control case, or the drain's return
+      iintro %v Hv
+      iunfold v3rpc.ctrlMid at Hv
+      icases Hv with (⟨%Hv, %rcv, %D, Hst, Hwc, HS, Hmu, Hcw, #Hord⟩ | ⟨%Hv, Hret⟩)
+      · subst Hv
+        as_aux_lemma =>
+          wp_auto
+          ctrl_rest
+      · subst Hv
+        wp_auto
+        ret_exit
     cases hcr0 : m.created
     · try simp only [hcr0, Bool.false_eq_true, ↓reduceIte]
       (try wp_auto)
@@ -1681,7 +1838,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
         rw [hcr0]
         simp only [Bool.false_and, Bool.false_eq_true, ↓reduceIte]
         itrivial
-      ctrl_rest
+      ctrl_mid_exec
     · try simp only [hcr0, ↓reduceIte]
       (try wp_auto)
       -- the snapshot to drain past (unit W-K): the created response's, or the empty one
@@ -1723,7 +1880,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           isplitr
           · ipureintro; exact Hn0l
           ipureintro; exact ⟨Hl0rcv, rfl, Hneg⟩
-        ctrl_rest
+        ctrl_mid_exec
       · -- a refused create: nothing to say (`createdAfter` is `True`), the drain all the same
         imod (monoListLbOwn_nil (GF := GF) (A := mvcc.RespM) r.γc.sentl) with #Hl0n
         obtain ⟨l0, hl0⟩ : ∃ l0 : List mvcc.RespM, l0 = [] := ⟨_, rfl⟩
@@ -1735,7 +1892,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           rw [hca0]
           simp only [Bool.not_true, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
           itrivial
-        ctrl_rest
+        ctrl_mid_exec
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-progressTicker.C`
@@ -1832,7 +1989,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     iapply broadcast_chan_receive _ _ _ _ _ $$ Hcc
     iintro -
     wp_auto
-    send_return
+    ret_exit
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

@@ -5646,6 +5646,16 @@ of 447 lines; etcd 955 of 3599 functions verified (940 before).
   sent the canceled watcher's buffered events; from the proof's model, not reproduced). Checked and
   not a bug: `sendLoop`'s `events[i].PrevKv = …` writes an event mvcc allocated for this watcher
   alone (`newWatcherBatch` copies each event per watcher), so no other watcher sees it.
+- **`sendLoop`'s proof, build time** (2026-10-18): its macros were expanded many times
+  (~8,750 lines of tactics; 470 s, 11.3 GiB). The code after three program points is now proved
+  once: the `sendWatch` closure (a spec `HsW` proved before the loop, used by the loop and the
+  drain), the loop's `return` (`wp_wand` with the postcondition `sendRet`, then the deferred
+  function), the end of the control case's `if c.Created` (`wp_wand` with `ctrlMid`), and inside
+  the closure the code after the id check and after the progress check (`wp_wand`); the three big
+  pieces are `as_aux_lemma`s. About 100 s, 3.4 GiB, one theorem still. Not split into separate
+  theorems: their statements would need the Goose program text (closures, continuations) copied;
+  lemmas for the ghost reasoning alone would not help (sorrying it all saves nothing measurable:
+  the time is in the program stepping).
 - **Axioms** (new: 3): `v3rpc.isClientCtxErr` (grpc's `status.FromError`), `rand.Int63n`
   (`math/rand`), `time.Duration.Seconds_ptr` (`(*Duration).Seconds`: Goose calls the value method
   through the pointer on an addressable variable; Perennial's `time` has no `Duration.Seconds`, so
