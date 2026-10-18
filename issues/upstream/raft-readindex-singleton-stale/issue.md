@@ -1,13 +1,13 @@
-Title: A new leader of a single-voter configuration answers ReadIndex with a stale index
+Title: ReadIndex can return a stale index after a removal leaves a single voter
 
 ### What happened?
 
-With `ReadOnlySafe`, a read index can miss a committed entry once a removal leaves a single voter:
+With `ReadOnlySafe`:
 
 1. Nodes 1 and 2 are the voters; node 2 leads.
-2. Node 2 proposes its own removal (index 2) and, before applying it, an entry `x` (index 3). Both nodes append both entries, and node 2 commits them.
+2. Node 2 proposes its own removal (index 2) and, before applying it, an entry `x` (index 3); both nodes append both, and node 2 commits them.
 3. The message telling node 1 that index 3 is committed is lost. Node 1 applies the removal and becomes leader as the only voter.
-4. Node 1 answers a read index request at once with index 2, which misses `x`.
+4. Before committing an entry in its new term, node 1 answers a read index request at once with index 2, missing `x`.
 
 The test below runs these steps (output trimmed):
 
@@ -29,7 +29,7 @@ Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/
 
 ### Anything else we need to know?
 
-A leader that removed itself has the same problem: unless `StepDownOnRemoval` is set, node 2 stays leader after applying its removal and answers a read index request at once, without hearing from node 1, the only voter, which may have elected itself and committed newer entries since ([`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2190-L2223) on the same branch). `StepDownOnRemoval` avoids only this second case.
+A leader that removed itself has the same problem: unless `StepDownOnRemoval` is set, node 2 stays leader and answers a read index request at once, without hearing from node 1, which may have elected itself and committed newer entries since ([`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2190-L2223) on the same branch). `StepDownOnRemoval` avoids only this second case.
 
 I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this report myself.
 

@@ -30,10 +30,9 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, two commits:
-  3130f9e adds the tests, which fail there; 77ab0c9 is the fix. Not yet pushed: `upamanyus/etcd-raft` has an
-  earlier single-commit version (dcb4fe2) until the force-push
+  3130f9e adds the tests, which fail there; 77ab0c9 is the fix. Force-pushed 2026-10-18 to `upamanyus/etcd-raft`
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`, the branch the links in
-  `issue.md` name).
+  `issue.md` name; its lines 2154-2188 and 2190-2223 are the two tests).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft, revised after the user's review and a code review (2026-10-18)
 - **Upstream issue**: —
