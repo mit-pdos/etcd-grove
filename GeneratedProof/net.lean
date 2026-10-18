@@ -796,25 +796,6 @@ instance PacketConn_into_val_typed :
 end def_
 end PacketConn
 
-namespace Listener
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-instance Listener_typed_pointsto :
-    TypedPointsto (GF := GF) net.Listener :=
-  sorry -- axiomatized type
-
-instance Listener_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.Listener net.Listener.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Listener
-
 namespace Error
 section def_
 

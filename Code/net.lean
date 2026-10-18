@@ -583,8 +583,6 @@ axiom conn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom PacketConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Listener.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom canceledError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -2985,18 +2983,15 @@ attribute [instance] PacketConn.TypeAssumptions.type_repr
   PacketConn.TypeAssumptions.underlying
   PacketConn.TypeAssumptions.isUnderlying
 
-axiom Listener : Type
-axiom Listener.zero_val : ZeroVal Listener
-attribute [instance] Listener.zero_val
+abbrev Listener [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Listener.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Accept" (go.signature.Signature [] false [Conn.ty, go.error])), (go.InterfaceElem.MethodElem go!"Addr" (go.signature.Signature [] false [Addr.ty])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error]))])
 
 class Listener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Listener.underlying Listener
   underlying : go.UnderlyingDirectedEq Listener.ty Listener.underlying
-  isUnderlying : go.IsUnderlying Listener.underlying Listener.underlying
 
-attribute [instance] Listener.TypeAssumptions.type_repr
-  Listener.TypeAssumptions.underlying
-  Listener.TypeAssumptions.isUnderlying
+attribute [instance] Listener.TypeAssumptions.underlying
 
 axiom Error : Type
 axiom Error.zero_val : ZeroVal Error
