@@ -41,7 +41,7 @@ theorem lessor.KeepAlive.wp_proof
   wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hctx⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -60,7 +60,7 @@ theorem lessor.KeepAlive.wp_proof
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+  icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
   (try wp_auto)
   wp_bind (App (Val (GoInstruction SelectStmt)) _)
   iapply chan.wp_select_nonblocking
@@ -77,7 +77,7 @@ theorem lessor.KeepAlive.wp_proof
       iapply broadcast_chan_receive _ _ _ _ _ $$ Hdcu
       iintro -
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg]
       · inext; unfold lessorInv; iexists mref, mm, stv, scf, e; iframe; iframe #
       (try wp_auto)
       wp_apply wp_chanTok_close ch $$ [$Htok]
@@ -107,6 +107,8 @@ theorem lessor.KeepAlive.wp_proof
     subst Hc
     ihave #Hctx' := Hic $$ %cd Hctx
     (try wp_auto)
+    -- register the pair `(ch, c')` at `&ctx` (the variable is not written again)
+    imod lessorReg_register ⊤ γr ctx_ptr ch (GoInterface.ok c') $$ [$Hreg $ctx] with ⟨Hreg, #Hkr, #ctx⟩
     rcases Hlk : mm !! id with _ | ka
     · simp only [Option.isSome_none, Bool.false_eq_true, decide_false, Bool.not_false]
       (try wp_auto)
@@ -141,14 +143,15 @@ theorem lessor.KeepAlive.wp_proof
         iexists c', _
         iframe #
         ipureintro; rfl
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf chs Hchsl Hchscap ctxs
+      ihave #Hpair1 := kaPaired_singleton γr ch (GoInterface.ok c') $$ Hkr
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg chs Hchsl Hchscap ctxs
         Hctxsl Hctxscap deadline nextKeepAlive Hkpend Htoks]
       · inext
         unfold lessorInv
         iexists mref, _, stv, scf, e
         iframe
         iframe #
-        iapply (BigSepM.bigSepM_insert (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+        iapply (BigSepM.bigSepM_insert (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
           (m := mm) Hlk).2
         iframe HM
         unfold kaOwn
@@ -199,11 +202,11 @@ theorem lessor.KeepAlive.wp_proof
       iexists γ
       iexact Hany
     · simp only [Option.isSome_some, _root_.decide_true, Bool.not_true, Option.getD_some]
-      icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+      icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
         (m := mm) Hlk).1 $$ HM with ⟨Hka, HMback⟩
       iunfold kaOwn at Hka
       icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd', %γkd', Hchs, Hchsl, Hchscap,
-        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd', Hpend, Htoks, #Hctxok⟩
+        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd', Hpend, Htoks, #Hctxok, #Hpair⟩
       ihave #Hkd'2 := Hkd'
       iunfold kaDone at Hkd'2
       icases Hkd'2 with ⟨#Hkdf, #Hkdu⟩
@@ -236,7 +239,8 @@ theorem lessor.KeepAlive.wp_proof
         iexists c', _
         iframe #
         ipureintro; rfl
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HMback Hstf Hscf Herrf Hchs Hchsl Hchscap
+      ihave #Hpair' := kaPaired_snoc γr chs ctxs ch (GoInterface.ok c') Hlen $$ [$Hpair $Hkr]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HMback Hstf Hscf Herrf Hreg Hchs Hchsl Hchscap
         Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks']
       · inext
         unfold lessorInv

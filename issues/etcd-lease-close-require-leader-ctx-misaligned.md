@@ -73,11 +73,21 @@ canceled (or the lease expires / the keep-alive halts); each channel with its ow
 
 **How the proof handles it**: `closeRequireLeader` is proved at the fixed pin
 (`Proof/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean`), to safety under the lessor's
-lock invariant (it closes each channel with its token, once, and leaves `kaOwn` of the keep-alive:
-equal lengths, a token per channel, a context per context). The invariant does not pair a channel
-with its context, so the proof would go through at upstream's code too: the fix is not what the
-proof checks. `isEtcdLease`'s `KeepAlive` promises nothing of when the channel closes; a spec of
-the close on cancel would need that pairing.
+lock invariant, and the invariant now checks the alignment (2026-10-18): each keep-alive's `chs[i]`
+and `ctxs[i]` are a pair `KeepAlive` registered (`kaPaired`, `kaReg`, in
+`Proof/go_etcd_io/etcd/client/v3/InvLessor.lean`). The registry is a ghost map from `KeepAlive`'s
+`&ctx` (the variable its wrapped context is stored in, held persistently afterwards) to the channel
+it made, and a key is added only with the variable's full points-to, so the registered pairs are
+`KeepAlive`'s `(ch, ctx)`. `closeRequireLeader`'s compaction must show that each pair it copies,
+`(ka.chs[i], ka.ctxs[i])`, is registered (the scan's `crlPreOk`: a channel it left is `chs[i]`);
+at upstream's code the pair is `(ka.chs[i], ka.ctxs[newIdx])`, which the invariant does not give
+when `newIdx < i`: the proof fails there. Checked by translating the buggy line (the `ctxs` index
+`i` turned back to `newIdx` in the translation, temporarily) and adapting the proof to it: one goal
+is left, `kaReg γr ka.chs[i] ka.ctxs[newIdx]`, which the invariant does not give. `keepAliveCtxCloser` and `KeepAlive` keep the alignment too (same-index removal,
+appends). What is still not stated: that the context `keepAliveCtxCloser` finds is its own `ctx`
+(`context.Value`'s trust-boundary spec says only that it returns `nil` or some pointer), so no
+spec promises "canceling `ctx` closes the channel `KeepAlive` returned for it"; `isEtcdLease`'s
+`KeepAlive` promises nothing of when the channel closes.
 
 **Possible fixes**: `ka.ctxs[i]` in place of `ka.ctxs[newIdx]`.
 

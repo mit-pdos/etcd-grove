@@ -39,7 +39,7 @@ theorem lessor.resetRecv.wp_proof
   wp_start as ⟨#Hl, #Hstr⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   iunfold lessorRemoteAt at Hrem
   icases Hrem with ⟨%rlc, %conn, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
@@ -87,7 +87,7 @@ theorem lessor.resetRecv.wp_proof
     (try wp_auto)
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
     iunfold lessorInv at Hinv
-    icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herr⟩
+    icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herr, Hreg⟩
     (try wp_auto)
     cases stv with
     | nil =>
@@ -97,7 +97,7 @@ theorem lessor.resetRecv.wp_proof
         · iframe #; iframe
         itrivial
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
       · inext; unfold lessorInv; iexists mref, mm, st, cancel, e; iframe; iframe #
         iright; unfold cancelAny; iexists γs; iexact Hcancel
       (try wp_auto)
@@ -118,7 +118,7 @@ theorem lessor.resetRecv.wp_proof
           · iframe #; iframe
           itrivial
         (try wp_auto)
-        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr]
+        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
         · inext; unfold lessorInv; iexists mref, mm, st, cancel, e; iframe; iframe #
           iright; unfold cancelAny; iexists γs; iexact Hcancel
         (try wp_auto)
@@ -144,7 +144,7 @@ theorem lessor.resetRecv.wp_proof
           · iframe #; iframe
           itrivial
         (try wp_auto)
-        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr]
+        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
         · inext; unfold lessorInv; iexists mref, mm, st, cancel, e; iframe; iframe #
           iright; unfold cancelAny; iexists γs; iexact Hcancel
         (try wp_auto)
