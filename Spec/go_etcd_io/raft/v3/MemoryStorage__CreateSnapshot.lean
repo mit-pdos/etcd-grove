@@ -49,9 +49,10 @@ place (`EnsureSnapshot(ms.snapshot)`, then `Metadata.Index`/`Term` replaced by f
 returns `nil` (until the retarget a zero snapshot value). So `cs` is read at any fraction
 (`ownCSM cs dq c`, given back; until the retarget its slices were kept by the storage,
 read-only, `ownCSL`), and the bytes of `data` are taken (`data ↦* bs`, full: the storage's
-snapshot owns them; given back on the error path). `memStorMeta` is not needed any more. -/
+snapshot owns them; given back on the error path). `memStorMeta` is not needed any more. D17d (2026-10-18): it changes the snapshot, so it takes the
+application's snapshot token too (`memSnapTok`), given back at the new snapshot. -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (i : w64) (cs : Loc) (dq : DFrac)
+  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (i : w64) (cs : Loc) (dq : DFrac)
     (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
   σ.pend = [] →
   (uint.Z σ.ss.index' < uint.Z i →
@@ -59,6 +60,7 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
     uint.Z i ≤ uint.Z σ.prev.index' + (σ.ents.length : Int)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
+      "Htok" ∷ memSnapTok ms γs σt ∗
       "Hcs" ∷ (match oc with
                | none => iprop(⌜cs = null⌝)
                | some c => ownCSM cs dq c) ∗
@@ -71,13 +73,16 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
        | none => iprop(⌜cs = null⌝)
        | some c => ownCSM cs dq c) ∗
       ((⌜uint.Z i ≤ uint.Z σ.ss.index' ∧ snap' = null ∧ err = eood⌝ ∗
-        ownMemoryStorage ms γs σ ∗ data ↦* bs) ∨
+        ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt ∗ data ↦* bs) ∨
       (∃ (t : w64), ⌜uint.Z σ.ss.index' < uint.Z i ∧ termAt σ.prev σ.ents i = some t ∧
           err = interface.nil⌝ ∗
         ownSnapM snap' (DFrac.own 1) (memSnapCreated σ i t oc bs) ∗
         ownMemoryStorage ms γs { σ with ss := entryID.mk t i,
                                         scs := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.lists,
-                                        sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave' })) }}
+                                        sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave' } ∗
+        memSnapTok ms γs { σ with ss := entryID.mk t i,
+                                  scs := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.lists,
+                                  sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave' })) }}
 
 end spec
 

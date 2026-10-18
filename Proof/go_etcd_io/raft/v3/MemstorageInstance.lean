@@ -139,7 +139,7 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     imodintro
     iintro %Φ ⟨⟨Hown, %Hss⟩, #Hesu⟩ HΦ
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init $$ Hown
-    wp_apply MemoryStorage.wp_Snapshot $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+    wp_apply MemoryStorage.wp_Snapshot.1 $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
     iframe Hown
     isplitr
@@ -184,14 +184,15 @@ class MemStorReg (GF : BundledGFunctors) where
   memStorRegName : GName
 
 /-- A storage's names, as the registry records them. -/
-abbrev MemStorNamesRec := GName × GName × GName
+abbrev MemStorNamesRec := GName × GName × GName × GName × GName × GName × GName × GName
 
-def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec := (γs.hist, γs.done, γs.ep)
+def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
+  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak)
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2 := by
   cases γs1; cases γs2
   simp only [MemStorNames.tuple, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 section model
@@ -477,7 +478,7 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
     iintro %Φ ⟨Hown, #Hesu⟩ HΦ
     ihave ⟨Hown, %Hss⟩ := memOwnStorage_at ms γs σ $$ Hreg Hown
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
-    wp_apply MemoryStorage.wp_Snapshot $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+    wp_apply MemoryStorage.wp_Snapshot.1 $$ [$Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
     ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
     iframe Hown

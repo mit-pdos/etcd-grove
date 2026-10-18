@@ -49,7 +49,7 @@ theorem Storage.Snapshot.wp_proof
   iNamed Hinit
   icombine ErrSnapUnavail Hesu gives %Hesu_eq
   wp_auto
-  wp_apply wp_MemoryStorage_Snapshot ms γs σ esu $$ [$Hraftinit $Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
+  wp_apply wp_MemoryStorage_Snapshot.1 ms γs σ esu $$ [$Hraftinit $Hown $Hesu] as %snap %err ⟨Hown, Hr⟩
   cases err with
   | nil =>
     -- no error: the clone; `ErrSnapshotTemporarilyUnavailable` is not `nil`

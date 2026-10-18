@@ -55,17 +55,32 @@ theorem NewMemoryStorage.wp_proof
   imod mono_list_own_alloc (GF := GF) [memStorEmpty] with ⟨%γd, Hd, -⟩
   icases (monoAuth_halves γd [memStorEmpty]).1 $$ Hd with ⟨Hd1, Hd2⟩
   imod ghostVar_alloc (GF := GF) (memStorEmpty, ([] : List StorState)) with ⟨%γe, He⟩
-  imod sync.init_Mutex (memstorageInv «$r0_ptr» ⟨γh, γd, γe⟩) ⊤ («$r0_ptr».[MemoryStorage, go!"Mutex"])
-    $$ Mutex [Hd1 hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term
+  -- (D17d) the snapshot's ghost value, where it is, and the keys
+  imod ghostVar_alloc (GF := GF) (snapPart memStorEmpty) with ⟨%γsn, Hsn⟩
+  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γsw, Hsw⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γlk, Hlk⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γok, Hok⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γak, Hak⟩
+  ihave Hlk : memKey (GF := GF) γlk $$ [Hlk]
+  · iunfold memKey; iexact Hlk
+  ihave Hok : memKey (GF := GF) γok $$ [Hok]
+  · iunfold memKey; iexact Hok
+  ihave Hak : memKey (GF := GF) γak $$ [Hak]
+  · iunfold memKey; iexact Hak
+  imod sync.init_Mutex (memstorageInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak⟩) ⊤
+    («$r0_ptr».[MemoryStorage, go!"Mutex"])
+    $$ Mutex [Hd1 Hlk hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term
       cs_snapshot Hsl_cap] with #Hmu
   · inext
     unfold memstorageInv
     iexists memStorEmpty
-    isplitl [Hd1]
+    isplitl [Hd1 Hlk]
     · unfold memInvGhost
       iexists [memStorEmpty]
       iframe Hd1 Hhlb
-      ipureintro; rfl
+      isplitr
+      · ipureintro; rfl
+      iexact Hlk
     isplitl
     · unfold memstorageFields
       iexists null, slice.mk slp (W64 1) (W64 1), zero_val EntryM, _, _, _, _, _
@@ -81,20 +96,51 @@ theorem NewMemoryStorage.wp_proof
         iapply entsBig_nil
       ipureintro; exact ⟨rfl, rfl⟩
     ipureintro; simp only [memStorEmpty, List.length_nil]; word
+  iapply wp_fupd
   wp_apply wp_EnsureSnapshot null none $$ [] as %sp ⟨Hsp, -⟩
   · simp only [snapOpt]; ipureintro; trivial
   simp only [Option.getD_none]
   ihave Hsp := ownSnapW_E $$ Hsp
   ihave Hsp := ownSnapE_weaken $$ Hsp
-  iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe⟩ : MemStorNames)
-  isplitr [HhardState cs_initialState]
+  -- (D17d) the snapshot's invariant, the snapshot at home; the quarters
+  ihave Hsw : ghostVar γsw ((1 : Qp).half + (1 : Qp).half) (0 : Nat) $$ [Hsw]
+  · rw [Qp.half_add_half]; iexact Hsw
+  icases ghostVar_split γsw _ _ _ $$ Hsw with ⟨Hsw1, Hsw2⟩
+  ihave Hsn : ghostVar γsn ((1 : Qp).half + (memQ + memQ)) (snapPart memStorEmpty) $$ [Hsn]
+  · rw [Qp.half_add_half, Qp.half_add_half]; iexact Hsn
+  icases ghostVar_split γsn _ _ _ $$ Hsn with ⟨Hsnh, Hsnq⟩
+  icases ghostVar_split γsn _ _ _ $$ Hsnq with ⟨Hsno, Hsna⟩
+  imod inv_alloc memSnapN ⊤ (memSnapInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak⟩)
+    $$ [Hsw1 Hsw2 snapshot Hsp Hsnh] with #Hsinv
+  · inext
+    iunfold memSnapInv
+    iexists (0 : Nat)
+    iframe Hsw1
+    ileft
+    iframe Hsw2
+    isplitr
+    · ipureintro; rfl
+    iunfold memSnapHome
+    iexists memStorEmpty
+    iframe Hsnh
+    iunfold memSnapOwn
+    iexists sp, _
+    iframe snapshot Hsp
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  imodintro
+  iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe, γsn, γsw, γlk, γok, γak⟩ : MemStorNames)
+  isplitr [HhardState cs_initialState Hak Hsna]
   rotate_left
+  isplitl [HhardState cs_initialState]
   · unfold memStorMeta
     iexists _, null
     simp only [named]
     iframe Hpkg Hmu HhardState cs_initialState
     iapply hsOpt_null
-  unfold ownMemoryStorage memView memSnapOwn
+  · unfold memSnapTok
+    simp only [named]
+    iframe Hpkg Hmu Hsinv Hak Hsna
+  unfold ownMemoryStorage memView memSnapShare
   simp only [named]
   iframe Hpkg Hmu
   isplitl [Hh Hd2 He]
@@ -106,10 +152,7 @@ theorem NewMemoryStorage.wp_proof
     · ipureintro; exact ⟨rfl, rfl⟩
     iexists _
     iexact He
-  isplitl
-  · iexists sp, _
-    iframe snapshot Hsp
-    ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iframe Hsinv Hok Hsno
   ipureintro; simp only [memStorEmpty, List.length_nil]; word
 
 end proof

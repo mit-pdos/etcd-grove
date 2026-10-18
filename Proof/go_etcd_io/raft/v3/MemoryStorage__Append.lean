@@ -98,7 +98,7 @@ theorem MemoryStorage.Append.wp_proof
   icases Hinv with ⟨%σp, Hinv⟩
   iNamedSuffix Hinv "_inv"
   iunfold memInvGhost at Hgs_inv
-  icases Hgs_inv with ⟨%D, Hd_inv, #Hlb_inv, %HD⟩
+  icases Hgs_inv with ⟨%D, Hd_inv, #Hlb_inv, %HD, Hlk_inv⟩
   -- the writer's half: the contents are the state the batch was handed out at
   icases monoAuth_agree_keep γs.done _ _ D H $$ [$Hd_inv $Hdone] with ⟨⟨Hd_inv, Hdone⟩, %HDH⟩
   subst HDH
@@ -206,14 +206,14 @@ theorem MemoryStorage.Append.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock
-      $$ [$Hmu $Hlocked Hd_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+      $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · inext
       unfold memstorageInv
       iexists storAbsorb { σp with pend := e0 :: rest }
-      isplitl [Hd_inv]
+      isplitl [Hd_inv Hlk_inv]
       · unfold memInvGhost
         iexists D ++ [storAbsorb { σp with pend := e0 :: rest }]
-        iframe Hd_inv Hhist
+        iframe Hd_inv Hhist Hlk_inv
         ipureintro; simp
       isplitl
       · unfold memstorageFields
@@ -256,14 +256,14 @@ theorem MemoryStorage.Append.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock
-      $$ [$Hmu $Hlocked Hd_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+      $$ [$Hmu $Hlocked Hd_inv Hlk_inv HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · inext
       unfold memstorageInv
       iexists storAbsorb { σp with pend := e0 :: rest }
-      isplitl [Hd_inv]
+      isplitl [Hd_inv Hlk_inv]
       · unfold memInvGhost
         iexists D ++ [storAbsorb { σp with pend := e0 :: rest }]
-        iframe Hd_inv Hhist
+        iframe Hd_inv Hhist Hlk_inv
         ipureintro; simp
       isplitl
       · unfold memstorageFields

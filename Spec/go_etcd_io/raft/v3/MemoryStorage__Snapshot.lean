@@ -50,9 +50,15 @@ raft v3.7 (stage R3, 2026-10-15): `Snapshot()` makes the storage's snapshot whol
 fields, `storage.go:212`; the storage owns both, `memSnapOwn`) and returns a fresh clone
 (`proto.Clone`, 213), owned by the caller, whose record's id, conf-state lists and `AutoLeave`
 are the storage's. Until the retarget the snapshot came back by value with its `ConfState`
-slices the storage's, read-only (`ownCSL`). -/
+slices the storage's, read-only (`ownCSL`).
+
+D17d (2026-10-18): a conjunction. The first triple is raft's (the owner's, `ownMemoryStorage`,
+through `isStorage`); the second the **application's**, with its snapshot token (`memSnapTok`):
+the snapshot its token records, as a whole clone (`ownSnapW`: `EnsureSnapshot` sets the metadata
+and its conf state, `proto.Clone` keeps them), and no error. etcd's `run` calls it while raft's
+goroutine owns the storage. -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
+  (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
@@ -63,7 +69,17 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
       (⌜err = esu⌝ ∨
        (⌜err = interface.nil⌝ ∗ ∃ (sv : SnapshotM), ownSnapM snap (DFrac.own 1) sv ∗
         ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-          sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}
+          sv.Metadata'.ConfState'.lists = σ.scs⌝)) }}) ∧
+  -- (D17d, 2026-10-18) the application's: with its snapshot token
+  (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Htok" ∷ memSnapTok ms γs σ }}
+    (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Snapshot")) (Val #()))
+  {{ (snap : Loc), RET (PairV #snap #interface.nil);
+      memSnapTok ms γs σ ∗
+      ∃ (sv : SnapshotM), ownSnapW snap (DFrac.own 1) sv ∗
+        ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
+          sv.Metadata'.ConfState'.lists = σ.scs⌝ }})
 
 end spec
 

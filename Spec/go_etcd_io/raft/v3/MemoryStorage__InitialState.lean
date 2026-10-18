@@ -41,15 +41,23 @@ its `AutoLeave` is set). `newRaft` reads it in `confchange.Restore` and
 `assertConfStatesEquivalent` while it reads the log, which holds the storage, so the conf state
 cannot be lent with a wand back to the storage (R3's statement until D7). When the snapshot has
 no metadata or conf state it is a fresh one, frozen likewise. Until the retarget it returned the
-two values and read only `memStorMeta`'s halves. -/
+two values and read only `memStorMeta`'s halves.
+
+D17d (2026-10-18): the snapshot lives under the lock (`memSnapInv`), and `InitialState` reads it
+without the lock, so it takes the application's snapshot token (`memSnapTok`) beside the owner's
+`ownMemoryStorage`: the two keys together lend it the snapshot (no locked `Snapshot`,
+`ApplySnapshot` or `CreateSnapshot` can run meanwhile: each needs one of them). `StartNode` and
+`RestartNode` call it (through `newRaft`) before they start the node's goroutine; the token comes
+back unchanged. -/
 abbrev MemoryStorage.InitialState.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : HardStateM),
+  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (hs : HardStateM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
-      "Hmeta" ∷ memStorMeta ms γs hs }}
+      "Hmeta" ∷ memStorMeta ms γs hs ∗
+      "Htok" ∷ memSnapTok ms γs σt }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"InitialState")) (Val #()))
   {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
-      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ ownMemoryStorage ms γs σ ∗
+      hsOpt hp hs ∗ memStorMeta ms γs hs ∗ ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt ∗
       csPts cs DFrac.discard (storCS σ) true }}
 
 end spec

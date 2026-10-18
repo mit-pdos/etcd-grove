@@ -199,7 +199,7 @@ theorem MemoryStorage.Compact.wp_proof
   iexists e.Term'
   isplitr
   · ipureintro; exact ⟨by omega, Hterm, rfl⟩
-  ihave Hsn := memSnapOwn_congr ms σp (memStorCompacted σp ci e.Term') rfl rfl rfl $$ Hsn
+  ihave Hsn := memSnapShare_congr ms γs σp (memStorCompacted σp ci e.Term') rfl rfl rfl $$ Hsn
   unfold ownMemoryStorage
   iframe # ∗
   ipureintro; exact Hpb'

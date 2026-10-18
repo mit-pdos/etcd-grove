@@ -237,6 +237,41 @@ structure MemStorNames where
   hist : GName
   done : GName
   ep : GName
+  /-- (D17d, 2026-10-18) the snapshot's ghost value (`snapPart` of the state): half at home in
+  `memSnapInv`, a quarter the owner's (`memSnapShare`), a quarter the application's
+  (`memSnapTok`). -/
+  sn : GName
+  /-- (D17d) where the snapshot is (`memSnapInv`): `0` home, `k ≠ 0` out against `memSnapKeys k`. -/
+  sw : GName
+  /-- (D17d) the keys: the lock's (`memstorageFields`), the owner's, the application's. -/
+  lk : GName
+  ok : GName
+  ak : GName
+
+/-- The snapshot's part of a storage state (D17d, 2026-10-18): what the snapshot's ghost value
+records (its id and conf state), the rest fixed. -/
+def snapPart (σ : StorState) : StorState :=
+  { prev := entryID.mk (W64 0) (W64 0), ents := [], ss := σ.ss, pend := [], scs := σ.scs,
+    sal := σ.sal }
+
+theorem snapPart_inj {σ σ' : StorState} (h : snapPart σ = snapPart σ') :
+    σ.ss = σ'.ss ∧ σ.scs = σ'.scs ∧ σ.sal = σ'.sal := by
+  simp only [snapPart, StorState.mk.injEq] at h
+  exact ⟨h.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2⟩
+
+/-- A key (D17d): an exclusive token. -/
+def memKey (γ : GName) : IProp GF := ghostVar γ 1 ()
+
+theorem memKey_excl (γ : GName) : ⊢ memKey (GF := GF) γ -∗ memKey γ -∗ False := by
+  iintro H1 H2
+  iunfold memKey at H1 H2
+  icases ghostVar_valid_2 γ () 1 () 1 $$ H1 H2 with %H
+  exfalso
+  obtain ⟨H, -⟩ := H
+  grind
+
+/-- The quarter of the snapshot's ghost value the owner and the application each hold. -/
+abbrev memQ : Qp := (1 : Qp).half.half
 
 /-- What the lock protects, at a given abstract state, *without* the ghost link: the
 fields other than the mutex and the snapshot, and everything hanging off them. This is what the
@@ -282,12 +317,152 @@ theorem memSnapOwn_congr (ms : Loc) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
   unfold memSnapOwn
   rw [h1, h2, h3]
 
+/-! ### The snapshot under the lock, lent before the node starts (D17d, 2026-10-18)
+
+The storage's snapshot (`memSnapOwn`) is read and written under `ms.Mutex` by `Snapshot`,
+`ApplySnapshot` and `CreateSnapshot`, and read (and its conf state's `AutoLeave` set) *without*
+the lock by `InitialState` (`issues/raft-memorystorage-initialstate-unlocked.md`), which `newRaft`
+calls once, before `StartNode`/`RestartNode` start the node's goroutine. So the snapshot cannot be
+the lock's invariant's: it lives in an Iris invariant (`memSnapInv`) from which a *key* takes it
+out -- the lock's key `lk` with the owner's `ok` (raft's `Snapshot`, and `ApplySnapshot`/
+`CreateSnapshot`) or with the application's `ak` (the application's `Snapshot`), or, without the
+lock, the owner's and the application's keys together (`InitialState`: "the token lends the
+snapshot"). Taking it out deposits the keys used, and any two key sets overlap
+(`memSnapKeys_excl`), so whoever holds a key set finds the snapshot at home. Its ghost value
+(`snapPart`: id and conf state) is split between home (half), the owner (`memSnapShare`, a quarter)
+and the application (`memSnapTok`, a quarter): `Snapshot` reads it, the writers (holding both
+quarters) change it. -/
+
+/-- The key sets that take the snapshot out (D17d): `1` the lock's and the owner's, `2` the lock's
+and the application's, `3` the owner's and the application's (no lock: `InitialState`). -/
+def memSnapKeys (γs : MemStorNames) (k : Nat) : IProp GF :=
+  iprop((⌜k = 1⌝ ∗ memKey γs.lk ∗ memKey γs.ok) ∨ (⌜k = 2⌝ ∗ memKey γs.lk ∗ memKey γs.ak) ∨
+    (⌜k = 3⌝ ∗ memKey γs.ok ∗ memKey γs.ak))
+
+instance memSnapKeys_timeless (γs : MemStorNames) (k : Nat) :
+    Timeless (memSnapKeys (GF := GF) γs k) := by
+  unfold memSnapKeys memKey; infer_instance
+
+/-- Any two key sets share a key. -/
+theorem memSnapKeys_excl (γs : MemStorNames) (k j : Nat) :
+    ⊢ memSnapKeys (GF := GF) γs k -∗ memSnapKeys γs j -∗ False := by
+  iintro H1 H2
+  iunfold memSnapKeys at H1 H2
+  icases H1 with (⟨-, Ha, Hb⟩ | ⟨-, Ha, Hb⟩ | ⟨-, Ha, Hb⟩) <;>
+  icases H2 with (⟨-, Hc, Hd⟩ | ⟨-, Hc, Hd⟩ | ⟨-, Hc, Hd⟩)
+  all_goals first
+    | iapply memKey_excl $$ Ha Hc
+    | iapply memKey_excl $$ Ha Hd
+    | iapply memKey_excl $$ Hb Hc
+    | iapply memKey_excl $$ Hb Hd
+
+/-- The snapshot at home: the storage's own snapshot at some state, with half its ghost value. -/
+def memSnapHome (ms : Loc) (γs : MemStorNames) : IProp GF :=
+  iprop(∃ (σp : StorState), memSnapOwn ms σp ∗ ghostVar γs.sn (1 : Qp).half (snapPart σp))
+
+/-- The snapshot's invariant (D17d): at home (`w = 0`, both halves of `sw`), or out against the key
+set `w` (half of `sw` here, the other half the taker's receipt). -/
+def memSnapInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
+  iprop(∃ (w : Nat), ghostVar γs.sw (1 : Qp).half w ∗
+    ((⌜w = 0⌝ ∗ ghostVar γs.sw (1 : Qp).half (0 : Nat) ∗ memSnapHome ms γs) ∨ memSnapKeys γs w))
+
+/-- The namespace of the snapshots' invariants. -/
+def memSnapN : Namespace := nroot.@"raft_memsnap"
+
+/-- The owner's share of the snapshot (D17d; part of `ownMemoryStorage`; until D17d the snapshot
+itself, `memSnapOwn`): the invariant, the owner's key, a quarter of the ghost value at `σ`. -/
+def memSnapShare (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
+  iprop(inv memSnapN (memSnapInv ms γs) ∗ memKey γs.ok ∗ ghostVar γs.sn memQ (snapPart σ))
+
+theorem memSnapShare_congr (ms : Loc) (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
+    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) :
+    memSnapShare (GF := GF) ms γs σ ⊢ memSnapShare ms γs σ' := by
+  have : snapPart σ' = snapPart σ := by simp only [snapPart, h1, h2, h3]
+  unfold memSnapShare
+  rw [this]
+
+/-- **Take the snapshot out** with the key set `k`: the snapshot at home, under a later (the next
+program step strips it: the snapshot's predicates hold invariants, not timeless), and the receipt. -/
+theorem memSnap_take (ms : Loc) (γs : MemStorNames) (k : Nat) (E : CoPset) (HE : ↑memSnapN ⊆ E) :
+    ⊢ inv memSnapN (memSnapInv (GF := GF) ms γs) -∗ memSnapKeys γs k ={E}=∗
+      ▷ memSnapHome ms γs ∗ ghostVar γs.sw (1 : Qp).half k := by
+  iintro #Hinv Hk
+  iinv Hinv with Hi Hclose
+  iunfold memSnapInv at Hi
+  icases Hi with ⟨%w, >Hw, Hi⟩
+  icases Hi with (⟨>%Hw0, >Hw', Hh⟩ | >Hk')
+  · subst Hw0
+    imod ghostVar_update_halves k γs.sw 0 0 $$ Hw Hw' with ⟨Hw, Hw'⟩
+    imod Hclose $$ [Hw Hk] with -
+    · inext
+      iunfold memSnapInv
+      iexists k
+      iframe Hw
+      iright; iexact Hk
+    imodintro
+    iframe
+  · iexfalso
+    iapply memSnapKeys_excl γs k w $$ Hk Hk'
+
+/-- **Put the snapshot back** with the receipt of the key set `k`: the keys come back. -/
+theorem memSnap_put (ms : Loc) (γs : MemStorNames) (k : Nat) (σ : StorState) (E : CoPset)
+    (HE : ↑memSnapN ⊆ E) :
+    ⊢ inv memSnapN (memSnapInv (GF := GF) ms γs) -∗ ghostVar γs.sw (1 : Qp).half k -∗
+      memSnapOwn ms σ -∗ ghostVar γs.sn (1 : Qp).half (snapPart σ) ={E}=∗ memSnapKeys γs k := by
+  iintro #Hinv Hr Hown Hsn
+  iinv Hinv with Hi Hclose
+  iunfold memSnapInv at Hi
+  icases Hi with ⟨%w, >Hw, Hi⟩
+  icases Hi with (⟨>%Hw0, >Hw', -⟩ | >Hk)
+  · subst Hw0
+    icombine Hw Hw' as Hw
+    icases ghostVar_valid_2 γs.sw (0 : Nat) _ k _ $$ Hw Hr with %H
+    exfalso
+    obtain ⟨H, -⟩ := H
+    grind
+  · icases ghostVar_agree γs.sw w _ k _ $$ Hw Hr with %Hwk
+    subst Hwk
+    imod ghostVar_update_halves (0 : Nat) γs.sw w w $$ Hw Hr with ⟨Hw, Hw'⟩
+    imod Hclose $$ [Hw Hw' Hown Hsn] with -
+    · inext
+      iunfold memSnapInv
+      iexists (0 : Nat)
+      iframe Hw
+      ileft
+      iframe Hw'
+      isplitr
+      · ipureintro; rfl
+      iunfold memSnapHome
+      iexists σ
+      iframe
+    imodintro
+    iexact Hk
+
+/-- The ghost value: the owner's and the application's quarters and home's half, all three
+together, move to the snapshot `σ'` (`ApplySnapshot`, `CreateSnapshot`). -/
+theorem memSnap_update (γs : MemStorNames) (a b c σ' : StorState) :
+    ⊢ ghostVar (GF := GF) γs.sn memQ a -∗ ghostVar γs.sn memQ b -∗
+      ghostVar γs.sn (1 : Qp).half c ==∗
+      ghostVar γs.sn memQ (snapPart σ') ∗ ghostVar γs.sn memQ (snapPart σ') ∗
+      ghostVar γs.sn (1 : Qp).half (snapPart σ') := by
+  iintro Ha Hb Hc
+  icases ghostVar_agree γs.sn a _ b _ $$ Ha Hb with %Hab
+  subst Hab
+  icombine Ha Hb as Hab
+  imod ghostVar_update_halves (snapPart σ') γs.sn a c $$ Hab Hc with ⟨Hab, Hc⟩
+  ihave Hab : ghostVar γs.sn (memQ + memQ) (snapPart σ') $$ [Hab]
+  · rw [Qp.half_add_half]; iexact Hab
+  icases ghostVar_split γs.sn _ memQ memQ $$ Hab with ⟨Ha, Hb⟩
+  imodintro
+  iframe
+
 /-- The ghost part of the lock's invariant: the contents `σp` are the last state
-`done` records, at half of its authority, and every state it records is sanctioned. -/
+`done` records, at half of its authority, and every state it records is sanctioned; and (D17d) the
+lock's key to the snapshot (`memSnapInv`). -/
 def memInvGhost (γs : MemStorNames) (σp : StorState) : IProp GF :=
   iprop(∃ (D : List StorState),
     monoListAuthOwn γs.done (1 : Qp).half D ∗ monoListLbOwn γs.hist D ∗
-    ⌜D.getLast? = some σp⌝)
+    ⌜D.getLast? = some σp⌝ ∗ memKey γs.lk)
 
 /-- The lock's invariant: the contents, their ghost record, the fields at them, and
 their bound (2026-10-10: the contents may be ahead of the owner's view, so the bound
@@ -297,6 +472,38 @@ def memstorageInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
   "Hgs" ∷ memInvGhost γs σp ∗
   "Hfields" ∷ memstorageFields ms σp ∗
   "%Hpb" ∷ ⌜uint.Z σp.prev.index' + (σp.ents.length : Int) < 2^61⌝)
+
+/-- The lock's key, out of the lock's ghost state and back (D17d). -/
+theorem memInvGhost_key (γs : MemStorNames) (σp : StorState) :
+    ⊢ memInvGhost (GF := GF) γs σp -∗ memKey γs.lk ∗ (memKey γs.lk -∗ memInvGhost γs σp) := by
+  iintro Hg
+  iunfold memInvGhost at Hg
+  icases Hg with ⟨%D, Hd, #Hlb, %HD, Hlk⟩
+  iframe Hlk
+  iintro Hlk
+  iunfold memInvGhost
+  iexists D
+  iframe Hd Hlb Hlk
+  ipureintro; exact HD
+
+/-- **The application's snapshot token** (D17d, 2026-10-18): the application's key and a quarter
+of the snapshot's ghost value, at `σ` (only its snapshot part, `snapPart σ`, matters). It is
+`NewMemoryStorage`'s, and what `ApplySnapshot`/`CreateSnapshot` (which change the snapshot),
+`InitialState` (which reads it without the lock) and the application's `Snapshot` take. -/
+def memSnapTok (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
+  iprop(
+  "#Hinit" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+  "#Hmu" ∷ sync.isMutex (ms.[MemoryStorage, go!"Mutex"]) (memstorageInv ms γs) ∗
+  "#Hsinv" ∷ inv memSnapN (memSnapInv ms γs) ∗
+  "Hak" ∷ memKey γs.ak ∗
+  "Hsv" ∷ ghostVar γs.sn memQ (snapPart σ))
+
+theorem memSnapTok_congr (ms : Loc) (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
+    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) :
+    memSnapTok (GF := GF) ms γs σ ⊢ memSnapTok ms γs σ' := by
+  have : snapPart σ' = snapPart σ := by simp only [snapPart, h1, h2, h3]
+  unfold memSnapTok
+  rw [this]
 
 /-- The owner's ghost view at `σ` (2026-10-10): `hist`'s authority, and either nothing
 pending -- the writer's half of `done`, at `hist`, and all of `ep` -- or a batch
@@ -323,7 +530,7 @@ def ownMemoryStorage (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF
   "#Hinit" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
   "#Hmu" ∷ sync.isMutex (ms.[MemoryStorage, go!"Mutex"]) (memstorageInv ms γs) ∗
   "Hview" ∷ memView γs σ ∗
-  "Hsn" ∷ memSnapOwn ms σ ∗
+  "Hsn" ∷ memSnapShare ms γs σ ∗
   "%Hbounded" ∷ ⌜uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61⌝)
 
 /-- The rest of a `MemoryStorage` (2026-10-12): its hard state `hs`, which `InitialState`
@@ -425,7 +632,7 @@ theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pe
   iintro Hv Hg
   unfold memView memInvGhost
   icases Hv with ⟨%hist, Hh, Hv⟩
-  icases Hg with ⟨%D, Hd, -, %HD⟩
+  icases Hg with ⟨%D, Hd, -, %HD, Hlk⟩
   icases Hv with (⟨%Hid, Hw, %v, Hep⟩ | ⟨%H, %Hpd, -, -⟩)
   rotate_left
   · exact absurd Hidle Hpd.1
@@ -447,7 +654,7 @@ theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pe
     iexists v
     iexact Hep
   iexists hist ++ [σ']
-  iframe Hd Hlbh
+  iframe Hd Hlbh Hlk
   ipureintro; simp
 
 /-- Raft's view and the lock's ghost state agree (`MemView`), without consuming
@@ -458,7 +665,7 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
   iintro Hv Hg
   unfold memView memInvGhost
   icases Hv with ⟨%hist, Hh, Hv⟩
-  icases Hg with ⟨%D, Hd, #Hlb, %HD⟩
+  icases Hg with ⟨%D, Hd, #Hlb, %HD, Hlk⟩
   icases Hv with (⟨%Hidle, Hw, Hep⟩ | ⟨%H, %Hpd, #HlbH, Hep⟩)
   · icases monoAuth_agree_keep γs.done _ _ hist D $$ [$Hw $Hd] with ⟨⟨Hw, Hd⟩, %Heq⟩
     subst Heq
@@ -474,7 +681,7 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
       iframe Hw Hep
       ipureintro; exact Hidle
     iexists hist
-    iframe Hd Hlb
+    iframe Hd Hlb Hlk
     ipureintro; exact HD
   · icases monoAuthLb_keep γs.done _ D H $$ [$Hd $HlbH] with ⟨⟨Hd, -⟩, %H1⟩
     icases monoAuthLb_keep γs.hist _ hist D $$ [$Hh $Hlb] with ⟨⟨Hh, -⟩, %H2⟩
@@ -498,7 +705,7 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
       iframe HlbH Hep
       ipureintro; exact ⟨Hne, rfl, Hlast⟩
     iexists D
-    iframe Hd Hlb
+    iframe Hd Hlb Hlk
     ipureintro; exact HD
 
 /-- The package initializer, read out of `ownMemoryStorage` without consuming it: the
@@ -569,7 +776,7 @@ theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
       ipureintro
       exact ⟨Hpo.2.1, rfl, by rw [Hσ]; exact Hidle.2⟩
     isplitl [Hsn]
-    · ihave Hsn := memSnapOwn_congr ms σ { σ with pend := p } rfl rfl rfl $$ Hsn
+    · ihave Hsn := memSnapShare_congr ms γs σ { σ with pend := p } rfl rfl rfl $$ Hsn
       iexact Hsn
     ipureintro; exact Hbounded
   unfold memAppendTok
@@ -623,7 +830,7 @@ theorem memStorage_absorb (ms : Loc) (γs : MemStorNames) (σ1 σ : StorState)
     iexists _
     iexact Hep
   isplitl [Hsn]
-  · ihave Hsn := memSnapOwn_congr ms { σ with pend := p } (storAbsorb { σ with pend := p })
+  · ihave Hsn := memSnapShare_congr ms γs { σ with pend := p } (storAbsorb { σ with pend := p })
       rfl rfl rfl $$ Hsn
     iexact Hsn
   ipureintro

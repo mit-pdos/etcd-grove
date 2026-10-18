@@ -31,18 +31,32 @@ theorem MemoryStorage.InitialState.wp_proof
     (wp_GetConfState : raftpb.SnapshotMetadata.GetConfState.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     MemoryStorage.InitialState.spec (GF := GF) (hG := hG) := by
-  intro ms γs σ hs
-  wp_start as ⟨Hms, Hmeta⟩
+  have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
+  intro ms γs σ σt hs
+  wp_start as ⟨Hms, Hmeta, Htok⟩
   iunfold memStorMeta at Hmeta
   icases Hmeta with ⟨%n, %hp, Hmeta⟩
   iNamed Hmeta
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
+  iunfold memSnapShare at Hsn
+  icases Hsn with ⟨#Hsinv, Hok, Hsv⟩
+  iunfold memSnapTok at Htok
+  icases Htok with ⟨-, -, -, Hak, Hsvt⟩
+  -- (D17d) the owner's and the application's keys lend the snapshot, without the lock
+  imod memSnap_take ms γs 3 ⊤ HN $$ Hsinv [Hok Hak] with ⟨Hhome, Hrcpt⟩
+  · iunfold memSnapKeys; iright; iright; iframe; ipureintro; rfl
+  wp_auto
+  iunfold memSnapHome at Hhome
+  icases Hhome with ⟨%σp, Hsn, Hsnh⟩
+  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsv Hsnh with %Hag
+  obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
+  ihave Hsn := memSnapOwn_congr ms σp σ Hs1 Hs2 Hs3 $$ Hsn
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
   have Hcs : sv.Metadata'.ConfState' = storCS σ :=
     confState_eq_storCS _ σ Hsnap_id.2.1 Hsnap_id.2.2
-  wp_auto
+  (try wp_auto)
   wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
   · iframe Hsnap
   wp_apply wp_GetConfState pm (DFrac.own 1) sv.Metadata' $$ [Hm] as %pc ⟨Hc, Hcback⟩
@@ -57,6 +71,16 @@ theorem MemoryStorage.InitialState.wp_proof
     iapply wp_fupd
     wp_apply wp_EnsureConfState.2 as %r Hr
     imod csPts_persist _ _ _ _ $$ Hr with #Hr
+    imod memSnap_put ms γs 3 σ ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] [Hsnh] with Hk
+    · iunfold memSnapOwn
+      iexists sp, sv
+      iframe
+      ipureintro; exact Hsnap_id
+    · rw [Hag]; iexact Hsnh
+    iunfold memSnapKeys at Hk
+    icases Hk with (⟨%Hk, -⟩ | ⟨%Hk, -⟩ | ⟨-, Hok, Hak⟩)
+    · exact absurd Hk (by decide)
+    · exact absurd Hk (by decide)
     imodintro
     iapply HΦ
     iframe Hhs
@@ -66,21 +90,30 @@ theorem MemoryStorage.InitialState.wp_proof
       iframe # ∗
     rw [← Hcs, Hc0]
     iframe Hr
-    unfold ownMemoryStorage memSnapOwn
+    unfold ownMemoryStorage memSnapShare memSnapTok
+    simp only [named]
     iframe # ∗
-    isplitl
-    · iexists sp, sv
-      iframe
-      ipureintro; exact Hsnap_id
     ipureintro; exact Hbounded
   · -- the storage's conf state: `EnsureConfState` sets its `AutoLeave` in place; then frozen,
     -- the storage's snapshot holding it read-only (`csOptA`'s third case)
+    iapply wp_fupd
     wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc sv.Metadata'.ConfState' Hnn
       $$ [Hc] as #Hr
     · iexact Hc
     ihave Hm := Hcback $$ []
     · iunfold csOptA; iright; iright; iexact Hr
     ihave Hsnap := Hmback $$ Hm
+    imod memSnap_put ms γs 3 σ ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] [Hsnh] with Hk
+    · iunfold memSnapOwn
+      iexists sp, sv
+      iframe
+      ipureintro; exact Hsnap_id
+    · rw [Hag]; iexact Hsnh
+    iunfold memSnapKeys at Hk
+    icases Hk with (⟨%Hk, -⟩ | ⟨%Hk, -⟩ | ⟨-, Hok, Hak⟩)
+    · exact absurd Hk (by decide)
+    · exact absurd Hk (by decide)
+    imodintro
     iapply HΦ
     iframe Hhs
     isplitl [HhardState Hcs_initialState]
@@ -89,12 +122,9 @@ theorem MemoryStorage.InitialState.wp_proof
       iframe # ∗
     rw [← Hcs]
     iframe Hr
-    unfold ownMemoryStorage memSnapOwn
+    unfold ownMemoryStorage memSnapShare memSnapTok
+    simp only [named]
     iframe # ∗
-    isplitl
-    · iexists sp, sv
-      iframe
-      ipureintro; exact Hsnap_id
     ipureintro; exact Hbounded
 
 end proof
