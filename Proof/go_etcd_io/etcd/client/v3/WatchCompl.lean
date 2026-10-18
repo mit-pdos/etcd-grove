@@ -519,6 +519,132 @@ theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List 
     refine ⟨e, by rw [List.getLast?_append, hl]; rfl, ?_⟩
     rw [hl] at hlast; simp at hlast; exact hlast.symm
 
+/-- **The second cursor over a progress notification** at `p` (an event-less mvcc response `x`
+of revision `p`, sent down after `Dm` while the substream's id `X` was live, at its place on the
+channel; `q ≤ p` the cursor): the events so far are the watch events `[lo, dd)` of a watched log
+`Lc`, `dd` the notification's coverage (`p + 1 ≤ dd`, and `dd ≤ p + 1` unless no event was
+delivered, `dd ≤ lo`), and the watch's start is at most `p + 1`. The cache's contract (a progress
+notification, or, at revision `0`, a response without events that is not one) and the cursor at
+`p`. -/
+theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+    (m : v3rpc.WatchRespM) (x : mvcc.RespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat)
+    (c2 : w64) (pfx : GoString) (hcov : ∀ k, rg.covers k = true ↔ pfx <+: k)
+    (hst : V.R.γ.st = V.R.E.γ) (Lc : mvcc.Log) (dd p q : Nat) (hpx : x.rev = W64 (p : Int))
+    (hp63 : p < 2 ^ 63) (hqc : c2 = W64 (q : Int)) (hqp : q ≤ p)
+    (hE : evsOf Dm w = mvcc.watchEvents Lc rg lo dd) (hd1 : p + 1 ≤ dd)
+    (hd2 : dd ≤ p + 1 ∨ dd ≤ lo) (hd3 : dd ≤ Lc.length ∨ dd ≤ lo) (hlop : lo ≤ p + 1)
+    (hlo : lo = (sint.Z P.rev).toNat) (hrev : 1 ≤ sint.Z P.rev)
+    (hsnoc : evsOf (Dm ++ [m]) w = evsOf Dm w) (hmx : m.src = some x) (hxe : x.evs = [])
+    (hlive : v3rpc.idLive Dm X)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hv : ¬ watchErr v)
+    (hr : r.events = [] ∧ r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0 ∧
+      r.hdrRev = x.rev) :
+    cur2Ok V γs P Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st Lc ∗ srvLogsSmall V.R ∗
+      etcdReached (EM := V.EM) (P.rev - W64 1) ∗ v3rpc.downLbW γs (Dm ++ [m]) ∗ chanPos γs x ⊢
+      ∃ c2' : w64, watchRespOk (EM := V.EM) pfx c2 c2' v r ∗
+        cur2Ok V γs P (Dm ++ [m]) X w rg lo c2' := by
+  iintro ⟨#Hc, #HLc, #Hsm, #Hr0, #Hdn, #Hpos⟩
+  obtain ⟨hre, hrc, hrca, hrcomp, hrh⟩ := hr
+  have hdd : dd = p + 1 := by omega
+  subst hdd
+  have hcg : ∀ c, cur2Ok (GF := GF) V γs P (Dm ++ [m]) X w rg lo c = cur2Ok V γs P Dm X w rg lo c :=
+    fun c => cur2Ok_congr V γs P X w rg lo c hsnoc
+  simp only [hcg]
+  ihave #Hc' := Hc
+  iunfold cur2Ok at Hc'
+  icases Hc' with ⟨⟨%L, %q', #HL, %Hq⟩, -⟩
+  obtain ⟨hc2', h1, hlo1, hq1, hq63⟩ := Hq
+  have hqq : q = q' := by
+    rw [hqc] at hc2'
+    exact W64_inj_of_lt (by omega) (by omega) hc2'
+  subst hqq
+  by_cases hp0 : p = 0
+  · -- revision `0`: not a progress notification, the cursor kept
+    iexists c2
+    iframe Hc
+    unfold watchRespOk
+    iright; ileft
+    ipureintro
+    refine ⟨hv, hre, ?_, rfl⟩
+    unfold RespModel.isProgressNotify
+    simp [hrh, hpx, hp0]
+  have hprog : r.isProgressNotify = true := by
+    unfold RespModel.isProgressNotify
+    simp only [hre, List.isEmpty_nil, hrca, hrc, hrcomp, hrh, hpx, Bool.not_false, Bool.true_and,
+      decide_true, Bool.and_true, Bool.not_eq_true', decide_eq_false_iff_not]
+    intro h
+    have := W64_inj_of_lt (a := p) (b := 0) (by omega) (by omega) (by simpa using h)
+    exact hp0 this
+  -- etcd reached `p`
+  ihave #Hreach : etcdReached (EM := V.EM) (W64 (p : Int)) $$ []
+  · rcases hd3 with h | h
+    · ihave #Hok := mvcc.evLog_certOk _ _ $$ HLc
+      irevert Hok; rw [hst]; iintro #Hok
+      iapply v3rpc.etcdReached_of_certOk V.R.E Lc (W64 (p : Int)) (by word) $$ Hok
+    · have : W64 (p : Int) = P.rev - W64 1 := by
+        have : (p : Int) = sint.Z P.rev - 1 := by omega
+        word
+      rw [this]; iexact Hr0
+  by_cases hq : q = p
+  · subst hq
+    iexists c2
+    iframe Hc
+    unfold watchRespOk
+    iright; iright; ileft
+    isplitr
+    · ipureintro
+      refine ⟨hv, hprog, ?_, ?_, ?_⟩
+      · rw [hrh, hpx, hqc]; exact Int.le_refl _
+      · rw [hrh, hpx, hqc]
+      · rw [hrh, hpx]; word
+    isplitr
+    · ileft; ipureintro; rw [hrh, hpx, hqc]
+    rw [hrh, hpx]; iexact Hreach
+  -- `q < p`: no event of the range in `(q, p]`
+  have hqp' : q < p := by omega
+  have hdL : p + 1 ≤ Lc.length := hd3.resolve_right (by omega)
+  ihave %Hcmp := mvcc.evLog_cmp V.R.γ.st L Lc $$ HL HLc
+  have hnone0 := cmpl_prog_none L Lc Hcmp rg lo q p hlo1 hq1 hdL hqp (h1.symm.trans hE)
+  ihave #Hs := mvcc.evLog_sealed _ _ $$ HLc
+  ihave %Hwc := v3rpc.sealed_pure _ Lc $$ Hs
+  have hp1 : p + 1 < 2 ^ 63 := by have := Hwc.2; omega
+  ihave %Hsmall : ⌜txn.LogSmall Lc⌝ $$ []
+  · iunfold srvLogsSmall at Hsm
+    iapply Hsm; iexact Hs
+  ihave #Hsl : v3rpc.srvLog V.R.E Lc $$ []
+  · unfold v3rpc.srvLog; rw [← hst]; iframe Hs; ipureintro; exact Hsmall
+  have hpe : mvcc.watchEvents Lc rg p (p + 1) = [] :=
+    watchEvents_sub_nil Lc rg hnone0 (by omega) (Nat.le_succ p) (Nat.le_refl _)
+  have HS := v3rpc.srvStep_of_watch V.R.E Lc rg pfx hcov q p (by omega) (by omega)
+    (fun y h1 h2 => watchEvents_sub_nil Lc rg hnone0 (by omega) (Nat.le_succ y) (by omega))
+  rw [hpe, List.map_nil] at HS
+  ihave #Hstep := HS $$ Hsl
+  iexists W64 (p : Int)
+  isplitr
+  · unfold watchRespOk
+    iright; iright; ileft
+    isplitr
+    · ipureintro
+      refine ⟨hv, hprog, ?_, ?_, ?_⟩
+      · rw [hrh, hpx, hqc]; word
+      · rw [hrh, hpx]
+      · rw [hrh, hpx]; word
+    isplitr
+    · iright; rw [hrh, hpx, hqc]; iexact Hstep
+    rw [hrh, hpx]; iexact Hreach
+  unfold cur2Ok
+  isplitr
+  · iexists Lc, p
+    iframe HLc
+    ipureintro
+    exact ⟨rfl, hE, hlop, Or.inl hdL, by omega⟩
+  iright; iright
+  unfold progAt
+  iexists x, m, Dm
+  iframe Hdn Hpos
+  ipureintro
+  exact ⟨hmx, hxe, hpx.symm, hlive⟩
+
 end chain
 
 end client
