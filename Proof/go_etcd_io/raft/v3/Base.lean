@@ -6,8 +6,8 @@ This replaces Perennial's `Perennial.Proof.go_etcd_io.raft.v3_proof.base` (the p
 upstream's `base.v`), which must not be imported alongside it: `IsPkgInit` has one
 instance per package, and etcd-grove's raft instance is stronger.
 The `wp_initialize'` of each of these packages, which establishes these predicates from
-its initializer, is in `Init.lean` (2026-10-12; `raftpb`'s, `os`'s, `reflect`'s and
-`strconv`'s are `sorry`: their initializers are only partly translated).
+its initializer, is in `Init.lean` (2026-10-12; `raftpb`'s, `proto`'s, `os`'s, `strconv`'s
+from the trust-boundary axioms on their untranslated initializers, since 2026-10-18).
 
 Lean notes: see Perennial's `base.lean` for the instances that live in other Perennial
 files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).

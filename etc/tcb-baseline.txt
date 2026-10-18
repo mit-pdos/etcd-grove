@@ -23,6 +23,13 @@ axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
+axiom Perennial.go_etcd_io.raft.v3.raftpb.opaqueInitsOk
+axiom Perennial.google_golang_org.protobuf.internal.impl.opaqueInitsOk
+axiom Perennial.google_golang_org.protobuf.proto.opaqueInitsOk
+axiom Perennial.google_golang_org.protobuf.reflect.protoreflect.opaqueInitsOk
+axiom Perennial.os.Stderr_init
+axiom Perennial.os.opaqueInitsOk
+axiom Perennial.strconv.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
@@ -188,6 +195,7 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
+axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
@@ -322,11 +330,7 @@ sorry Perennial.crypto.rand.initialize'.wp_proof
 sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_into_val_typed
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto
-sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
-sorry Perennial.google_golang_org.protobuf.proto.wp_initialize'
 sorry Perennial.log.initialize'.wp_proof
 sorry Perennial.math.big.initialize'.wp_proof
 sorry Perennial.math.initialize'.wp_proof
-sorry Perennial.os.wp_initialize'
-sorry Perennial.strconv.wp_initialize'
 sorry Perennial.time.initialize'.wp_proof

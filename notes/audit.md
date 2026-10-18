@@ -404,3 +404,15 @@ the constructor's spec returns. Its idealisations are the two suspects and `NewS
 | `go_etcd_io.etcd.client.v3.LeaseResponseChSize_init` | ok | `var LeaseResponseChSize = 16` (`lease.go:92`); the fact keeps the cell read-only, as the other exported variables' (no code writes it). |
 | `rpctypes.ErrNoLeader_init` | ok | `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go:219`): an `EtcdError` value (`Error` maps a known status error to its `EtcdError`). |
 
+### raft's package initialization (2026-10-18, branch `slice-wk`; Lean: `Proof/go_etcd_io/raft/v3/Init.lean`; Go: go1.27 `os`, `strconv`, protobuf-go `proto`, raft v3.7 `raftpb/raft.pb.go`)
+
+They replace the four `sorry`d `wp_initialize'` of `os`, `strconv`, `raftpb` and `proto`, as the generated `Init.lean` files' axioms do (`etc/gen-init.py`).
+
+| axiom | verdict | reason |
+|---|---|---|
+| `os.opaqueInitsOk` | ok | The 24 untranslated initializers of names-only `os` but `Stderr`'s (`ErrInvalid = fs.ErrInvalid`, ..., `Stdin`/`Stdout = NewFile(...)`, `dirBufPool = sync.Pool{...}`, `checkPidfdOnce = sync.OnceValue(checkPidfd)` (not called), `lstat = Lstat`, the `var _ I = ...` assertions): none panics; every Go program runs them. Satisfiable whatever the semantics (uninterpreted `X.init`s). |
+| `os.Stderr_init` | ok | `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable holds some `*File`; the post gives the variable's cell (names-only `os` translates no `GlobalAlloc` of it), which `os`'s fact makes read-only. Nothing else claims that cell. |
+| `strconv.opaqueInitsOk` | ok | The `isPrint16`/`isNotPrint16`/`isPrint32`/`isNotPrint32`/`isGraphic` table literals and `ErrRange`/`ErrSyntax = errors.New(...)` (`strconv/isprint.go`, `atoi.go`): no panic. |
+| `google_golang_org.protobuf.proto.opaqueInitsOk` | ok | `wireTypes` (a map literal, `proto/decode.go`), `errRecursionDepth`, `errDecode`, `errUnknown` (`errors.New`/`protoimpl.X.NewError` values, `proto/decode.go`, `proto/proto.go`): no panic. |
+| `go_etcd_io.raft.v3.raftpb.opaqueInitsOk` | ok | The generated descriptors of `raft.pb.go:1174-1209`: `file_raft_proto_enumTypes = make([]protoimpl.EnumInfo, 4)`, `_msgTypes = make([]protoimpl.MessageInfo, 9)`, `_goTypes` and `_depIdxs` (slice literals): no panic. The package's `func init()` (registration) is not translated, so the model does not run it. |
+
