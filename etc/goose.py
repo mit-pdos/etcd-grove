@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, register, porcupine or lintest;
+  --project    only this project (raft, etcd, register, putget, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -343,6 +343,21 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
+    ),
+    Project(
+        name="putget",
+        # The adequacy example of etcd's server and client (open-work item 9): one member
+        # started in-process, a client's Put and Get of one key. A Go module of this
+        # repository whose go.mod replaces etcd's modules by the etcd fork at the etcd pin
+        # above and go.etcd.io/raft/v3 by the raft pin (pseudo-versions; keep them in step).
+        # Its imports are the etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "putget"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
     ),
     Project(
         name="porcupine",

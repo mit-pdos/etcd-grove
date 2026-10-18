@@ -803,6 +803,10 @@ stream is at before each response, a monotone list). -/
 structure EtcdWatchNames where
   spsc : SpscNames
   cur : GName
+  /-- (K2e) a range watch's second position (a progress notification moves it: the cache's
+  `cur`), when the watch promises completeness (`cpl`, `rangeWatchElem`) -/
+  cur2 : GName
+  cpl : Bool
 
 section watch
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -851,7 +855,7 @@ def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.Wat
     ((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
      (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev⌝ ∗
-       EtcdStep c r.hdrRev pfx [] ∗ etcdReached r.hdrRev) ∨
+       (⌜c = r.hdrRev⌝ ∨ EtcdStep c r.hdrRev pfx []) ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
         (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
         r.events.getLast?.map EvModel.rev = some c'⌝ ∗

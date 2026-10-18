@@ -51,13 +51,16 @@ element. -/
 theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64)
     (hC : C.length = i + 1) (hl : C.getLast? = some hiB)
-    (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created) :
+    (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created)
+    :
     monoListAuthOwn (GF := GF) P.γ.cur 1 C ∗ eventsAt v.Events' r.events ∗
       watchHdrOwn v.Header' r ∗ rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗
-      statusErrOk v.closeErr' ⊢
+      statusErrOk v.closeErr' ∗
+      (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn P.γ.cur2 i c2 ∗
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.EM) P.o.key c2 c2' v r) ⊢
     |==> (monoListAuthOwn P.γ.cur 1 (C ++ [hiA]) ∗
       rangeWatchElem (EM := V.EM) P.γ V.pfx P.o P.rev (i : Int) v) := by
-  iintro ⟨Hauth, #Hev, Hhdr, #Hok, #Hse⟩
+  iintro ⟨Hauth, #Hev, Hhdr, #Hok, #Hse, #Hc2⟩
   imod monoListAuthOwn_update_app (GF := GF) [hiA] $$ Hauth with ⟨Hauth, #Hlb⟩
   have h1 : (C ++ [hiA])[i]? = some hiB := by
     rw [List.getElem?_append_left (by omega)]; exact getElem?_of_getLast? hC hl
@@ -71,7 +74,80 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
   iexists r, hiB, hiA
   simp only [Int.toNat_natCast]
   iframe Hev Hhdr Hi1 Hi2 Hok Hse
-  ipureintro; exact hf
+  isplitr
+  · ipureintro; exact hf
+  iexact Hc2
+
+/-- A created response without events keeps the cache's contract's position. -/
+theorem watchRespOk_created (V : WEnv GF) (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
+    (r : RespModel) (hc : r.created = true) (he : r.events = []) :
+    watchRespOk (EM := V.EM) pfx c c' v r ⊢ ⌜c' = c⌝ := by
+  unfold watchRespOk
+  iintro ⟨-, (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, -, -⟩ | ⟨%H, -⟩)⟩
+  · ipureintro; exact H.2
+  · ipureintro; exact H.2.2.2
+  · exfalso; simp [RespModel.isProgressNotify, hc] at H
+  · exact absurd he H.2.1
+
+/-- **Publishing a received response, the second cursor** (K2e-7): the `kk`th received response's
+contract at the second dispatch cursor's positions becomes the published one's at `γ.cur2`'s. -/
+theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : kk.toNat = k)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    cur2Pos (GF := GF) P i k ∗ recvCmpl V P kk v r ⊢
+    |==> (cur2Pos P (i + 1) (k + 1) ∗
+      (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn P.γ.cur2 i c2 ∗
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.EM) P.o.key c2 c2' v r)) := by
+  unfold cur2Pos recvCmpl
+  rw [hk]
+  iintro ⟨(%H | ⟨%C2, %cl2, Ha, %HC, #Hk⟩), #Hc⟩
+  · imodintro
+    isplitl []
+    · ileft; ipureintro; exact H
+    · ileft; ipureintro; exact H
+  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
+  · imodintro
+    isplitl []
+    · ileft; ipureintro; exact H
+    · ileft; ipureintro; exact H
+  ihave %Hb := mono_list_idx_agree P.γh2 _ _ _ $$ HB Hk
+  subst Hb
+  imod monoListAuthOwn_update_app (GF := GF) [h2A] $$ Ha with ⟨Ha, #Hlb⟩
+  have h1 : (C2 ++ [h2A])[i]? = some h2B := by
+    rw [List.getElem?_append_left (by omega)]; exact getElem?_of_getLast? HC.1 HC.2
+  have h2 : (C2 ++ [h2A])[i + 1]? = some h2A := by
+    rw [List.getElem?_append_right (by omega)]; simp [HC.1]
+  ihave #Hi1 := monoListIdxOwn_get (GF := GF) i h2B h1 $$ Hlb
+  ihave #Hi2 := monoListIdxOwn_get (GF := GF) (i + 1) h2A h2 $$ Hlb
+  imodintro
+  isplitl [Ha]
+  · iright
+    iexists C2 ++ [h2A], h2A
+    iframe Ha HA
+    ipureintro; simp [HC.1]
+  iright
+  iexists h2B, h2A
+  iframe Hi1 Hi2 Hok
+
+/-- **A created response, not published** (K2e-7): the second cursor's position moves past it
+(it keeps the cache's contract's position). -/
+theorem skip_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : kk.toNat = k)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hc : r.created = true)
+    (he : r.events = []) :
+    cur2Pos (GF := GF) P i k ∗ recvCmpl V P kk v r ⊢ cur2Pos P i (k + 1) := by
+  unfold cur2Pos recvCmpl
+  rw [hk]
+  iintro ⟨(%H | ⟨%C2, %cl2, Ha, %HC, #Hk⟩), #Hc⟩
+  · ileft; ipureintro; exact H
+  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
+  · ileft; ipureintro; exact H
+  ihave %Hb := mono_list_idx_agree P.γh2 _ _ _ $$ HB Hk
+  subst Hb
+  ihave %Ha := watchRespOk_created V P.o.key h2B h2A v r hc he $$ Hok
+  subst Ha
+  iright
+  iexists C2, h2A
+  iframe Ha HA
+  ipureintro; exact HC
 
 /-- **A received response, live** (`recvElem`'s first disjunct): its value, read-only, with its
 content and the contract's positions around it. -/
@@ -83,7 +159,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
       r.canceled = false⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
-    rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗
+    rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
     (if k = 0 then
       iprop(⌜r.created = true ∧ r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
@@ -204,7 +280,7 @@ local macro "ss_return" : tactic => `(tactic| (
   imod dghostVar_persist _ _ _ $$ Hx with #Hx
   wp_apply wp_broadcast_chan_close $$ [Hdn] as #Hdnd
   · iframe Hdn; imodintro; iexact Hx
-  wp_apply wp_bag_send $$ [Hclosing Hretc Hrr Hprod Hauth Hwstok]
+  wp_apply wp_bag_send $$ [Hclosing Hretc Hrr Hprod Hauth Hwstok Hc2]
   · iframe Hclb
     unfold closingP closingBody
     iframe Hwstok
@@ -212,8 +288,11 @@ local macro "ss_return" : tactic => `(tactic| (
     iframe HP Hretc Hclosing
     isplitr
     · ipureintro; rfl
-    isplitl [Hprod Hauth]
-    · unfold outcProd; iexists sent, C; iframe Hprod Hauth; ipureintro; exact HC.1
+    isplitl [Hprod Hauth Hc2]
+    · unfold outcProd; iexists sent, C; iframe Hprod Hauth
+      isplitr
+      · ipureintro; exact HC.1
+      iapply cur2Pos_auth; iexact Hc2
     icases Hrr with (⟨%Hr, Hres⟩ | %Hr)
     · iright; iframe Hres; ipureintro; exact Hr.2
     · ileft; ipureintro; exact Hr.2
@@ -245,7 +324,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     watchGRPCStream.serveSubstream.spec (GF := GF) (hG := hG) := by
   intro V G callSl P b0 bl t0 rc γrc
   wp_start as ⟨#HG, #HP, Hclosing, Hbuf, Hb0, Hbl, #Hblok, Hbwt, Hrev, Hretc, Hres, Hprod, Hauth,
-    Hcons, #Hhi0, #Hrc, Hdn, Hx, Hwg, Hwstok⟩
+    Hcons, #Hhi0, Hc20, #Hrc, Hdn, Hx, Hwg, Hwstok⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
   icases HP' with ⟨#Hro, #Hfoutc, #Hfrecvc, #Hfdonec, #Houtc, #Hrecvc, #Hdonec, #Hctx, #Hretcb,
@@ -278,6 +357,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       "Hprod" ∷ spscProducer P.γ.spsc sent ∗ "Hauth" ∷ monoListAuthOwn P.γ.cur 1 C ∗
       "%HC" ∷ ⌜C.length = sent.length + 1 ∧ bufl.length ≤ rcv.length ∧ C.getLast? = some cl⌝ ∗
       "#Hcur" ∷ monoListIdxOwn P.γhi (rcv.length - bufl.length) cl ∗
+      "Hc2" ∷ cur2Pos P sent.length (rcv.length - bufl.length) ∗
       "Hbuf" ∷ wsF P.ws go!"buf" ↦ b ∗ "Hb" ∷ sliceOwn b bufl ∗
       "Hbe" ∷ bufElems V P (rcv.length - bufl.length) bufl ∗
       "Hrev" ∷ (⌜rcv = []⌝ ∗ wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∨
@@ -285,12 +365,12 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       "Hretc" ∷ wsReqF P.ws go!"retc" ↦ rcf ∗
       "Hrr" ∷ ((⌜rcv = [] ∧ rcf = P.retc⌝ ∗ retcRes P) ∨ ⌜rcv ≠ [] ∧ rcf = null⌝) ∗
       "Hbwt" ∷ wsF P.ws go!"bufWaitStartTime" ↦ t ∗
-      "nextRev" ∷ nextRev_ptr ↦ nr) $$ [Hcons Hprod Hauth Hbuf Hb0 Hrev Hretc Hres Hbwt nextRev]
+      "nextRev" ∷ nextRev_ptr ↦ nr) $$ [Hcons Hprod Hauth Hbuf Hb0 Hrev Hretc Hres Hbwt nextRev Hc20]
   · iexists [], [], [P.rev - W64 1], [], b0, P.retc, P.rev, t0, (P.rev - W64 1)
     simp only [named]
     iframe Hcons Hprod Hauth Hbuf Hb0 Hretc Hbwt nextRev
     simp only [List.length_nil, Nat.sub_self]
-    iframe Hhi0
+    iframe Hhi0 Hc20
     isplitr
     · ipureintro; simp
     isplitr
@@ -376,16 +456,20 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iexact Hic
     icases (bufElems_cons V P _ cw rest).1 $$ Hbe with ⟨Hhd, Hrest⟩
     iunfold recvLive at Hhd
-    icases Hhd with ⟨%v0, %r, %hiB, %hiA, #Hw0, %Hv, #Hev, Hhdr, #HiB, #HiA, #Hok, -⟩
+    icases Hhd with ⟨%v0, %r, %hiB, %hiA, #Hw0, %Hv, #Hev, Hhdr, #HiB, #HiA, #Hok, #Hcm, -⟩
     icombine Hw0 Hvcw gives %Heq
     subst Heq
     simp only [Int.toNat_natCast]
     ihave %HhB := mono_list_idx_agree P.γhi _ _ _ $$ HiB Hcur
     subst HhB
     iapply bupd_sendAu
+    imod publish_cmpl V P sent.length (rcv.length - (cw :: rest).length)
+      ((rcv.length - (cw :: rest).length : Nat) : Int) (Int.toNat_natCast _) v0 r
+      $$ [Hc2 Hcm] with ⟨Hc2, #Hc2e⟩
+    · iframe Hc2 Hcm
     imod publish_elem V P C sent.length v0 r hiB hiA HC.1 HC.2.2
       ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ $$ [Hauth Hhdr] with ⟨Hauth, Helem⟩
-    · iframe Hauth Hev Hok Hhdr
+    · iframe Hauth Hev Hok Hhdr Hc2e
       rw [Hv.2.1]; iapply statusErrOk_nil
     imodintro
     iapply spsc_send_au P.γ.spsc P.outc _ _ sent v0 _ $$ Houtc [$Hlc1 $Hlc2 $Hlc3] [$Hprod $Helem]
@@ -442,7 +526,9 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       simp only [List.length_cons]; omega
     simp only [named]
     rw [hidx]
-    iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc HiA Hrest Hrr
+    ihave Hc2 : cur2Pos P (sent ++ [v0]).length (rcv.length - (cw :: rest).length + 1) $$ [Hc2]
+    · simp only [List.length_append, List.length_singleton]; iexact Hc2
+    iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc HiA Hrest Hrr Hc2
     unfold sliceOwn
     iframe Hbcap
     isplitr
@@ -481,7 +567,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     icases recvElem_live V P _ wr $$ [Hx HE] with ⟨Hx, HE⟩
     · iframe
     iunfold recvLive at HE
-    icases HE with ⟨%v, %r, %hiB, %hiA, #Hwr, %Hv, #Hev, Hhdr, #HiB, #HiA, #Hok, Hk⟩
+    icases HE with ⟨%v, %r, %hiB, %hiA, #Hwr, %Hv, #Hev, Hhdr, #HiB, #HiA, #Hok, #Hcm, Hk⟩
     ihave #Hwr' := Hwr
     iStructNamed Hwr'
     wp_auto
@@ -522,12 +608,14 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗
           ∃ (sent' : List go_etcd_io.etcd.client.v3.WatchResponse) (C' : List w64) (nr' : w64),
           spscProducer P.γ.spsc sent' ∗ monoListAuthOwn P.γ.cur 1 C' ∗
-          ⌜C'.length = sent'.length + 1 ∧ C'.getLast? = some hiA⌝ ∗
+          ⌜C'.length = sent'.length + 1 ∧ C'.getLast? = some hiA⌝ ∗ cur2Pos P sent'.length 1 ∗
           wsReqF P.ws go!"retc" ↦ (null : Loc) ∗ nextRev_ptr ↦ nr' ∗
           wsReqF P.ws go!"rev" ↦ P.rev ∗ wr_ptr ↦ wr)))
-      isplitl [Hprod Hauth Hretc nextRev Hres Hrev wr]
+      isplitl [Hprod Hauth Hretc nextRev Hres Hrev wr Hc2]
       · wp_if_destruct
         · (try wp_auto)
+          ihave Hc2 := skip_cmpl V P sent.length 0 0 rfl v r Hcr.1 Hcr.2 $$ [Hc2 Hcm]
+          · iframe Hc2 Hcm
           isplitr
           · first | itrivial | (ipureintro; rfl)
           iexists sent, C, nr
@@ -544,18 +632,24 @@ theorem watchGRPCStream.serveSubstream.wp_proof
           (try wp_auto)
           cases hcn : P.cn
           · (try wp_auto)
+            ihave Hc2 := skip_cmpl V P sent.length 0 0 rfl v r Hcr.1 Hcr.2 $$ [Hc2 Hcm]
+            · iframe Hc2 Hcm
             wp_if_destruct <;> (try wp_auto) <;> c2_fin
           · (try wp_auto)
+            imod publish_cmpl V P sent.length 0 0 rfl v r $$ [Hc2 Hcm] with ⟨Hc2, #Hc2e⟩
+            · iframe Hc2 Hcm
             imod publish_elem V P C sent.length v r hiA hiA HC.1 HC.2.2
               ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ $$ [Hauth] with ⟨Hauth, Helem⟩
-            · iframe Hauth Hev Hok
+            · iframe Hauth Hev Hok Hc2e
               isplitl []
               · iapply (watchHdrOwn_nil _ _ Hcr.2).2; iexact Hhdr
               rw [Hv.2.1]; iapply statusErrOk_nil
             wp_apply wp_spsc_send P.γ.spsc P.outc _ _ sent v $$ [Hprod Helem] as Hprod
             · iframe Houtc Hprod Helem
+            ihave Hc2 : cur2Pos P (sent ++ [v]).length 1 $$ [Hc2]
+            · simp only [List.length_append, List.length_singleton]; iexact Hc2
             wp_if_destruct <;> (try wp_auto) <;> c2_fin
-      iintro %x ⟨%Hx, %sent', %C', %nr', Hprod, Hauth, %HC', Hretc, nextRev, Hrev, wr⟩
+      iintro %x ⟨%Hx, %sent', %C', %nr', Hprod, Hauth, %HC', Hc2, Hretc, nextRev, Hrev, wr⟩
       subst Hx
       wp_auto
       ihave #Hev' := Hev
@@ -571,7 +665,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iexists [wr], sent', C', [], b, (null : Loc), nr', t', hiA
       simp only [named, List.nil_append, List.length_singleton, List.length_nil, Nat.sub_zero,
         Nat.zero_add]
-      iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc HiA
+      iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc HiA Hc2
       unfold sliceOwn
       iframe Hb Hbcap
       isplitr
@@ -666,7 +760,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       have hidx : rcv.length + 1 - (bufl.length + 1) = rcv.length - bufl.length := by omega
       simp only [named, List.length_append, List.length_singleton]
       (try rw [hidx])
-      iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc Hcur
+      iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc Hcur Hc2
       unfold sliceOwn
       iframe Hb Hbcap
       isplitr
@@ -678,7 +772,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         rw [hk2]
         unfold recvLive
         iexists v, r, hiB, hiA
-        iframe Hwr Hev HiB HiA Hok
+        iframe Hwr Hev HiB HiA Hok Hcm
         isplitr
         · ipureintro; exact Hv
         isplitl [Hhf Hback]

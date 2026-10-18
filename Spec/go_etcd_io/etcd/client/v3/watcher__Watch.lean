@@ -46,7 +46,7 @@ abbrev watcher.Watch.spec : Prop :=
       isSpsc γ.spsc ch (rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev)
         (fun _ => iprop(True)) ∗
       spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
-      monoListIdxOwn γ.cur 0 (rev - W64 1) }}
+      monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) }}
 
 end spec
 

@@ -69,7 +69,7 @@ theorem waitEvents.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := h
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
   iunfold rangeWatchElem at HP
-  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, #Hse⟩
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, #Hse, -⟩
   wp_auto
   wp_apply wp_Err wresp_ptr v' (DFrac.own 1) $$ [$wresp $Hse $Hcv] as %werr ⟨wresp, %Herr, -⟩
   obtain ⟨e, rfl⟩ | rfl : (∃ e, werr = GoInterface.ok e) ∨ werr = GoInterface.nil := by

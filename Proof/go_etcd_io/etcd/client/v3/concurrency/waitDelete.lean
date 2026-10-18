@@ -124,7 +124,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
   iunfold rangeWatchElem at HP
-  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, #Hse'⟩
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, #Hse', -⟩
   iunfold eventsAt at Hevs
   icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
   wp_auto

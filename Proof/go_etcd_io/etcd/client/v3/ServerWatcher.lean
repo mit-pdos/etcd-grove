@@ -74,11 +74,16 @@ theorem isEtcdRangeWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) 
   iintro ⟨#P1, #P2, #P3, #Hw⟩
   unfold isEtcdRangeWatcher
   iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre⟩ HΦ
-  iapply (wp_Watch V w ctx cs key sl gs rev false) $$ [] HΦ
+  iapply (wp_Watch V w ctx cs key sl gs rev false) $$ [] [HΦ]
+  · iframe #
+    isplitr
+    · ipureintro; exact Hpre
+    iunfold mvcc.startRead; ileft; ipureintro; rfl
+  inext
+  iintro %ch %γ ⟨#Hs, Hc, #Hi, -⟩
+  iapply HΦ
+  iframe Hc
   iframe #
-  isplitr
-  · ipureintro; exact Hpre
-  iunfold mvcc.startRead; ileft; ipureintro; rfl
 
 /-- The server's sealed logs are small (the read side's `storeSmall`), so `srvLogsSmall`. -/
 theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)

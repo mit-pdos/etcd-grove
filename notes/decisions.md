@@ -8288,8 +8288,8 @@ is a resource the model cannot give (`rnSnapOnce`).
 
 ## A client's facts from persistent updates: monotone ghost state, a prophecy only for a general client (D18)
 
-**2026-10-17 · proposed (the monotone route implemented for the adequacy example's Put-then-Get;
-the prophecy route not started, needs the user's decision)** (open-work item 9's "client-local
+**2026-10-17 · proposed; 2026-10-18 · adopted by the user (the monotone route for the adequacy
+example's Put-then-Get; the prophecy for a general client deferred)** (open-work item 9's "client-local
 prophecy", `notes/STATUS.md`)
 
 The client's end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`, ...,
@@ -8420,3 +8420,60 @@ raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), 
 `term + 1` past the message's, so `ownRawNode` must keep `preCandidate → term + 1 ≤ tc`, which
 needs a new `raft.Step` postcondition (`ownRaftPhys` cannot keep it: `reset` stores the term while
 the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and PreVote on".
+
+## What a closed adequacy theorem may take as a hypothesis (D19)
+
+**2026-10-18 · proposed (branch `raft-retarget`, open-work item 9; waiting for the user)**
+
+The adequacy example (`examples/putget`, `notes/STATUS.md`, "Item 9: the adequacy example") was to
+keep each undischarged premise of the server's construction as a named hypothesis of the closed
+theorem. A hypothesis of a closed theorem quantifies over every instance of the ghost state
+(`∀ [HeapGS …]`) and every ghost name; if a proof can refute it inside the logic, it is false and
+the theorem says nothing.
+
+- **D19a: the rule.** A named hypothesis is either a pure fact (on the execution, `n + 2 ≤ 2 ^ 31`;
+  a method set; `transportEffectsOk`), or a Hoare triple of a function the program calls whose
+  postcondition holds only fresh resources at fresh names (`bootstrapContract`, the names-only
+  contracts `rnLoggerZapOk`, `rnNewStorageOk`, ...). Never an Iris statement about ghost state the
+  proof itself allocates (`srvLifeBound`, `idLifeBound`, `storeSmall`, `rnLogFits`, `srvLogsSmall`,
+  `clusterWorkloadOk`), nor an abstract exclusive resource from nothing (`⊢ |==> nameFree n`,
+  `⊢ |==> netAddrFree a`), nor a contract that mints a bounded supply (`rnTickerOk`'s
+  `tickCred`). Each of those is refutable (allocate or advance the same ghost state past the
+  bound; use the minted resource twice), as D17a's credits were.
+- **D19b: the lifetime bounds from time receipts** (proposed). Perennial's receipts
+  (`GooseLang/Receipts.lean`): every Go instruction step can raise a persistent `⧖ m`
+  (`wp_GoInstruction_preceipt`), and `⧖ N ⊢ False` for the adequacy theorem's step bound `N`. Each
+  counter behind a bound (ids issued by the generator, entries raft commits, ticks credited, changes
+  sealed by the store, the watch logs) keeps `⧖ k` of its value in its invariant, raised at the step
+  that increments it; the bound then follows from `N ≤ 2 ^ 40` (the tightest, the backend's
+  write-back budget), a hypothesis on the length of the executions the theorem covers. Costs: the
+  invariants of `idutil`, raft's budget and commit (`tickCred`'s minting moves into the ticker's
+  receive), the apply thread, mvcc's sealed logs and the watch store take receipts at their
+  increments; the premises go from `NewServer.spec`, `start`, `New`.
+- **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
+  committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
+  (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
+  contracts then say what they propose) -- proved as an invariant on raft's committed log.
+- **D19d: program-start resources once** (`nameFree`, `netAddrFree`). Options: (1) Perennial's
+  `wp_package_init` gives the body a once-per-package token (D16's proposed general fix), from which
+  a package takes what was allocated for it at program start: covers `nameFree`, not `netAddrFree`;
+  (2) an FFI whose initial world holds the free addresses and an empty default registry, its
+  `ffiGlobalStart` the rights (given once by `goose_init`), `nameFree`/`netAddrFree` defined as its
+  ghost state instead of axioms: a Perennial FFI change (or a local FFI over the disk FFI);
+  (3) the program-start rights as one exclusive token the theorem's proof gets from the initial
+  package state, if Perennial's `ownGoState ∅` were split into fragments.
+- **D19e: the read package's rights needed twice** (D16's cost met): a program that imports both
+  `etcdserver` and `v3rpc` runs `v3rpc.initialize'` after `etcdserver.initialize'`; both theorems
+  take `readRegPerm`. Options: (1) as D19d (1); (2) every `wp_initialize'` also returns its package
+  map's entries (`gen-init.py`), so a local variant of `wp_package_init` (from Perennial's
+  `wp_PackageInitCheck`) proves an initialized package's `package.init` without the body's proof,
+  and the importers after the first take `isPkgInit read` instead of the rights.
+- **D19f: `clientv3.New` without the watch facts** for a client that never watches: either compose
+  `etcd_watch_served_chain` at the server's start (item 4's "not done"), or weaken `New`'s
+  postcondition on the `Watcher` field so that its premise `watchAddrFacts` goes (a change to
+  `New`'s spec).
+- `rnSnapOnce`: D17d's option (1), planned after PreVote, unchanged.
+
+*Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
+conclusion to executions where the bounds hold (they are ghost facts, not observable in the
+configuration `goose_adequacy` speaks of).

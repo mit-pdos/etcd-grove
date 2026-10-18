@@ -1113,14 +1113,16 @@ def rangeWatchElem (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w6
   iprop(∃ (r : RespModel) (c c' : w64), eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     ⌜v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created⌝ ∗
     monoListIdxOwn γ.cur i.toNat c ∗ monoListIdxOwn γ.cur (i.toNat + 1) c' ∗
-    rangeWatchRespOk pfx o rev c c' r ∗ statusErrOk v.closeErr')
+    rangeWatchRespOk pfx o rev c c' r ∗ statusErrOk v.closeErr' ∗
+    (⌜γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn γ.cur2 i.toNat c2 ∗
+      monoListIdxOwn γ.cur2 (i.toNat + 1) c2' ∗ watchRespOk o.key c2 c2' v r))
 
 /-- A range watch response's close error is one grpc's `status` accepts (unit P3a). -/
 theorem rangeWatchElem_closeErr (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64)
     (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
     rangeWatchElem (GF := GF) γ pfx o rev i v ⊢ statusErrOk v.closeErr' ∗ rangeWatchElem γ pfx o rev i v := by
   unfold rangeWatchElem
-  iintro ⟨%r, %c, %c', He, Hh, %Hf, Hi, Hi', Hok, #Hse⟩
+  iintro ⟨%r, %c, %c', He, Hh, %Hf, Hi, Hi', Hok, #Hse, Hcp⟩
   iframe #
   iexists r, c, c'
   iframe
