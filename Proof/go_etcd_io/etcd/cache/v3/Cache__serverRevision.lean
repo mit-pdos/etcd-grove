@@ -71,11 +71,11 @@ theorem Cache.serverRevision.wp_proof
     isplitr
     · iapply etcdReached_zero
     ipureintro
-    refine ⟨?_, rfl⟩
+    refine ⟨?_, rfl, (by simp [OpFull.getExact, opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word))⟩
     rintro ⟨h, -⟩
     cases h
-  iunfold kvGetResult at Hres
-  icases Hres with (%Herr | ⟨%Herr, %r, %m, #Hrev, #Hm, -, -, -, -⟩)
+  iunfold kvGetResultC at Hres
+  icases Hres with (%Herr | ⟨%Herr, %r, #Hrev, -, -, #Hhs, -, -⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Herr
@@ -92,8 +92,7 @@ theorem Cache.serverRevision.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists m
-    iexact Hm
+    iexact Hhs
 
 end proof
 

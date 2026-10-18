@@ -752,6 +752,47 @@ instance kvGetResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp :
     (err : GoInterface) : Persistent (kvGetResult (GF := GF) pfx lo o resp err) := by
   unfold kvGetResult; split <;> infer_instance
 
+omit EM in
+/-- **A get etcd's server answers as the model says** (the vertical slice's unit V2): not
+keys-only (a fast keys-only read zeroes the leases, `issues/etcd-range-keys-only-lease.md`), not
+sorted by a target other than the key with no order and a positive limit (mvcc then stops reading
+early, `issues/etcd-range-sort-none-limit.md`), a limit below `2 ^ 63 - 1` (`More` is then the
+model's), and a sort order and target among the protobuf's (`0` to `2`, `0` to `4`: the wire
+carries them as `int32`, and a transaction's operations are not checked by `IsSortOptionValid`).
+Every get the recipes make is one (`isEtcdKVTodo`). -/
+def OpFull.getExact (o : OpFull) : Prop :=
+  o.keysOnly = false ∧
+    ¬ (o.base.sortSet = true ∧ o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 ∧
+      0 < sint.Z o.base.limit) ∧
+    sint.Z o.base.limit < 2 ^ 63 - 1 ∧
+    0 ≤ sint.Z o.sortOrder ∧ sint.Z o.sortOrder ≤ 2 ∧ 0 ≤ sint.Z o.sortTarget ∧
+    sint.Z o.sortTarget ≤ 4
+
+/-- **etcd had a state at revision `r`** (for the prefix `pfx`; K3: what a linearizable
+`Cache.Get` says of the revision it caught up with). -/
+def etcdHasState (r : w64) (pfx : GoString) : IProp GF :=
+  iprop(∃ s : List EtcdKv, □ etcdState r pfx s)
+
+instance etcdHasState_persistent (r : w64) (pfx : GoString) :
+    Persistent (etcdHasState (GF := GF) r pfx) := by
+  unfold etcdHasState; infer_instance
+
+/-- **What `kv.Get` returns, for the cache** (K3): as `kvGetResult`, but etcd's state at `r`
+(`isEtcdKvs`, with the response's key-values) only for a prefix get, which lists it; for any get,
+that etcd had a state at `r` (`etcdHasState`: the cache's other get reads the revision only). -/
+def kvGetResultC (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
+    IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, getRespRev resp r ∗ etcdReached r ∗ etcdReadAt r ∗
+      etcdHasState r pfx ∗
+      ⌜(o.base.serializable = false → sint.Z lo ≤ sint.Z r) ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
+      (if o.isPrefixGet pfx then iprop(∃ m : KvMap, isEtcdKvs r pfx m ∗ getRespKvs resp m)
+       else getRespRange pfx r o resp)))
+
+instance kvGetResultC_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc)
+    (err : GoInterface) : Persistent (kvGetResultC (GF := GF) pfx lo o resp err) := by
+  unfold kvGetResultC; split <;> infer_instance
+
 /-- The `clientv3.KV` interface value `kv` talks to etcd, for a cache of prefix `pfx`: the triple
 of its `Get(ctx, key, opts...)` (a range request: `OpGet(key, opts...)` must not panic and must
 be a range), with any context, options with model transformers `gs`, and any revision `lo` the
@@ -771,19 +812,20 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKV (GF := GF) kv pfx) := by
   unfold isEtcdKV; infer_instance
 
-/-- **The cache's client `KV`**: `isEtcdKV`, and the `Error()` of a non-nil error its `Get`
-returns returns some string (`errStrOk`: the cache's watch loop prints it with `fmt.Printf`'s
-`%v`; etcd's client returns a context error, a gRPC status error or an `rpctypes` error, each an
-error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
+/-- **The cache's client `KV`**: `isEtcdKV` for the gets the cache makes (exact ones,
+`getExact`; K3: etcd's state only for a prefix get, `kvGetResultC`), and the `Error()` of a
+non-nil error its `Get` returns returns some string (`errStrOk`: the cache's watch loop prints it
+with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
+`rpctypes` error, each an error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
 def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
-        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        kvGetResult pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
+        kvGetResultC pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
 
 instance isEtcdKVE_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKVE (GF := GF) kv pfx) := by

@@ -1416,7 +1416,7 @@ def cacheGetErr (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp GF
       globalAddr ErrKeyRangeInvalid ↦□ err) ∨
     ⌜o.serializable = false ∧ err ≠ GoInterface.nil⌝ ∨
     (⌜o.serializable = false⌝ ∗ globalAddr v3rpc.rpctypes.ErrFutureRev ↦□ err ∗
-      ∃ (serverRev : w64) (m : KvMap), isEtcdKvs serverRev cf.pfx m ∗
+      ∃ serverRev : w64, etcdHasState serverRev cf.pfx ∗
         ⌜sint.Z serverRev < sint.Z o.rev⌝) ∨
     (⌜o.serializable = false⌝ ∗ globalAddr ErrCacheTimeout ↦□ err) ∨
     (∃ st : StoreState, storeSeen cf.γs cf.scap r0 st ∗ snapErr (snapModel st o.rev) err ∗
@@ -1450,7 +1450,7 @@ def cacheGetOk (cf : CacheFields) (r0 : w64) (key : GoString) (o : OpModel) (res
     ⌜snapModel st o.rev = .ok r m ∧ o.getUnsupported = false ∧
       validRange cf.pfx key o.rangeEnd = true⌝ ∗
     (if o.serializable then iprop(True)
-     else iprop(∃ (serverRev : w64) (m' : KvMap), isEtcdKvs serverRev cf.pfx m' ∗
+     else iprop(∃ serverRev : w64, etcdHasState serverRev cf.pfx ∗
        ⌜sint.Z o.rev ≤ sint.Z serverRev ∧ sint.Z serverRev ≤ sint.Z st.latestRev⌝)))
 
 /-- What `Cache.Get` returns: `nil` and an error (`cacheGetErr`), or a response
