@@ -1,0 +1,47 @@
+diff --git a/server/etcdserver/raft.go b/server/etcdserver/raft.go
+index 2c1957dd1..e27ecfa59 100644
+--- a/server/etcdserver/raft.go
++++ b/server/etcdserver/raft.go
+@@ -74,7 +74,7 @@ type toApply struct {
+ 	notifyc chan struct{}
+ 	// raftAdvancedC notifies EtcdServer.apply that
+ 	// 'raftLog.applied' has advanced by r.Advance
+-	// it should be used only when entries contain raftpb.EntryConfChange
++	// (it is closed after every Advance)
+ 	raftAdvancedC <-chan struct{}
+ }
+ 
+@@ -335,10 +335,9 @@ func (r *raftNode) start(rh *raftReadyHandler) {
+ 				// }
+ 				r.Advance()
+ 
+-				if confChanged {
+-					// notify etcdserver that raft has already been notified or advanced.
+-					raftAdvancedC <- struct{}{}
+-				}
++				// notify etcdserver that raft has advanced past this Ready: its
++				// applied index now covers the committed entries handed out above.
++				close(raftAdvancedC)
+ 			case <-r.stopped:
+ 				return
+ 			}
+diff --git a/server/etcdserver/server.go b/server/etcdserver/server.go
+index a5e55b175..6002991e5 100644
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ -988,6 +988,15 @@ func (s *EtcdServer) applyAll(ep *etcdProgress, apply *toApply) {
+ 	// storage, since the raft routine might be slower than toApply routine.
+ 	<-apply.notifyc
+ 
++	// wait for raft to advance past these entries before compacting the raft log:
++	// MemoryStorage.Compact must not go above raft's applied index, which raft
++	// reads from (hasUnappliedConfChanges) until Advance.
++	select {
++	case <-apply.raftAdvancedC:
++	case <-s.stopping:
++		return
++	}
++
+ 	s.snapshotIfNeededAndCompactRaftLog(ep)
+ 	select {
+ 	// snapshot requested via send()

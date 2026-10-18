@@ -47,7 +47,7 @@ theorem EtcdServer.applyAll.wp_proof
     (hSM : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
+  wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, Hka, #Hkb⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
@@ -56,7 +56,8 @@ theorem EtcdServer.applyAll.wp_proof
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
-  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb⟩, #Hsc⟩
+  icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb⟩, #Hsc,
+    ⟨%stg, #Hstgf, #Hstgc⟩⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, ⟨%g, #Hg, #Hgs⟩, ⟨%bsl, #Hbsl⟩⟩
@@ -108,6 +109,50 @@ theorem EtcdServer.applyAll.wp_proof
   icases Hncb with ⟨%γn, #Hncb⟩
   wp_apply wp_bag_receive γn nc (fun _ => iprop(True)) $$ [] as %u -
   · iexact Hncb
+  (try wp_auto)
+  -- (D19i part 1) `select { case <-apply.raftAdvancedC: case <-s.stopping: return }`: raft has
+  -- advanced past the batch, or the server stops (no snapshot)
+  iunfold rnAdvChan at Hracc
+  icases Hracc with ⟨%γac, #Hracc⟩
+  iunfold stopChan at Hstgc
+  icases Hstgc with ⟨%γsg, #Hstgc⟩
+  wp_apply_core chan.wp_select_blocking_nil
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  rotate_left
+  · iapply BigAndL.bigAndL_cons.2
+    isplit
+    · ileft
+      simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stg, γsg
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply ownStopChan_is_chan $$ Hstgc
+      iapply stop_chan_receive _ _ _ _ _ $$ Hstgc
+      iintro ⟨-, -⟩
+      (try wp_auto)
+      iapply HΦ
+      iexists st', ai', at', a', t', cs'
+      iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
+      isplitl [Hao]
+      · iexact Hao
+      isplitr
+      · iexact Hlb
+      isplitl [HKV Hka]
+      · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
+      ipureintro; exact ⟨hok', hai', hci'⟩
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
+  ileft
+  simp only [chan.blockingClausePre]
+  iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, rac, γac
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iapply ownStopChan_is_chan $$ Hracc
+  iapply stop_chan_receive _ _ _ _ _ $$ Hracc
+  iintro ⟨-, -⟩
   (try wp_auto)
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' hok'

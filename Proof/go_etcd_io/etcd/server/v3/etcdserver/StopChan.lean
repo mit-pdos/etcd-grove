@@ -269,6 +269,19 @@ theorem stop_close_au (ch : GoChan) (γch : ChanNames) (Q : IProp GF) (Φ : IPro
     cases Hbad
   all_goals first | itrivial | (iexfalso; iexact Hs)
 
+/-- **`close(ch)`** by the closer (D19i part 1, 2026-10-18: `raftAdvancedC`): the channel is
+closed, `Q` published. -/
+theorem wp_stop_chan_close {ty : go.GoType} {dir : go.ChanDir}
+    [ty ↓u go.ChannelType dir (go.StructType [])] (ch : GoChan) (γch : ChanNames) (Q : IProp GF) :
+    {{ ownStopChan ch γch Q .Pending ∗ □ Q }}
+      (App (Val #(functions go.close [ty])) (Val #ch))
+    {{ RET #(); ownStopChan ch γch Q .Done }} := by
+  iintro %Φ ⟨Hown, #HQ⟩ HΦ
+  ihave #His := ownStopChan_is_chan _ _ _ _ $$ Hown
+  iapply chan.wp_close (ct := ty) (V := Unit) ch γch $$ His
+  iintro _
+  iapply stop_close_au _ _ _ _ $$ Hown HQ HΦ
+
 /-- **A non-blocking receive by a holder of a fraction of the closer's flag** (`own q`, `false`:
 `GoAttach` under the read lock of `wgMu`, whose resource holds such fractions while the channel is
 open): the channel is open, the receive is not ready, the fraction comes back. -/

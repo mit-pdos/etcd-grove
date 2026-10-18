@@ -363,6 +363,9 @@ theorem EtcdServer.start.wp_proof
     icases Hsab with ⟨%msc, #Hmsc, #Hmscb⟩
     iexists _, msc, sc1
     iframe #
+    iunfold stopChan
+    iexists γsg
+    iexact HsgU
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩

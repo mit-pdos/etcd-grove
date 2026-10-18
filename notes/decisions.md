@@ -8955,6 +8955,53 @@ the theorem says nothing.
     - *(C) Leave both false and recorded* (the status quo): not sound for a closed theorem, the
       branch is within the model's reach.
     - *Recommendation:* (A), raft's side first.
+    - **2026-10-18 · (A) approved by the user as part 1; stopped before any Lean change, needs a
+      decision.** (A)'s floor was "a monotone lower bound of what raft has handed out to apply
+      (`applying`), which etcd's `appliedi` never exceeds". Raft needs less: the compaction
+      boundary at most **`raftLog.applied`**, as `Compact`'s documentation says (`storage.go:266`).
+      `hasUnappliedConfChanges` (`hup`'s check, on every election timeout, `Campaign`,
+      `MsgTimeoutNow`) scans `[applied+1, committed+1)` and `Panicf`s on `ErrCompacted`
+      (`raft.go:995-1021`, `mustCheckOutOfBounds`); `nextCommittedEnts` alone would allow
+      `applying`. And `applied` moves only at `Advance` (the `MsgStorageApplyResp` of
+      `stepsOnAdvance`), which etcd's `raftNode.start` calls *after* `notifyc`, the signal on which
+      `applyAll` snapshots and compacts at `appliedi - SnapshotCatchUpEntries` (`1` early). So in
+      that window etcd compacts past `applied` whenever one `Ready` carried more than
+      `SnapshotCatchUpEntries` committed entries (or `applied` is 0 at the first memory
+      snapshot), and a `MsgHup` then panics raft: a Go bug, reproduced on raft by a Go test
+      (`issues/etcd-compact-past-raft-applied.md`). So no restatement of `compactRaftLog` that keeps
+      raft's invariants is true of the Go code as it is; (A) needs a Go fix first, which is the
+      user's call (as D19i's `monitorStorageVersion` (A) fixes the backend in the fork).
+      - *(A1) etcd waits for `Advance`* (fork fix 1 of the issue): `raftNode.start` closes
+        `raftAdvancedC` after every `Advance` (today it sends on it only with a conf change, for
+        `configure`'s waiter, which a close serves as well), and `applyAll` waits for it before
+        `snapshotIfNeededAndCompactRaftLog`. Raft publishes **one** bound, its
+        `applied`, at `Advance` (the storage-apply step), which then also bounds the snapshot
+        (`appliedi` is the batch's last index, which `Advance` makes `applied`); the witness rides
+        on `raftAdvancedC` (today a unit bag with no content, `InvRaftNode.lean`) to the apply
+        thread. Smallest proof; the apply loop waits for the raft loop once per snapshot.
+      - *(A2) etcd bounds the compaction by the batch's predecessor* (fix 2): `compacti` at most
+        the applied index before the batch, which raft had applied before handing the batch out;
+        the witness rides on the batch (`rnApP`: raft's `applied` at the `Ready`). But the snapshot
+        is still taken at `appliedi`, above `applied`, so raft's contract needs a second bound
+        for the snapshot (`applying`, or the committed prefix): more raft-side ghost state.
+      - *(B)* (above) is unchanged by this; *(C)* stays unsound.
+      - *Recommendation:* (A1).
+      What raft's side is under (A1) or (A2) (decided by raft's code, the same in both but for
+      the snapshot's bound), for the unit that carries it out: `StorState` gains the published
+      bound `fl` (raft's, raised by a new law of `isStorageWith` at `appliedTo`, never above what
+      the storage holds); `ownStorage`'s `σ` stays raft's *view* (`σ.prev`, `σ.ents`, `σ.ss`),
+      the storage's true boundary between `σ.prev.index` and `fl` and its true snapshot newer
+      than or equal to `σ.ss`; `FirstIndex` answers in `[σ.prev.index + 1, fl + 1]`; `Term(i)`
+      and `Entries(lo, _)` answer as now or `ErrCompacted` with `i < fl` / `lo ≤ fl`; `Snapshot`
+      answers `σ.ss` or a newer snapshot the application made, which needs the application's
+      certificate for `ksn` (`raftSnapCert`, from `SnapObl` on `ep.confState`, which the apply
+      thread does not yet track). Raft's readers re-proved against it: `raftLog.firstIndex`/
+      `term`/`slice`/`snapshot` and their callers (`lastTerm` and `nextCommittedEnts` read at
+      or above `applied`, so they still succeed; `matchTerm`, `findConflictByTerm`,
+      `maybeSendAppend`, `hasUnappliedConfChanges`'s `scan` (from `applied + 1 ≥ fl + 1`) as
+      Go does). `MemView` (`InvMemstorage.lean`) becomes the lower-bound relation, the
+      application's `CreateSnapshot`/`Compact` specs take `memSnapTok` (extended with a share of
+      the boundary) and a lower bound of `fl`, not `ownMemoryStorage`.
   - *`EtcdServer.monitorStorageVersion`.* The model admits another goroutine's write under the
     batch lock: `LockOutsideApply` hands out the client's `W ∗ Pk` (the store's `lateW`/
     `writerRes`, the hook's `batchLockInv`/`metaTM`), as for mvcc's compaction, and none of them
@@ -8984,6 +9031,44 @@ the theorem says nothing.
       migrates (the storage version is detected as 3.5 on a new backend).
     - *Recommendation:* (A): it fixes a real (if mild) Go bug with an open upstream fix and
       simplifies the backend's premise.
+    - **(A) adopted (the user, 2026-10-18); part 2 carried out up to the restatement, which
+      stopped for a decision.** The fork commit is `ea78ec948` on `goose-lean`: etcd-io/etcd#21987
+      cherry-picked (`writeback`: `wb.dedupe()` in place of `sort.Sort(wb)` where the read buffer
+      has the bucket), with the two reproductions as regression tests. Chosen over #22298, which
+      makes the same one-line code change with a comment and its own test: #21987 is smaller and
+      is the fix of the filed issue #21986. The translation changes only `txWriteBuffer.writeback`
+      (and the line numbers after it). The backend's model drops the duplicate-key premise:
+      `wbBucketOk` is `seq = some false ∨ entsSorted es` (a `put` bucket may hold anything),
+      `WBuf.WfR` and `wbDupOk` are gone (`sessWf` has `W.Wf`), `UnsafePut` has no key premise,
+      `txWriteBuffer.writeback`'s spec takes `W.Wf`, and its proof uses `dedupe`'s spec on both
+      branches (`canon_append_canon`, `canon_isEmpty`; no more `sort.Sort`, `Len`/`Less`/`Swap`).
+      The hook's side simplifies with it: `CindexBackend.lean`'s `hookRun` loses its "only this
+      run's puts" clause and `hookRun_dup`, `InvHooks.lean`'s `hookSaveStep` loses `csDupOk`.
+      `hookPre`'s last clause (every write-buffer bucket empty or with an empty read-buffer
+      bucket) is kept, though no hook needs it now; dropping it would also drop the
+      batch lock's `bgOk` clauses that prove it, a separate cleanup.
+    - *The restatement of `monitorStorageVersion` stopped: a design decision.* Over the fixed
+      model the write is admitted: `LockOutsideApply` gives `batchLocked ∗ W ∗ Pk`; `meta` is a
+      hook bucket (`P.HB`), so `UnsafePut` of `storageVersion` (not a hook key, `P.hk` false)
+      leaves `sData` and so the readers' view unchanged, and `Unlock`'s first branch
+      (`viewSame`) gives `W ∗ Pk` back unchanged. But `Unlock` also takes a write-back token
+      (`wbTok γ`, one per `Unlock`), and the monitor's loop is unbounded: it migrates whenever
+      `StorageVersion()` (a `ReadTx` read of `meta`, about which the readers' view promises
+      nothing) differs from the cluster version. Options: *(i)* a share of the time-receipt
+      write-token pool (D19b: `srvWTPool`, `N + 7` of `wbInit` taken by `bootBackend`, the rest
+      dropped), split between the apply thread and the monitor, each `Unlock` paid by a receipt:
+      faithful, needs the pool's split threaded through `bootBackend`, `NewServer` and `Start`;
+      *(ii)* a fixed number of tokens (from `wbInit`'s leftover), with the axiom promising at most
+      that many migrations: not true of the Go code in general (a downgrade migrates again, and
+      the model cannot show `StorageVersion()` reads what was written), so a premise on the run;
+      *(iii)* the monitor's write access as part of `Start`'s precondition with an abstract
+      per-`Unlock` token supply, left to the closed theorem. Besides the tokens, the threading
+      needs (most of it already made by the construction): `isBackend` of the real backend at `lateW`/the
+      server's `Pk` and `bF batchTx ↦□ t` (`BuildLemmas`), a `bOpen` share (`bootBackend`'s
+      leftover `∃ qo`), a `bemu` reader slot, a `ReadTx` reader token for `StorageVersion()`,
+      a `clusterVersionChanged` notifier reader, a logger slot, `isRaftCluster`, and the WAL's
+      persistent contract (`UnsafeMigrate` reads `s.r.storage` for a downgrade's check).
+      *Recommendation:* (i). The axiom stays as it was (false: it writes without resources).
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
@@ -9070,7 +9155,7 @@ two `isMutex` facts for one mutex with no agreement law; (2) a policy-parametric
 the members map and the local id; its fix (the field's points-to from `bootOk`, given back by the
 spec) is left to B4.
 
-## `v3rpc.watchVars` as a `v3rpc` initialization fact: stopped for a decision (D19i, 2026-10-18)
+## `v3rpc.watchVars` as a `v3rpc` initialization fact: stopped for a decision (D19j, 2026-10-18)
 
 The task (2026-10-18): make `watchVars` part of `v3rpcInit`, generated by `etc/gen-init.py` as
 `metricsVars` is, and drop it from `grpcCfgOk_of_started`'s premises, with no new axiom. Its

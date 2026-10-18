@@ -58,8 +58,6 @@ axiom grpcConn_persistent
 axiom grpcServesStream
 axiom grpcServesStream_persistent
 axiom grpcStreamServerAt
-axiom membership.localKept
-axiom membership.localKept_persistent
 axiom metadata.MD.Get.wp_proof
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof

@@ -66,7 +66,9 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt (appliedAtLeast γr) ∗
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P) ∗
-    srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc)
+    srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
+    -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
+    (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg))
 
 instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by

@@ -39,7 +39,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
   intro s E γw γ ci b γr ep st ai at' cs a t x hok
   wp_start as ⟨#Hsa, Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   iunfold isServerApplyAll at Hsa
-  icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc⟩
+  icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -⟩
   iunfold srvSnapState at Hss
   icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf⟩
   (try wp_auto)

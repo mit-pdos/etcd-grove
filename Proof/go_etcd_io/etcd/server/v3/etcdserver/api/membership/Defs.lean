@@ -7,8 +7,9 @@ knows of its `*RaftCluster`. Lean-first (no Rocq counterpart).
 * `memberIs m id`: a `*Member` `m` owned, field by field (the embedded `RaftAttributes` and
   `Attributes` split), its `ID` `id`, its two URL slices owned; `ownMember m`: some id.
 * `isRaftCluster c` (persistent): `c`'s embedded `sync.Mutex` guards the `members` map, whose
-  values are owned members (`RaftCluster`'s other fields, also guarded, are not described:
-  `Members` reads only the map). The map's size is at most `2 ^ 62` (`sort.Sort`'s bound; a
+  values are owned members and which has an entry for the local member `c.localID` (read-only;
+  2026-10-18: `localKept`, until then an axiomatized predicate) (`RaftCluster`'s other fields,
+  also guarded, are not described: `Members` reads only the map). The map's size is at most `2 ^ 62` (`sort.Sort`'s bound; a
   cluster has a handful of members). A contract of names-only code (the cluster's mutators,
   `AddMember` etc., are not translated): a premise of the server's start.
 -/
@@ -47,6 +48,8 @@ abbrev membership.mClientURLsAddr (m : Loc) : Loc :=
 abbrev membership.rcMutexAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"Mutex" c
 abbrev membership.rcMembersAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"members" c
+abbrev membership.rcLocalIDAddr (c : Loc) : Loc :=
+  structFieldRef membership.RaftCluster go!"localID" c
 
 end addrs
 
@@ -89,10 +92,21 @@ def membership.ownMember (m : Loc) : IProp GF :=
 def membership.membersAt (sl : GoSlice) (ms : List Loc) : IProp GF :=
   iprop(sl ↦* ms ∗ [∗list] m ∈ ms, membership.ownMember m)
 
-/-- What `c`'s mutex guards (of it, what `Members` reads): the members map, its members owned. -/
+/-- The local member's entry (persistent): `c.localID` holds `lid`, read-only (`SetID` writes it
+at bootstrap, before the cluster is shared), and the members map `ms` has an entry for it. -/
+def membership.rcLocalIn (c : Loc) (ms : GMap w64 Loc) : IProp GF :=
+  iprop(∃ lid : w64, membership.rcLocalIDAddr c ↦□ lid ∗ ⌜ms !! lid ≠ none⌝)
+
+instance membership.rcLocalIn_persistent (c : Loc) (ms : GMap w64 Loc) :
+    Persistent (membership.rcLocalIn (GF := GF) c ms) := by
+  unfold membership.rcLocalIn; infer_instance
+
+/-- What `c`'s mutex guards (of it, what `Members` and `IsLocalMemberLearner` read): the members
+map, its members owned, the local member among them (`rcLocalIn`: `membership.localKept`). -/
 def membership.rcLockInv (c : Loc) : IProp GF :=
   iprop(∃ (mp : Loc) (ms : GMap w64 Loc), membership.rcMembersAddr c ↦ mp ∗ mp ↦$ ms ∗
-    ⌜GMap.size ms ≤ 2 ^ 62⌝ ∗ [∗map] _k ↦ m ∈ ms, membership.ownMember m)
+    ⌜GMap.size ms ≤ 2 ^ 62⌝ ∗ ([∗map] _k ↦ m ∈ ms, membership.ownMember m) ∗
+    membership.rcLocalIn c ms)
 
 /-- **The cluster `c`** (persistent): its mutex, guarding `rcLockInv c`. -/
 def membership.isRaftCluster (c : Loc) : IProp GF :=
@@ -102,21 +116,31 @@ instance membership.isRaftCluster_persistent (c : Loc) :
     Persistent (membership.isRaftCluster (GF := GF) c) := by
   unfold membership.isRaftCluster; infer_instance
 
+/-- **The cluster `c`'s local member stays in its members map** (persistent; until 2026-10-18 an
+axiomatized predicate, unit P3b): `c` is the cluster whose mutex guards a members map that has an
+entry for `c.localID` whenever the mutex is free (`rcLockInv`'s `rcLocalIn`). So
+`RaftCluster.IsLocalMemberLearner`, which panics (`c.lg.Panic`) when `c.members` has no entry for
+`c.localID`, does not panic. A fact that holds forever by construction: `bootstrap`'s contract
+gives the cluster with its local member (a new cluster's members are the boot peers, the local
+one among them: `NewClusterFromURLsMap`, `SetID`), and no writer of the map in the verified run
+removes it -- the only removal, `applyConfChange`'s `RemoveNode`, is outside the changes the
+server takes (`ccApplyOk`, audit B3: an `AddNode` of a member, `AddMember` of it, which keeps the
+entry). In general etcd the local member is removed when the server applies its own removal, after
+which it stops (`issues/etcd-unary-interceptor-learner-removed.md`: the server's unary
+interceptor's `IsMemberExist(MemberID()) && IsLearner()` races with that removal); that run is
+outside this model. The same fact as `isRaftCluster c` (`localKept_of_isRaftCluster`), named for
+the specs that rely on it (`EtcdServer.IsLearner`'s and the interceptors'). -/
+def membership.localKept (c : Loc) : IProp GF := membership.isRaftCluster c
+
+instance membership.localKept_persistent (c : Loc) :
+    Persistent (membership.localKept (GF := GF) c) := by
+  unfold membership.localKept; infer_instance
+
+theorem membership.localKept_of_isRaftCluster (c : Loc) :
+    membership.isRaftCluster (GF := GF) c ⊢ membership.localKept c := .rfl
+
 end defs
 
-/-- **The cluster `c`'s local member stays in its members map** (persistent; an axiomatized
-predicate, unit P3b: an assumption about the server's run, introduced by nothing):
-`RaftCluster.IsLocalMemberLearner` panics (`c.lg.Panic`) when `c.members` has no entry for
-`c.localID`; the local member is removed only when the server applies its own removal, after
-which it stops (`issues/etcd-unary-interceptor-learner-removed.md`: the server's unary
-interceptor's `IsMemberExist(MemberID()) && IsLearner()` races with that removal). A premise of
-`EtcdServer.IsLearner`'s spec, and so of the server's gRPC results. -/
-axiom membership.localKept {GF : BundledGFunctors} [FfiSyntax] (c : Loc) : IProp GF
-
-axiom membership.localKept_persistent {GF : BundledGFunctors} [FfiSyntax] (c : Loc) :
-  Persistent (membership.localKept (GF := GF) c)
-
-attribute [instance] membership.localKept_persistent
 
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -10,8 +10,17 @@ links:
 
 # The read buffer keeps both puts of one key: `ReadTx` returns the older value
 
-- **Status**: open (not filed). An unstated precondition of `BatchTx.UnsafePut`. Since
-  2026-10-18 one etcd caller is known to break it: the storage-version migration
+- **Status**: fixed in the fork (2026-10-18, D19i (A)): etcd-io/etcd#21987 (the fix for #21986:
+  `writeback` calls `wb.dedupe()` for a non-sequential bucket on both branches) cherry-picked onto
+  `goose-lean` as `ea78ec948` (author Frans Kaashoek, co-authored by the PR's author), with the two
+  reproductions below as regression tests (both fail without the fix; `go test ./server/storage/...`
+  passes). Chosen over #22298 (the same one-line code change, plus a comment and a test): #21987 is
+  the smaller diff and the fix of the filed issue. It is the pin of `etc/goose.py`'s project `etcd`
+  (and then `06aa6e6e`, D19i part 1's `raftAdvancedC` fix on top of it); **to be pushed to
+  `upamanyus/etcd` by the user**. The backend's specs no longer exclude a repeated put
+  (`UnsafePut`'s premise and `wbDupOk` gone; `txWriteBuffer.writeback` proved for the fixed code).
+  Upstream: both PRs still open. Until the fix: an unstated precondition of `BatchTx.UnsafePut`,
+  and one etcd caller known to break it, the storage-version migration
   (`EtcdServer.monitorStorageVersion`), below, "An etcd caller".
 - **Where**: `server/storage/backend/tx_buffer.go` at the etcd pin of `etc/goose.py`
   (`bc8b52a50`): `txWriteBuffer.writeback` (`sort.Sort(wb)` under "assume no duplicate keys"),
@@ -91,7 +100,8 @@ links:
 - **Expected**: the read transactions see the batch transaction's last write of a key (the
   write buffer's "pending updates", `txWriteBuffer`'s comment), or the API states that a key
   is put at most once per lock session.
-- **How the proof handles it**: the write buffer's specs (`Spec/go_etcd_io/etcd/server/v3/
+- **How the proof handles it** (until 2026-10-18; since then the fork's fix, above, and no
+  premise): the write buffer's specs (`Spec/go_etcd_io/etcd/server/v3/
   storage/backend/txWriteBuffer__writeback.lean`) take the premise that a non-sequential
   bucket's buffered puts have distinct keys (a sequential bucket's are increasing, which
   `putSeq`'s `verify` check states); the batch transaction's `UnsafePut` carries it as a

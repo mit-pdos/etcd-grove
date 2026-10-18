@@ -311,6 +311,31 @@ theorem canon_append_perm {a b b' : List Ent} (hp : b.Perm b') (hn : (b.map Prod
     | _ :: _ :: _, _, hlen => simp at hlen
   rw [hf]
 
+theorem lastVal_append (a b : List Ent) (k : GoString) :
+    lastVal (a ++ b) k = (lastVal b k).or (lastVal a k) := by
+  unfold lastVal
+  rw [List.reverse_append, List.find?_append]
+  cases b.reverse.find? (fun e => decide (e.1 = k)) <;> simp
+
+/-- Merging a canonical form is merging the entries (`writeback` deduplicates a bucket written
+by `put` before `merge`, since the fork's fix, etcd-io/etcd#21987). -/
+theorem canon_append_canon (a b : List Ent) : canon (a ++ canon b) = canon (a ++ b) := by
+  apply eq_of_sorted_lastVal (canon_sorted _) (canon_sorted _)
+  intro k
+  rw [lastVal_canon, lastVal_canon, lastVal_append, lastVal_append, lastVal_canon]
+
+theorem canon_isEmpty (l : List Ent) : (canon l).isEmpty = l.isEmpty := by
+  cases l with
+  | nil => simp [canon, dedupLast]
+  | cons e l =>
+    have h := lastVal_canon (e :: l) e.1
+    cases hc : canon (e :: l) with
+    | nil =>
+      have h0 : lastVal ([] : List Ent) e.1 = none := rfl
+      rw [hc, h0, lastVal_cons] at h
+      cases hv : lastVal l e.1 <;> simp [hv] at h
+    | cons _ _ => rfl
+
 theorem canon_length_le (l : List Ent) : (canon l).length ≤ l.length := by
   unfold canon
   exact Nat.le_trans (dedupLast_length_le _) (by simp)
@@ -329,121 +354,12 @@ theorem bkOf_wbAdd (B : GMap w64 (List Ent)) (id id' : w64) (e : Ent) :
   simp only [bkOf, wbAdd, GMap.lookup_insert_eq_iff]
   split <;> simp_all
 
-theorem WBuf.put_wf {W : WBuf} {id : w64} {e : Ent} (hW : W.Wf)
-    (he : e.1 ∉ (bkOf W.bks id).map Prod.fst) : (W.put id e).Wf := by
-  intro id' es h
-  simp only [WBuf.put, wbAdd, GMap.lookup_insert_eq_iff] at h ⊢
-  by_cases hid : id = id'
-  · subst hid
-    simp only [↓reduceIte, Option.some.injEq] at h ⊢
-    subst h
-    unfold wbBucketOk
-    simp only [↓reduceIte]
-    have hold : ((bkOf W.bks id).map Prod.fst).Nodup := by
-      unfold bkOf
-      cases hl : W.bks.lookup id with
-      | none => simp
-      | some es0 =>
-        have := hW id es0 hl
-        unfold wbBucketOk at this
-        split at this
-        · simpa using this
-        · simpa using entsSorted_nodup this
-    rw [List.map_append, List.nodup_append]
-    refine ⟨hold, (by simp), ?_⟩
-    intro a ha b hb hab
-    simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
-    subst hb hab
-    exact he ha
-  · simp only [hid, ↓reduceIte] at h ⊢
-    exact hW id' es h
-
-theorem WBuf.putSeq_wf {W : WBuf} {id : w64} {e : Ent} (hW : W.Wf)
-    (he : ∀ x ∈ bkOf W.bks id, strLt x.1 e.1) : (W.putSeq id e).Wf := by
-  intro id' es h
-  simp only [WBuf.putSeq, wbAdd, GMap.lookup_insert_eq_iff] at h ⊢
-  by_cases hid : id = id'
-  · subst hid
-    simp only [↓reduceIte, Option.some.injEq] at h
-    subst h
-    have hold : wbBucketOk (W.seq.lookup id) (bkOf W.bks id) := by
-      unfold bkOf
-      cases hl : W.bks.lookup id with
-      | none => unfold wbBucketOk; split <;> simp [entsSorted]
-      | some es0 => exact hW id es0 hl
-    unfold wbBucketOk at hold ⊢
-    split
-    · rename_i hs
-      simp only [hs, ↓reduceIte] at hold
-      rw [List.map_append, List.nodup_append]
-      refine ⟨hold, (by simp), ?_⟩
-      intro a ha b hb hab
-      simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
-      obtain ⟨x, hx, rfl⟩ := List.mem_map.mp ha
-      subst hb
-      exact goStringLt_irrefl _ (hab ▸ he x hx)
-    · rename_i hs
-      simp only [hs, ↓reduceIte] at hold
-      refine entsSorted_append.mpr ⟨hold, List.pairwise_singleton _ _, ?_⟩
-      intro x hx y hy
-      simp only [List.mem_singleton] at hy
-      subst hy
-      exact he x hx
-  · simp only [hid, ↓reduceIte] at h
-    exact hW id' es h
-
-/-! ## The relaxed well-formedness (`WBuf.WfR`) -/
-
-theorem WBuf.WfR.of_Wf {W : WBuf} (D : w64 → Prop) (hW : W.Wf) : W.WfR D :=
-  fun id es h => Or.inl (hW id es h)
-
-theorem WBuf.WfR.mono {W : WBuf} {D D' : w64 → Prop} (hW : W.WfR D) (h : ∀ id, D id → D' id) :
-    W.WfR D' := by
-  intro id es hl
-  rcases hW id es hl with h1 | ⟨h2, h3⟩
-  · exact Or.inl h1
-  · exact Or.inr ⟨h2, h id h3⟩
-
-/-- Where `D` allows nothing, `WfR` is `Wf`. -/
-theorem WBuf.WfR.wf {W : WBuf} {D : w64 → Prop} (hW : W.WfR D) (h : ∀ id, ¬ D id) : W.Wf := by
-  intro id es hl
-  rcases hW id es hl with h1 | ⟨-, h3⟩
-  · exact h1
-  · exact absurd h3 (h id)
-
-theorem WBuf.WfR.put {W : WBuf} {D : w64 → Prop} {id : w64} {e : Ent} (hW : W.WfR D)
-    (he : e.1 ∉ (bkOf W.bks id).map Prod.fst ∨ D id) : (W.put id e).WfR D := by
+theorem WBuf.put_wf {W : WBuf} {id : w64} {e : Ent} (hW : W.Wf) : (W.put id e).Wf := by
   intro id' es h
   by_cases hid : id = id'
   · subst hid
-    by_cases hD : D id
-    · right
-      refine ⟨?_, hD⟩
-      simp [WBuf.put, GMap.lookup_insert_eq_iff]
-    · left
-      have he' := he.resolve_right hD
-      simp only [WBuf.put, wbAdd, GMap.lookup_insert_eq_iff] at h ⊢
-      simp only [↓reduceIte, Option.some.injEq] at h ⊢
-      subst h
-      unfold wbBucketOk
-      simp only [↓reduceIte]
-      have hold : ((bkOf W.bks id).map Prod.fst).Nodup := by
-        unfold bkOf
-        cases hl : W.bks.lookup id with
-        | none => simp
-        | some es0 =>
-          rcases hW id es0 hl with h1 | ⟨-, h2⟩
-          · unfold wbBucketOk at h1
-            split at h1
-            · simpa using h1
-            · simpa using entsSorted_nodup h1
-          · exact absurd h2 hD
-      rw [List.map_append, List.nodup_append]
-      refine ⟨hold, (by simp), ?_⟩
-      intro a ha b hb hab
-      simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
-      subst hb hab
-      exact he' ha
+    left
+    simp [WBuf.put, GMap.lookup_insert_eq_iff]
   · have h' : W.bks.lookup id' = some es := by
       simpa [WBuf.put, wbAdd, GMap.lookup_insert_eq_iff, hid] using h
     have hs : (W.put id e).seq.lookup id' = W.seq.lookup id' := by
@@ -451,8 +367,8 @@ theorem WBuf.WfR.put {W : WBuf} {D : w64 → Prop} {id : w64} {e : Ent} (hW : W.
     rw [hs]
     exact hW id' es h'
 
-theorem WBuf.WfR.putSeq {W : WBuf} {D : w64 → Prop} {id : w64} {e : Ent} (hW : W.WfR D)
-    (he : ∀ x ∈ bkOf W.bks id, strLt x.1 e.1) : (W.putSeq id e).WfR D := by
+theorem WBuf.putSeq_wf {W : WBuf} {id : w64} {e : Ent} (hW : W.Wf)
+    (he : ∀ x ∈ bkOf W.bks id, strLt x.1 e.1) : (W.putSeq id e).Wf := by
   intro id' es h
   by_cases hid : id = id'
   · subst hid
@@ -460,40 +376,20 @@ theorem WBuf.WfR.putSeq {W : WBuf} {D : w64 → Prop} {id : w64} {e : Ent} (hW :
     rw [hs]
     have hb : bkOf W.bks id ++ [e] = es := by
       simpa [WBuf.putSeq, wbAdd, GMap.lookup_insert_eq_iff] using h
-    cases hl : W.bks.lookup id with
-    | none =>
-      -- a new bucket: one entry
-      have h0 : bkOf W.bks id = [] := by unfold bkOf; rw [hl]; rfl
-      rw [h0] at hb
-      subst hb
-      left
-      unfold wbBucketOk
-      split <;> simp [entsSorted]
-    | some es0 =>
-      have h0 : bkOf W.bks id = es0 := by unfold bkOf; rw [hl]; rfl
-      rw [h0] at hb he
-      subst hb
-      rcases hW id es0 hl with h1 | ⟨h2, h3⟩
-      · left
-        unfold wbBucketOk at h1 ⊢
-        split
-        · rename_i hs
-          simp only [hs, ↓reduceIte] at h1
-          rw [List.map_append, List.nodup_append]
-          refine ⟨h1, (by simp), ?_⟩
-          intro a ha b hb hab
-          simp only [List.map_cons, List.map_nil, List.mem_singleton] at hb
-          obtain ⟨x, hx, rfl⟩ := List.mem_map.mp ha
-          subst hb
-          exact goStringLt_irrefl _ (hab ▸ he x hx)
-        · rename_i hs
-          simp only [hs, ↓reduceIte] at h1
-          refine entsSorted_append.mpr ⟨h1, List.pairwise_singleton _ _, ?_⟩
-          intro x hx y hy
-          simp only [List.mem_singleton] at hy
-          subst hy
-          exact he x hx
-      · right; exact ⟨h2, h3⟩
+    have hold : wbBucketOk (W.seq.lookup id) (bkOf W.bks id) := by
+      unfold bkOf
+      cases hl : W.bks.lookup id with
+      | none => right; simp [entsSorted]
+      | some es0 => exact hW id es0 hl
+    subst hb
+    rcases hold with h1 | h1
+    · exact Or.inl h1
+    · right
+      refine entsSorted_append.mpr ⟨h1, List.pairwise_singleton _ _, ?_⟩
+      intro x hx y hy
+      simp only [List.mem_singleton] at hy
+      subst hy
+      exact he x hx
   · have h' : W.bks.lookup id' = some es := by
       simpa [WBuf.putSeq, wbAdd, GMap.lookup_insert_eq_iff, hid] using h
     exact hW id' es h'
@@ -502,8 +398,7 @@ theorem WBuf.reset_wf (W : WBuf) : W.reset.Wf := by
   intro id es h
   simp only [WBuf.reset, bksReset, GMap.lookup_fmap, Option.map_eq_some_iff] at h
   obtain ⟨_, _, rfl⟩ := h
-  unfold wbBucketOk
-  split <;> simp [entsSorted]
+  right; simp [entsSorted]
 
 theorem writebackW_wf (W : WBuf) (R : RBuf) : (writebackW W R).Wf := by
   exact WBuf.reset_wf _

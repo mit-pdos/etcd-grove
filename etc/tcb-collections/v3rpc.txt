@@ -67,8 +67,6 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
-axiom membership.localKept
-axiom membership.localKept_persistent
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof

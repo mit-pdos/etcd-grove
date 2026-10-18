@@ -164,7 +164,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, -⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
-      wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R (wfR_closed Hwf.1 Hhw) Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
+      wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
         as ⟨HW, HRB⟩
       have hver : uint.Z st.R.ver + 1 < 2 ^ 64 := by
         have := Hbg.1
@@ -208,7 +208,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, -⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
       have hbb := bgOk_bufBound HP Hwf Hbg
-      wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R (wfR_closed Hwf.1 Hhw) Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
+      wp_apply (hWB (wbOf t) st.W (rbufOf (baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
         as ⟨HW, HRB⟩
       have hver : uint.Z st.R.ver + 1 < 2 ^ 64 := by
         have := Hbg.1

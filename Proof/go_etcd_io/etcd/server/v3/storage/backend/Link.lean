@@ -103,7 +103,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
-public import Proof.sort.Sort
 public import Proof.sort.Stable
 public import Proof.time.Duration__Seconds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset
@@ -360,10 +359,6 @@ theorem bucketBuffer.wp_dedupe :
     EtcdGrove.backend.bucketBuffer.dedupe.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.bucketBuffer.dedupe.wp_proof sort.wp_Stable bucketBuffer.wp_Len bucketBuffer.wp_Less bucketBuffer.wp_Swap
 
-theorem sort.wp_Sort :
-    EtcdGrove.sort.«Sort».spec (GF := GF) (hG := hG) :=
-  EtcdGrove.sort.«Sort».wp_proof
-
 theorem bucketBuffer.wp_add :
     EtcdGrove.backend.bucketBuffer.add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.bucketBuffer.add.wp_proof
@@ -378,7 +373,7 @@ theorem txWriteBuffer.wp_reset :
 
 theorem txWriteBuffer.wp_writeback :
     EtcdGrove.backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.txWriteBuffer.writeback.wp_proof bucketBuffer.wp_dedupe sort.wp_Sort bucketBuffer.wp_Len bucketBuffer.wp_Less bucketBuffer.wp_Swap bucketBuffer.wp_merge txWriteBuffer.wp_reset
+  EtcdGrove.backend.txWriteBuffer.writeback.wp_proof bucketBuffer.wp_dedupe bucketBuffer.wp_merge txWriteBuffer.wp_reset
 
 theorem batchTxBuffered.wp_Unlock :
     EtcdGrove.backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) :=

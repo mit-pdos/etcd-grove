@@ -34,7 +34,6 @@ bbolt_Tx__DeleteBucket_kv:
 bbolt_Tx__Rollback_kv:
 bbolt_Tx__Size_kv:
 bbolt_Tx__Stats_kv:
-sort_Sort:
 sort_Stable:
 time_Duration__Seconds:
 verify_Assert:
@@ -124,7 +123,7 @@ txWriteBuffer__put: txWriteBuffer__putInternal
 txWriteBuffer__putInternal: newBucketBuffer bucketBuffer__add
 txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
 txWriteBuffer__reset: txBuffer__reset
-txWriteBuffer__writeback: bucketBuffer__dedupe sort_Sort bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap bucketBuffer__merge txWriteBuffer__reset
+txWriteBuffer__writeback: bucketBuffer__dedupe bucketBuffer__merge txWriteBuffer__reset
 unsafeRange: bbolt_Cursor__Seek_kv bbolt_Cursor__Next_kv
 backend_newBackend: bbolt_Open_kv newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run
 newBatchTxBuffered: backend__begin
