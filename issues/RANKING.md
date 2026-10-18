@@ -34,7 +34,8 @@ before any public issue.
 2. **[etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md)**: a `UserAdd` or
    `RoleAdd` whose name is over 32 KiB hits bbolt's `ErrKeyTooLarge`, which is fatal on every
    member and again on replay; with auth off (the default) any client can send one. Fix: a length
-   check. **Before filing**: the reproduction stops at the auth store; confirm it through gRPC.
+   check. Confirmed end to end through gRPC (2026-10-18, upstream `main`: `etcdctl user add` or
+   `role add` with a 32769-byte name; all three members exit, and again when restarted together).
    Same cause (bbolt errors made fatal in `unsafePut`, one size check covers all three):
    [etcd-auth-record-too-large-fatal](etcd-auth-record-too-large-fatal.md),
    [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md).
