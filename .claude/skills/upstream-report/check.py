@@ -89,23 +89,35 @@ def main():
 
     diff = code_diff = ""
     if wt and base:
-        n = int(git(wt, "rev-list", "--count", f"{base}..HEAD"))
-        if n != 2:
-            fail(f"commit: {n} commits on top of the base {base[:9]}, not two (the tests, then the fix)")
+        revs = git(wt, "rev-list", "--reverse", f"{base}..HEAD").split()
+
+        def names(rev):
+            return git(wt, "diff-tree", "--no-commit-id", "--name-only", "-r", rev).split()
+
+        # the tests, the fix, and optionally the changelog entry in a commit of its own
+        code_revs = revs[:2] if len(revs) == 3 and all(f.startswith("CHANGELOG/") for f in names(revs[2])) else revs
+        if len(code_revs) != 2:
+            fail(f"commit: {len(revs)} commits on top of the base {base[:9]}; want the tests, then the fix, then "
+                 "optionally the changelog entry")
         else:
-            tests = git(wt, "diff", "--name-only", f"{base}..HEAD~1").split()
+            tests = names(code_revs[0])
             if not tests or any(not f.endswith("_test.go") for f in tests):
                 fail(f"commit: the first commit should add only the tests (*_test.go), not {tests}")
-        for rev in ("HEAD~1", "HEAD") if n == 2 else ("HEAD",):
+            if any(f.startswith("CHANGELOG/") for f in names(code_revs[1])):
+                warn("commit: the changelog entry goes in a commit of its own, after the fix")
+        for rev in revs:
             msg = git(wt, "log", "-1", "--format=%B", rev)
             if re.search(r"^(Co-Authored-By|Assisted-by|Generated-by):", msg, flags=re.M | re.I):
-                fail(f"commit {rev}: an AI trailer (Co-Authored-By/Assisted-by); upstream's AI policy forbids it")
+                fail(f"commit {rev[:9]}: an AI trailer (Co-Authored-By/Assisted-by); upstream's AI policy forbids it")
             if not re.search(r"^Signed-off-by: ", msg, flags=re.M):
-                fail(f"commit {rev}: no Signed-off-by (git commit -s)")
+                fail(f"commit {rev[:9]}: no Signed-off-by (git commit -s)")
+            if len(msg.splitlines()[0]) > 72:
+                warn(f"commit {rev[:9]}: subject longer than 72 characters")
             body = [l for l in msg.split("\n\n", 1)[1:2] for l in l.splitlines() if l and not l.startswith("Signed-off-by:")]
-            if len(body) > 8:
-                warn(f"commit {rev}: {len(body)} lines of message body; a subject and one to three plain sentences")
-        subject = git(wt, "log", "-1", "--format=%s", "HEAD").strip()
+            if len(body) > 4:
+                warn(f"commit {rev[:9]}: {len(body)} lines of message body; upstream's are mostly none, at most a "
+                     "few sentences")
+        subject = git(wt, "log", "-1", "--format=%s", code_revs[-1] if code_revs else "HEAD").strip()
         diff = git(wt, "diff", f"{base}..HEAD")
         code_diff = git(wt, "diff", f"{base}..HEAD", "--", ".", ":(exclude)*_test.go")
         files = [f for f in git(wt, "diff", "--name-only", f"{base}..HEAD").split() if f.endswith(".go")]

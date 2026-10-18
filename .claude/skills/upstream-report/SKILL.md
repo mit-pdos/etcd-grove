@@ -7,8 +7,8 @@ description: Turn a finding in issues/<slug>.md into an upstream-ready candidate
 
 From one finding, `issues/<slug>.md`, produce for the user to review:
 
-- a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: two signed-off commits off current upstream `main`, first the
-  tests (which fail at that commit), then the fix;
+- a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: signed-off commits off current upstream `main`, first the
+  tests (which fail at that commit), then the fix, then (if the repository keeps one) the changelog entry;
 - `issues/upstream/<slug>/issue.md`, `pr.md` and `meta.md` (base commit, commands run and results, duplicates
   found, answers to likely reviewer questions, state).
 
@@ -27,12 +27,15 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 
 ## Upstream's rules
 
-- Commits: two, so that the tests can be seen to fail before the fix: first the tests only (`*_test.go`, subject
-  `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title). Each message is a
-  subject and one to three plain sentences, as in the package's own fix commits: what was wrong and what changes,
-  in words rather than function names, without restating the diff. `git commit -s`, no AI trailer of any kind. The
-  messages are drafts the user rewrites (etcd does not accept AI-written messages). Amend the two commits until the
-  PR is open.
+- Commits, so that the tests can be seen to fail before the fix: first the tests only (`*_test.go`, subject
+  `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title), then, where the
+  repository has a changelog for the next release, its entry alone (`changelog: add entry for <what>`, no body; the
+  link `pull/TODO` until the PR exists). Messages are as short as upstream's: most etcd and raft commits have no
+  body, and nine in ten at most three lines. The tests commit says only that the test fails until the next commit;
+  the fix commit says in a sentence or two what was wrong and what changes, in words rather than function names,
+  without restating the diff. Subjects at most 72 characters; the prefix the package's history uses (`client/v3:`,
+  `etcdserver:`, `raft:`). `git commit -s`, no AI trailer of any kind. The messages are drafts the user rewrites
+  (etcd does not accept AI-written messages). Amend the commits until the PR is open.
 - The issue and the PR each end with their standard AI disclosure (below). Replies to reviewers are the user's.
 - A bug a client with ordinary access can use to crash or hang a member, lose or corrupt acknowledged data, or
   bypass auth is a security report: before writing anything public, stop and let the user decide (etcd's
@@ -67,7 +70,7 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
    considered; do not research more for it.
 7. **Verify**: the new tests (fail at the tests commit, pass at the fix commit), the package's tests, `gofmt -l`, `go vet`;
    nothing broader unless the change leaves the package. Record the commands and results in `meta.md`.
-8. **Write** `issue.md` and `pr.md` (below), commit the tests and then the fix, and run
+8. **Write** `issue.md` and `pr.md` (below), commit the tests, the fix and the changelog entry, and run
    `python3 -I .claude/skills/upstream-report/check.py <slug>`: fix every FAIL, decide every WARN.
 9. **Hand off**: branch and commit, base, the files, the commit message to rewrite, anything not verified, and the
    push command the issue's links need: `git -C ~/etcd-fixes/<slug> push origin fix/<slug>`. State `draft` in

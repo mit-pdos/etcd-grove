@@ -12,14 +12,14 @@ decides how to file, as for the sibling.
 - **Finding**: `issues/raft-readindex-removed-leader.md` (split off `issues/raft-readindex-singleton-stale.md`,
   2026-10-18)
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
-- **Branch**: `fix/raft-readindex-removed-leader` in `~/etcd-fixes/raft-readindex-removed-leader`, two commits:
-  d097b57 adds the test, which fails there; 3cb3baa is the fix. Not yet pushed
+- **Branch**: `fix/raft-readindex-removed-leader` in `~/etcd-fixes/raft-readindex-removed-leader`, three commits:
+  c1e730b adds the test, which fails there; f54c2e0 is the fix; 916ceec adds the changelog entry. Not yet pushed
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader`, the branch the links in
   `issue.md` name; its lines 2227-2260 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft (2026-10-18)
 - **Upstream issue**: — (the issues do not mention each other; only the PRs do, in their conflict note)
-- **PR**: — (then replace `pull/TODO` in the fix commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
+- **PR**: — (then replace `pull/TODO` in the changelog commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
   `#<other PR>` in `pr.md`)
 
 etcd-io/raft has no issue template: the issue uses etcd's bug-report sections, with "Raft version" for etcd's
@@ -48,9 +48,9 @@ fix peer 2 produces none (its heartbeat at term 1 is ignored by peer 1 at term 2
 off), so the check is vacuous there; kept so on purpose (the user's decision, 2026-10-18): the test rules out a
 stale answer, not the absence of one.
 
-- At the test commit d097b57 (`go test . -run TestReadOnlyForRemovedLeader`): fails, `"2" is not greater than or
+- At the test commit c1e730b (`go test . -run TestReadOnlyForRemovedLeader`): fails, `"2" is not greater than or
   equal to "4"` (`read index`).
-- At the fix commit 3cb3baa: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- At the fix commit f54c2e0: passes; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l` empty; `go vet ./...` clean.
 - A temporary test (2026-10-18, with the combined fix; this fix makes the same check at the shortcut): a leader of
   `{1}` that enters the joint configuration `{1}&&{1}` (adding a learner with an explicit transition) gets no answer
