@@ -8798,6 +8798,51 @@ the theorem says nothing.
     `etcdGrpcSlots_of_started` gives the `N ≤ K` slots from `srvServeOut`'s slots and `Start`'s
     read slots. `runsNoRequireLeader` stays a premise of the closed theorem: a statement about
     the clients' metadata, of D19a's first kind.
+- **D19h: the quota and the NOSPACE alarm** (audit phase B3, 2026-10-18; **proposed, waiting for
+  the user**). Three axioms on the `Put` path are false together (`notes/audit.md`): the quota's
+  `Available` always answers true (`storage.NewBackendQuota`'s `isQuota`), and the two contracts
+  that propose the NOSPACE alarm (`EtcdServer.Alarm`, for `quotaAlarmer.check` in v3rpc;
+  `EtcdServer.raftRequestAlarm`, for `applyEntryNormal`'s goroutine on an `ErrNoSpace` entry)
+  propose a request that the KV model does not admit (`plainReq` is `False` for `.alarm`), with no
+  `reqPropOk`, id credit or reader slot. Go: `BackendQuota.Available` is false once
+  `be.Size() + cost` reaches the quota (2 GiB by default; `storage/quota.go`); the quota applier
+  then still applies the put, transaction or lease grant and only sets `ErrNoSpace` on its
+  response (`apply/quota.go:36-42`); `applyEntryNormal` proposes `Alarm{ACTIVATE, NOSPACE}` once
+  per such entry while no NOSPACE alarm is stored; v3rpc's `quotaAlarmer.check` proposes it and
+  answers `ErrNoSpace` without proposing the request; once the alarm is applied the uber-applier's
+  chain is the capped one, which rejects every put and lease grant and every transaction of
+  positive `Cost` (`apply/capped.go`). Both options keep putget's theorem meaningful (`Main`
+  ends without a check on any error); they differ in what the closed theorem covers and in cost.
+  - *(A) Model the alarm.* `isQuota`'s `Available` answers some boolean; the quota layer's outcome
+    is the inner one, or, for an applied write, the same log with `ErrNoSpace` (the client sees an
+    error for a write that happened: the client specs' error case must allow it). The alarm
+    proposals carry a permit (`srvAlarmPermit`, as `srvMonitorPermit`: the request path's for
+    `quotaAlarmer.check`; for the apply thread's goroutine an id credit and reader slot it does
+    not have today, one per `ErrNoSpace` entry). The KV model admits the NOSPACE `ACTIVATE` entry:
+    the model's state becomes the log and the chain (`kvRaftOf` folds both; the alarm switches
+    the chain to the capped one, the start's chain `kvExact` as now), which needs the alarm
+    store's NOSPACE flag as a function of the log (`v3alarm` is names-only, an oracle today:
+    `apply.alarmChain`'s `ns` is any boolean) and the capped layer deterministic (`Cost` of a
+    transaction, names-only, decides it). Costs: the KV model (`KVModelDefs`, `KVModel`,
+    `KVApply`, `kvInv`), the chain relation, the alarm store's model, the two permits, the client
+    outcomes; several units. Gain: no premise; a closed theorem covers a run that fills the
+    quota (its writes rejected after the alarm, each answered with an error).
+  - *(B) A named workload premise, as `authRecordsFit`* (D19a's first kind; the audit's own
+    suggestion for `NewBackendQuota`). `opaque backendUnderQuota : Prop` ("every `Available` of
+    the run answers true: the backend's size plus a request's cost stays below the quota"), a
+    premise of `storage.NewBackendQuota`'s axiom (which keeps `Available`'s `b = true`), so of
+    `newQuotaApplierV3`/`NewUberApplier`/`NewServer.spec` and of v3rpc's `newBackendQuota` and
+    the server construction above it. Then `quotaAlarmer.check`'s alarm branch is dead and
+    `EtcdServer.Alarm`'s axiom leaves the link (one axiom fewer); `applyEntryNormal`'s `ErrNoSpace`
+    branch is dead too (the quota layer never sets it, and the capped layer is not in the chain:
+    the apply thread's chain is `kvExact`, `KVApply.lean`), once the outcome-to-error map shows a
+    `kvExact` chain never answers `ErrNoSpace`, and `raftRequestAlarm` goes as well (one more).
+    Costs: one unit, premises on two construction specs. Loss: a premise nothing checks, true of
+    putget (one small key against 2 GiB) and false of a workload that fills the quota; the
+    NOSPACE path stays outside the model, so the closed theorem says nothing of such a run.
+  - *Recommendation:* (B) now, with the premise in the closed theorem's statement as
+    `authRecordsFit` and `transportEffectsOk` are; (A) when a closed theorem should cover a full
+    disk. Not started: the choice is the user's.
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
