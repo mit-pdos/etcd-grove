@@ -77,8 +77,8 @@ no root cause, code names, code links, history, or claims about other releases.
   client sending X with Y and Z").
 - **What did you expect?** One or two sentences, in terms of the example.
 - **How can we reproduce it?** Whatever it takes, at `main` (<sha>): the steps, or the test linked on the fork's
-  branch (`https://github.com/upamanyus/etcd/blob/fix/<slug>/<path>` and `.../tree/fix/<slug>`), not described, with its
-  failing assertion.
+  branch (`https://github.com/upamanyus/etcd/blob/fix/<slug>/<path>#L<a>-L<b>`, the test's lines from its doc
+  comment to its closing brace, and `.../tree/fix/<slug>`), not described, with its failing assertion.
 - **Anything else?** Impact or workarounds if any; side findings as questions to the maintainers; then, word for
   word: "I found this while formally verifying etcd, working with AI tools. I reproduced the bug and reviewed this
   report myself."

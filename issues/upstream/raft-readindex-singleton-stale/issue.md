@@ -26,7 +26,7 @@ Node 1 answers only after committing an entry in its own term, as a new leader w
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go) on branch [`upamanyus/etcd-raft:fix/raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
+Unit test: [`TestReadOnlyForNewSingleVoterLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-singleton-stale/raft_test.go#L2154-L2187) on branch [`upamanyus/etcd-raft:fix/raft-readindex-singleton-stale`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale), off `main` (638f42739). On `main` it fails as above.
 
 ### Anything else we need to know?
 

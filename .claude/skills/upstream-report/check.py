@@ -126,6 +126,9 @@ def main():
             fail("issue: refers to a branch without a link to it")
         if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/fix/{re.escape(a.slug)}\b", issue):
             fail(f"issue: no link to the test on {fork}'s branch fix/{a.slug}")
+        for link in re.findall(r"github\.com/[^/\s]+/[^/\s]+/blob/fix/[^\s)#]+_test\.go[^\s)]*", issue):
+            if "#L" not in link:
+                fail(f"issue: the link to the test does not name its lines (#L<a>-L<b>): {link}")
         for t in set(re.findall(r"\bTest\w+", p)):
             if diff and t not in diff:
                 fail(f"issue: names {t}, which the branch does not add")
