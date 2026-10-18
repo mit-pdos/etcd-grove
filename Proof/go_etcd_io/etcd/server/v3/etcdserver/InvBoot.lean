@@ -6,13 +6,12 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
 
 * **`bootstrap`'s contract** (`bootstrapContract`, D13b) is a premise of `NewServer.spec`, a triple
   in its precondition, not an axiom. Its raft configuration is `raftConfig`'s (`bootstrap.go:572`)
-  (`CheckQuorum: true`, covered by the raft start result since 2026-10-17; `PreVote` is
-  `cfg.PreVote`, which `NewServer.spec` requires off: the raft start result (`NodeStartSpec`) does
-  not cover pre-vote yet). On success the bootstrapped record carries `bootOk`:
+  (`CheckQuorum: true` and `PreVote` as `cfg` sets it, both covered by the raft start result since
+  2026-10-17; until then `NewServer.spec` required `cfg.PreVote` off). On success the bootstrapped record carries `bootOk`:
   - the records `NewServer` reads (`b`, `b.storage`, `b.storage.backend`, `b.storage.wal`,
     `b.cluster`, `b.raft`);
   - `b.raft` with `NodeStartSpec`'s premises on it (the raft config valid, `CheckQuorum`/
-    `PreVote` as `cfg` sets them, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
+    `PreVote` either way, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
     `InitialState` closure, `Marshal` at the peers' conf changes) and the cluster's
     `IsIDRemoved` contract;
   - the cluster (`isRaftCluster`, its id, this node's id, the remote members, read-only; its
@@ -112,8 +111,7 @@ keep the auth store's contents, so the bound is named, a premise of `auth.NewAut
 and of `NewServer.spec`. -/
 opaque authRecordsFit : Prop
 
-/-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` (its
-`PreVote`) for this node `id` of the cluster with
+/-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
 2026-10-17: what the backend has, within its `2 ^ 40` bound, `backend.bgOk`: `N` for the applied
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
@@ -137,7 +135,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
       cv.DisableConfChangeValidation' = false ∧
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.PreVote' = cfg.PreVote' ∧ cv.Applied' = W64 0 ∧
+      cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧

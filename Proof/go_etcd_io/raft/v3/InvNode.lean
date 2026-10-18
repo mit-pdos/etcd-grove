@@ -26,9 +26,11 @@ index as a monotone nat (`cam`), and an answer slot (`ccq`); see `confcP`, `conf
   `isBudget` holds a monotone bound `M` (`monoNatAuthOwn`) and the number `c` of tick
   credits handed out (`● c`, additive), with `M + c < 2^64 - 1`. A tick credit
   (`tickCred bud 1`, `◯ 1`) is what `Node.Tick` spends (`budget_spend`): it raises `M` by
-  at most one past a term. Every node's term is at most `M` (`termLB`, a lower bound on
-  `M`, persistent), and so is every message's term a `Ready` hands out (`readyData`): a
-  receiver's `Step` keeps its term under `M` too. The application creates the budget once
+  at most one past a term. Every node's term ceiling (`RNState.tc`, 2026-10-17; until then its
+  term) is at most `M` (`termLB`, a lower bound on `M`, persistent), and so is every message's
+  term a `Ready` hands out (`readyData`): a receiver raises its ceiling to the message's term
+  (`ownRawNode_raise_tc`) and its `Step` keeps its term under it; a tick raises the ceiling by
+  one with its credit (a pre-campaign's requests are of the next term). The application creates the budget once
   (`budget_alloc`), with as many credits as it will ever tick.
 - **The `Ready`/`Advance` hand-shake** between `run` and the single *driver* (the
   application's loop over `Node.Ready()`): `dlv` (halves: `run`'s and the driver's) is the
@@ -443,6 +445,9 @@ transfer campaign's vote request). (2026-10-16, stage R5: the message at `ml`, o
 `raft.Step` takes it, `msgIn ml □ st`; the facts over its state `st`.) -/
 def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
+      -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log, whose
+      -- nodes are past term `0` (`RawNode.Step`'s premise)
+      ⌜st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []⌝ ∗
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
         isMessage γ.raft (absMsg ty st.msg st.ents st.ctx)) ∗
       termLB γ.bud st.msg.Term' ∗
@@ -470,7 +475,8 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
   have Hmt : mtypeOf st.msg.Type' = none := by
     rcases Hty with h | h | h | h <;> rw [h] <;> rfl
   have Hok : NetMsgOk id st := by
-    refine ⟨?_, fun h => absurd Hun h, fun _ => Ht, fun h => ?_, fun h => ?_, fun _ => ⟨He, Hc⟩⟩
+    refine ⟨?_, fun h => absurd Hun h, fun _ => Ht, fun h => ?_, fun h => ?_, fun _ => ⟨He, Hc⟩,
+      fun h => ?_⟩
     · rcases Hty with h | h | h | h <;> rw [h] <;> simp [netStepTypes]
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
@@ -479,12 +485,19 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
         simp [MsgAppResp, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+    · exfalso
+      rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
+        simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
   iintro Hm #Hlb Hcr Htc
   unfold netP
   iexists st
   iframe Hm
   isplitr
   · ipureintro; exact Hok
+  isplitr
+  · ipureintro; intro h; exfalso
+    rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
+      simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
   rw [Ht, ite_eq_right Hnr, ite_eq_right Hnt]
   isplitr
   · imodintro

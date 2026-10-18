@@ -38,7 +38,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev RawNode.Campaign.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
-  uint.Z rs.term + 1 < 2 ^ 64 →
+  -- (2026-10-17; until then `rs.term + 1 < 2 ^ 64`) the campaign's term within the ceiling
+  -- (`ownRawNode_raise_tc` raises it)
+  uint.Z rs.term + 1 ≤ uint.Z rs.tc →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Campaign")) (Val #()))

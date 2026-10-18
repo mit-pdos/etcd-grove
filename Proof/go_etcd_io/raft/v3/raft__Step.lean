@@ -665,7 +665,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
     isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
+    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1⟩
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
@@ -703,7 +703,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2⟩
     isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2⟩
+    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1⟩
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
@@ -775,8 +775,8 @@ theorem raft.Step.wp_proof
   iclear Hsnap Hmsg0
   by_cases Hty : m.Type' = MsgHup
   · -- MsgHup: a local message, handled by `hup`.
-    obtain ⟨Hmterm, Hnowrap⟩ := Hhup Hty
-    wp_apply (wp_Step_MsgHup P PB c r id s ml m ents sn ctx rs Hty Hmterm Hnowrap Hwf) $$ [$Hphys $Hmi]
+    obtain ⟨Hmterm, Hnowrap, Htc⟩ := Hhup Hty
+    wp_apply (wp_Step_MsgHup P PB c r id s ml m ents sn ctx rs Hty Hmterm Hnowrap Htc Hwf) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) $$ Hghost Hrest Hphys [] HΦ
@@ -804,8 +804,8 @@ theorem raft.Step.wp_proof
   by_cases Hty : m.Type' = MsgPreVote
   · -- MsgPreVote (2026-10-04): answered with a free `MsgPreVoteResp`; nothing
     -- received, nothing recorded.
-    obtain ⟨Hto, Hterm, Hfnz, Hfid, Hutd0, Hpvon⟩ := Hprevote Hty
-    wp_apply (wp_Step_MsgPreVote P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hpvon)
+    obtain ⟨Hto, Hterm, Hfnz, Hfid, Hutd0, Hptc⟩ := Hprevote Hty
+    wp_apply (wp_Step_MsgPreVote P PB c r id s ml m ents sn ctx rs Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hptc)
       $$ [$Hphys $Hmi] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) $$ Hghost Hrest Hphys [] HΦ

@@ -41,9 +41,9 @@ keeps it until `acceptReady` (which sets `r.readStates` to `nil`). The node is `
 `rd.Messages`, and `acceptReady rd` takes it to `ownRawNode` at the post-`Ready` state.
 
 Since 2026-10-10 also:
-- `Hmsgs_term`: every message handed out is of a term at most the node's (`rs.term`), so
-  a receiver knows a message's term is at most its sender's (pre-vote is off,
-  `ownRawNode`'s scope);
+- `Hmsgs_term`: every message handed out is of a term within the node's term ceiling
+  (`rs.tc`; until 2026-10-17, with pre-vote off, at most the node's term `rs.term`), which
+  `node.go`'s budget covers;
 - `Habandon`: the `Ready` may be dropped instead of accepted (`node.go`'s `select` takes
   another case): with the messages given back, the node is whole again, at `rs` with the
   lower bounds raised to what the `Ready` held (`ownRawNodeReady_abandon`).
@@ -76,7 +76,8 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
       "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ q.st) ∗
-      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.term⌝ ∗
+      -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
+      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
       "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗
                     ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
                     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗

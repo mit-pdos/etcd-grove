@@ -167,6 +167,47 @@ theorem readAck_step (c : CfgM) (id : w64) (s1 : NState) (Hr : s1.role = .leader
   rw [Hro] at this ⊢
   exact this
 
+theorem readRespond_role (id : w64) (s : NState) (q : ReadReq) :
+    (readRespond id s q).role = s.role := by
+  obtain ⟨o, r, h⟩ := readRespond_eq id s q
+  rw [h]
+
+theorem readRespondAll_role (id : w64) (s : NState) (qs : List ReadReq) :
+    (readRespondAll id s qs).role = s.role := by
+  obtain ⟨o, r, h⟩ := readRespondAll_eq id s qs
+  rw [h]
+
+/-- (2026-10-17) A leader's `stepLeader` never leaves a pre-candidate: it stays a leader, or steps
+down to a follower (`MsgCheckQuorum`). For `PreCandStep`. -/
+theorem LeaderStepResultC.not_precand {c : CfgM} {id : w64} {s : NState} {m : MessageM}
+    {ents : List EntryM} {dropped : Bool} {s' : NState} {ctx : List w8}
+    (Hr : s.role = .leader) (H : LeaderStepResultC c id s m ents dropped s' ctx) :
+    s'.role ≠ .preCandidate := by
+  intro hpc
+  unfold LeaderStepResultC at H
+  split at H
+  · obtain ⟨cs, -, H⟩ := H
+    split at H
+    · rcases H with rfl | rfl <;> simp_all
+    · obtain ⟨ms, pvs, rfl, -, -⟩ := H
+      simp_all [sendMsgs, proposed]
+  · obtain ⟨-, H⟩ := H
+    unfold LeaderNonpropResultC at H
+    rcases H with ⟨-, rfl⟩ | ⟨-, ms, pvs, rfl, -⟩ |
+      ⟨-, ms, pvs, -, -, (⟨-, rfl⟩ | ⟨-, N, -, rfl⟩)⟩ |
+      ⟨-, (⟨-, rfl⟩ | ⟨-, (⟨-, rfl⟩ | ⟨-, ms, pvs, rfl, -⟩)⟩)⟩ |
+      ⟨-, (⟨-, rfl⟩ | ⟨-, -, ms, pvs, rfl, -⟩ | ⟨-, -, H⟩)⟩ |
+      ⟨-, lt', ms, pvs, rfl, -⟩ | ⟨-, pvs, (⟨-, rfl⟩ | rfl)⟩
+    all_goals first
+      | simp_all [sendMsgs, readRespondAll_role, readRespond_role, arriveState]
+      | skip
+    -- the accepted `MsgAppResp`
+    obtain ⟨x, pvs, n, hb, ms, -, -, -, -, H⟩ := H
+    split at H
+    · obtain ⟨-, rfl⟩ := H; simp_all [sendMsgs]
+    · rcases H with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩ <;>
+        simp_all [sendMsgs, releasedState, readRespondAll_role]
+
 /-- `stepLeader` on `MsgBeat`: the heartbeats are `StepC.beat`'s. -/
 theorem leader_beat_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (dropped : Bool) (s' : NState)

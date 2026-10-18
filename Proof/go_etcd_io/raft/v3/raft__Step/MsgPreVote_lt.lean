@@ -54,8 +54,6 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the incoming term is stale
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
-    -- pre-vote on (2026-10-10; `raft.Step.spec`)
-    s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -68,7 +66,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf Hpvon
+  intro Hty Hto Hterm Hfnz Hfid Hlt0 Hwf
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hy17 : decide (m.Type' = W32 17) = true := decide_eq_true Hty
@@ -147,7 +145,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             change MsgPreVoteResp = _ ∨ MsgPreVoteResp = _ at Hc
             rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
           fun h => absurd h Hfid,
-          fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide), rfl⟩)
+          .inl (Int.le_refl _), rfl⟩)
     wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ (Or.inl rfl) Hok
         (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
       $$ [$Hphys $Hresp]

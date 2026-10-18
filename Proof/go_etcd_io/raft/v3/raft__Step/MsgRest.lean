@@ -23,6 +23,7 @@ sn, ctx, rs⟩`, read by its getters (`wp_gets`, `ElectionLemmas.lean`) and hand
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
 
 @[expose] public section
 
@@ -84,7 +85,7 @@ theorem followerStepResult_timeout (c : CfgM) {scfg : CSLists} {c' : CfgM} (id :
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgTimeoutNow)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) :
-    c = c' ∧ dropped = false ∧ HupOkC c id s s' := by
+    c = c' ∧ dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role) := by
   unfold FollowerStepResultC at H
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
@@ -247,7 +248,8 @@ local macro "local_leader" : tactic => `(tactic| (
   iframe Hphys
   ipureintro
   exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
-    TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)⟩))
+    TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
+      (fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
 
 set_option hygiene false in
 /-- A leader-transfer request at a follower (at the state `s`): forwarded, or dropped. -/
@@ -286,7 +288,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
   · iframe Hphys
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
-  obtain ⟨rfl, rfl, Hok⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
+  obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
   have HCD := stepCD_hup (m := m) Hok Hnw Hlogf
   obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -299,7 +301,8 @@ local macro "timeout_follower" : tactic => `(tactic| (
   exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, HCD⟩, rfl, NetFrame.of_logst Hl1 Hpv1 Hg1,
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
      fun _ => by rw [Hl1]; exact Int.le_refl _,
-     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega⟩⟩))
+     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega,
+     fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide)⟩⟩))
 
 set_option maxHeartbeats 2000000 in
 /-- `MsgForgetLeader`, `MsgUnreachable`, `MsgSnapStatus`: local (`Term = 0`). -/
@@ -632,7 +635,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       wp_gets
       rw [if_neg (by rw [Hty]; w32_ne)]
       iexact Hm
-    obtain ⟨rfl, rfl, Hok⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
+    obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
     have HCD := stepCD_hup (m := m) Hok Hnwm Hlogf
     obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -652,7 +655,8 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩)⟩, rfl,
       Hfr.1.trans (NetFrame.of_logst Hl1 Hpv1 Hg1), ?_⟩
     refine ⟨Int.le_trans (Int.le_of_lt Hgt) Ht1, fun h => absurd h (by rw [Hty]; w32_ne),
-      fun _ _ h => absurd Hty h, fun _ => ?_, fun _ => ?_⟩
+      fun _ _ h => absurd Hty h, fun _ => ?_, fun _ => ?_,
+      fun h => absurd ((Hrl h).symm.trans h) (by simp [becomeFollower])⟩
     · rw [Hl1]; exact Int.le_refl _
     · have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       have h2 : uint.Z ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).term

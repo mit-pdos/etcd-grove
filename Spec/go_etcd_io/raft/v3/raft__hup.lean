@@ -47,13 +47,16 @@ abbrev raft.hup.spec : Prop :=
   -- `raft.campaign.spec`.
   uint.Z s.term + 1 < 2 ^ 64 →
   -- a pre-election only with pre-vote on (2026-10-10; see `raft.campaign.spec`)
-  (t = campaignPreElection → s.prevote = true) →
+  -- (2026-10-17) and its next term within the ceiling (`NGhost.tc`)
+  (t = campaignPreElection → s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc) →
   -- `r.step` matches the role; kept by the call
   NStateWf s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ ∗
+      -- (2026-10-17) only a pre-election makes a pre-candidate
+      ⌜s'.role = .preCandidate → s'.role = s.role ∨ t = campaignPreElection⌝ }}
 
 end spec
 

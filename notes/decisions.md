@@ -8412,7 +8412,8 @@ all safety needs. `r.checkQuorum` is recorded (`NState.cq`), like `r.preVote` an
 - `ReadOnlyLeaseBased` (which `CheckQuorum` would make a legal configuration) stays out of scope:
   `ReadOnlyOption = ReadOnlySafe` remains a premise; etcd uses `ReadOnlySafe`.
 
-**Pre-vote at the `RawNode` layer (not adopted, waiting for the user):** `readyWithoutAccept`'s
+**Pre-vote at the `RawNode` layer (adopted 2026-10-17, the user's approval of the ceiling design;
+what it became is below):** `readyWithoutAccept`'s
 `∀ m ∈ ms, m.Term ≤ rs.term` is false with pre-vote on (a `MsgPreVote` is at `term + 1`, a granted
 `MsgPreVoteResp` at the requester's term). The proposal: a ghost term ceiling `tc` in `NGhost`,
 raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), exposed as
@@ -8421,6 +8422,21 @@ raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), 
 `term + 1` past the message's, so `ownRawNode` must keep `preCandidate → term + 1 ≤ tc`, which
 needs a new `raft.Step` postcondition (`ownRaftPhys` cannot keep it: `reset` stores the term while
 the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and PreVote on".
+
+As built (stage P): `Ready`'s bound is `m.Term ≤ rs.tc` (the ceiling is kept at or above the term,
+`RNPv`, so this is the same as `max`); the ceiling is raised by the *client* (`ownRawNode_raise_tc`,
+a ghost step: `node.go` raises it with the budget before a tick, to `tc + 1`, and before a network
+step, to the bound `budget_step` gives) rather than inside `RawNode`'s methods, so the methods'
+specs take it as a premise (`RawNode.Step`: `m.Term ≤ rs.tc`, a `MsgTimeoutNow`'s campaign within
+it; `Tick`/`Campaign`: `rs.term + 1 ≤ rs.tc`). The pre-vote clauses of `OutTermOk`/`SendOk` (a
+queued message's term at most the node's when pre-vote is off) went: the ceiling bounds both modes.
+`raft.Step`'s new postcondition is `TermStep`'s `PreCandStep` (with `TickStep`'s, `hup`'s and
+`LocalFrame`'s role facts). A received `MsgPreVote` at a node of term `0` would be rejected at term
+`0`, which `send` refuses; `RawNode.Step` takes one only in a cluster started from a bootstrap log
+(`γ.reBoot ≠ []`, whose nodes are past term `0`: `ownLogGhost_boot`), which `node.go`'s `netP`
+carries. *Rejected:* proving "a node at term `0` has the empty log" for clusters without a bootstrap
+log (`RestartNode` at the initial state): no ghost fact says the log's entries are of terms `≥ 1`;
+the restriction costs nothing for etcd's server (`StartNode`) and the register example (no pre-vote).
 
 ## What a closed adequacy theorem may take as a hypothesis (D19)
 

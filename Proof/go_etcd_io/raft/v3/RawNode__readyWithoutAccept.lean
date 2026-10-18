@@ -8,7 +8,8 @@ before accepting it.
 
 Since 2026-10-10 the messages are appended with `wp_slice_append_undo`, so that the
 loop keeps a way back to `r.msgs`' slice (`Hundo`, for `ownRawNodeReady_abandon`), and
-their terms are bounded by the outbox's `OutTermOk` (pre-vote off).
+their terms are bounded by the outbox's `OutTermOk` (2026-10-17: within the term ceiling; until
+then, with pre-vote off, by the node's term).
 
 Since 2026-10-13 the `ReadState`s are handed out (`rd.ReadStates = r.readStates` when not
 empty): the slice read-only, and each one's `readStateOk`, copied out of the ghost state
@@ -393,16 +394,17 @@ theorem RawNode.readyWithoutAccept.wp_proof
     have := List.length_filter_le (fun q => !isSelfQ id q) ms2
     simp only [nonself]
     omega
-  -- the messages' terms: with pre-vote off, at most the node's (`OutTermOk`)
+  -- the messages' terms: within the ceiling (`OutTermOk`, the node's term below it)
   have Hsub : ∀ q ∈ ms1 ++ nonself id ms2, q ∈ ms1 ++ ms2 := by
     intro q Hq
     rcases List.mem_append.1 Hq with Hq | Hq
     · exact List.mem_append_left _ Hq
     · exact List.mem_append_right _ (List.mem_filter.1 Hq).1
-  have Hmsgs_term : ∀ q ∈ ms1 ++ nonself id ms2, uint.Z q.st.msg.Term' ≤ uint.Z rs.term := by
+  have Hmsgs_term : ∀ q ∈ ms1 ++ nonself id ms2, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc := by
     intro q Hq
-    rw [Htrm]
-    exact (Hout_term q (Hsub q Hq) Hpvoff).1
+    rw [Hpvoff.2.1]
+    have := Hpvoff.2.2.1
+    rcases Hout_term q (Hsub q Hq) with h | h <;> omega
   -- the `MsgReadIndex`s handed out: at most the outbox's read-index requests (2026-10-13)
   have Hrdc : rdCountM ((ms1 ++ nonself id ms2).map QMsg.st) ≤ rdCount s.outbox :=
     outboxRelP_rdCount _ _ _ _ Houtbox

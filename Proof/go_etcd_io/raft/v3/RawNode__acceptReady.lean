@@ -65,7 +65,8 @@ in progress and the handed-out ones the application's to persist (`logAcceptUnst
 `entsSize` of them), and (2026-10-13) the `ReadState`s handed out (`r.readStates = nil`). -/
 def readyNstate (s : NState) (ce : List EntryM) (sz : w64) : NState :=
   { s with outbox := [],
-           logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz, gh := {},
+           logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz,
+           gh := { tc := s.gh.tc },
            rd := { s.rd with states := [] } }
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
@@ -539,7 +540,7 @@ theorem RawNode.acceptReady.wp_proof
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
-    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({} : NGhost)
+    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc } : NGhost)
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
@@ -592,10 +593,11 @@ theorem RawNode.acceptReady.wp_proof
       have Hb := (Hself (of_decide_eq_true Hm'.2)).2.2.2.2
       refine ⟨⟨_, _, rfl⟩, ?_⟩
       simp only [PendingOk, selfPending, decide_eq_true_eq]
-      refine ⟨Hb, fun Hpf => ?_⟩
-      have Hnp := (Hout_term m (List.mem_append_right _ Hm'.1) Hpf).2
-      simp only [decide_eq_false_iff_not]
-      exact Hnp
+      refine ⟨Hb, fun _ => ?_⟩
+      -- (2026-10-17) a pre-vote response within the ceiling (`OutTermOk`, `RNPv`)
+      show _ ≤ uint.Z s.gh.tc
+      have := Hpvoff.2.2.1
+      rcases Hout_term m (List.mem_append_right _ Hm'.1) with h | h <;> omega
     apply ready_stepsOk _ _ _ ce _ (Int.le_refl _)
     · -- the acknowledgement is of the last entry of the log, which the storage holds
       -- once the entries handed out are appended (`logAcceptUnstable`)

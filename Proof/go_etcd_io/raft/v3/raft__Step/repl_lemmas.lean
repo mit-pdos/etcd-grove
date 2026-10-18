@@ -204,16 +204,27 @@ theorem rframe_handle_app (id : w64) (t : NState) (m : MessageM)
   · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
 
+/-- `handleAppendEntries` keeps the role (2026-10-17). -/
+theorem handle_app_role {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {s' : NState} (Hres : HandleAppResult id t m ents s') : s'.role = t.role := by
+  unfold HandleAppResult at Hres
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, rfl⟩ | H
+  · rfl
+  · rfl
+  · obtain ⟨-, -, _, _, rfl⟩ := H
+    rfl
+
 /-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down
 to the message's term), then the handler. -/
 theorem app_frame {id : w64} {m : MessageM} {ents : List EntryM}
     {s t s' : NState} (Happ : m.Type' = MsgApp) (Hres : HandleAppResult id t m ents s')
     (Hft : NetFrame s t) (H1 : uint.Z s.term ≤ uint.Z t.term)
-    (H2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term')) :
+    (H2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term'))
+    (Htr : t.role ≠ .preCandidate := by first | (intro h; cases h) | (intro h; simp_all)) :
     NetFrame s s' ∧ TermStep m s s' := by
   obtain ⟨Hf, Ht⟩ := frame_handle_app id t m ents s' Hres
   refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ _ => by rw [Ht]; exact H2,
-    fun h => absurd Happ h, fun h => ?_⟩
+    fun h => absurd Happ h, fun h => ?_, fun h => absurd ((handle_app_role Hres).symm.trans h) Htr⟩
   · rw [Happ] at h; exact absurd h (by w32_ne)
   · rw [Happ] at h; exact absurd h (by w32_ne)
 

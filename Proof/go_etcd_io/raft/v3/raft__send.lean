@@ -136,7 +136,7 @@ theorem raft.send.wp_proof
     · exact absurd Hf Hne
     · exact absurd Hf Hne2
   unfold SendOk at Hok
-  rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Hpvt, rfl⟩ |
+  rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, rfl⟩ |
     (⟨HSnap, Hmterm, Hself⟩ | ⟨Hty, Hmterm, Hself, rfl⟩) | ⟨HAR, Hmterm, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
@@ -145,7 +145,7 @@ theorem raft.send.wp_proof
     have Hs := Hsrc (by rcases Hvoty with h | h | h | h <;> rw [h] <;> tyne)
       (by rcases Hvoty with h | h | h | h <;> rw [h] <;> tyne)
     subst Hs
-    have Hot : OutTermOk s.prevote s.term m1 := fun h => by rw [Hte1, Hty1]; exact Hpvt h
+    have Hot : OutTermOk s.term s.gh.tc m1 := by rw [OutTermOk, Hte1]; exact Htc
     have Hns : ty ≠ .snap := by
       rintro rfl; rcases Hvoty with h | h | h | h <;> rw [h] at Hty <;> exact absurd Hty (by decide)
     have Habs : msgAbs ⟨m1, ents, sn, ctx, rs⟩ (some (absMsg ty m1 ents ctx)) :=
@@ -195,7 +195,7 @@ theorem raft.send.wp_proof
       · ipureintro
         exact Or.inr (Or.inl ⟨ty, by tyfact Hvt, Hns, rfl⟩)
       · ipureintro
-        exact fun _ => ⟨Int.le_refl _, by tyfact Hvt⟩
+        exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
   · -- (c') `MsgSnap`: (b)'s path through the body; the abstract message is the
@@ -209,7 +209,7 @@ theorem raft.send.wp_proof
     · ipureintro
       exact Or.inr (Or.inr ⟨sv, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; rfl, rfl, rfl⟩)
     · ipureintro
-      exact fun _ => ⟨Int.le_refl _, by simp only [Hty1, HSnap, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]; tyne⟩
+      exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of
@@ -223,7 +223,7 @@ theorem raft.send.wp_proof
     · ipureintro
       exact Or.inl ⟨by simp only [Hty1]; exact Hty, rfl⟩
     · ipureintro
-      exact fun _ => ⟨Int.le_refl _, by simp only [Hty1]; exact HnPVR⟩
+      exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (d) `MsgAppResp`: stamped, and a response, so onto `r.msgsAfterAppend`; it may
@@ -241,7 +241,7 @@ theorem raft.send.wp_proof
       obtain ⟨He, Hc, Hnz, Hrj⟩ := Hself2 (by simpa using Hto)
       exact ⟨Hnz, He, Hc, fun _ => Hrj, by simp [HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
     · ipureintro
-      exact fun _ => ⟨Int.le_refl _, by simp [Hty1, HAR, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp]⟩
+      exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (e) a forwarded proposal: `Term` stays zero; not a response
@@ -253,7 +253,7 @@ theorem raft.send.wp_proof
     · ipureintro
       exact Or.inr (Or.inl ⟨.propose, by rw [Hty1, HProp]; rfl, by decide, rfl⟩)
     · ipureintro
-      exact fun _ => ⟨by rw [Hte1, Hmterm]; word, by rw [Hty1, HProp]; tyne⟩
+      exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; simp only [sendMsgs, absMsg, Hmterm]; rfl
   · -- (e') a forwarded `MsgReadIndex` (2026-10-12): as a proposal, from `src`
@@ -263,7 +263,7 @@ theorem raft.send.wp_proof
     · ipureintro
       exact Or.inr (Or.inl ⟨.readIndex, by rw [Hty1, HRI]; rfl, by decide, rfl⟩)
     · ipureintro
-      exact fun _ => ⟨by rw [Hte1, Hmterm]; word, by rw [Hty1, HRI]; tyne⟩
+      exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1 Hsrc_eq; simp only [sendMsgs, absMsg, Hmterm]; rfl
 

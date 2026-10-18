@@ -84,6 +84,16 @@ def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
    uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
   (id ∉ c.voters → s' = s) ∧ HupGuard c id s s'
 
+/-- (2026-10-17) After `hup`, a pre-candidate is at the term it was at (a pre-campaign keeps the
+term; an election raises it, but makes a candidate). -/
+theorem HupGuard.precand {c : CfgM} {id : w64} {s s' : NState} (h : HupGuard c id s s')
+    (hp : s'.role = .preCandidate) : s'.term = s.term := by
+  rcases h with rfl | ⟨-, -, -, -, pre, peers, pvs, cl, -, rfl⟩
+  · rfl
+  · cases pre
+    · simp [campaignState, sendMsgs, becomeCandidate] at hp
+    · simp [campaignState, sendMsgs, becomePrecandidate]
+
 /-- At a simple configuration, `HupOkC` is `HupOk`. -/
 theorem HupOkC.simple {cfg lrn : GSet w64} {id : w64} {s s' : NState}
     (h : HupOkC (CfgM.simple cfg lrn) id s s') : HupOk cfg id s s' := by

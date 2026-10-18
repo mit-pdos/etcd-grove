@@ -16,11 +16,9 @@ over `cl.IsIDRemoved` (a contract on the cluster: `isRNIDRemoved`).
 **The premises on `b.config`** are `StartNode.spec`'s (`NewRawNode`'s on a new cluster's
 config, the storage `b.storage` a fresh `MemoryStorage`: `NewMemoryStorage`'s `memStorEmpty`, as
 raft's `ownStorage (memStorIface ms)` under the `MemoryStorage` instance, which the composition
-holds with the registry; raft owns it from the call on). **Among them `PreVote = false`: etcd's
-`raftConfig` (`bootstrap.go`) sets `PreVote` on by default, so this theorem does not cover
-etcd's own configuration** (pre-vote at the `RawNode` layer is the remaining stage of
-notes/STATUS.md, "Raft: CheckQuorum and PreVote on"; `CheckQuorum` is covered since 2026-10-17,
-until then it was required `false` too: D12). The `InitialState` closure premise is `StartNode.spec`'s
+holds with the registry; raft owns it from the call on). `PreVote` and `CheckQuorum` either way
+since 2026-10-17 (notes/STATUS.md, "Raft: CheckQuorum and PreVote on"; until then both were
+required `false`, D12: etcd's `raftConfig` sets both). The `InitialState` closure premise is `StartNode.spec`'s
 (D7's shape; a fresh `MemoryStorage`'s conf state is empty).
 
 **The ghost state** is the cluster's, allocated before (`ownRaftGhost_alloc_boot`): this node's
@@ -69,8 +67,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   bv.lg' ≠ null →
   bv.heartbeat' ≠ W64 0 →
   -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
-  -- `MemoryStorage`); **`PreVote` off: not etcd's own configuration** (`CheckQuorum` either
-  -- way since 2026-10-17)
+  -- `MemoryStorage`); `CheckQuorum` and `PreVote` either way since 2026-10-17
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = memStorIface bv.storage' →
@@ -80,7 +77,6 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
-  cv.PreVote' = false →
   cv.Applied' = W64 0 →
   -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
   ps = pv.map Peer.ID' →

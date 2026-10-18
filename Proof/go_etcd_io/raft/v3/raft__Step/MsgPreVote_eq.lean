@@ -63,8 +63,6 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- this file: the same term
     m.Term' = s.term →
     NStateWf s →
-    -- pre-vote on (2026-10-10; `raft.Step.spec`)
-    s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
@@ -77,7 +75,7 @@ theorem wp_Step_MsgPreVote_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Heq0 Hwf Hpvon
+  intro Hty Hto Hterm Hfnz Hfid Heq0 Hwf
   have Hs0 : s.term ≠ W64 0 := Heq0 ▸ Hterm
   -- `MessageType.Enum()`'s receiver: `int32` is not an interface (as in `toConfChangeSingle`)
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩

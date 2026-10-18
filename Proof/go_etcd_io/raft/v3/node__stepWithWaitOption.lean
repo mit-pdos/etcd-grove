@@ -46,7 +46,7 @@ theorem node.stepWithWaitOption.wp_proof
   icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent⟩ | ⟨%Hw, Hfwd⟩)
   · -- a message from the network: `recvc <- m`
     iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, #Hab, #Hlb, Hcr, Htc⟩
+    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hlb, Hcr, Htc⟩
     wp_auto
     wp_apply wp_GetType.1 $$ [Hm] as Hm
     · iexact Hm
@@ -70,7 +70,7 @@ theorem node.stepWithWaitOption.wp_proof
       · iunfold netP
         iexists st
         iframe Hm Hab Hlb Hcr Htc
-        ipureintro; exact Hok
+        ipureintro; exact ⟨Hok, Hpvb⟩
       inext
       iintro -
       wp_auto

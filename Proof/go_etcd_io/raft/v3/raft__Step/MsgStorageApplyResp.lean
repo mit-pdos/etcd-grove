@@ -126,7 +126,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩,
+    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩,
       StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
@@ -165,7 +165,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun Hle => ?_⟩, ?_,
+    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun Hle => ?_⟩, ?_,
       .inr ⟨e, by simp, rfl⟩, rfl⟩
     · have H1 := Hle e (by simp)
       show w64Max s.logst.applying (w64Max e.Index' s.logst.applied) = s.logst.applying

@@ -52,7 +52,6 @@ abbrev setupNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
-  cv.PreVote' = false →
   cv.Applied' = W64 0 →
   σ.prev = entryID.mk (W64 0) (W64 0) →
   σ.ents = [] →
@@ -89,7 +88,7 @@ abbrev setupNode.spec : Prop :=
         ownRawNode γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, mode := RNMode.static,
-            cfg := cfgState (GMap.listToSet ps) ∅ } ∗
+            cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 } ∗
         peers ↦*{dq} pv }}
 
 end spec
