@@ -8288,8 +8288,8 @@ is a resource the model cannot give (`rnSnapOnce`).
 
 ## A client's facts from persistent updates: monotone ghost state, a prophecy only for a general client (D18)
 
-**2026-10-17 · proposed (the monotone route implemented for the adequacy example's Put-then-Get;
-the prophecy route not started, needs the user's decision)** (open-work item 9's "client-local
+**2026-10-17 · proposed; 2026-10-18 · adopted by the user (the monotone route for the adequacy
+example's Put-then-Get; the prophecy for a general client deferred)** (open-work item 9's "client-local
 prophecy", `notes/STATUS.md`)
 
 The client's end-to-end specs (`client_put_end_to_end`, `client_get_end_to_end`, ...,

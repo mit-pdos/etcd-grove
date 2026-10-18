@@ -45,7 +45,7 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
-## D18: the client's Put-then-Get from the persistent updates (2026-10-17, branch `raft-retarget`; proposed)
+## D18: the client's Put-then-Get from the persistent updates (2026-10-17, branch `raft-retarget`; adopted 2026-10-18: the monotone route for the example, the prophecy deferred)
 
 Open-work item 9's "client-local prophecy". Design: `notes/decisions.md`, D18 (proposed).
 
