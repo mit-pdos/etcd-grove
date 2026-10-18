@@ -21,7 +21,7 @@ This affects any application that serves linearizable reads through `ReadIndex`,
 
 ### What did you expect to happen?
 
-Node 2 does not answer the read with an index below 4: a read issued after `y` was committed includes `y`.
+Node 2 should not answer the read with an index below 4: a read issued after `y` was committed should include `y`.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 

@@ -84,7 +84,8 @@ no root cause, code names, code links, history, or claims about other releases.
 - **What happened?** One sentence of when it happens and what goes wrong, with the example's output when it shows
   the bug at a glance; one sentence on who else is affected, as one clause naming the whole condition ("for any
   client sending X with Y and Z").
-- **What did you expect?** One or two sentences, in terms of the example.
+- **What did you expect?** One or two sentences, in terms of the example, saying what should happen ("X should
+  Y"), not what does ("X does Y" reads as a description of the current behavior).
 - **How can we reproduce it?** Whatever it takes, at `main` (<sha>): the steps, or the test linked on the fork's
   branch (`https://github.com/upamanyus/etcd/blob/fix/<slug>/<path>#L<a>-L<b>`, the test's lines from its doc
   comment to its closing brace, and `.../tree/fix/<slug>`), not described, with its failing assertion.

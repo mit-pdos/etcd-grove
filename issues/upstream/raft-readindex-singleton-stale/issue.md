@@ -21,7 +21,7 @@ This affects any application that serves linearizable reads through `ReadIndex` 
 
 ### What did you expect to happen?
 
-Node 1's read index is at least 3, so the read includes `x`, which was committed before the read was issued.
+Node 1's read index should be at least 3, so that the read includes `x`, which was committed before the read was issued.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
