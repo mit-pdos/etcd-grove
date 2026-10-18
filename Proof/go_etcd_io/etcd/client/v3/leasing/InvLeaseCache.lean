@@ -46,6 +46,7 @@ public import Perennial.Golang.Theory.Map
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.MonoList
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -359,52 +360,6 @@ instance entryOwn_discard_persistent (e : LeaseEntry) :
     Persistent (entryOwn (GF := GF) e DFrac.discard) :=
   (entryOwn_dfractional (GF := GF) e).dfractional_persistent
 
-/-- A map points-to splits and combines by fraction (`InvDemux.ownMap_fractional`, without the
-cache's package assumptions). -/
-theorem lc_ownMap_fractional {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
-    [go.IntoValInj K] (mref : Loc) (m : GMap K V) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
-/-- An existential over a fractional body whose fractions agree on the witness is fractional
-(`InvDemux.fractional_exists_agree`, without the cache's package assumptions). -/
-theorem lc_fractional_exists_agree {Y : Type} (Φ : Y → Qp → IProp GF)
-    (hfrac : ∀ x, Fractional (Φ x)) (hagree : ∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) :
-    Fractional (fun q => iprop(∃ x, Φ x q)) where
-  fractional p q := by
-    constructor
-    · iintro ⟨%x, H⟩
-      icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists x; iexact H1
-      · iexists x; iexact H2
-    · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
-      refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
-      refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
-      subst h
-      exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
-
 /-- The entries map's contents, with fraction `dq`: nothing while it is nil. -/
 def emapOwn (st : LeaseCacheSt) (dq : DFrac) : IProp GF :=
   if st.emap = map.nil then iprop(True) else iprop(st.emap ↦${dq} st.lis)
@@ -430,13 +385,13 @@ theorem emapOwn_fractional (st : LeaseCacheSt) :
   unfold emapOwn
   split
   · infer_instance
-  · exact lc_ownMap_fractional _ _
+  · exact ownMap_fractional _ _
 
 instance lcOwn_fractional (lc : Loc) (st : LeaseCacheSt) :
     Fractional (fun q => lcOwn (GF := GF) lc st (DFrac.own q)) := by
   unfold lcOwn
   haveI := emapOwn_fractional (GF := GF) st
-  haveI := lc_ownMap_fractional (GF := GF) st.rmap st.revokes
+  haveI := ownMap_fractional (GF := GF) st.rmap st.revokes
   haveI : ∀ (l : Loc) (v : Loc), Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q)) :=
     fun l v => fractional_of_dfractional (fun dq => typedPointsto l v dq)
   haveI : ∀ e : LeaseEntry, Fractional (fun q : Qp => entryOwn (GF := GF) e (DFrac.own q)) :=
@@ -486,7 +441,7 @@ instance leaseCacheInv_fractional (lc : Loc) (γ : LeaseCacheNames) (pfx : GoStr
     (X : LeaseCacheSt → Qp → IProp GF) [hX : ∀ st, Fractional (X st)] :
     Fractional (leaseCacheInv (GF := GF) lc γ pfx X) := by
   unfold leaseCacheInv
-  exact lc_fractional_exists_agree (leaseCacheBody lc γ pfx X)
+  exact fractional_exists_agree (leaseCacheBody lc γ pfx X)
     (leaseCacheBody_fractional lc γ pfx X) (fun x y q1 q2 => by
       unfold leaseCacheBody
       iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩

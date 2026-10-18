@@ -28,6 +28,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.GhostVar
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -61,11 +62,6 @@ theorem NotifyCur.enc_inj : Function.Injective NotifyCur.enc := by
 instance NotifyCur.countable : Pos.Countable NotifyCur :=
   .ofInjective (fun c => Pos.Countable.encode c.enc)
     (fun _ _ h => NotifyCur.enc_inj (Pos.encode_inj h))
-
-theorem notify_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -106,7 +102,7 @@ instance notifyLockInv_fractional (n : Loc) (γ : GName) :
     · iintro H
       unfold notifyLockInv
       iNamed H
-      rw [notify_qp_half_add] at *
+      rw [qp_half_add] at *
       icases (hcur c).1 $$ Hcur with ⟨Hc1, Hc2⟩
       icases (hch _).1 $$ Hch with ⟨Hl1, Hl2⟩
       icases (hpend _).1 $$ Hpend with ⟨Hp1, Hp2⟩
@@ -127,7 +123,7 @@ instance notifyLockInv_fractional (n : Loc) (γ : GName) :
       · iapply (hch _).2; iframe
       isplitr
       · iexact Hbc1
-      rw [notify_qp_half_add]
+      rw [qp_half_add]
       iapply (hpend _).2; iframe
 
 /-- `n` is a `Notifier` (persistent): its mutex's writer guard, with the lock invariant. -/

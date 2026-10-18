@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.OnceFrame
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.Token
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -451,12 +452,6 @@ theorem prefix_drop_cons {α : Type} {sent recv rs : List α} {r : α} (hp : rec
   subst hd
   refine ⟨⟨rs, by simp⟩, ?_⟩
   simp
-
-theorem prefix_drop_nil {α : Type} {sent recv : List α} (hp : recv <+: sent)
-    (hd : sent.drop recv.length = []) : recv = sent := by
-  obtain ⟨t, rfl⟩ := hp
-  simp only [List.drop_left] at hd
-  simp [hd]
 
 theorem prefix_snoc_cases {α : Type} {L sent : List α} {r : α} (h : L <+: sent ++ [r]) :
     L <+: sent ∨ L = sent ++ [r] := by

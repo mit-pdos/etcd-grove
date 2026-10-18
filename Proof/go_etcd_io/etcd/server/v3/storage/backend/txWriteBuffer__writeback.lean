@@ -136,7 +136,7 @@ theorem backend.txWriteBuffer.writeback.wp_proof
     iNamed HP
     ihave %HdomW' := bksOwn_dom _ _ $$ HW
     ihave %HdomR' := bksOwn_dom _ _ $$ HR
-    have hnot := not_mem_take_of_getElem?' Hknodup Hki
+    have hnot := not_mem_take_of_nodup Hknodup Hki
     have htake := take_succ_of_getElem? Hki
     obtain ⟨es, hBW⟩ := bksOwn_some HdomW' Hmv
     have hWk : W.bks !! key = some es := by rw [← HBW key hnot]; exact hBW
@@ -311,7 +311,7 @@ theorem backend.txWriteBuffer.writeback.wp_proof
     iNamed HP
     ihave %HdomW' := bksOwn_dom _ _ $$ HW
     exfalso
-    have hnot := not_mem_take_of_getElem?' Hknodup Hki
+    have hnot := not_mem_take_of_nodup Hknodup Hki
     have h1 := (Hkset key).1 (List.mem_of_getElem? Hki)
     have h2 := HdomW' key
     rw [Hnone, HBW key hnot, ← HdomW key, h1] at h2

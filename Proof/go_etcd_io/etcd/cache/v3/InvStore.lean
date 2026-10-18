@@ -59,6 +59,8 @@ public import Proof.go_etcd_io.etcd.cache.v3.InvBtree
 public import Proof.go_etcd_io.etcd.cache.v3.InvRingBuffer
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
+public import Proof.Lib.GoString
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -73,49 +75,6 @@ open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
   k8s_io.utils.third_party.forked.golang
 
 /-! ## Keys -/
-
-theorem goStringLt_irrefl (a : GoString) : ¬ go.GoStringLt a a := by
-  induction a with
-  | nil => intro h; cases h
-  | cons x xs ih =>
-    intro h
-    cases h with
-    | cons h => exact ih h
-    | rel h => exact Int.lt_irrefl _ h
-
-theorem goStringLt_trans {a b c : GoString} (h1 : go.GoStringLt a b) (h2 : go.GoStringLt b c) :
-    go.GoStringLt a c := by
-  induction h1 generalizing c with
-  | nil => cases h2 <;> exact List.Lex.nil
-  | cons h ih =>
-    cases h2 with
-    | cons h' => exact List.Lex.cons (ih h')
-    | rel h' => exact List.Lex.rel h'
-  | rel h =>
-    cases h2 with
-    | cons _ => exact List.Lex.rel h
-    | rel h' => exact List.Lex.rel (Int.lt_trans h h')
-
-/-- Go's `<` on strings is total: two strings neither less than the other are equal. -/
-theorem goStringLt_eq_of_not_lt {a b : GoString} (h1 : ¬ go.GoStringLt a b)
-    (h2 : ¬ go.GoStringLt b a) : a = b := by
-  induction a generalizing b with
-  | nil =>
-    cases b with
-    | nil => rfl
-    | cons y ys => exact absurd List.Lex.nil h1
-  | cons x xs ih =>
-    cases b with
-    | nil => exact absurd List.Lex.nil h2
-    | cons y ys =>
-      have hxy : x = y := by
-        apply BitVec.eq_of_toNat_eq
-        have a1 : ¬ (uint.Z x < uint.Z y) := fun h => h1 (List.Lex.rel h)
-        have a2 : ¬ (uint.Z y < uint.Z x) := fun h => h2 (List.Lex.rel h)
-        simp only [uint.Z] at a1 a2
-        omega
-      subst hxy
-      rw [ih (fun h => h1 (List.Lex.cons h)) (fun h => h2 (List.Lex.cons h))]
 
 /-- A map entry: a key and a `*mvccpb.KeyValue`. -/
 abbrev KvEntry := GoString × Loc
@@ -348,11 +307,6 @@ def restoreMap (kvs : KvMap) : KvMap :=
 /-- What `Restore(kvs, rev)` leaves: `rev`, the map, and a history of that one snapshot. -/
 def restoreState (rev : w64) (kvs : KvMap) : StoreState :=
   { latestRev := rev, latest := restoreMap kvs, history := [(rev, restoreMap kvs)] }
-
-theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
 
 /-! ## `Synced` -/
 

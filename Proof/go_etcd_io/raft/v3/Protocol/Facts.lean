@@ -1054,17 +1054,6 @@ private theorem ownLogGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM)
   refine ⟨⟨fun h => (by rw [Hrole] at h; cases h), fun h => (by rw [Hrole] at h; cases h)⟩, ?_⟩
   rw [Hcommit, HWL, HL]; exact Int.le_refl _
 
-private theorem ghostMapAuth_halves {K V : Type} [DecidableEq K] [Pos.Countable K]
-    [Pos.Countable V] (γx : GName) (m : GMap K V) :
-    ⊢ ghostMapAuth (GF := GF) γx 1 m -∗
-      ghostMapAuth γx (1 : Qp).half m ∗ ghostMapAuth γx (1 : Qp).half m := by
-  have h : ghostMapAuth (GF := GF) γx ((1 : Qp).half + (1 : Qp).half) m ⊣⊢
-      ghostMapAuth γx (1 : Qp).half m ∗ ghostMapAuth γx (1 : Qp).half m :=
-    (ghostMapAuth_fractional γx m).fractional _ _
-  rw [Qp.half_add_half] at h
-  iintro H
-  iapply h.1 $$ H
-
 private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF) :
     ∀ m : GMap w64 GName, (∀ k v, m !! k = some v → nv !! k = some v) →
     ⊢ ([∗map] x ↦ _u ∈ toMap (domSet m), ∃ γx, ⌜nv !! x = some γx⌝ ∗ P x γx) -∗
@@ -1427,7 +1416,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · iapply BigSepM.bigSepM_impl $$ Hv
     imodintro
     iintro %x %u %_ ⟨%γx, %Hx, Hax⟩
-    icases ghostMapAuth_halves γx _ $$ Hax with ⟨Ha1, Ha2⟩
+    icases (ghostMapAuth_halves γx _).1 $$ Hax with ⟨Ha1, Ha2⟩
     isplitl [Ha1]
     · iexists γx
       isplitr

@@ -32,6 +32,7 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -655,9 +656,6 @@ def idxCmpOwn (γ : IdxNames) (q : Qp) (L : List IdxEntry) (cmax : Int) : IProp 
 runs on the FIFO scheduler): the revision of the last compaction, `-1` if none. -/
 def idxCompactor (γ : IdxNames) (c : Int) : IProp GF := ghostVar γ.cmp (1 : Qp).half (c, ([] : List Loc))
 
-theorem Qp.half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half :=
-  Subtype.ext (by simp only [Qp.val_half, Qp.val_add]; grind)
-
 /-- The writers keep every key index in the tree (they add some). -/
 theorem idxCmpOwn_mono (γ : IdxNames) (q : Qp) (L L' : List IdxEntry) (cmax : Int)
     (h : ∀ p ∈ L.map Prod.fst, p ∈ L'.map Prod.fst) :
@@ -714,7 +712,7 @@ theorem idxCmpOwn_split (γ : IdxNames) (L : List IdxEntry) (cmax : Int) (q1 q2 
     idxCmpOwn (GF := GF) γ (q1 + q2) L cmax ⊢ idxCmpOwn γ q1 L cmax ∗ idxCmpOwn γ q2 L cmax := by
   unfold idxCmpOwn
   iintro ⟨%cc, %P, H, %Hp⟩
-  rw [Qp.half_add]
+  rw [qp_half_add]
   icases (ghostVar_fractional (GF := GF) γ.cmp (cc, P)).fractional q1.half q2.half |>.1 $$ H
     with ⟨H1, H2⟩
   isplitl [H1]
@@ -728,7 +726,7 @@ theorem idxCmpOwn_combine (γ : IdxNames) (L : List IdxEntry) (c1 c2 : Int) (q1 
   ihave %Ha := ghostVar_agree γ.cmp _ _ _ _ $$ H1 H2
   cases Ha
   iexists cc1, P1
-  rw [Qp.half_add]
+  rw [qp_half_add]
   isplitl [H1 H2]
   · iapply (ghostVar_fractional (GF := GF) γ.cmp (cc1, P1)).fractional q1.half q2.half |>.2
     iframe H1 H2

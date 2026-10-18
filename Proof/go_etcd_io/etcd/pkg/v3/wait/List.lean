@@ -30,6 +30,7 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -43,11 +44,6 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 def waitShardN : Namespace := nroot .@ "wait_shard"
-
-theorem wait_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -75,41 +71,16 @@ variable [sem : go.Semantics]
 def waitShardP (mref : Loc) (γs : GName) (q : Qp) : IProp GF :=
   iprop(∃ M : GMap w64 Loc, ownMap mref (DFrac.own q) M ∗ ghostMapAuth γs q.half M)
 
-theorem wait_ownMap_fractional (mref : Loc) (m : GMap w64 Loc) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
 instance waitShardP_fractional (mref : Loc) (γs : GName) :
     Fractional (waitShardP (GF := GF) mref γs) where
   fractional q1 q2 := by
-    have hm := fun M => (wait_ownMap_fractional (GF := GF) mref M).fractional q1 q2
+    have hm := fun (M : GMap w64 Loc) => (ownMap_fractional (GF := GF) mref M).fractional q1 q2
     have hg := fun M => (ghostMapAuth_fractional (GF := GF) (K := w64) (V := Loc) γs M).fractional
       q1.half q2.half
     unfold waitShardP
     refine ⟨?_, ?_⟩
     · iintro ⟨%M, Hm, Hg⟩
-      rw [wait_qp_half_add]
+      rw [qp_half_add]
       icases (hm M).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (hg M).1 $$ Hg with ⟨Hg1, Hg2⟩
       isplitl [Hm1 Hg1]
@@ -119,7 +90,7 @@ instance waitShardP_fractional (mref : Loc) (γs : GName) :
       ihave %Heq := ghostMapAuth_agree γs _ _ M1 M2 $$ Hg1 Hg2
       subst Heq
       iexists M1
-      rw [wait_qp_half_add]
+      rw [qp_half_add]
       isplitl [Hm1 Hm2]
       · iapply (hm M1).2; iframe
       · iapply (hg M1).2; iframe

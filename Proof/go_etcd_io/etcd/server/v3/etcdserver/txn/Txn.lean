@@ -87,10 +87,6 @@ theorem txn.readTxn_opsOk (t : TxnModel) (log : mvcc.Log) (hok : LogOk log)
   have := sortSmall_of_sortOk o log hok (log.length - 1) (fun _ => hs)
   rwa [mvcc.stateAt_last] at this
 
-instance txn.ite_persistent_Txn (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
-    Persistent (if b then P else Q) := by
-  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
-
 /-- `Txn` at the sole writer (`specSole`). -/
 theorem txn.Txn_sole
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))

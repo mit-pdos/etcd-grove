@@ -172,7 +172,7 @@ theorem leasingXBody_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCache
 instance leasingX_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) :
     Fractional (leasingX (GF := GF) lkv γ st) := by
   unfold leasingX
-  exact lc_fractional_exists_agree (leasingXBody lkv γ st) (leasingXBody_fractional lkv γ st)
+  exact fractional_exists_agree (leasingXBody lkv γ st) (leasingXBody_fractional lkv γ st)
     (fun x y q1 q2 => by
       obtain ⟨a, b, c⟩ := x
       obtain ⟨a', b', c'⟩ := y

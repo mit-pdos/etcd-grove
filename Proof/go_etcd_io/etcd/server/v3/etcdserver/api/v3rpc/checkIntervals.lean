@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 public import Proof.go_etcd_io.raft.v3.FrameH
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -182,22 +183,6 @@ theorem ci_insert_keys {M : GMap GoString Unit} {ks : List GoString}
       rcases List.mem_append.1 hm with h1 | h1
       · exact Or.inr ⟨hx, this.2 h1⟩
       · simp at h1; exact absurd h1.symm hx
-
-theorem ci_not_mem_take {α : Type} {keys : List α} {j : Nat} {k : α} (hnd : keys.Nodup)
-    (h : keys[j]? = some k) : k ∉ keys.take j := by
-  intro hm
-  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hm
-  rw [List.getElem?_take] at hi
-  split at hi
-  · rename_i hij
-    have hj : j < keys.length := (List.getElem?_eq_some_iff.1 h).1
-    have := (List.Nodup.getElem?_inj (i := i) (j := j) (by omega) hnd).1 (by rw [hi, h])
-    omega
-  · cases hi
-
-theorem ci_mem_take_succ {α : Type} {keys : List α} {j : Nat} {k x : α} (h : keys[j]? = some k) :
-    x ∈ keys.take (j + 1) ↔ x ∈ keys.take j ∨ x = k := by
-  rw [List.take_add_one, h]; simp
 
 theorem ci_nestStep_then_fail {pts : List GoString} {ds : List adt.IvlS} {r : NestRes} {k : GoString}
     (hk : k ∈ r.putsThen) (hb : (decide (k ∈ pts) || hits ds k) = true) :
@@ -581,12 +566,12 @@ local macro "else_point_check" : tactic => `(tactic| (
       have hj1 : (j + 1).toNat = j.toNat + 1 := by omega
       refine ⟨by omega, ?_, ?_⟩
       · intro x
-        rw [hj1, v3rpc.ci_mem_take_succ Hkey, GMap.lookup_insert_is_Some, HM' x]
+        rw [hj1, mem_take_succ_iff Hkey, GMap.lookup_insert_is_Some, HM' x]
         by_cases hx : key = x
         · subst hx; simp
         · simp [hx, Ne.symm hx]
       · intro x hx
-        rw [hj1, v3rpc.ci_mem_take_succ Hkey] at hx
+        rw [hj1, mem_take_succ_iff Hkey] at hx
         rcases hx with hx | rfl
         · exact Hok x hx
         · rw [decide_eq_false hc0, hh]
@@ -833,7 +818,7 @@ theorem v3rpc.checkIntervals.wp_proof
               wp_auto
               have hkeyT : key ∈ pT := (HMT key).1 (by rw [Hv]; rfl)
               have hkeyM : key ∈ keysT := List.mem_of_getElem? Hkey
-              have hnt : key ∉ keysT.take j.toNat := v3rpc.ci_not_mem_take HkndT Hkey
+              have hnt : key ∉ keysT.take j.toNat := not_mem_take_of_nodup HkndT Hkey
               wp_apply (wp_map_lookup2 (K := GoString) (V := Unit) go.string (go.StructType []) mp M'
                 key (DFrac.own 1)) $$ [$Hmp] as Hmp
               cases hk : (M' !! key).isSome
@@ -862,12 +847,12 @@ theorem v3rpc.checkIntervals.wp_proof
                   have hj1 : (j + 1).toNat = j.toNat + 1 := by omega
                   refine ⟨by omega, ?_, ?_⟩
                   · intro x
-                    rw [hj1, v3rpc.ci_mem_take_succ Hkey, GMap.lookup_insert_is_Some, HM' x]
+                    rw [hj1, mem_take_succ_iff Hkey, GMap.lookup_insert_is_Some, HM' x]
                     by_cases hx : key = x
                     · subst hx; simp
                     · simp [hx, Ne.symm hx]
                   · intro x hx
-                    rw [hj1, v3rpc.ci_mem_take_succ Hkey] at hx
+                    rw [hj1, mem_take_succ_iff Hkey] at hx
                     rcases hx with hx | rfl
                     · exact Hok x hx
                     · simp [hkp, hh]
@@ -947,7 +932,7 @@ theorem v3rpc.checkIntervals.wp_proof
               iNamed HP
               wp_auto
               have hkeyE : key ∈ pE := (HME key).1 (by rw [Hv]; rfl)
-              have hnt : key ∉ keysE.take j.toNat := v3rpc.ci_not_mem_take HkndE Hkey
+              have hnt : key ∉ keysE.take j.toNat := not_mem_take_of_nodup HkndE Hkey
               wp_apply (wp_map_lookup2 (K := GoString) (V := Unit) go.string (go.StructType []) mp M'
                 key (DFrac.own 1)) $$ [$Hmp] as Hmp
               cases hk : (M' !! key).isSome

@@ -515,8 +515,8 @@ theorem w64_toNat_of_lt (n : Nat) (h : n < 2 ^ 64) : (W64 (n : Int)).toNat = n :
 
 theorem goStringLe_of_lt_not {a b : GoString} (h : go.GoStringLt b a) : ¬ go.GoStringLe a b := by
   rintro (rfl | h')
-  · exact adt.strLt_irrefl _ h
-  · exact adt.strLt_asymm h h'
+  · exact goStringLt_irrefl _ h
+  · exact goStringLt_asymm h h'
 
 theorem revKey_ge (lo r i : Nat) (t : Bool) (hlo : lo < 2 ^ 64) (hr : r < 2 ^ 64)
     (hi : i < 2 ^ 64) :

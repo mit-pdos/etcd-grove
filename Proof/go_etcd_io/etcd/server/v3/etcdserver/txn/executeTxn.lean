@@ -162,10 +162,6 @@ theorem txn.rangeResult_txn_or_err_et (resp : Loc) (err : GoInterface) (log : mv
   · ileft
     iapply rangeResult_txn resp err log rev o hrev0 h0 hset hcut (Or.inl Hok.2) $$ H
 
-instance txn.ite_persistent_et (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
-    Persistent (if b then P else Q) := by
-  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
-
 theorem txn.executeTxn.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
     (hStart : traceutil.Trace.StartSubTrace.spec (GF := GF) (hG := hG))

@@ -75,7 +75,7 @@ theorem backend.txWriteBuffer.reset.wp_proof
     iNamed HP
     wp_auto
     wp_apply wp_map_lookup2 $$ Hm as Hm
-    have hnot := not_mem_take_of_getElem?' Hknodup Hki
+    have hnot := not_mem_take_of_nodup Hknodup Hki
     have hseq : W.seq !! key = some v := by rw [← Hmv, Hm' key]; simp [hnot]
     have htake := take_succ_of_getElem? Hki
     cases hM : M !! key with
@@ -133,7 +133,7 @@ theorem backend.txWriteBuffer.reset.wp_proof
     iintro %i %key %m' ⟨%Hki, %Hnone⟩ HP
     iNamed HP
     exfalso
-    have hnot := not_mem_take_of_getElem?' Hknodup Hki
+    have hnot := not_mem_take_of_nodup Hknodup Hki
     have := (Hkset key).1 (List.mem_of_getElem? Hki)
     simp only [Hm' key, hnot, ↓reduceIte] at Hnone
     rw [Hnone] at this

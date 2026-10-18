@@ -200,9 +200,6 @@ theorem sub_neg_iff (a b : w64) (ha : 0 ≤ sint.Z a) (hb : 0 ≤ sint.Z b) :
   apply propext
   omega
 
-theorem goStringLt_asymm' {a b : GoString} (h : go.GoStringLt a b) : ¬ go.GoStringLt b a :=
-  fun h' => goStringLt_irrefl _ (goStringLt_trans h h')
-
 /-- The strict order on strings is a strict weak order. -/
 theorem goStringLt_swo {E : Type} (f : E → GoString) :
     slices.StrictWeakOrder (fun a b : E => go.GoStringLt (f a) (f b)) where
@@ -257,7 +254,7 @@ theorem kvLtBy_false_iff (target : w64) (a b : EtcdKv) :
       · exact Or.inl (goStringLt_eq_of_not_lt hxy h)
     · rintro (h | h)
       · subst h; exact goStringLt_irrefl _
-      · exact goStringLt_asymm' h
+      · exact goStringLt_asymm h
   split
   · simp only [decide_eq_false_iff_not]; omega
   split

@@ -160,9 +160,9 @@ theorem entsSorted_append_of_last_lt {es es2 : List Ent} (hs : entsSorted es)
   have h2 := entsSorted_le_of_idx hs2 hb hj (by omega)
   rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2
   · subst h1; subst h2; exact hlt
-  · subst h1; exact strLt_trans hlt h2
-  · subst h2; exact strLt_trans h1 hlt
-  · exact strLt_trans (strLt_trans h1 hlt) h2
+  · subst h1; exact goStringLt_trans hlt h2
+  · subst h2; exact goStringLt_trans h1 hlt
+  · exact goStringLt_trans (goStringLt_trans h1 hlt) h2
 
 /-! ## Lists with one slot set -/
 
