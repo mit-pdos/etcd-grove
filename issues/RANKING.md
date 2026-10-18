@@ -166,7 +166,9 @@ fork carries #21987).
   [stm-serializable-snapshot](stm-serializable-snapshot.md),
   [recipes-pqueue-dequeue-order](recipes-pqueue-dequeue-order.md),
   [etcd-client-dialoptions-unary-interceptor](etcd-client-dialoptions-unary-interceptor.md)
-  (a cheap switch to `WithChainUnaryInterceptor` would likely be accepted).
+  (a cheap switch to `WithChainUnaryInterceptor` would likely be accepted),
+  [etcd-featuregate-enabled-panic-undocumented](etcd-featuregate-enabled-panic-undocumented.md)
+  (the `FeatureGate` interface omits the panic its implementation documents; a one-line doc fix).
 - **Absurd configurations or sizes**: [etcd-compactor-periodic-tiny-retention](etcd-compactor-periodic-tiny-retention.md),
   [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md),
   [etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md) (a cheap fix
