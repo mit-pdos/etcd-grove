@@ -81,6 +81,98 @@ theorem splitBatches_block (x : w64) (B : List EvModel)
       rw [hA e' (List.mem_cons_of_mem _ List.mem_cons_self), hA e List.mem_cons_self]
     simp only [h1, ↓reduceIte]
 
+/-! ## The second cursor's steps (pure) -/
+
+/-- A sub-block of an empty block of watch events is empty. -/
+theorem watchEvents_sub_nil (L : Log) (rg : WatchRange) {a b x y : Nat} (h : watchEvents L rg a b = [])
+    (hax : a ≤ x) (hxy : x ≤ y) (hyb : y ≤ b) : watchEvents L rg x y = [] := by
+  rw [watchEvents_append L rg hax (show x ≤ b by omega),
+    watchEvents_append L rg hxy hyb] at h
+  exact (List.append_eq_nil_iff.1 (List.append_eq_nil_iff.1 h).2).1
+
+/-- The events up to `q + 1` of the cursor's log, on another log of the store (in prefix order
+with it) that has them or when there are none (`q + 1 = lo`). -/
+theorem cut_transfer (L L' : Log) (hc : L <+: L' ∨ L' <+: L) (rg : WatchRange) (lo q : Nat)
+    (hq : q + 1 ≤ L.length ∨ q + 1 = lo) (hq' : q + 1 ≤ L'.length) :
+    watchEvents L rg lo (q + 1) = watchEvents L' rg lo (q + 1) := by
+  rcases hq with hq | hq
+  · rcases hc with hc | hc
+    · exact watchEvents_prefix hc rg hq
+    · exact (watchEvents_prefix hc rg hq').symm
+  · rw [hq, watchEvents_empty L rg (Nat.le_refl _), watchEvents_empty L' rg (Nat.le_refl _)]
+
+/-- **The events of a response, from the second cursor**: the events so far `E` up to the cursor
+`q` (`q + 1` within the cursor's log `L`, or `lo`), then the response's `evs` (non-empty), the
+watch events `[lo, d)` of a log `L2` of the store: `evs` are those of `[q + 1, d)`. -/
+theorem cmpl_events_cut (L L2 : Log) (hc : L <+: L2 ∨ L2 <+: L) (rg : WatchRange) (lo q d : Nat)
+    (E evs : List EvM) (h1 : E = watchEvents L rg lo (q + 1)) (hlo : lo ≤ q + 1)
+    (hq : q + 1 ≤ L.length ∨ q + 1 = lo)
+    (h2 : E ++ evs = watchEvents L2 rg lo d) (hd : d ≤ L2.length ∨ d ≤ lo) (hne : evs ≠ []) :
+    q + 1 ≤ d ∧ d ≤ L2.length ∧ evs = watchEvents L2 rg (q + 1) d := by
+  have hlod : lo < d := by
+    refine Classical.byContradiction fun hc' => ?_
+    rw [watchEvents_empty L2 rg (show d ≤ lo by omega)] at h2
+    exact hne (List.append_eq_nil_iff.1 h2).2
+  have hdL2 : d ≤ L2.length := hd.resolve_right (by omega)
+  have hq2 : q + 1 ≤ L2.length := by
+    refine Classical.byContradiction fun hn => ?_
+    -- the cursor past `L2`: then `L2 <+: L` and the response's events would be before the cursor
+    have hqL : q + 1 ≤ L.length := hq.resolve_right (by omega)
+    have hpre : L2 <+: L := by
+      rcases hc with hc | hc
+      · exact absurd (Nat.le_trans hqL hc.length_le) hn
+      · exact hc
+    rw [watchEvents_prefix hpre rg hdL2] at h2
+    rw [h1, watchEvents_append L rg (Nat.le_of_lt hlod) (show d ≤ q + 1 by omega),
+      List.append_assoc] at h2
+    have := congrArg List.length h2
+    simp only [List.length_append] at this
+    exact hne (List.eq_nil_of_length_eq_zero (by omega))
+  rw [h1, cut_transfer L L2 hc rg lo q hq hq2] at h2
+  rcases v3rpc.watchEvents_mid L2 rg lo (q + 1) d evs hlo h2 with h | ⟨h3, h4⟩
+  · exact absurd h hne
+  · exact ⟨h3, hdL2, h4⟩
+
+/-- **The second cursor after events**: the last event's revision `q'` (above the cursor `q`,
+below `d`), no event after it before `d`. -/
+theorem cmpl_events_last (L : Log) (hlen : L.length < 2 ^ 63) (rg : WatchRange) (q d : Nat)
+    (evs : List EvM) (hev : evs = watchEvents L rg (q + 1) d) (hne : evs ≠ []) (hd : d ≤ L.length) :
+    ∃ q' : Nat, evs.getLast?.map (fun e => e.kv.modRev) = some (W64 (q' : Int)) ∧ q + 1 ≤ q' ∧
+      q' < d ∧ watchEvents L rg (q' + 1) d = [] ∧
+      ∀ e ∈ evs, ∃ j : Nat, q + 1 ≤ j ∧ j < d ∧ e.kv.modRev = W64 (j : Int) := by
+  have hmem : ∀ e ∈ evs, ∃ j : Nat, q + 1 ≤ j ∧ j < d ∧ e.kv.modRev = W64 (j : Int) := by
+    intro e he; rw [hev] at he; exact v3rpc.watchEvents_mem_rev L rg (q + 1) d e he
+  obtain ⟨e, he⟩ : ∃ e, evs.getLast? = some e := by
+    cases h : evs.getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 h) hne
+    | some e => exact ⟨e, rfl⟩
+  obtain ⟨j, hj1, hj2, hj⟩ := hmem e (List.mem_of_getLast? he)
+  refine ⟨j, by rw [he]; simp [hj], hj1, hj2, ?_, hmem⟩
+  have hsplit := watchEvents_append L rg (show q + 1 ≤ j + 1 by omega) (show j + 1 ≤ d by omega)
+  rw [← hev] at hsplit
+  refine Classical.byContradiction fun hT => ?_
+  have hl : (watchEvents L rg (j + 1) d).getLast? = some e := by
+    rw [hsplit, List.getLast?_append] at he
+    cases h' : (watchEvents L rg (j + 1) d).getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 h') hT
+    | some e' => rw [h'] at he; simpa using he
+  obtain ⟨j', hj'1, hj'2, hj'⟩ := v3rpc.watchEvents_mem_rev L rg (j + 1) d e (List.mem_of_getLast? hl)
+  rw [hj] at hj'
+  have := W64_inj_of_lt (by omega) (by omega) hj'
+  omega
+
+/-- **No event of the range in `(q, p]`**: the events so far end at the cursor `q` and, by the
+progress notification's coverage, at `p` (`q ≤ p`, `p + 1` within the log `Lp`). -/
+theorem cmpl_prog_none (L Lp : Log) (hc : L <+: Lp ∨ Lp <+: L) (rg : WatchRange) (lo q p : Nat)
+    (hlo : lo ≤ q + 1) (hq : q + 1 ≤ L.length ∨ q + 1 = lo) (hp : p + 1 ≤ Lp.length) (hqp : q ≤ p)
+    (h : watchEvents L rg lo (q + 1) = watchEvents Lp rg lo (p + 1)) :
+    watchEvents Lp rg (q + 1) (p + 1) = [] := by
+  rw [cut_transfer L Lp hc rg lo q hq (by omega),
+    watchEvents_append Lp rg (lo := lo) (mid := q + 1) (hi := p + 1) hlo (by omega)] at h
+  have := congrArg List.length h
+  simp only [List.length_append] at this
+  exact List.eq_nil_of_length_eq_zero (by omega)
+
 /-! ## The chain of steps of a block of watch events -/
 
 section chain
@@ -283,6 +375,149 @@ theorem watchChain_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) 
       rw [List.getElem?_drop] at h2
       iapply Hkv $$ %(A.length + k) %ev %kv
         %(by rw [List.getElem?_append_right (by omega)]; simpa using h1) %h2
+
+/-! ## The second cursor -/
+
+/-- **A response's place on its stream's channel** (persistent): the channel's sent list (named
+by the stream's auxiliary name) had the responses `pre`, then `y`, at `y`'s index. -/
+def chanPos (γs : StreamNames) (y : mvcc.RespM) : IProp GF :=
+  iprop(∃ (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName),
+    streamAuxIs γs (v3rpc.auxOf γo γa) ∗ ⌜γo.sentl = γc.sentl ∧ y.idx = pre.length⌝ ∗
+    mvcc.chanSentLb γc (pre ++ [y]))
+
+instance chanPos_persistent (γs : StreamNames) (y : mvcc.RespM) :
+    Persistent (chanPos (GF := GF) γs y) := by
+  unfold chanPos; infer_instance
+
+/-- **The second cursor at a progress notification's revision** (persistent): `c2` is the
+revision of an event-less mvcc response `y` sent down after the responses `L0`, while the id `X`
+was live, at its place on the channel. -/
+def progAt (γs : StreamNames) (X c2 : w64) : IProp GF :=
+  iprop(∃ (y : mvcc.RespM) (my : v3rpc.WatchRespM) (L0 : List v3rpc.WatchRespM),
+    v3rpc.downLbW γs (L0 ++ [my]) ∗ ⌜my.src = some y ∧ y.evs = [] ∧ c2 = y.rev ∧ v3rpc.idLive L0 X⌝ ∗
+    chanPos γs y)
+
+instance progAt_persistent (γs : StreamNames) (X c2 : w64) :
+    Persistent (progAt (GF := GF) γs X c2) := by
+  unfold progAt; infer_instance
+
+/-- **The second dispatch cursor `c2` of a registered substream** (persistent; its watcher `w`,
+range `rg`, first revision `lo`, id `X`, the responses `Dm` received): the events so far are the
+watch events `[lo, q + 1)` of a watched log (`c2 = q`; `q + 1` within it, or `lo`), and `c2` is
+the watch's start, the last event's revision, or a progress notification's (`progAt`). -/
+def cur2Ok (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM) (X : w64)
+    (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) : IProp GF :=
+  iprop((∃ (L : mvcc.Log) (q : Nat), mvcc.evLog V.R.γ.st L ∗
+      ⌜c2 = W64 (q : Int) ∧ evsOf Dm w = mvcc.watchEvents L rg lo (q + 1) ∧ lo ≤ q + 1 ∧
+        (q + 1 ≤ L.length ∨ q + 1 = lo) ∧ q + 1 < 2 ^ 63⌝) ∗
+    (⌜c2 = P.rev - W64 1⌝ ∨ ⌜∃ e, (evsOf Dm w).getLast? = some e ∧ c2 = e.kv.modRev⌝ ∨
+      progAt γs X c2))
+
+instance cur2Ok_persistent (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF)
+    (Dm : List v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) :
+    Persistent (cur2Ok V γs P Dm X w rg lo c2) := by
+  unfold cur2Ok; infer_instance
+
+/-- `cur2Ok` reads the responses only through the watcher's events. -/
+theorem cur2Ok_congr (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) {Dm Dm' : List v3rpc.WatchRespM}
+    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) (h : evsOf Dm' w = evsOf Dm w) :
+    cur2Ok (GF := GF) V γs P Dm' X w rg lo c2 = cur2Ok V γs P Dm X w rg lo c2 := by
+  unfold cur2Ok; rw [h]
+
+/-- **The second cursor at the watch's start** `rev - 1` (`rev ≥ 1`, the first revision `lo`
+the start revision), no events yet. -/
+theorem cur2Ok_init (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (hrev : 1 ≤ sint.Z P.rev)
+    (hlo : lo = (sint.Z P.rev).toNat) (hE : evsOf Dm w = []) :
+    ⊢ |==> cur2Ok (GF := GF) V γs P Dm X w rg lo (P.rev - W64 1) := by
+  imod mvcc.evLog_nil V.R.γ.st with #Hn
+  imodintro
+  unfold cur2Ok
+  isplitr
+  · iexists [], (sint.Z P.rev).toNat - 1
+    iframe Hn
+    ipureintro
+    have h1 : ((sint.Z P.rev).toNat - 1 : Nat) + 1 = (sint.Z P.rev).toNat := by omega
+    refine ⟨by word, ?_, by omega, Or.inr (by omega), by word⟩
+    rw [hE, h1, ← hlo, mvcc.watchEvents_empty _ _ (Nat.le_refl _)]
+  ileft; ipureintro; rfl
+
+/-- **The second cursor over a response with events** `evs` (the watcher's: the events so far
+then `evs` are the watch events `[lo, d)` of a watched log `L2`; their key-values read-only at
+`kvs`): the cache's contract from `c2` (events, `watchChain`), and the cursor at the last one's
+revision. -/
+theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+    (m : v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64)
+    (pfx : GoString) (hcov : ∀ k, rg.covers k = true ↔ pfx <+: k) (hst : V.R.γ.st = V.R.E.γ)
+    (L2 : mvcc.Log) (d : Nat) (evs : List mvcc.EvM) (kvs : List Loc) (hkl : kvs.length = evs.length)
+    (hne : evs ≠ []) (hsnoc : evsOf (Dm ++ [m]) w = evsOf Dm w ++ evs)
+    (h2 : evsOf Dm w ++ evs = mvcc.watchEvents L2 rg lo d) (hd : d ≤ L2.length ∨ d ≤ lo)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel)
+    (hr : r.events = List.zipWith evModelOf evs kvs) (hv : ¬ watchErr v) :
+    cur2Ok V γs P Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗
+      □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
+        mvcc.kvPtrFixed kv ev.kv) ⊢
+      ∃ c2' : w64, watchRespOk (EM := V.EM) pfx c2 c2' v r ∗
+        cur2Ok V γs P (Dm ++ [m]) X w rg lo c2' := by
+  iintro ⟨#Hc, #HL2, #Hsm, #Hkv⟩
+  unfold cur2Ok
+  icases Hc with ⟨⟨%L, %q, #HL, %Hq⟩, -⟩
+  obtain ⟨hc2, h1, hlo, hq, hq63⟩ := Hq
+  ihave %Hcmp := mvcc.evLog_cmp V.R.γ.st L L2 $$ HL HL2
+  ihave #Hs2 := mvcc.evLog_sealed _ _ $$ HL2
+  ihave %Hw2 := v3rpc.sealed_pure _ L2 $$ Hs2
+  have hlen2 : L2.length < 2 ^ 63 := Hw2.2
+  obtain ⟨hqd, hd2, hev⟩ := cmpl_events_cut L L2 Hcmp rg lo q d (evsOf Dm w) evs h1 hlo hq h2 hd hne
+  obtain ⟨q', hlast, hq1, hq2, htail, hmem⟩ := cmpl_events_last L2 hlen2 rg q d evs hev hne hd2
+  iexists W64 (q' : Int)
+  have hrevs : r.events.map EvModel.rev = evs.map (fun e => e.kv.modRev) := by
+    rw [hr]; exact zipWith_evModel_rev evs kvs hkl
+  isplitr
+  · unfold watchRespOk
+    iright; iright; iright
+    isplitr
+    · ipureintro
+      refine ⟨hv, ?_, ?_, ?_, ?_⟩
+      · rw [hr]; intro h
+        have := congrArg List.length h
+        simp only [List.length_zipWith, List.length_nil] at this
+        exact hne (List.eq_nil_of_length_eq_zero (by omega))
+      · unfold EvRevSorted
+        have hp : (r.events.map EvModel.rev).Pairwise (fun x y => sint.Z x ≤ sint.Z y) := by
+          rw [hrevs, List.pairwise_map, hev]; exact watchEvents_sorted L2 hlen2 rg (q + 1) d
+        exact (List.pairwise_map (f := EvModel.rev) (R := fun x y => sint.Z x ≤ sint.Z y)).1 hp
+      · intro e he
+        rw [hr] at he
+        obtain ⟨ev, hev', hre⟩ := mem_zipWith_evModel he
+        obtain ⟨j, hj1, hj2, hj⟩ := hmem ev hev'
+        rw [hre, hj, hc2]
+        constructor <;> word
+      · rw [← List.getLast?_map, hrevs, List.getLast?_map]
+        simpa using hlast
+    rw [hc2, hr]
+    have hkl' : kvs.length = (mvcc.watchEvents L2 rg (q + 1) d).length := by rw [← hev]; exact hkl
+    have H := watchChain_of_watch V L2 rg pfx hcov d hd2 hst (d - (q + 1)) q (q + 1) kvs rfl
+      (Nat.le_refl _) (mvcc.watchEvents_empty L2 rg (Nat.le_refl _)) hkl'
+    rw [← hev] at H
+    iapply H
+    iframe HL2 Hsm
+    iintro !> %k %ev %kv %h1 %h2
+    iapply Hkv $$ %k %ev %kv %h1 %h2
+  isplitr
+  · iexists L2, q'
+    iframe HL2
+    ipureintro
+    refine ⟨rfl, ?_, by omega, Or.inl (by omega), by omega⟩
+    rw [hsnoc, h2, mvcc.watchEvents_append L2 rg (show lo ≤ q' + 1 by omega) (show q' + 1 ≤ d by omega),
+      htail, List.append_nil]
+  iright; ileft
+  ipureintro
+  rw [hsnoc]
+  cases hl : evs.getLast? with
+  | none => exact absurd (List.getLast?_eq_none_iff.1 hl) hne
+  | some e =>
+    refine ⟨e, by rw [List.getLast?_append, hl]; rfl, ?_⟩
+    rw [hl] at hlast; simp at hlast; exact hlast.symm
 
 end chain
 
