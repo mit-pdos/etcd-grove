@@ -31,6 +31,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- The proof unfolds the method by its trusted body (`DialWithBalancerBody.lean`). -/
 theorem Client.dialWithBalancer.wp_proof
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (wp_Endpoints : Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_credentialsForEndpoint : Client.credentialsForEndpoint.spec (GF := GF) (hG := hG))
     (wp_WithResolvers : grpc.WithResolvers.spec (GF := GF) (hG := hG))

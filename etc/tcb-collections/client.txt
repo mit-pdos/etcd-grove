@@ -19,8 +19,6 @@ axiom NewCluster.wp_proof
 axiom NewLease.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
-axiom Perennial.go_etcd_io.etcd.client.v3.Client.dialWithBalancer.builderType
-axiom Perennial.go_etcd_io.etcd.client.v3.Client.dialWithBalancer.unfold
 axiom RangeRequest.String.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof

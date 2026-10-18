@@ -19,11 +19,17 @@ resolver.Builder.ty`, which does not exist); the translation does not elaborate.
 translated names only, and `trustedImpl` below is the pinned translator's output for it
 (Perennial `a54e1999f`, etcd `09669450f`), verbatim but for that type, corrected to
 `google_golang_org.grpc.resolver.Builder.ty` (three occurrences: the conversion, the variadic
-slice's type and its element's). The axiom `Client.dialWithBalancer.unfold` says the method's body
-is it: the generated packages' `MethodUnfold` facts, for this one method; and
-`Client.dialWithBalancer.builderType`, grpc `resolver`'s `Builder.TypeAssumptions` (the
-underlying type of `resolver.Builder`, which the conversion needs, and which `clientv3`'s
-assumptions do not include). A translator limitation,
+slice's type and its element's). The hypothesis class `DialWithBalancerBody` says the method's
+body is it (`unfold`: the generated packages' `MethodUnfold` facts, for this one method), and
+grpc `resolver`'s `Builder.TypeAssumptions` (`builderType`: the underlying type of
+`resolver.Builder`, which the conversion needs, and which `clientv3`'s assumptions do not include).
+Like a package's generated `Assumptions`, it is a hypothesis on the semantics in use: the
+method's proof takes it as an instance argument, and so do the results linking it (`Link.lean`:
+`wp_dialWithBalancer`, `wp_newClient`, `clientv3.wp_New`). Until 2026-10-18 the two were axioms
+stated for every `GoSemanticsFunctions`, which is inconsistent: at `methods := fun _ _ _ =>
+func.nil` every receiver's method is the same value, but the unfolding depends on the receiver;
+at `underlying := id` the named type `resolver.Builder` would be its interface type
+(`notes/audit.md`). A translator limitation,
 to be fixed in Goose (a type of a package the file does not import, named after its own path, when
 the package is imported in the configuration), not here: `notes/STATUS.md`, item 5.
 -/
@@ -74,24 +80,20 @@ noncomputable def Client.dialWithBalancer.trustedImpl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Pair (Var "creds") (Var "$r0"))))))))))))
 
-/-- **The body of `(*Client).dialWithBalancer`** (a trusted unfolding; see the file header): what
-the generated `Client.TypeAssumptions` would hold as `ptr_dialWithBalancer_unfold`. -/
-axiom Client.dialWithBalancer.unfold [FfiSyntax] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] :
-  MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer"
+/-- **`(*Client).dialWithBalancer`'s body, and grpc `resolver.Builder`'s underlying type** (a
+hypothesis on the semantics in use; see the file header). -/
+class DialWithBalancerBody [FfiSyntax] [GoGlobalContext] [GoLocalContext]
+    [GoSemanticsFunctions] : Prop where
+  /-- The method's body is `trustedImpl`: what the generated `Client.TypeAssumptions` would hold
+  as `ptr_dialWithBalancer_unfold`. -/
+  unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialWithBalancer"
     Client.dialWithBalancer.trustedImpl
+  /-- grpc's `resolver.Builder` is the interface type the translation says: grpc `resolver`'s
+  `Builder.TypeAssumptions`, which `clientv3`'s assumptions do not include (`clientv3` does not
+  import it). -/
+  builderType : _root_.Perennial.google_golang_org.grpc.resolver.Builder.TypeAssumptions
 
-attribute [instance] Client.dialWithBalancer.unfold
-
-/-- **grpc's `resolver.Builder` is the interface type the translation says** (a trusted fact
-about the semantics; see the file header): the body converts to it, and `clientv3`'s
-assumptions do not include grpc `resolver`'s (`clientv3` does not import it), whose
-`Builder.TypeAssumptions` this is. -/
-axiom Client.dialWithBalancer.builderType [FfiSyntax] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] :
-  _root_.Perennial.google_golang_org.grpc.resolver.Builder.TypeAssumptions
-
-attribute [instance] Client.dialWithBalancer.builderType
+attribute [instance] DialWithBalancerBody.unfold DialWithBalancerBody.builderType
 
 end go_etcd_io.etcd.client.v3
 

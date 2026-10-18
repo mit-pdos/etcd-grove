@@ -151,6 +151,8 @@ set_option maxRecDepth 100000 in
 set_option pp.maxSteps 200000 in
 set_option maxHeartbeats 0 in
 theorem NewServer.wp_proof
+    -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
+    [Float64ToInt64Semantics]
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
     (h2 : zap.Logger.Info.spec (GF := GF) (hG := hG))
@@ -866,13 +868,13 @@ theorem NewServer.wp_proof
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
       cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs]
-  · unfold srvServeBuilt srvServeCfg srvBemuReader srvLeadTimeReader
+  · unfold srvServeBuilt srvServeFacts srvServeCfg srvBemuReader srvLeadTimeReader
     isplitr
-    · iexists ws, γw
-      iframe #
-      ipureintro; rfl
-    isplitr
-    · iframe #
+    · isplitr
+      · iexists ws, γw
+        iframe #
+        ipureintro; rfl
+      · iframe #
     iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs
   imodintro
   iapply HΦ

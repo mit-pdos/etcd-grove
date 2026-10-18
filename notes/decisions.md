@@ -8746,7 +8746,7 @@ the theorem says nothing.
   `New` (the lock's invariant is stated over it); a client whose server is chosen later would need
   the invariant over an existential environment, not needed here.
 - **D19g: `Main`'s local pieces and two clashes with `NewServer.spec`** (item 9, point 7;
-  2026-10-18; proposed, waiting for clusterLogBound and rnSnapOnce to land).
+  2026-10-18; proposed; (a) and (b) adopted by the user and carried out the same day, below).
   - *The feature gate's contract was false of Go* (a spec bug of this repository).
     `isFeatureGate` said `Enabled(f)` returns some boolean for every `f`. `featureGate.Enabled`
     panics on a feature it has not registered (its own comment says so; the `FeatureGate`
@@ -8851,6 +8851,34 @@ the theorem says nothing.
   - *Recommendation:* (B) now, with the premise in the closed theorem's statement as
     `authRecordsFit` and `transportEffectsOk` are; (A) when a closed theorem should cover a full
     disk. Not started: the choice is the user's.
+  - *Carried out (2026-10-18, after clusterLogBound and rnSnapOnce landed).* (a):
+    `NewServer.spec` takes `"#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd`
+    (now in `InvBuild.lean`); its postcondition no longer has `etcdKV`, and `NewServer.lean`
+    no longer allocates `kvInv`. So `srvRaftBoot_alloc`'s output (`srvBootOut`) meets the
+    premises, and `putGetInv_alloc_log` turns its `etcdKV` into the client's invariant.
+    `clusterWorkloadOk` lost its unused `c₀`, `x₀`. (b): `NewServer.spec`'s postcondition gains
+    `srvServeBuilt srv E cfg 64` (`InvServe.lean`). Its persistent part `srvServeFacts` holds
+    the KV field as the watchable store and `srvServeCfg`'s eight configuration fields. It also
+    holds the owned `WatchProgressNotifyInterval` field, a `bemu` reader slot, and 64 reader
+    slots each of `leadTimeMu`, `lgMu`, the auth store (`E.RD`) and the store (from the watch
+    readers). The construction's proof used to drop these with `-`. `Start`'s postcondition
+    did not need to change: `isServerRead` already holds the `stopping` field and `stopChan`,
+    the logger field and the auth store's `isAuthStore`, and `isServerReq` holds the rest;
+    `raftKV` comes from both through `raftKV_server`, and `srvIdsOk`/`raftStatusOk` from its
+    `kvGetOk`. The lemmas are in `client/v3/ServeFromStart.lean`. `grpcCfgOk_of_started` gives
+    `∃ C, grpcCfgOk s C ∗ ⌜C.A = srvKVAns s E ρ γr 0 [] .none ∧ C.E = E⌝`.
+    `etcdGrpcSlots_of_started` gives `N` `etcdGrpcSlot`s from `2 N` slots each of `leadTimeMu`,
+    `lgMu` and `E.RD`, `N` of the store and `N` of the read loop's (`Start`'s). `etcd_kv_started`
+    and `etcd_watch_served_chain` are unchanged.
+    **Premises left to `Main`:** `v3rpc.watchVars`, the package variables `watch.go` reads.
+    They are not among `v3rpc`'s initialization facts (`v3rpcInit`); their natural home is
+    there, as item 8 did for `metricsVars`, a `gen-init.py` change. `v3rpc.runsNoRequireLeader`
+    is a statement about the clients' stream metadata, D19a's first kind.
+    `membership.localKept c` is an axiomatized predicate that nothing produces (unit P3b). As a
+    hypothesis `□ ∀ c, localKept c` it cannot be refuted, but it says nothing about Go, so it
+    needs a decision before the closed theorem: define it from the cluster's members map and
+    prove it for a single-member cluster, or keep it as the closed theorem's named
+    assumption. Also the tracer options' slice (`↦*□`; `Main` passes `nil`).
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for
@@ -8867,3 +8895,38 @@ the theorem says nothing.
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
 conclusion to executions where the bounds hold (they are ghost facts, not observable in the
 configuration `goose_adequacy` speaks of).
+
+## `int64(f)`: a hypothesis class, not an axiom over every semantics (2026-10-18)
+
+**2026-10-18 · adopted (branch `raft-retarget`; the axiom audit's first false axiom,
+`notes/audit.md`)**
+
+A fact about Go's semantics that Perennial lacks cannot be an axiom quantified over the semantics'
+own parameters (`[GoLocalContext]`, `[GoGlobalContext]`, `[GoSemanticsFunctions]`): those are
+structures any proof can build, and a statement about the step relation, the method table or
+`underlying` fails at most of them. `convert_float64_to_int64` (`int64(f)` steps) gave `False` at
+Perennial's own default `GoLocalContext` (`fun _ _ _ => False`); the two `dialWithBalancer` axioms
+(its trusted body as a `MethodUnfold`, grpc `resolver.Builder`'s `TypeAssumptions`) gave `False` at
+a `GoSemanticsFunctions` with constant `methods` or `underlying := id`. All three were checked in
+Lean (a scratch file, not committed: `False` closed, from concrete instances of every class).
+
+Perennial's own pattern is the fix: a semantic fact is a field of a hypothesis class
+(`go.Semantics`, `Float64Semantics`, a package's generated `Assumptions`), which the proofs take
+as an instance argument and a closed theorem as a premise on the initial state's local context. So:
+
+- `EtcdGrove.Float64ToInt64Semantics` (`FloatToInt.lean`): the function `float64ToInt64` (a field,
+  as `FloatOps`'s `int64ToFloat64`, so a real Go's conversion can satisfy it) and the step to it.
+  `NewServer.wp_proof` takes it; `wp_NewServer` too.
+- `go_etcd_io.etcd.client.v3.DialWithBalancerBody` (`DialWithBalancerBody.lean`): the two facts
+  the generated `Client.TypeAssumptions` and grpc `resolver`'s `Assumptions` would hold.
+  `Client.dialWithBalancer.wp_proof` takes it; `wp_dialWithBalancer`, `wp_newClient` and
+  `clientv3.wp_New` too.
+- `etc/gen-link.py`'s `SEM_PREMISES` lists the classes: a result takes one when its proof's file
+  has it as a binder or a callee's result (here or in an imported Link) takes it.
+
+D19a's rule admits each as a premise of a closed theorem: a pure fact about Go's semantics,
+satisfiable by the real one. **Proposed to Perennial, on its own** (not done here): a
+`float64ToInt64` field of `FloatOps` (and the other float-to-integer conversions) with its step
+in `Float64Semantics`, which would replace `Float64ToInt64Semantics`; and the translator fix
+for a type of a package the file does not import, which would make `dialWithBalancer`
+translated and `DialWithBalancerBody` part of the generated assumptions.

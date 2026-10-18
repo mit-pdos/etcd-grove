@@ -29,8 +29,6 @@ axiom NewCluster.wp_proof
 axiom NewLease.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
-axiom Perennial.go_etcd_io.etcd.client.v3.Client.dialWithBalancer.builderType
-axiom Perennial.go_etcd_io.etcd.client.v3.Client.dialWithBalancer.unfold
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
@@ -121,7 +119,6 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
-axiom convert_float64_to_int64
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof

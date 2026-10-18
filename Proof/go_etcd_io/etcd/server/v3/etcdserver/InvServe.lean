@@ -104,16 +104,26 @@ instance srvServeCfg_persistent (s : Loc) (cfg : go_etcd_io.etcd.server.v3.confi
     Persistent (srvServeCfg (GF := GF) s cfg) := by
   unfold srvServeCfg; infer_instance
 
-/-- **What `NewServer` leaves for serving** (see the file header). -/
-def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (K : Nat) : IProp GF :=
+/-- **The facts `NewServer` leaves for serving** (persistent): the KV field as the watchable
+store it built, and the configuration fields `srvServeCfg`. -/
+def srvServeFacts (s : Loc) (E : apply.AEnv GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop((∃ (wsl : Loc) (γ : mvcc.WsNames),
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
       mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝) ∗
-    srvServeCfg s cfg ∗
-    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦
-      cfg.WatchProgressNotifyInterval' ∗
+    srvServeCfg s cfg)
+
+instance srvServeFacts_persistent (s : Loc) (E : apply.AEnv GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
+    Persistent (srvServeFacts (GF := GF) s E cfg) := by
+  unfold srvServeFacts; infer_instance
+
+/-- **What `NewServer` leaves for serving** (see the file header). -/
+def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (K : Nat) : IProp GF :=
+  iprop(srvServeFacts s E cfg ∗
+    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗

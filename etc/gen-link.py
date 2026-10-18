@@ -131,6 +131,19 @@ import textwrap
 # client's watch specs take besides the client's (the watch slice's unit W-C).
 SRV_ASSUMPTIONS = "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions"
 
+# **Semantic premises**: hypothesis classes on the semantics in use, as Perennial's `go.Semantics`,
+# for what Perennial's semantics or a translation lacks (`notes/decisions.md`, "`int64(f)`: a
+# hypothesis class"). A proof that needs one takes it as an instance argument of its `wp_proof`
+# (written `[<name as here>]` in its file); its result takes it too, and so does every result
+# linking one that does, here or in an imported Link (its `theorem` line).
+SEM_PREMISES = [
+    # `int64(f)` of a `float64` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/FloatToInt.lean`)
+    "EtcdGrove.Float64ToInt64Semantics",
+    # `(*Client).dialWithBalancer`'s body, which the translator cannot produce
+    # (`Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`)
+    "go_etcd_io.etcd.client.v3.DialWithBalancerBody",
+]
+
 # The Lean-first links: (callee list, what the links open, the package assumptions they
 # are stated under, a description for the header, the module roots holding their specs).
 LEAN_FIRST = {
@@ -523,6 +536,7 @@ variable [package_sem : {assumptions}]
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)
         elif "[MemStorReg GF]" in src:
             allg += " [MemStorReg GF]"
+        allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
@@ -554,6 +568,35 @@ variable [package_sem : {assumptions}]
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
                 or any(c in cache_assumptions for c in callees[fn])):
             cache_assumptions.add(fn)
+
+    # the semantic premises each result takes (`SEM_PREMISES`): its proof's, or a callee's
+    def proof_file(fn):
+        return os.path.join(root, prefix[fn].rstrip("."), "Proof", *where[fn].split(".")) + ".lean"
+
+    def premise_binder(p):
+        return "[" + p + "]"
+
+    premises = {}
+    for fn in order:
+        ps = set()
+        if fn in reused or fn in external:
+            link = (link_file(reused[fn]) if fn in reused else
+                    os.path.join(root, *external_link(fn).split(".")) + ".lean")
+            names = {result(fn), result(fn).split(".", 1)[-1]}
+            if os.path.exists(link):
+                src = open(link).read()
+                for n in names:
+                    m = re.search(r"^theorem " + re.escape(n) + r"( \[[^:]*):", src, re.M)
+                    if m:
+                        ps |= {p for p in SEM_PREMISES if premise_binder(p) in m.group(1)}
+        else:
+            if fn not in pending and os.path.exists(proof_file(fn)):
+                src = open(proof_file(fn)).read()
+                ps |= {p for p in SEM_PREMISES
+                       if premise_binder(p.split(".")[-1]) in src or premise_binder(p) in src}
+            for c in callees[fn]:
+                ps |= premises.get(c, set())
+        premises[fn] = ps
 
     # the results whose specs take the v3rpc package's assumptions besides the mode's (the
     # client's watch specs, at the server's model), and every result linking one of them
