@@ -579,6 +579,54 @@ theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : G
   have := Option.some.inj Hag.2
   exact ⟨(Prod.mk.inj this).1, (Prod.mk.inj this).2⟩
 
+/-! ### The write budget backed by time receipts (D19b) -/
+
+def srvWTN : Namespace := nroot .@ "srvWT"
+
+/-- **The apply thread's write budget** (D19b, 2026-10-18; persistent): an invariant holding,
+for the `a` write tokens taken so far, `a` time receipts, and `n` write tokens of the store
+left, with `receiptBound GF ≤ a + n + 1`. The apply loop takes one token per entry with the
+receipt of a Go step of that entry's iteration (`srvWTPool_take`): `a + 1 < receiptBound GF`, so
+a token is left. Until D19b the apply thread was handed `txn.storeWTs` per batch by `run`, under
+the lifetime premise `srvLifeBound` (D14g: every committed log has at most `N` entries), a
+statement over raft's ghost state, refutable as a hypothesis of a closed theorem (D19a). -/
+def srvWTPool (γ : mvcc.StoreNames) : IProp GF :=
+  inv srvWTN iprop(∃ a n : Nat, ⧗ a ∗ txn.storeWTs γ n ∗ ⌜receiptBound GF ≤ a + n + 1⌝)
+
+instance srvWTPool_persistent (γ : mvcc.StoreNames) : Persistent (srvWTPool (GF := GF) γ) := by
+  unfold srvWTPool; infer_instance
+
+/-- The budget from `N` write tokens, under `receiptBound GF ≤ N + 1`. -/
+theorem srvWTPool_alloc (γ : mvcc.StoreNames) (N : Nat) (E : CoPset)
+    (h : receiptBound GF ≤ N + 1) :
+    txn.storeWTs (GF := GF) γ N ⊢ |={E}=> srvWTPool γ := by
+  iintro HW
+  imod receipt_zero (GF := GF) with H0
+  unfold srvWTPool
+  iapply inv_alloc srvWTN E
+  inext
+  iexists 0, N
+  iframe
+  ipureintro; omega
+
+/-- **One write token** off the budget, for a fresh time receipt. -/
+theorem srvWTPool_take (γ : mvcc.StoreNames) :
+    ⊢ srvWTPool (GF := GF) γ -∗ ⧗ 1 ={⊤}=∗ mvcc.storeWT γ := by
+  iintro #Hp Hr
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %n, >Ha, >Hn, >%Hb⟩ Hclose
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  icases txn.storeWTs_split γ n' $$ Hn with ⟨Ht, Hn⟩
+  imod Hclose $$ [Ha Hn] with -
+  · inext
+    iexists a + 1, n'
+    iframe
+    ipureintro; omega
+  imodintro
+  iexact Ht
+
 end defs_lc
 
 end EtcdGrove

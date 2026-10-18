@@ -26,15 +26,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.start()`** from the construction premise (`isServerBuilt`): it sets the snapshot
 defaults, the wait registries (`w`, `applyWait`), the channels `done`, `stop`, `stopping`, the
 server's context, the read loop's `*Read` and the leader-change notifier, sets up `GoAttach`'s
-protocol, and starts `run` (`isServerRun`, with the write budget `txn.storeWTs E.γ N`); it returns the server's
+protocol, and starts `run` (`isServerRun`, with the write budget `srvWTPool E.γ` made of the `N` write
+tokens, D19b: under the pure premise `receiptBound GF ≤ N + 1`, until then `srvLifeBound`); it returns the server's
 persistent views (`isServerReq`, at the wait's fresh names, and `isServerRead`) and what `Start`'s
 goroutines and the request path's get (`srvStarted`). -/
 abbrev EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
+  receiptBound GF ≤ N + 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvLifeBound ρ.raft N ∗
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗

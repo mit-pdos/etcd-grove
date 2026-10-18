@@ -28,8 +28,8 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
 * the reader slots `start` hands on: `s.lgMu`'s for `run` and for the read loop, and
   `s.firstCommitInTerm`'s for the read loop;
 * the write budget `txn.storeWTs E.γ N` (the backend's unit 6: the store's write tokens, one per
-  applied entry; `start`'s callers take the lifetime bound `srvLifeBound ρ.raft N`, D14g:
-  at most `N` entries ever applied).
+  applied entry; `start` puts them in the receipt-backed budget `srvWTPool`, under
+  `receiptBound GF ≤ N + 1`, D19b; until then its callers took `srvLifeBound ρ.raft N`, D14g).
 -/
 module
 

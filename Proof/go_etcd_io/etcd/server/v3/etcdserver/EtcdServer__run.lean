@@ -67,12 +67,12 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗ isUnitBag nc ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
-        applyRes C A ∗ txn.storeWTs C.E.γ ce.length ∗ srvRLogLb ρ.raft (A ++ ce) }}
+        applyRes C A ∗ srvWTPool C.E.γ ∗ srvRLogLb ρ.raft (A ++ ce) }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hents, #Hbc, Hrun, HR,
-    HWc, #Hlbr⟩ HΦ
+    #HWc, #Hlbr⟩ HΦ
   iunfold applyRes at HR
   icases HR with ⟨%st, %ai, %at', %a, %t, %cs, %x, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, %Hpure⟩
@@ -119,7 +119,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     refine ⟨by rw [Hkc.2]; exact Hai0, fun m hm => ?_⟩
     rw [Hkc.1]; exact hcong m hm
   iapply (hAA C.s C.γ C.ci TM C.E ρ C.γr C.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
-      hms hb1 Hloop hok') $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao HWc Hka]
+      hms hb1 Hloop hok') $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka]
   · rw [hun]
     iframe #
     iframe
@@ -262,9 +262,8 @@ theorem EtcdServer.run.wp_proof
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ N
-  wp_start as ⟨#Hlife, Hpre⟩
-  iunfold srvLifeBound at Hlife
+  intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+  wp_start as Hpre
   iunfold isServerRun at Hpre
   iNamed Hpre
   obtain ⟨HEC, HEγr⟩ := HEr
@@ -531,8 +530,7 @@ theorem EtcdServer.run.wp_proof
   ihave HI : iprop(∃ (A : List EntryModel) (Ps : List GName) (pl : GName) (Q R : IProp GF),
       "Happly" ∷ rnApplyTok γn A ∗ "Hq" ∷ schedule.schedQueue γs (Ps ++ [pl]) ∗
       "#Hpl" ∷ schedule.savedProp pl Q ∗ "HR" ∷ R ∗
-      "#HQR" ∷ □ (Q ∗ R -∗ applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ A) ∗
-      "HWB" ∷ txn.storeWTs E.γ (N - A.length)) $$ [Happly Hq HR0 HWB]
+      "#HQR" ∷ □ (Q ∗ R -∗ applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ A)) $$ [Happly Hq HR0]
   · iexists [], [n₀], p₀, iprop(True), iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ [])
     simp only [List.cons_append, List.nil_append, List.length_nil, Nat.sub_zero]
     iframe
@@ -540,7 +538,7 @@ theorem EtcdServer.run.wp_proof
     iintro !> ⟨-, H⟩
     iexact H
   wp_for
-  icases HI with ⟨%A, %Ps, %pl, %Q, %R, Happly, Hq, #Hpl, HR, #HQR, HWB⟩
+  icases HI with ⟨%A, %Ps, %pl, %Q, %R, Happly, Hq, #Hpl, HR, #HQR⟩
   wp_apply (lc := 2) hRA Er γn (srvRAddr s) $$ [] as %apc #Hapc
   · iframe #
   (try wp_auto)
@@ -589,20 +587,20 @@ theorem EtcdServer.run.wp_proof
       iapply batchCommittedIdx_of_last Er.γr ai₀ A ce hidx $$ Hcl
     imod (schedule.savedProp_alloc (applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ (A ++ ce)))
       with ⟨%post, #Hpost⟩
-    wp_apply hNJ γs _ _ iprop(R ∗ txn.storeWTs E.γ ce.length) Q
+    wp_apply hNJ γs _ _ R Q
         iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ (A ++ ce)) $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
-      iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', HWBc⟩, HQ, -⟩ HΦj
+      iintro !> %ctx %cd !> %Φj ⟨Hrun, HR', HQ, -⟩ HΦj
       ihave Hres := HQR $$ [HQ HR']
       · iframe
       wp_auto
       wp_bind (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll"))
         (Val #ep_ptr)) (Val #ap_ptr))
       iapply (run_job_body hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ TM ρ A ce ap_ptr
-        apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs hidx hok rfl) $$ [Hrun Hres HWBc]
+        apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs hidx hok rfl) $$ [Hrun Hres]
       · iframe #
-        iframe Hrun Hres HWBc
+        iframe Hrun Hres
         rw [← Hsnap]; iexact snapshotA
       inext
       iintro ⟨Hrun, Hres⟩
@@ -610,15 +608,9 @@ theorem EtcdServer.run.wp_proof
       iapply HΦj
       iframe
     -- `sched.Schedule(f)`, tracked: `Q` the job's `Prev`, its `Post` saved as `post`
-    ihave %hle0 := Hlife $$ %(A ++ ce) Hlbr
-    have hle : A.length + ce.length ≤ N := by
-      simpa only [List.length_append] using hle0
-    rw [show N - A.length = ce.length + (N - (A ++ ce).length) by
-      simp only [List.length_append]; omega] at *
-    icases (txn.storeWTs_add E.γ ce.length (N - (A ++ ce).length)).1 $$ HWB with ⟨HWBc, HWB⟩
-    wp_apply hSch sci γs j iprop(R ∗ txn.storeWTs E.γ ce.length) Q
+    wp_apply hSch sci γs j R Q
         iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ (A ++ ce)) (some (Ps, pl, post))
-      $$ [HR HWBc Hq] as Hq
+      $$ [HR Hq] as Hq
     · iframe #
       iframe
       simp only [schedule.schedPre]

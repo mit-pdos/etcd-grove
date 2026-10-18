@@ -1081,18 +1081,19 @@ the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those resul
 on `isServerBuilt` alone (and each call's own resources). -/
 theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
+    (Hrb : receiptBound GF ≤ N + 1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        srvLifeBound ρ.raft N ∗ isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
+        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
           (idCred ρ.ids 1) ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
-  iintro %Φ ⟨#Hpkg, #Hlife, Hb⟩ HΦ
-  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N) $$ [Hb]
-  · iframe Hpkg Hlife Hb
+  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
+  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb) $$ [Hb]
+  · iframe Hpkg Hb
   inext
   iintro ⟨%γw, #Hreq, #Hrd, Hst⟩
   iunfold srvStarted at Hst

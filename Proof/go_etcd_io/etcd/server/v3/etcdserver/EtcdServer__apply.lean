@@ -146,7 +146,7 @@ theorem EtcdServer.apply.wp_proof
   have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A hne hfrom hok hEok
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
-    HW, Hfs, Hka, #Hkb⟩
+    #HWP, Hfs, Hka, #Hkb⟩
   ihave #Hsrv0 := Hsrv
   ihave #Pmem : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
@@ -198,7 +198,7 @@ theorem EtcdServer.apply.wp_proof
       "appliedi" ∷ appliedi_ptr ↦ ai ∗ "appliedt" ∷ appliedt_ptr ↦ at' ∗
       "Hst" ∷ applyThread γ st' ∗ "Hbe" ∷ applyBackend γ ci b ∗ "Happ" ∷ ciApplying ci a' t' ∗
       "Hcs" ∷ epConfStateAddr ep ↦ csl ∗ "Hlr" ∷ srvLgReader s ∗ "Hgr" ∷ srvGoRes s ∗ "Hfs" ∷ srvFS s ∗
-      "HKV" ∷ srvApplyKV s E ρ.wait xj ∗ "HW" ∷ txn.storeWTs E.γ (ms.length - sint.nat j) ∗
+      "HKV" ∷ srvApplyKV s E ρ.wait xj ∗
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
@@ -223,9 +223,9 @@ theorem EtcdServer.apply.wp_proof
       "%Hlast" ∷ ⌜∀ m : EntryModel, 0 < sint.nat j → ms[sint.nat j - 1]? = some m →
         m.index = ai ∧ m.term = at'⌝ ∗
       "%Haw" ∷ ⌜uint.Z aw = uint.Z f0 - 1 + sint.Z j⌝ : IProp GF)
-    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr Hgr Hfs HKV HW Hao HΦ Hka]
+    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr Hgr Hfs HKV Hao HΦ Hka]
   · iexists (W64 0), st, a, at0, cs, false, (W64 0), (W64 0), (W64 0), x, f0 - 1
-    simp only [named, show sint.nat (W64 0) = 0 from rfl, Nat.sub_zero, List.take_zero,
+    simp only [named, show sint.nat (W64 0) = 0 from rfl, List.take_zero,
       List.append_nil]
     iframe
     iframe Hlog0
@@ -271,10 +271,6 @@ theorem EtcdServer.apply.wp_proof
       rw [this]; omega
     have htk2 : A ++ ms.take (sint.nat (j + W64 1)) = A ++ ms.take (sint.nat j) ++ [m] := by
       rw [hjs]; exact htk
-    have hW : ms.length - sint.nat j = (ms.length - sint.nat (j + W64 1)) + 1 := by
-      rw [hjs]; omega
-    rw [hW]
-    icases txn.storeWTs_split E.γ _ $$ HW with ⟨Hwt, HW⟩
     have hconf : m.typ ≠ W32 0 → batchStep (ciEff γ st.k) m xj xj := by
       intro hn; unfold batchStep; rw [ite_eq_right hn]
     have Hlt : sint.Z j < sint.Z es.len := by
@@ -296,10 +292,38 @@ theorem EtcdServer.apply.wp_proof
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
     wp_apply_core (wp_ci_get hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
-      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr Hfs HKV HW Hwt Hao Hphi e Hka]
+      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr Hfs HKV Hao Hphi e Hka]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
     obtain ⟨hlp, hlpp, hlpe, hlc⟩ := stLoaded_facts γ st'
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_alloc index_ptr as index
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_store
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_load
+    wp_pure
+    wp_pure
+    -- the Go step resolving `zap.Uint64` gives a time receipt (D19b), for which the budget gives
+    -- the entry's write token
+    wp_bind (App (Val (GoInstruction (FuncResolve _ _))) (Val _))
+    iapply wp_go_step_receipt'
+    case hv => exact isPanic_intoVal _
+    inext
+    iintro Hr -
+    iapply wp_value'
+    imod srvWTPool_take E.γ $$ HWP Hr with Hwt
     (try wp_auto)
     -- the `Debug` log
     wp_apply hU64 as %fl2 -

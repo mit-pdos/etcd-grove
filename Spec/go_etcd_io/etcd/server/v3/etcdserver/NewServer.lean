@@ -19,10 +19,11 @@
   stand-in environment `E₀` carries (the construction's apply environment agrees with it,
   `envAgree`).
 * The workload clause `clusterWorkloadOk` at `E₀` (D13c), the start `bootKV` at the consistent
-  index `0`; the lifetime bounds (D14g, D17): `srvLifeBound` (at most `N` entries applied),
-  `storeSmall` (the store's sealed logs small), the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
-  and the time-receipt bound `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
-  a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`).
+  index `0`; the lifetime bounds (D14g, D17, D19b): `storeSmall` (the store's sealed logs small), the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
+  and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
+  a receipt per id issued, so fewer than `2 ^ 48` ids; until then the premise `idLifeBound`) and
+  `receiptBound GF ≤ N + 1` (D19b: `start` puts the `N` write tokens in a receipt-backed budget,
+  one taken per applied entry; until then the premise `srvLifeBound`, at most `N` entries).
 * `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
   server's raft environment `srvEr`), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
@@ -76,8 +77,9 @@ abbrev NewServer.spec : Prop :=
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
   threadBound GF ≤ 2 ^ 31 →
   -- the time-receipt bound (D19b: the adequacy theorem's step bound `N`, its caller's choice):
-  -- the id generator issues fewer than `2 ^ 48` ids
-  receiptBound GF ≤ 2 ^ 48 →
+  -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
+  -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
+  receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -99,8 +101,6 @@ abbrev NewServer.spec : Prop :=
       "Hrd" ∷ srvReadNamesFresh ρ.rd (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) ∗
       -- the workload clause (D13c)
       "#Hwork" ∷ clusterWorkloadOk ρ E₀ (W64 0) bootKV ∗
-      -- the lifetime bound (D14g): at most `N` entries ever applied, `bootstrap`'s budget
-      "#Hlife" ∷ srvLifeBound ρ.raft N ∗
       -- the other lifetime bound (D17): every sealed log of the store at most `2 ^ 62` changes
       "#Hsmall" ∷ storeSmall E₀.γ ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the background

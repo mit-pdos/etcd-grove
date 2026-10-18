@@ -8457,8 +8457,10 @@ the theorem says nothing.
   the pure fact `receiptBound GF ≤ 2 ^ k`, which the closed theorem discharges by its choice of
   `N` in `goose_adequacy` (D19a's rule). Stage 1 (done): `idLifeBound` (the generator's invariant
   holds `⧗ k` for the `k` ids issued; `Next` takes one from `AddUint64`'s resolution step;
-  `idCred γi n := ⌜receiptBound GF ≤ 2 ^ 48⌝`). Stage 2: `srvLifeBound` (a receipt per applied
-  entry, from the apply loop's iteration). Stage 3: `storeSmall`, the watch store's
+  `idCred γi n := ⌜receiptBound GF ≤ 2 ^ 48⌝`). Stage 2 (done): `srvLifeBound` (a receipt per
+  applied entry, from the apply loop's iteration, buys a token of a receipt-backed budget,
+  `srvWTPool`: the count is of tokens taken, not of committed entries, so no statement about
+  raft's log is needed; `run` no longer hands tokens per batch). Stage 3: `storeSmall`, the watch store's
   `srvLogsSmall`, `rnLogFits` if server-side. Raft's tick/term budget (`budgetInv`, `tickCred`,
   `rnTickerOk`) after PreVote lands.
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every

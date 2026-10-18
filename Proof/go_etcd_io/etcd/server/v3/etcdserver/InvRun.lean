@@ -197,19 +197,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The server's lifetime bound** (D14g, 2026-10-17; persistent): every log raft commits after
-the server's start has at most `N` entries. A residual bound of the kind of `storeSmall` and the
-id budget: the apply thread spends one of the backend's write-back tokens per applied entry
-(`txn.storeWTs`), and the backend has fewer than `2 ^ 40` (`backend.bgOk`), so the server's
-results over the real backend hold for a cluster that applies fewer entries than the budget (a
-premise of `run`, `start`, `Start` and `NewServer`, in place of `2 ^ 64 ≤ N`). -/
-def srvLifeBound (γ : ServerRaftNames) (N : Nat) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb γ L -∗ ⌜L.length ≤ N⌝)
-
-instance srvLifeBound_persistent (γ : ServerRaftNames) (N : Nat) :
-    Persistent (srvLifeBound (GF := GF) γ N) := by
-  unfold srvLifeBound; infer_instance
-
 /-- **The raft contract's apply side, for the server** (`E.C`; see the file header): the log
 after `ai₀`, consecutive, each entry's id claimed, meeting the KV's premises from `x₀` at the
 consistent index `c₀`. -/
@@ -376,11 +363,12 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
 thread's view, `applyAll`'s, the raft wrapper (its node contract over the server's `E.C`), `run`'s
 fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
 at the empty log; the committed index's writer half; the right to close `done` and `stopping`;
-the apply thread's resources at the start; `run`'s own logger slot; the write budget. -/
+the apply thread's resources at the start; `run`'s own logger slot; the write budget (D19b: the
+receipt-backed `srvWTPool`, until then `N` write tokens). -/
 def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
     IProp GF :=
   iprop("#Hsrv" ∷ isServer s γ ci TM E ρ γr ∗
     "#Hsa" ∷ isServerApplyAll s γr ∗
@@ -394,7 +382,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "HWB" ∷ txn.storeWTs E.γ N)
+    "#HWB" ∷ srvWTPool E.γ)
 
 end defs
 
