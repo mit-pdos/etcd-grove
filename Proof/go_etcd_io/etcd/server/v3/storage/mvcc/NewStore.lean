@@ -87,7 +87,7 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0 Hrb0
+  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0 Hrb0 Hnc
   wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -127,13 +127,10 @@ theorem mvcc.NewStore.wp_proof
   wp_apply (hNewIdx γi) $$ [Hifresh] as %ti ⟨#Hti, Hiw, Hil, Hcu, Hcmp0, Hird⟩
   · iframe Hifresh; ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, Hstop, Hq0, #Hp0⟩
+  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, HsStop, Hq0, #Hp0⟩
   · ipureintro; exact Hlgnn
-  -- the store never stops its scheduler: its untracked jobs need `schedLive` (2026-10-13, the
-  -- request path's unit 4c's FIFO contract)
-  imod schedule.schedLive_of_stopTok γs $$ Hstop with #Hlive
-  ihave #HisSched : schedule.isScheduler sc γs $$ []
-  · iunfold schedule.isScheduler; iframe HisFifo Hlive
+  -- the scheduler's stop token goes to the closer (`storeCloser`, D19m (C), 2026-10-18): the
+  -- caller gives it up when the store will not be closed (until then given up here)
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %stopc %γstop ⟨#Hstc, %Hstcap, Hstown⟩
   (try wp_auto)
@@ -195,8 +192,8 @@ theorem mvcc.NewStore.wp_proof
     rw [hγm, hγfin]
     iframe Hmeta Hfin
     ipureintro; exact Nat.le_refl _
-  ihave #HisSched' : schedule.isScheduler sc γ.sch $$ []
-  · rw [hγs]; iexact HisSched
+  ihave #HisSched' : schedule.isFifo sc γ.sch $$ []
+  · rw [hγs]; iexact HisFifo
   rw [← hγi, ← hγc, ← hγr]
   ihave Hbv : mvcc.bucketView γ 1 (∅ : mvcc.Bucket) $$ [Hbv]
   · iunfold mvcc.bucketView; rw [hγb, hγk]; iexact Hbv
@@ -340,7 +337,7 @@ theorem mvcc.NewStore.wp_proof
     iframe HcmpM HcmpB
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
+      %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ %Hnc [$Hbv2 $HcurB $HcmpF $revMu]
       as ⟨Hbv2, HcurB, HcmpF, revMu⟩
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
@@ -414,28 +411,34 @@ theorem mvcc.NewStore.wp_proof
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
     iframe Hmus Hrevs Hird Hrts
     iexact kvindex
-  isplitl [Hstop]
-  · iunfold mvcc.storeCloser; iexists stopc; iframe stopc
-    iunfold mvcc.stopCloser; iexists γstop; iexact Hstop
+  -- the compaction jobs' queue: the index compactor's token at `-1` beside the scheduler's
+  -- queue, whose last name saves the initial `True` (2026-10-13, unit 5c)
+  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0]
+  · iunfold mvcc.compactQueue
+    iexists [n₀], p₀, iprop(True), mvcc.compactTok γ (-1)
+    rw [hγs, List.singleton_append]
+    iframe Hq0 Hp0
+    isplitl [Hcmp0]
+    · iunfold mvcc.compactTok
+      iexists -1
+      rw [hγi]
+      iframe Hcmp0
+      ipureintro; exact Int.le_refl _
+    iintro ⟨-, H⟩
+    iexact H
+  -- the right to close: the stop channel's close, the scheduler's stop token, the queue (D19m (C))
+  isplitl [Hstop HsStop Hcq]
+  · iunfold mvcc.storeCloser
+    iframe Hcq
+    isplitl [Hstop]
+    · iexists stopc; iframe stopc
+      iunfold mvcc.stopCloser; iexists γstop; iexact Hstop
+    rw [hγs]; iexact HsStop
   isplitl []
   · iunfold mvcc.storeStop; iexists stopc; iframe stopc
     iunfold mvcc.isStopChan; iexists γstop; iexact Hstop0
-  -- the compaction right: the index compactor's token at `-1` beside the scheduler's queue, whose
-  -- last name saves the initial `True` (2026-10-13, unit 5c)
-  iunfold mvcc.compactRight
-  iframe Hright
-  iunfold mvcc.compactQueue
-  iexists [n₀], p₀, iprop(True), mvcc.compactTok γ (-1)
-  rw [hγs, List.singleton_append]
-  iframe Hq0 Hp0
-  isplitl [Hcmp0]
-  · iunfold mvcc.compactTok
-    iexists -1
-    rw [hγi]
-    iframe Hcmp0
-    ipureintro; exact Int.le_refl _
-  iintro ⟨-, H⟩
-  iexact H
+  -- the compaction right's half of the revision's authority at `-1`
+  iexact Hright
 
 end proof
 

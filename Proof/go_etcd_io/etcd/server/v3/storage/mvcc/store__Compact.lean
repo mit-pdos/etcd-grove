@@ -71,13 +71,13 @@ theorem mvcc.store.Compact.wp_of_le
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   iunfold mvcc.compactRight at Hright
-  icases Hright with ⟨Hcr, Hq⟩
+  icases Hright with ⟨Hcr, Hq, #Hlive⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c HcM hc $$ HcrevM Hcr
   subst Hcc
   ihave Hmu1 : mvcc.muInvAt s γ 1 c' $$ [HcmpM HcrevM]
   · iunfold mvcc.muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
   ihave Hright : mvcc.compactRight γ c' $$ [Hcr Hq]
-  · iunfold mvcc.compactRight; iframe Hcr Hq
+  · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
   wp_apply (h0 s γ hcmp) $$ [] as %pcc -
   · iframe #
   (try wp_auto)
@@ -96,7 +96,7 @@ theorem mvcc.store.Compact.wp_of_le
     · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iexact Hmu
     (try wp_auto)
     iunfold mvcc.compactRight at Hright
-    icases Hright with ⟨Hcr, Hq⟩
+    icases Hright with ⟨Hcr, Hq, #Hlive⟩
     wp_apply (h3 s γ trace rev prev pcc te htr) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, Htrc⟩
     (try wp_auto)
     iapply HΦ
@@ -106,9 +106,9 @@ theorem mvcc.store.Compact.wp_of_le
     isplitr
     · ipureintro; exact ⟨rfl, Hlt⟩
     isplitl [Hcr Hq]
-    · iunfold mvcc.compactRight; iframe Hcr Hq
+    · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
     iunfold mvcc.compactJobPre at Hjob
-    icases Hjob with ⟨-, -, -, #Hlb, -⟩
+    icases Hjob with ⟨-, -, -, -, #Hlb, -⟩
     iexact Hlb
   · subst Herr
     (try wp_auto)

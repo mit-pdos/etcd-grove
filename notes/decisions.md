@@ -9456,6 +9456,15 @@ compaction keys, so no caller can state their absence.
   `backendUnderQuota` (true of putget's fresh data directory).
 - *(C) `restore` of a backend with data* (the index rebuilt): the general case, large.
 - *Recommendation:* (B) now (one premise on three specs), (A) with phase C's backend model.
+- **2026-10-18 · (B) carried out (approved by the user).** `mvcc.backendNoCompaction` (opaque,
+  `InvStore.lean`) is a premise of `restore`'s axiom, threaded `NewStore` → `newWatchableStore` →
+  `mvcc.New` → `NewServer.spec` (`%Hnocmp`) and the server's KV results. Why it is admissible
+  (D19a's first kind): a fact about the program's environment (the data directory's bbolt file at
+  startup), not about ghost state; nothing in the model proves or refutes it. True of putget's
+  fresh data directory: the keys are written only by the compaction (`UnsafeSetScheduledCompact`
+  in `store.Compact`, `UnsafeSetFinishedCompact` in its job), which needs a store, so no backend
+  holds them before the first `NewStore`. False of a restart after a compaction, which the closed
+  theorem does not cover; (A) remains the route for it.
 
 **Found on the way, not fixed:** `apply.isQuota` (which `storage.NewBackendQuota`'s axiom gives)
 has `Cost`'s nil-request gap in both its clauses (`Available` calls `Cost`): its callers
@@ -9553,6 +9562,20 @@ axioms off putget's Go path.
   stop token and the caller gives it up (`schedLive_of_stopTok`) on success, `Close` on error;
   needs `restore`'s scheduled compaction excluded (a fresh backend: none scheduled).
   *Recommendation:* (C), with `restore`'s case from the fresh backend `bootOk` gives.
+  **2026-10-18 · (C) carried out (approved by the user).** `restore`'s scheduled compaction is
+  excluded by D19l (v)'s premise (`backendNoCompaction`), not by `bootOk`. Two consequences of
+  (C) that the option did not spell out: (1) `NewStore`'s caller (`newWatchableStore`) has no
+  error path; the error paths are `NewServer`'s, after `mvcc.New`, so the token travels in the
+  right to close (`storeCloser s γ`, inside `wsCloser s st γs`) up to `NewServer`, which drops
+  it on success; meanwhile `isStore` must hold without `schedLive`: it now holds `isFifo`, and
+  `schedLive` is in `compactRight`, `compactJobPre` and `compactBarrier`'s precondition (the only
+  untracked `Schedule`s). (2) The stop token alone does not make `Close` true: a tracked
+  `Schedule` needs only the queue, and `Scheduler.Stop`'s spec takes it too; so `storeCloser`
+  holds the compaction jobs' queue (`compactQueue γ (-1)`) as well, and `NewStore` returns the
+  compaction right's half of the revision's authority apart (`crevUB γ.idx ½ (-1)`): freezing
+  needs only that (`crevFrozen_alloc`), and a caller that compacts makes the right from it and
+  the closer (`compactRight_of_closer`, giving the token up). Compacting and closing are thus
+  exclusive, as Go needs.
 
 ## Proof/Lib: facts that belong to no Go package (2026-10-18, branch `proof-lib`)
 

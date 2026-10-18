@@ -48,8 +48,10 @@ variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 for good, and the size premise `keySized` of its range reads), given what the backend's creator
 holds (the clients' view of the empty `Key` bucket, the right to register the store's lock
 resource, two write-back tokens, one reader token per reader slot), and a batch limit not
-negative, `NewStore` returns a store of that instance (with its compaction right, of no use over
-this instance: `storeCmp`). -/
+negative, on a backend that records no compaction (`backendNoCompaction`, D19l (v)), `NewStore`
+returns a store of that instance (with the right to close it, holding the scheduler's stop token,
+and the compaction right's half of the revision's authority: D19m (C); the compaction is of no use
+over this instance, `storeCmp`). -/
 theorem mvcc.NewStore_backend
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
@@ -76,7 +78,7 @@ theorem mvcc.NewStore_backend
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
     (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) (hnc : mvcc.backendNoCompaction) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -103,15 +105,15 @@ theorem mvcc.NewStore_backend
           mvcc.isWriteView wv s γ) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReaderC s γ) ∗
-        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
-        mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} := by
+        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
+        mvcc.storeStop s ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle⟩ HΦ
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false γi γok hcfg hrb)
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false γi γok hcfg hrb hnc)
     $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hifresh Hok0]
   · iframe Hpkg Hbk Hle Hifresh Hok0
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,

@@ -137,10 +137,11 @@ def wsWaiter (s : Loc) : IProp GF :=
 -- `stopCloser`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
 
 /-- **The right to close the watchable store** `s` over the store `st` (`Close`, once): the stop
-channel's close, the wait for the loops, and the inner store's close. -/
-def wsCloser (s st : Loc) : IProp GF :=
+channel's close, the wait for the loops, and the inner store's close (`storeCloser`, at the
+inner store's names `γs`: its scheduler's stop token, D19m (C), 2026-10-18). -/
+def wsCloser (s st : Loc) (γs : StoreNames) : IProp GF :=
   iprop(∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter s ∗
-    storeCloser st)
+    storeCloser st γs)
 
 theorem wsWg_maskW : (↑wsWgWGN : CoPset) ⊆ ⊤ \ ↑wsWgN :=
   sync.wg_mask_ndot_ne nroot "mvccWaitGroup" "mvccWgCounter" (by decide)

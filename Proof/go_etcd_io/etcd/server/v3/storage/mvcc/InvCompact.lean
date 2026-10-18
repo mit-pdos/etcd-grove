@@ -174,9 +174,10 @@ backend supporting the compaction (`storeCmp`), a lower bound `rev` of the compa
 (`Compact` set it), a certified log with revision `rev`, which does not delete a key and put it
 again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job deletes carry it,
 `delKey`; 2026-10-13, unit 6a). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's
-physical bound; now the job derives it, `CompactSmall_of_cert`.) -/
+physical bound; now the job derives it, `CompactSmall_of_cert`.) And the scheduler never stopped
+(`schedLive`, from the compaction right: the job's barrier is untracked; D19m (C), 2026-10-18). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
-  iprop(isStore s γ ∗ storeStop s ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
+  iprop(isStore s γ ∗ storeStop s ∗ schedule.schedLive γ.sch ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
     ∃ log : Log, idxCert γ.idx log ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
 

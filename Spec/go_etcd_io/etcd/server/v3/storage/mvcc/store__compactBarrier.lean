@@ -23,12 +23,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.compactBarrier(ctx, ch)` with the close right on `ch` (closed with `Q`, which holds): if
 the context is cancelled, nothing when the store is stopped, else (under `s.mu`) another barrier
-job scheduled with the right; if not, `ch` closed. -/
+job scheduled with the right; if not, `ch` closed. The scheduler is never stopped (`schedLive`,
+from the compaction right: the barrier jobs are untracked; D19m (C), 2026-10-18: until then
+`isStore` said it). -/
 abbrev mvcc.store.compactBarrier.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (ch : GoChan) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.barrierCtx ctx cd ∗ mvcc.compactCloser ch Q ∗ □ Q }}
+      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ schedule.schedLive γ.sch ∗ mvcc.barrierCtx ctx cd ∗ mvcc.compactCloser ch Q ∗ □ Q }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactBarrier"))
       (Val #(GoInterface.ok ctx))) (Val #ch))
   {{ RET #(); True }}

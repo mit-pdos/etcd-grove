@@ -79,7 +79,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
   iunfold mvcc.muInvAt at HmuA
   iNamed HmuA
   iunfold mvcc.compactRight at Hright
-  icases Hright with ⟨Hcr, Hq⟩
+  icases Hright with ⟨Hcr, Hq, #Hlive⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c Hc.1 HcM $$ Hcrev Hcr
   subst Hcc
   ihave Hinit : (mvccInit : IProp GF) $$ []
@@ -87,9 +87,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
   icases Hinit with ⟨-, ⟨%ecp, #Hcomp⟩, ⟨%ef, #Hfut⟩, -⟩
   ihave #Hschp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
-  ihave #HisS := HisSched
-  iunfold schedule.isScheduler at HisS
-  icases HisS with ⟨#Hfifo, #Hlive⟩
+  ihave #Hfifo := HisSched
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hnn, -⟩
@@ -154,7 +152,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
       isplitl [Hcr Hq]
-      · iunfold mvcc.compactRight; iframe
+      · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
       isplitl [Hcs]
       · iunfold mvcc.csContract at Hcs; icases Hcs with ⟨HPre, -, -⟩; iexact HPre
       iunfold mvcc.compactChan
@@ -196,7 +194,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       isplitl [HcmpM HcrevM]
       · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM
       isplitl [Hcr Hq]
-      · iunfold mvcc.compactRight; iframe
+      · iunfold mvcc.compactRight; iframe Hcr Hq Hlive
       iunfold mvcc.csContract at Hcs; icases Hcs with ⟨HPre, -, -⟩; iexact HPre
     · -- `s.compactMainRev = rev`, under both locks: the field and the revision's authority
       have hrl : sint.Z rev < log.length := by omega
@@ -311,7 +309,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         ipureintro; omega
       isplitl [Hcr Hq]
       · iunfold mvcc.compactRight
-        iframe Hcr
+        iframe Hcr Hlive
         iapply mvcc.compactQueue_mono γ c' (sint.Z rev) (by omega) $$ Hq
       iframe HPost
       -- the caller's `NoDelPutAt`, for the committed log (`crevSafe_cert`)

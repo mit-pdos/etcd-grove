@@ -53,7 +53,7 @@ theorem mvcc.store.compactLockfree.wp_proof
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
     (try wp_auto)
     iunfold mvcc.compactRight at Hright
-    icases Hright with ⟨Hcrev, Hq⟩
+    icases Hright with ⟨Hcrev, Hq, #Hlive⟩
     wp_apply (h3 s γ t rev prev pcc true Ht) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, -⟩
     (try wp_auto)
     iapply HΦ
@@ -62,9 +62,9 @@ theorem mvcc.store.compactLockfree.wp_proof
     isplitr
     · ipureintro; exact ⟨rfl, Hlt⟩
     isplitl [Hcrev Hq]
-    · iunfold mvcc.compactRight; iframe Hcrev Hq
+    · iunfold mvcc.compactRight; iframe Hcrev Hq Hlive
     iunfold mvcc.compactJobPre at Hjob
-    icases Hjob with ⟨-, -, -, #Hlb, -⟩
+    icases Hjob with ⟨-, -, -, -, #Hlb, -⟩
     iexact Hlb
   · subst Herr
     (try wp_auto)

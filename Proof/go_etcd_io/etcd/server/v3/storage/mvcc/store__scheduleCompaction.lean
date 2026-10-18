@@ -214,7 +214,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   intro s γ rev prev
   wp_start as ⟨#Hjob, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, #Hstop, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
+  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
   have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []

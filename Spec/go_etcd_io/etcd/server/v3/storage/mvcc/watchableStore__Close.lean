@@ -27,7 +27,7 @@ stop channel (the loops return), waits for the loops (`s.wg.Wait()`), and closes
 abbrev mvcc.watchableStore.Close.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.wsCloser s st }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.wsCloser s st γ.st }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Close")) (Val #()))
   {{ RET #(GoInterface.nil); True }}
 
