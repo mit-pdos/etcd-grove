@@ -8,6 +8,7 @@ fraction; and the empty results (`kvsOut` of nothing). Lean-first (no Rocq count
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -22,21 +23,6 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 /-! ## A map range's keys (`wp_map_for_range`: the `i`-th key, those before it) -/
-
-/-- The `n`-th key is not among the first `n` (distinct keys). -/
-theorem not_mem_take_of_getElem? {α} {l : List α} (hnd : l.Nodup) {n : Nat} {a : α}
-    (h : l[n]? = some a) : a ∉ l.take n := by
-  intro hm
-  obtain ⟨j, hj, hja⟩ := List.mem_take_iff_getElem.1 hm
-  have h1 : l[j]? = some a := by rw [List.getElem?_eq_getElem (by omega)]; exact congrArg some hja
-  have := list_nodup_getElem?_inj l hnd j n a h1 h
-  omega
-
-/-- The first `n + 1` keys: the first `n` and the `n`-th. -/
-theorem mem_take_succ_iff {α} {l : List α} {n : Nat} {a : α} (h : l[n]? = some a) (x : α) :
-    x ∈ l.take (n + 1) ↔ x ∈ l.take n ∨ x = a := by
-  rw [List.take_add_one, h]
-  simp
 
 /-- A map restricted to the first `n + 1` keys. -/
 theorem gmap_filter_take_succ {V} (B : GMap w64 V) (keys : List w64) (n : Nat) (k : w64) (v : V)

@@ -729,14 +729,6 @@ private theorem ghostMapAuth_agree_keep {K V : Type} [DecidableEq K] [Pos.Counta
       (ghostMapAuth γ q1 m1 ∗ ghostMapAuth γ q2 m2) ∗ ⌜m1 = m2⌝ :=
   persistent_entails_left (by iintro ⟨H1, H2⟩; iapply ghostMapAuth_agree $$ H1 H2)
 
-/-- A whole ghost map authority is two halves. -/
-private theorem ghostMapAuth_halves {K V : Type} [DecidableEq K] [Pos.Countable K]
-    [Pos.Countable V] (γ : GName) (m : GMap K V) :
-    (ghostMapAuth γ 1 m : IProp GF) ⊣⊢
-      ghostMapAuth γ (1 : Qp).half m ∗ ghostMapAuth γ (1 : Qp).half m := by
-  conv => lhs; rw [← Qp.half_add_half 1]
-  exact (ghostMapAuth_fractional γ m).fractional _ _
-
 theorem votesTbl_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 w64)
     (T c : w64) :
     γ.reVotes !! id = some γv → voted !! T = none →

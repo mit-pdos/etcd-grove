@@ -40,6 +40,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Perennial.Proof.time
 public import Perennial.Proof.encoding.binary
+public import Proof.Lib.Iris
 
 @[expose] public section
 
@@ -370,12 +371,6 @@ theorem isReadLoopPre_pre (r : Loc) (γr : ReadNames)
   iexists srv, wc, γw
   iframe #
 
-/-- Halving distributes over a sum of fractions. -/
-theorem read_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
-
 /-- The lock's resource is fractional (for `sync.init_RWMutex`): the points-to and the ghost
 variable split, two parts agree on the notifier and its need. -/
 instance readMuP_fractional (r : Loc) (γr : ReadNames) : Fractional (readMuP (GF := GF) r γr) where
@@ -387,7 +382,7 @@ instance readMuP_fractional (r : Loc) (γr : ReadNames) : Fractional (readMuP (G
     have hgv := fun (x : Loc × NeedNames) =>
       (ghostVar_fractional (GF := GF) γr.notifier x).fractional q1.half q2.half
     unfold readMuP
-    rw [read_qp_half_add]
+    rw [qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro ⟨%nc, %γn, Hp, Hg⟩
       icases (hpt nc).1 $$ Hp with ⟨Hp1, Hp2⟩

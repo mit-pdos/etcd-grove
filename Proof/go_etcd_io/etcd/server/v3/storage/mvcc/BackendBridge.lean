@@ -570,8 +570,8 @@ theorem not_strLt_iff_le (a b : GoString) : ¬ strLt a b ↔ go.GoStringLe b a :
     · exact Or.inr h
   · intro h h'
     rcases h with h | h
-    · subst h; exact adt.strLt_irrefl _ h'
-    · exact adt.strLt_asymm h h'
+    · subst h; exact goStringLt_irrefl _ h'
+    · exact goStringLt_asymm h h'
 
 theorem mem_takeWhile_sorted {es : List Ent} (hs : entsSorted es) (khi : GoString) (e : Ent) :
     e ∈ es.takeWhile (fun e => decide (strLt e.1 khi)) ↔ e ∈ es ∧ strLt e.1 khi := by
@@ -596,8 +596,8 @@ theorem mem_takeWhile_sorted {es : List Ent} (hs : entsSorted es) (khi : GoStrin
       · exact hq h2
       · have := hall e h1
         rcases strLt_total hq with h3 | h3
-        · rw [h3] at this; exact adt.strLt_asymm this h2
-        · exact adt.strLt_asymm (adt.strLt_trans h3 this) h2
+        · rw [h3] at this; exact goStringLt_asymm this h2
+        · exact goStringLt_asymm (goStringLt_trans h3 this) h2
 
 theorem mem_dropWhile_sorted {es : List Ent} (hs : entsSorted es) (klo : GoString) (e : Ent) :
     e ∈ es.dropWhile (fun e => decide (strLt e.1 klo)) ↔ e ∈ es ∧ ¬ strLt e.1 klo := by
@@ -621,8 +621,8 @@ theorem mem_dropWhile_sorted {es : List Ent} (hs : entsSorted es) (klo : GoStrin
         · refine ⟨Or.inr h1, fun h2 => ?_⟩
           have := hall e h1
           rcases strLt_total hp with h3 | h3
-          · rw [← h3] at h2; exact adt.strLt_asymm this h2
-          · exact adt.strLt_asymm (adt.strLt_trans h3 this) h2
+          · rw [← h3] at h2; exact goStringLt_asymm this h2
+          · exact goStringLt_asymm (goStringLt_trans h3 this) h2
       · rintro ⟨h1, -⟩; exact h1
 
 /-- The window of a sorted list: its entries with a key in `[klo, khi)`. -/
@@ -672,14 +672,14 @@ theorem lastVal_sorted {es : List Ent} (hs : entsSorted es) (k v : GoString) :
         intro e he hek
         have := hall e he
         rw [hek, ha] at this
-        exact adt.strLt_irrefl _ this
+        exact goStringLt_irrefl _ this
       rw [hnone, Option.none_or, if_pos ha]
       constructor
       · intro h; left; obtain ⟨a1, a2⟩ := a; simp only at ha; subst ha; cases h; rfl
       · rintro (h | h)
         · rw [← h]
         · have := hall _ h
-          simp only at this; rw [ha] at this; exact absurd this (adt.strLt_irrefl _)
+          simp only at this; rw [ha] at this; exact absurd this (goStringLt_irrefl _)
     · rw [if_neg ha, Option.or_none, ih ht]
       constructor
       · intro h; exact Or.inr h
@@ -733,7 +733,7 @@ theorem windows_range (Cs Rs : List Ent) (C : BktData) (m : Bucket) (klo khi : G
           intro e he hek
           have := hsafe k v e h1 he
           rw [hek] at this
-          exact adt.strLt_irrefl _ this
+          exact goStringLt_irrefl _ this
         rw [this, Option.none_or, h1]
       · refine ⟨?_, h2, h3⟩
         rw [(lastVal_sorted hRsort k v).2 h1, Option.some_or]

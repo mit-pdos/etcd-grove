@@ -39,6 +39,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Proof.sync
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -84,68 +85,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-! ## Map and points-to lemmas (as `lease/LessorLemmas.lean`'s, without its package's
-assumptions) -/
-
-/-- Two shares of a map points-to agree on the map. -/
-theorem ownMap_agree' {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
-    [go.IntoValInj V] (mref : Loc) (dq1 dq2 : DFrac) (m1 m2 : GMap K V) :
-    ownMap (GF := GF) mref dq1 m1 ∗ ownMap (GF := GF) mref dq2 m2 ⊢ ⌜m1 = m2⌝ := by
-  rw [ownMap_unseal]
-  iintro ⟨H1, H2⟩
-  unfold ownMapDef
-  iNamedSuffix H1 "1"
-  iNamedSuffix H2 "2"
-  icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-  subst Hmv
-  ipureintro
-  apply GMap.ext
-  intro k
-  have h1 := Hagree1 k
-  have h2 := Hagree2 k
-  rw [← go.mapLookup_pure _ _ _ His_map1, go.mapLookup_pure _ _ _ His_map2] at h1
-  rw [h1] at h2
-  change m1 !! k = m2 !! k
-  cases hk1 : m1 !! k <;> cases hk2 : m2 !! k <;> simp only [hk1, hk2] at h2
-  · rfl
-  · cases h2
-  · cases h2
-  · simp only [Prod.mk.injEq, true_and] at h2
-    rw [go.intoVal_inj h2]
-
-/-- A map points-to splits and combines by fraction. -/
-theorem ownMap_fractional' {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
-    [go.IntoValInj K] (mref : Loc) (m : GMap K V) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
-/-- A points-to at `q1 + q2` in two parts. -/
-theorem ptsto_frac_add' {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp) :
-    typedPointsto (GF := GF) l v (DFrac.own (q1 + q2)) ⊣⊢
-      typedPointsto (GF := GF) l v (DFrac.own q1) ∗ typedPointsto (GF := GF) l v (DFrac.own q2) :=
-  (typedPointsto_dfractional (GF := GF) l v).dfractional (DFrac.own q1) (DFrac.own q2)
-
 /-! ## The package facts -/
 
 /-- The package variable `g` holds a fixed error whose `Error()` returns (persistent). -/
@@ -177,7 +116,7 @@ instance intervalP_fractional : Fractional (intervalP (GF := GF)) where
     unfold intervalP
     constructor
     · iintro ⟨%d, Hd, %Hb⟩
-      icases (ptsto_frac_add' _ _ q1 q2).1 $$ Hd with ⟨H1, H2⟩
+      icases (ptsto_frac_add _ _ q1 q2).1 $$ Hd with ⟨H1, H2⟩
       isplitl [H1]
       · iexists d; iframe; ipureintro; exact Hb
       · iexists d; iframe; ipureintro; exact Hb
@@ -186,7 +125,7 @@ instance intervalP_fractional : Fractional (intervalP (GF := GF)) where
       subst Hd
       iexists d1
       isplitl [H1 H2]
-      · iapply (ptsto_frac_add' _ _ q1 q2).2; iframe
+      · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
       · ipureintro; exact Hb
 
 /-- **mvcc's `ReportEventReceived(n)`** (names only: a metric) returns. -/
@@ -368,24 +307,24 @@ instance swsMu_fractional (pm vm fm : Loc) : Fractional (swsMu (GF := GF) pm vm 
     unfold swsMu
     constructor
     · iintro ⟨%PM, %VM, %FM, HP, HV, HF, %Hn⟩
-      icases ((ownMap_fractional' (GF := GF) pm PM).fractional q1 q2).1 $$ HP with ⟨HP1, HP2⟩
-      icases ((ownMap_fractional' (GF := GF) vm VM).fractional q1 q2).1 $$ HV with ⟨HV1, HV2⟩
-      icases ((ownMap_fractional' (GF := GF) fm FM).fractional q1 q2).1 $$ HF with ⟨HF1, HF2⟩
+      icases ((ownMap_fractional (GF := GF) pm PM).fractional q1 q2).1 $$ HP with ⟨HP1, HP2⟩
+      icases ((ownMap_fractional (GF := GF) vm VM).fractional q1 q2).1 $$ HV with ⟨HV1, HV2⟩
+      icases ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).1 $$ HF with ⟨HF1, HF2⟩
       isplitl [HP1 HV1 HF1]
       · iexists PM, VM, FM; iframe; ipureintro; exact Hn
       · iexists PM, VM, FM; iframe; ipureintro; exact Hn
     · iintro ⟨⟨%PM, %VM, %FM, HP, HV, HF, %Hn⟩, ⟨%PM', %VM', %FM', HP', HV', HF', -⟩⟩
-      ihave %Ha := ownMap_agree' pm _ _ PM PM' $$ [$HP $HP']
-      ihave %Hb := ownMap_agree' vm _ _ VM VM' $$ [$HV $HV']
-      ihave %Hc := ownMap_agree' fm _ _ FM FM' $$ [$HF $HF']
+      ihave %Ha := ownMap_agree pm _ _ PM PM' $$ [$HP $HP']
+      ihave %Hb := ownMap_agree vm _ _ VM VM' $$ [$HV $HV']
+      ihave %Hc := ownMap_agree fm _ _ FM FM' $$ [$HF $HF']
       subst Ha Hb Hc
       iexists PM, VM, FM
       isplitl [HP HP']
-      · iapply ((ownMap_fractional' (GF := GF) pm PM).fractional q1 q2).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) pm PM).fractional q1 q2).2; iframe
       isplitl [HV HV']
-      · iapply ((ownMap_fractional' (GF := GF) vm VM).fractional q1 q2).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) vm VM).fractional q1 q2).2; iframe
       isplitl [HF HF']
-      · iapply ((ownMap_fractional' (GF := GF) fm FM).fractional q1 q2).2; iframe
+      · iapply ((ownMap_fractional (GF := GF) fm FM).fractional q1 q2).2; iframe
       ipureintro; exact Hn
 
 /-- **A control response** `l` on the control stream: a response holding a model `m` with the

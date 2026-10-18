@@ -25,16 +25,6 @@ def demuxPurge_closed (views vs : GMap Loc View) (done : List Loc) : Prop :=
   (∀ w, w ∉ done → vs !! w = views !! w) ∧
   (∀ w, w ∈ done → ∃ v, views !! w = some v ∧ vs !! w = some { v with phase := .closed none })
 
-theorem demuxPurge_not_mem_take {l : List Loc} (h : l.Nodup) {i : Nat} {x : Loc}
-    (hx : l[i]? = some x) : x ∉ l.take i := by
-  intro hm
-  have hsplit : l = l.take i ++ l.drop i := (List.take_append_drop i l).symm
-  rw [hsplit] at h
-  have hdrop : x ∈ l.drop i := by
-    apply List.mem_of_getElem? (i := 0)
-    rw [List.getElem?_drop]; simpa using hx
-  exact (List.nodup_append.1 h).2.2 x hm x hdrop rfl
-
 theorem demuxPurge_closed_nil (views : GMap Loc View) : demuxPurge_closed views views [] :=
   ⟨fun _ _ => rfl, fun _ h => absurd h List.not_mem_nil⟩
 
@@ -44,7 +34,7 @@ theorem demuxPurge_step {views vs : GMap Loc View} {keys : List Loc} {i : Nat} {
     vs !! w = some v ∧
       demuxPurge_closed views (GMap.insert w { v with phase := .closed none } vs)
         (keys.take (i + 1)) := by
-  have hnot := demuxPurge_not_mem_take hnd hk
+  have hnot := not_mem_take_of_nodup hnd hk
   have htake : keys.take (i + 1) = keys.take i ++ [w] := by
     rw [List.take_add_one, hk]; rfl
   refine ⟨(hc.1 w hnot).trans hv, ?_, ?_⟩

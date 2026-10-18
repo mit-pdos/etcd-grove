@@ -343,7 +343,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iintro %i %key %u %m' ⟨%Hkey, %Hu⟩ HP Hm
     iNamed HP
     obtain ⟨Hl, hm'⟩ := Hi
-    have hnot := mvcc.sw_not_mem_take keys Hknodup i key Hkey
+    have hnot := not_mem_take_of_nodup Hknodup Hkey
     have hW : (W' !! key).isSome := by
       have := (Hkset key).1 (List.mem_of_getElem? Hkey)
       rw [GMap.domSet, GMap.lookup_fmap] at this; simpa using this
@@ -790,7 +790,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iNamed HP
     exfalso
     obtain ⟨Hl, hm'⟩ := Hi
-    have hnot := mvcc.sw_not_mem_take keys Hknodup i key Hkey
+    have hnot := not_mem_take_of_nodup Hknodup Hkey
     have hW : (W' !! key).isSome := by
       have := (Hkset key).1 (List.mem_of_getElem? Hkey)
       rw [GMap.domSet, GMap.lookup_fmap] at this; simpa using this

@@ -30,6 +30,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvTracker
 public import Proof.go_etcd_io.raft.v3.Protocol.StepC
+public import Proof.Lib.List
 
 @[expose] public section
 
@@ -393,19 +394,6 @@ def ownResult (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
       ownPrsW chg base trk s.prs)
 
 end defs
-
-/-- An element of a duplicate-free list is not among the elements before it: the loop
-invariants of `symdiff` and `checkAndCopy` count or copy the keys of a map in the order
-`wp_map_for_range` enumerates them, and need the key at hand to be new. -/
-theorem not_mem_take_of_nodup {α : Type} {l : List α} (h : l.Nodup) {i : Nat} {x : α}
-    (hx : l[i]? = some x) : x ∉ l.take i := by
-  intro hm
-  have hsplit : l = l.take i ++ l.drop i := (List.take_append_drop i l).symm
-  rw [hsplit] at h
-  have hdrop : x ∈ l.drop i := by
-    apply List.mem_of_getElem? (i := 0)
-    rw [List.getElem?_drop]; simpa using hx
-  exact (List.nodup_append.1 h).2.2 x hm x hdrop rfl
 
 @[simp] theorem flagsOf_insert [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64)
     (pv : tracker.Progress) : flagsOf (<[k := pv]> pvs) = <[k := pv.IsLearner']> (flagsOf pvs) :=

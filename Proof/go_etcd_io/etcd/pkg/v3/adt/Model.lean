@@ -15,6 +15,7 @@ successor-based delete keep the in-order sequence).
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
+public import Proof.Lib.GoString
 
 @[expose] public section
 
@@ -25,52 +26,6 @@ namespace EtcdGrove
 namespace adt
 
 /-! ## Go's string order -/
-
-theorem strLt_irrefl (a : GoString) : ¬ go.GoStringLt a a := by
-  induction a with
-  | nil => intro h; cases h
-  | cons x xs ih =>
-    intro h
-    cases h with
-    | cons h => exact ih h
-    | rel h => exact Int.lt_irrefl _ h
-
-theorem strLt_trans {a b c : GoString} (h1 : go.GoStringLt a b) (h2 : go.GoStringLt b c) :
-    go.GoStringLt a c := by
-  induction h1 generalizing c with
-  | nil => cases h2 <;> exact List.Lex.nil
-  | cons h ih =>
-    cases h2 with
-    | cons h' => exact List.Lex.cons (ih h')
-    | rel h' => exact List.Lex.rel h'
-  | rel h =>
-    cases h2 with
-    | cons _ => exact List.Lex.rel h
-    | rel h' => exact List.Lex.rel (Int.lt_trans h h')
-
-theorem strLt_asymm {a b : GoString} (h : go.GoStringLt a b) : ¬ go.GoStringLt b a :=
-  fun h' => strLt_irrefl a (strLt_trans h h')
-
-/-- Go's `<` on strings is total. -/
-theorem strLt_eq_of_not_lt {a b : GoString} (h1 : ¬ go.GoStringLt a b)
-    (h2 : ¬ go.GoStringLt b a) : a = b := by
-  induction a generalizing b with
-  | nil =>
-    cases b with
-    | nil => rfl
-    | cons y ys => exact absurd List.Lex.nil h1
-  | cons x xs ih =>
-    cases b with
-    | nil => exact absurd List.Lex.nil h2
-    | cons y ys =>
-      have hxy : x = y := by
-        apply BitVec.eq_of_toNat_eq
-        have a1 : ¬ (uint.Z x < uint.Z y) := fun h => h1 (List.Lex.rel h)
-        have a2 : ¬ (uint.Z y < uint.Z x) := fun h => h2 (List.Lex.rel h)
-        simp only [uint.Z] at a1 a2
-        omega
-      subst hxy
-      rw [ih (fun h => h1 (List.Lex.cons h)) (fun h => h2 (List.Lex.cons h))]
 
 /-! ## Intervals -/
 
@@ -125,14 +80,14 @@ theorem affCmp_neg_iff (a b : GoString) : affCmp a b < 0 ↔ affLt a b := by
 theorem affCmp_swap (a b : GoString) : affCmp b a = - affCmp a b := by
   unfold affCmp
   by_cases ha : a = go!"" <;> by_cases hb : b = go!"" <;> by_cases h1 : go.GoStringLt a b <;>
-    by_cases h2 : go.GoStringLt b a <;> simp_all [strLt_irrefl]
-  exact strLt_asymm ‹_› ‹_›
+    by_cases h2 : go.GoStringLt b a <;> simp_all [goStringLt_irrefl]
+  exact goStringLt_asymm ‹_› ‹_›
 
 theorem affCmp_eq_zero_iff (a b : GoString) : affCmp a b = 0 ↔ a = b := by
   unfold affCmp
   by_cases ha : a = go!"" <;> by_cases hb : b = go!"" <;> by_cases h1 : go.GoStringLt a b <;>
-    by_cases h2 : go.GoStringLt b a <;> simp_all [strLt_irrefl]
-  all_goals first | exact strLt_eq_of_not_lt ‹_› ‹_› | (rintro rfl; exact strLt_irrefl _ ‹_›)
+    by_cases h2 : go.GoStringLt b a <;> simp_all [goStringLt_irrefl]
+  all_goals first | exact goStringLt_eq_of_not_lt ‹_› ‹_› | (rintro rfl; exact goStringLt_irrefl _ ‹_›)
 
 theorem affCmp_bounds (a b : GoString) : -1 ≤ affCmp a b ∧ affCmp a b ≤ 1 := by
   unfold affCmp
@@ -144,7 +99,7 @@ theorem affCmp_bounds (a b : GoString) : -1 ≤ affCmp a b ∧ affCmp a b ≤ 1 
 theorem affLt_irrefl (a : GoString) : ¬ affLt a a := by
   rintro ⟨ha, h | h⟩
   · exact ha h
-  · exact strLt_irrefl a h
+  · exact goStringLt_irrefl a h
 
 theorem affLt_trans {a b c : GoString} (h1 : affLt a b) (h2 : affLt b c) : affLt a c := by
   obtain ⟨ha, hab⟩ := h1
@@ -154,7 +109,7 @@ theorem affLt_trans {a b c : GoString} (h1 : affLt a b) (h2 : affLt b c) : affLt
   · exact Or.inl hc
   · rcases hab with hb' | hab
     · exact absurd hb' hb
-    · exact Or.inr (strLt_trans hab hbc)
+    · exact Or.inr (goStringLt_trans hab hbc)
 
 /-- The affine order is total. -/
 theorem affLt_trichotomy (a b : GoString) : affLt a b ∨ a = b ∨ affLt b a := by

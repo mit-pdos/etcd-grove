@@ -499,7 +499,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   icases hfe.1 $$ He with ⟨He1, He2⟩
   imod dghostVar_alloc (GF := GF) true with ⟨%γl, Hl⟩
   ihave Hl : dghostVar γl (DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half) true $$ [Hl]
-  · rw [← mvcc.own_half_half (1 : Qp)]; iexact Hl
+  · rw [← dfrac_own_half_half (1 : Qp)]; iexact Hl
   icases dghostVar_split γl true _ _ $$ Hl with ⟨Hl1, Hl2⟩
   let γw : mvcc.WatcherNames := ⟨γe, γl, γc, lo, sr⟩
   -- the channel

@@ -35,14 +35,14 @@ theorem compareResult_gt_iff (a b : GoString) :
   unfold bytes.compareResult
   by_cases h : go.GoStringLt a b
   · simp only [h, ↓reduceIte]
-    exact ⟨fun h' => absurd h' (by decide), fun h' => absurd h' (strLt_asymm h)⟩
+    exact ⟨fun h' => absurd h' (by decide), fun h' => absurd h' (goStringLt_asymm h)⟩
   · simp only [h, ↓reduceIte]
     by_cases he : a = b
     · subst he; simp only [↓reduceIte]
-      exact ⟨fun h' => absurd h' (by decide), fun h' => absurd h' (strLt_irrefl a)⟩
+      exact ⟨fun h' => absurd h' (by decide), fun h' => absurd h' (goStringLt_irrefl a)⟩
     · simp only [he, ↓reduceIte]
       refine ⟨fun _ => ?_, fun _ => by decide⟩
-      exact Classical.byContradiction fun h' => he (strLt_eq_of_not_lt h h')
+      exact Classical.byContradiction fun h' => he (goStringLt_eq_of_not_lt h h')
 
 /-- `bytes.Compare(a, b) < 0` is `a < b`. -/
 theorem compareResult_neg (a b : GoString) :

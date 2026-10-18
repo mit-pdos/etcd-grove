@@ -68,7 +68,7 @@ theorem backend.txBuffer.reset.wp_proof :
     unfold resetInv
     iNamed HP
     subst Hm'
-    have hnotin := not_mem_take_of_getElem? Hknodup Hki
+    have hnotin := not_mem_take_of_nodup Hknodup Hki
     obtain ⟨hBk, hPk⟩ := Hrest key hnotin
     obtain ⟨x, hP'k, rfl⟩ : ∃ x, P' !! key = some x ∧ x.1 = v := by
       simp only [GMap.lookup_fmap, Option.map_eq_some_iff] at Hmv
@@ -174,7 +174,7 @@ theorem backend.txBuffer.reset.wp_proof :
     iNamed HP
     subst Hm'
     exfalso
-    have hnotin := not_mem_take_of_getElem? Hknodup Hki
+    have hnotin := not_mem_take_of_nodup Hknodup Hki
     obtain ⟨-, hPk⟩ := Hrest key hnotin
     have := (Hkset key).1 (List.mem_of_getElem? Hki)
     simp only [GMap.lookup_fmap] at this Hnone

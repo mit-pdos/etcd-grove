@@ -74,9 +74,6 @@ theorem mem_kvRange (start end_ : GoString) (m : KvMap) (e : KvEntry) :
 
 /-! ## `bytes.Compare` -/
 
-theorem goStringLt_asymm {a b : GoString} (h : go.GoStringLt a b) : ¬ go.GoStringLt b a :=
-  fun h' => goStringLt_irrefl a (goStringLt_trans h h')
-
 theorem compareResult_lt (a b : GoString) :
     sint.Z (bytes.compareResult a b) < 0 ↔ go.GoStringLt a b := by
   unfold bytes.compareResult

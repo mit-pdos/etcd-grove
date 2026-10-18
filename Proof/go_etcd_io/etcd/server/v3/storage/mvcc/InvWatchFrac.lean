@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.ownIvt_split
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -32,23 +33,6 @@ variable [sem : go.Semantics]
 include sem in
 theorem loc_injW : ∀ v1 v2 : Loc, (#v1 : val) = #v2 → v1 = v2 :=
   fun _ _ h => go.intoVal_inj h
-
-/-- An existential of fractional predicates whose witnesses agree is fractional. -/
-theorem wFractional_exists {X : Type} (Φ : X → Qp → IProp GF) (hfrac : ∀ x, Fractional (Φ x))
-    (hagree : ∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) :
-    Fractional (fun q => iprop(∃ x, Φ x q)) where
-  fractional p q := by
-    constructor
-    · iintro ⟨%x, H⟩
-      icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists x; iexact H1
-      · iexists x; iexact H2
-    · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
-      refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
-      refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
-      subst h
-      exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
 
 theorem wFractional_equiv {Φ Ψ : Qp → IProp GF} (h : ∀ q, Φ q ⊣⊢ Ψ q) (hΨ : Fractional Ψ) :
     Fractional Φ where
@@ -91,54 +75,6 @@ theorem wFractional_half {Φ : Qp → IProp GF} (h : Fractional Φ) :
 
 /-! ## Maps -/
 
-theorem ownMap_fractionalW {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
-    (mref : Loc) (m : GMap K V) :
-    Fractional (fun q : Qp => (ownMap (GF := GF) mref (DFrac.own q) m : IProp GF)) where
-  fractional p q := by
-    rw [ownMap_unseal]
-    have hh := fun mv => (heapPointsto_fractional mref mv).fractional p q
-    constructor
-    · iintro H
-      unfold ownMapDef
-      iNamed H
-      icases (hh mv).1 $$ Hown with ⟨H1, H2⟩
-      isplitl [H1]
-      · iexists mv, mp; simp only [named]; iframe H1; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-      · iexists mv, mp; simp only [named]; iframe H2; ipureintro; exact ⟨His_map, Hagree, Hdom, Hdefault⟩
-    · iintro ⟨H1, H2⟩
-      unfold ownMapDef
-      iNamedSuffix H1 "1"
-      iNamedSuffix H2 "2"
-      icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-      subst Hmv
-      iexists mv, mp
-      simp only [named]
-      isplitl [Hown1 Hown2]
-      · iapply (hh mv).2; iframe
-      ipureintro; exact ⟨His_map2, Hagree2, Hdom2, Hdefault2⟩
-
-/-- Two parts of a map points-to agree on the map (for values whose Go values are injective). -/
-theorem ownMap_agreeW {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
-    (hinj : ∀ v1 v2 : V, (#v1 : val) = #v2 → v1 = v2) (mref : Loc) (dq1 dq2 : DFrac)
-    (m1 m2 : GMap K V) :
-    (ownMap (GF := GF) mref dq1 m1 : IProp GF) ∗ ownMap mref dq2 m2 ⊢ ⌜m1 = m2⌝ := by
-  rw [ownMap_unseal]
-  unfold ownMapDef
-  iintro ⟨H1, H2⟩
-  iNamedSuffix H1 "1"
-  iNamedSuffix H2 "2"
-  icombine Hown1 Hown2 gives % ⟨_, Hmv⟩
-  subst Hmv
-  ipureintro
-  apply GMap.ext
-  intro k
-  have e1 := Hagree1 k
-  have e2 := Hagree2 k
-  rw [← go.mapLookup_pure _ _ _ His_map1, go.mapLookup_pure _ _ _ His_map2] at e1
-  rw [e1] at e2
-  cases h1 : m1 !! k <;> cases h2 : m2 !! k <;> rw [h1, h2] at e2 <;> simp at e2
-  all_goals first | rfl | rw [hinj _ _ e2]
-
 theorem unit_inj : ∀ v1 v2 : Unit, (#v1 : val) = #v2 → v1 = v2 := fun _ _ _ => rfl
 
 
@@ -158,18 +94,18 @@ theorem ownWatcherSet_fractional (m : GoMap) (S : GMap Loc Unit) :
     Fractional (fun q => ownWatcherSet (GF := GF) m S q) := by
   unfold ownWatcherSet; exact ownMapFrac' m S
 where ownMapFrac' (m : GoMap) (S : GMap Loc Unit) :=
-  ownMap_fractionalW (GF := GF) (K := Loc) (V := Unit) m S
+  ownMap_fractional (GF := GF) (K := Loc) (V := Unit) m S
 
 theorem ownKeyMap_fractional (km : GoMap) (KM : GMap GoString GoMap) (W : GMap Loc WatchRange) :
     Fractional (fun q => ownKeyMap (GF := GF) km KM W q) := by
   unfold ownKeyMap
-  refine wFractional_sep (ownMap_fractionalW km KM) (wFractional_sep (wFractional_pure _) ?_)
+  refine wFractional_sep (ownMap_fractional km KM) (wFractional_sep (wFractional_pure _) ?_)
   exact wFractional_bigSepM KM _ (fun k m => ownWatcherSet_fractional m _)
 
 theorem rangeSet_fractional (W : GMap Loc WatchRange) (z : adt.Entry) :
     Fractional (fun q => rangeSet (GF := GF) W z q) := by
   unfold rangeSet
-  refine wFractional_exists (fun m q => iprop(⌜z.2 = interface.mkOk watcherSet.ty #m⌝ ∗
+  refine fractional_exists_agree (fun m q => iprop(⌜z.2 = interface.mkOk watcherSet.ty #m⌝ ∗
     ownWatcherSet m (ivlMembers W z.1) q)) (fun m => wFractional_sep (wFractional_pure _)
       (ownWatcherSet_fractional m _)) ?_
   intro x y q1 q2
@@ -214,7 +150,7 @@ theorem ownWatcherGroup_body (wg : Loc) (W : GMap Loc WatchRange) (q : Qp) :
 /-- **The group is fractional**, through the tree's pending fractionality. -/
 theorem ownWatcherGroup_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
     (wg : Loc) (W : GMap Loc WatchRange) : Fractional (fun q => ownWatcherGroup (GF := GF) wg W q) := by
-  refine wFractional_equiv (ownWatcherGroup_body wg W) (wFractional_exists _ (fun x => ?_) ?_)
+  refine wFractional_equiv (ownWatcherGroup_body wg W) (fractional_exists_agree _ (fun x => ?_) ?_)
   · unfold groupBody
     refine wFractional_sep (wFractional_typed _ _) (wFractional_sep (ownWatcherSet_fractional _ _)
       (wFractional_sep (wFractional_persistent _) (wFractional_sep (ownKeyMap_fractional _ _ _)
@@ -231,7 +167,7 @@ theorem ownWatcherGroup_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (h
     unfold ownKeyMap
     icases Hkm1 with ⟨Hkm1, -⟩
     icases Hkm2 with ⟨Hkm2, -⟩
-    ihave %hKM := ownMap_agreeW (K := GoString) (V := GoMap) (loc_injW (sem := sem)) a _ _ _ _ $$ [Hkm1 Hkm2]
+    ihave %hKM := ownMap_agree (K := GoString) (V := GoMap) a _ _ _ _ $$ [Hkm1 Hkm2]
     · iframe
     ihave %hL := hsplit.2 _ _ _ _ _ $$ [Hivt1 Hivt2]
     · iframe
@@ -259,7 +195,7 @@ theorem ownEventBatch_fractional (eb : Loc) (B : EventBatch) :
     constructor
     · iintro ⟨%s, %ps, H⟩; iexists (s, ps); iexact H
     · iintro ⟨%x, H⟩; iexists x.1, x.2; iexact H
-  refine wFractional_equiv heq (wFractional_exists _ (fun x => ?_) ?_)
+  refine wFractional_equiv heq (fractional_exists_agree _ (fun x => ?_) ?_)
   · exact wFractional_sep (wFractional_typed _ _) (wFractional_sep
       (fractional_of_dfractional (fun dq => ownSlice x.1 x.2 dq)) (wFractional_sep
         (fractional_of_dfractional (fun dq => ownSliceCap Loc x.1 dq))
@@ -275,13 +211,13 @@ theorem ownEventBatch_fractional (eb : Loc) (B : EventBatch) :
 theorem ownWatcherBatch_fractional (wb : GoMap) (Bm : GMap Loc EventBatch) :
     Fractional (fun q => ownWatcherBatch (GF := GF) wb Bm q) := by
   unfold ownWatcherBatch
-  refine wFractional_exists _ (fun PB => ?_) ?_
-  · exact wFractional_sep (ownMap_fractionalW _ _) (wFractional_sep (wFractional_pure _)
+  refine fractional_exists_agree _ (fun PB => ?_) ?_
+  · exact wFractional_sep (ownMap_fractional _ _) (wFractional_sep (wFractional_pure _)
       (wFractional_bigSepM PB _ (fun _ p => wFractional_sep (wFractional_pure _)
         (ownEventBatch_fractional p.1 p.2))))
   · intro PB1 PB2 q1 q2
     iintro ⟨⟨Hm1, %Hb1, -⟩, ⟨Hm2, %Hb2, -⟩⟩
-    ihave %Hf := ownMap_agreeW (K := Loc) (V := Loc) (loc_injW (sem := sem)) wb _ _ _ _ $$ [Hm1 Hm2]
+    ihave %Hf := ownMap_agree (K := Loc) (V := Loc) wb _ _ _ _ $$ [Hm1 Hm2]
     · iframe
     ipureintro
     apply GMap.ext
@@ -343,11 +279,11 @@ theorem memberRes_fractional (γ : WsNames) (σ : WsState) (w : Loc) (st : Watch
         iexists y.1, y.2
         iexact H
       · simp only [hl, ↓reduceIte]; iexact H
-  refine wFractional_equiv heq (wFractional_exists _ (fun x => ?_) ?_)
+  refine wFractional_equiv heq (fractional_exists_agree _ (fun x => ?_) ?_)
   · refine wFractional_sep (wFractional_pure _) (wFractional_sep (wFractional_persistent _)
       (wFractional_sep (wFractional_persistent _) (wFractional_ite _ ?_ (wFractional_persistent _))))
     refine wFractional_sep (wFractional_persistent _) (wFractional_sep (wFractional_persistent _)
-      (wFractional_sep (wFractional_pure _) (wFractional_exists _ (fun y => ?_) ?_)))
+      (wFractional_sep (wFractional_pure _) (fractional_exists_agree _ (fun y => ?_) ?_)))
     · exact wFractional_sep (wFractional_pure _) (wFractional_sep
         (wFractional_half (monoListAuthOwn_fractional _ _))
         (wFractional_sep (wFractional_half (dghostVar_fractional _ _)) (wFractional_persistent _)))
@@ -369,7 +305,7 @@ theorem memberRes_fractional (γ : WsNames) (σ : WsState) (w : Loc) (st : Watch
 theorem watchBudget_fractional (γ : WsNames) (M : GMap Loc WatcherNames) :
     Fractional (fun q => watchBudget (GF := GF) γ q M) := by
   unfold watchBudget
-  refine wFractional_exists _ (fun n => wFractional_sep ?_ (wFractional_pure _)) ?_
+  refine fractional_exists_agree _ (fun n => wFractional_sep ?_ (wFractional_pure _)) ?_
   · exact { fractional := fun p q => ownTokAuthDfrac_split γ.wt (DFrac.own p) (DFrac.own q) n }
   · intro n1 n2 q1 q2
     iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
@@ -407,7 +343,7 @@ agree on the state through `γ.wst`. -/
 theorem watchStoreInv_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : WsNames) : Fractional (watchStoreInv (GF := GF) s γ) := by
   unfold watchStoreInv
-  refine wFractional_exists _ (fun σ => wFractional_sep (watchStoreBody_fractional hsplit s γ σ)
+  refine fractional_exists_agree _ (fun σ => wFractional_sep (watchStoreBody_fractional hsplit s γ σ)
     (wFractional_persistent _)) ?_
   intro σ1 σ2 q1 q2
   unfold watchStoreBody

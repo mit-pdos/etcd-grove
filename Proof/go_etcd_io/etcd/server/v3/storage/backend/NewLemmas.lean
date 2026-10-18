@@ -17,6 +17,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BeginCtx
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
+public import Proof.Lib.Heap
 
 @[expose] public section
 
@@ -117,25 +118,12 @@ persistent, and two fractions agree on the existential witnesses (the ghost vari
 `γ.rvs`, the history's authority, the read buffer's layout `rbAt_agree`, the buckets map's field).
 -/
 
-theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half :=
-  Subtype.ext (by simp only [Qp.val_half, Qp.val_add]; grind)
-
 section frac
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-
-instance ite_persistent {c : Prop} [Decidable c] {P Q : IProp GF} [Persistent P]
-    [Persistent Q] : Persistent (if c then P else Q) := by
-  split <;> infer_instance
-
-theorem pt_frac {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp) :
-    typedPointsto (GF := GF) l v (DFrac.own (q1 + q2)) ⊣⊢
-      typedPointsto l v (DFrac.own q1) ∗ typedPointsto l v (DFrac.own q2) := by
-  rw [← DFrac.op_own]
-  exact (typedPointsto_dfractional l v).dfractional _ _
 
 theorem slice_frac {V : Type} [TypedPointsto (GF := GF) V] [ZeroVal V] (sl : GoSlice) (vs : List V)
     (q1 q2 : Qp) :
@@ -155,13 +143,13 @@ theorem bbAt_frac (bb : Loc) (p : BBPhys) (es : List Ent) (q1 q2 : Qp) :
   unfold bbAt
   constructor
   · iintro ⟨Hb, Hs, Hc, #Hro, #Hin⟩
-    icases (pt_frac bb _ q1 q2).1 $$ Hb with ⟨Hb1, Hb2⟩
+    icases (ptsto_frac_add bb _ q1 q2).1 $$ Hb with ⟨Hb1, Hb2⟩
     icases (slice_frac p.buf p.kvs q1 q2).1 $$ Hs with ⟨Hs1, Hs2⟩
     icases (cap_frac kv p.buf q1 q2).1 $$ Hc with ⟨Hc1, Hc2⟩
     iframe
     iframe #
   · iintro ⟨⟨Hb1, Hs1, Hc1, #Hro, #Hin⟩, ⟨Hb2, Hs2, Hc2, -, -⟩⟩
-    ihave Hb := (pt_frac bb _ q1 q2).2 $$ [Hb1 Hb2]
+    ihave Hb := (ptsto_frac_add bb _ q1 q2).2 $$ [Hb1 Hb2]
     · iframe
     ihave Hs := (slice_frac p.buf p.kvs q1 q2).2 $$ [Hs1 Hs2]
     · iframe
@@ -201,14 +189,14 @@ theorem rbAt_frac (txr : Loc) (m : GoMap) (Pb : BksPhys) (R : RBuf) (q1 q2 : Qp)
   unfold rbAt
   constructor
   · iintro ⟨Ht, Hv, Hb⟩
-    icases (pt_frac _ _ q1 q2).1 $$ Ht with ⟨Ht1, Ht2⟩
-    icases (pt_frac _ _ q1 q2).1 $$ Hv with ⟨Hv1, Hv2⟩
+    icases (ptsto_frac_add _ _ q1 q2).1 $$ Ht with ⟨Ht1, Ht2⟩
+    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hv with ⟨Hv1, Hv2⟩
     icases (bksAt_frac m Pb R.bks q1 q2).1 $$ Hb with ⟨Hb1, Hb2⟩
     iframe
   · iintro ⟨⟨Ht1, Hv1, Hb1⟩, ⟨Ht2, Hv2, Hb2⟩⟩
-    ihave Ht := (pt_frac _ _ q1 q2).2 $$ [Ht1 Ht2]
+    ihave Ht := (ptsto_frac_add _ _ q1 q2).2 $$ [Ht1 Ht2]
     · iframe
-    ihave Hv := (pt_frac _ _ q1 q2).2 $$ [Hv1 Hv2]
+    ihave Hv := (ptsto_frac_add _ _ q1 q2).2 $$ [Hv1 Hv2]
     · iframe
     ihave Hb := (bksAt_frac m Pb R.bks q1 q2).2 $$ [Hb1 Hb2]
     · iframe
@@ -256,14 +244,14 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
   constructor
   · iintro ⟨Hrb, %Hok, Hcm, Hv, Hrd, Hrvs, Hcur, Hh, Hrtx, Hwg, %Hp, #Hha, #Hcv, #Hpo, #Hrdt, Hin⟩
     icases (rbAt_frac _ m Pb rv.2 q1 q2).1 $$ Hrb with ⟨Hrb1, Hrb2⟩
-    icases (pt_frac _ cm q1 q2).1 $$ Hcm with ⟨Hcm1, Hcm2⟩
+    icases (ptsto_frac_add _ cm q1 q2).1 $$ Hcm with ⟨Hcm1, Hcm2⟩
     icases ghostVar_split γ.view _ q1.half.half q2.half.half $$ Hv with ⟨Hv1, Hv2⟩
     icases ghostVar_split γ.rd rd q1 q2 $$ Hrd with ⟨Hrd1, Hrd2⟩
     icases ghostVar_split γ.rvs _ q1.half q2.half $$ Hrvs with ⟨Hrvs1, Hrvs2⟩
     icases ghostVar_split γ.cur _ q1.half q2.half $$ Hcur with ⟨Hcur1, Hcur2⟩
     icases ((ghostMapAuth_fractional γ.hist H).fractional q1 q2).1 $$ Hh with ⟨Hh1, Hh2⟩
-    icases (pt_frac _ rd.rtx q1 q2).1 $$ Hrtx with ⟨Hrtx1, Hrtx2⟩
-    icases (pt_frac _ rd.wg q1 q2).1 $$ Hwg with ⟨Hwg1, Hwg2⟩
+    icases (ptsto_frac_add _ rd.rtx q1 q2).1 $$ Hrtx with ⟨Hrtx1, Hrtx2⟩
+    icases (ptsto_frac_add _ rd.wg q1 q2).1 $$ Hwg with ⟨Hwg1, Hwg2⟩
     icases (rtIntv_frac γ P rd cm rv.1 q1 q2).1 $$ Hin with ⟨Hin1, Hin2⟩
     isplitl [Hrb1 Hcm1 Hv1 Hrd1 Hrvs1 Hcur1 Hh1 Hrtx1 Hwg1 Hin1]
     · iframe
@@ -276,7 +264,7 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
       #Hrdt, Hin1⟩, ⟨Hrb2, -, Hcm2, Hv2, Hrd2, Hrvs2, Hcur2, Hh2, Hrtx2, Hwg2, -, -, -, -, -, Hin2⟩⟩
     ihave Hrb := (rbAt_frac _ m Pb rv.2 q1 q2).2 $$ [Hrb1 Hrb2]
     · iframe
-    ihave Hcm := (pt_frac _ cm q1 q2).2 $$ [Hcm1 Hcm2]
+    ihave Hcm := (ptsto_frac_add _ cm q1 q2).2 $$ [Hcm1 Hcm2]
     · iframe
     icombine Hv1 Hv2 as Hv
     icombine Hrd1 Hrd2 as Hrd
@@ -284,9 +272,9 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
     icombine Hcur1 Hcur2 as Hcur
     ihave Hh := ((ghostMapAuth_fractional γ.hist H).fractional q1 q2).2 $$ [Hh1 Hh2]
     · iframe
-    ihave Hrtx := (pt_frac _ rd.rtx q1 q2).2 $$ [Hrtx1 Hrtx2]
+    ihave Hrtx := (ptsto_frac_add _ rd.rtx q1 q2).2 $$ [Hrtx1 Hrtx2]
     · iframe
-    ihave Hwg := (pt_frac _ rd.wg q1 q2).2 $$ [Hwg1 Hwg2]
+    ihave Hwg := (ptsto_frac_add _ rd.wg q1 q2).2 $$ [Hwg1 Hwg2]
     · iframe
     ihave Hin := (rtIntv_frac γ P rd cm rv.1 q1 q2).2 $$ [Hin1 Hin2]
     · iframe
