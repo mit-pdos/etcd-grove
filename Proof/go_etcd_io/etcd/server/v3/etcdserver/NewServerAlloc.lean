@@ -14,13 +14,10 @@ adequacy example's `Main` allocates before calling `NewServer`. Lean-first (no R
   rows (`srvReadNamesFreshNK`), `kvInv`, the client's `etcdKV` at the bootstrap log's model and
   the fresh-token authorities.
 
-**Not yet `NewServer.spec`'s premises** (`notes/STATUS.md`, "Item 9, point 7"; `notes/decisions.md`,
-D19g): `NewServer.spec` takes `rLog γ bootLog` owned and allocates `kvInv` itself, but raft's
-allocation needs `noopAu γ` from its continuation, which only an invariant holding `rLog` (the
-KV invariant) gives: no caller can meet both. The allocation here is the achievable one;
-`NewServer.spec` is to take `kvInv ρ.rd.raft ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd` in place of
-`rLog γ bootLog` and `srvReadNamesFresh`, its post no longer the client's `etcdKV` (which this
-allocation gives).
+**`NewServer.spec`'s premises** (D19g (a), 2026-10-18): `NewServer.spec` takes `kvInv ρ.rd.raft
+ρ.rd.kv` and `srvReadNamesFreshNK ρ.rd` (`InvBuild.lean`), which `srvBootOut` gives; until then it
+took `rLog γ bootLog` owned and allocated `kvInv` itself, which no caller could meet: raft's
+allocation needs `noopAu` from its continuation, which only an invariant holding `rLog` gives.
 -/
 module
 
@@ -59,13 +56,6 @@ theorem newServerNames_alloc :
   imodintro
   iexists ids, idx, cok, rev
   iframe
-
-/-- The read names' fresh rows but the KV state's variable (which the KV invariant takes). -/
-def srvReadNamesFreshNK (γr : ReadNames) : IProp GF :=
-  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
-    (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
-    ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
-    ghostVar γr.kv.hi 1 γr.kv.log0.length)
 
 theorem srvReadNamesFresh_split (γr : ReadNames) (σ : KVState) :
     srvReadNamesFresh (GF := GF) γr σ ⊢ srvReadNamesFreshNK γr ∗ ghostVar γr.kv.st 1 σ := by
@@ -143,11 +133,12 @@ def srvBootOut (ids : IdNames) (cok : GName) (bootLog : List EntryM) (γ : RaftN
 
 /-- **The server's continuation of raft's allocation** (see the file header), for a bootstrap
 log the conf-change policy `ccOk` admits, every admitted conf change of id `0` in the server's
-form (`srvCCPolicy`'s). -/
+form, one `applyConfChange` takes (`srvCCPolicy`'s; audit phase B3, 2026-10-18). -/
 theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (ids : IdNames) (cok : GName)
     (hboot : BootLogOk ccOk ps bootLog)
-    (hpol : ∀ ty d, ccOk ty d → ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0) :
+    (hpol : ∀ ty d, ccOk ty d →
+      ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ allocClientBoot (GF := GF) E cfg ccOk bootLog (srvBootOut ids cok bootLog) := by
   unfold allocClientBoot
   iintro %γ %Hγ #Hc HL Hf Hrf
@@ -161,7 +152,9 @@ theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → 
       kvRaftOf (W64 0) (apply.alarmChain false false false) [[], []] (bootEntries bootLog) := by
     unfold kvModel; rw [hc0, hch, hlog]
   imod (kvInv_alloc_boot (GF := GF) γr.raft γr.kv ccOk ps bootLog E (by rw [hraft])
-      (by rw [hraft]) hboot (fun ty d h => (hpol ty d h).2.2) hc0 hch (by rw [hlog]; simp))
+      (by rw [hraft]) hboot
+      (fun ty d h => ⟨(hpol ty d h).2.2.1, by rw [hraft, Hγ.1]; exact (hpol ty d h).2.2.2⟩)
+      hc0 hch (by rw [hlog]; simp))
     $$ [HL] [Hst] with ⟨#Hkv, Hetcd⟩
   · rw [hraft]; iexact HL
   · rw [hm]; iexact Hst
@@ -172,7 +165,9 @@ theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → 
       rw [hraft] at h
       simp only at h
       rw [Hγ.2.2.1] at h
-      exact hpol ty d h) $$ Hsn
+      have := hpol ty d h
+      refine ⟨this.1, this.2.1, this.2.2.1, ?_⟩
+      rw [hraft, Hγ.1]; exact this.2.2.2) $$ Hsn
   imodintro
   isplitl []
   · rw [hraft]; iexact Hnoop
@@ -190,7 +185,8 @@ theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → Li
     (ps : List w64) (bootLog : List EntryM) (ids : IdNames) (cok : GName)
     (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
     (hboot : BootLogOk ccOk ps bootLog)
-    (hpol : ∀ ty d, ccOk ty d → ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0) :
+    (hpol : ∀ ty d, ccOk ty d →
+      ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗

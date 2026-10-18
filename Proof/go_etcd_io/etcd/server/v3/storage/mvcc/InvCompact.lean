@@ -135,34 +135,50 @@ instance barrierCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (
 `storeSmall`; item 8, 2026-10-17): the log up to revision `c` has fewer than `2 ^ 62` changes.
 The keys a compaction deletes are distinct bucket keys of those changes, so `scheduleCompaction`'s
 count of them, an `int`, never wraps, and `dbCompactionKeysCounter.Add(float64(count))` gets a
-non-negative value (prometheus' `counter.Add` panics on a negative one). -/
+non-negative value (prometheus' `counter.Add` panics on a negative one). Not a premise since
+2026-10-18 (D19b): a certified log's changes are fewer than the time receipts' bound
+(`idxCert`), at most `2 ^ 48` (`isStore`), so `CompactSmall_of_cert`. -/
 def CompactSmall (log : Log) (c : Int) : Prop :=
   ((log.take (c.toNat + 1)).map List.length).sum < 2 ^ 62
 
-/-- `CompactSmall` depends only on the log up to `c`: two logs in prefix order, both longer than
-`c`, agree on it. -/
-theorem CompactSmall_of_prefix {log log' : Log} {c : Int} (hc : 0 ≤ c) (h : log <+: log' ∨ log' <+: log)
-    (h1 : c < log.length) (h2 : c < log'.length) (hs : CompactSmall log c) : CompactSmall log' c := by
-  unfold CompactSmall at *
-  have : log.take (c.toNat + 1) = log'.take (c.toNat + 1) := by
-    rcases h with h | h
-    · obtain ⟨t, rfl⟩ := h
-      rw [List.take_append_of_le_length (by omega)]
-    · obtain ⟨t, rfl⟩ := h
-      rw [List.take_append_of_le_length (by omega)]
-  rw [← this]; exact hs
+/-- A log with fewer than `2 ^ 62` changes is small at every revision. -/
+theorem CompactSmall_of_logCh {log : Log} (c : Int) (h : logCh log < 2 ^ 62) :
+    CompactSmall log c := by
+  unfold CompactSmall
+  suffices hle : ∀ (l : Log) (n : Nat), ((l.take n).map List.length).sum ≤ logCh l by
+    have := hle log (c.toNat + 1); omega
+  intro l
+  induction l with
+  | nil => intro n; simp [logCh]
+  | cons cs l ih =>
+    intro n
+    cases n with
+    | zero => simp
+    | succ n => have := ih n; simp [logCh] at *; omega
+
+/-- **A certified log is small at every revision** (D19b): its changes are fewer than the time
+receipts' bound (`idxCert`), at most `2 ^ 48` (`isStore`). -/
+theorem CompactSmall_of_cert (s : Loc) (γ : StoreNames) (log : Log) (c : Int) :
+    isStore (GF := GF) s γ ∗ idxCert γ.idx log ⊢ ⌜CompactSmall log c⌝ := by
+  iintro ⟨Hs, Hc⟩
+  iunfold isStore at Hs
+  iNamed Hs
+  iunfold idxCert at Hc
+  icases Hc with ⟨-, -, -, -, %Hlt⟩
+  ipureintro
+  exact CompactSmall_of_logCh c (by have : (2 : Nat) ^ 48 < 2 ^ 62 := by decide
+                                    omega)
 
 /-- **What the compaction job at `rev` needs** (persistent): the store and its stop channel, its
 backend supporting the compaction (`storeCmp`), a lower bound `rev` of the compaction revision
 (`Compact` set it), a certified log with revision `rev`, which does not delete a key and put it
 again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job deletes carry it,
-`delKey`; 2026-10-13, unit 6a), and has fewer than `2 ^ 62` changes up to `rev` (`CompactSmall`:
-the caller's physical bound; item 8, 2026-10-17). -/
+`delKey`; 2026-10-13, unit 6a). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's
+physical bound; now the job derives it, `CompactSmall_of_cert`.) -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ storeStop s ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
     ∃ log : Log, idxCert γ.idx log ∗
-      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev) ∧
-        CompactSmall log (sint.Z rev)⌝)
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :
     Persistent (compactJobPre (GF := GF) s γ rev) := by

@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShape L) :
+    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft.reCfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -74,6 +74,9 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
   · rename_i ht
     have h0 := hsh.2 ht
     rw [h0]
+    isplitr
+    rotate_left
+    · ipureintro; exact hcl m hm ht
     iintro !> %Ψ HR
     iunfold reqWaitR at HR
     icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
@@ -82,9 +85,9 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
 /-- **The workload clause, proved** (D19c, 2026-10-18; until then a premise of `NewServer.spec`):
 a committed log is a prefix of the KV invariant's, whose entries have good shapes and claimed ids
 (`kvWork`); with the reserved id `0` the claims give the ids (`batchWaitOk_of_work`). -/
-theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64) (x₀ : apply.ApplyKV) :
+theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
-      clusterWorkloadOk ρ E c₀ x₀ := by
+      clusterWorkloadOk ρ E := by
   iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOk
   iintro !> %L #HL
@@ -97,13 +100,15 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64) (x
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
+  obtain ⟨Hsh, Hccl⟩ := Hsh
   obtain ⟨R, rfl⟩ := Hp
   rw [logShape_append] at Hsh
   icases BigSepL.bigSepL_append.1 $$ Hcl with ⟨#HclL, -⟩
   imodintro
   isplitr
   · ipureintro; exact Hsh.1
-  iapply batchWaitOk_of_work ρ E L Hsh.1 $$ HclL HNZ HL
+  iapply batchWaitOk_of_work ρ E L Hsh.1 (fun m hm => Hccl m (List.mem_append_left _ hm))
+    $$ HclL HNZ HL
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (raft's, the start log and index the server's), in the
@@ -117,7 +122,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static) (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud) :
-    kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E c₀ x₀ ⊢
+    kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
       rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr

@@ -179,7 +179,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold srvRaftNode at Hrn
     icases Hrn with ⟨%nd, #Hnd, #Hprop⟩
     iunfold raftPropose at Hprop
-    icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose⟩
+    icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose, -⟩
     ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
     imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec id γf Hidrq ⊤
       CoPset.subseteq_top $$ Hclog Hclaim HokW with #Hau

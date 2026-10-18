@@ -8508,8 +8508,12 @@ the theorem says nothing.
   (derived from it already); `rnLogFits` is raft's, with the raft stage. Stage 4 (done): raft's
   tick/term budget (`budgetInv` holds receipts for the term bound, `tickCred bud n := ⧗ n` taken
   by a tick's caller from its own step, the ticker's payload `True`: `rnTickerOk` mints nothing).
-  Left: `rnLogFits` (a receipt per entry raft appends: a raft model change) and mvcc compaction's
-  `2 ^ 62` premise.
+  Left: `rnLogFits` (a receipt per entry raft appends: a raft model change). mvcc compaction's
+  `2 ^ 62` premise (`CompactSmall`) done 2026-10-18 with no new receipt: the certificate the
+  compaction's caller already passes (`idxCert`) carries stage 3's `logCh log < receiptBound GF`,
+  and `isStore` the store's `receiptBound GF ≤ 2 ^ 48`, so the compaction job derives it
+  (`CompactSmall_of_cert`); `store.Compact`, `updateCompactRev`, `compactLockfree` and
+  `compactJobPre` lost it (no server caller of `store.Compact` took it: the compactor is off).
   *`rnLogFits` (stage 5, 2026-10-18): stopped for a decision.* What it bounds: a `Ready`'s
   unstable entries `es` (`e0.Index + |es| ≤ 2 ^ 61`, `MemoryStorage.Append`'s premise) and its
   committed log (`|d ++ ce| + 1 < 2 ^ 64`); both are positions in a node's log, which grows by its
@@ -8610,6 +8614,33 @@ the theorem says nothing.
     `clusterLogBound ρ c₀ x₀ := □ ∀ L, srvRLogLb L -∗ ⌜entriesSmall c₀ L x₀⌝` (`InvBuild.lean`),
     which replaces it among `NewServer.spec`'s premises. The residual is for D19b's receipts
     (stage 3): a bound on the store's changes, keys and revisions at every reachable state.
+  **2026-10-18: the residual's move adopted by the user and carried out** (`notes/STATUS.md`,
+  "D19c's move: the size clauses at execution"). `clusterLogBound` was not derivable from D19b's
+  counters: they bound work already executed (sealed logs), while it was asked of every log raft
+  will commit and of every run of `batchStep`, and a transaction's change count or a delete's
+  range is known only as it runs. So the size clauses moved from the raft contract's `E.C` to the
+  apply thread at execution, and the txn package's change-count premises to receipts:
+  - *Where each bound comes from.* The store's write transaction holds a receipt per change
+    (D19b stage 3's `idxWriter`), and `isStore` holds `receiptBound GF ≤ 2 ^ 48` (`NewStore`'s
+    pure premise, as `NewServer.spec`'s): so its pending changes stay below the real backend's
+    `2 ^ 56` puts per session (`storeTxnWriteIs_small`), at every change, without a premise on the
+    transaction or the delete; and the state a transaction's get reads is small by the same count
+    (`txnViewIs_small`, the sort's premise). The apply thread's log is the sole writer's, which now
+    keeps a revision per change past `NewStore`'s two (`soleLog`; every commit is of a non-empty
+    pending revision) and is certified, so it has fewer than `2 ^ 48` changes and revisions
+    (`soleWriter_small`, `srvApplyKV_small`), and the remaining size clauses (`rqSmall`: room for a
+    revision, `LogSmall`) hold at it (`rqSmall_of_small`).
+  - *What the contract asks.* `srvC` (raft's `E.C`) and the apply specs take the entries' shapes
+    (`logShape`) instead of `entriesOk` over every run; the apply loop derives each entry's
+    `entryOk` at the log it meets (`entryOk_of_shape`). The txn premises lose their size parts:
+    `TxnPre` (its third conjunct now `LogSmall log`, a read-only transaction's sort premise),
+    `GetOk` (no `sortSmall`), `apply.delOk` (room for a revision), and every `putMax` premise of the
+    txn and mvcc write specs.
+  - *Why the receipts' bound lives in `isStore` and `soleWriter`* (pure facts at allocation): the
+    leaf write specs (`storeTxnWrite.put`/`delete`) see only the store's resources, and the apply
+    thread only its KV resources (`kvOwn`, the sole writer); a premise threaded through every spec
+    between them would have changed many more statements. The constant stays `2 ^ 48`
+    (`NewServer.spec`'s, D19b), below the `2 ^ 56` the backend needs and the `2 ^ 62` of the sort.
 - **D19d: program-start resources once** (`nameFree`, `netAddrFree`). Options: (1) Perennial's
   `wp_package_init` gives the body a once-per-package token (D16's proposed general fix), from which
   a package takes what was allocated for it at program start: covers `nameFree`, not `netAddrFree`;
@@ -8767,6 +8798,51 @@ the theorem says nothing.
     `etcdGrpcSlots_of_started` gives the `N ≤ K` slots from `srvServeOut`'s slots and `Start`'s
     read slots. `runsNoRequireLeader` stays a premise of the closed theorem: a statement about
     the clients' metadata, of D19a's first kind.
+- **D19h: the quota and the NOSPACE alarm** (audit phase B3, 2026-10-18; **proposed, waiting for
+  the user**). Three axioms on the `Put` path are false together (`notes/audit.md`): the quota's
+  `Available` always answers true (`storage.NewBackendQuota`'s `isQuota`), and the two contracts
+  that propose the NOSPACE alarm (`EtcdServer.Alarm`, for `quotaAlarmer.check` in v3rpc;
+  `EtcdServer.raftRequestAlarm`, for `applyEntryNormal`'s goroutine on an `ErrNoSpace` entry)
+  propose a request that the KV model does not admit (`plainReq` is `False` for `.alarm`), with no
+  `reqPropOk`, id credit or reader slot. Go: `BackendQuota.Available` is false once
+  `be.Size() + cost` reaches the quota (2 GiB by default; `storage/quota.go`); the quota applier
+  then still applies the put, transaction or lease grant and only sets `ErrNoSpace` on its
+  response (`apply/quota.go:36-42`); `applyEntryNormal` proposes `Alarm{ACTIVATE, NOSPACE}` once
+  per such entry while no NOSPACE alarm is stored; v3rpc's `quotaAlarmer.check` proposes it and
+  answers `ErrNoSpace` without proposing the request; once the alarm is applied the uber-applier's
+  chain is the capped one, which rejects every put and lease grant and every transaction of
+  positive `Cost` (`apply/capped.go`). Both options keep putget's theorem meaningful (`Main`
+  ends without a check on any error); they differ in what the closed theorem covers and in cost.
+  - *(A) Model the alarm.* `isQuota`'s `Available` answers some boolean; the quota layer's outcome
+    is the inner one, or, for an applied write, the same log with `ErrNoSpace` (the client sees an
+    error for a write that happened: the client specs' error case must allow it). The alarm
+    proposals carry a permit (`srvAlarmPermit`, as `srvMonitorPermit`: the request path's for
+    `quotaAlarmer.check`; for the apply thread's goroutine an id credit and reader slot it does
+    not have today, one per `ErrNoSpace` entry). The KV model admits the NOSPACE `ACTIVATE` entry:
+    the model's state becomes the log and the chain (`kvRaftOf` folds both; the alarm switches
+    the chain to the capped one, the start's chain `kvExact` as now), which needs the alarm
+    store's NOSPACE flag as a function of the log (`v3alarm` is names-only, an oracle today:
+    `apply.alarmChain`'s `ns` is any boolean) and the capped layer deterministic (`Cost` of a
+    transaction, names-only, decides it). Costs: the KV model (`KVModelDefs`, `KVModel`,
+    `KVApply`, `kvInv`), the chain relation, the alarm store's model, the two permits, the client
+    outcomes; several units. Gain: no premise; a closed theorem covers a run that fills the
+    quota (its writes rejected after the alarm, each answered with an error).
+  - *(B) A named workload premise, as `authRecordsFit`* (D19a's first kind; the audit's own
+    suggestion for `NewBackendQuota`). `opaque backendUnderQuota : Prop` ("every `Available` of
+    the run answers true: the backend's size plus a request's cost stays below the quota"), a
+    premise of `storage.NewBackendQuota`'s axiom (which keeps `Available`'s `b = true`), so of
+    `newQuotaApplierV3`/`NewUberApplier`/`NewServer.spec` and of v3rpc's `newBackendQuota` and
+    the server construction above it. Then `quotaAlarmer.check`'s alarm branch is dead and
+    `EtcdServer.Alarm`'s axiom leaves the link (one axiom fewer); `applyEntryNormal`'s `ErrNoSpace`
+    branch is dead too (the quota layer never sets it, and the capped layer is not in the chain:
+    the apply thread's chain is `kvExact`, `KVApply.lean`), once the outcome-to-error map shows a
+    `kvExact` chain never answers `ErrNoSpace`, and `raftRequestAlarm` goes as well (one more).
+    Costs: one unit, premises on two construction specs. Loss: a premise nothing checks, true of
+    putget (one small key against 2 GiB) and false of a workload that fills the quota; the
+    NOSPACE path stays outside the model, so the closed theorem says nothing of such a run.
+  - *Recommendation:* (B) now, with the premise in the closed theorem's statement as
+    `authRecordsFit` and `transportEffectsOk` are; (A) when a closed theorem should cover a full
+    disk. Not started: the choice is the user's.
 - `rnSnapOnce`: D17d's option (1), started 2026-10-18 (the user).
 - **The start-rights' two axioms kept (the user, 2026-10-18):** `EtcdGrove.goose_adequacy_start`
   (D19d) and `EtcdGrove.initLb_of_spec` (D19e) stay trust-boundary axioms of this repository for

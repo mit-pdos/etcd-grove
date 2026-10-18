@@ -259,14 +259,43 @@ theorem srvRLogLb_mono (γ : ServerRaftNames) (A B : List EntryModel) (h : A <+:
   iintro #HB
   iapply isCommitted_mono γ.raft _ _ ((srvLogOf_prefix γ A B).2 h) $$ HB
 
+/-- **`json.Unmarshal` of a conf change's context into a `membership.ConfigChangeContext`**
+(audit phase B3, 2026-10-18; `encoding/json` is not modelled, so opaque, a function of the
+bytes): the member's `ID` and `IsPromote` when the bytes unmarshal, `none` when they do not
+(where `applyConfChange` and `ValidateConfigurationChange` panic, `lg.Panic`). A
+`ConfigChangeContext` embeds the `Member`, so the JSON of a `Member` (what etcd's bootstrap puts in
+each peer's context) unmarshals to its `ID` with `IsPromote` false. -/
+opaque membership.ccContextOf : List w8 → Option (w64 × Bool)
+
+/-- **A conf change the server's `applyConfChange` takes** (audit phase B3, 2026-10-18): an
+`AddNode` (type `0`) of a member of raft's configuration `cfg`, whose context unmarshals to that
+member, not a promotion. So `applyConfChange` does not panic (the context unmarshals, its member
+is the change's node, the type is known), removes no member (`membership.localKept` stays true),
+and what it hands raft (the change, or the change with `NodeId` `0` when the validation fails)
+leaves raft's configuration as it is (the node is a voter already: `ccRaftOk`). -/
+def ccApplyOk (cfg : GSet w64) (m : CCV1M) : Prop :=
+  m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false)
+
+/-- The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes. -/
+def ccBootOk (cfg : GSet w64) (d : List w8) : Prop :=
+  ∀ m, ccDecodeV1 d = some m → ccApplyOk cfg m
+
+/-- **A v1 change raft's node applies without changing its configuration `cfg`** (the server's
+`raftPropose` contract for `ApplyConfChange`; raft's static mode admits only such changes,
+`CCShrink`): an `AddNode` of a voter, or of the node `0`, of a non-empty configuration. -/
+def ccRaftOk (cfg : GSet w64) (m : CCV1M) : Prop :=
+  m.type = W32 0 ∧ ∃ k, k ∈ cfg ∧ (m.nodeId = k ∨ m.nodeId = W64 0)
+
 /-- **The application's policy on the conf changes raft may commit** (raft's `reCCOk`,
 `Protocol/Ghost.lean`): a v1 conf change, its bytes a `ConfChange` encoding (the server's
 `srvIdxOk` admits no other), of id `0` (D19c, 2026-10-18: raft's `Bootstrap`'s, whose apply
 triggers the wait at `0`, which no request claims, `idNoZero`; the cluster admits no membership
-change of its own: a one-member cluster). -/
+change of its own: a one-member cluster), and (audit phase B3, 2026-10-18) a change the server's
+`applyConfChange` takes (`ccBootOk`: an `AddNode` of a member of raft's configuration with its
+context, as raft's `Bootstrap` entries are, `BootLogOk`). -/
 def srvCCPolicy (γ : ServerRaftNames) : Prop :=
   ∀ (ty : w32) (d : List w8), γ.raft.reCCOk ty d →
-    ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0
+    ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk γ.raft.reCfg d
 
 /-- **Raft's committed log** (the contract's ghost interface): raft's commit invariant, the
 start log committed, the start index its length, and the conf-change policy. -/
@@ -365,10 +394,10 @@ instance srvPropAu_persistent (γ : ServerRaftNames) (d : List w8)
   unfold srvPropAu; infer_instance
 
 /-- An entry of raft's own: an empty normal entry, or a v1 conf change (what raft's
-`entDataIs … none` says under `srvCCPolicy`). -/
-def srvNoopEntry (e : EntryModel) : Prop :=
+`entDataIs … none` says under `srvCCPolicy`, at raft's configuration `cfg`). -/
+def srvNoopEntry (cfg : GSet w64) (e : EntryModel) : Prop :=
   (e.typ = W32 0 ∧ e.data = []) ∨
-    (e.typ = W32 1 ∧ isConfChangeEncoding e.data ∧ ccIdOf e.data = W64 0)
+    (e.typ = W32 1 ∧ isConfChangeEncoding e.data ∧ ccIdOf e.data = W64 0 ∧ ccBootOk cfg e.data)
 
 /-- **The standing update for raft's own entries** (empty entries, conf changes; 2026-10-14, unit
 T1): the server gives it to raft at the node's start (`kv_noop_au`). (2026-10-16, stage R7b: one
@@ -376,7 +405,7 @@ update, the entry chosen in its after-clause, as raft's `noopAu`.) -/
 def srvNoopAu (γ : ServerRaftNames) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
           <{ ∀∀ (e : EntryModel),
-               ⌜srvNoopEntry e ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
+               ⌜srvNoopEntry γ.raft.reCfg e ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
                srvRLog γ (L ++ [e]), COMM True }>)
 
 instance srvNoopAu_persistent (γ : ServerRaftNames) : Persistent (srvNoopAu (GF := GF) γ) := by
@@ -994,18 +1023,24 @@ instance entryClaim_timeless (γi : IdNames) (m : EntryModel) :
     Timeless (entryClaim (GF := GF) γi m) := by
   unfold entryClaim idClaim; infer_instance
 
+/-- Every conf change of `L` is one the server's `applyConfChange` takes (`ccBootOk`, at raft's
+configuration `cfg`; audit phase B3, 2026-10-18). -/
+def ccLogOk (cfg : GSet w64) (L : List EntryModel) : Prop :=
+  ∀ m ∈ L, m.typ ≠ W32 0 → ccBootOk cfg m.data
+
 /-- **The workload facts of the committed log `L`** (persistent; D19c): every entry of a good
 shape (`logShape`: a request's premise at every log but for its size clauses; a conf change's id
-`0`) and its id claimed. -/
-def kvWork (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
+`0`), every conf change one `applyConfChange` takes at raft's configuration `cfg` (`ccLogOk`,
+audit phase B3), and every id claimed. -/
+def kvWork (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) : IProp GF :=
+  iprop(⌜logShape L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
 
-instance kvWork_persistent (γk : KVNames) (L : List EntryModel) :
-    Persistent (kvWork (GF := GF) γk L) := by
+instance kvWork_persistent (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+    Persistent (kvWork (GF := GF) cfg γk L) := by
   unfold kvWork; infer_instance
 
-instance kvWork_timeless (γk : KVNames) (L : List EntryModel) :
-    Timeless (kvWork (GF := GF) γk L) := by
+instance kvWork_timeless (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+    Timeless (kvWork (GF := GF) cfg γk L) := by
   unfold kvWork; infer_instance
 
 /-- **The KV invariant** (see the section header): the server's half of the committed log `L`
@@ -1017,7 +1052,7 @@ def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
     ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γk L)
+      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft.reCfg γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
@@ -1713,14 +1748,16 @@ instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF
 apply side, `batchCommitted`, gives the first half; unit 4): a normal entry's data, if they
 decode to a request with an id, were claimed under that id; a conf change's id (`ccIdOf`) is no
 KV request's registration (the conf change's proposer claimed it for the conf change: typed
-claims, unit 4). -/
+claims, unit 4), and the change is one `applyConfChange` takes (`ccBootOk` at raft's
+configuration; audit phase B3, 2026-10-18). -/
 def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF :=
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
         ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
       ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝)
-  else iprop(□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False)
+  else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
+    ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝)
 
 instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) :
     Persistent (entryWaitOk (GF := GF) ρ E m) := by
@@ -1741,7 +1778,10 @@ its `Propose(ctx, data)`, from any goroutine, at any context, with `data`'s slic
 the verified `node.Propose`'s statement over the server's ghost names (see the file header), and
 its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStopped`,
 `ErrProposalDropped`, `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`;
-2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`). -/
+2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`).
+**`ApplyConfChange(c)`** (audit phase B3, 2026-10-18; `applyConfChange`'s call): of a v1 change,
+read-only, that leaves raft's configuration as it is (`ccRaftOk`, raft's static mode's
+`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`). -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
@@ -1752,7 +1792,11 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
       {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q fresh }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
-      {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh ∗ applyErrIs err }}))
+      {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh ∗ applyErrIs err }}) ∗
+    □ (∀ (c : GoInterface) (cm : CCV1M), ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
+      {{ ownCCI c DFrac.discard (some (.v1 cm)) }}
+        (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
+      {{ (csp : Loc), RET #csp; ∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true }}))
 
 instance raftPropose_persistent (γ : ServerRaftNames) (n : GoInterface) :
     Persistent (raftPropose (GF := GF) γ n) := by

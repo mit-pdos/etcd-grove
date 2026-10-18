@@ -88,6 +88,15 @@ def srvReadNamesFresh (γr : ReadNames) (σ : KVState) : IProp GF :=
     ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
     ghostVar γr.kv.st 1 σ ∗ ghostVar γr.kv.hi 1 γr.kv.log0.length)
 
+/-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
+`NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
+client's `etcdKV` at raft's allocation (`srvRaftBoot_alloc`, `NewServerAlloc.lean`). -/
+def srvReadNamesFreshNK (γr : ReadNames) : IProp GF :=
+  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
+    (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
+    ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
+    ghostVar γr.kv.hi 1 γr.kv.log0.length)
+
 /-! ## The workload clause (D13c; D19c) -/
 
 /-- **The cluster's workload** (persistent): every committed log `L` (after the server's start)
@@ -102,12 +111,12 @@ themselves over every run from `x₀` at the consistent index `c₀` (`entriesOk
 clauses were the residual premise `clusterLogBound`; the apply thread now checks those at the log
 it meets (`entryOk_of_shape`, `srvApplyKV_small`), so `c₀` and `x₀` are unused (kept for the
 callers' statements). -/
-def clusterWorkloadOk (ρ : ReqNames) (E : apply.AEnv GF) (_c₀ : w64) (_x₀ : apply.ApplyKV) :
+def clusterWorkloadOk (ρ : ReqNames) (E : apply.AEnv GF) :
     IProp GF :=
   iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShape L⌝ ∗ batchWaitOk ρ E L)
 
-instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64)
-    (x₀ : apply.ApplyKV) : Persistent (clusterWorkloadOk (GF := GF) ρ E c₀ x₀) := by
+instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
+    Persistent (clusterWorkloadOk (GF := GF) ρ E) := by
   unfold clusterWorkloadOk; infer_instance
 
 /-! ## The built part and the residual -/
@@ -252,9 +261,8 @@ theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x�
   rw [hres]
 
 /-- The workload clause at agreeing environments. -/
-theorem clusterWorkloadOk_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (c₀ : w64)
-    (x₀ : apply.ApplyKV) (h : envAgree E E') :
-    clusterWorkloadOk (GF := GF) ρ E c₀ x₀ = clusterWorkloadOk ρ E' c₀ x₀ := by
+theorem clusterWorkloadOk_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (h : envAgree E E') :
+    clusterWorkloadOk (GF := GF) ρ E = clusterWorkloadOk ρ E' := by
   obtain ⟨hi, hc, hr⟩ := h
   have hres : resultΨ (GF := GF) E = resultΨ E' := by
     funext ρ' rq F x

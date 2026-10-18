@@ -287,7 +287,9 @@ theorem raftNode_of_StartNode (reg : GName)
     (wp_Advance : letI : MemStorReg GF := ⟨reg⟩; node.Advance.spec (GF := GF) (hG := hG))
     (wp_Tick : letI : MemStorReg GF := ⟨reg⟩; node.Tick.spec (GF := GF) (hG := hG))
     (wp_ReadIndex : letI : MemStorReg GF := ⟨reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG))
-    (wp_Propose : letI : MemStorReg GF := ⟨reg⟩; node.Propose.spec (GF := GF) (hG := hG)) :
+    (wp_Propose : letI : MemStorReg GF := ⟨reg⟩; node.Propose.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨reg⟩;
+      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) reg := by
   letI : MemStorReg GF := ⟨reg⟩
   intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
@@ -348,7 +350,7 @@ theorem raftNode_of_StartNode (reg : GName)
     iframe Hpkg Henv' Hisnode Hlinv Hcommi
     iapply Hstop
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
-  · iapply raftPropose_of_isNode E γw wp_Propose
+  · iapply raftPropose_of_isNode E γw wp_Propose wp_ApplyConfChange
     iframe Hpkg Henv' Hisnode Hlinv
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })

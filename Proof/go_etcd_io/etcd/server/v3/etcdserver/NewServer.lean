@@ -233,7 +233,8 @@ theorem NewServer.wp_proof
     (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
-    (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG)) :
+    (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hmid Hfgp
   wp_start
@@ -293,6 +294,7 @@ theorem NewServer.wp_proof
   -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
   have hNS := raftNode_of_StartNode (GF := GF) (MemStorReg.memStorRegName GF) h8 h9 h10 h11 h12 h78
+    h86
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
   wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
@@ -476,6 +478,10 @@ theorem NewServer.wp_proof
       Hwrds, Hwcl⟩
   · iframe #
     iframe Hview Hlate Hwkv Hrts Hlrd Hidx Hcok
+  -- (D19g (b)) the store's reader slots for request goroutines
+  icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
+  ihave Hsrs := replicate_mono _ (mvcc.storeReader kst γw.st) 64
+    (by unfold mvcc.watchReader; iintro ⟨H, -⟩; iexact H) $$ Hwsr
   (try wp_auto)
   ihave #Hws' := Hws
   iunfold mvcc.isWatchableStore at Hws'
@@ -513,7 +519,9 @@ theorem NewServer.wp_proof
   (try wp_auto)
   -- the auth store's reader slots: one for the auth applier, one for the KV's (D14i)
   icases replicate_take1 _ _ hM1 $$ HRDs with ⟨HRD, HRDs⟩
-  icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, -⟩
+  icases replicate_take1 _ _ (by omega) $$ HRDs with ⟨HRD2, HRDs⟩
+  -- (D19g (b)) the auth store's reader slots for request goroutines
+  icases replicate_takeN _ 64 _ (by omega) $$ HRDs with ⟨HRDs, -⟩
   -- `srv.restoreAlarms()`
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
@@ -745,8 +753,8 @@ theorem NewServer.wp_proof
   iunfold transportStarted at Hts
   icases Hts with ⟨#Htrall, #Htrr⟩
   -- the read names
-  iunfold srvReadNamesFresh at Hrd
-  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkst, Hkhi⟩
+  iunfold srvReadNamesFreshNK at Hrd
+  icases Hrd with ⟨Hap, Hcm, Hnot, Hlogs, Hpend, Hkhi⟩
   icases hHalves _ _ $$ Hkhi with ⟨Hkhi1, Hkhi2⟩
   ihave ⟨Hkvw, #Hcert0⟩ := txn.kvWriter_cert kst γw.st [[], []] $$ Hkvw
   ihave #Hrlb : srvRLogLb ρ.rd.raft [] $$ []
@@ -764,10 +772,6 @@ theorem NewServer.wp_proof
   · iapply hU64; iexact term
   · simp only [Hlog0]; rw [Hγw.2.2.2.1]; iexact Hcert0
   -- the KV invariants
-  imod (kvInv_alloc_boot ρ.rd.raft ρ.rd.kv γ.reCCOk ps bootLog ⊤ (by rw [HρRaft]) (by rw [HρRaft])
-      Hrbok (fun ty d h => (Hpol ty d (by rw [HρRaft]; exact h)).2.2) Hc0 Hch0
-      (by rw [Hlog0]; simp)) $$ [HrLog] Hkst with ⟨#Hkvinv, Hetcd⟩
-  · rw [HρRaft]; iexact HrLog
   imod (kvCertInv_alloc ρ.rd.raft ρ.rd.kv ⊤ (by rw [Hlog0]; simp)) $$ [Hcok] Hkhi1 Hrlb
     with #Hkci
   · rw [Hcok, ← Hγw.2.2.2.2]; iexact Hcok
@@ -786,10 +790,14 @@ theorem NewServer.wp_proof
   imod sync.init_RWMutex (leadTimeP s) (E := ⊤) (srvLeadTimeMuAddr s) $$ [leadElectedTime] leadTimeMu
     with Hltslots
   · inext; iunfold leadTimeP; iexists _; iexact leadElectedTime
-  icases guard_of_slots _ _ $$ Hltslots with ⟨-, #Hltg⟩
+  icases guard_of_slots _ _ $$ Hltslots with ⟨Hltslots, #Hltg⟩
+  -- (D19g (b)) `leadTimeMu`'s reader slots for request goroutines
+  icases replicate_takeN _ 64 _ (by omega) $$ Hltslots with ⟨Hlts, -⟩
   imod sync.init_RWMutex (bemuP s) (E := ⊤) (srvBemuAddr s) $$ [be] bemu with Hbmslots
   · inext; iunfold bemuP; iexists _; iexact be
-  icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, -⟩
+  icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, Hbmslots⟩
+  -- (D19g (b)) `v3rpc.Server`'s reader slot of `bemu`
+  icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, -⟩
   -- the raft node, its transport installed
   ihave #Henv : rnEnvOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn $$ []
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
@@ -797,7 +805,7 @@ theorem NewServer.wp_proof
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
       Hrn4 (by rw [Hrn3, Hrn7]) Hrn2)
     iframe Hkvinv Hrli
-    iapply clusterWorkloadOk_of ρ E₀ (W64 0) bootKV
+    iapply clusterWorkloadOk_of ρ E₀
     iframe Hkvinv Hrli HNZ0
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
     [Henv] [Hcmi] [r] [Htrall] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, #Htrf⟩
@@ -841,8 +849,29 @@ theorem NewServer.wp_proof
   ipersist stats
   ipersist MaxRequestBytesS
   ipersist ClientCertAuthEnabledS
-  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr5, -⟩
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr5, Hlgrs⟩
   icases replicate_take1 _ _ hM1 $$ Hfcnr with ⟨Hfcr, -⟩
+  -- (D19g (b)) what serving needs: the configuration fields, the watchable store as the KV, the
+  -- progress interval's field, `lgMu`'s reader slots for request goroutines and the others'
+  icases replicate_takeN _ 64 _ (by omega) $$ Hlgrs with ⟨Hlgs, -⟩
+  ipersist LoggerS
+  ipersist MaxTxnOpsS
+  ipersist WarningUnaryRequestDurationS
+  ipersist MetricsS
+  ipersist EnableDistributedTracingS
+  ipersist TracerOptionsS
+  ipersist MaxConcurrentStreamsS
+  ihave Hserve : srvServeBuilt s
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
+      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs]
+  · unfold srvServeBuilt srvServeCfg srvBemuReader srvLeadTimeReader
+    isplitr
+    · iexists ws, γw
+      iframe #
+      ipureintro; rfl
+    isplitr
+    · iframe #
+    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs
   imodintro
   iapply HΦ
   iright
@@ -852,7 +881,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hetcd Hgap
+  iframe Hgap Hserve
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   unfold srvBuilt

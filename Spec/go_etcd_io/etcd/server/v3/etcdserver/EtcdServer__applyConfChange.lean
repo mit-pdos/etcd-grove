@@ -26,21 +26,37 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The membership change's contract.** `s.applyConfChange(cc, ep, v3)` validates the
 change `cc` and applies it to the cluster (`s.cluster`, whose backend is the server's: the
 batch lock `E.P` with the post-lock hook `E.f`: the environment `E` of `s.uberApply`,
-`apply.applierFor`), to raft and to
-`ep.confState`. For `v3` (`ApplyBoth`) its writes to the backend happen in one critical
-section of the batch lock, after the hook (as `apply.Apply`'s: the caller's hook triple and
-writes update), or, if the validation fails, there are none and it stores the applying index
-`(i, t)` into the consistent index `s.consistIndex = ci` (the caller's triple for that store,
-`Pre -∗ WP ci.SetConsistentIndex(i, t) {Adv}`). Without `v3` it writes nothing to the backend.
-It may change `cc` (it sets `NodeId` on a failed validation), but not its `Id`: the change is
-raft's `ownCCV1` (owned, as `pbutil.MustUnmarshalMessage` decoded it; since stage R6 of the raft
-v3.7 retarget, 2026-10-16, when the struct value with its `Id` cell), some record `m'` after
-with `m`'s id. -/
+`apply.applierFor`), to raft (`s.r.ApplyConfChange`, the server's raft node's contract in
+`srvRaftNode`) and to `ep.confState`. For `v3` (`ApplyBoth`) its writes to the backend happen in
+one critical section of the batch lock, after the hook (as `apply.Apply`'s: the caller's hook
+triple and writes update), or, if the validation fails, there are none and it stores the
+applying index `(i, t)` into the consistent index `s.consistIndex = ci` (the caller's triple for
+that store, `Pre -∗ WP ci.SetConsistentIndex(i, t) {Adv}`). Without `v3` it writes nothing to
+the backend and does not call raft. It may change `cc` (it sets `NodeId` on a failed
+validation), but not its `Id`, and it hands it to raft read-only (`DFrac.discard`): the change
+is raft's `ownCCV1` (as `pbutil.MustUnmarshalMessage` decoded it; since stage R6 of the raft
+v3.7 retarget, 2026-10-16, the struct value with its `Id` cell), some record `m'` after with
+`m`'s id.
+
+**Scope** (audit phase B3, 2026-10-18; until then stated for every change, which was false: it
+handed raft a change without `node.ApplyConfChange`'s premise, panicked on a malformed context or
+an unknown type, and removed the local member on its `RemoveNode`, against
+`membership.localKept`): a change `applyConfChange` takes, `ccApplyOk` at raft's configuration
+(`ρ.raft.raft.reCfg`): an `AddNode` of a member of the configuration, whose context unmarshals to
+that member, not a promotion. Then neither it nor `ValidateConfigurationChange` panics, it
+removes no member (`AddMember` of a member; for a member other than the local one, the
+transport's `AddPeer`, outside the model as the transport's other effects, `transportEffectsOk`:
+a no-op for a member the construction added as a peer), and what it hands raft
+(the change, or on a failed validation the change with `NodeId` `0`) leaves raft's configuration
+as it is (`ccRaftOk`, `raftPropose`'s premise for `ApplyConfChange`). The server's policy admits
+no other conf change (`srvCCPolicy`, `ccBootOk`). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
-    (E : apply.AEnv GF) (Pre Q Post Adv : IProp GF) (i t : w64),
+    (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64),
+  ccApplyOk γs.raft.reCfg m →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
+      srvRaftNode s γs ∗
       ownCCV1 cc (DFrac.own 1) m ∗ epConfStateAddr ep ↦ cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
@@ -50,7 +66,8 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyConfChange"))
       (Val #cc)) (Val #ep)) (Val #v3))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
-      (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc (DFrac.own 1) m' ∗ ⌜m'.id = m.id⌝ ∗
+      ⌜removed = false⌝ ∗
+      (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfStateAddr ep ↦ cs') ∗
       (if v3 then iprop(Post ∨ Adv) else Pre) }}
 
