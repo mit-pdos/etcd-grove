@@ -32,7 +32,9 @@ abbrev EtcdServer.shouldSnapshotToDisk.spec : Prop :=
       srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"shouldSnapshotToDisk")) (Val #ep))
   {{ (r : Bool), RET #r;
-      srvForceSnapAddr s ↦ f ∗ epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ d }}
+      srvForceSnapAddr s ↦ f ∗ epAppliedIAddr ep ↦ ai ∗ epDiskSnapAddr ep ↦ d ∗
+      -- (D19i part 1) due only past the disk snapshot's index
+      ⌜r = true → ai ≠ d⌝ }}
 
 end spec
 

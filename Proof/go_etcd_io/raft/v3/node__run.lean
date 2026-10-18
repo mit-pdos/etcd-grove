@@ -10,6 +10,7 @@ getters (`GetType`, `GetFrom`); `confc` carries a `*pb.ConfChangeV2` (`ownCCV2 v
 whole (`confstateP`); a `Ready`'s messages are handed out (`QMsg`, D8). -/
 module
 
+public import Proof.go_etcd_io.raft.v3.InvAdvance
 public import Spec.go_etcd_io.raft.v3.node__run
 public import Spec.go_etcd_io.raft.v3.RawNode__HasReady
 public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
@@ -98,7 +99,7 @@ theorem node.run.wp_proof
       iframe Hr1 Hr2
     ileft; ipureintro; rfl
   ihave %Hadv_nn := isChan_not_null $$ [Hadvancec]
-  · iapply isHandshake_isChan $$ Hadvancec
+  · iapply isAdvChan_isChan $$ Hadvancec
   ihave %Hrdy_nn := isChan_not_null $$ [Hreadyc]
   · iapply isHandshake_isChan $$ Hreadyc
   wp_for HI
@@ -862,34 +863,31 @@ theorem node.run.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply isHandshake_isChan $$ Hadvancec
+    · iapply isAdvChan_isChan $$ Hadvancec
     icases runMid_busy γ id nv rc' rdv' Hadv_nn $$ Hmid with
       ⟨%rs, %d, %ce, Hrn, #Hlb', Hcfg, %Hrs, Hrof⟩
     obtain ⟨Hstor, Hrc, Hunst, Hdel⟩ := Hrs
-    iapply handshake_receive_au γ.advancec nv.advancec' (advanceP γ) iprop(True) _
-      $$ [$Hlc1 $Hlc2] Hadvancec []
-    · itrivial
-    inext
-    iintro %u HP
-    iunfold advanceP at HP
-    icases HP with ⟨%d', %ce', %es', Hdlv, Hrof', Hrcpt, %ca_d, #Hcamlb, %HA⟩
-    ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
-    simp only [Prod.mk.injEq] at Heq
-    obtain ⟨rfl, rfl, rfl⟩ := Heq
-    wp_auto
-    -- the receipt: the `Ready`'s entries are appended
-    ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
-    · rw [Hstor]
-      iexact Hrcpt
-    imod ownRawNode_appended γ.raft nv.rn' id rs $$ Hrn Hrcpt' with Hrn
-    -- (2026-10-15, stage N) A1, from the driver's
-    icases runCfg_a1 γ rs ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
-    · ipureintro; rw [Hdel]; exact HA
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id { rs with unpersisted := [] } rdv' rfl
-      Hunst HA1 $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     subst Hrc
-    ihave Hcfg := runCfg_advance γ rs
-      { { rs with unpersisted := [] } with steps := [], term := t, capplied := ca, flw := false }
+    -- (D19i part 1) the rendezvous raises the floor (`advInv`): `run`'s node goes in, comes
+    -- back appended and raised
+    iapply adv_recv_au γ nv.rn' id nv.advancec' _ $$ [$Hlc1 $Hlc2] Hadvancec [Hrn Hcfg Hrof]
+    · iunfold advDep
+      iexists rs, d, ce
+      iframe Hrn Hlb' Hcfg Hrof
+      ipureintro; exact ⟨Hstor, Hunst, Hdel⟩
+    inext
+    iintro Hret
+    iunfold advRet at Hret
+    icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, %Hr1⟩
+    obtain ⟨Hstor1, Hunst1, Hunp1, Hflw1, HA⟩ := Hr1
+    wp_auto
+    -- (2026-10-15, stage N) A1, from the driver's
+    icases runCfg_a1 γ { rs1 with flw := false } ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
+    · ipureintro; exact HA
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1
+      $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+    ihave Hcfg := runCfg_advance γ { rs1 with flw := false }
+      { rs1 with steps := [], term := t, capplied := ca, flw := false }
       rfl rfl rfl rfl Hca HA1 $$ Hcfg
     wp_for_post
     iframe HΦ n r
@@ -903,18 +901,16 @@ theorem node.run.wp_proof
     · iexact Hrn
     unfold headRest
     simp only
-    iframe Hlb' Hcfg
+    iframe Hlb1 Hcfg
     isplitr
-    · ipureintro; exact Hstor
+    · ipureintro; exact Hstor1
     ileft
     isplitr
-    · ipureintro; simp
-    rw [Hdel]
+    · ipureintro; simp [Hunp1]
     iframe Hdlv
-    isplitl [Hrof Hrof']
+    isplitl [Hrofs]
     · unfold rofFull
-      iexists (d, ce, rs.unpersisted)
-      iframe Hrof Hrof'
+      iexact Hrofs
     ileft; ipureintro; simp
   -- `<-n.status`: never
   iapply BigAndL.bigAndL_cons.2

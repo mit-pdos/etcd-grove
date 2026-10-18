@@ -229,6 +229,9 @@ structure ApplyCtx (GF : BundledGFunctors) where
   x₀ : apply.ApplyKV
   /-- the server's wait's registered ids (`ρ.wait`: the apply thread's `IsRegistered`) -/
   γw : GName
+  /-- (D19i part 1) the raft wrapper's `MemoryStorage` and its names (`srvSnapState`) -/
+  ms : Loc
+  γs : MemStorNames
 
 /-- **The apply thread's KV ghost state at the committed raft log `A`** (2026-10-14, unit T1):
 `kvApplied`, with the model's start index and consistent index the apply thread's. -/
@@ -239,8 +242,8 @@ def kvRun (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.
 chain's resource is defined: `run`'s loop invariant and its jobs' `Prev`/`Post`). -/
 def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
   iprop(∃ (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV),
-    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfStateAddr C.ep ↦ cs ∗
-    srvSnapState C.s C.ep ∗ applyThread C.γ st ∗ applyBackend C.γ C.ci C.b ∗ ciApplying C.ci a t ∗
+    epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
+    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread C.γ st ∗ applyBackend C.γ C.ci C.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReader C.s ∗ srvWgReader C.s ∗ srvApplyKV C.s C.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
@@ -275,13 +278,17 @@ stage R6 of the raft v3.7 retarget (2026-10-16) over raft's record; until then f
 pointers were non-nil by the conf state having a voter (`Voters' ≠ []`), which a new cluster's
 fresh `MemoryStorage` (an empty conf state, allocated by raft's `EnsureSnapshot`) does not meet:
 `run` uses only the pointers. -/
-def rnSnapOnce (ms : Loc) (ai₀ at₀ : w64) : IProp GF :=
+def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
   iprop(∀ Φ : val → IProp GF,
     ▷ (∀ (sn pm cs : Loc) (sv : SnapshotM),
       ⌜sv.Metadata'.Index' = ai₀ ∧ sv.Metadata'.Term' = at₀ ∧ pm ≠ null ∧ cs ≠ null⌝ -∗
       ownSnapM sn DFrac.discard sv -∗
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
+      -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and the
+      -- application's snapshot token back, the storage's boundary at most `ai₀`
+      epCsOk cs -∗
+      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z ai₀⌝) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -360,7 +367,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr⌝ ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
-    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀) ∗
+    "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗

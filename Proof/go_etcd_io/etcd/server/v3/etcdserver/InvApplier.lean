@@ -366,6 +366,37 @@ instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
 -- `resultOk ar` (the server's, until the apply package's unit 3): `apply.resultErrOk`
 -- (`apply/InvUber.lean`), the same definition, which `apply.Apply`'s spec returns.
 
+/-- (D19i part 1) `ep.confState`: `nil`, or a `*pb.ConfState` read-only for good (raft's
+`ApplyConfChange` answer, or the start snapshot's), as `CreateSnapshot` reads it (persistent). -/
+def epCsOk (cs : Loc) : IProp GF :=
+  iprop(⌜cs = null⌝ ∨ ∃ c : ConfStateM, csPts cs DFrac.discard c false)
+
+instance epCsOk_persistent (cs : Loc) : Persistent (epCsOk (GF := GF) cs) := by
+  unfold epCsOk; infer_instance
+
+/-- A snapshot's conf state, read-only (`csOptA` at `□`), is a valid `ep.confState`. -/
+theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
+    ⊢ csOptA (GF := GF) p DFrac.discard c -∗ epCsOk p := by
+  iintro H
+  iunfold csOptA at H
+  iunfold epCsOk
+  icases H with (⟨%Hn, -⟩ | #H | #H)
+  · ileft; ipureintro; exact Hn
+  · iright; iexists c; iexact H
+  · iright; iexists c
+    iunfold csPts at H
+    icases H with ⟨%sv, %sl, %so, %sn, %pa, H⟩
+    iNamed H
+    iunfold csPts
+    iexists sv, sl, so, sn, pa
+    simp only [named]
+    iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
+    ipureintro; exact ⟨Hnn, fun h => by cases h⟩
+
+/-- (D19i part 1) `ep.confState`, the apply thread's: the field, and its value `epCsOk`. -/
+def epConfState (ep cs : Loc) : IProp GF :=
+  iprop(epConfStateAddr ep ↦ cs ∗ epCsOk cs)
+
 end defs
 
 section defs_lc

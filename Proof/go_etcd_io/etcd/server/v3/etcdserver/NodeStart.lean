@@ -348,7 +348,7 @@ theorem raftNode_of_StartNode (reg : GName)
   · iapply rnReadStateBridge_of_raft E γw $$ Henv' Hlinv
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
   · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex
-    iframe Hpkg Henv' Hisnode Hlinv Hcommi
+    iframe Hpkg Henv' Hisnode Hlinv Hcommi Hreg'
     iapply Hstop
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
   · iapply raftPropose_of_isNode E γw wp_Propose wp_ApplyConfChange

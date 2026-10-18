@@ -9033,6 +9033,24 @@ the theorem says nothing.
       bound, and the receiver takes back; or (ii) a Go change so that the application asks raft
       for the bound it compacts to (`Status()`'s reply is `run`'s), which moves the publication
       to a channel whose reply `run` computes.
+    - **2026-10-18 · (i) chosen by the user; carried out.** `advancec` gets its own protocol
+      (`advInv`) over Perennial's rendezvous states, not `isHandshake`: at `RcvPending` `run` leaves
+      its node with the means to raise the floor (`advDep`: the node, its `runCfg` with the
+      committed log's authority, its `rof` half); the sender meeting it (`RcvPending →
+      SndCommit`) absorbs its append receipt, raises the floor to `applying`, checks the committed
+      log's authority against its own lower bound (`dlvLb`, so the witness covers its batch), and
+      leaves the raised node (`advRet`), which `run` takes when its receive completes; at
+      `SndPending` the sender leaves its payload and a request (`req`, its log's length), and `run`
+      meeting it raises the floor itself and answers with the witness. **The `select` point**:
+      Perennial's blocking `select` tries each case with `TryReceive(true)`, whose physical offer
+      (`rcvPending`) is rescinded if no sender came; the receiver's atomic update is fired only by
+      a sender's `TrySend` that finds the offer (`wp_TrySend_blocking`, `RcvWait`), which then
+      fires its own (`RcvPending → SndCommit`) in the same critical section. So the logical
+      `RcvPending` is entered only at a rendezvous, never by an offer later withdrawn, and the
+      invariant needs no return of the deposit. The server: the witness rides on `raftAdvancedC`
+      (`rnAdvChan c P`), `applyAll` hands it with the application's token (`srvSnapState`) to the
+      restated `snapshot`/`compactRaftLog`; `ep.confState` is `epConfState` (`nil` or read-only,
+      `CreateSnapshot`'s conf state), kept by `applyConfChange`'s contract.
   - *`EtcdServer.monitorStorageVersion`.* The model admits another goroutine's write under the
     batch lock: `LockOutsideApply` hands out the client's `W ∗ Pk` (the store's `lateW`/
     `writerRes`, the hook's `batchLockInv`/`metaTM`), as for mvcc's compaction, and none of them

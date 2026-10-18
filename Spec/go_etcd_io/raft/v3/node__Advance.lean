@@ -5,6 +5,10 @@
 The driver, done with a `Ready` (its entries appended: the storage's receipt), hands it
 back to `run` (`advancec <- struct{}{}`, `advanceP`); its token is idle again, at the
 committed log handed out so far. `n.done` is never closed (`Stop` is out of scope).
+
+(D19i part 1, 2026-10-18) And the storage's floor is at least the committed log handed out
+(`storFloor`): `run` raises it at the rendezvous (`advInv`), so the application may compact
+and snapshot its storage up to what it applied, before `run`'s `rn.Advance` moves `applied`.
 -/
 module
 
@@ -37,7 +41,8 @@ abbrev node.Advance.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       nodeDriverBusy γ id n ds es ∗ appendReceipt γ.stor es ∗ nodeCfg γ ca cfg }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver γ id n ds ∗ nodeCfg γ ca cfg }}
+  {{ RET #(); nodeDriver γ id n ds ∗ nodeCfg γ ca cfg ∗
+      ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ }}
 
 end spec
 

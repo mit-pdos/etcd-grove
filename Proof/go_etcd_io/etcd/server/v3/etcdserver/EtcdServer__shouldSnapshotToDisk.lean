@@ -35,16 +35,25 @@ theorem EtcdServer.shouldSnapshotToDisk.wp_proof :
   · wp_auto
     iapply HΦ
     iframe
+    ipureintro
+    intro h hd
+    subst hd
+    simp at h
   · wp_auto
     by_cases hd : ai = d
     · simp only [hd, decide_true]
       wp_auto
       iapply HΦ
       iframe
+      ipureintro
+      intro h _
+      simp at h
     · simp only [hd, decide_false]
       wp_auto
       iapply HΦ
       iframe
+      ipureintro
+      intro _; exact hd
 
 end proof
 

@@ -67,21 +67,21 @@ theorem New.wp_proof (wp_run : register.Register.run.spec (GF := GF) (hG := hG))
     iapply BigSepM.bigSepM_empty.2
     itrivial
   unfold nodeDriver
-  icases Hdrv with ⟨#HisNode, Hdlv, #Hdlb⟩
+  icases Hdrv with ⟨#HisNode, Hdlv, #Hdlb, Hreq⟩
   ihave #Hrep : isReplica γr ⟨γn, γc⟩ «$r0_ptr» id n st $$ []
   · unfold isReplica
     simp only [named]
     iframe #
     ipureintro; exact ⟨Hraft, Hstor⟩
-  wp_apply wp_fork $$ [Hdlv value applied HA Hncfg]
+  wp_apply wp_fork $$ [Hdlv Hreq value applied HA Hncfg]
   · wp_apply wp_run γr ⟨γn, γc⟩ «$r0_ptr» id n st send op c0 c1
-      $$ [$Hpkg $Hrep Hdlv value applied HA Hncfg]
+      $$ [$Hpkg $Hrep Hdlv Hreq value applied HA Hncfg]
     · iframe #
       isplitr
       · ipureintro; exact Hmd
       iframe Hncfg
       unfold nodeDriver
-      iframe HisNode Hdlv Hdlb
+      iframe HisNode Hdlv Hdlb Hreq
       unfold runOwn
       iexists [], mA, ∅, []
       simp only [named]

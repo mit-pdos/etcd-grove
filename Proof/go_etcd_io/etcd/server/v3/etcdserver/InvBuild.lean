@@ -232,8 +232,8 @@ read view and the write budget `txn.storeWTs` were rows here until unit N4's `Ne
 2026-10-17; the uber-applier's `applierFor`/`applyKV` until D14i; `storeSmall`, the id budget,
 `clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from
 `NewServer.spec`'s workload premises and the cluster's `Version` contract.) -/
-def srvBuildGap (s : Loc) (ai₀ at₀ : w64) : IProp GF :=
-  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀))
+def srvBuildGap (s : Loc) (γn : RNNames) (ai₀ at₀ : w64) : IProp GF :=
+  iprop("Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀))
 
 end defs
 

@@ -130,11 +130,17 @@ links:
   pass.
 - **Expected**: the application keeps `Compact`'s documented bound, `compactIndex <=
   raftLog.applied`, at every moment raft may read the storage.
-- **How the proof handles it**: not yet. `EtcdServer.compactRaftLog`'s and
-  `EtcdServer.snapshot`'s trust-boundary specs are false (`notes/audit.md`, audit B2); their
-  restatement (D19i part 1, option (A), `notes/decisions.md`) needs the bound raft publishes
-  to be `raftLog.applied`, which this window breaks, so it stopped for a decision
-  (`notes/STATUS.md`, "D19i part 1: stopped").
+- **How the proof handles it** (2026-10-18, D19i part 1, (A1)): the fork carries fix 1
+  (`upamanyus/etcd` `goose-lean` `06aa6e6e`, pushed), re-translated; the proof follows it.
+  Raft publishes a floor the application may compact and snapshot up to (`StorState.fl`,
+  `isStorageWith`'s floor law): `node.go`'s `run` raises it to `applying` at the `advancec`
+  rendezvous (`advInv`, `InvNode.lean`), since `node.Advance` returns there, before
+  `rn.Advance` moves `applied`; in between `run` only calls `rn.Advance`, which reads nothing at
+  or below the floor, and raft's reads from `applied + 1` (`hasUnappliedConfChanges`) take
+  `fl <= applied` as a premise outside that window (`RNState.flw`). `node.Advance` hands the
+  floor's witness to `raftNode.start`, which closes `raftAdvancedC` with it; `applyAll` takes it
+  there, and `EtcdServer.snapshot` and `EtcdServer.compactRaftLog` are restated under it
+  (`notes/audit.md`). Without the fix the witness would not exist when `applyAll` snapshots.
 - **Possible fixes** (etcd):
   1. snapshot and compact only after raft's `Advance` of the batch: `raftNode.start` closes
      `raftAdvancedC` after every `Advance` (today it sends on it only for a batch with a conf

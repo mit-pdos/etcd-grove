@@ -30,7 +30,9 @@ abbrev EtcdServer.shouldSnapshotToMemory.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ m }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"shouldSnapshotToMemory")) (Val #ep))
   {{ (r : Bool), RET #r;
-      epAppliedIAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ m }}
+      epAppliedIAddr ep ↦ ai ∗ epMemSnapAddr ep ↦ m ∗
+      -- (D19i part 1) due only past index `0`
+      ⌜r = true → 0 < uint.Z ai⌝ }}
 
 end spec
 
