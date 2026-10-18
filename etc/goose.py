@@ -132,11 +132,12 @@ PROJECTS = [
         # `watch-progress-closed-substream` (1ac646214, cherry-picked as 107edf7e4) and
         # `watch-progress-before-created` (c267e0ffe, cherry-picked as 09669450f), and the
         # backend's write-back dedupe, etcd-io/etcd#21987 cherry-picked with regression tests
-        # as ea78ec948 (issues/etcd-backend-duplicate-put-stale-read.md; D19i (A)). Branch
+        # as ea78ec948 (issues/etcd-backend-duplicate-put-stale-read.md; D19i (A)), and
+        # `raftAdvancedC` (issues/etcd-compact-past-raft-applied.md; D19i part 1) as 06aa6e6e. Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="ea78ec948b5b05dfbaa044cf7bc75be253057b66",
+        rev="06aa6e6e70e79b4a88ed7d9a24990cbf09daaabf",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

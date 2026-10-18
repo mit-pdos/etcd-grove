@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.raft.v3.InvNode
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Perennial.Ghost.MonoList
 
 @[expose] public section
@@ -680,12 +681,22 @@ def rnTickInv (r : Loc) (q : Qp) : IProp GF :=
 
 /-! ## `applyc` -/
 
-/-- A unit channel with no logical content (`notifyc`, `raftAdvancedC`, `stopped`). -/
+/-- A unit channel with no logical content (`notifyc`, `stopped`). -/
 def isUnitBag (c : Loc) : IProp GF :=
   iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => iprop(True)))
 
 instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) := by
   unfold isUnitBag; infer_instance
+
+/-- `raftAdvancedC` (D19i part 1, 2026-10-18: the fork closes it after every `Advance`, and
+`applyAll` waits for it before snapshotting or compacting): a broadcast channel, never sent on,
+closed once (`make(chan struct{}, 1)`: a `stopChan`); a reader's view of it. -/
+def rnAdvChan (c : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, ownStopChan c γc iprop(True) .Unknown)
+
+instance rnAdvChan_persistent (c : Loc) : Persistent (rnAdvChan (GF := GF) c) := by
+  unfold rnAdvChan; infer_instance
+
 
 /-- The `i`th payload on `applyc`: the log `F` forwarded before it (`cum[i]`) and the batch
 `ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two channels;
@@ -695,7 +706,7 @@ def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC' ∗ committedLast E.γr ce)
+    isUnitBag ap.notifyc' ∗ rnAdvChan ap.raftAdvancedC' ∗ committedLast E.γr ce)
 
 /-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never

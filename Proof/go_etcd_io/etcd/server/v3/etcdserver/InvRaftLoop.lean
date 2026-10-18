@@ -55,7 +55,7 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
       rnApP E γ (rcv.length : Int) ap -∗
       ∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
-        ⌜ap.snapshot' = null⌝ ∗ isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC' ∗
+        ⌜ap.snapshot' = null⌝ ∗ isUnitBag ap.notifyc' ∗ rnAdvChan ap.raftAdvancedC' ∗
         committedLast E.γr ce := by
   iintro Hcons #HA HP
   iunfold rnApP at HP

@@ -326,7 +326,9 @@ theorem raftNode.start.wp_proof
       imod start_bag (fun _ => iprop(True)) _ nc γnc trivial $$ Hncch Hncown with #Hncb
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
       · ipureintro; decide
-      imod start_bag (fun _ => iprop(True)) _ ac γac trivial $$ Hacch Hacown with #Hacb
+      -- (D19i part 1) `raftAdvancedC`: a broadcast channel, closed after `Advance`
+      imod alloc_stop_chan (E := ⊤) iprop(True) γac ac $$ Hacch Hacown with Hacp
+      icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
       -- `proto.Clone(rd.Snapshot)` of the nil snapshot, twice
       rw [Hsnapnil]
       ihave #Hppkg : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -384,9 +386,9 @@ theorem raftNode.start.wp_proof
             iexists γnc
             iexact Hncb
           isplitr
-          · iunfold isUnitBag
+          · iunfold rnAdvChan
             iexists γac
-            iexact Hacb
+            iexact HacU
           iexact Hclast
         inext
         iintro Hprod
@@ -487,7 +489,10 @@ theorem raftNode.start.wp_proof
             wp_auto
             ihave HAdv' := HAdv $$ %L' %ce %es
             wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
-            -- no conf change
+            -- `close(raftAdvancedC)`
+            wp_apply wp_stop_chan_close ac γac iprop(True) $$ [$Hacp] as -
+            · imodintro; itrivial
+            (try wp_auto)
             wp_for_post
             iframe
             iexists (L' ++ ce), false
@@ -523,8 +528,10 @@ theorem raftNode.start.wp_proof
               wp_auto
               ihave HAdv' := HAdv $$ %L' %ce %es
               wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
-              -- a conf change: `raftAdvancedC <- struct{}{}`
-              wp_apply wp_bag_send γac ac () (fun _ => iprop(True)) $$ [$Hacb]
+              -- `close(raftAdvancedC)`
+              wp_apply wp_stop_chan_close ac γac iprop(True) $$ [$Hacp] as -
+              · imodintro; itrivial
+              (try wp_auto)
               wp_for_post
               iframe
               iexists (L' ++ ce), false
@@ -565,10 +572,10 @@ theorem raftNode.start.wp_proof
           wp_auto
           ihave HAdv' := HAdv $$ %L' %ce %es
           wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
-          -- `if confChanged { raftAdvancedC <- struct{}{} }`
-          wp_join with [islead Hacl]
-          · wp_apply wp_bag_send γac ac _ (fun _ => iprop(True)) $$ [$Hacb]
-            wp_join_done
+          -- `close(raftAdvancedC)`
+          wp_apply wp_stop_chan_close ac γac iprop(True) $$ [$Hacp] as -
+          · imodintro; itrivial
+          (try wp_auto)
           wp_for_post
           iframe
           iexists (L' ++ ce), true
