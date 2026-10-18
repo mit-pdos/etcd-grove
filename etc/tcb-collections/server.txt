@@ -107,7 +107,6 @@ axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
-axiom convert_float64_to_int64
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof

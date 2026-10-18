@@ -151,6 +151,8 @@ set_option maxRecDepth 100000 in
 set_option pp.maxSteps 200000 in
 set_option maxHeartbeats 0 in
 theorem NewServer.wp_proof
+    -- `int64(f)`'s semantics (`FloatToInt.lean`: a hypothesis on the semantics, as `go.Semantics`)
+    [Float64ToInt64Semantics]
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
     (h2 : zap.Logger.Info.spec (GF := GF) (hG := hG))

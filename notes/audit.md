@@ -9,13 +9,20 @@ false of Go. This file records each axiom's verdict, the reason, and the fix.
 ## Phase A result (2026-10-18)
 
 All 330 axioms (the baseline's 327 and point 5's three) have a verdict in the table below:
-**39 false, 7 suspect, 222 ok, 62 benign**. Of the false ones, 11 are premise gaps (an argument
+**39 false, 7 suspect, 222 ok, 62 benign** (B1 found two of the ok ones false, the
+`dialWithBalancer` pair: 41 and 220). Of the false ones, 11 are premise gaps (an argument
 every caller already gets right) and 12 are latent (no proof uses the failing instance). The
 false axioms, most important for putget (`examples/putget`, item 9) first:
 
-1. **`convert_float64_to_int64`: inconsistent in Lean.** It is stated for every `GoLocalContext`,
-   and Perennial's default instance (`is_go_step_pure := fun _ _ _ => False`) gives `False` from it
-   in any proof context. `NewServer` uses it. Fix it before anything else (phase B, first item).
+1. **`convert_float64_to_int64`: inconsistent in Lean. Fixed (B1, 2026-10-18).** It was stated
+   for every `GoLocalContext`, and Perennial's default instance (`is_go_step_pure := fun _ _ _ =>
+   False`) gives `False` from it in any proof context (checked in Lean, and `False` closed from
+   concrete instances of every class). Now the hypothesis class `Float64ToInt64Semantics`, which
+   `NewServer.wp_proof` and `wp_NewServer` take as `go.Semantics` is taken. The same check found
+   two more inconsistent axioms of the same kind, also fixed: `Client.dialWithBalancer.unfold`
+   and `.builderType` (now the class `DialWithBalancerBody`). Every other axiom quantified over
+   the semantics' parameters was checked: none states a step, unfolding or type fact
+   (`notes/decisions.md`, "`int64(f)`: a hypothesis class").
 2. **`EtcdServer.monitorStorageVersion`: reached in putget's own Go run.** Once the cluster
    version is set, it migrates the storage version, writing the backend's `meta` bucket under the
    batch lock, which the apply thread owns.
@@ -272,7 +279,7 @@ the constructor's spec returns. Its idealisations are the two suspects and `NewS
 | `grpcServes`, `grpcServesStream`, `grpcConn`, `grpcHealthSrv`, `promSrvMetrics` and their `_persistent` laws (10) | ok | Model above (the persistent registry). |
 | `grpcSrvOpt`, `grpcProtoCodec`, `grpcStatsHandlerOk`, `grpcDialOptIs`, `etcdStreamInterceptor`, `grpcPeerOpt`, `grpcWrotePeer`, `promSrvMetricsOpt` (8) | ok | Model above (pure equalities). |
 | `v3rpc.codec_proto`, `etcdResolver_grpc`, `resolver.New`, `EtcdManualResolver.SetEndpoints`, `EtcdManualResolver.Close`, `endpoint.RequiresCredentials` (6) | ok | `v3rpc/codec.go`; `internal/resolver/resolver.go` (`Interpret(ep) = ep` for a plain endpoint, no-op callbacks); `endpoint.go:90-125`. |
-| `Client.dialWithBalancer.unfold`, `Client.dialWithBalancer.builderType` (2) | ok | `client.go:311-315`; the method is names-only, so no other unfold conflicts. |
+| `Client.dialWithBalancer.unfold`, `Client.dialWithBalancer.builderType` (2) | **false, inconsistent in Lean; fixed** | True of Go (`client.go:311-315`; the method is names-only, so no other unfold conflicts), but stated for **every** `GoSemanticsFunctions`: at `methods := fun _ _ _ => func.nil` the unfolding of two receivers gives `λ arg1, impl v₁ arg1 = λ arg1, impl v₂ arg1`, and at `underlying := id` the named `resolver.Builder` is its interface type: `False` (checked in Lean, B1). **Fixed (B1, 2026-10-18):** the hypothesis class `DialWithBalancerBody`, taken by `Client.dialWithBalancer.wp_proof` and the results linking it (`wp_dialWithBalancer`, `wp_newClient`, `clientv3.wp_New`). |
 | `Client.Endpoints`, `getToken`, `roundRobinQuorumBackoff`, `streamClientInterceptor`, `waitRetryBackoff`, `withVersion` (6) | ok | `client.go:167,285,491`, `retry_interceptor.go:112,312,360`, `ctx.go:41`. |
 | `ClientConn.Target`, `insecure.NewCredentials`, `peer.Peer.String`, `HealthCheckResponse_ServingStatus.String`, `health.NewServer`, `health.Server.SetServingStatus`, `NewAuth`, `NewCluster`, `NewLease`, `NewMaintenance`, `streamKeyFromCtx` (11) | benign | Values, formatting, structs built from the connection. |
 
@@ -280,7 +287,7 @@ the constructor's spec returns. Its idealisations are the two suspects and `NewS
 
 | axiom | verdict | reason |
 |---|---|---|
-| `convert_float64_to_int64` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/FloatToInt.lean`) | **false, inconsistent in Lean** | Stated for **every** `[GoLocalContext]`, whose one field is `is_go_step_pure`; Perennial has `Inhabited GoLocalContext := ⟨⟨fun _ _ _ => False⟩⟩` (`GooseLang/Lang.lean:476`). At that instance `isGoStep_pure_det` says `(fun _ => False) = Eq e`; applied to `e`, `False = (e = e)`: `False`, in any context with `[FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]`, which every proof here has. (Derived by hand, not checked by Lean: phase A builds nothing.) `NewServer` uses it (`int64(math.Ceil(minTTL.Seconds()))`), so it is in putget's trust base. Fix now: a premise tied to the semantics in use (a section or class assumption, as Perennial's `Float64Semantics`), not a global axiom over all contexts. |
+| `convert_float64_to_int64` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/FloatToInt.lean`) | **false, inconsistent in Lean; fixed** | Stated for **every** `[GoLocalContext]`, whose one field is `is_go_step_pure`; Perennial has `Inhabited GoLocalContext := ⟨⟨fun _ _ _ => False⟩⟩` (`GooseLang/Lang.lean:476`). At that instance `isGoStep_pure_det` says `(fun _ => False) = Eq e`; applied to `e`, `False = (e = e)`: `False`, in any context with `[FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]`, which every proof here has. (Derived by hand in phase A; checked in Lean in B1, also closed from concrete instances.) `NewServer` uses it (`int64(math.Ceil(minTTL.Seconds()))`), so it is in putget's trust base. **Fixed (B1, 2026-10-18):** the hypothesis class `Float64ToInt64Semantics` (the function a field, as `FloatOps`'s), taken by `NewServer.wp_proof` and `wp_NewServer` (`gen-link.py`'s `SEM_PREMISES`); a closed theorem takes it as a premise on the local context (D19a). |
 | `storage.NewBackendQuota` | **false** | Its post `isQuota` says `Available` always answers true (`apply/Contracts.lean`, "a construction premise"); Go's `Available` (`storage/quota.go:126-134`) is false once `be.Size() + cost ≥` the quota (2 GiB by default). It also panics on a nil backend, and with a negative quota on a nil logger (`quota.go:80`). On putget's `Put` path (the quota applier, `quotaKVServer`); putget stays far below the quota. This is what hides the NOSPACE alarm (`EtcdServer.Alarm`, `raftRequestAlarm` above) from the model. Fix: a named "the backend stays under its quota" premise. **B3 (2026-10-18): stopped for a decision** (D19h: model the alarm, or the premise `backendUnderQuota`). |
 | `mvcc.store.Close` | **false** | `kvstore.go:515-518` stops the FIFO scheduler, but `isStore` is persistent and contains `schedLive` ("never stopped"), so `store.Compact` after `Close` checks out while Go's `Schedule` panics ("schedule to stopped scheduler", `pkg/schedule/schedule.go`). Only on `NewServer`'s error path (`server.go:380`). |
 | `membership.RaftCluster.SetVersionChangedNotifier` | **false** | Writes `c.versionChanged` without the lock (`cluster.go:252-254`; the spec's comment says under it) with only the persistent `isRaftCluster`; a concurrent `SetVersion` would race. Called once in `NewServer` before `Start`. Fix: the field's points-to. |

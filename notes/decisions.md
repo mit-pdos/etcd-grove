@@ -8887,3 +8887,38 @@ the theorem says nothing.
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
 conclusion to executions where the bounds hold (they are ghost facts, not observable in the
 configuration `goose_adequacy` speaks of).
+
+## `int64(f)`: a hypothesis class, not an axiom over every semantics (2026-10-18)
+
+**2026-10-18 · adopted (branch `raft-retarget`; the axiom audit's first false axiom,
+`notes/audit.md`)**
+
+A fact about Go's semantics that Perennial lacks cannot be an axiom quantified over the semantics'
+own parameters (`[GoLocalContext]`, `[GoGlobalContext]`, `[GoSemanticsFunctions]`): those are
+structures any proof can build, and a statement about the step relation, the method table or
+`underlying` fails at most of them. `convert_float64_to_int64` (`int64(f)` steps) gave `False` at
+Perennial's own default `GoLocalContext` (`fun _ _ _ => False`); the two `dialWithBalancer` axioms
+(its trusted body as a `MethodUnfold`, grpc `resolver.Builder`'s `TypeAssumptions`) gave `False` at
+a `GoSemanticsFunctions` with constant `methods` or `underlying := id`. All three were checked in
+Lean (a scratch file, not committed: `False` closed, from concrete instances of every class).
+
+Perennial's own pattern is the fix: a semantic fact is a field of a hypothesis class
+(`go.Semantics`, `Float64Semantics`, a package's generated `Assumptions`), which the proofs take
+as an instance argument and a closed theorem as a premise on the initial state's local context. So:
+
+- `EtcdGrove.Float64ToInt64Semantics` (`FloatToInt.lean`): the function `float64ToInt64` (a field,
+  as `FloatOps`'s `int64ToFloat64`, so a real Go's conversion can satisfy it) and the step to it.
+  `NewServer.wp_proof` takes it; `wp_NewServer` too.
+- `go_etcd_io.etcd.client.v3.DialWithBalancerBody` (`DialWithBalancerBody.lean`): the two facts
+  the generated `Client.TypeAssumptions` and grpc `resolver`'s `Assumptions` would hold.
+  `Client.dialWithBalancer.wp_proof` takes it; `wp_dialWithBalancer`, `wp_newClient` and
+  `clientv3.wp_New` too.
+- `etc/gen-link.py`'s `SEM_PREMISES` lists the classes: a result takes one when its proof's file
+  has it as a binder or a callee's result (here or in an imported Link) takes it.
+
+D19a's rule admits each as a premise of a closed theorem: a pure fact about Go's semantics,
+satisfiable by the real one. **Proposed to Perennial, on its own** (not done here): a
+`float64ToInt64` field of `FloatOps` (and the other float-to-integer conversions) with its step
+in `Float64Semantics`, which would replace `Float64ToInt64Semantics`; and the translator fix
+for a type of a package the file does not import, which would make `dialWithBalancer`
+translated and `DialWithBalancerBody` part of the generated assumptions.
