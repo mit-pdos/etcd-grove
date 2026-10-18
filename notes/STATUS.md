@@ -6906,8 +6906,16 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
       `isNewClient cl ep V` (D19f) with the watch server's facts at `ep` (`watchAddrFacts V`,
       `isNewClient_watcher`) and the KV's premises at `ep` gives `isEtcdClient`; the end to end
       `cache_end_to_end_new` (cache/v3/Results.lean) takes it instead of the field premises.
-    - **Next** (not started): the program-level theorem (a server started, `clientv3.New`, the
-      cache's `New`), as the adequacy example's (item 9).
+    - *The started-server step* (2026-10-18; the user chose it over a closed theorem, which
+      waits on item 9's points 3--5 and 7): `etcd_cache_served` (cache/v3/Results.lean), the
+      ghost step between `net.Listen` and `go gs.Serve(lis)`: `etcd_kv_started`'s premises and
+      the watch service's (`etcd_watch_served_chain`'s: the `*watchServer`, the stream chain's
+      contracts, the run slots) give the right to serve, `Range` at `addr` and
+      `watchAddrFacts V` (`srvLogsSmall` from `isServerRead`, the store link from
+      `isWatchServer`), given the wire's and the packages' facts `watchAddrFacts` lists. With
+      `clientv3.New`'s result at `addr` these are `cache_end_to_end_new`'s premises.
+    - **Next**: the closed theorem for a cache program (a `Main` with the server, `clientv3.New`
+      and the cache's `New`, through `goose_adequacy`), after item 9 (the KV example) is closed.
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`
