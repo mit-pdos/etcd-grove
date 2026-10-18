@@ -506,11 +506,23 @@ def quotaReqTy (t : go.GoType) : Prop :=
   t = go.GoType.PointerType etcdserverpb.TxnRequest.ty ∨
   t = go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty
 
+/-- **The backend stays under its quota** (opaque, a named workload premise, D19a's first kind;
+audit phase B3, D19h, 2026-10-18, adopted by the user): every `Available` of the run's quotas
+answers true, i.e. the backend's size plus a request's cost stays below the configured quota
+(`BackendQuota.Available`, `storage/quota.go`: 2 GiB by default). True of putget (one small key);
+false of a workload that fills the quota, which the closed theorem then does not cover: the
+NOSPACE path (the quota's `ErrNoSpace`, the NOSPACE alarm, the capped applier) stays outside the
+model. A premise of `storage.NewBackendQuota`'s axiom, so of the constructions above it
+(`newQuotaApplierV3` ... `NewServer.spec`; v3rpc's `newBackendQuota` ... `v3rpc.Server`). The
+model of the alarm instead (D19h's option (A)) is the later route for a theorem covering a full
+disk. -/
+opaque backendUnderQuota : Prop
+
 /-- **The `storage.Quota` `q`** (trust boundary: `storage` is names-only): `Available` and `Cost`
-return, on the three request types. **`Available` returns `true`** (2026-10-14, unit T1): the
-backend never reaches its quota (the disk never fills), a construction premise; so no applier sets
-`ErrNoSpace` and the server never proposes the NOSPACE `Alarm` (`server.go:1976`,
-`quotaAlarmer.check`). -/
+return, on the three request types. **`Available` returns `true`** (2026-10-14, unit T1): under
+the named premise `backendUnderQuota` (audit phase B3, 2026-10-18; until then an unstated
+construction premise), which `storage.NewBackendQuota` takes; so no applier sets `ErrNoSpace` and
+`quotaAlarmer.check` never proposes the NOSPACE `Alarm`. -/
 def isQuota (q : GoInterface) : IProp GF :=
   iprop(∃ qi : GoInterfaceOk, ⌜q = GoInterface.ok qi⌝ ∗
     □ (∀ (t : go.GoType) (p : Loc), ⌜quotaReqTy t⌝ -∗

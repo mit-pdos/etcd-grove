@@ -36,6 +36,8 @@ caller could discharge). The alarm store is the real one (`isAlarmStore a`: its 
 abbrev EtcdServer.NewUberApplier.spec : Prop :=
   ∀ (s lg a cl : Loc) (kv au le ci be fg : GoInterface) (quota : w64)
     (wad : time.Duration) (RD : IProp GF) (dq : DFrac) (T : IProp GF) (z : Bool),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ srvKVAddr s ↦□ kv ∗ srvAlarmStoreAddr s ↦□ a ∗
       srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗ srvClusterAddr s ↦□ cl ∗

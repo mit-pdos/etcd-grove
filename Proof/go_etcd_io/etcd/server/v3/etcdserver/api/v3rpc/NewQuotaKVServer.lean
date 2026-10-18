@@ -34,13 +34,13 @@ theorem v3rpc.NewQuotaKVServer.wp_proof
     (wp_newBackendQuota : v3rpc.newBackendQuota.spec (GF := GF) (hG := hG))
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) := by
-  intro s A n lg qb mid
+  intro s A n lg qb mid Hbuq
   wp_start as ⟨#HKV, #Hn, #Hlg, %Hlgn, Hlr, #Hqb, Hbr, #Hmid⟩
   wp_auto
   wp_apply wp_NewKVServer s A n $$ [] as %kv ⟨%p, %cid, %mid', %Hkv, #Hp⟩
   · iframe #
   subst Hkv
-  wp_apply wp_newBackendQuota s lg qb go!"kv" $$ [Hlr Hbr] as %qv ⟨#Hq, Hlr, Hbr⟩
+  wp_apply wp_newBackendQuota s lg qb go!"kv" Hbuq $$ [Hlr Hbr] as %qv ⟨#Hq, Hlr, Hbr⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   wp_apply wp_MemberID s mid $$ []
   · iframe #

@@ -32,6 +32,8 @@ applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChai
 layer's mutex takes the reader resource `E.RD` (2026-10-14, unit A2). -/
 abbrev apply.NewUberApplier.spec : Prop :=
   ∀ (opts : ApplierOptions) (RD : IProp GF) (T : IProp GF) (z : Bool),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD ∗
       apply.alarmGetIs opts.AlarmStore' T z ∗ T }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))

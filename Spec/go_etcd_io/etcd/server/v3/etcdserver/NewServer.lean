@@ -130,6 +130,7 @@ abbrev NewServer.spec : Prop :=
       -- the named premises of the constructors' axioms (D14e, unit N4): the background
       -- goroutines' effects and the auth store's record bound
       "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗ "#Hrs" ∷ rnRaftStatusOk ∗

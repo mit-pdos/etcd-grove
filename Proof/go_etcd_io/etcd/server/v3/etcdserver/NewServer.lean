@@ -561,7 +561,7 @@ theorem NewServer.wp_proof
   ipersist QuotaBackendBytesS
   ipersist WarningApplyDurationS
   wp_apply (h33 s cfg.Logger' alst bc.cl' _ _ _ _ _ _ cfg.QuotaBackendBytes'
-      cfg.WarningApplyDuration' RD (DFrac.own 1) (alarmFresh alst) true) $$ [HRD be Hafr]
+      cfg.WarningApplyDuration' RD (DFrac.own 1) (alarmFresh alst) true Hbuq) $$ [HRD be Hafr]
     as %ua ⟨be, Hafr, %up, %uopts, %Hua, %Huopts, Hulate⟩
   · iframe #; iframe HRD be Hafr
   -- the alarm store handed over: its apply contract (D14i)

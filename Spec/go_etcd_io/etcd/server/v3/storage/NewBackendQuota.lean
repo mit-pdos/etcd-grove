@@ -23,9 +23,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- `NewBackendQuota(lg, cfg, be, name)` (`newQuotaApplierV3`): a `Quota` (`isQuota`: a
 `passthroughQuota` for a negative `cfg`, else a `BackendQuota` over `be`; it sets a gauge and
-logs once). -/
+logs once). Its `Available` answers true only under the named workload premise
+`apply.backendUnderQuota` (audit phase B3, D19h, 2026-10-18: until then unconditional, false of
+Go once the backend reaches the quota). -/
 abbrev storage.NewBackendQuota.spec : Prop :=
   ∀ (lg : Loc) (cfg : w64) (be : GoInterface) (name : GoString),
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewBackendQuota)) (Val #lg))
       (Val #cfg)) (Val #be)) (Val #name))

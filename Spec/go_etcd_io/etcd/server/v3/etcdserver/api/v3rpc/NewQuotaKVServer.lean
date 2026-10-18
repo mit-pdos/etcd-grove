@@ -32,6 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 alarmer `s` and its member id; the reader slots come back. -/
 abbrev v3rpc.NewQuotaKVServer.spec : Prop :=
   ∀ (s : Loc) (A : v3rpc.KVAns GF) (n : w64) (lg : Loc) (qb mid : w64),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ v3rpc.raftKV s A ∗

@@ -32,6 +32,8 @@ s.Cfg.QuotaBackendBytes, s.Backend(), name)`, a quota (`apply.isQuota`); the rea
 `lgMu` and `bemu` come back. -/
 abbrev v3rpc.newBackendQuota.spec : Prop :=
   ∀ (s lg : Loc) (qb : w64) (name : GoString),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗

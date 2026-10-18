@@ -36,10 +36,10 @@ theorem apply.newQuotaApplierV3.wp_proof
     (hTxn : apply.quotaApplierV3.Txn.spec (GF := GF) (hG := hG))
     (hLG : apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG)) :
     apply.newQuotaApplierV3.spec (GF := GF) (hG := hG) := by
-  intro lg cfg be base
+  intro lg cfg be base Hbuq
   wp_start
   wp_auto
-  wp_apply hNBQ as %q #Hq
+  wp_apply hNBQ _ _ _ _ Hbuq as %q #Hq
   wp_alloc p as Hp
   iStructNamed Hp
   ipersist applierV3

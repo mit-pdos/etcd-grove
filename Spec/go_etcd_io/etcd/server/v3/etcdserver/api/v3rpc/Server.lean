@@ -39,6 +39,8 @@ type checker's facts). The server's resources come back (the progress interval
 written by `NewWatchServer`). -/
 abbrev v3rpc.Server.spec : Prop :=
   v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
+  -- the backend stays under its quota (audit phase B3, D19h)
+  apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d ∗ ⌜sint.Z d ≤ 2 ^ 62⌝ ∗

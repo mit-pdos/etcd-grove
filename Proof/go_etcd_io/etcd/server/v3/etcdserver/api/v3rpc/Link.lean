@@ -8,7 +8,6 @@ hand.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Alarm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.FiltersFromRequest
@@ -333,10 +332,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem EtcdServer.wp_Alarm :
-    EtcdGrove.EtcdServer.Alarm.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.EtcdServer.Alarm.wp_proof
-
 theorem EtcdServer.wp_IsLearner :
     EtcdGrove.EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.EtcdServer.IsLearner.wp_proof
@@ -591,7 +586,7 @@ theorem wp_isClientCtxErr :
 
 theorem quotaAlarmer.wp_check :
     EtcdGrove.v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.quotaAlarmer.check.wp_proof EtcdServer.wp_Alarm
+  EtcdGrove.v3rpc.quotaAlarmer.check.wp_proof
 
 theorem quotaKVServer.wp_Put :
     EtcdGrove.v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG) :=

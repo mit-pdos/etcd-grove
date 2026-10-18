@@ -56,7 +56,7 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # their contracts are premises, `InvGrpc.lean`); the quota wrapper (quota.go); the unary
 # interceptors (interceptor.go, util.go's `isRPCSupportedForLearner`). The server's getters are
 # linked in the server's Link (`@`). Trust boundary (axioms): the apply package's
-# `storage.NewBackendQuota`; the names-only `EtcdServer.Alarm` (`raftRequest` of an alarm),
+# `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
 # `IsMemberExist`, `IsLearner` (the cluster's), `api.IsCapabilityEnabled`, grpc's
 # `metadata.FromIncomingContext`/`MD.Get`, `utf8.ValidString`, prometheus's
 # `CounterVec.WithLabelValues`, and `logUnaryRequestStats` (zap, peer, proto.Size).
@@ -78,7 +78,6 @@ EtcdServer__MemberID: @
 EtcdServer__Leader: @
 metadata_FromIncomingContext:
 storage_NewBackendQuota:
-EtcdServer__Alarm:
 EtcdServer__IsMemberExist:
 EtcdServer__IsLearner:
 api_IsCapabilityEnabled:
@@ -89,7 +88,7 @@ logUnaryRequestStats:
 isRPCSupportedForLearner:
 newBackendQuota: EtcdServer__Logger EtcdServer__Backend storage_NewBackendQuota
 NewQuotaKVServer: NewKVServer newBackendQuota EtcdServer__MemberID
-quotaAlarmer__check: EtcdServer__Alarm
+quotaAlarmer__check:
 quotaKVServer__Put: quotaAlarmer__check
 quotaKVServer__Txn: quotaAlarmer__check
 newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
