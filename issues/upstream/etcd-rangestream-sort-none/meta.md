@@ -27,7 +27,7 @@ key order the stream advances about two keys per chunk while each chunk stays ne
 at the base (2026-10-18, one member, `etcdctl get k l --sort-by=CREATE --stream`): 2000 keys of 1000-byte values,
 2.0 MB by `get`, 267 MB streamed in 3.2 s (4442 key-values). The server's work stays proportional to what it sends,
 which a client with read access can also cause with repeated `get`s of the whole range, and gRPC flow control paces
-it by the client's reads; so not treated as a security report. The user decides (the fix removes it too).
+it by the client's reads; not a security report (the user's decision, 2026-10-18; the fix removes it too).
 
 ## Duplicates checked (2026-10-16, again 2026-10-18)
 
