@@ -209,6 +209,39 @@ theorem v3rpc.rcvOk_same (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (γc : mv
     intro a b c d e
     exact absurd ⟨a, b, c, d, e⟩ h
 
+/-- **A watcher's responses with events carry its range's id** (K2e-7d; `respOk`'s, through
+`watcherFixed_id`). -/
+theorem v3rpc.rcvOk_wid' (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames)
+    (rcv : List mvcc.RespM) (w : Loc) (rr : mvcc.WatchRange) (fcs : GoSlice) :
+    v3rpc.rcvOk (GF := GF) γs γ γc rcv ∗ mvcc.watcherFixed w rr fcs ⊢
+      ⌜∀ (k : Nat) (y : mvcc.RespM), rcv[k]? = some y → y.w = w → y.evs ≠ [] → y.id = rr.id⌝ := by
+  refine (forall_intro fun k => ?_).trans pure_forall.2
+  refine (forall_intro fun y => ?_).trans pure_forall.2
+  by_cases h : rcv[k]? = some y ∧ y.w = w ∧ y.evs ≠ []
+  · obtain ⟨hk, hw, he⟩ := h
+    iintro ⟨#H, #Hf⟩
+    iunfold v3rpc.rcvOk at H
+    ihave ⟨#Ho, -⟩ := H $$ %k %y %hk
+    iunfold mvcc.respOk at Ho
+    icases Ho with ⟨-, %rr1, %f1, #Hf1, %Hid1⟩
+    irevert Hf1; rw [hw]; iintro #Hf1
+    ihave %Hag := v3rpc.watcherFixed_id w rr1 rr f1 fcs $$ [$Hf1 $Hf]
+    ipureintro
+    intro _ _ _
+    rw [Hid1 he, Hag]
+  · iintro _
+    ipureintro
+    intro a b c
+    exact absurd ⟨a, b, c⟩ h
+
+theorem v3rpc.rcvOk_wid (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames)
+    (rcv : List mvcc.RespM) (w : Loc) (rr : mvcc.WatchRange) (fcs : GoSlice) :
+    v3rpc.rcvOk (GF := GF) γs γ γc rcv ⊢ mvcc.watcherFixed w rr fcs -∗
+      ⌜∀ (k : Nat) (y : mvcc.RespM), rcv[k]? = some y → y.w = w → y.evs ≠ [] → y.id = rr.id⌝ := by
+  iintro #H #Hf
+  iapply v3rpc.rcvOk_wid' γs γ γc rcv w rr fcs
+  iframe #
+
 /-- A receipt: the response's facts (`watch_recv_au`'s) extend `rcvOk`. -/
 theorem v3rpc.rcvOk_snoc (γs : v3rpc.StreamNames) (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames)
     (rcv : List mvcc.RespM) (r : mvcc.RespM) (hidx : r.idx = rcv.length) :
@@ -962,7 +995,11 @@ local macro "watch_resp" : tactic => `(tactic| (
           · iunfold v3rpc.mvccCov
             iexists r.γc, rcv, r.γo, r.γa
             iframe Haux HrL HrC HrR Hcq
-            ipureintro; exact ⟨Hγoc2.1, Hγoc2.2, Hγoc.2.2.1, Hridx, v3rpc.fwdCov_direct hI hL hD x⟩
+            isplitr
+            · ipureintro; exact ⟨Hγoc2.1, Hγoc2.2, Hγoc.2.2.1, Hridx⟩
+            iintro !> %w %rr %fcs #Hwf
+            ihave %Hw := v3rpc.rcvOk_wid _ _ _ _ w rr fcs $$ Hrok Hwf
+            ipureintro; exact v3rpc.fwdEvs_direct hI hL hD x w rr.id Hw
           ipureintro
           exact ⟨v3rpc.src_fresh hD Hidx0 x (by
             rw [Hridx]; intro h; exact absurd (hI.bound _ h) (Nat.lt_irrefl _)),
@@ -1310,9 +1347,16 @@ local macro "ctrl_created" X:term : tactic => `(tactic| (
           iexists r.γc, pre, r.γo, r.γa
           rw [hln]
           iframe Haux HlN HcN HrN Hcq
+          have hX0 : $X ≠ W64 (-1) := fun h => by
+            have := hI.noPend $X (Or.inr h) (by simp)
+            rw [this] at hn; simp at hn
+          isplitr
+          · ipureintro; exact ⟨Hγoc2.1, Hγoc2.2, Hγoc.2.2.1, HiN⟩
+          iintro !> %w %rr %fcs #Hwf
+          ihave %Hw := v3rpc.rcvOk_wid _ _ _ _ w rr fcs $$ Hrok Hwf
           ipureintro
-          exact ⟨Hγoc2.1, Hγoc2.2, Hγoc.2.2.1, HiN,
-            by rw [hpre]; exact v3rpc.fwdCov_flush hIk hpk hLk hDk xp.1⟩
+          rw [hpre]
+          exact v3rpc.fwdEvs_flush hIk hpk hDk xp.1 (v3rpc.pend_id hIk hpk hrn) hX0 w rr.id Hw
         ipureintro
         have hX0 : $X ≠ W64 (-1) := fun h => by
           have := hI.noPend $X (Or.inr h) (by simp)

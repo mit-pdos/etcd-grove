@@ -2447,7 +2447,7 @@ theorem watchGRPCStream.run.wp_proof
       by_cases hid : ρ.id = W64 (-1)
       · -- a progress response of id `-1` (unit W-K): broadcast to every registered substream
         iunfold v3rpc.mvccCov at Hcov
-        icases Hcov with ⟨%γc, %pre, %γo, %γa, #Hax, %Hγ, #Hsl0, #Hrc, #Hra, #Hcq⟩
+        icases Hcov with ⟨%γc, %pre, %γo, %γa, #Hax, %Hγ, #Hfwd, #Hsl0, #Hrc, #Hra, #Hcq⟩
         iunfold mvcc.respCov at Hrc
         icases Hrc with ⟨-, #Hcmp, -⟩
         iunfold mvcc.respCompl at Hcmp

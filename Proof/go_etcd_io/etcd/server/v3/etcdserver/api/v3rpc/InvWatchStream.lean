@@ -202,13 +202,19 @@ def idLive (L : List WatchRespM) (X : w64) : Prop :=
   ((L.filter (fun m => decide (m.src = none ∧ m.watchId = X))).getLast?.map
     (fun m => m.created && !m.canceled)) = some true
 
-/-- **What was forwarded before a response** `r` (pure; K2e-7d): every response queued on the
-channel before `r` (`pre`) of an id live after the responses `L` sent before `r`, `r`'s own or any
-for `r` of id `-1`, was sent (the send loop sends a live id's responses at once, and flushes an
-id's buffered ones right after its created response). -/
-def fwdCov (L : List WatchRespM) (pre : List mvcc.RespM) (r : mvcc.RespM) : Prop :=
-  ∀ X, X ≠ W64 (-1) → idLive L X → (r.id = X ∨ r.id = W64 (-1)) →
-    ∀ x ∈ pre, x.id = X → ∃ m' ∈ L, m'.src = some x
+/-- The mvcc responses with events of the watcher `w` among the responses `L` sent down. -/
+def sentEvsOf (L : List WatchRespM) (w : Loc) : List mvcc.RespM :=
+  (L.filterMap WatchRespM.src).filter fun x => decide (x.w = w ∧ x.evs ≠ [])
+
+/-- **What was forwarded of a watcher before a response** `r` (pure; K2e-7d): for the watcher `w`
+of the id `X` (its responses with events carry it), live after the responses `L` sent before `r`,
+`r`'s own or any for `r` of id `-1`: its responses with events sent are those queued on the
+channel before `r` (`pre`), in order (the send loop sends a live id's responses at once, and
+flushes an id's buffered ones right after its created response). -/
+def fwdEvs (L : List WatchRespM) (pre : List mvcc.RespM) (r : mvcc.RespM) (w : Loc) (X : w64) :
+    Prop :=
+  X ≠ W64 (-1) → idLive L X → (r.id = X ∨ r.id = W64 (-1)) →
+    sentEvsOf L w = (pre.filter (fun y => decide (y.w = w))).filter (fun y => decide (y.evs ≠ []))
 
 /-- **The responses sent before a response were queued before it** (pure; K2e-7d): those sent
 while `r`'s id was live (any, for `r` of id `-1`, which is sent at once) are before `r` on the
@@ -216,10 +222,6 @@ channel (`idx`). -/
 def fwdIdx (L : List WatchRespM) (r : mvcc.RespM) : Prop :=
   ∀ (i : Nat) (m' : WatchRespM) (y : mvcc.RespM), L[i]? = some m' → m'.src = some y →
     (r.id = W64 (-1) ∨ idLive (L.take i) r.id) → y.idx < r.idx
-
-/-- The mvcc responses with events of the watcher `w` among the responses `L` sent down. -/
-def sentEvsOf (L : List WatchRespM) (w : Loc) : List mvcc.RespM :=
-  (L.filterMap WatchRespM.src).filter fun x => decide (x.w = w ∧ x.evs ≠ [])
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -547,14 +549,15 @@ channel `γc` (its registration indices, cancellation reason and sent list named
 `γo`, the run's auxiliary name), the responses `pre` sent before it (`r.idx` its position, the
 snapshot `pre ++ [r]`), what it covers (`respCov`) and, for id `-1`, the watchers registered
 before it (`regsAt`); and the stream's cancellation reason, the client's cancel requests
-(`cancelQ`, saved at `γo.rsn`); (K2e-7d) what was forwarded of `pre` before `r`, sent after
-the responses `L` (`fwdCov`). -/
+(`cancelQ`, saved at `γo.rsn`); (K2e-7d) what was forwarded of each watcher before `r`, sent
+after the responses `L` (`fwdEvs`, for a watcher of its range's id). -/
 def mvccCov (γs : StreamNames) (γ : mvcc.WsNames) (L : List WatchRespM) (r : mvcc.RespM) :
     IProp GF :=
   iprop(∃ (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName),
     streamAuxIs γs (auxOf γo γa) ∗
-    ⌜γo.regi = γc.regi ∧ γo.rsn = γc.rsn ∧ γo.sentl = γc.sentl ∧ r.idx = pre.length ∧
-      fwdCov L pre r⌝ ∗
+    ⌜γo.regi = γc.regi ∧ γo.rsn = γc.rsn ∧ γo.sentl = γc.sentl ∧ r.idx = pre.length⌝ ∗
+    (□ ∀ (w : Loc) (rr : mvcc.WatchRange) (fcs : GoSlice), mvcc.watcherFixed w rr fcs -∗
+      ⌜fwdEvs L pre r w rr.id⌝) ∗
     mvcc.chanSentLb γc (pre ++ [r]) ∗ mvcc.respCov γ γc pre r ∗ mvcc.regsAt γc pre.length r ∗
     savedPredOwn γo.rsn DFrac.discard (cancelQ γs))
 
