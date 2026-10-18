@@ -1,0 +1,77 @@
+# The client lease's stage (c), its workload-free half (2026-10-18, branch `slice-wk`): etcd's
+# Lease service's unary path from the gRPC handlers (`_Lease_LeaseGrant_Handler`,
+# `_Lease_LeaseRevoke_Handler`, the quota wrapper, `LeaseServer.LeaseGrant`/`LeaseRevoke`) down to
+# the server's lease methods, a premise (`v3rpc.raftLessor`, v3rpc/InvLease.lean); the
+# registrations of the client's lease specs at the server's model (`etcd_lease_served`, with the
+# KV's: `etcd_kv_lease_served`) and the client's lease results over them
+# (client/v3/Results.lean's `lease_served` section). The trust boundary: the client lease's and
+# the KV service's (grpc's serving, the interceptors' names-only functions, the quota).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/lease-served.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bclient\.(etcd_lease_served|etcd_kv_lease_served|client_lessor_isEtcdLease_served|client_new_isEtcdLeaseClient_served)$
+axiom NewLoggableTxnRequest.wp_proof
+axiom RangeRequest.String.wp_proof
+axiom attribute.Bool.wp_proof
+axiom attribute.Int.wp_proof
+axiom attribute.Int64.wp_proof
+axiom attribute.String.wp_proof
+axiom backend.optsAt
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom context.ErrAny.wp_proof
+axiom context.ValueKeepAlive.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
+axiom errors.IsStatusErr.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpc.serve
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcPeerOpt
+axiom grpcServerAt
+axiom grpcServes
+axiom grpcServesStream
+axiom grpcServesStream_persistent
+axiom grpcServes_persistent
+axiom grpcWrotePeer
+axiom lessor.closeRequireLeader.wp_proof
+axiom promSrvMetrics
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.MarshalIRR.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom reflect.ValueOf.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Trace.LogWithStepThreshold.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom verify.Verify.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof

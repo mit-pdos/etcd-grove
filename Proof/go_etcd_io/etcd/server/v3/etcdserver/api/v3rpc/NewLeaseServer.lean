@@ -39,18 +39,37 @@ theorem v3rpc.NewLeaseServer.wp_proof
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hHdr s A) as %hv -
+  wp_apply (hHdr s A) as %hv ⟨%cid, %mid, #Hhv⟩
   · iframe #
+  ihave %Hpn := typedPointsto_not_null _ _ _ $$ «$r0»
   iStructNamed «$r0»
+  iStructNamed hdr
+  ipersist clusterID
+  ipersist memberID
+  ipersist sg
+  ipersist rev
+  ipersist le
+  iunfold v3rpc.hdrValIs at Hhv
+  icases Hhv with ⟨%Hhv, #HrevS, #Hrs⟩
+  obtain ⟨Hc, Hm, Hsg⟩ := Hhv
+  ihave #Hat : v3rpc.leaseServerAt «$r0_ptr» s A cid mid $$ []
+  · iunfold v3rpc.leaseServerAt
+    iunfold v3rpc.hdrIs
+    iframe #
+    rw [Hc, Hm, Hsg]
+    iframe #
+    ipureintro; exact Hpn
   wp_if_destruct
   · wp_apply hNop as %l -
     (try wp_auto)
     iapply HΦ
-    iexists «$r0_ptr»
+    iexists «$r0_ptr», cid, mid
+    iframe #
     ipureintro; rfl
   · (try wp_auto)
     iapply HΦ
-    iexists «$r0_ptr»
+    iexists «$r0_ptr», cid, mid
+    iframe #
     ipureintro; rfl
 
 end proof

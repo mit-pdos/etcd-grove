@@ -43,7 +43,7 @@ theorem v3rpc.NewQuotaLeaseServer.wp_proof
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_NewLeaseServer s A lg0 $$ [] as %ls ⟨%p, %Hls⟩
+  wp_apply wp_NewLeaseServer s A lg0 $$ [] as %ls ⟨%p, %cid, %mid', %Hls, #Hp⟩
   · iframe #
   subst Hls
   wp_apply wp_newBackendQuota s lg qb go!"lease" Hbuq $$ [Hlr Hbr] as %qv ⟨#Hq, Hlr, Hbr⟩
@@ -51,11 +51,27 @@ theorem v3rpc.NewQuotaLeaseServer.wp_proof
   wp_apply wp_MemberID s mid $$ []
   · iframe #
   wp_alloc q as Hqv
+  ihave %Hqn := typedPointsto_not_null _ _ _ $$ Hqv
+  iStructNamed Hqv
+  iStructNamed qa
+  ipersist LeaseServer
+  ipersist q
+  ipersist a
+  ipersist id
   wp_auto
   iapply HΦ
+  iexists q, p, cid, mid'
+  isplitr
+  · ipureintro; rfl
   iframe
-  iexists q
-  ipureintro; rfl
+  iframe #
+  iunfold v3rpc.quotaLeaseServerAt
+  iframe #
+  isplitr
+  · ipureintro; exact Hqn
+  iunfold v3rpc.quotaAlarmerAt
+  iexists qv, mid
+  iframe #
 
 end proof
 
