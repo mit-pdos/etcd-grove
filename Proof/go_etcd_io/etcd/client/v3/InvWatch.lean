@@ -380,6 +380,14 @@ structure WsPrm (GF : BundledGFunctors) where
   its create request says so (`CreateReqM.sr`) -/
   sr : Bool
 
+/-- **The watch promises completeness** (K2e-7d): its start revision was read from the server's
+store (`sr`), a non-zero one, and it is a prefix watch of a non-empty key not all `0xff` (its range
+end neither empty nor `[0]`, so that the registered range covers exactly the keys under it,
+`covers_prefix`). -/
+def cplOf (P : WsPrm GF) : Bool :=
+  P.sr && decide (P.o.key ≠ [] ∧ P.o.base.rangeEnd = prefixRangeEnd P.o.key ∧
+    prefixRangeEnd P.o.key ≠ [W8 0] ∧ P.rev ≠ W64 0)
+
 /-- **The request is one of the contract's** (pure): a range watch under `pfx` from `rev ≥ 0`
 (`isRangeWatch`, `OpWatch` not panicking) whose `watchRequest` fields are the model's. -/
 def wsReqOk (pfx : GoString) (P : WsPrm GF) : Prop :=
@@ -465,7 +473,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Unknown ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev) ∗
-    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = false⌝ ∗ startOk V P.sr P.rev)
+    ⌜P.ws ≠ null ∧ wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ ∗ startOk V P.sr P.rev)
 
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance

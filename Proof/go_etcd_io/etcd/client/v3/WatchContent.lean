@@ -615,7 +615,10 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
         ∃ e, (evsOf (Dm ++ [m]) w).getLast? = some e ∧
           (es.getLast?.map EvModel.rev).getD hi = e.kv.modRev⌝ ∗
       (⌜evsOf (Dm ++ [m]) w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
-        ⌜evsOf (Dm ++ [m]) w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) := by
+        ⌜evsOf (Dm ++ [m]) w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
+      (∃ kvs : List Loc, ⌜es = List.zipWith evModelOf ρ.evs kvs ∧ kvs.length = ρ.evs.length⌝ ∗
+        □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜ρ.evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
+          mvcc.kvPtrFixed kv ev.kv)) := by
   iintro ⟨#Hsm, #Hnd, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
   ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps ρ.evs hps $$ [Hsl Hevs]
   · iframe #
@@ -646,7 +649,11 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
       simp at h
     isplitr
     · ipureintro; exact hhi
-    iexact Hcut
+    isplitr
+    · iexact Hcut
+    iexists kvs
+    iframe Hkv
+    ipureintro; rw [hes]; exact ⟨rfl, Hkvl⟩
   -- events: the sealed log, unfiltered
   have hw := hρw hne
   irevert Hrecv
@@ -750,11 +757,15 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
     refine ⟨elast, ?_, ?_⟩
     · rw [hsn, List.getLast?_append, helast]; rfl
     · rw [hlast, helast]; rfl
-  iright
-  iexists L, d
-  iframe HL
-  ipureintro
-  exact ⟨hsn.trans hflat', hlod, hdd⟩
+  isplitr
+  · iright
+    iexists L, d
+    iframe HL
+    ipureintro
+    exact ⟨hsn.trans hflat', hlod, hdd⟩
+  iexists kvs
+  iframe Hkv
+  ipureintro; exact ⟨rfl, Hkvl⟩
 
 end content
 
