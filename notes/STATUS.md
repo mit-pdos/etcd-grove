@@ -6883,8 +6883,27 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
     accepts: `nil`, `ctx.Err()` (`ctxErrClientAllW`), the stream's close error (`closeErrPub`) or
     `errors.New`'s (`errorsNewOk`); the retry after a dropped stream is Löb induction. Exported:
     `client_watcher_progressNotifier` (`isEtcdProgressNotifier`).
-    - **Next**: K3, the cache bundle over etcd's client (`client_watcher_etcdWatcher`,
-      `client_watcher_progressNotifier`, the KV's `isEtcdKV`).
+  - **K3 (done, 2026-10-18): the cache over etcd's client and server**
+    (`cache_end_to_end_client`, cache/v3/Results.lean; trust base `etc/tcb-collections/cache-client.txt`:
+    34 axioms, no `sorry`).
+    - *The cache asks of its client only what it uses* (K3a): `isEtcdClient` lost `isEtcdTxnKV`
+      and `isEtcdLeaseClient`; `isEtcdKVE`'s gets are exact (`getExact`, the cache's two gets
+      are), its result `kvGetResultC`: etcd's state with the key-values (`isEtcdKvs`) only for
+      a prefix get, for any get that etcd had a state (`etcdHasState`). A linearizable
+      `Cache.Get`'s server revision (`serverRevision`, `cacheGetErr`, `cacheGetOk`) is stated
+      with `etcdHasState` (it was `isEtcdKvs`, whose key-value pointers a count-only get does
+      not have).
+    - *The KV at the server, any context* (K3b): `kv_get_server` (`ServerKVGet.lean`), the core
+      of `isEtcdKVTodo_of_kv` (at `context.TODO()`) and of `isEtcdKVE_of_kv` (any context whose
+      `Err()` gives client errors, `ctxErrClientAll`: the watcher's `ctxErrClientAllW`).
+    - *The bundle* (`isEtcdClient_of_server`, `client/v3/CacheClient.lean`): a client whose `KV`
+      is a real `*kv` and whose `Watcher` is etcd's client watcher over the same server
+      (`V.R.E = E`), for the watcher's prefix (not all `0xff`).
+    - Premises of the end to end beyond `New`'s and `isClientWatcher`'s: the KV's (`Range`'s
+      registration, `isServerRead`, `sortNamesOk`, `kvAnyAu E γr`), and the client's field
+      points-to's (`clientKVAddr`, `clientWatcherAddr`), as `queue_end_to_end_client`.
+    - **Next** (not started): from `clientv3.New`'s result (`isNewClient`, D19f) instead of
+      the field premises; the program-level theorem (a server started, a client, a cache).
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`

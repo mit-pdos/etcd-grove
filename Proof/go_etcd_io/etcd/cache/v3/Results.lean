@@ -20,10 +20,16 @@ Every Go function of the package has a `Spec`/`Proof` pair and a linked result
   everything below the compaction revision.
 * `WaitForRevision`, `WaitForNextResync`, `Close`, `Ready`, `WaitReady`, `RequestProgress`: the
   remaining methods of `Cache`.
+* **The cache over etcd's client and server** (`cache_end_to_end_client`, unit K3): `New` for a
+  client that is etcd's client (a real `*kv`, etcd's client watcher) over etcd's server, the
+  trust boundary about the client discharged (`client.isEtcdClient_of_server`): the results
+  above then speak of etcd's server (`v3rpc.etcdModelOfServer E`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Link
+public import Proof.go_etcd_io.etcd.client.v3.CacheClient
+public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
 
@@ -110,6 +116,61 @@ theorem cache_Close : Cache.Close.spec (GF := GF) (hG := hG) := Cache.wp_Close
 
 end results
 
+/-! ## etcd's cache over etcd's client (unit K3, 2026-10-18)
+
+`New` of etcd's `cache` package (`cache_New`, `cache/v3/Results.lean`), for a client of etcd that
+is etcd's client over etcd's server (`isEtcdClient_of_server`, `CacheClient.lean`): the cache's
+contract about its client (`isEtcdClient`) discharged at the server's model, so the cache's
+results (`cache_Get`, `cache_Watch`, `cache_Watch_delivery`) are about etcd's server. -/
+
+section cache_client
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [es_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **etcd's cache over etcd's client, end to end** (K3): `New(cl, pfx, opts...)` for a client
+`cl` whose `KV` field is a real `*kv` (`kvObjAt api addr`, over a connection to a server where
+etcd's `Range` is registered: `etcd_kv_served`) and whose `Watcher` field is etcd's client
+watcher (`isClientWatcher V w`, over the same server, `V.R.E = E`; `NewWatcher`'s result), for
+the watcher's prefix (not all `0xff`; non-empty by `watchConnFacts`), returns what `New` returns
+(`newCacheResult`) at the server's model (`v3rpc.etcdModelOfServer E`): the cache's `Get`s and
+`Watch`es then speak of etcd's server. Premises beyond `New`'s and the watcher's: the KV's
+(`isServerRead`, `sortNamesOk`, the client's read updates `kvAnyAu`). -/
+theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (addr : GoString)
+    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hE : V.R.E = E)
+    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api addr ∗
+        clientKVAddr cl ↦□ GoInterface.ok (client.kvIfaceOf api) ∗
+        clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗ client.isClientWatcher V w ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        sortNamesOk ∗ client.kvAnyAu E γr ∗ cfgOptsAt sl gs ∗
+        ⌜CfgValid (cfgApply gs defaultConfigVal) → CfgBounded (cfgApply gs defaultConfigVal)⌝ ∗
+        ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝ }}
+      (App (App (App (Val (@! go_etcd_io.etcd.cache.v3.New)) (Val #cl)) (Val #V.pfx)) (Val #sl))
+    {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
+        newCacheResult (EM := v3rpc.etcdModelOfServer E) V.pfx (cfgApply gs defaultConfigVal) c
+          err }} := by
+  iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hrpc, #Hsn, #Hany, Hopts,
+    %Hcfg, %Hb⟩ HΦ
+  ihave #Hcl := client.isEtcdClient_of_server client.v3.watcher.wp_Watch
+    client.v3.watcher.wp_RequestProgress cl V w
+    api addr s E γr cid mid hE hff $$ []
+  · iframe #
+  iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
+  iframe #
+  iframe
+  ipureintro; exact ⟨Hcfg, Hb⟩
+
+end cache_client
+
 end EtcdGrove
 end Perennial
 
@@ -121,3 +182,4 @@ end Perennial
 #print axioms Perennial.EtcdGrove.cache_WaitForRevision
 #print axioms Perennial.EtcdGrove.cache_WaitForNextResync
 #print axioms Perennial.EtcdGrove.cache_Close
+#print axioms Perennial.EtcdGrove.cache_end_to_end_client
