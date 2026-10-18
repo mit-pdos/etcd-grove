@@ -59,120 +59,8 @@ theorem pinned_floor (log F L0 ilog : mvcc.Log) (h : log.length + 4 ≤ 2 ^ 63) 
   subst e
   exact ⟨rfl, hf.trans hp.1⟩
 
-/-- **`Put` at the sole writer of `log`**: the lease not found or the previous key-value missing
-(the sole writer back, nothing committed); or the put committed at `log`, as the client's put on
-`log`'s state, the sole writer at the new log. Under the critical-section contract: `Pre` back if
-the lease was not found (no transaction), else `Post`. -/
-theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc)
-    (le kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (log : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
-    (hlen : log.length + 4 ≤ 2 ^ 63) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        isKV kv s γ ∗ mvcc.storeReader s γ ∗ kvWriter s γ log ∗ mvcc.storeWT γ ∗
-        isTxnLessor le γ.leases ∗ lease.lessorUser γ.leases L ∗
-        putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-        □ (⌜o.ignoreLease = true⌝ -∗
-          leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
-        □ (⌜needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
-          mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]])) ∗
-        mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
-      (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
-        (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
-    {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ ⌜trace ≠ null⌝ ∗
-        (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-        ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
-            errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ kvWriter s γ log ∗
-            Pre) ∨
-         (⌜needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧ resp = null⌝ ∗
-            errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err ∗
-            kvWriter s γ log ∗ Post) ∨
-         (⌜err = GoInterface.nil⌝ ∗
-            putResponseIs resp (W64 (log.length : Int))
-              (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter log) else none) ∗
-            respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
-            kvWriter s γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
-            leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
-            ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
-              (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hl, #Hcok, Hcs, #Hhook⟩
-  iunfold kvWriter at Hsw
-  icases Hsw with ⟨Hsw, Hwl⟩
-  icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
-  iunfold soleWriterOpen at Hsw
-  icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
-  have hsb : soleBudget log - 1 + 1 = soleBudget log := by unfold soleBudget; omega
-  iapply (hPut ctx cd lg le kv s γ p o (soleBudget log - 1) log P Pre Q Post f L ot te log)
-    $$ [Hrd Htok Hwt Htoks Hcs Hu Hto Hwl]
-  · iframe # ∗
-    isplitr
-    · ipureintro; exact fun _ => ⟨hsb, hlen⟩
-    isplitr
-    · imodintro
-      iintro %ilog %Hpi
-      obtain ⟨Hpin, Hil⟩ := Hpi
-      rw [pinned_sole log ilog hlen Hpin]
-      iapply Hl
-      ipureintro; exact Hil
-    imodintro
-    iintro %ilog ⟨%Hpin, %Hn⟩
-    rw [pinned_sole log ilog hlen Hpin] at Hn ⊢
-    iapply Hcok; ipureintro; exact Hn
-  inext
-  iintro %resp %trace %err ⟨Hrd, Htoks, Hu, %Ht, Htrc, %Hteq, Hout⟩
-  ihave Hsw : soleWriterOpen γ log $$ [Htoks]
-  · iunfold soleWriterOpen; iframe # ∗; ipureintro; exact Hl2
-  iapply HΦ
-  iframe Hrd Hu Htrc
-  isplitl []
-  · ipureintro; exact Ht
-  isplitr
-  · ipureintro; exact Hteq
-  icases Hout with (⟨%Hn, #He, Htok, Hwl, HPre⟩ | ⟨%ilog, %Hpi, HPost, Hout⟩)
-  · -- the lease not found
-    ileft
-    isplitl []
-    · ipureintro; exact Hn
-    iframe He HPre
-    have h := soleWriter_close (GF := GF) γ log [] hlen
-    simp only [mvcc.commitLog, ↓reduceIte] at h
-    iunfold kvWriter
-    iframe Hwl
-    iapply h
-    iframe Hsw Htok Hc
-  have hil := pinned_sole log ilog hlen Hpi.1
-  subst hil
-  icases Hout with (⟨%Hn, #He, Htok, -, Hwl⟩ | ⟨%Herr, #Hresp, Hhdr, #Hc', Hwl, #Hlok⟩)
-  · -- the previous key-value missing
-    iright; ileft
-    isplitl []
-    · ipureintro; exact Hn
-    iframe He HPost
-    have h := soleWriter_close (GF := GF) γ ilog [] hlen
-    simp only [mvcc.commitLog, ↓reduceIte] at h
-    iunfold kvWriter
-    iframe Hwl
-    iapply h
-    iframe Hsw Htok Hc
-  · -- the put committed
-    iright; iright
-    isplitl []
-    · ipureintro; exact Herr.1
-    iframe Hresp Hhdr Hlok HPost
-    isplitl [Hsw Hwl]
-    · iunfold kvWriter
-      have hc : mvcc.commitLog ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =
-          ilog ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]] := by
-        unfold mvcc.commitLog; simp
-      rw [← hc]
-      iframe Hwl
-      iapply soleWriter_close γ ilog _ hlen $$ [Hsw]
-      rw [hc]
-      iframe Hsw Hc'
-      simp only [List.cons_ne_nil, ↓reduceIte]
-      itrivial
-    ipureintro; exact stateAfter_put ilog o
-
+/-- `put_soleWriter_of` with a floor `F` (a certified log): the put, if committed, met a log
+extending `F` (`pinned_floor`). -/
 theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc)
     (le kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (log : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
@@ -285,94 +173,66 @@ theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoIn
       itrivial
     ipureintro; exact stateAfter_put ilog o
 
-/-- **`DeleteRange` at the sole writer of `log`** (fewer than `mvcc.putMax γ` keys in the range): the client's delete
-on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
-committed log; or, with `PrevKv`, the range read's context error, the sole writer back. Under the
-critical-section contract: `Post`. -/
-theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
-    (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool)
-    (hlen : log.length + 4 ≤ 2 ^ 63)
-    (hst : (rangeIn (mvcc.stateAfter log) o).length < mvcc.putMax γ) :
+/-- **`Put` at the sole writer of `log`**: the lease not found or the previous key-value missing
+(the sole writer back, nothing committed); or the put committed at `log`, as the client's put on
+`log`'s state, the sole writer at the new log. Under the critical-section contract: `Pre` back if
+the lease was not found (no transaction), else `Post`. `put_soleWriter_floor` at the floor
+`log` itself (`kvWriter_cert`). -/
+theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc)
+    (le kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (log : mvcc.Log)
+    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
+    (hlen : log.length + 4 ≤ 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ kvWriter s γ log ∗ mvcc.storeWT γ ∗
-        deleteRangeRequestIs dr o ∗
-        mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-        mvcc.certOkNext γ log (delChanges (mvcc.stateAfter log) o) ∗
+        isTxnLessor le γ.leases ∗ lease.lessorUser γ.leases L ∗
+        putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
+        □ (⌜o.ignoreLease = true⌝ -∗
+          leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
+        □ (⌜needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
+          mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]])) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
-      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
-        (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv)) (Val #dr))
+      (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
+        (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        mvcc.storeReader s γ ∗ ⌜trace ≠ null⌝ ∗ Post ∗
+        mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ ⌜trace ≠ null⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-        ((⌜err = GoInterface.nil⌝ ∗
-            deleteRangeResponseIs resp
-              (W64 ((mvcc.writeRev log (delChanges (mvcc.stateAfter log) o) : Nat) : Int))
-              (rangeIn (mvcc.stateAfter log) o).length
-              (if o.base.prevKV then rangeIn (mvcc.stateAfter log) o else []) ∗
-            respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-            kvWriter s γ (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) ∗
-            ⌜mvcc.stateAfter (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) =
-              (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
-         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-           kvWriter s γ log)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, #Hhook⟩
-  iunfold kvWriter at Hsw
-  icases Hsw with ⟨Hsw, Hwl⟩
-  icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
-  iunfold soleWriterOpen at Hsw
-  icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
-  have hsb : soleBudget log - 1 + 1 = soleBudget log := by unfold soleBudget; omega
-  iapply (hDel ctx cd nd lg kv s γ dr o (soleBudget log - 1) log P Pre Q Post f ot te log)
-    $$ [Hrd Htok Hwt Htoks Hcs Hto Hwl]
+        ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
+            errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ kvWriter s γ log ∗
+            Pre) ∨
+         (⌜needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧ resp = null⌝ ∗
+            errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound err ∗
+            kvWriter s γ log ∗ Post) ∨
+         (⌜err = GoInterface.nil⌝ ∗
+            putResponseIs resp (W64 (log.length : Int))
+              (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter log) else none) ∗
+            respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
+            kvWriter s γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
+            leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
+            ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
+              (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} := by
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hl, #Hcok, Hcs, #Hhook⟩
+  icases kvWriter_cert s γ log $$ Hsw with ⟨Hsw, #HF⟩
+  iapply (put_soleWriter_floor hPut ctx cd lg le kv s γ p o log P Pre Q Post f L ot te hlen log)
+    $$ [Hrd Hsw Hwt Hu Hto Hcs]
   · iframe # ∗
-    isplitr
-    · ipureintro; exact fun _ => ⟨hsb, hlen⟩
-    isplitr
-    · ipureintro
-      intro ilog hp
-      rw [pinned_sole log ilog hlen hp]
-      exact hst
-    imodintro
-    iintro %ilog %Hpin
-    rw [pinned_sole log ilog hlen Hpin]
-    iexact Hcok
   inext
-  iintro %resp %trace %err ⟨Hrd, Htoks, %Ht, HPost, Htrc, %Hteq, %ilog, %Hpi, Hout⟩
-  have hil := pinned_sole log ilog hlen Hpi.1
-  subst hil
-  ihave Hsw : soleWriterOpen γ ilog $$ [Htoks]
-  · iunfold soleWriterOpen; iframe # ∗; ipureintro; exact Hl2
+  iintro %resp %trace %err ⟨Hrd, Hu, %Ht, Htrc, %Hteq, Hout⟩
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hu Htrc
   isplitl []
   · ipureintro; exact Ht
-  iframe HPost Htrc
   isplitr
   · ipureintro; exact Hteq
-  icases Hout with (⟨%Herr, #Hresp, Hhdr, #Hc', Htok, Hwl⟩ | ⟨%Hn, Htok, -, Hwl⟩)
-  · -- deleted
-    ileft
+  icases Hout with (Hout | Hout | ⟨%Herr, Hout⟩)
+  · ileft; iexact Hout
+  · iright; ileft; iexact Hout
+  · iright; iright
     isplitl []
-    · ipureintro; exact Herr
-    iframe Hresp Hhdr
-    isplitl [Hsw Htok Hwl]
-    · iunfold kvWriter
-      iframe Hwl
-      iapply soleWriter_close γ ilog _ hlen
-      iframe Hsw Hc' Htok
-    ipureintro; exact stateAfter_commit_delete ilog o
-  · -- the context error
-    iright
-    isplitl []
-    · ipureintro; exact Hn
-    have h := soleWriter_close (GF := GF) γ ilog [] hlen
-    simp only [mvcc.commitLog, ↓reduceIte] at h
-    iunfold kvWriter
-    iframe Hwl
-    iapply h
-    iframe Hsw Htok Hc
+    · ipureintro; exact Herr.1
+    iexact Hout
 
+/-- `deleteRange_soleWriter_of` with a floor `F` (a certified log): the delete, if committed, met
+a log extending `F` (`pinned_floor`). -/
 theorem deleteRange_soleWriter_floor (hDel : DeleteRange.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
     (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool)
@@ -457,6 +317,58 @@ theorem deleteRange_soleWriter_floor (hDel : DeleteRange.spec (GF := GF) (hG := 
     iframe Hwl
     iapply h
     iframe Hsw Htok Hc
+
+/-- **`DeleteRange` at the sole writer of `log`** (fewer than `mvcc.putMax γ` keys in the range): the client's delete
+on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
+committed log; or, with `PrevKv`, the range read's context error, the sole writer back. Under the
+critical-section contract: `Post`. `deleteRange_soleWriter_floor` at the floor `log` itself
+(`kvWriter_cert`). -/
+theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
+    (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool)
+    (hlen : log.length + 4 ≤ 2 ^ 63)
+    (hst : (rangeIn (mvcc.stateAfter log) o).length < mvcc.putMax γ) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ kvWriter s γ log ∗ mvcc.storeWT γ ∗
+        deleteRangeRequestIs dr o ∗
+        mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+        mvcc.certOkNext γ log (delChanges (mvcc.stateAfter log) o) ∗
+        mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
+        (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv)) (Val #dr))
+    {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
+        mvcc.storeReader s γ ∗ ⌜trace ≠ null⌝ ∗ Post ∗
+        (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
+        ((⌜err = GoInterface.nil⌝ ∗
+            deleteRangeResponseIs resp
+              (W64 ((mvcc.writeRev log (delChanges (mvcc.stateAfter log) o) : Nat) : Int))
+              (rangeIn (mvcc.stateAfter log) o).length
+              (if o.base.prevKV then rangeIn (mvcc.stateAfter log) o else []) ∗
+            respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
+            kvWriter s γ (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) ∗
+            ⌜mvcc.stateAfter (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) =
+              (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
+         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
+           kvWriter s γ log)) }} := by
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, #Hhook⟩
+  icases kvWriter_cert s γ log $$ Hsw with ⟨Hsw, #HF⟩
+  iapply (deleteRange_soleWriter_floor hDel ctx cd nd lg kv s γ dr o log P Pre Q Post f ot te hlen
+    hst log) $$ [Hrd Hsw Hwt Hto Hcs]
+  · iframe # ∗
+  inext
+  iintro %resp %trace %err ⟨Hrd, %Ht, HPost, Htrc, %Hteq, Hout⟩
+  iapply HΦ
+  iframe Hrd HPost Htrc
+  isplitl []
+  · ipureintro; exact Ht
+  isplitr
+  · ipureintro; exact Hteq
+  icases Hout with (⟨%Herr, Hout⟩ | Hout)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr.1
+    iexact Hout
+  · iright; iexact Hout
 
 /-- **`Range` at the sole writer** reads its log exactly (`soleWriter_pins_read`): the response
 is `rangeResult` at `log`'s last revision. -/

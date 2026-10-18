@@ -57,11 +57,6 @@ local macro "not_net" : tactic => `(tactic| (intro h; first
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
   MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty))))
 
-/-- A stamped type is not one of the unstamped ones. -/
-local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
-  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgPreVote, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
-  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
-
 /-- The two guards, each an early return or on (`all_goals` over the paths that go on),
 then `raft.Step`. -/
 theorem RawNode.Step.wp_proof
@@ -76,10 +71,7 @@ theorem RawNode.Step.wp_proof
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok _Hdns Hmtc Htn Hpvb ⊢
   have Hok0 := Hok
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -, Hpvf⟩ := Hok0
-  have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
-      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
-    fun h ht => Hnri (h ▸ ht)
+  obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
   wp_start as H
   iNamed H
@@ -115,55 +107,9 @@ theorem RawNode.Step.wp_proof
       icases ownStepGhost_boot_term γ _ cf id s (m.Type' = MsgPreVote) Hpvb $$ Hghost
         with ⟨%Hb1, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net
-      have Hsm : StepMsg m := netStepTypes_stepMsg Hty
-      have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
-      have Hrest : RestMsgOk s m ents ctx := Hok.restMsgOk (fun h => by
-        have := Htn h; rw [Hpvoff.2.1, Htrm] at this
-        have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
-        have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
-        simp only at h ⊢
-        exact ⟨by omega, by omega⟩)
-      have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
-        (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) := by not_net
-      have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
-          m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
-            (s.logst.sents ++ s.logst.uents) (entryID.mk m.LogTerm' m.Index') = true) ∧
-          (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc) := fun h =>
-        ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2, Hpvf h,
-         fun hz => by exfalso; have := Hb1 h; rw [hz] at this; word,
-         .inr (by rw [← Hpvoff.2.1]; exact Hmtc)⟩
-      have P3 : m.Type' = MsgPreVoteResp → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
-          (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) := fun h =>
-        ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-         fun hp => by have := Hpvoff.2.2.2 hp; omega⟩
-      have P4 : m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
-          m.From' ≠ id := by not_net
-      have P5 : m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0 := by not_net
-      have P6 : m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id) := by
-        not_net
-      have P7 : m.Type' = MsgStorageAppendResp → sn = none ∧
-          uint.Z m.Term' ≤ uint.Z s.term ∧
-          (m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
-            StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
-        not_net
-      have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-      wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp Hsm P1
-        (fun h => Hnr h (by ty_ne))
-        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
-        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inl h)⟩)
-        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inr (.inl h))⟩)
-        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hrej h⟩)
-        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inr (.inr (.inl h)))⟩)
-        P4 P5 P6 P7 P8
-        (fun h => Hri (.inl h))
-        (by not_net)
-        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inr (.inr (.inr h)))⟩) Hrest Hwf
+      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
+          Hwf
         (GMode.Pre.of_facts Hpf (by not_net) (by not_net))
         $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
       · simp only [HnP, ↓reduceIte, named]
