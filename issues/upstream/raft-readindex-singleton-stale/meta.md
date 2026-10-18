@@ -30,7 +30,7 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
 - **Finding**: `issues/raft-readindex-singleton-stale.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-readindex-singleton-stale` in `~/etcd-fixes/raft-readindex-singleton-stale`, two commits:
-  3130f9e adds the tests, which fail there; 3182f48 is the fix. Not yet pushed: `upamanyus/etcd-raft` has an
+  3130f9e adds the tests, which fail there; 004753f is the fix. Not yet pushed: `upamanyus/etcd-raft` has an
   earlier single-commit version (dcb4fe2) until the force-push
   (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`, the branch the links in
   `issue.md` name).
@@ -68,7 +68,7 @@ guarantee: a read state for the read must have an index at least that of the las
 
 - At the tests commit 3130f9e (`go test . -run 'TestReadOnlyForNewSingleVoterLeader|TestReadOnlyForRemovedLeader'`):
   both fail, `"2" is not greater than or equal to "3"` and `"2" is not greater than or equal to "4"` (`read index`).
-- At the fix commit 3182f48: both pass; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- At the fix commit 004753f: both pass; `go test ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l` empty; `go vet ./...` clean.
 - A temporary test (not on the branch): a leader of `{1}` that enters the joint configuration `{1}&&{1}` (adding
   a learner with an explicit transition) gets no answer to a read on `main` (it waits for heartbeat responses that
@@ -78,11 +78,14 @@ Not run: etcd's tests, `make verify`. Not reproduced on an etcd cluster.
 
 ## If a reviewer asks
 
-- The guard is "the leader is a quorum on its own" (`r.trk.Voters.VoteResult({r.id: true}) == quorum.VoteWon`),
-  not `IsSingleton()`: a leader that removed itself sees one voter that is not itself; the quorum check also covers
-  a joint configuration whose halves are both `{leader}` (see above). An empty configuration counts as won, but
-  raft refuses to remove the last voter. `IsSingleton` has no caller left in package raft; it is exported, so it is
-  kept, with its comment corrected.
+- `IsSingleton()` becomes `IsSingleton(id)`, "id is the only voter", implemented as `Voters.VoteResult({id: true})
+  == quorum.VoteWon`: the old one only counted voters, so a leader that removed itself saw one voter that is not
+  itself; the quorum form also covers a joint configuration whose halves are both `{leader}` (see above). An empty
+  configuration counts as won, but raft refuses to remove the last voter.
+- The signature change breaks callers of the exported `ProgressTracker.IsSingleton()` outside raft; there are none
+  in raft or in etcd (`main` b25719d10, `server/`, `client/`). Deliberate: a caller must now say which node it means,
+  which is the ambiguity behind this bug. Alternative if the API must stay: keep `IsSingleton()` (deprecated) and add
+  the id form under another name.
 - Why move the shortcut rather than add `committedEntryInCurrentTerm()` to it: postponed requests are released
   through `sendMsgReadIndexResponse`; without the shortcut there, a postponed request at a single voter would go
   through the heartbeat round, which nobody answers, and never be released.

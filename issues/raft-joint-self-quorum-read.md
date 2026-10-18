@@ -19,6 +19,6 @@ candidate: issues/upstream/raft-readindex-singleton-stale/
   configuration leaves the joint state).
 - **Expected**: answered at once (after the leader's first commit in its term), as at the single voter `{1}`.
 - **How the proof handles it**: liveness; the proofs state safety only.
-- **Possible fixes**: the candidate's guard, `r.trk.Voters.VoteResult({r.id: true}) == quorum.VoteWon`; more
+- **Possible fixes**: the candidate's guard, `IsSingleton(r.id)` (id is the only voter, via `Voters.VoteResult`); more
   generally, decide right after `recvAck(r.id, ...)` in the `ReadOnlySafe` path.
 - **Found**: 2026-10-18, the code review of `fix/raft-readindex-singleton-stale`.
