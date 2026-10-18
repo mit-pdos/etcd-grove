@@ -134,10 +134,11 @@ instance peerOk_persistent (γ : RaftNames) (bud : BudgetNames) (id : w64) (nd :
     Persistent (peerOk (GF := GF) γ bud id nd) := by
   unfold peerOk; infer_instance
 
-/-- The transfer budget's lock invariant (see the file header): one tick credit per
-`MsgTimeoutNow` the transport may still pass on. -/
-def transfersInv (bud : BudgetNames) (tr : Loc) : IProp GF :=
-  iprop(∃ n : w64, tr.[RTransfers, go!"left"] ↦ n ∗ tickCred bud (uint.nat n))
+/-- The transfer budget's lock invariant (see the file header): the number of `MsgTimeoutNow`s
+the transport may still pass on (D19b, 2026-10-18: until then with one tick credit each; `take`
+takes the credit, a time receipt, from a Go step of its own). -/
+def transfersInv (_bud : BudgetNames) (tr : Loc) : IProp GF :=
+  iprop(∃ n : w64, tr.[RTransfers, go!"left"] ↦ n)
 
 /-- The transport's transfer budget `tr` (persistent). -/
 def isTransfers (bud : BudgetNames) (tr : Loc) : IProp GF :=

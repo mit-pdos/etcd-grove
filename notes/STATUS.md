@@ -223,6 +223,29 @@ stores, local allocations named as `wp_auto` names them) up to the next `FuncRes
 mvcc compaction's own smallness premise (`InvCompact.lean`, `… .sum < 2 ^ 62`, the
 `mvcc-compaction` collection) could be discharged the same way; not done. Trust base unchanged.
 
+**Stage 4: raft's term budget (done; PreVote merged first).** `budgetInv` (raft's `InvNode.lean`)
+backs the term bound `M` by time receipts: `∃ M k, monoNatAuthOwn bound M ∗ ⧗ k ∗ ⌜M ≤ k + 1 ∧
+receiptBound GF ≤ 2 ^ 64 - 2⌝` (the `+ 1` the bootstrap term); `tickCred bud n := ⧗ n`, so a tick's
+credit is a receipt its caller takes from a Go step of its own, and nobody mints credits up front
+(`BudgetNames` lost `creds`). `budget_alloc`/`budget_alloc_boot` take `receiptBound GF ≤ 2 ^ 64 - 2`
+and give no credits (new `budget_alloc_at`). raft's own proofs (`node.run`'s `budget_spend`/
+`budget_step`) are unchanged. The server: the ticker's payload `E.T` is `True` (`srvEr`, and
+`rnEnvOk`'s first conjunct `⌜E.T = iprop(True)⌝`, was `tickCred bud 1`): `rnTickerOk` no longer
+mints a bounded supply (D19a); `isRaftNodeIfc`'s `Tick` takes `⧗ 1`; `raftNode.tick` takes the
+receipt of its `Lock`'s resolution; `advanceTicks` no longer takes credits. The register example:
+`tick`'s loop and `transfers.take` take their receipts themselves (`transfersInv` holds the count
+only), `Main.spec` takes `receiptBound GF ≤ 2 ^ 64 - 2`, and the closed theorem
+`register_adequate` (and `register_cluster_safe`) takes `n + 3 ≤ 2 ^ 64` on the execution's
+length (its `N` is `n + 1`). Statements changed: `BudgetNames`, `budgetInv`, `tickCred`,
+`budget_alloc`, `budget_alloc_boot`, new `budget_alloc_at`, `tickCred_timeless`; `rnEnvOk`,
+`isRaftNodeIfc`, `srvEr`; `raftNode.tick.spec`, `raftNode.advanceTicks.spec`;
+`register.Main.spec`, `register.tick.spec`, `transfersInv`, `register_adequate`,
+`register_cluster_safe`. The server's premises are now all `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`
+(with `N + 7 ≤ 2 ^ 40 - 1`), which imply raft's `≤ 2 ^ 64 - 2` for the budget its caller
+allocates. Left of D19b: `rnLogFits` (raft's node layer hands out `Ready` entries whose indices
+fit `MemoryStorage.Append`'s `2 ^ 61` bound: a receipt per appended entry in raft's log, a raft
+model change) and the mvcc compaction premise. Trust base unchanged.
+
 ## Item 9: the adequacy example (stage 1; stopped) (2026-10-18, branch `raft-retarget`)
 
 Open-work item 9. Stage 1 (the Go program and its translation) done; stages 2 and 3 (the

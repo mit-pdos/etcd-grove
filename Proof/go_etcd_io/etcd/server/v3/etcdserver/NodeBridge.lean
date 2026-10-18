@@ -358,11 +358,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     iexists ca, cfg
     iexact Hcfg
   isplitr
-  · -- `Tick`
-    rw [HT]
+  · -- `Tick`, for a time receipt (D19b: raft's tick credit)
     iintro !> %Φ !> Hcred HΦ
     wp_apply wp_Tick γ.node γ.id γ.nl $$ [Hcred]
-    · iframe #; iframe Hcred
+    · iframe #; unfold tickCred; iframe Hcred
     iapply HΦ
     itrivial
   isplitr

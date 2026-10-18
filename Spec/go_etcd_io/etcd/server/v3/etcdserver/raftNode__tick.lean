@@ -23,10 +23,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `r.tick()`, from any goroutine, for a tick's resource. -/
+/-- `r.tick()`, from any goroutine (D19b, 2026-10-18: it takes raft's tick credit, a time
+receipt, from a Go step of its own; until then for a tick's resource `E.T`). -/
 abbrev raftNode.tick.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ E.T }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"tick")) (Val #()))
   {{ RET #(); True }}
 

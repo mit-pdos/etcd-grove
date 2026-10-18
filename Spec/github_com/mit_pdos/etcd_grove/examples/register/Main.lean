@@ -34,6 +34,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumpt
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
+  -- the time receipts' bound (D19b, 2026-10-18): raft's term budget is backed by receipts
+  receiptBound GF ≤ 2 ^ 64 - 2 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.Main)) (Val #()))
   {{ RET #(); True }}

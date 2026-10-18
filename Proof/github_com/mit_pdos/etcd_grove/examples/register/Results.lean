@@ -162,18 +162,21 @@ variable [go_gctx : GoGlobalContext]
 /-- **The register's cluster driver is safe, in the operational semantics**
 (`register_adequate`): every real execution of the register package's initialization
 followed by `Main()`, from a fresh state with one thread, of any length, has no stuck
-thread, no thread ended in a panic, and the main thread's result, if any, is `#()`. -/
+thread, no thread ended in a panic, and the main thread's result, if any, is `#()` (of
+fewer than `2 ^ 64 - 2` steps since D19b, 2026-10-18: raft's term budget backed by time
+receipts). -/
 theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 3 ≤ 2 ^ 64) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  register_adequate σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps
+  register_adequate σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps Hn
 
 end adequacy
 

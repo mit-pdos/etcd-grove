@@ -232,7 +232,7 @@ server's composition proves it from its KV invariant), and back, the committed l
 indices of what `E.C` holds (the ready loop's `updateCommittedIndex` needs them); `E.RQ` raft's
 read registration. -/
 def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
-  iprop(⌜E.T = tickCred γ.node.bud 1⌝ ∗
+  iprop(⌜E.T = iprop(True)⌝ ∗
     ⌜E.γr.raft.raft = γ.node.raft ∧ E.γr.raft.pre = γ.pre ∧
       uint.Z E.γr.raft.ai0 = γ.pre.length⌝ ∗
     ⌜γ.node.mode = RNMode.static ∧ γ.node.stor = memStorIface γ.ms⌝ ∗
@@ -356,7 +356,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
       {{ rnBusy γ d ce es ∗ rnAppendReceipt γ es }}
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       {{ RET #(); rnDrv γ (d ++ ce) }}) ∗
-    □ ({{ E.T }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ ⧗ 1 }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
         (id n : w64) (Qr : List EntryModel → IProp GF),
@@ -647,8 +647,9 @@ instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) (γr : ReadNames) :
 
 /-- **The ticker `tk`** (Perennial models no `time.Ticker`; a trust-boundary contract): its `C`
 is a channel on which a receive yields some time **with a tick's resource `E.T`** (2026-10-16,
-stage R7b: raft's tick credit comes with the tick; "fewer than `2^64 - 1` ticks in a run" is the
-ticker's premise), or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`); `Stop`
+stage R7b: raft's tick credit came with the tick, "fewer than `2^64 - 1` ticks in a run" the
+ticker's premise; since D19b, 2026-10-18, `E.T` is `True` for the server, `raftNode.tick` taking
+the credit, a time receipt, from a Go step of its own), or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`); `Stop`
 returns. -/
 def isRNTicker (E : RNEnv GF) (tk : Loc) : IProp GF :=
   iprop(∃ c : Loc, structFieldRef time.Ticker go!"C" tk ↦□ c ∗

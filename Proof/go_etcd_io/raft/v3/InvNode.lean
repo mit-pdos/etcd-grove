@@ -23,15 +23,18 @@ index as a monotone nat (`cam`), and an answer slot (`ccq`); see `confcP`, `conf
 
 - **The term budget** (`BudgetNames`, one per cluster): `RawNode.Tick` needs `term + 1 <
   2^64`, and `RawNode.Step` moves a node's term to at most a message's. The invariant
-  `isBudget` holds a monotone bound `M` (`monoNatAuthOwn`) and the number `c` of tick
-  credits handed out (`● c`, additive), with `M + c < 2^64 - 1`. A tick credit
-  (`tickCred bud 1`, `◯ 1`) is what `Node.Tick` spends (`budget_spend`): it raises `M` by
+  `isBudget` holds a monotone bound `M` (`monoNatAuthOwn`) backed by time receipts (D19b,
+  2026-10-18: `k` receipts with `M ≤ k + 1`, under `receiptBound GF ≤ 2 ^ 64 - 2`; until then
+  the number `c` of tick credits handed out, `● c`, with `M + c < 2^64 - 1`). A tick credit
+  (`tickCred bud 1`, a time receipt since D19b) is what `Node.Tick` spends (`budget_spend`): it
+  raises `M` by
   at most one past a term. Every node's term ceiling (`RNState.tc`, 2026-10-17; until then its
   term) is at most `M` (`termLB`, a lower bound on `M`, persistent), and so is every message's
   term a `Ready` hands out (`readyData`): a receiver raises its ceiling to the message's term
   (`ownRawNode_raise_tc`) and its `Step` keeps its term under it; a tick raises the ceiling by
   one with its credit (a pre-campaign's requests are of the next term). The application creates the budget once
-  (`budget_alloc`), with as many credits as it will ever tick.
+  (`budget_alloc`); since D19b a tick's caller takes the credit, a receipt, from a Go step of
+  its own (until then `budget_alloc` handed out as many credits as it would ever tick).
 - **The `Ready`/`Advance` hand-shake** between `run` and the single *driver* (the
   application's loop over `Node.Ready()`): `dlv` (halves: `run`'s and the driver's) is the
   committed log handed out so far, `rof` (halves: `run` keeps one) records the last
@@ -126,12 +129,11 @@ end countable
 
 /-! ## The term budget -/
 
-/-- Ghost names of a cluster's term budget. -/
+/-- Ghost names of a cluster's term budget (D19b, 2026-10-18: until then also the tick credits'
+`Auth Nat`, `creds`; the credits are time receipts now). -/
 structure BudgetNames where
   /-- the bound `M` on every term (a monotone nat) -/
   bound : GName
-  /-- the tick credits handed out (`Auth Nat`, additive) -/
-  creds : GName
 
 def budgetN : Namespace := nroot.@"raft_budget"
 
@@ -141,14 +143,17 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- See the file header. -/
+/-- See the file header. The bound `M` is backed by time receipts (D19b, 2026-10-18): `k`
+receipts with `M ≤ k + 1` (the `+ 1` the bootstrap term), and the receipts' bound is at most
+`2 ^ 64 - 2`, so `M < 2 ^ 64 - 1`. Until D19b: `M + c < 2 ^ 64 - 1` with `c` the tick credits
+handed out (an `Auth Nat`), minted by the application up front. -/
 def budgetInv (bud : BudgetNames) : IProp GF :=
-  iprop(∃ (M c : Nat), monoNatAuthOwn bud.bound 1 M ∗ own bud.creds (● c : Auth Nat) ∗
-    ⌜M + c < 2 ^ 64 - 1⌝)
+  iprop(∃ (M k : Nat), monoNatAuthOwn bud.bound 1 M ∗ ⧗ k ∗
+    ⌜M ≤ k + 1 ∧ receiptBound GF ≤ 2 ^ 64 - 2⌝)
 
-/-- `n` tick credits: `Node.Tick` spends one. -/
-def tickCred (bud : BudgetNames) (n : Nat) : IProp GF :=
-  own bud.creds (◯ n : Auth Nat)
+/-- `n` tick credits: `Node.Tick` spends one. Since D19b (2026-10-18) `n` time receipts (`bud`
+unused): a tick's caller takes one from a Go step of its own. -/
+def tickCred (_bud : BudgetNames) (n : Nat) : IProp GF := ⧗ n
 
 /-- The budget's bound is at least `t` (persistent): every node's term, every message's. -/
 def termLB (bud : BudgetNames) (t : w64) : IProp GF :=
@@ -161,15 +166,18 @@ instance termLB_persistent (bud : BudgetNames) (t : w64) :
 instance budgetInv_timeless (bud : BudgetNames) : Timeless (budgetInv (GF := GF) bud) := by
   unfold budgetInv; infer_instance
 
+instance tickCred_timeless (bud : BudgetNames) (n : Nat) :
+    Timeless (tickCred (GF := GF) bud n) := by
+  unfold tickCred; infer_instance
+
 theorem tickCred_split (bud : BudgetNames) (a b : Nat) :
     tickCred (GF := GF) bud (a + b) ⊣⊢ tickCred bud a ∗ tickCred bud b := by
   unfold tickCred
-  rw [show (◯ (a + b) : Auth Nat) = (◯ a) • (◯ b) from Auth.frag_op]
-  exact own_op bud.creds _ _
+  exact receipt_add a b
 
 theorem tickCred_zero (bud : BudgetNames) : ⊢ |==> tickCred (GF := GF) bud 0 := by
   unfold tickCred
-  exact own_unit bud.creds
+  exact receipt_zero
 
 theorem termLB_le (bud : BudgetNames) (t t' : w64) (h : uint.Z t' ≤ uint.Z t) :
     ⊢ termLB (GF := GF) bud t -∗ termLB bud t' := by
@@ -179,50 +187,48 @@ theorem termLB_le (bud : BudgetNames) (t t' : w64) (h : uint.Z t' ≤ uint.Z t) 
   have := uint_nat_eq t'
   omega
 
-/-- The budget, created once per cluster, with `N` credits. -/
-theorem budget_alloc (N : Nat) (HN : N < 2 ^ 64 - 1) (E : CoPset) :
-    ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗ tickCred bud N ∗
-      termLB bud (W64 0) := by
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γM, HM, #HMlb⟩
-  imod own_alloc ((● N : Auth Nat) • ◯ N)
-    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero N).symm⟩, trivial⟩) with ⟨%γC, HC⟩
-  icases (own_op γC _ _).1 $$ HC with ⟨HCa, HCf⟩
-  imod inv_alloc budgetN E (budgetInv (GF := GF) ⟨γM, γC⟩) $$ [HM HCa] with #Hinv
+/-- The budget at bound `m ≤ 1`, created once per cluster (D19b: under the receipts' bound;
+until then with `N` credits). -/
+theorem budget_alloc_at (m : Nat) (hm : m ≤ 1) (Hb : receiptBound GF ≤ 2 ^ 64 - 2)
+    (E : CoPset) :
+    ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗
+      monoNatLbOwn bud.bound m := by
+  imod mono_nat_own_alloc (GF := GF) m with ⟨%γM, HM, #HMlb⟩
+  imod receipt_zero (GF := GF) with H0
+  imod inv_alloc budgetN E (budgetInv (GF := GF) ⟨γM⟩) $$ [HM H0] with #Hinv
   · inext
     unfold budgetInv
-    iexists 0, N
-    iframe HM HCa
+    iexists m, 0
+    iframe HM H0
     ipureintro; omega
   imodintro
-  iexists ⟨γM, γC⟩
+  iexists ⟨γM⟩
+  iframe Hinv HMlb
+
+/-- The budget, created once per cluster. -/
+theorem budget_alloc (Hb : receiptBound GF ≤ 2 ^ 64 - 2) (E : CoPset) :
+    ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗
+      termLB bud (W64 0) := by
+  imod budget_alloc_at 0 (by omega) Hb E with ⟨%bud, #Hinv, #Hlb⟩
+  imodintro
+  iexists bud
   iframe Hinv
-  unfold tickCred termLB
-  iframe HCf
-  iExactEq HMlb
+  unfold termLB
+  iExactEq Hlb
   rfl
 
 /-- The budget of a new cluster (2026-10-16, stage R8b, `StartNode`): its bound at the bootstrap
 term `1` from the start (`RawNode.Bootstrap`'s `becomeFollower(1, None)`), so that `run` starts
 with `termLB bud 1`. -/
-theorem budget_alloc_boot (N : Nat) (HN : N + 1 < 2 ^ 64 - 1) (E : CoPset) :
-    ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗ tickCred bud N ∗
+theorem budget_alloc_boot (Hb : receiptBound GF ≤ 2 ^ 64 - 2) (E : CoPset) :
+    ⊢ |={E}=> ∃ bud : BudgetNames, inv budgetN (budgetInv (GF := GF) bud) ∗
       termLB bud (W64 1) := by
-  imod mono_nat_own_alloc (GF := GF) 1 with ⟨%γM, HM, #HMlb⟩
-  imod own_alloc ((● N : Auth Nat) • ◯ N)
-    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero N).symm⟩, trivial⟩) with ⟨%γC, HC⟩
-  icases (own_op γC _ _).1 $$ HC with ⟨HCa, HCf⟩
-  imod inv_alloc budgetN E (budgetInv (GF := GF) ⟨γM, γC⟩) $$ [HM HCa] with #Hinv
-  · inext
-    unfold budgetInv
-    iexists 1, N
-    iframe HM HCa
-    ipureintro; omega
+  imod budget_alloc_at 1 (by omega) Hb E with ⟨%bud, #Hinv, #Hlb⟩
   imodintro
-  iexists ⟨γM, γC⟩
+  iexists bud
   iframe Hinv
-  unfold tickCred termLB
-  iframe HCf
-  iExactEq HMlb
+  unfold termLB
+  iExactEq Hlb
   rfl
 
 /-- Term `0` is within the budget (2026-10-13: a local read-index request's). -/
@@ -236,44 +242,38 @@ theorem termLB_bound (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN
   iintro #Hinv #Hlb
   iinv Hinv with >Hi Hclose
   unfold budgetInv
-  icases Hi with ⟨%M, %c, HM, HC, %Hb⟩
+  icases Hi with ⟨%M, %k, HM, Hk, %Hb⟩
   unfold termLB
   ihave %Hle := monoNatLbOwn_valid bud.bound 1 M (uint.nat t) $$ HM Hlb
-  imod Hclose $$ [HM HC] with -
-  · inext; iexists M, c; iframe HM HC; ipureintro; exact Hb
+  imod receipt_snapshot k $$ Hk with ⟨Hk, #Hp⟩
+  ihave %Hkl := preceipt_lt k $$ Hp
+  imod Hclose $$ [HM Hk] with -
+  · inext; iexists M, k; iframe HM Hk; ipureintro; exact Hb
   imodintro
   ipureintro
   have := uint_nat_eq t
   omega
 
-/-- Spending a tick credit: the bound covers one term more (`Node.Tick`'s). -/
+/-- Spending a tick credit (a time receipt): the bound covers one term more (`Node.Tick`'s). -/
 theorem budget_spend (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN ⊆ E) :
     ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ tickCred bud 1 -∗ termLB bud t ={E}=∗
       ⌜uint.Z t + 1 < 2 ^ 64 - 1⌝ ∗ termLB bud (t + W64 1) := by
   iintro #Hinv Hcr #Hlb
   iinv Hinv with >Hi Hclose
   unfold budgetInv
-  icases Hi with ⟨%M, %c, HM, HC, %Hb⟩
+  icases Hi with ⟨%M, %k, HM, Hk, %Hb⟩
   unfold termLB tickCred
   ihave %Hle := monoNatLbOwn_valid bud.bound 1 M (uint.nat t) $$ HM Hlb
-  icombine HC Hcr gives %Hv
-  have Hc1 : 1 ≤ c := by
-    obtain ⟨z, hz⟩ := (Auth.auth_both_valid_discrete.mp Hv).1
-    have : c = 1 + z := hz
-    omega
-  icombine HC Hcr as HCC
-  imod own_update bud.creds _ ((● (c - 1) : Auth Nat) • ◯ (0 : Nat))
-    (Auth.auth_update (CommMonoidLike.leftCancelAdd_local_update (by show c + 0 = (c - 1) + 1; omega)))
-    $$ HCC with HCC
-  icases (own_op bud.creds _ _).1 $$ HCC with ⟨HC, -⟩
+  icases receipt_add_one_lt k $$ [Hcr Hk] with ⟨%Hlt, Hk⟩
+  · iframe
   have := uint_nat_eq t
   have Hnw : uint.Z t + 1 < 2 ^ 64 - 1 := by omega
   imod mono_nat_own_update (max M (uint.nat (t + W64 1))) (Nat.le_max_left _ _) $$ HM
     with ⟨HM, #HMlb⟩
-  imod Hclose $$ [HM HC] with -
+  imod Hclose $$ [HM Hk] with -
   · inext
-    iexists max M (uint.nat (t + W64 1)), c - 1
-    iframe HM HC
+    iexists max M (uint.nat (t + W64 1)), k + 1
+    iframe HM Hk
     ipureintro
     have : uint.Z (t + W64 1) = uint.Z t + 1 := by word
     have := uint_nat_eq (t + W64 1)

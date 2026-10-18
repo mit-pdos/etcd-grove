@@ -27,7 +27,7 @@ variable [StorageModel GF]
 /-- See the file header. -/
 abbrev tick.spec : Prop :=
   ∀ (γn : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ isNode γn id n ∗ tickCred γn.bud ticksN }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ isNode γn id n }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.tick))
       (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n)))
   {{ RET #(); True }}

@@ -8481,8 +8481,11 @@ the theorem says nothing.
   raft's log is needed; `run` no longer hands tokens per batch). Stage 3 (done): `storeSmall`
   (mvcc's index writer holds a receipt per change, `treeIndex.Put`/`Tombstone` take one; sealed
   and certified logs carry `logCh log < receiptBound GF`), the watch store's `srvLogsSmall`
-  (derived from it already); `rnLogFits` is raft's, with the raft stage. Raft's tick/term budget (`budgetInv`, `tickCred`,
-  `rnTickerOk`) after PreVote lands.
+  (derived from it already); `rnLogFits` is raft's, with the raft stage. Stage 4 (done): raft's
+  tick/term budget (`budgetInv` holds receipts for the term bound, `tickCred bud n := ⧗ n` taken
+  by a tick's caller from its own step, the ticker's payload `True`: `rnTickerOk` mints nothing).
+  Left: `rnLogFits` (a receipt per entry raft appends: a raft model change) and mvcc compaction's
+  `2 ^ 62` premise.
 - **D19c: the workload clause** (`clusterWorkloadOk`, D13c): unit N3 for one server -- every
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose

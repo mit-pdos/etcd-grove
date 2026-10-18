@@ -128,9 +128,9 @@ theorem raftNode.start.wp_proof
       · iapply is_bag_is_chan $$ Htb
       iapply bag_recv_au γt tc _ _ $$ [$Hlc1 $Hlc2] Htb
       inext
-      iintro %t HT1
+      iintro %t -
       wp_auto
-      wp_apply wp_tick E γ r $$ [$Hpkg $Hr $HT1]
+      wp_apply wp_tick E γ r $$ [$Hpkg $Hr]
       wp_for_post
       iframe
       iexists L', b

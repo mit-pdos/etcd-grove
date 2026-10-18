@@ -27,27 +27,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.advanceTicks.wp_proof (wp_tick : raftNode.tick.spec (GF := GF) (hG := hG)) :
     raftNode.advanceTicks.spec (GF := GF) (hG := hG) := by
   intro E γ r ticks
-  wp_start as ⟨#Hr, HT⟩
+  wp_start as #Hr
   wp_auto
   ihave IH : iprop(∃ k : w64, "i" ∷ i_ptr ↦ k ∗
-      "HT" ∷ ([∗list] _u ∈ List.replicate ((sint.Z ticks).toNat - sint.nat k) (), E.T) ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ max 0 (sint.Z ticks)⌝) $$ [i HT]
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ max 0 (sint.Z ticks)⌝) $$ [i]
   · iexists W64 0
     iframe i
-    simp only [show sint.nat (W64 0) = 0 by rfl, Nat.sub_zero]
-    iframe HT
     ipureintro; constructor <;> word
   wp_for IH
   wp_if_destruct
   · have Hlt : sint.nat k < (sint.Z ticks).toNat := by word
-    rw [show (sint.Z ticks).toNat - sint.nat k = ((sint.Z ticks).toNat - (sint.nat k + 1)) + 1
-      by omega, List.replicate_succ]
-    icases BigSepL.bigSepL_cons.1 $$ HT with ⟨HT1, HT⟩
-    wp_apply wp_tick E γ r $$ [$Hpkg $Hr $HT1]
+    wp_apply wp_tick E γ r $$ [$Hpkg $Hr]
     wp_for_post
     iframe
     iexists k + W64 1
-    rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word]
     iframe
     ipureintro; constructor <;> word
   · iapply HΦ

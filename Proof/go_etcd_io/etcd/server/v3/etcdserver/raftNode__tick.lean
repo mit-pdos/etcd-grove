@@ -3,6 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__tick.lean`. Lean-f
 -/
 module
 
+public import Proof.ReceiptTactics
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Perennial.Proof.time
 
@@ -26,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.tick.wp_proof : raftNode.tick.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as ⟨#Hr, HT⟩
+  wp_start as #Hr
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
@@ -36,7 +37,8 @@ theorem raftNode.tick.wp_proof : raftNode.tick.spec (GF := GF) (hG := hG) := by
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
-  wp_auto
+  -- the tick's credit (D19b): the receipt of the resolution of `Lock`
+  wp_take_receipt as HT
   wp_apply sync.RWMutex.wp_Lock_guard mu (rnTickInv r) $$ [$Hsync $Hmug] as ⟨Hl, HP⟩
   rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Tick")]
   wp_auto

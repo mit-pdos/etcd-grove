@@ -198,7 +198,9 @@ def registerProgram [GoSemanticsFunctions] : Expr :=
 /-- **The register's cluster driver is safe.** Every real execution of `registerProgram`
 (the register package's initialization, then `Main()`) from a fresh state -- no package
 initialized (`IsInit`), one live thread -- of any length `n`: if the main thread has
-finished, its result is `#()`; no thread is stuck (each is a value or can step); no thread
+finished, its result is `#()`; no thread is stuck (for executions of fewer than `2 ^ 64 - 2`
+steps, D19b, 2026-10-18: raft's term budget is backed by time receipts, under `receiptBound ≤
+2 ^ 64 - 2`, and the adequacy theorem's `N` is `n + 1`) (each is a value or can step); no thread
 has ended in a panic (client B's check of its `Get` among them). Parametric in the Go
 semantics: any `go.Semantics` at the state's local context and any package assumptions
 (the translated bodies behind the register's and its imports' names). -/
@@ -208,7 +210,8 @@ theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 3 ≤ 2 ^ 64) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
@@ -222,7 +225,7 @@ theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   refine goose_adequacy (GF := registerGF) (n + 1) (n + 2) registerProgram σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG _ _ HL
+  intro hG HN _ HL
   obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
   subst Hlctx
   subst HL
@@ -242,7 +245,7 @@ theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold registerProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.register.wp_initialize' _
     getIsPkgInit_wf) $$ Hown as ⟨_, #Hinit⟩
-  wp_apply register.wp_Main $$ Hinit
+  wp_apply (register.wp_Main (by rw [HN]; omega)) $$ Hinit
   ipureintro
   rfl
 

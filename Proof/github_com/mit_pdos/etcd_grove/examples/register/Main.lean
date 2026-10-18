@@ -307,6 +307,7 @@ theorem Main.wp_proof
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG))
     (wp_RestartNode : ∀ [RegStor GF], RestartNode.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
+  intro Hrb
   wp_start
   -- the storage registry
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorRec) with ⟨%γreg, Hreg⟩
@@ -349,9 +350,9 @@ theorem Main.wp_proof
   have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2
   have Hdyn := Hcfg'.1
   have HccOk := Hcfg'.2.1
-  imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
-    with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
-  icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩
+  -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
+  -- own receipts)
+  imod budget_alloc (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb0⟩
   -- the clients' invariant
   imod ghostVar_alloc (GF := GF) false with ⟨%γf, Hf⟩
   icases ghostVar_halves γf false $$ Hf with ⟨Hf1, Hf2⟩
@@ -516,13 +517,11 @@ theorem Main.wp_proof
     try simp only [TypedPointsto.typedPointstoDef]
     icases Htrs with ⟨mu, left, -⟩
     imod sync.init_Mutex (transfersInv bud «$r0_ptr») ⊤ («$r0_ptr».[RTransfers, go!"mu"])
-      $$ mu [left Htcred] with #Htr
+      $$ mu [left] with #Htr
     · inext
       unfold transfersInv
       iexists W64 1048576
       iframe left
-      rw [show uint.nat (W64 1048576) = timeoutsN from rfl]
-      iexact Htcred
     ihave #Htr' : isTransfers bud «$r0_ptr» $$ []
     · unfold isTransfers; iexact Htr
     ipersist tr
@@ -530,17 +529,16 @@ theorem Main.wp_proof
     ihave IH2 : iprop(∃ (k : w64) (idv : w64) (R : GMap w64 Loc),
         "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "HmR" ∷ mR ↦$ R ∗ "HmS" ∷ mS ↦$ S ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3⌝ ∗
-        "Hcred" ∷ tickCred bud ((3 - sint.nat k) * ticksN) ∗
         "Hregs" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (r : Loc) (γp : RepNames),
           ⌜R !! id = some r⌝ ∗ isRegister γr γp r ∗ opCred γp (2 ^ 64 - 1)) ∗
         "Hdrv" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
           ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr bud id nd st) ∗
         "%Hdom" ∷ ⌜∀ id, id ∈ clusterIds.drop (sint.nat k) → R !! id = none⌝)
-      $$ [i id HmR HmS Hcred Hdone]
+      $$ [i id HmR HmS Hdone]
     · iexists W64 0, _, ∅
       iframe i id HmR HmS
       simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, Nat.sub_zero]
-      iframe Hcred Hdone
+      iframe Hdone
       isplitr
       · ipureintro; constructor <;> word
       isplitr
@@ -607,12 +605,6 @@ theorem Main.wp_proof
         injection Hn' with _ h
         exact (go.intoVal_inj (V := Loc) h).symm
       subst Hnn
-      have Hcr : (3 - sint.nat k) * ticksN = ticksN + (3 - (sint.nat k + 1)) * ticksN := by
-        have : sint.nat k < 3 := by word
-        rw [show 3 - sint.nat k = (3 - (sint.nat k + 1)) + 1 by omega, Nat.add_mul, Nat.one_mul,
-          Nat.add_comm]
-      rw [Hcr]
-      icases (tickCred_split bud ticksN _).1 $$ Hcred with ⟨Hc1, Hcred⟩
       ihave Hregs' : iprop([∗list] id ∈ clusterIds.take (sint.nat k + 1), ∃ (r' : Loc)
           (γp' : RepNames), ⌜(<[id0 := r]> R) !! id = some r'⌝ ∗ isRegister (GF := GF) γr γp' r' ∗
             opCred γp' (2 ^ 64 - 1)) $$ [Hregs Hopc]
@@ -640,11 +632,9 @@ theorem Main.wp_proof
           iexists r, γp
           iframe Hisreg Hopc
           ipureintro; exact GMap.lookup_insert _ _ _
-      wp_apply wp_fork $$ [Hc1]
-      · wp_apply (wp_tick γn' id0 n') $$ [Hc1]
+      wp_apply wp_fork $$ []
+      · wp_apply (wp_tick γn' id0 n') $$ []
         · iframe HisNode'
-          rw [Hb']
-          iexact Hc1
         itrivial
       wp_for_post
       iframe

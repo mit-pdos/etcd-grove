@@ -74,7 +74,7 @@ resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's 
 registrations. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, fun _ => iprop(True), tickCred bud 1, ρ.rd, srvRQ ρ.rd.raft⟩
+  ⟨srvC ρ E ai₀ c₀ x₀, fun _ => iprop(True), iprop(True), ρ.rd, srvRQ ρ.rd.raft⟩
 
 /-- **The read names, fresh** (the caller's allocation, `srvReadNamesFresh_alloc`): the applied
 and committed indices' authorities at `0`, the read loop's notifier variable, the applied logs'

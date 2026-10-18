@@ -112,7 +112,8 @@ instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF :=
   unfold rnTimeoutDetectorOk; infer_instance
 
 /-- **`time.NewTicker(d)`** (Perennial models no ticker): for a non-zero `d`, a ticker meeting
-`isRNTicker E` (its ticks carry `E.T`, the tick credit: D10's premise at the ticker). -/
+`isRNTicker E` (its ticks carry `E.T`: until D19b, 2026-10-18, raft's tick credit, minted by the
+ticker; now `True` for the server, `raftNode.tick` taking the credit, a time receipt, itself). -/
 def rnTickerOk (E : RNEnv GF) : IProp GF :=
   iprop(□ ∀ d : time.Duration, {{ ⌜d ≠ W64 0⌝ }} (App (Val (@! time.NewTicker)) (Val #d))
     {{ (tk : Loc), RET #tk; isRNTicker E tk }})
