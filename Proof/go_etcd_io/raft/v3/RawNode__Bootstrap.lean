@@ -35,7 +35,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ rn id si sdr s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
+  intro γ rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
@@ -406,13 +406,13 @@ theorem RawNode.Bootstrap.wp_proof
   have HN : sk.term = W64 1 ∧ sk.vote = W64 0 ∧ sk.lead = W64 0 ∧ sk.role = .follower ∧
       sk.votes = ∅ ∧ sk.outbox = [] ∧
       sk.logst = { logAppend s.logst bootLog with committed := ents.len } ∧ sk.gh = {} ∧
-      sk.prevote = false ∧ sk.rd.states = [] ∧ sk.rd.pend = [] ∧
+      sk.prevote = pre ∧ sk.rd.states = [] ∧ sk.rd.pend = [] ∧
       sk.stepfn = stepFuncOf .follower ∧ sk.ticking = true := by
     rw [Hsk, ← Hs3, ← Hs2]
     refine ⟨Hs1t, Hs1v, Hs1l, Hs1r, Hs1vs, ?_, rfl, ?_, ?_, ?_, ?_, Hs1sf, Hs1tk⟩
     · show s1.outbox = []; rw [Hs1o, Ho]
     · show s1.gh = {}; rw [Hs1gh, Hgh]
-    · show s1.prevote = false; rw [Hs1pv, Hpvoff]
+    · show s1.prevote = pre; rw [Hs1pv, Hpvoff]
     · show s1.rd.states = []; rw [Hs1rs, Hrst]
     · show s1.rd.pend = []; rw [Hs1rp, Hrpd]
   obtain ⟨HNt, HNv, HNl, HNr, HNvs, HNo, HNls, HNgh, HNpv, HNrs, HNrp, HNsf, HNtk⟩ := HN
@@ -424,6 +424,9 @@ theorem RawNode.Bootstrap.wp_proof
       (by rw [HNls]; exact Hlenw) HNrs HNrp
   ihave #Hcomm0 := isCommitted_mono γ [] bootLog List.nil_prefix $$ Hcommitted
   try wp_auto
+  -- (2026-10-17) the term ceiling at the term
+  ihave Hphys := ownRaftPhys_raise_tc _ rnv.raft' id sk (W64 1)
+    (by rw [HNgh]; show (0 : Int) ≤ _; decide) $$ Hphys
   iapply HΦ
   isplitl []
   · ipureintro; rfl
@@ -431,15 +434,17 @@ theorem RawNode.Bootstrap.wp_proof
   · iapply ownRawNode_intro_static γ rn id
         { delivered := [], unpersisted := [], steps := [], term := W64 1,
           storage := interface.ok si, mode := RNMode.static,
-          cfg := cfgState (GMap.listToSet ps) ∅ }
-        sk (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
+          cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
+        { sk with gh := { sk.gh with tc := W64 1 } } (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
         (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] rfl HNrel
         (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
         (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)
         (by rw [HNls]; simp only [logAppend, Hun])
         (by rw [HNls]; simp only [logAppend, Hsn]) trivial
-        (by rw [HNt]) (by rw [HNls]; simp only [logAppend, Hsg]) HNpv
-        (by rw [HNgh]) (by rw [HNgh]) (uint_Z_nonneg _)
+        (by simp only; rw [HNt]) (by simp only; rw [HNls]; simp only [logAppend, Hsg])
+        ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
+          fun h => by simp only at h; rw [HNr] at h; cases h⟩
+        (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
     · rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil

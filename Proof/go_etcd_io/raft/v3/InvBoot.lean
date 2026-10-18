@@ -4,7 +4,7 @@ The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `no
 `setupNode` and `StartNode` are specified over, beside the protocol side's `bootPState`,
 `BootLogOk` and `ownRaftGhost_alloc_boot` (`Protocol/Facts.lean`).
 
-* `rawNodeFresh rn id si V sdr s`: the `RawNode` `NewRawNode` builds on an empty storage, left
+* `rawNodeFresh rn id si V sdr pre s`: the `RawNode` `NewRawNode` builds on an empty storage, left
   open (`NewRawNode.spec`'s result since 2026-10-16, at any conf state, the voters `V`; a new
   cluster's is **empty**, `V = ∅`): the struct's fields as `ownRawNode` keeps them, the raft
   struct as `ownRaftPhys V` at a state `s` refining the protocol's initial state, nothing
@@ -48,13 +48,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 file header; since 2026-10-16, stage R8b, `NewRawNode.spec`'s result at any conf state, the voters
 `V`): the raft struct at the state `s`, which refines the protocol's initial state, over the
 voters `V` (which it tracks, and no learner); its log empty, nothing applied (`applied = applying
-= 0`), nothing handed out, no snapshot pending, the storage `si`; no ghost lower bound, pre-vote
-off, `StepDownOnRemoval` as the `Config` says (`sdr`). The `RawNode`'s own fields as `ownRawNode`
+= 0`), nothing handed out, no snapshot pending, the storage `si`; no ghost lower bound, pre-vote as
+the `Config` says (`pre`; until 2026-10-17 off), `StepDownOnRemoval` as the `Config` says (`sdr`). The `RawNode`'s own fields as `ownRawNode`
 keeps them: `asyncStorageWrites` unset, `prevSoftSt` and `prevHardSt` read-only, `stepsOnAdvance`
 empty. `RestartNode` closes it (`ownRawNode`, with the ghost state); `Bootstrap` installs the
 peers first. -/
 def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
-    (s : NState) : IProp GF :=
+    (pre : Bool) (s : NState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
     "Hrn" ∷ rawNodeOwn rn rnv ∗
     "Hphys" ∷ ownRaftPhys V rnv.raft' id s ∗
@@ -71,13 +71,13 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si⌝ ∗
     "%Hgh" ∷ ⌜s.gh = {}⌝ ∗
-    "%Hpvoff" ∷ ⌜s.prevote = false⌝ ∗
+    "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
     "%Hdom" ∷ ⌜domSet s.progress = V⌝)
 
 /-- Closing `rawNodeFresh`: the pure facts first, the resources in the order of the definition. -/
 theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
-    (s : NState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
+    (pre : Bool) (s : NState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
     (Hasync : rnv.asyncStorageWrites' = false) (Hrel : NStateRel s initPState)
     (Hterm0 : s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
       s.rd.states = [] ∧ s.rd.pend = [])
@@ -85,13 +85,13 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si)
-    (Hgh : s.gh = {}) (Hpvoff : s.prevote = false) (Hsdr : s.sdr = sdr)
+    (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
     (Hdom : domSet s.progress = V) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      rawNodeFresh rn id si V sdr s := by
+      rawNodeFresh rn id si V sdr pre s := by
   iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
   unfold rawNodeFresh
   iexists rnv, sv, hprev

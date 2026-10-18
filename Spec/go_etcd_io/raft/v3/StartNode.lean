@@ -77,7 +77,6 @@ abbrev StartNode.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
-  cv.PreVote' = false →
   cv.Applied' = W64 0 →
   -- an empty storage: no entries, no `HardState`, no snapshot
   σ.prev = entryID.mk (W64 0) (W64 0) →

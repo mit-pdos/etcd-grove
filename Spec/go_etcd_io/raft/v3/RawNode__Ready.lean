@@ -97,7 +97,8 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       -- every message is of a term at most the node's at the call (2026-10-10)
-      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.term⌝ ∗
+      -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
+      "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = null⌝ ∗
       -- the read states (2026-10-13)
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗

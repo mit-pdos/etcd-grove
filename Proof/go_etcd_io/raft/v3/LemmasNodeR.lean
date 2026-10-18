@@ -85,7 +85,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
   unfold stepP
   icases H with (Hnet | Hfwd)
   · iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, #Hab, #Hlb, Hcr, Htc⟩
+    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hlb, Hcr, Htc⟩
     iexists DFrac.discard, st
     iframe Hm
     isplitr
@@ -95,7 +95,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iunfold netP
     iexists st
     iframe Hm Hab Hlb Hcr Htc
-    ipureintro; exact Hok
+    ipureintro; exact ⟨Hok, Hpvb⟩
   · iunfold fwdP at Hfwd
     icases Hfwd with ⟨%st, Hm, %Hty, #Hab⟩
     iexists DFrac.own 1, st

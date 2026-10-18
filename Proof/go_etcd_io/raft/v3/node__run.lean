@@ -315,7 +315,7 @@ theorem node.run.wp_proof
     inext
     iintro %ml Hnet
     iunfold netP at Hnet
-    icases Hnet with ⟨%st, Hm, %Hok, #Hmsg, #Hlbm, Hcred, Htc⟩
+    icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hmsg, #Hlbm, Hcred, Htc⟩
     have Hty0 : 0 ≤ sint.Z st.msg.Type' := netStepTypes_nonneg Hok.1
     wp_auto_lc 1
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
@@ -358,16 +358,23 @@ theorem node.run.wp_proof
     all_goals (
       try wp_auto
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
-      -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit
-      imod budget_step γ.bud rs.term st.msg.Term' (st.msg.Type' = MsgTimeoutNow) ⊤ (by solve_ndisj)
+      -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit; (2026-10-17) the
+      -- term ceiling raised to the bound, past the message's term (a granted pre-vote answers at
+      -- it) and a transfer's campaign
+      imod budget_step γ.bud rs.tc st.msg.Term' (st.msg.Type' = MsgTimeoutNow) ⊤ (by solve_ndisj)
         $$ Hbud Hlb' Hlbm Htc with ⟨%Hbnd, %tb, #Hlbtb, %Htb⟩
-      icases ownRawNode_mode γ.raft nv.rn' id rs $$ Hrn with ⟨%Hmd, Hrn⟩
-      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r ml st Hok
-        (fun _ => Hbnd) $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
+      have Htb1 := Int.le_max_left (uint.Z rs.tc) (uint.Z st.msg.Term')
+      have Htb2 := Int.le_max_right (uint.Z rs.tc) (uint.Z st.msg.Term')
+      have Hite : (0 : Int) ≤ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) := by split <;> decide
+      icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
+      ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs tb (by omega) $$ Hrn
+      icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
+      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
+        (by simp only; omega)
+        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb
+        $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hmsg Hcred Hlc1
-      ihave #Hlbt : termLB γ.bud t $$ []
-      · iapply termLB_le γ.bud tb t (Int.le_trans Ht.2 Htb) $$ Hlbtb
-      ihave Hrest := headRest_term γ nv rs ac rc' rdv' t $$ Hrest Hlbt
+      ihave Hrest := headRest_term γ nv rs ac rc' rdv' t tb $$ Hrest Hlbtb
       try wp_auto
       wp_for_post
       iframe HΦ n r
@@ -376,7 +383,7 @@ theorem node.run.wp_proof
       isplitr
       · ipureintro; exact Hpc'
       unfold runHead
-      iexists { rs with term := t }
+      iexists { { rs with tc := tb } with term := t }
       iframe Hrn Hrest)
   -- `cc := <-n.confc` (2026-10-13): a conf change that leaves the configuration unchanged
   iapply BigAndL.bigAndL_cons.2
@@ -694,11 +701,14 @@ theorem node.run.wp_proof
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
     icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
-    imod budget_spend γ.bud rs.term ⊤ (by solve_ndisj) $$ Hbud Hcr Hlb' with ⟨%Hb, #Hlb1⟩
-    wp_apply wp_RawNode_Tick γ.raft nv.rn' id rs (by omega) $$ [$Hrn] as %t H
+    -- (2026-10-17) the tick credit raises the term ceiling by one: the tick may (pre-)campaign
+    imod budget_spend γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Hcr Hlb' with ⟨%Hb, #Hlb1⟩
+    icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
+    ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
+    wp_apply wp_RawNode_Tick γ.raft nv.rn' id { rs with tc := rs.tc + W64 1 } (by simp only; word)
+      $$ [$Hrn] as %t H
     iNamed H
-    ihave #Hlbt := termLB_le γ.bud (rs.term + W64 1) t (by word) $$ Hlb1
-    ihave Hrest := headRest_term γ nv rs ac rc' rdv' t $$ Hrest Hlbt
+    ihave Hrest := headRest_term γ nv rs ac rc' rdv' t (rs.tc + W64 1) $$ Hrest Hlb1
     wp_for_post
     iframe HΦ n r
     iexists pc', rc', ac, rdv', ld'
@@ -706,7 +716,7 @@ theorem node.run.wp_proof
     isplitr
     · ipureintro; exact Hpc'
     unfold runHead
-    iexists { rs with term := t }
+    iexists { { rs with tc := rs.tc + W64 1 } with term := t }
     iframe Hrn Hrest
   -- `readyc <- rd`
   iapply BigAndL.bigAndL_cons.2
@@ -736,7 +746,7 @@ theorem node.run.wp_proof
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateOk γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h) ∗
-        ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.term) ∧ rdv'.Snapshot' = null⌝) $$ [Hst]
+        ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ rdv'.Snapshot' = null⌝) $$ [Hst]
     · icases Hst with (⟨%ce, %es, %ms, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
       · iunfold freshOk at Hf
         icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, Hown, #Hmsgs_ok, #Hrsts, #Hhd,
@@ -794,7 +804,7 @@ theorem node.run.wp_proof
     iunfold rofFull at Hrof
     icases Hrof with ⟨%x, Hr1, Hr2⟩
     imod dghostVar_update_halves (rs.delivered, ce, es) γ.rof x x $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
-    ihave Hmt := readyMsgs_termLB γ rs.term ms Hfacts.1 $$ Hown Hmsgs_ok Hlb'
+    ihave Hmt := readyMsgs_termLB γ rs.tc ms Hfacts.1 $$ Hown Hmsgs_ok Hlb'
     imodintro
     isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr]
     · unfold readyP
@@ -870,15 +880,14 @@ theorem node.run.wp_proof
     · rw [Hstor]
       iexact Hrcpt
     imod ownRawNode_appended γ.raft nv.rn' id rs $$ Hrn Hrcpt' with Hrn
-    imod termLB_bound γ.bud rs.term ⊤ (by solve_ndisj) $$ Hbud Hlb' with %Hbnd
     -- (2026-10-15, stage N) A1, from the driver's
     icases runCfg_a1 γ rs ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
     · ipureintro; rw [Hdel]; exact HA
     wp_apply wp_RawNode_Advance γ.raft nv.rn' id { rs with unpersisted := [] } rdv' rfl
-      (by simp only; omega) Hunst HA1 $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
-    subst Ht2 Hrc
+      Hunst HA1 $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+    subst Hrc
     ihave Hcfg := runCfg_advance γ rs
-      { { rs with unpersisted := [] } with steps := [], term := rs.term, capplied := ca }
+      { { rs with unpersisted := [] } with steps := [], term := t, capplied := ca }
       rfl rfl rfl Hca HA1 $$ Hcfg
     wp_for_post
     iframe HΦ n r

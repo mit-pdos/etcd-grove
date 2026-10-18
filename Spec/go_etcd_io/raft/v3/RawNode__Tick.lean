@@ -36,7 +36,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev RawNode.Tick.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
-  uint.Z rs.term + 1 < 2 ^ 64 →
+  -- (2026-10-17; until then `rs.term + 1 < 2 ^ 64`) the next term within the ceiling: a tick may
+  -- (pre-)campaign; the client raises the ceiling first (`ownRawNode_raise_tc`)
+  uint.Z rs.term + 1 ≤ uint.Z rs.tc →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))

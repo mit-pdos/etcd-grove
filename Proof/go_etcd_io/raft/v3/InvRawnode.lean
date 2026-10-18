@@ -30,9 +30,11 @@ term. Inside are the struct, the `raft` it points to at some physical state `s`
 the queue, and the term. The scope facts the specs took as premises until then are
 conjuncts: the node is a voter of `γ.reCfg`, the configuration `ownRaftPhys` is about; no
 snapshot is pending (handing one out is phase 2); synchronous storage writes; and (since
-2026-10-10) pre-vote off (`s.prevote = false`, `NewRawNode` takes `Config.PreVote` unset):
-then every queued message is of a term at most the node's (`OutTermOk`), which
-`readyWithoutAccept` reports of the messages it hands out.
+2026-10-17, `RNPv`; from 2026-10-10 pre-vote off) pre-vote off in the dynamic mode only, and
+the term ceiling `rs.tc` (`NGhost.tc`): every queued message is of a term at most the node's or
+the ceiling (`OutTermOk`), which `readyWithoutAccept` reports of the messages it hands out, and a
+pre-candidate's next term is within it; the client raises it (`ownRawNode_raise_tc`) with the
+budget before a step that may need more.
 
 Until 2026-10-08 the predicate was `ownRawNode cfg rn id s rs`, indexed by the node's
 `NState` and an `RNState` of the previous `SoftState`/`HardState` and the queue, with
@@ -157,6 +159,10 @@ structure RNState [FfiSyntax] where
   (`ownRawNodeReady_abandon`), so that, should `HasReady` later report nothing new, the
   abandoned `Ready` is known to hold nothing (`ownRawNodeIdle`). -/
   clb : w64 := W64 0
+  /-- (2026-10-17, pre-vote on) the term ceiling (`NGhost.tc`): every message the node queues,
+  and its term, are at most this. The node's budget covers it (`termLB`); the client raises it
+  (`ownRawNode_raise_tc`) before a step that may send at a later term. -/
+  tc : w64 := W64 0
   /-- The ghost state's mode (2026-10-14, reconfiguration stage B7 part 2), constant. -/
   mode : RNMode := .static
   /-- In the dynamic mode, the configuration in use (with the learner flags; `confchange`'s
@@ -298,8 +304,9 @@ truncating `MsgApp` breaks, so `RawNode.Step` took a `MsgApp` only with an empty
 def PendingOk (s : NState) (p : Pending) : Prop :=
   match p with
   | .self pv t => uint.Z t ≤ uint.Z s.term + (if pv then 1 else 0) ∧
-      -- (2026-10-10) with pre-vote off, not a pre-vote response (`OutTermOk`)
-      (s.prevote = false → pv = false)
+      -- (2026-10-17; 2026-10-10 to 2026-10-17: with pre-vote off, not a pre-vote response) a
+      -- pre-vote response within the term ceiling (`OutTermOk`)
+      (pv = true → uint.Z t ≤ uint.Z s.gh.tc)
   | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ plogLast s.logst.prev s.logst.stored = e
   | .applyAck _ => ApplyAckOk s p
 
@@ -346,7 +353,7 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
     (Ha : s'.logst.applying = s.logst.applying)
-    (Hpv : s'.prevote = s.prevote := by first | rfl | assumption) :
+    (Htc : uint.Z s.gh.tc ≤ uint.Z s'.gh.tc) :
     StepsOk s steps → StepsOk s' steps := by
   have Hall : ∀ l : List Pending, (∀ p ∈ l, ApplyAckOk s p) → ∀ p ∈ l, ApplyAckOk s' p :=
     fun l H p Hp => applyAckOk_mono s s' p Hc Ha (H p Hp)
@@ -356,7 +363,7 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
     cases p with
     | self pv t =>
       intro ⟨⟨H1, H1'⟩, H2⟩
-      exact ⟨⟨by omega, by rw [Hpv]; exact H1'⟩, IH H2⟩
+      exact ⟨⟨by omega, fun h => Int.le_trans (H1' h) Htc⟩, IH H2⟩
     | appendAck t e =>
       intro ⟨⟨H1, H2⟩, Hr⟩
       refine ⟨⟨by omega, ?_⟩, Hall rest Hr⟩
@@ -372,9 +379,13 @@ theorem stepsOk_mono (s s' : NState) (steps : List Pending)
     (Hst : s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored)
     (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
     (Ha : s'.logst.applying = s.logst.applying)
-    (Hpv : s'.prevote = s.prevote := by first | rfl | assumption) :
+    (Htc : uint.Z s.gh.tc ≤ uint.Z s'.gh.tc) :
     StepsOk s steps → StepsOk s' steps :=
-  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha Hpv
+  stepsOk_mono_le s s' steps (by rw [Ht]; exact Int.le_refl _) Hst Hc Ha Htc
+
+/-- (2026-10-17) The term ceiling of a step that keeps the ghost state (`stepsOk_mono_le`). -/
+theorem tc_le_of_gh {s s' : NState} (h : s'.gh = s.gh) : uint.Z s.gh.tc ≤ uint.Z s'.gh.tc := by
+  simp [h]
 
 /-- What the storage holds agrees with the log up to an entry both have (2026-10-10):
 Log Matching between two logs with records (`RecsAgree`, `logRecs_agree`), one of
@@ -465,7 +476,9 @@ Moved here from the old specs (`RawNode__Step.lean`, `RawNode__ApplyConfChange.l
 def netStepTypes : List w32 :=
   [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
    MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader,
-   MsgUnreachable, MsgSnapStatus]
+   MsgUnreachable, MsgSnapStatus,
+   -- (2026-10-17) pre-vote
+   MsgPreVote, MsgPreVoteResp]
 
 /-- (2026-10-13) The types of `netStepTypes` that come unstamped (`Term = 0`): a read-index
 request (forwarded or local), `TransferLeadership`'s request, and the local reports. -/
@@ -486,25 +499,27 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
      st.msg.Type' = MsgReadIndexResp → st.msg.From' ≠ id) ∧
   (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
-  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = [])
+  (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
+  -- (2026-10-17) a pre-vote request from another node
+  (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id)
 
 omit [FfiSyntax] in
 theorem netStepTypes_nonneg {t : w32} (h : t ∈ netStepTypes) : 0 ≤ sint.Z t := by
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
-  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
+  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
 
 omit [FfiSyntax] in
 theorem netStepTypes_ne_prop {t : w32} (h : t ∈ netStepTypes) : t ≠ MsgProp := by
   intro he
   rw [he] at h
   simp [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader,
-    MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader,
+    MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgPreVote, MsgPreVoteResp] at h
 
 theorem netStepTypes_stepMsg {m : MessageM} (h : m.Type' ∈ netStepTypes) : StepMsg m := by
   simp only [StepMsg, stepMsgTypes]
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
-  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h <;> simp [h]
+  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> simp [h]
 
 /-- What `raft.Step` takes of the types it was extended to last (`RestMsgOk`), from
 `NetMsgOk` and the bound on the terms of a `MsgTimeoutNow`. -/
@@ -513,7 +528,7 @@ theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     (ht : st.msg.Type' = MsgTimeoutNow →
       uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64) :
     RestMsgOk s st.msg st.ents st.ctx := by
-  obtain ⟨-, -, Hun, -, -, Htl⟩ := h
+  obtain ⟨-, -, Hun, -, -, Htl, -⟩ := h
   refine ⟨fun h' => Hun ?_, ht, fun h' => ⟨(Htl h').1, (Htl h').2, fun hz => ?_⟩⟩
   · rcases h' with h' | h' | h'
     · exact .inr (.inr (.inl h'))
@@ -637,36 +652,75 @@ theorem ownRaftPhysC_logwf (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : N
   iframe H
   ipureintro; exact Hw.2
 
+/-- (2026-10-17) The pre-vote scope and the term ceiling, as `ownRawNode` keeps them: pre-vote off
+in the dynamic mode (a pre-candidate there needs `StepR.campaign`'s guard kept: not yet proved);
+the ceiling `rs.tc` the struct's (`NGhost.tc`), at least the term, and one past it at a
+pre-candidate (a won pre-vote campaigns at `term + 1`: the pre-campaign's budget). -/
+def RNPv (rs : RNState) (s : NState) : Prop :=
+  (rs.mode.isDyn = true → s.prevote = false) ∧ rs.tc = s.gh.tc ∧
+  uint.Z s.term ≤ uint.Z s.gh.tc ∧
+  (s.role = .preCandidate → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)
+
+theorem RNPv.dyn {rs : RNState} {s : NState} (H : RNPv rs s) (g : RGh) :
+    (rs.mode.toG g).isDyn = true → s.prevote = false :=
+  fun h => H.1 (by rw [← RNMode.toG_isDyn rs.mode g]; exact h)
+
+/-- `RNPv` after a step of `raft.Step` (`PreCandStep`): the setting and the ceiling kept, the term
+within the ceiling, and a pre-campaign (`MsgHup`) only with the ceiling one past the term. -/
+theorem RNPv.step {rs rs' : RNState} {s s' : NState} {m : MessageM} (H : RNPv rs s)
+    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (hpv : s'.prevote = s.prevote)
+    (hgh : s'.gh = s.gh) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc) (hpc : PreCandStep m s s')
+    (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' s' := by
+  obtain ⟨H1, H2, -, H4⟩ := H
+  refine ⟨fun h => by rw [hpv]; exact H1 (hmd ▸ h), by rw [htc, hgh]; exact H2,
+    by rw [hgh]; exact ht, fun h => ?_⟩
+  obtain ⟨Ht, Hor⟩ := hpc h
+  rw [hgh, Ht]
+  rcases Hor with Hr | Hh
+  · exact H4 Hr
+  · exact hhup Hh
+
+/-- `RNPv` across a step that keeps the term, the role, the setting and the ghost bounds. -/
+theorem RNPv.keep {rs rs' : RNState} {s s' : NState} (H : RNPv rs s)
+    (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (hpv : s'.prevote = s.prevote)
+    (hgh : s'.gh = s.gh) (ht : s'.term = s.term) (hr : s'.role = s.role) : RNPv rs' s' := by
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨fun h => by rw [hpv]; exact H1 (hmd ▸ h), by rw [htc, hgh]; exact H2,
+    by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h)⟩
+
 /-- What `GMode.Pre` needs of the node, for any message but a snapshot or a storage-apply
 acknowledgement (2026-10-14, stage B7 part 2). -/
-def PreFacts (s : NState) : Prop :=
-  s.role ≠ .preCandidate ∧ plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64
+def PreFacts (dyn : Bool) (s : NState) : Prop :=
+  (dyn = true → s.role ≠ .preCandidate) ∧
+  plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64
 
 theorem GMode.Pre.of_facts {md : GMode} {m : MessageM} {ents : List EntryM}
-    {s : NState} (h : PreFacts s) (h1 : m.Type' ≠ MsgSnap) (h3 : m.Type' ≠ MsgStorageApplyResp) :
+    {s : NState} (h : PreFacts md.isDyn s) (h1 : m.Type' ≠ MsgSnap)
+    (h3 : m.Type' ≠ MsgStorageApplyResp) :
     md.Pre m ents s := by
   cases md with
   | static => trivial
-  | dyn dec c0 h0 g => exact ⟨h.1, fun h' => absurd h' h3, fun _ => h.2⟩
+  | dyn dec c0 h0 g => exact ⟨h.1 rfl, fun h' => absurd h' h3, fun _ => h.2⟩
 
-/-- ... read off the struct, at a node with pre-vote off. -/
+/-- ... read off the struct, at a node with pre-vote off in the dynamic mode (2026-10-17: until
+then at a node with pre-vote off). -/
 theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
-    (Hpv : s.prevote = false) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜PreFacts s⌝ ∗ ownRaftPhysCV c V r id s := by
+    {dyn : Bool} (Hpv : dyn = true → s.prevote = false) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜PreFacts dyn s⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
   icases ownRaftPhysC_precand c r id s $$ H with ⟨%Hpc, H⟩
   icases ownRaftPhysC_last_bound c r id s $$ H with ⟨%Hb, H⟩
   iframe H
   ipureintro
-  refine ⟨fun h => ?_, Hb⟩
-  have := Hpc h; rw [Hpv] at this; cases this
+  refine ⟨fun hd h => ?_, Hb⟩
+  have := Hpc h; rw [Hpv hd] at this; cases this
 
 /-- The dynamic mode's premises of a step of `raft.Step` (`GMode.Pre`) for a message that is
 no snapshot and no storage-apply acknowledgement, at a node with pre-vote off (2026-10-14,
 stage B7 part 2): no pre-candidate (`ownRaftPhysC_precand`), and for a proposal the log's
 room (`ownRaftPhysC_last_bound`). -/
 theorem ownRaftPhysC_pre (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
-    (md : GMode) (m : MessageM) (ents : List EntryM) (Hpv : s.prevote = false)
+    (md : GMode) (m : MessageM) (ents : List EntryM) (Hpv : md.isDyn = true → s.prevote = false)
     (h1 : m.Type' ≠ MsgSnap) (h3 : m.Type' ≠ MsgStorageApplyResp) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜md.Pre m ents s⌝ ∗ ownRaftPhysCV c V r id s := by
   iintro H
@@ -678,7 +732,7 @@ theorem ownRaftPhysC_pre (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NSt
   | static => trivial
   | dyn dec c0 h0 g =>
     refine ⟨fun h => ?_, fun h => absurd h h3, fun _ => Hb⟩
-    have := Hpc h; rw [Hpv] at this; cases this
+    have := Hpc h; rw [Hpv rfl] at this; cases this
 
 end proof
 
@@ -1045,11 +1099,9 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
   "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
-  -- scope: pre-vote off (2026-10-10; `Config.PreVote` unset, `NewRawNode` copies it to
-  -- `r.preVote`, never written again): pre-vote is an optimization, out of scope. With
-  -- it off every message the node queues is of a term at most its own (`OutTermOk`), and
-  -- (2026-10-14) the node is never a pre-candidate (`ownRaftPhysC_precand`)
-  "%Hpvoff" ∷ ⌜s.prevote = false⌝ ∗
+  -- (2026-10-17; until then pre-vote off, `s.prevote = false`, its scope) pre-vote off in the
+  -- dynamic mode only, and the term ceiling (`RNPv`)
+  "%Hpvoff" ∷ ⌜RNPv rs s⌝ ∗
   -- the lower bounds for `node.go` (2026-10-10, `RNState.outlb`)
   "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
@@ -1067,7 +1119,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : s.prevote = false) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
@@ -1116,7 +1168,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
-    (Hpvoff : s.prevote = false) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
@@ -1161,6 +1213,68 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
+/-- (2026-10-17) In a cluster started from a bootstrap log (`StartNode`: `γ.reBoot ≠ []`) every
+node is past term `0` (`ownLogGhost_boot`): a pre-vote request rejected at a node's own term
+(`Term: r.Term`) is never of term `0`, which `send` refuses. -/
+theorem ownStepGhost_boot_term (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
+    (P : Prop) (Hb : P → γ.reBoot ≠ []) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ ⌜P → 1 ≤ uint.Z s.term⌝ ∗ ownStepGhost γ md c id s := by
+  apply persistent_entails_right
+  iintro H
+  by_cases hP : P
+  · iunfold ownStepGhost at H
+    icases H with ⟨Hg, -⟩
+    iunfold ownRaftGhost at Hg
+    icases Hg with ⟨%γv, %voted, %kl, H⟩
+    iNamed H
+    icases ownLogGhost_boot γ id (toPState s) kl $$ Hlg with ⟨%Hx, -⟩
+    ipureintro
+    exact fun _ => Hx.2 (Hb hP)
+  · ipureintro; exact fun h => absurd h hP
+
+/-- (2026-10-17) The term ceiling raised on the static-mode physical state (to close a node opened
+at a later term: `Bootstrap`'s, `RestartNode`'s). -/
+theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tc : w64)
+    (Hle : uint.Z s.gh.tc ≤ uint.Z tc) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ownRaftPhys cfg r id { s with gh := { s.gh with tc := tc } } := by
+  iintro H
+  ihave H := ownRaftPhys_toC' $$ H
+  ihave H := ownRaftPhysC_raise_tc (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s tc Hle $$ H
+  iapply ownRaftPhysC_toS
+  iexact H
+
+/-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
+new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,
+a pre-campaign's, a transfer's campaign). -/
+theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (tc : w64)
+    (Hle : uint.Z rs.tc ≤ uint.Z tc) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ ownRawNode γ rn id { rs with tc := tc } := by
+  iintro H
+  iNamed H
+  have Hle' : uint.Z s.gh.tc ≤ uint.Z tc := by rw [← Hpvoff.2.1]; exact Hle
+  ihave Hphys := ownRaftPhysC_raise_tc cf _ id s tc Hle' $$ Hphys
+  ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
+    (s' := { s with gh := { s.gh with tc := tc } }) rfl rfl rfl rfl $$ Hghost
+  obtain ⟨H1, -, H3, H4⟩ := Hpvoff
+  iapply ownRawNode_intro γ rn id { rs with tc := tc } { s with gh := { s.gh with tc := tc } } cf fp
+    rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+    (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
+    ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle'⟩ Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+
+/-- (2026-10-17) The term is within the ceiling. -/
+theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗
+      ⌜uint.Z rs.term ≤ uint.Z rs.tc⌝ ∗ ownRawNode γ rn id rs := by
+  iintro H
+  iNamed H
+  isplitr
+  · ipureintro; rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
 the entries the last `Ready` handed out (`appendReceipt`, for the node's storage) is
@@ -1192,7 +1306,7 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   iapply ownRawNode_intro γ rn id { rs with unpersisted := [] }
     { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hal Hasync
     Hdlen rfl Hsnap
-    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl rfl Hstok)
+    (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 

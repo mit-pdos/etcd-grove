@@ -58,7 +58,7 @@ theorem RawNode.ReportSnapshot.wp_proof
     msg_nulls
   ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 11, From' := to, Reject' := decide (st = W64 2) } : MessageM) [] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgSnapStatus]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -90,7 +90,7 @@ theorem RawNode.ReportSnapshot.wp_proof
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
-  obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by msg_ne)
+  obtain ⟨Ht1, -, Ht3, -, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
   simp only [H0] at Ht3
@@ -107,8 +107,9 @@ theorem RawNode.ReportSnapshot.wp_proof
     
     iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal
       Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-      (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok) Htrm' (by rw [Hsg]; exact Hstor)
-      (by rw [Hpre]; exact Hpvoff)
+      (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) Htrm' (by rw [Hsg]; exact Hstor)
+      (Hpvoff.step rfl rfl Hpre Hgh (by rw [← Htrm', Htrm]; exact Hpvoff.2.2.1) Hpcs
+          (by msg_ne))
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
     

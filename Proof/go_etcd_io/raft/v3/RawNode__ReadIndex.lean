@@ -94,7 +94,7 @@ theorem RawNode.ReadIndex.wp_proof
   have HmC : needsCap ({ (zero_val MessageM) with Type' := W32 15 } : MessageM) = false := rfl
   have hP : (W32 15 : w32) ≠ MsgProp := by simp [MsgProp]
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 15 } : MessageM)
     [propEntryM c] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgReadIndex])
@@ -140,7 +140,7 @@ theorem RawNode.ReadIndex.wp_proof
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
-  obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by msg_ne)
+  obtain ⟨Ht1, -, Ht3, -, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
   simp only [H0] at Ht3
@@ -149,7 +149,7 @@ theorem RawNode.ReadIndex.wp_proof
     have h0 : 0 ≤ uint.Z s.term := by word
     rw [Int.max_eq_left h0] at Ht3
     word
-  have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok
+  have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
   ihave #Hpost : iprop(∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr) $$ []
   · iexists Lc
@@ -160,7 +160,8 @@ theorem RawNode.ReadIndex.wp_proof
   iframe Hpost
   iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-    Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
+    Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) 
+    (Hpvoff.step rfl rfl Hpre Hgh (by rw [Hterm]; exact Hpvoff.2.2.1) Hpcs (by msg_ne))
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
 

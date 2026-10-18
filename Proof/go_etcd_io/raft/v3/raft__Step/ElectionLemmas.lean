@@ -117,7 +117,7 @@ theorem sendOk_voteResp (id : w64) (s : NState) (to term : w64) (rej : Bool)
     fun Hc => by
       exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-    fun _ => ⟨rfl, rfl, Int.le_trans Hle (by split <;> omega)⟩, fun _ => ⟨Hle, by simp [MsgVoteResp, MsgPreVoteResp]⟩, .inl Hle, rfl⟩
+    fun _ => ⟨rfl, rfl, Int.le_trans Hle (by split <;> omega)⟩, .inl Hle, rfl⟩
 
 end base
 
@@ -387,7 +387,6 @@ macro "prevote_resp_tail " grant:ident : tactic =>
                change MsgPreVoteResp = _ ∨ MsgPreVoteResp = _ at Hc
                rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
              fun h => absurd h Hfid,
-             fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide),
              -- (2026-10-17) the requester's term: the node's or within the ceiling
              (by first | exact .inr Hptc | exact .inl (Int.le_of_eq (congrArg _ Heq0))), rfl⟩)
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
@@ -418,7 +417,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
                change MsgPreVoteResp = _ ∨ MsgPreVoteResp = _ at Hc
                rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
              fun h => absurd h Hfid,
-             fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide), .inl (Int.le_refl _), rfl⟩)
+             .inl (Int.le_refl _), rfl⟩)
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
          $$ [Hphys Hresp]
        · iframe Hphys Hresp

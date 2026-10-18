@@ -50,7 +50,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   ihave #Hent := entData_cc γ o bs Hbs (Hok bs Hbs)
   ihave #Hcc := ccEntsOk_cc (GF := GF) o bs Hbs
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml propMsgM [ccEntryM (some o) bs] [] none []
     (by simp [StepMsg, stepMsgTypes, propMsgM, MsgProp]) 
     (by msg_ne) (by msg_ne)
@@ -117,9 +117,9 @@ theorem RawNode.ProposeConfChange.wp_proof
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap'
-        Hfr.2.2.2.2.2.2.2.1 Hstok)
+        (tc_le_of_gh Hfr.2.2.2.2.2.2.2.2.1) Hstok)
       (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
-      (by rw [Hfr.2.2.2.2.2.2.2.1]; exact Hpvoff)
+      (Hpvoff.keep rfl rfl Hfr.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.1 Hfr.1 Hfr.2.2.2.2.2.2.2.2.2)
       (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'

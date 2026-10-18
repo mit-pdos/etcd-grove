@@ -59,9 +59,10 @@ Premises:
 - no unstable entry is known to be still to hand out (`rs.unst = false`, 2026-10-10):
   `acceptReady` resets the flag and steps keep it; the acknowledgement's `stableTo` may
   hand out the rest (`NGhost`);
-- the term does not wrap if it is raised (2026-10-10): stepping the node's own
+- (2026-10-10 to 2026-10-17) the term does not wrap if it is raised: stepping the node's own
   pre-vote response may win a pre-election, whose `campaign` increments the term
-  (`Step`'s premise for a pre-candidate's `MsgPreVoteResp`).
+  (`Step`'s premise for a pre-candidate's `MsgPreVoteResp`). Since 2026-10-17 the term
+  ceiling bounds it (`RNPv`: a pre-candidate's next term is within `rs.tc`).
 
 The node after: the queue empty, and the term up by at most one -- by a won pre-vote;
 once one is won the node is a candidate, which ignores the rest of the queue's
@@ -78,7 +79,6 @@ entries, a non-rejecting `MsgAppResp`, a term bound). They are recorded now:
 abbrev RawNode.Advance.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
   rs.unpersisted = [] →
-  uint.Z rs.term + 1 < 2 ^ 64 →
   rs.unst = false →
   -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
   -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
@@ -90,8 +90,9 @@ abbrev RawNode.Advance.spec : Prop :=
   {{ (t : w64) (ca : Nat), RET #();
       ownRawNode γ rn id { rs with steps := [], term := t, capplied := ca } ∗
       ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
-      -- with pre-vote off (`ownRawNode`'s scope) the term is kept (2026-10-10)
-      ⌜t = rs.term⌝ ∗
+      -- (2026-10-17; 2026-10-10 to 2026-10-17, with pre-vote off: `t = rs.term`) within the
+      -- term ceiling
+      ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
       -- (2026-10-14) the configuration index moves up, to at most the committed log handed
       -- out (`StepR.advance`); not at all in the static mode
       ⌜rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧

@@ -35,7 +35,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γ bud b ss wal cl dq bv cv lok γs reg pre pv ps ctxs bootLog
-    Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Hpv Happlied
+    Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
     Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk
   wp_start as Hpre
   iNamed Hpre
@@ -68,7 +68,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `raft.StartNode(b.config, b.peers)`
   wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
-    bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Hpv
+    bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
     rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk)
     $$ [Hc Hsto Hghost Hpeers] as %nd Hpost

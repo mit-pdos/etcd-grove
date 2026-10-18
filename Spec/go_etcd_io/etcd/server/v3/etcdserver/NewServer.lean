@@ -5,9 +5,9 @@
 
 **The premises.**
 * `bootstrap`'s contract (`bootstrapContract`, `InvBoot.lean`; D13b): a premise, not an axiom.
-* **`PreVote` off**: the raft start result does not cover pre-vote yet (etcd's embed sets it by
-  default; leave `cfg.PreVote` unset). `CheckQuorum`, which etcd always sets, is covered since
-  2026-10-17 (D15's patched fork, which turned it off, reverted).
+* `PreVote` (etcd's embed sets it by default) and `CheckQuorum` (which etcd always sets) either
+  way since 2026-10-17 (D15's patched fork, which turned `CheckQuorum` off, reverted; until then
+  `cfg.PreVote` had to be unset).
 * The cluster's ghost state, as `NodeStartSpec`'s: raft's names `γ` with this node's ghost state
   at the bootstrap log's state, the committed bootstrap log, raft's commit invariant, the budget;
   and the outputs of `allocClientBoot`'s continuation for this server (the client's half of the
@@ -70,8 +70,6 @@ abbrev NewServer.spec : Prop :=
   cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →
   -- the compactor off (D14e: `v3compactor.New` and its goroutine not reached)
   cfg.AutoCompactionRetention' = 0 →
-  -- raft's `PreVote` off (not etcd's default configuration: pre-vote is not covered yet)
-  cfg.PreVote' = false →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
   threadBound GF ≤ 2 ^ 31 →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk

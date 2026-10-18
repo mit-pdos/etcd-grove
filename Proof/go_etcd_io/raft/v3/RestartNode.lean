@@ -49,7 +49,7 @@ theorem RestartNode.wp_proof
       iapply ownRaftGhost_inv_md $$ Hg
   wp_auto
   wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P10 P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24
+    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24
     $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
@@ -61,6 +61,13 @@ theorem RestartNode.wp_proof
   obtain ⟨Ht0, Hv0, Hr, -, -, -⟩ := Hterm0
   have Hdlen0 : ([] : List EntryM).length = (uint.Z s.logst.applying).toNat := by
     rw [Hapg]; rfl
+  -- (2026-10-17) the term ceiling at the term, `0`
+  have Hrnpv : RNPv
+      { delivered := [], unpersisted := [], steps := [], term := W64 0,
+        storage := interface.ok si, mode := md,
+        cfg := cfgState (GMap.listToSet csm.Voters') ∅ } s :=
+    ⟨fun h => by rw [Hpvoff]; exact P10 h, by rw [Hgh], by rw [Ht0, Hgh]; exact Int.le_refl _,
+      fun h => by rw [Hr] at h; cases h⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
   ihave Hrn : ownRawNode γ rn cv.ID'
@@ -82,7 +89,7 @@ theorem RestartNode.wp_proof
           s initPState rnv sv hprev [] rfl Hrel
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
-          (by rw [Ht0]) (by rw [Hsg]) Hpvoff (by rw [Hgh]) (by rw [Hgh])
+          (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
@@ -124,7 +131,7 @@ theorem RestartNode.wp_proof
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
-          (by rw [Ht0]) (by rw [Hsg]) Hpvoff (by rw [Hgh]) (by rw [Hgh])
+          (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil

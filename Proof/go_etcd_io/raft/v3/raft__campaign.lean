@@ -353,12 +353,6 @@ theorem raft.campaign.wp_proof
             fun _ => ⟨rfl, rfl, by
               cases pre <;> simp [campRoleState, becomeCandidate, becomePrecandidate, resetTo, resetTo0,
                 sendMsgs, vrespW32, MsgPreVoteResp, MsgVoteResp] <;> word⟩,
-            -- with pre-vote off, an election's: at the node's term (2026-10-10)
-            fun Hpf => by
-              cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32,
-                  MsgVoteResp, MsgPreVoteResp]
-              · simp [campRoleState, becomePrecandidate, sendMsgs, (Hpvpre rfl).1] at Hpf,
             -- (2026-10-17) within the node's term or the ceiling
             by cases pre
                · left; simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs]
@@ -433,11 +427,6 @@ theorem raft.campaign.wp_proof
             Hno_wrap,
             fun _ => Hyid,
             fun h => absurd h Hyid,
-            fun Hpf => by
-              cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vreqW32,
-                  MsgVote, MsgPreVoteResp]
-              · simp [campRoleState, becomePrecandidate, sendMsgs, (Hpvpre rfl).1] at Hpf,
             -- (2026-10-17) within the node's term or the ceiling
             by cases pre
                · left; simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs]

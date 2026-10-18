@@ -154,7 +154,7 @@ boundary `prev` and what the storage holds (the ghost `stored`): no `Step` but a
 leaves the storage holding entries the log no longer has -- which is why the
 acknowledgement `Advance` steps after it may still move them stable (`StableOk`). And
 the storage the log reads (`LogState.storage`, constant). And (2026-10-10) `r.preVote`,
-never written after `newRaft` (the `RawNode` predicate keeps pre-vote off, its scope). -/
+never written after `newRaft` (the `RawNode` predicate keeps it off in the dynamic mode). -/
 def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   s'.logst.applying = s.logst.applying ∧
   s'.logst.snap = s.logst.snap ∧
@@ -346,17 +346,15 @@ abbrev raft.Step.spec : Prop :=
   --   and increments the term: it must not wrap (as for `MsgHup`). Only at a
   --   pre-candidate (2026-10-10: `RawNode.Advance` may step its own pre-vote response
   --   after a won pre-vote raised the term, at a candidate, which ignores it);
-  -- - (2026-10-10) a `MsgPreVote` reaches only a node with pre-vote on (the setting is
-  --   the cluster's): a node with pre-vote off then never sends a pre-vote message, and
-  --   every message it queues is of a term at most its own (`OutTermOk`). `RawNode.Step`
-  --   takes no pre-vote message at all.
+  -- - a `MsgPreVote`'s term within the node's term ceiling (`NGhost.tc`; 2026-10-17, until
+  --   then it reached only a node with pre-vote on, and `RawNode.Step` took none): a granted
+  --   pre-vote answers at the request's term (`OutTermOk`).
   (m.Type' = MsgPreVote →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧
      m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
      (s.term = W64 0 →
       plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') = true) ∧
-     s.prevote = true ∧
      -- (2026-10-17) a grant answers at the requested term, which the ceiling (`NGhost.tc`)
      -- must cover when it is past the node's; the `RawNode` raises it first
      (uint.Z m.Term' ≤ uint.Z s.term ∨ uint.Z m.Term' ≤ uint.Z s.gh.tc)) →
