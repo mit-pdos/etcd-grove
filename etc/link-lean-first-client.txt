@@ -162,8 +162,9 @@ NewWatcher: NewWatchClient NewWatchFromWatchClient
 watcher__Close: watchGRPCStream__close errors_IsStatusErr
 # Item 1 (the client lease, branch `lease-client`): the lessor (lease.go: `Grant`, `Revoke`,
 # `KeepAlive` and its goroutines, `NewLeaseFromLeaseClient`, `NewLease`), the retry lease client,
-# the generated Lease stub. Trust boundary: `closeRequireLeader` and `WithRequireLeader` (names
-# only: grpc's `metadata`), a context's `Value` at `keepAliveCtxKey`, `context.WithValue`.
+# the generated Lease stub. Trust boundary: `WithRequireLeader` (names only: grpc's `metadata`),
+# grpc's `metadata.FromOutgoingContext` (which `closeRequireLeader` calls), a context's `Value` at
+# `keepAliveCtxKey`, `context.WithValue`.
 NewLeaseClient:
 LeaseGrantResponse__GetHeader:
 LeaseKeepAliveResponse__GetHeader:
@@ -177,7 +178,8 @@ retryLeaseClient__LeaseKeepAlive: withRepeatablePolicy leaseClient__LeaseKeepAli
 v3_lessor__Grant: retryLeaseClient__LeaseGrant LeaseGrantResponse__GetHeader ContextError
 v3_lessor__Revoke: retryLeaseClient__LeaseRevoke ContextError
 keepAlive__close:
-v3_lessor__closeRequireLeader:
+metadata_FromOutgoingContext:
+v3_lessor__closeRequireLeader: metadata_FromOutgoingContext
 v3_lessor__recvKeepAlive: LeaseKeepAliveResponse__GetHeader keepAlive__close zap_Int zap_Logger__Warn
 v3_lessor__deadlineLoop: keepAlive__close
 canceledByCaller: errors_IsStatusErr

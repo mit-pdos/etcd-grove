@@ -136,11 +136,15 @@ PROJECTS = [
         # `raftAdvancedC` (issues/etcd-compact-past-raft-applied.md; D19i part 1) as 06aa6e6e, and
         # (D19l) etcd-io/etcd#22297 cherry-picked as 5615016f6 (`syncWatchersLoop`'s ticker reset,
         # issues/etcd-watch-sync-ticker-reset-zero.md) and `AuthInfoFromTLS`'s checked assertion
-        # as 17c88a667 (issues/etcd-auth-tls-info-assert.md). Branch
+        # as 17c88a667 (issues/etcd-auth-tls-info-assert.md), and the client's
+        # `closeRequireLeader` context alignment (a7bd9a16e,
+        # issues/etcd-lease-close-require-leader-ctx-misaligned.md) and the retry interceptor's
+        # non-repeatable context-error return (8a24be2a3, issues/etcd-client-retry-put-ctx-error.md).
+        # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="17c88a6678c362192436113455af4e0a22009c9e",
+        rev="8a24be2a324fdb431c9a552ebc3c2c9441455c7b",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

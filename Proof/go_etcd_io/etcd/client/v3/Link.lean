@@ -101,6 +101,7 @@ public import Proof.go_etcd_io.etcd.client.v3.kv__Txn
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseGrant
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseKeepAlive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseRevoke
+public import Proof.google_golang_org.grpc.metadata.FromOutgoingContext
 public import Proof.go_etcd_io.etcd.client.v3.newBlockLogger
 public import Proof.go_etcd_io.etcd.client.v3.newClient
 public import Proof.google_golang_org.grpc.peer.Peer__String
@@ -748,6 +749,10 @@ theorem leaseClient.wp_LeaseRevoke :
     EtcdGrove.leaseClient.LeaseRevoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leaseClient.LeaseRevoke.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
 
+theorem metadata.wp_FromOutgoingContext :
+    EtcdGrove.metadata.FromOutgoingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.FromOutgoingContext.wp_proof
+
 theorem v3.wp_newBlockLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.newBlockLogger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.newBlockLogger.wp_proof
@@ -814,7 +819,7 @@ theorem v3.lessor.wp_recvKeepAlive :
 
 theorem v3.lessor.wp_closeRequireLeader :
     EtcdGrove.lessor.closeRequireLeader.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lessor.closeRequireLeader.wp_proof
+  EtcdGrove.lessor.closeRequireLeader.wp_proof metadata.wp_FromOutgoingContext
 
 theorem v3.lessor.wp_recvKeepAliveLoop :
     EtcdGrove.lessor.recvKeepAliveLoop.spec (GF := GF) (hG := hG) :=

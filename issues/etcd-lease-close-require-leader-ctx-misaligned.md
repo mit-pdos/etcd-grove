@@ -4,12 +4,15 @@ upstream: unchecked
 
 # clientv3: `closeRequireLeader` misaligns a keep-alive's contexts with its channels
 
-**Status**: a bug (a wrong result): after the lease keep-alive stream ends with `ErrNoLeader`,
-the surviving `KeepAlive` channels of a lease are paired with the wrong contexts, so canceling a
-`KeepAlive` caller's context closes another caller's channel, or none.
+**Status**: **fixed in the fork** (2026-10-18): `ka.ctxs[i]`, with the reproduction below as a
+test (`client/v3/lease_close_require_leader_test.go`, fails without the fix), on `upamanyus/etcd`
+`goose-lean` as `a7bd9a16e` (in etc/goose.py's etcd pin since 8a24be2a3; upstream main
+unchanged). At upstream's code: a bug (a wrong result): after the lease keep-alive stream ends
+with `ErrNoLeader`, the surviving `KeepAlive` channels of a lease are paired with the wrong
+contexts, so canceling a `KeepAlive` caller's context closes another caller's channel, or none.
 
 **Where**: `client/v3/lease.go:413` (etcd fork `upamanyus/etcd` at `06aa6e6e7`, the pin of
-`etc/goose.py`), in `(*lessor).closeRequireLeader`:
+`etc/goose.py` when found; fixed at the current pin), in `(*lessor).closeRequireLeader`:
 
 ```go
 newChs[newIdx], newCtxs[newIdx] = ka.chs[i], ka.ctxs[newIdx]
@@ -68,10 +71,13 @@ At the pin: `B's channel not closed after B's context was canceled; ka.ctxs[0] i
 **Expected**: `KeepAlive`'s documentation: the returned channel is closed when the context is
 canceled (or the lease expires / the keep-alive halts); each channel with its own context.
 
-**How the proof handles it**: not yet verified (`client/v3/lease.go` is names-only in the
-translation; found while surveying it for the client lease contract, `notes/STATUS.md`, "The
-client lease: survey"). `isEtcdLease`'s `KeepAlive` promises nothing of when the channel closes,
-so a proof of the lessor's safety would not exclude it; a spec of the close on cancel would.
+**How the proof handles it**: `closeRequireLeader` is proved at the fixed pin
+(`Proof/go_etcd_io/etcd/client/v3/lessor__closeRequireLeader.lean`), to safety under the lessor's
+lock invariant (it closes each channel with its token, once, and leaves `kaOwn` of the keep-alive:
+equal lengths, a token per channel, a context per context). The invariant does not pair a channel
+with its context, so the proof would go through at upstream's code too: the fix is not what the
+proof checks. `isEtcdLease`'s `KeepAlive` promises nothing of when the channel closes; a spec of
+the close on cancel would need that pairing.
 
 **Possible fixes**: `ka.ctxs[i]` in place of `ka.ctxs[newIdx]`.
 
