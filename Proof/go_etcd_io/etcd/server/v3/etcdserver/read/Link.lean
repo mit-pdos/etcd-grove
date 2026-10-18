@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.context.ErrAny
 public import Proof.context.ErrDone
 public import Proof.context.WithTimeoutBackground
 public import Proof.context.WithValue
@@ -130,9 +131,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
+theorem context.wp_ErrAny :
+    EtcdGrove.context.ErrAny.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.ErrAny.wp_proof
+
 theorem context.wp_ErrDone :
     EtcdGrove.context.ErrDone.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.ErrDone.wp_proof
+  EtcdGrove.context.ErrDone.wp_proof context.wp_ErrAny
 
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=

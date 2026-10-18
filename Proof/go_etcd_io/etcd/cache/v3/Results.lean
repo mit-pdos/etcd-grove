@@ -177,6 +177,7 @@ the client `clientv3.New(cfg)` returns (`isNewClient cl ep V`, `client_New`'s po
 server's facts at `ep` (`watchAddrFacts V`, `V.addr = ep`) and the KV's premises at `ep`. -/
 theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF) (s : Loc)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hV : V.addr = ep) (hE : V.R.E = E)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
@@ -195,7 +196,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
           err }} := by
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany, Hopts, %Hcfg,
     %Hb⟩ HΦ
-  ihave #Hcl := client.isEtcdClient_of_new hAs client.v3.watcher.wp_Watch
+  ihave #Hcl := client.isEtcdClient_of_new context.wp_ErrAny hAs client.v3.watcher.wp_Watch
     client.v3.watcher.wp_RequestProgress cl ep V s E γr cid mid hV hE hff $$ []
   · iframe #
   iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
@@ -240,12 +241,12 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
         client.noRetryableStreamErr ∗
-        client.srvNoDupKeys V.R ∗ client.eofOk ∗ client.ctxErrClientAllW ⊢
+        client.srvNoDupKeys V.R ∗ client.eofOk ⊢
       |={⊤}=> grpcServeTok gs lis ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
         watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hnr, #Hnd, #Heof, #Hce⟩
+    #Hws, #Hims, #His, Hwslots, #Hnr, #Hnd, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
     hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, -, #Hrange, -, -⟩
   · iframe; iframe #
