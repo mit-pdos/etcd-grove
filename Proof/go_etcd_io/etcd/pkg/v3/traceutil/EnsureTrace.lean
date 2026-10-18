@@ -37,7 +37,7 @@ local macro "et_new" : tactic => `(tactic| (
   wp_apply hWV ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _ $$ []
     as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, #Htx, #Hic, #Htr, -⟩
-  · iframe #; ipureintro; right; right; right; rfl
+  · iframe #; ipureintro; right; right; right; left; rfl
   subst Hc
   (try wp_auto)
   iapply HΦ

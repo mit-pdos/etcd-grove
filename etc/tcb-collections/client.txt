@@ -15,10 +15,10 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom NewAuth.wp_proof
 axiom NewCluster.wp_proof
-axiom NewLease.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom RangeRequest.String.wp_proof
+axiom WithRequireLeader.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
@@ -29,6 +29,7 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txLive
 axiom context.ErrAny.wp_proof
+axiom context.ValueKeepAlive.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -72,6 +73,7 @@ axiom grpcSrvNew
 axiom grpcStreamServerAt
 axiom grpcWrotePeer
 axiom insecure.NewCredentials.wp_proof
+axiom lessor.closeRequireLeader.wp_proof
 axiom netListenerAt
 axiom peer.Peer.String.wp_proof
 axiom promSrvMetrics

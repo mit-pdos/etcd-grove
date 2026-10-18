@@ -144,7 +144,8 @@ instance pbDescOk_persistent (sd : Loc) (sn : GoString) (T : go.GoType) :
 item 8, 2026-10-17: until then an assumption of `v3rpc.Server`, `svcDescsOk`): their service names,
 handler types and distinct method and stream names; the KV service's methods and the Watch
 service's stream exactly (2026-10-18: the Watch stream a client stream, `ClientStreams`, which
-`grpc.ClientConn.NewStream`'s spec asks of its descriptor). -/
+`grpc.ClientConn.NewStream`'s spec asks of its descriptor; and the Lease service's stream, the client
+lease's keep-alive). -/
 abbrev etcdserverpbDescs : IProp GF :=
   iprop((∃ (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc),
       pbDescIs (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.KV_ServiceDesc) go!"etcdserverpb.KV"
@@ -164,7 +165,13 @@ abbrev etcdserverpbDescs : IProp GF :=
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Cluster_ServiceDesc) go!"etcdserverpb.Cluster" go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.ty ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Auth_ServiceDesc) go!"etcdserverpb.Auth" go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer.ty ∗
     pbDescOk (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Maintenance_ServiceDesc) go!"etcdserverpb.Maintenance"
-      go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty)
+      go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.ty ∗
+    -- (item 1, the client lease, 2026-10-18) the Lease service's one stream, `LeaseKeepAlive`, a
+    -- client stream (what `grpc.ClientConn.NewStream`'s spec asks of its descriptor)
+    (∃ (ssl : GoSlice) (sds : List google_golang_org.grpc.StreamDesc),
+      structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams"
+        (globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.Lease_ServiceDesc) ↦□ ssl ∗ ssl ↦*□ sds ∗
+      ⌜sds.map (·.ClientStreams') = [true]⌝))
 
 /-- **`etcdserverpb`'s fact** (item 8, 2026-10-17: moved here from `v3rpc`'s `sortNameMaps`): the
 enumerations' name maps `checkRangeRequest` looks the sort order and target up in
@@ -324,7 +331,12 @@ abbrev rpctypesInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ↦□ GoInterface.ok e ∗
       errorStringSpec e) ∗
     (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ↦□ GoInterface.ok e ∗
-      errorStringSpec e))
+      errorStringSpec e) ∗
+    -- (item 1, the client lease, 2026-10-18) `ErrNoLeader`, an `EtcdError` (the client's lease
+    -- keep-alive loop compares a stream's error with it)
+    (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrNoLeader ↦□
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x))
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
@@ -460,7 +472,9 @@ abbrev clientv3Init : IProp GF :=
     (∃ (ch : GoChan) (t : time.Time) (d : time.Duration),
       globalAddr go_etcd_io.etcd.client.v3.valCtxCh ↦□ ch ∗
       globalAddr go_etcd_io.etcd.client.v3.zeroTime ↦□ t ∗
-      globalAddr go_etcd_io.etcd.client.v3.maxBackoff ↦□ d))
+      globalAddr go_etcd_io.etcd.client.v3.maxBackoff ↦□ d) ∗
+    -- (item 1, the client lease, 2026-10-18) `lease.go`'s `LeaseResponseChSize` (never written)
+    globalAddr go_etcd_io.etcd.client.v3.LeaseResponseChSize ↦□ (W64 16 : w64))
 
 instance clientv3_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.v3 :=
   define_is_pkg_init clientv3Init

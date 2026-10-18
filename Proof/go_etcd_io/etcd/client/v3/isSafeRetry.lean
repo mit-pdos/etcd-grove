@@ -67,7 +67,7 @@ theorem isSafeRetry.wp_proof
   · wp_auto
     iapply HΦ; itrivial
   wp_auto
-  wp_apply (wp_Is err (GoInterface.ok eL) (Or.inr ⟨eL, rfl, HeLp⟩)) $$ [$Herrs $Hse] as %b2 -
+  wp_apply (wp_Is err (GoInterface.ok eL) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 -
   cases b2
   rotate_left
   · wp_auto

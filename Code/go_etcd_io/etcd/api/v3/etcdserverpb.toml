@@ -90,7 +90,16 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # `ServiceDesc`s and their service interfaces
   "RegisterLeaseServer", "Lease_ServiceDesc", "LeaseServer", "RegisterClusterServer",
   "Cluster_ServiceDesc", "ClusterServer", "RegisterAuthServer", "Auth_ServiceDesc", "AuthServer",
-  "RegisterMaintenanceServer", "Maintenance_ServiceDesc", "MaintenanceServer"]
+  "RegisterMaintenanceServer", "Maintenance_ServiceDesc", "MaintenanceServer",
+  # the client lease (item 1, branch `lease-client`): the generated Lease stub (client side) and
+  # handlers (server side), the method names, the keep-alive messages and the getters the
+  # client reads
+  "NewLeaseClient", "LeaseClient", "leaseClient", "leaseClient.LeaseGrant",
+  "leaseClient.LeaseRevoke", "leaseClient.LeaseKeepAlive", "Lease_LeaseGrant_FullMethodName",
+  "Lease_LeaseRevoke_FullMethodName", "Lease_LeaseKeepAlive_FullMethodName",
+  "Lease_LeaseKeepAliveClient", "Lease_LeaseKeepAliveServer", "LeaseKeepAliveRequest",
+  "LeaseKeepAliveResponse", "LeaseGrantResponse.GetHeader", "LeaseKeepAliveResponse.GetHeader",
+  "_Lease_LeaseGrant_Handler", "_Lease_LeaseRevoke_Handler", "_Lease_LeaseKeepAlive_Handler"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

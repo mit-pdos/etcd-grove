@@ -66,6 +66,7 @@ theorem watchClient.Watch.wp_proof
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
+  ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
   iapply (wp_NewStream conn addr ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequest
     v3rpc.pbWatchResponse Up Spec ctx cd _ copts ([sm] ++ vs))
   · iframe #

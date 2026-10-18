@@ -301,6 +301,20 @@ def eofIs (err : GoInterface) : IProp GF :=
 instance eofIs_persistent (err : GoInterface) : Persistent (eofIs (GF := GF) err) := by
   unfold eofIs; infer_instance
 
+namespace client
+
+/-- **`io.EOF` is a client error grpc's `status` accepts** (a package fact of `io`, persistent): a
+leaf error (`errors.New("EOF")`) whose `Error()` returns. (Moved here from the client's
+`InvWatch.lean` on 2026-10-18, for the lessor's keep-alive loop.) -/
+def eofOk : IProp GF :=
+  iprop(□ ∀ err : GoInterface, eofIs err -∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
+    go_etcd_io.etcd.cache.v3.statusErrOk err)
+
+instance eofOk_persistent : Persistent (eofOk (GF := GF)) := by
+  unfold eofOk; infer_instance
+
+end client
+
 /-- A message `l` of the Go type `T` passed as `any` (grpc's `SendMsg(m any)`, `RecvMsg(m any)`). -/
 abbrev msgAny (T : go.GoType) (l : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType T) #l

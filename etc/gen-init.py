@@ -296,7 +296,7 @@ SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes'] = dict(
 (`EtcdError`s, whose `Error()` returns), the map `errStringToError` (its values `status.Error`
 errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, a
 premise on the method sets), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
-`ErrAuthOldRevision` and the pointer error `ErrGRPCNotSupportedForLearner`. Its variables'
+`ErrAuthOldRevision`, `ErrNoLeader` and the pointer error `ErrGRPCNotSupportedForLearner`. Its variables'
 initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-boundary axioms
 `<X>_init` state the ones the fact reads, `opaqueInitsOk` the others.''',
     pre=['/-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,',
@@ -330,10 +330,15 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
         'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, ...)` (`error.go`): a `*status.Error`, a pointer error. -/',
                              post='∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝',
                              pat='⟨%e@, H@, %P@⟩'),
+        # (item 1, the client lease, 2026-10-18: the lessor's keep-alive loop compares a stream's
+        # error with it, `errors.Is`)
+        'ErrNoLeader': dict(doc='/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/',
+                             post='∃ x : EtcdError, globalAddr ErrNoLeader ↦ interface.mkOk EtcdError.ty #x',
+                             pat='⟨%x@, H@⟩'),
     },
     finish=['ipersist HErrFutureRev', 'ipersist HErrCompacted', 'ipersist HerrStringToError',
             'ipersist HErrUserEmpty', 'ipersist HErrInvalidAuthToken', 'ipersist HErrAuthOldRevision',
-            'ipersist HErrGRPCNotSupportedForLearner',
+            'ipersist HErrGRPCNotSupportedForLearner', 'ipersist HErrNoLeader',
             'ihave #HFRS : iprop(□ ∀ e : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok e -∗',
             '    go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []',
             '· iintro !> %e He',
@@ -350,7 +355,8 @@ SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
 `[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
 backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, the trust-boundary axiom `time.Unix.wp_proof`) and
-`maxBackoff`. Its initializer also runs its other untranslated initializers
+`maxBackoff`, and `LeaseResponseChSize` (`lease.go`, untranslated: `16`; the trust-boundary axiom
+`LeaseResponseChSize_init`). Its initializer also runs its other untranslated initializers
 (`opaqueInitsOk`).''',
     imports=['Proof.time.Unix'],
     alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
@@ -508,11 +514,14 @@ _C['custom'].update({
         post='∃ d : time.Duration, globalAddr defaultBackoffWaitBetween ↦ d', pat='⟨%d@, H@⟩'),
     'defaultBackoffJitterFraction': dict(doc='/-- `defaultBackoffJitterFraction = 0.10` (`options.go`): a float. -/',
         post='∃ f : w64, globalAddr defaultBackoffJitterFraction ↦ f', pat='⟨%f@, H@⟩'),
+    # (item 1, the client lease, 2026-10-18: `KeepAlive`'s `make(chan ..., LeaseResponseChSize)`)
+    'LeaseResponseChSize': dict(doc='/-- `LeaseResponseChSize = 16` (`lease.go`). -/',
+        post='globalAddr LeaseResponseChSize ↦ (W64 16 : w64)', pat='H@'),
 })
 _C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
                  'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
-                 'ipersist HmaxBackoff'] + FIN_PRE[:6] +
+                 'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
                  'ipureintro', 'exact PdefaultCallOpts'])
 
@@ -792,7 +801,7 @@ names) and the four
              '· iapply isPkgInit_access $$ Hd22',
              'icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
              ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + ', ' +
-             ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + '⟩',
+             ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + ', -⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
              'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
@@ -806,7 +815,7 @@ names) and the four
              '· inext', '  unfold EtcdGrove.v3rpc.metricsP', '  iexists _', '  iframe HmetricsServerCached',
              '  ileft', '  ipureintro; rfl',
              '-- the six `ServiceDesc`s, from `etcdserverpb`\'s fact',
-             'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM⟩',
+             'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, -⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
              '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods',

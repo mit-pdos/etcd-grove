@@ -110,7 +110,10 @@ open), [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) with
 [cache-stale-progress-compacts-newest-watch](cache-stale-progress-compacts-newest-watch.md),
 [raft-prevote-stale-grant](raft-prevote-stale-grant.md) (disruption, not safety),
 [etcd-request-id-member-prefix](etcd-request-id-member-prefix.md) (needs two member ids equal in
-their low 16 bits).
+their low 16 bits),
+[etcd-lease-close-require-leader-ctx-misaligned](etcd-lease-close-require-leader-ctx-misaligned.md)
+(a canceled `KeepAlive` closes another caller's channel after an `ErrNoLeader` stream end; test and
+one-token fix).
 
 ## Already in maintainers' hands
 

@@ -254,14 +254,6 @@ def srvNoDupKeys (R : v3rpc.WSrv GF) : IProp GF :=
 instance srvNoDupKeys_persistent (R : v3rpc.WSrv GF) : Persistent (srvNoDupKeys R) := by
   unfold srvNoDupKeys; infer_instance
 
-/-- **`io.EOF` is a client error grpc's `status` accepts** (a package fact of `io`, persistent): a
-leaf error (`errors.New("EOF")`) whose `Error()` returns. -/
-def eofOk : IProp GF :=
-  iprop(□ ∀ err : GoInterface, eofIs err -∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)
-
-instance eofOk_persistent : Persistent (eofOk (GF := GF)) := by
-  unfold eofOk; infer_instance
-
 /-- **`errors.New`'s errors are client errors grpc's `status` accepts** (a package fact of
 `errors`, persistent: an `*errorString` is a leaf error with `Error` only; Perennial's model of
 `errors.New` says it is a pointer error whose `Error()` returns the message, and the model has no

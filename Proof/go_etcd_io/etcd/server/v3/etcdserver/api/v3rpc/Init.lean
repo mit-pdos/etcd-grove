@@ -276,7 +276,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HclientRequests
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd22
-  icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4⟩
+  icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
@@ -297,7 +297,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     ileft
     ipureintro; rfl
   -- the six `ServiceDesc`s, from `etcdserverpb`'s fact
-  icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM⟩
+  icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩
   obtain ⟨rfl, HWp, -⟩ := HWp
   ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []
   · unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods

@@ -8,7 +8,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcStream
-public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
+public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 
 @[expose] public section
 
@@ -32,15 +32,17 @@ descriptor `desc` (read-only) of a client stream (`ClientStreams`; 2026-10-18, t
 for a server-streaming method with retries etcd's interceptor returns a
 `serverStreamingRetryingStream`, which on a failed first `RecvMsg` opens a second stream and
 replays the sends, so the handler runs twice, which one `γ` cannot describe) and the client's
-call options (`callOptsOk`: scalar options or the
-client's retry options): a client stream (`cliStreamIs`: a raw client end, both tokens at `[]`,
+call options (`streamCallOptsOk`: scalar options, the
+client's retry policy options, or, since 2026-10-18 (item 1, the client lease: the lessor's
+`withMax(0)`), any `retryOption` that builds the interceptor's options): a client stream (`cliStreamIs`: a raw client end, both tokens at `[]`,
 and the method's stream specification `Spec γ Dn` for the content `Dn` its responses will carry),
 or a client error grpc's `status` accepts and a `nil` stream. Inside the boundary, besides the
 transport (`InvGrpcStream.lean`'s header): the connection's stream interceptor, etcd's
 `streamClientInterceptor(withMax(0), ...)` (`retry_interceptor.go`, as `clientv3.New` dials:
-`withVersion`'s metadata, `getToken`, which may fail, `filterCallOptions` dropping the retry
-options; with no retry, then grpc's streamer; with retries asked of a bidirectional stream, an
-`Unimplemented` error); grpc's own stream (`newClientStream`, its retries of the stream's
+`withVersion`'s metadata, `getToken`, which may fail, `filterCallOptions` taking the retry
+options out and applying them to a copy of the interceptor's options; with no retry (`max` `0`),
+then grpc's streamer; with retries asked of a client stream (`ClientStreams`), an `Unimplemented`
+error); grpc's own stream (`newClientStream`, its retries of the stream's
 creation). The stream's context (`cd'`) is grpc's child of `ctx`: done when `ctx` is (with a
 quiet `ctx`, only when the stream ends). -/
 abbrev grpc.ClientConn.NewStream.spec : Prop :=
@@ -50,7 +52,7 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addr ics [] ∗
       isGrpcStream addr method Up Spec ∗ ctxOk ctx cd ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
-      opts ↦*□ vs ∗ callOptsOk vs }}
+      opts ↦*□ vs ∗ streamCallOptsOk vs }}
     (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"NewStream"))
       (Val #(GoInterface.ok ctx))) (Val #desc)) (Val #method)) (Val #opts))

@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.go_etcd_io.etcd.client.v3.InvLessor
 
 @[expose] public section
 
@@ -80,7 +81,7 @@ theorem clientWatchVars_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, -, -, -, ⟨%ch, %t, %d, #H1, #H2, #H3⟩⟩
+  icases Hi with ⟨-, -, -, -, -, -, ⟨%ch, %t, %d, #H1, #H2, #H3⟩, -⟩
   unfold clientWatchVars
   iexists ch, t, d
   iframe #
@@ -109,7 +110,8 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
 connection, its interceptor and some stub and logger), the watcher without the server's facts
-(`isClientWatcherCore`; `isNewClient_watcher` adds them). -/
+(`isClientWatcherCore`; `isNewClient_watcher` adds them); and (item 1, the client lease) its `Lease`,
+a `*lessor` over the connection (`lessorAt`). -/
 def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) : IProp GF :=
   iprop(clientKVAt cl ep ∗ retryClientOk cl ∗
@@ -118,7 +120,11 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
       kvObjAt api ep) ∗
     (∃ (w conn wc lg : Loc) (ics : List GoFunc),
       clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗ grpcConn conn ep ics [] ∗
-      isClientWatcherCore { V with conn := conn, ics := ics, wc := wc, lg := lg } w))
+      isClientWatcherCore { V with conn := conn, ics := ics, wc := wc, lg := lg } w) ∗
+    -- (item 1, the client lease, 2026-10-18) its `Lease`, a `*lessor` over the connection
+    (∃ lp : Loc, clientF cl go!"Lease" ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
+      lessorAt lp ep))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) : Persistent (isNewClient cl ep V) := by
@@ -143,7 +149,7 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
         clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
         isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
   unfold isNewClient
-  iintro ⟨#P1, #P2, #P3, ⟨-, -, -, %w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, #Hf⟩
+  iintro ⟨#P1, #P2, #P3, ⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -⟩, #Hf⟩
   iexists w, conn, wc, lg, ics
   iframe Hw
   iapply isClientWatcher_of_core
