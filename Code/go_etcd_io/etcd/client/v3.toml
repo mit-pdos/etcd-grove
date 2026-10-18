@@ -250,12 +250,12 @@ translate = [
   # client.go's `canceledByCaller`
   "lessor", "keepAlive", "keepAliveCtxKey", "ErrKeepAliveHalted", "defaultTTL", "retryConnWait",
   "NewLease", "NewLeaseFromLeaseClient", "lessor.Grant", "lessor.Revoke", "lessor.KeepAlive",
-  "lessor.keepAliveCtxCloser", "lessor.recvKeepAliveLoop", "lessor.resetRecv",
+  "lessor.keepAliveCtxCloser", "lessor.closeRequireLeader", "lessor.recvKeepAliveLoop", "lessor.resetRecv",
   "lessor.recvKeepAlive", "lessor.deadlineLoop", "lessor.sendKeepAliveLoop", "keepAlive.close",
   "RetryLeaseClient", "retryLeaseClient", "retryLeaseClient.LeaseGrant",
   "retryLeaseClient.LeaseRevoke", "retryLeaseClient.LeaseKeepAlive", "canceledByCaller",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io", "google.golang.org/grpc/metadata"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

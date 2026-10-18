@@ -10,7 +10,7 @@ the caller gets `isChanAny γ ch` (`cache/v3/InvEtcdTxn.lean`: an invariant hold
 state, and the close token `γc` once it is closed), the lessor the token (`chanTok ch`, exclusive:
 `ghostVar γc 1 ()`). Holding the token, the lessor rules out the closed state, which its sends
 (`recvKeepAlive`'s non-blocking `ch <- karesp`) and its close (`keepAlive.close`,
-`keepAliveCtxCloser`; `closeRequireLeader`, names only) need; closing puts the token in the
+`keepAliveCtxCloser`, `closeRequireLeader`) need; closing puts the token in the
 invariant. A channel is closed once: its token is in the lock invariant while the channel is in
 some `ka.chs`, and every close removes the channel from it (`keepAlive.close` is called on a
 keep-alive just removed from the map, or on all of them before the map is replaced).

@@ -239,6 +239,15 @@ theorem Client.unaryClientInterceptor.wp_proof
           iapply HQ
           inext
           (try wp_auto)
+          wp_if_destruct
+          · -- a non-repeatable call: its attempt's error (8a24be2a3)
+            wp_for_post
+            iapply HΨ
+            iframe
+            iright
+            iframe #
+            ipureintro; exact ⟨Hne, Hce⟩
+          (try wp_auto)
           wp_for_post
           iframe
           iexists a + W64 1, GoInterface.ok ei
@@ -262,6 +271,15 @@ theorem Client.unaryClientInterceptor.wp_proof
           iframe #
           ipureintro; exact ⟨Hne, Hce⟩
         | nil =>
+          (try wp_auto)
+          wp_if_destruct
+          · -- a non-repeatable call: its attempt's error (8a24be2a3)
+            wp_for_post
+            iapply HΨ
+            iframe
+            iright
+            iframe #
+            ipureintro; exact ⟨Hne, Hce⟩
           (try wp_auto)
           wp_for_post
           iframe

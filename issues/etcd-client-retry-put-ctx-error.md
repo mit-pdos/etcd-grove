@@ -8,9 +8,13 @@ links:
 
 # clientv3: the retry interceptor retries a Put (any non-repeatable RPC) after a `Canceled` or `DeadlineExceeded` status while the caller's context is live
 
-- **Status**: open (not filed; a robustness issue: a write may be applied twice, on a path that
-  needs a `Canceled`/`DeadlineExceeded` status to reach the client while the caller's context is
-  not done).
+- **Status**: **fixed in the fork** (2026-10-18): in the `isContextError` branch a `nonRepeatable`
+  call returns its attempt's error (`if callOpts.retryPolicy == nonRepeatable { return lastErr }`),
+  with the reproduction below as a test (`client/v3/retry_put_ctx_error_test.go`), on
+  `upamanyus/etcd` `goose-lean` as `8a24be2a3` (etc/goose.py's etcd pin since then; upstream main
+  unchanged). At upstream's code: a robustness issue (not filed): a write may be applied twice, on
+  a path that needs a `Canceled`/`DeadlineExceeded` status to reach the client while the caller's
+  context is not done.
 - **Where**: `client/v3/retry_interceptor.go:76-83` (`unaryClientInterceptor`: `if
   isContextError(lastErr) { if ctx.Err() != nil { return lastErr }; continue }`, with the comment
   "its the callCtx deadline or cancellation, in which case try again"), before the policy check
@@ -167,7 +171,10 @@ func TestPutRetriedAfterCanceledStatus(t *testing.T) {
   the last run's (the server's handler may have run before, a failed attempt may have been
   applied), and the end-to-end result (`client/v3/Results.lean`, `client_put_end_to_end`) says what
   that run did, nothing about other runs. A cluster-level contract (unit C2, `notes/STATUS.md`)
-  must allow a successful `Put` to be preceded by applications of the same put.
+  must allow a successful `Put` to be preceded by applications of the same put. Since the fork's
+  fix the interceptor's proof (`Proof/go_etcd_io/etcd/client/v3/Client__unaryClientInterceptor.lean`)
+  covers the new return with its spec unchanged (the contract already allows an error return); the
+  specs do not yet state the at-most-once resend, so the transport contract's allowance stays.
 - **Possible fixes**: in the `isContextError` branch, retry only a repeatable call
   (`callOpts.retryPolicy == repeatable`), or drop the branch (no per-call context exists:
   return `lastErr` if `ctx.Err() != nil`, else fall through to `isSafeRetry`, which already
