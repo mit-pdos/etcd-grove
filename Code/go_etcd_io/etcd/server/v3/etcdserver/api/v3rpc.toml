@@ -35,7 +35,10 @@ translate = ["!*",
   # services it registers, the health notifier
   "Server", "getServerMetrics", "maxSendBytes", "metricsServerLock", "metricsServerCached",
   "codec", "NewQuotaLeaseServer", "NewLeaseServer", "NewClusterServer", "NewAuthServer",
-  "NewMaintenanceServer", "newHealthNotifier", "healthNotifier.startServe", "allGRPCServices"]
+  "NewMaintenanceServer", "newHealthNotifier", "healthNotifier.startServe", "allGRPCServices",
+  # the client lease (item 1, branch `lease-client`): lease.go's unary handlers and the quota
+  # wrapper's (not `LeaseKeepAlive`: it needs the server's `lease` package, not imported)
+  "LeaseServer.LeaseGrant", "LeaseServer.LeaseRevoke", "quotaLeaseServer.LeaseGrant"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",

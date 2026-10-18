@@ -245,6 +245,15 @@ translate = [
   # rules, `ptr_Put_unfold`/`ptr_Get_unfold`, the call through the `KV` field)
   "Client.Put",
   "Client.Get",
+  # the client lease (item 1, branch `lease-client`): lease.go's lessor with bodies but
+  # `closeRequireLeader` (grpc's `metadata`, not imported: names only), retry.go's lease client,
+  # client.go's `canceledByCaller`
+  "lessor", "keepAlive", "keepAliveCtxKey", "ErrKeepAliveHalted", "defaultTTL", "retryConnWait",
+  "NewLease", "NewLeaseFromLeaseClient", "lessor.Grant", "lessor.Revoke", "lessor.KeepAlive",
+  "lessor.keepAliveCtxCloser", "lessor.recvKeepAliveLoop", "lessor.resetRecv",
+  "lessor.recvKeepAlive", "lessor.deadlineLoop", "lessor.sendKeepAliveLoop", "keepAlive.close",
+  "RetryLeaseClient", "retryLeaseClient", "retryLeaseClient.LeaseGrant",
+  "retryLeaseClient.LeaseRevoke", "retryLeaseClient.LeaseKeepAlive", "canceledByCaller",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io"]
 
