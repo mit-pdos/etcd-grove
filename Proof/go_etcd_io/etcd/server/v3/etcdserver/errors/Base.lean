@@ -12,7 +12,7 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import Perennial.Proof.errors
-public import Proof.errors.NewVar
+public import Proof.errors.NewVarCell
 
 @[expose] public section
 
@@ -60,10 +60,12 @@ def errorsMsgs : List (GoString × GoString) :=
 
 /-- `etcdserver/errors`' package facts: `ErrNoSpace` is a fixed non-nil error, an
 `errors.New` error (a pointer error); and (item 8, 2026-10-17) every error variable holds its
-`errors.New` error (`errorsNewVars errorsMsgs`). -/
+`errors.New` error (`errorsNewVars errorsMsgs`), with its message cell (`errVarCells errorsMsgs`,
+D19k: what tells `ErrNoSpace` apart from the others). -/
 abbrev errorsInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrNoSpace ↦□ GoInterface.ok e ∗
-    ⌜_root_.Perennial.errors.IsPointerError e⌝) ∗ EtcdGrove.errorsNewVars errorsMsgs)
+    ⌜_root_.Perennial.errors.IsPointerError e⌝) ∗ EtcdGrove.errorsNewVars errorsMsgs ∗
+    EtcdGrove.errVarCells errorsMsgs)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors :=
   define_is_pkg_init errorsInit

@@ -22,7 +22,7 @@ proposals were not in the model).
 
 **The monitors that are off** (audit B4a, 2026-10-18; `notes/decisions.md`, D19m): three more
 goroutines `Start` attaches would read the backend and propose alarms (`Alarm{CORRUPT}`, which the
-KV model does not admit, as `raftRequestAlarm`) or a downgrade's cancellation once configured:
+KV model does not admit, as the NOSPACE alarm) or a downgrade's cancellation once configured:
 `monitorKVHash` (`CorruptCheckTime ≠ 0`), `monitorCompactHash` (the `CompactHashCheck` feature on)
 and `monitorDowngrade` (`DowngradeCheckTime ≠ 0`). Their contracts are restricted to the
 configuration under which each returns at once (putget's: the zero durations, the feature off by
@@ -48,16 +48,17 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 /-- **The requests the monitors propose** (pure): a member's attributes, or a valid cluster
-version, with no range end `[0]`. -/
+version, with no range end `[0]` and no auth request field set (`needAdminPermission`: D19k,
+2026-10-18, the KV model's `plainReq` asks it). -/
 def monitorReq (rq : apply.IRRModel) : Prop :=
-  irrNoZeroEnd rq ∧
+  irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧
     (apply.dispatchKind rq = .clusterMemberAttrSet ∨
       (apply.dispatchKind rq = .clusterVersionSet ∧
         ∀ v, rq.clusterVersionSet = some v → apply.semverValid v))
 
 /-- A monitor's request has a good shape. -/
 theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShape rq := by
-  obtain ⟨-, hk⟩ := h
+  obtain ⟨-, -, hk⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk
     rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, by decide, fun h => by cases h⟩
@@ -94,14 +95,14 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   ileft
   ipureintro
   have hs := rqShape_of_monitorReq rq hrq
-  obtain ⟨hz, hk⟩ := hrq
+  obtain ⟨hz, hna, hk⟩ := hrq
   have hk' : apply.dispatchKind rq = .clusterMemberAttrSet ∨
       apply.dispatchKind rq = .clusterVersionSet := by
     rcases hk with hk | ⟨hk, -⟩
     · exact Or.inl hk
     · exact Or.inr hk
   refine ⟨?_, ?_, hz, hs, rfl⟩
-  · unfold plainReq; rcases hk' with hk' | hk' <;> rw [hk'] <;> trivial
+  · unfold plainReq; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact hna
   · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide
 
 /-- **The monitors' configuration, as `NewServer` leaves it** (audit B4a; see the file header):

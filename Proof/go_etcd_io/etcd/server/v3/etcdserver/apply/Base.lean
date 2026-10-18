@@ -381,7 +381,17 @@ abbrev applyErrVars : IProp GF :=
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ∗
-    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ∗
+    -- D19k: `ErrNoSpace` holds an error other than the backend's (from the message cells), what
+    -- makes `applyEntryNormal`'s `errors.Is(ar.Err, ErrNoSpace)` false at the start's chain
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound ∗
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ∗
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ∗
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
 
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/

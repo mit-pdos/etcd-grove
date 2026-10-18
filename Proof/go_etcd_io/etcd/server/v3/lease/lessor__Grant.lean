@@ -47,7 +47,7 @@ theorem lease.lessor.Grant.wp_proof
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨#Hnf, #Hex, #Htl, -, ⟨%cg, #Hcg, #Hcgs⟩, -, ⟨%ht, #Hht, #Hhts⟩⟩
+  icases Hli with ⟨#Hnf, #Hex, #Htl, -, ⟨%cg, #Hcg, #Hcgs⟩, -, ⟨%ht, #Hht, #Hhts⟩, -⟩
   ihave #Hnf' := Hnf
   iunfold leaseErrVar at Hnf'
   icases Hnf' with ⟨%enf, #Henf, -⟩

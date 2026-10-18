@@ -12,6 +12,11 @@ type that holds a non-comparable value (`errors.Is(E{[]int{}}, E{[]int{}})` for
 Stated under the `errors` package's assumptions (2026-10-12, the apply package's unit 2; it was
 the server's): the server's `applyEntryNormal` and the apply package's `dispatch` (its deferred
 metrics: `errors.Is(ar.Err, mvcc.ErrCompacted)`) both use it.
+
+D19k (2026-10-18): the postcondition is Perennial's (it returned only some boolean): `err ==
+target` when either is `nil`; `true` when they are equal; `true` only if some error of the tree
+is the target or an `Is` method said so. What shows `applyEntryNormal`'s
+`errors.Is(ar.Err, ErrNoSpace)` false.
 -/
 module
 
@@ -34,7 +39,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 /-- `errors.Is(err, target)`, for a `nil` or pointer `target` and an `err` of an error tree
-`S` (with the `Is` methods' meaning `M`), returns some boolean. -/
+`S` (with the `Is` methods' meaning `M`): Perennial's `errors.Is.spec`. -/
 abbrev errors.Is.spec : Prop :=
   ∀ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop) (err target : GoInterface),
   (∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii) →
@@ -42,7 +47,13 @@ abbrev errors.Is.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
       _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗ ⌜S err⌝ }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      ⌜(err = GoInterface.nil ∨ target = GoInterface.nil) → b = decide (err = target)⌝ ∗
+      ⌜∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii →
+        err = target → b = true⌝ ∗
+      ⌜∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii →
+        err ≠ GoInterface.nil → b = true →
+        ∃ ii, S (GoInterface.ok ii) ∧ (GoInterface.ok ii = target ∨ M ii)⌝ }}
 
 end spec
 

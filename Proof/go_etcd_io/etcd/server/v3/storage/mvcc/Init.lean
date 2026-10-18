@@ -34,6 +34,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Perennial.Proof.context.NewErrorString
+public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -242,8 +243,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrCompacted))
   -- translated initializer of ErrFutureRev))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xCP #MCP
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xFR #MFR
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
   wp_apply (opaqueInitsOk restoreChunkKeys.init (by mem_tac))
   wp_apply defaultCompactionBatchLimit_init as HdefaultCompactionBatchLimit
   wp_apply defaultCompactionSleepInterval_init as ⟨%ddefaultCompactionSleepInterval, HdefaultCompactionSleepInterval⟩
@@ -316,6 +317,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd4
   icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK⟩
+  ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []
+  · unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP
+  ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []
+  · unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR
   iframe Hown
   imodintro
   isplitr

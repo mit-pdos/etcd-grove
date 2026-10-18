@@ -71,7 +71,7 @@ theorem checkErrIs_applyErrIs [_root_.Perennial.errors.Assumptions] (err : GoInt
       txn.checkErrIs err -∗ applyErrIs err := by
   iintro #Hv H
   iunfold txn.checkErrIs at H
-  icases Hv with ⟨-, -, #HK, #HL, #HF, #HCp⟩
+  icases Hv with ⟨-, -, #HK, #HL, #HF, #HCp, -⟩
   icases H with (H | H | H | H)
   · iapply apply.errVarIs_errIs _ _ $$ HL H
   · iapply apply.errVarIs_errIs _ _ $$ HK H

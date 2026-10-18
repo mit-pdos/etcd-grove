@@ -16,7 +16,10 @@ says exactly where the relation departs from it.
   also carry a field that makes `Apply` skip it (`noSideEffect`) or check admin permission
   (`needAdminPermission`). Excluded: compaction, lease grant and revocation, alarm requests and
   `AuthEnable` (their outcomes, or the outcomes of later requests, depend on stores that the model
-  treats as oracles), and a put or transaction naming a lease (the lessor's lookup).
+  treats as oracles), and a put or transaction naming a lease (the lessor's lookup). D19k
+  (2026-10-18): narrowed to the kinds the verified proposers send, the KV writes and the
+  monitors' `ClusterMemberAttrSet`/`ClusterVersionSet` (no range, no auth or other request whose
+  answer's error the apply package leaves open), none with an auth field set.
 - **The deterministic step** (`chainLog`, `dispatchLog`, `kvEntry`) and the fold `kvRaftOf c₀ ch log₀
   A` over raft entries: an empty entry, a conf change and an entry at or below the consistent
   index `c₀` change nothing.
@@ -52,7 +55,10 @@ open go_etcd_io.etcd.server.v3.etcdserver
 /-- **A plain request**: one whose effect on the KV is a function of the log (see the file
 header). 2026-10-15 (unit T2): a put with any flags but a lease, any delete, a plain
 transaction (`txn.txnPlain`: its gets at revision `0`, its puts with no lease and no
-`IgnoreLease`). -/
+`IgnoreLease`). D19k (2026-10-18): only the kinds the verified proposers send (the KV writes, the
+monitors' member attributes and cluster version), none with an auth field set
+(`needAdminPermission`); every other kind was `True` and its answer's error unknown, which kept
+`applyEntryNormal`'s NOSPACE branch reachable in the model. -/
 def plainReq (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
   | .put => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
@@ -60,8 +66,8 @@ def plainReq (rq : apply.IRRModel) : Prop :=
   | .deleteRange => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
   | .txn => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
       ∀ t, rq.txn = some t → txn.txnPlain t
-  | .compaction | .leaseGrant | .leaseRevoke | .alarm | .authEnable | .none => False
-  | _ => True
+  | .clusterVersionSet | .clusterMemberAttrSet => apply.needAdminPermission rq = false
+  | _ => False
 
 /-- **A plain entry**: a normal entry with data decodes to a plain request (an empty entry and a
 conf change are plain). -/

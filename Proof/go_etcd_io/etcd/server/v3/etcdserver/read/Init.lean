@@ -145,21 +145,21 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HreadIndexRetryTime
   ihave HeiSTP : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd10
-  icases HeiSTP with ⟨-, #HevSTP⟩
+  icases HeiSTP with ⟨-, #HevSTP, -⟩
   ihave #NSTP := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped) (m := go!"etcdserver: server stopped") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevSTP
   ihave #LSTP := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NSTP
   iunfold EtcdGrove.errorsNewVar at NSTP
   icases NSTP with ⟨%xSTP, #HSTP, -⟩
   ihave HeiLCH : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd10
-  icases HeiLCH with ⟨-, #HevLCH⟩
+  icases HeiLCH with ⟨-, #HevLCH, -⟩
   ihave #NLCH := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged) (m := go!"etcdserver: leader changed") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevLCH
   ihave #LLCH := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NLCH
   iunfold EtcdGrove.errorsNewVar at NLCH
   icases NLCH with ⟨%xLCH, #HLCH, -⟩
   ihave HeiTMO : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd10
-  icases HeiTMO with ⟨-, #HevTMO⟩
+  icases HeiTMO with ⟨-, #HevTMO, -⟩
   ihave #NTMO := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout) (m := go!"etcdserver: request timed out") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTMO
   ihave #LTMO := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTMO
   iunfold EtcdGrove.errorsNewVar at NTMO

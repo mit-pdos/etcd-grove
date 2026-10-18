@@ -337,49 +337,49 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HrequestDurationSec
   ihave HeiTMR : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTMR with ⟨-, #HevTMR⟩
+  icases HeiTMR with ⟨-, #HevTMR, -⟩
   ihave #NTMR := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests) (m := go!"etcdserver: too many requests") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTMR
   ihave #LTMR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTMR
   iunfold EtcdGrove.errorsNewVar at NTMR
   icases NTMR with ⟨%xTMR, #HTMR, -⟩
   ihave HeiRTL : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiRTL with ⟨-, #HevRTL⟩
+  icases HeiRTL with ⟨-, #HevRTL, -⟩
   ihave #NRTL := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge) (m := go!"etcdserver: request is too large") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevRTL
   ihave #LRTL := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NRTL
   iunfold EtcdGrove.errorsNewVar at NRTL
   icases NRTL with ⟨%xRTL, #HRTL, -⟩
   ihave HeiSTP : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiSTP with ⟨-, #HevSTP⟩
+  icases HeiSTP with ⟨-, #HevSTP, -⟩
   ihave #NSTP := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped) (m := go!"etcdserver: server stopped") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevSTP
   ihave #LSTP := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NSTP
   iunfold EtcdGrove.errorsNewVar at NSTP
   icases NSTP with ⟨%xSTP, #HSTP, -⟩
   ihave HeiCAN : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiCAN with ⟨-, #HevCAN⟩
+  icases HeiCAN with ⟨-, #HevCAN, -⟩
   ihave #NCAN := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled) (m := go!"etcdserver: request cancelled") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevCAN
   ihave #LCAN := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NCAN
   iunfold EtcdGrove.errorsNewVar at NCAN
   icases NCAN with ⟨%xCAN, #HCAN, -⟩
   ihave HeiTMO : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTMO with ⟨-, #HevTMO⟩
+  icases HeiTMO with ⟨-, #HevTMO, -⟩
   ihave #NTMO := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout) (m := go!"etcdserver: request timed out") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTMO
   ihave #LTMO := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTMO
   iunfold EtcdGrove.errorsNewVar at NTMO
   icases NTMO with ⟨%xTMO, #HTMO, -⟩
   ihave HeiTLF : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTLF with ⟨-, #HevTLF⟩
+  icases HeiTLF with ⟨-, #HevTLF, -⟩
   ihave #NTLF := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail) (m := go!"etcdserver: request timed out, possibly due to previous leader failure") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTLF
   ihave #LTLF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTLF
   iunfold EtcdGrove.errorsNewVar at NTLF
   icases NTLF with ⟨%xTLF, #HTLF, -⟩
   ihave HeiTCL : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
-  icases HeiTCL with ⟨-, #HevTCL⟩
+  icases HeiTCL with ⟨-, #HevTCL, -⟩
   ihave #NTCL := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost) (m := go!"etcdserver: request timed out, possibly due to connection lost") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevTCL
   ihave #LTCL := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NTCL
   iunfold EtcdGrove.errorsNewVar at NTCL

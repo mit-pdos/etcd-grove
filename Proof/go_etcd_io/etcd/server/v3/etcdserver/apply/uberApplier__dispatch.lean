@@ -228,7 +228,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, #Hev⟩
   ihave #Hev' := Hev
-  icases Hev' with ⟨-, -, -, -, -, #HCpl⟩
+  icases Hev' with ⟨-, -, -, -, -, #HCpl, -⟩
   iunfold errVarLeaf at HCpl
   icases HCpl with ⟨%ec, #Hcomp, %Hecl, -⟩
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []

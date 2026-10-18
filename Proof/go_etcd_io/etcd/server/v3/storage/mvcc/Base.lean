@@ -22,7 +22,7 @@ the watch stream's errors and gauge, and the watcher group's `watchBatchMaxRevs`
 -/
 module
 
-public import Proof.errors.NewVar
+public import Proof.errors.NewVarCell
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
@@ -223,7 +223,9 @@ abbrev mvccInit : IProp GF :=
     EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision" ∗
     EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗
     EtcdGrove.errorsNewVar ErrWatcherDuplicateID
-      go!"mvcc: duplicate watch ID provided on the WatchStream")
+      go!"mvcc: duplicate watch ID provided on the WatchStream" ∗
+    EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" ∗
+    EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

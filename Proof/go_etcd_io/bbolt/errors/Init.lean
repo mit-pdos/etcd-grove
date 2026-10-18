@@ -11,7 +11,7 @@ states.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
-public import Proof.errors.NewVar
+public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -39,7 +39,7 @@ variable [sem : go.Semantics]
 
 /-- **The trust boundary: `go_etcd_io.bbolt.errors`'s variables initialized by `errors.New`.** Each
 listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
-it. -/
+it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
 axiom errorsNewVarsInit :
     ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrDatabaseNotOpen.init, ErrDatabaseNotOpen, go!"database not open"),
         (ErrInvalid.init, ErrInvalid, go!"invalid database"),
@@ -61,7 +61,7 @@ axiom errorsNewVarsInit :
         (ErrIncompatibleValue.init, ErrIncompatibleValue, go!"incompatible value"),
         (ErrSameBuckets.init, ErrSameBuckets, go!"the source and target are the same bucket"),
         (ErrDifferentDB.init, ErrDifferentDB, go!"the source and target buckets are in different database files")] : List (val × GoString × GoString)) →
-    EtcdGrove.errorsNewVarInit (GF := GF) init X msg
+    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 end go_etcd_io.bbolt.errors
 end opaqueInits
@@ -89,45 +89,45 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply (errorsNewVarsInit ErrDatabaseNotOpen.init ErrDatabaseNotOpen go!"database not open" (by mem_tac))
-    as ⟨%xErrDatabaseNotOpen, HErrDatabaseNotOpen, #MErrDatabaseNotOpen⟩
+    as ⟨%xErrDatabaseNotOpen, HErrDatabaseNotOpen, #MErrDatabaseNotOpen, #CErrDatabaseNotOpen⟩
   wp_apply (errorsNewVarsInit ErrInvalid.init ErrInvalid go!"invalid database" (by mem_tac))
-    as ⟨%xErrInvalid, HErrInvalid, #MErrInvalid⟩
+    as ⟨%xErrInvalid, HErrInvalid, #MErrInvalid, #CErrInvalid⟩
   wp_apply (errorsNewVarsInit ErrInvalidMapping.init ErrInvalidMapping go!"database isn't correctly mapped" (by mem_tac))
-    as ⟨%xErrInvalidMapping, HErrInvalidMapping, #MErrInvalidMapping⟩
+    as ⟨%xErrInvalidMapping, HErrInvalidMapping, #MErrInvalidMapping, #CErrInvalidMapping⟩
   wp_apply (errorsNewVarsInit ErrVersionMismatch.init ErrVersionMismatch go!"version mismatch" (by mem_tac))
-    as ⟨%xErrVersionMismatch, HErrVersionMismatch, #MErrVersionMismatch⟩
+    as ⟨%xErrVersionMismatch, HErrVersionMismatch, #MErrVersionMismatch, #CErrVersionMismatch⟩
   wp_apply (errorsNewVarsInit ErrChecksum.init ErrChecksum go!"checksum error" (by mem_tac))
-    as ⟨%xErrChecksum, HErrChecksum, #MErrChecksum⟩
+    as ⟨%xErrChecksum, HErrChecksum, #MErrChecksum, #CErrChecksum⟩
   wp_apply (errorsNewVarsInit ErrTimeout.init ErrTimeout go!"timeout" (by mem_tac))
-    as ⟨%xErrTimeout, HErrTimeout, #MErrTimeout⟩
+    as ⟨%xErrTimeout, HErrTimeout, #MErrTimeout, #CErrTimeout⟩
   wp_apply (errorsNewVarsInit ErrTxNotWritable.init ErrTxNotWritable go!"tx not writable" (by mem_tac))
-    as ⟨%xErrTxNotWritable, HErrTxNotWritable, #MErrTxNotWritable⟩
+    as ⟨%xErrTxNotWritable, HErrTxNotWritable, #MErrTxNotWritable, #CErrTxNotWritable⟩
   wp_apply (errorsNewVarsInit ErrTxClosed.init ErrTxClosed go!"tx closed" (by mem_tac))
-    as ⟨%xErrTxClosed, HErrTxClosed, #MErrTxClosed⟩
+    as ⟨%xErrTxClosed, HErrTxClosed, #MErrTxClosed, #CErrTxClosed⟩
   wp_apply (errorsNewVarsInit ErrDatabaseReadOnly.init ErrDatabaseReadOnly go!"database is in read-only mode" (by mem_tac))
-    as ⟨%xErrDatabaseReadOnly, HErrDatabaseReadOnly, #MErrDatabaseReadOnly⟩
+    as ⟨%xErrDatabaseReadOnly, HErrDatabaseReadOnly, #MErrDatabaseReadOnly, #CErrDatabaseReadOnly⟩
   wp_apply (errorsNewVarsInit ErrFreePagesNotLoaded.init ErrFreePagesNotLoaded go!"free pages are not pre-loaded" (by mem_tac))
-    as ⟨%xErrFreePagesNotLoaded, HErrFreePagesNotLoaded, #MErrFreePagesNotLoaded⟩
+    as ⟨%xErrFreePagesNotLoaded, HErrFreePagesNotLoaded, #MErrFreePagesNotLoaded, #CErrFreePagesNotLoaded⟩
   wp_apply (errorsNewVarsInit ErrBucketNotFound.init ErrBucketNotFound go!"bucket not found" (by mem_tac))
-    as ⟨%xErrBucketNotFound, HErrBucketNotFound, #MErrBucketNotFound⟩
+    as ⟨%xErrBucketNotFound, HErrBucketNotFound, #MErrBucketNotFound, #CErrBucketNotFound⟩
   wp_apply (errorsNewVarsInit ErrBucketExists.init ErrBucketExists go!"bucket already exists" (by mem_tac))
-    as ⟨%xErrBucketExists, HErrBucketExists, #MErrBucketExists⟩
+    as ⟨%xErrBucketExists, HErrBucketExists, #MErrBucketExists, #CErrBucketExists⟩
   wp_apply (errorsNewVarsInit ErrBucketNameRequired.init ErrBucketNameRequired go!"bucket name required" (by mem_tac))
-    as ⟨%xErrBucketNameRequired, HErrBucketNameRequired, #MErrBucketNameRequired⟩
+    as ⟨%xErrBucketNameRequired, HErrBucketNameRequired, #MErrBucketNameRequired, #CErrBucketNameRequired⟩
   wp_apply (errorsNewVarsInit ErrKeyRequired.init ErrKeyRequired go!"key required" (by mem_tac))
-    as ⟨%xErrKeyRequired, HErrKeyRequired, #MErrKeyRequired⟩
+    as ⟨%xErrKeyRequired, HErrKeyRequired, #MErrKeyRequired, #CErrKeyRequired⟩
   wp_apply (errorsNewVarsInit ErrKeyTooLarge.init ErrKeyTooLarge go!"key too large" (by mem_tac))
-    as ⟨%xErrKeyTooLarge, HErrKeyTooLarge, #MErrKeyTooLarge⟩
+    as ⟨%xErrKeyTooLarge, HErrKeyTooLarge, #MErrKeyTooLarge, #CErrKeyTooLarge⟩
   wp_apply (errorsNewVarsInit ErrValueTooLarge.init ErrValueTooLarge go!"value too large" (by mem_tac))
-    as ⟨%xErrValueTooLarge, HErrValueTooLarge, #MErrValueTooLarge⟩
+    as ⟨%xErrValueTooLarge, HErrValueTooLarge, #MErrValueTooLarge, #CErrValueTooLarge⟩
   wp_apply (errorsNewVarsInit ErrMaxSizeReached.init ErrMaxSizeReached go!"database reached maximum size" (by mem_tac))
-    as ⟨%xErrMaxSizeReached, HErrMaxSizeReached, #MErrMaxSizeReached⟩
+    as ⟨%xErrMaxSizeReached, HErrMaxSizeReached, #MErrMaxSizeReached, #CErrMaxSizeReached⟩
   wp_apply (errorsNewVarsInit ErrIncompatibleValue.init ErrIncompatibleValue go!"incompatible value" (by mem_tac))
-    as ⟨%xErrIncompatibleValue, HErrIncompatibleValue, #MErrIncompatibleValue⟩
+    as ⟨%xErrIncompatibleValue, HErrIncompatibleValue, #MErrIncompatibleValue, #CErrIncompatibleValue⟩
   wp_apply (errorsNewVarsInit ErrSameBuckets.init ErrSameBuckets go!"the source and target are the same bucket" (by mem_tac))
-    as ⟨%xErrSameBuckets, HErrSameBuckets, #MErrSameBuckets⟩
+    as ⟨%xErrSameBuckets, HErrSameBuckets, #MErrSameBuckets, #CErrSameBuckets⟩
   wp_apply (errorsNewVarsInit ErrDifferentDB.init ErrDifferentDB go!"the source and target buckets are in different database files" (by mem_tac))
-    as ⟨%xErrDifferentDB, HErrDifferentDB, #MErrDifferentDB⟩
+    as ⟨%xErrDifferentDB, HErrDifferentDB, #MErrDifferentDB, #CErrDifferentDB⟩
   ipersist HErrBucketNotFound
   iframe Hown
   imodintro

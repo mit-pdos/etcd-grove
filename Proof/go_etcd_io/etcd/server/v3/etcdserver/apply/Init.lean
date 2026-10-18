@@ -153,37 +153,46 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist Halarms
   ihave HeiCOR : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd19
-  icases HeiCOR with ⟨-, #HevCOR⟩
+  icases HeiCOR with ⟨-, #HevCOR, -⟩
   ihave #NCOR := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt) (m := go!"etcdserver: corrupt cluster") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevCOR
   ihave #LCOR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NCOR
   iunfold EtcdGrove.errorsNewVar at NCOR
   icases NCOR with ⟨%xCOR, #HCOR, -⟩
   ihave HeiNSP : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd19
-  icases HeiNSP with ⟨-, #HevNSP⟩
+  icases HeiNSP with ⟨-, #HevNSP, -⟩
   ihave #NNSP := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace) (m := go!"etcdserver: no space") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevNSP
   ihave #LNSP := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NNSP
   iunfold EtcdGrove.errorsNewVar at NNSP
   icases NNSP with ⟨%xNSP, #HNSP, -⟩
   ihave HeiKNF : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd19
-  icases HeiKNF with ⟨-, #HevKNF⟩
+  icases HeiKNF with ⟨-, #HevKNF, -⟩
   ihave #NKNF := EtcdGrove.errorsNewVars_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound) (m := go!"etcdserver: key not found") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HevKNF
   ihave #LKNF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NKNF
   iunfold EtcdGrove.errorsNewVar at NKNF
   icases NKNF with ⟨%xKNF, #HKNF, -⟩
   ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd10
-  icases Hli with ⟨#HLNF0, -⟩
+  icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF⟩
   ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []
   · unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk
     iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0
     iexact HLNF0
   ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd18
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NMC, #NMF, -⟩
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NMC, #NMF, -, -, #CMC, #CMF⟩
   ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC
   ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF
+  ihave HeiE : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd19
+  icases HeiE with ⟨-, -, #HcE⟩
+  ihave #CNSP := EtcdGrove.errVarCells_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace) (m := go!"etcdserver: no space") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HcE
+  ihave #CKNF := EtcdGrove.errVarCells_mem (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound) (m := go!"etcdserver: key not found") (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ HcE
+  ihave #AKNF := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound go!"etcdserver: no space" go!"etcdserver: key not found" (by decide) $$ CNSP CKNF
+  ihave #ALNF := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound go!"etcdserver: no space" go!"lease not found" (by decide) $$ CNSP CLNF
+  ihave #AMF := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev go!"etcdserver: no space" go!"mvcc: required revision is a future revision" (by decide) $$ CNSP CMF
+  ihave #AMC := EtcdGrove.errVarApart_of go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted go!"etcdserver: no space" go!"mvcc: required revision has been compacted" (by decide) $$ CNSP CMC
   iframe Hown
   imodintro
   isplitr

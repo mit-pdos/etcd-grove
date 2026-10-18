@@ -248,7 +248,7 @@ theorem txnOutcomeIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp :
     iapply rejErrIs_errIs _ k err ?_ $$ Hv H
     iintro #Hv H
     iunfold txn.checkErrIs at H
-    icases Hv with ⟨-, -, #HK, #HL, #HF, #HCp⟩
+    icases Hv with ⟨-, -, #HK, #HL, #HF, #HCp, -⟩
     icases H with (H | H | H | H)
     · iapply errVarIs_errIs _ _ $$ HL H
     · iapply errVarIs_errIs _ _ $$ HK H

@@ -18,7 +18,6 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
-axiom EtcdServer.raftRequestAlarm.wp_proof
 axiom EtcdServer.revokeExpiredLeases.wp_proof
 axiom EtcdServer.sendMergedSnap.wp_proof
 axiom EtcdServer.snapshot.wp_proof

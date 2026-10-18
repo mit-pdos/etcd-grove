@@ -9289,6 +9289,37 @@ In Go each `errors.New` allocates a fresh `errorString`. D19h's "a lemma that no
 statement as the existing `<X>_init` axioms, made more exact about the Go line they describe.
 **Adopted by the user (2026-10-18): (A), to start once D19j (`watchVars`, `gen-init.py`) lands.**
 
+**Carried out (2026-10-18).**
+- **The cells.** `Proof/errors/NewVarCell.lean` adds:
+  - `errStrCell x msg` (`x.s ↦□ msg`);
+  - `errorsNewVarInitC`, `errorsNewVarInit` with the cell. The two `errorsNewVarsInit` axioms
+    are now stated with it, still true of Go;
+  - `errVarCell X msg` (the variable's pointer and its cell) and `errVarCells`;
+  - `errVarApart g h` (the two variables hold different errors) and `errVarApart_of`
+    (different messages give it: two `↦□` at one cell agree);
+  - `wp_New_errorString_cell`, Perennial's `context.wp_New_errorString` keeping the cell (the
+    general fix to propose to Perennial: its postcondition with `s ↦□ msg`).
+- **The facts.** The packages' facts carry the cells they need: `errorsInit` (`errVarCells
+  errorsMsgs`), `leaseInit` (`ErrLeaseNotFound`'s), `mvccInit` (`ErrCompacted`'s,
+  `ErrFutureRev`'s), each appended last. `applyErrVars` gains `errVarApart ErrNoSpace` of
+  `ErrKeyNotFound`, `ErrLeaseNotFound`, `ErrFutureRev`, `ErrCompacted`, proved by the
+  generated `apply/Init.lean`. All of it goes through `gen-init.py`.
+- **`errors.Is`.** `Spec/errors/Is.lean` now has Perennial's postcondition.
+- **The workload.** `plainReq` keeps the KV writes and the monitors'
+  `ClusterVersionSet`/`ClusterMemberAttrSet`, with `needAdminPermission` false; `monitorReq`
+  gains that clause. `plainReq_of_kind` takes the auth fields too.
+- **The proof.** `NoSpaceDead.lean` shows:
+  - `dispatchStep_start`: at the start's chain a plain request's outcome is the backend's
+    rejection or applied without `ErrNoSpace`;
+  - `applyResultIs_notNoSpace`: the result's `Err` is `nil` or a leaf other than
+    `ErrNoSpace`'s;
+  - `wp_Is_notNoSpace`: then `errors.Is` answers `false`.
+
+  `applyEntryNormal` takes the start's chain from `kv_log_plain` and calls `wp_Is_notNoSpace`;
+  the alarm branch is gone from its proof. Its callees in the link are unchanged (the Go code
+  calls them; the proof does not need them). `EtcdServer.raftRequestAlarm` and
+  `AlarmContract.lean` are removed: one axiom fewer.
+
 ## Audit B4b: the latent axioms and premise gaps restated; ten stopped for a decision (D19l, 2026-10-18)
 
 Phase B4, part b (`notes/audit.md`, the Plan): the axioms false only in an instance no proof uses
