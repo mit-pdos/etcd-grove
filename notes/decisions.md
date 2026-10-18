@@ -8689,6 +8689,11 @@ the theorem says nothing.
   form or `pkgInited` witness) are to be made later, independently, and would make both theorems.
 - `clusterLogBound`: the size clauses moved to the apply thread at execution, the txn package's
   change-count premises replaced by receipts (the user, 2026-10-18; STATUS, D19c's last bullet).
+- `rnLogFits` (D19b stage 5): option (3a), a bound parameter on raft's creating relations, adopted
+  (the user, 2026-10-18), to start after `rnSnapOnce` lands.
+- `NewServer.spec`'s two gaps found by item 9's point 7 (`kvInv` in place of the owned `rLog`; the
+  post extended for `v3rpc.Server`'s `grpcCfgOk` and slots): adopted (the user, 2026-10-18), one
+  round after `clusterLogBound` and `rnSnapOnce` land.
 
 *Rejected:* stating the bounds as hypotheses anyway (the theorem would be vacuous); restricting the
 conclusion to executions where the bounds hold (they are ghost facts, not observable in the
