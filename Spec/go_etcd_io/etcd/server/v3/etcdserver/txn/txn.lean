@@ -62,7 +62,7 @@ abbrev txn.txn.spec : Prop :=
       (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
       ⌜txn.OpsOk false (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
-        (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1.length < mvcc.putMax γ ∧
+        (ro = true → txn.LogSmall ilog) ∧
         (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true ∧ lg ≠ null)⌝ }}
     (App (App (App (App (App (App (App (Val (@! txn.txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #tw)) (Val #rt)) (Val #(!ro))) (Val #pl)) (Val #skip))

@@ -41,9 +41,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key k crev Z
-  wp_start as ⟨Htw, #Hkey, %Hpre⟩
-  obtain ⟨Hpresent, Hbm⟩ := Hpre
-  have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
+  wp_start as ⟨Htw, #Hkey, %Hpresent⟩
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -51,6 +49,11 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
+  -- the bound on the pending changes, from the writer's receipts (D19c)
+  icases mvcc.idxWriter_lt γ.idx ilog pend $$ Hw with ⟨%Hrlt, Hw⟩
+  have HBM : pend.length + 1 < mvcc.putMax γ := by have := mvcc.putMax_ge γ; omega
+  have Hbm := HBM
+  have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
   icombine Hidx HidxS gives %Hti_eq
   have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
   subst Hti_eq'

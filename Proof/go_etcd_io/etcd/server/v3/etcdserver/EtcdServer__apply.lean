@@ -202,8 +202,7 @@ theorem EtcdServer.apply.wp_proof
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
-      "%Hxs" ∷ ⌜entriesStep (ciEff γ st.k) (ms.take (sint.nat j)) x xj ∧
-        entriesOk (ciEff γ st.k) (ms.drop (sint.nat j)) xj⌝ ∗
+      "%Hxs" ∷ ⌜entriesStep (ciEff γ st.k) (ms.take (sint.nat j)) x xj⌝ ∗
       "Hphi" ∷ (∀ (appliedt appliedi : w64) (shouldStop : Bool),
         srvFS s ∗ (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
@@ -230,7 +229,7 @@ theorem EtcdServer.apply.wp_proof
     iframe
     iframe Hlog0
     ipureintro
-    refine ⟨⟨rfl, by first | (rw [List.drop_zero]; exact hEok) | simpa using hEok⟩, by word, ⟨Hpend, ?_, ?_⟩, fun m h => absurd h (by simp), by rw [Hf0m1]; simp⟩
+    refine ⟨rfl, by word, ⟨Hpend, ?_, ?_⟩, fun m h => absurd h (by simp), by rw [Hf0m1]; simp⟩
     · rw [Hp0]; simp
     · simp
   wp_for HI
@@ -241,9 +240,12 @@ theorem EtcdServer.apply.wp_proof
     list_elem ms (sint.nat j) as m
     ihave #He := Hent $$ %(sint.nat j) %e %m %He_lookup %Hm_lookup
     obtain ⟨hmidx, hmtyp⟩ := Hms (sint.nat j) m Hm_lookup
-    obtain ⟨hOk1, hOkRest⟩ := entriesOk_drop (ciEff γ st.k) ms xj (sint.nat j) m Hxs.2 Hm_lookup
     -- the KV model (unit T1): the entry is the next of the committed raft log
     have hmem : m ∈ ms := List.mem_of_getElem? Hm_lookup
+    -- the entry's premise at the KV's log, from its shape and the log's smallness (D19c's move)
+    icases srvApplyKV_small s E ρ.wait xj $$ HKV with ⟨%Hsmall, HKV⟩
+    have hOk1 : m.typ = W32 0 → entryOk xj m := fun ht =>
+      entryOk_of_shape xj m (hEok m hmem) ht Hsmall.1 Hsmall.2
     have hjn' : ((sint.nat j : Nat) : Int) = sint.Z j := by
       unfold sint.nat; exact Int.toNat_of_nonneg Hj.1
     have hlenA : (A ++ ms.take (sint.nat j)).length = A.length + sint.nat j := by
@@ -439,8 +441,8 @@ theorem EtcdServer.apply.wp_proof
           intro h
           have h' : uint.Z m.index = 0 := by rw [h]; rfl
           omega
-        refine ⟨⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj x1 Hm_lookup Hxs.1 hb1,
-          by rw [hjs]; exact hOkRest x1 hb1⟩, by omega, ⟨by simp, ?_, ?_⟩, ?_, by omega⟩
+        refine ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj x1 Hm_lookup Hxs hb1,
+          by omega, ⟨by simp, ?_, ?_⟩, ?_, by omega⟩
         · rw [hj1]; omega
         · rw [ite_eq_right (by omega), hj1]
           have hce : ciEff γ m.index = m.index := by unfold ciEff; rw [ite_eq_right hidx0]
@@ -540,8 +542,8 @@ theorem EtcdServer.apply.wp_proof
           have h' : uint.Z m.index = 0 := by rw [h]; rfl
           omega
         have hb1 := hconf (by rw [h1]; decide)
-        refine ⟨⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj xj Hm_lookup Hxs.1 hb1,
-          by rw [hjs]; exact hOkRest xj hb1⟩, by omega, ⟨by simp, ?_, ?_⟩, ?_, by omega⟩
+        refine ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj xj Hm_lookup Hxs hb1,
+          by omega, ⟨by simp, ?_, ?_⟩, ?_, by omega⟩
         · rw [hj1]; omega
         · rw [ite_eq_right (by omega), hj1]
           have hce : ciEff γ m.index = m.index := by unfold ciEff; rw [ite_eq_right hidx0]
@@ -637,8 +639,8 @@ theorem EtcdServer.apply.wp_proof
         isplitr
         · iexact Hlog'
         ipureintro
-        exact ⟨⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj x1 Hm_lookup Hxs.1 hb1,
-          by rw [hjs]; exact hOkRest x1 hb1⟩, by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by omega⟩
+        exact ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj x1 Hm_lookup Hxs hb1,
+          by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by omega⟩
       · -- a conf change
         (try simp only [h1])
         ihave ⟨%Hnn, %d, #Hd, #Hds⟩ := entryAt_fields _ _ $$ He
@@ -669,8 +671,8 @@ theorem EtcdServer.apply.wp_proof
         · iexact Hlog'
         ipureintro
         have hb1 := hconf (by rw [h1]; decide)
-        exact ⟨⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj xj Hm_lookup Hxs.1 hb1,
-          by rw [hjs]; exact hOkRest xj hb1⟩, by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by omega⟩)
+        exact ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj xj Hm_lookup Hxs hb1,
+          by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by omega⟩)
   · -- the loop is done
     have hjn : sint.nat j = ms.length := by rw [Hlen]; word
     have hjZ : sint.Z j = (ms.length : Int) := by
@@ -700,7 +702,7 @@ theorem EtcdServer.apply.wp_proof
     isplitl [HKV Hka]
     · iexists xj; iframe HKV Hlogf
       isplitr
-      · ipureintro; exact Hxs.1
+      · ipureintro; exact Hxs
       iapply (show kvApplied (GF := GF) γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ⊢
         kvApplied γr.raft γr.kv (A ++ ms) xj from by rw [htk']) $$ Hka
     ipureintro

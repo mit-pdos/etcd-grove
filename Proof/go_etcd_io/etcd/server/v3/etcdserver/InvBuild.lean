@@ -244,8 +244,10 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
 
 /-- **The residual** (see the file header): the row of `isServerBuilt` no `NewServer` proof
 gives -- the raft storage's snapshot contract `rnSnapOnce` (`notes/STATUS.md`, "srvBuildGap's
-rows": the application cannot call `MemoryStorage.Snapshot` in the model while raft owns the
-storage). A premise of whoever composes `NewServer` with `start`. (`srv.kv` as `txn.isKV` with its
+rows": the application could not call `MemoryStorage.Snapshot` in the model while raft owns the
+storage). Since D17d (2026-10-18) `NewServer.spec` gives it too, from the storage's application
+snapshot token (`rnSnapOnce_of_tok`); until then a premise of whoever composed `NewServer` with
+`start`. (`srv.kv` as `txn.isKV` with its
 read view and the write budget `txn.storeWTs` were rows here until unit N4's `NewServer` proof,
 2026-10-17; the uber-applier's `applierFor`/`applyKV` until D14i; `storeSmall`, the id budget,
 `clusterVersionOk` and the thread bound until D17, the same day: `srvBuilt`, from

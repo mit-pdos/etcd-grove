@@ -68,10 +68,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `raft.StartNode(b.config, b.peers)`
   wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
-    bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
+    (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
     rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk)
-    $$ [Hc Hsto Hghost Hpeers] as %nd Hpost
+    $$ [Hc Hsto Hghost Hpeers Htok] as %nd ⟨Htok, Hpost⟩
   · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk)) =
       memStorIface bv.storage' from rfl]
     rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).ty =
@@ -80,6 +80,11 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       #bv.storage' from rfl]
     rw [method_unfold (t := go.GoType.PointerType MemoryStorage.ty) (m := go!"InitialState")]
     iframe #; iframe Hc Hsto Hghost Hpeers
+    -- (D17d) `InitialState` borrows the snapshot token
+    iintro %Φ %ss' Hs HK
+    iapply Hinit $$ Hs Htok
+    iintro %hp %cs %al Hs Ht Hhs Hcs
+    iapply HK $$ Hs Ht Hhs Hcs
   icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers⟩
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hndeq⟩ := Hnd
   subst Hndeq
@@ -118,7 +123,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   · ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hγw
     exact ⟨Hγraft, Hγbud, Hγstor, Hγmode, h1, h2, h3, h4, h5, h6, h7⟩
-  iframe Hnode Hdrv Hncfg Hst Hbuilt Hb Hpeers
+  iframe Hnode Hdrv Hncfg Hst Hbuilt Hb Hpeers Htok
   -- the closure meets `isRNIDRemoved`
   iunfold isRNIDRemoved
   iintro !> %id' %Φ' !> - HΦ'

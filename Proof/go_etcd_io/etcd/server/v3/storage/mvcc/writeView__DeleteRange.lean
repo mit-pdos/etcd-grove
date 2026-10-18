@@ -37,7 +37,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro wv s γ P Pre Q Post f key endk k e
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hb, %Hwq⟩
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hfree, #Hkey, #Hend, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -55,7 +55,6 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   -- `tw.DeleteRange(key, end)`
   wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e)
     $$ [$Htx $Hkey $Hend] as %n %rev ⟨Htx, %Hnr⟩
-  · ipureintro; simp only [List.length_nil, Nat.zero_add]; exact Hb ilog
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]

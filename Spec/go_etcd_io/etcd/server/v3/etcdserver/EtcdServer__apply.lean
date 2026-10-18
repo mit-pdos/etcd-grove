@@ -31,8 +31,10 @@ backend writes (`ApplyV2storeOnly`), each above is applied (`ApplyBoth`), and af
 `L`, which it returns with its term. So no entry's writes are applied twice, and none above
 `ci` is skipped. **The KV** (the apply package's unit 3): the apply thread's applier state goes
 from `x` to `x'` by `entriesStep c ms x x'` (`c` the consistent index the batch starts at: each
-normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `entriesOk c ms x` (each
-normal entry's premise at every state the batch can reach it in). **The wait** (unit 2 of the
+normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `logShape ms` (each
+normal entry's request meets its premise wherever the size clauses hold; the apply thread's log
+is small, `srvApplyKV_small`, so they hold at the state each entry meets: D19c's move,
+2026-10-18; until then `entriesOk c ms x`, the premise at every state the batch can reach). **The wait** (unit 2 of the
 request path): `batchWaitOk` (each normal entry's id claimed for its data; each conf change's id,
 `ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. **The
 applied index** (the request path's unit 4b): the apply thread's half of the ghost applied index
@@ -51,7 +53,7 @@ abbrev EtcdServer.apply.spec : Prop :=
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
     (A : List EntryModel),
-  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
+  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗

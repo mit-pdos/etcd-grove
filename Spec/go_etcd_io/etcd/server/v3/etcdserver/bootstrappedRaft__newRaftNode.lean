@@ -19,7 +19,8 @@ raft's `ownStorage (memStorIface ms)` under the `MemoryStorage` instance, which 
 holds with the registry; raft owns it from the call on). `PreVote` and `CheckQuorum` either way
 since 2026-10-17 (notes/STATUS.md, "Raft: CheckQuorum and PreVote on"; until then both were
 required `false`, D12: etcd's `raftConfig` sets both). The `InitialState` closure premise is `StartNode.spec`'s
-(D7's shape; a fresh `MemoryStorage`'s conf state is empty).
+(D7's shape; a fresh `MemoryStorage`'s conf state is empty); since D17d (2026-10-18) it borrows the
+application's snapshot token (`memSnapTok`), which the call takes and gives back.
 
 **The ghost state** is the cluster's, allocated before (`ownRaftGhost_alloc_boot`): this node's
 `ownRaftGhost γ cv.ID' (bootPState bootLog)` and `isCommitted γ bootLog`, with `γ.reBoot =
@@ -96,13 +97,17 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
       "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
+           memSnapTok bv.storage' γs memStorEmpty -∗
            (∀ (hp cs : Loc) (al : Bool),
             ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
+            memSnapTok bv.storage' γs memStorEmpty -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
             csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
              (Val #())) {{ Φ }}) ∗
+      -- (D17d, 2026-10-18) the application's snapshot token, which `InitialState` borrows
+      "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
       -- the peers, their contexts, and `Marshal` at their conf changes
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
       "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
@@ -130,7 +135,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗
-        b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv }}
+        b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
+        -- (D17d) the snapshot token back (`InitialState` ran before the node's goroutine)
+        memSnapTok bv.storage' γs memStorEmpty }}
 
 end spec
 

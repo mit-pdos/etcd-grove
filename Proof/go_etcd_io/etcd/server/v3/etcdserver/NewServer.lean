@@ -232,7 +232,8 @@ theorem NewServer.wp_proof
     (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (h82 : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (h83 : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG)) :
+    (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
+    (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr Hbnd Hrb HrbN Hmid Hfgp
   wp_start
@@ -298,9 +299,9 @@ theorem NewServer.wp_proof
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
     Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
-    (by simpa [srvEr] using Hpol)) $$ [Hbv Hc Hstor Hpeers Hghost]
-    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers⟩
-  · iframe Hbv Hc Hstor Hpeers
+    (by simpa [srvEr] using Hpol)) $$ [Hbv Hc Hstor Hpeers Hghost Htok]
+    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers, Htok⟩
+  · iframe Hbv Hc Hstor Hpeers Htok
     rw [Hrid]
     iframe Hghost
     iframe #
@@ -805,6 +806,10 @@ theorem NewServer.wp_proof
   · iexact r
   · iapply Htrall
   · iexact Hrtm
+  -- (D17d) `run`'s snapshot contract, from the storage's snapshot token
+  ihave Hgap : srvBuildGap s (W64 0) (W64 0) $$ [Htok]
+  · iunfold srvBuildGap
+    iapply rnSnapOnce_of_tok h85 _ γrn (srvRAddr s) bv.storage' γs Hrn7 $$ Hpkg Hrn Htok
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
@@ -847,7 +852,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hetcd
+  iframe Hetcd Hgap
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   unfold srvBuilt

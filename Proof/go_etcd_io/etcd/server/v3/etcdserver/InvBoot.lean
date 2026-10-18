@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 
 @[expose] public section
 
@@ -146,13 +147,18 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "Hstor" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
     "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
        ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
+       memSnapTok bv.storage' γs memStorEmpty -∗
        (∀ (hp cs : Loc) (al : Bool),
         ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
+        memSnapTok bv.storage' γs memStorEmpty -∗
         hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
         csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
         Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
        WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
          (Val #())) {{ Φ }}) ∗
+    -- (D17d, 2026-10-18) the application's snapshot token of the fresh storage (`NewMemoryStorage`
+    -- gives it), which `InitialState` borrows and `run`'s `Snapshot()` reads
+    "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
     "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
     -- the cluster
@@ -213,6 +219,48 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
   unfold bootstrapContract; infer_instance
 
 end defs
+
+section snap
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [MemStorReg GF]
+
+/-- **`run`'s snapshot contract from the application's token** (D17d, 2026-10-18; until then the
+construction's residual `srvBuildGap`): the wrapper's `raftStorage` field holds the storage `ms`,
+and `ms.Snapshot()` -- the application's triple of `MemoryStorage.Snapshot.spec`, with the token of
+the fresh storage -- returns the empty snapshot (index and term `0`), whole (`ownSnapW`: metadata
+and conf state set), frozen. -/
+theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (E : RNEnv GF) (γ : RNNames) (r ms0 : Loc) (γs : MemStorNames) (Hms0 : γ.ms = ms0) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      isRaftNode E γ r -∗ memSnapTok ms0 γs memStorEmpty -∗
+      ∃ ms : Loc, rnRaftStorageAddr r ↦□ ms ∗ rnSnapOnce ms (W64 0) (W64 0) := by
+  subst Hms0
+  iintro #Hpkg #Hrn Htok
+  ihave #Hrn' := Hrn
+  iunfold isRaftNode at Hrn'
+  iNamed Hrn'
+  subst Hmsγ
+  iexists γ.ms
+  iframe Hms
+  iunfold rnSnapOnce
+  iintro %Φ HΦ
+  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  iapply wp_fupd
+  wp_apply wp_Snapshot.2 γ.ms γs memStorEmpty $$ [$Htok] as %snap ⟨-, %sv, Hw, %Hid⟩
+  imod ownSnapW_persist $$ Hw with ⟨%pm, %pc, %Hnn, #Hsn, #Hpm, #Hpc⟩
+  imodintro
+  obtain ⟨Hid, -, -⟩ := Hid
+  simp only [snapId, memStorEmpty, entryID.mk.injEq] at Hid
+  iapply HΦ $$ %snap %pm %pc %sv [] Hsn Hpm Hpc
+  ipureintro
+  exact ⟨Hid.2, Hid.1, Hnn.1, Hnn.2⟩
+
+end snap
 
 section transport
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

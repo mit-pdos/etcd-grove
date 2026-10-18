@@ -39,7 +39,10 @@ local macro "del_range_tail" : tactic => `(tactic| (
     ihave %Hkl := ownSlice_len keys (DFrac.own 1) kss $$ Hkss
     have hkeyslen : keys.len = W64 (ks.length : Int) := by
       rw [← Hklen, Hkl.1]; exact (mvcc.W64_sint_nat keys.len Hkl.2).symm
-    have hkslt : ks.length < 2 ^ 63 := by omega
+    have hkslt : ks.length < 2 ^ 63 := by
+      have h2 : sint.Z keys.len < 2 ^ 63 := by word
+      have h4 : ((sint.nat keys.len : Nat) : Int) = sint.Z keys.len := Int.toNat_of_nonneg Hkl.2
+      omega
     have hksZ : sint.Z keys.len = ks.length := by
       rw [hkeyslen]; unfold sint.Z W64
       rw [BitVec.toInt_ofInt_eq_self (by decide)
@@ -123,7 +126,6 @@ local macro "del_range_tail" : tactic => `(tactic| (
         wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj crev Z)
           $$ [$(frameH `Htx) $(frameH `Hkj)] as Htx
         · ipureintro
-          refine ⟨?_, by simp only [List.length_append, List.length_map, List.length_take]; omega⟩
           rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
               (pend ++ (ks.take j).map .del) =
             mvcc.applyChanges (W64 (ilog.length : Int))
@@ -162,8 +164,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key endk k e crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
-  have hpm := mvcc.putMax_le γ
+  wp_start as ⟨Htw, #Hkey, #Hend⟩
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

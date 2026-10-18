@@ -26,7 +26,7 @@ theorem setupNode.wp_proof
     (wp_RawNode_Bootstrap : RawNode.Bootstrap.spec (GF := GF) (hG := hG))
     (wp_newNode : newNode.spec (GF := GF) (hG := hG)) :
     setupNode.spec (GF := GF) (hG := hG) := by
-  intro γ c cv lok si σ hs csm peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
+  intro γ c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
     P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted⟩
   ihave %Hplen := ownSlice_len $$ Hpeers
@@ -39,10 +39,10 @@ theorem setupNode.wp_proof
     have h0 : pv.length = 0 := by
       have := Hplen.1; rw [this]; word
     exact Hpvne (List.eq_nil_of_length_eq_zero h0)
-  wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
+  wp_apply wp_NewRawNode c cv lok si σ hs csm R P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
     P15 P16 (by rw [Q1]; exact List.nodup_nil) (by rw [Q1]; exact List.not_mem_nil)
     (by rw [Q1]; decide) Q2 Q3 Q4 Q5
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
+    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨HR, %s, Hfresh, %Herr⟩
   subst Herr
   wp_auto
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
@@ -55,6 +55,7 @@ theorem setupNode.wp_proof
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   iapply HΦ
+  iframe HR
   iexists nv, rn
   iframe n Hchans Hrn Hpeers
   ipureintro; exact Hnvrn

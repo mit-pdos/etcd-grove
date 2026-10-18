@@ -9,9 +9,10 @@ none above `ci` skipped; `InvApply.lean`) and, through the proved `apply.Apply`,
 from `x` to `x'` by `entriesStep c (unapplied ai ms) x x'` (`applyEntries_model`): the batch's
 entries above the applied index, in order, each normal entry above the consistent index `c`
 applied by the txn package's client model, each at or below it replayed without effect. Its
-premises: the protocol's (`loopOk`, `entriesFrom`), the KV's (`entriesOk`: every normal entry's
+premises: the protocol's (`loopOk`, `entriesFrom`), the KV's (`logShape`: every normal entry's
 data decode to a request with an id or a header, neither a compaction nor empty, satisfying the
-txn package's premises at the state it meets), and the components' contracts (the apply
+txn package's premises at every state where the size clauses hold, which they do at the state it
+meets, the apply thread's log being small by the store's time receipts: D19c's move), and the components' contracts (the apply
 package's `Contracts.lean`, `applyConfChange`'s, the names-only callees').
 
 The corollaries are on the run's trace (`entriesStep_trace`: the states it passes through):
@@ -157,7 +158,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The apply loop implements the client model over the committed entries** (`s.applyEntries
 (ep, ap)`, linked): the consistent-index protocol kept (`loopOk`, `ep.appliedi` advanced to the
 last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c (unapplied ai ms)`
-(`c` the consistent index at the start), under `entriesOk`. -/
+(`c` the consistent index at the start), under the entries' shapes (`logShape`). -/
 theorem applyEntries_model : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
 
@@ -767,7 +768,8 @@ tokens: with the store's lessor's leases (none in the empty state), the apply th
 theorem server_kv_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
-    (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -795,7 +797,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   iapply wp_fupd
-  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf hcfg) $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
+  wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf hcfg hrb) $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd]
     as %s ⟨%γ, %Hγ, #Hst, Hcok, #Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
   · iframe #; iframe Hv Hrg Hrts Hlrd
     unfold backend.wbTok
@@ -815,7 +817,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   · iunfold txn.isKV; ileft; iframe Hst; isplitr; · ipureintro; rfl
     ipureintro; exact Hγ.2.2.2
   isplitl [Htoks]
-  · iapply txn.soleWriter_of_NewStore γ; iframe Htoks Hc
+  · iapply txn.soleWriter_of_NewStore γ hrb; iframe Htoks Hc
   unfold txn.storeWTs
   rw [Hγ.2.2.1]
   iexact Hw
@@ -833,7 +835,8 @@ loops', the right to close it). The index's names `γi` and the map `γok` are t
 theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -874,7 +877,7 @@ theorem server_kv_watchable (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f N γi γok hcfg hrb
 
 /-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
 the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
@@ -964,7 +967,8 @@ theorem server_kv_backend_hooks (lg lp : Loc)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hci : ciKeys d.P)
     (hH : storage.hooksParams d.P) (γb γl : GName) (γA : ApplyNames) (ci bh lgh : Loc)
-    (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -1003,7 +1007,7 @@ theorem server_kv_backend_hooks (lg lp : Loc)
   ihave #Hle := lease.isLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lp γl $$ [$Hlpkg $Hlinv]
   iapply (server_kv_backend lg (lease.lessorIface lp) cfg d hP γb γl
-    (batchLockInv γA (metaTM d.γB d.P)) f hf N hcfg) $$ [Hv Hrg Hw Hrts Hlrd] HΦ
+    (batchLockInv γA (metaTM d.γB d.P)) f hf N hcfg hrb) $$ [Hv Hrg Hw Hrts Hlrd] HΦ
   iframe #
   iframe Hv Hrg Hw Hrts Hlrd
 

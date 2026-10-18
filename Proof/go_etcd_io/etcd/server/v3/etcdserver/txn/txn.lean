@@ -65,7 +65,7 @@ theorem txn.txn.wp_proof
     $$ [$Htw $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown] as %n2 %err Hres
   · ipureintro
     refine ⟨Hpre.1, ?_, ?_, fun h => (Hpre.2.2.2 h).1⟩
-    · simp only [List.length_nil, Nat.zero_add, pendState_nil]; exact Hpre.2.1
+    · exact Hpre.2.1
     · intro hro op hop
       exact readonly_branch t (Hpre.2.2.1 hro) _ op hop
   icases Hres with (⟨%Herr, Htw, #Hrs, #Hknown', Hown⟩ | ⟨%Hndf, #He, ⟨%pend', Htw⟩, #Hros⟩)

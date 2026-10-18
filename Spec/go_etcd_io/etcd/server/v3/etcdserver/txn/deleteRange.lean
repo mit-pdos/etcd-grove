@@ -35,8 +35,7 @@ abbrev txn.deleteRange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
       mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ mvcc.twWrap tyX vX mw ∗
-      txn.deleteRangeRequestIs dr o ∗
-      ⌜pend.length + (rangeIn (txn.pendState ilog pend) o).length < mvcc.putMax γ⌝ }}
+      txn.deleteRangeRequestIs dr o }}
     (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #dr))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗

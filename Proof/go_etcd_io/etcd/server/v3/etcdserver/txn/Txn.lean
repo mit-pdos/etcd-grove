@@ -71,10 +71,11 @@ theorem txn.opsOk_gets (w : Bool) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv)
         (fun o' ho' => hok o' (by simp [ho']))
     | _ => have := h _ (List.mem_cons.2 (Or.inl rfl)); simp [opIsGet] at this
 
-/-- **The read-only run's premises** at a read log: the gets within the model (`txnGetsOk`) and
-the log small (the sort's premise). -/
-theorem txn.readTxn_opsOk (t : TxnModel) (log : mvcc.Log) (hok : LogOk log)
-    (hro : txnReadonly t = true) (hg : txnGetsOk t) (hs : LogSmall log) (w : Bool) (r : w64) :
+/-- **The read-only run's premises** at a read log: the gets within the model (`txnGetsOk`).
+(Until D19c's move, 2026-10-18, also the log small, the sort's premise: `executeTxn` now takes
+it apart, `TxnPre`'s `LogSmall`.) -/
+theorem txn.readTxn_opsOk (t : TxnModel) (log : mvcc.Log)
+    (hro : txnReadonly t = true) (hg : txnGetsOk t) (w : Bool) (r : w64) :
     OpsOk w (mvcc.stateAfter log) r (mvcc.stateAfter log)
       (t.branch (txnOk (mvcc.stateAfter log) t)) := by
   apply txn.opsOk_gets w _ r _ _ (readonly_branch t hro _)
@@ -83,9 +84,7 @@ theorem txn.readTxn_opsOk (t : TxnModel) (log : mvcc.Log) (hok : LogOk log)
     unfold TxnModel.branch at ho
     split at ho <;> simp [ho]
   obtain ⟨h0, hcut, hv⟩ := hg o hmem
-  refine ⟨h0, hv, hcut, ?_⟩
-  have := sortSmall_of_sortOk o log hok (log.length - 1) (fun _ => hs)
-  rwa [mvcc.stateAt_last] at this
+  exact ⟨h0, hv, hcut⟩
 
 instance txn.ite_persistent_Txn (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
     Persistent (if b then P else Q) := by
@@ -236,7 +235,7 @@ theorem txn.Txn_sole
       $$ [$Htw $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases] as %resp %err Hres
     · isplitl []; · itrivial
       isplitl []; · ileft; itrivial
-      ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun _ => hro, fun h => absurd h (by simp)⟩
+      ipureintro; exact ⟨hoks, fun _ => Hpre.2.2, fun _ => hro, fun h => absurd h (by simp)⟩
     icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -323,7 +322,7 @@ theorem txn.Txn_sole
       $$ [$Htw $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases $Hknown Hown] as %resp %err Hres
     · isplitl [Hown]
       · iright; iexact Hown
-      ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun h => h.elim, fun h => absurd h (by simp)⟩
+      ipureintro; exact ⟨hoks, fun h => h.elim, fun h => h.elim, fun h => absurd h (by simp)⟩
     icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, #Hk2, Hown⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -488,7 +487,7 @@ theorem txn.Txn_read
   · iapply traceutil.ownFields_nil
   ihave Htx := Hback $$ [Htrc]
   · iexists te4; iexact Htrc
-  have hoks := txn.readTxn_opsOk t log Hlog.1 hro hgets Hsm false (W64 (log.length : Int))
+  have hoks := txn.readTxn_opsOk t log hro hgets false (W64 (log.length : Int))
   have hnil := txn.srvOps_gets_nil (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
     _ (readonly_branch t hro (txnOk (mvcc.stateAfter log) t))
   wp_apply (hNewRo trace mw s γ log rev) $$ [$Htx] as %trw Hro
@@ -502,8 +501,7 @@ theorem txn.Txn_read
   · isplitl []; · itrivial
     isplitl []; · ileft; itrivial
     ipureintro
-    refine ⟨hoks, ?_, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
-    simp only [srvRunTxn, hnil, List.length_nil]; have := mvcc.putMax_ge γ; omega
+    exact ⟨hoks, fun _ => Hsm, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨%pend', Htw, #Hshell, Hout⟩ : (∃ pend' : List mvcc.Change,
       txnWriteIs (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ trace true log pend' ∗

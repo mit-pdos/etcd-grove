@@ -46,9 +46,12 @@ wholesale by `SetHardState`. `snapshot` holds a pointer to the storage's own sna
 conf state's `AutoLeave`, `EnsureConfState`, 132, then freezes it: D7, the snapshot's conf state
 `csOptA`'s third case from then on). Every one of them is called by the storage's
 owner (raft through `isStorage`'s `Snapshot`, the application with `ownMemoryStorage` for the
-others, `InitialState` at construction), so the field and the object are **`ownMemoryStorage`'s,
-not the lock's** (until the retarget the lock held half of a snapshot value and `memStorMeta` the
-other half). `memStorMeta` keeps half of `hardState` and the unlocked counter.
+others, `InitialState` at construction), so the field and the object were **`ownMemoryStorage`'s,
+not the lock's** from the retarget to D17d (until the retarget the lock held half of a snapshot
+value and `memStorMeta` the other half). Since D17d (2026-10-18) they are under the lock again, in
+an invariant the keys open (`memSnapInv`, "The snapshot under the lock" below), so that the
+application, holding its token (`memSnapTok`), can call `Snapshot()` while raft owns the storage
+(etcd's `run`). `memStorMeta` keeps half of `hardState` and the unlocked counter.
 
 Lean notes: Rocq's tuple `(prev, ents, ss)` in the ghost variable is the record
 `StorState` (`InvStorage.lean`), as everywhere a storage's state is passed. `ghost_var γ (1/2) v` is `ghostVar γ (1 : Qp).half v`,

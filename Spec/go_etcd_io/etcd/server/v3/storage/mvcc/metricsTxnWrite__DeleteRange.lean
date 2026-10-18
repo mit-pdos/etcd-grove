@@ -27,8 +27,7 @@ abbrev mvcc.metricsTxnWrite.DeleteRange.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (puts deletes putSize : w64) (key endk : GoSlice) (k e : GoString) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      ⌜pend.length + (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length < mvcc.putMax γ⌝ }}
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"DeleteRange"))
       (Val #key)) (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev);

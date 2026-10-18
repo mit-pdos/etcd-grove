@@ -120,7 +120,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev newRaft.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM),
+    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF),
   -- the Config
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -163,12 +163,12 @@ abbrev newRaft.spec : Prop :=
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
-      ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
+      R ∗ ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
       -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
       c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧

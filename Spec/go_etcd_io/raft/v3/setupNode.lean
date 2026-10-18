@@ -39,7 +39,7 @@ abbrev setupNode.spec : Prop :=
   ∀ (γ : RaftNames) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM)
+    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
   -- `NewRawNode`'s premises
@@ -76,14 +76,14 @@ abbrev setupNode.spec : Prop :=
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog }}
     (App (App (Val #(functions setupNode [])) (Val #c)) (Val #peers))
   {{ (n : Loc), RET #n;
-      ∃ (nv : node) (rn : Loc),
+      R ∗ ∃ (nv : node) (rn : Loc),
         n ↦ nv ∗ ⌜nv.rn' = rn⌝ ∗ newNodeChans nv ∗
         ownRawNode γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 1,

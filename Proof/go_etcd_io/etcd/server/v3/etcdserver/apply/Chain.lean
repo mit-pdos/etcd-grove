@@ -227,11 +227,11 @@ def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
 /-- A put's premise at the sole writer's log: room for one more revision. -/
 def putOk (log : mvcc.Log) : Prop := log.length + 4 ≤ 2 ^ 63
 
-/-- A delete's premises: room for one more revision, fewer than `2 ^ 56` keys in the request's
-range (the real backend's bound on a session's puts, `mvcc.putMax`: each deleted key is a
-tombstone put; 2026-10-13, unit 6: it was the whole state below `2 ^ 63`). -/
-def delOk (log : mvcc.Log) (o : OpFull) : Prop :=
-  log.length + 4 ≤ 2 ^ 63 ∧ (rangeIn (mvcc.stateAfter log) o).length < 2 ^ 56
+/-- A delete's premise: room for one more revision. (Until D19c's move, 2026-10-18, also fewer
+than `2 ^ 56` keys in the request's range, the real backend's bound on a session's puts: the
+store's write transaction now has it by its time receipts, `mvcc.storeTxnWriteIs_small`.) -/
+def delOk (log : mvcc.Log) (_o : OpFull) : Prop :=
+  log.length + 4 ≤ 2 ^ 63
 
 /-- A range's premises: room for the read, a valid sort target, the sort's premise. -/
 def rangeOk (log : mvcc.Log) (o : OpFull) : Prop :=

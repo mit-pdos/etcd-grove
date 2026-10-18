@@ -270,6 +270,41 @@ theorem leasesKnown_delete (L : List w64) (r : w64) (s : List EtcdKv) (o : OpFul
   intro v hv
   exact (List.mem_filter.1 hv).1
 
+/-- **The log `executeTxn`'s transaction reads is small** (D19c's move, 2026-10-18): a write
+transaction's by its time receipts (`mvcc.isTxnWrite_small`: its changes, committed and pending,
+are fewer than `receiptBound GF ≤ 2 ^ 48`), the read-only wrapper's by the caller's premise. So
+the gets' sorts meet their premise (`sortSmall`) without one on the run. -/
+theorem txnViewIs_small (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
+    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (hk : KindIs ro ilog pend kind)
+    (hro : ro = true → LogSmall ilog) :
+    txnViewIs (GF := GF) tw s γ trace kind ro ⊢
+      ⌜LogSmall kind.readLog⌝ ∗ txnViewIs tw s γ trace kind ro := by
+  apply persistent_entails_right
+  cases ro
+  · unfold KindIs at hk
+    simp only [Bool.false_eq_true, ↓reduceIte] at hk
+    obtain ⟨puts, deletes, putSize, rfl⟩ := hk
+    unfold txnViewIs
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
+    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize $$ [Htx]
+    · simp only [mvcc.isTxn]; iexact Htx
+    icases mvcc.isTxnWrite_small mw s γ trace ilog pend puts deletes putSize _ _ $$ Htx
+      with ⟨%h1, -⟩
+    ipureintro
+    unfold LogSmall logChanges
+    simp only [mvcc.TxnKind.readLog]
+    simp only [mvcc.logCh] at h1
+    simp only [List.map_append, List.sum_append, List.map_cons, List.map_nil, List.sum_cons,
+      List.sum_nil]
+    omega
+  · unfold KindIs at hk
+    simp only [↓reduceIte] at hk
+    obtain ⟨-, rev, rfl⟩ := hk
+    iintro -
+    ipureintro
+    exact hro rfl
+
 /-- **`executeTxn`'s transaction, by kind**: the kind's facts, its read state the pending one
 (for the read-only wrapper, the committed one). -/
 theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)

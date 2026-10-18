@@ -953,6 +953,17 @@ theorem idxWriter_wf (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriter (GF := GF) γ ilog pend ⊢ ⌜IdxWf ilog pend⌝ := by
   unfold idxWriter; iintro ⟨-, -, %H, -⟩; ipureintro; exact H
 
+/-- **The writer's changes are fewer than the receipts' bound** (D19c, 2026-10-18): the writer
+holds a receipt per change of its log and pending revision. -/
+theorem idxWriter_lt (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxWriter (GF := GF) γ ilog pend ⊢
+      ⌜logCh ilog + pend.length < receiptBound GF⌝ ∗ idxWriter γ ilog pend := by
+  unfold idxWriter
+  iintro ⟨Ha, Hb, %H, Hc, Hr⟩
+  icases persistent_entails_left (receipt_lt _) $$ Hr with ⟨Hr, %h⟩
+  iframe Ha Hb Hc Hr
+  ipureintro; exact ⟨h, H⟩
+
 /-- The writer's handle once **sealed**: the pending revision `pend` (not empty) is final, its
 commit marker already in the history (so the history's lower bound `histOf (ilog ++ [pend])`
 is persistent before the commit, which needs `s.revMu`'s half of the committed log); the

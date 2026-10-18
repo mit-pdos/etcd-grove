@@ -75,7 +75,6 @@ local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic|
       $$ [$(frameH `Htx) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
         $(frameH `Hown)]
       as ⟨Htx, Hown⟩
-    · ipureintro; exact Hpl
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -113,7 +112,7 @@ theorem txn.put.wp_proof
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
   intro trace ctx cd mw s γ ilog pend puts deletes putSize p o prev L tyX vX
-  wp_start as ⟨#Hctx, #Hct, Htx, #Hwrap, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hpl⟩
+  wp_start as ⟨#Hctx, #Hct, Htx, #Hwrap, #Hp, Hprev, %Hneed, #Hlok, Hown⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []

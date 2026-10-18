@@ -64,7 +64,7 @@ abbrev StartNode.spec : Prop :=
   ∀ (γ : RaftNames) (bud : BudgetNames) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM)
+    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
   -- `NewRawNode`'s premises
@@ -104,7 +104,7 @@ abbrev StartNode.spec : Prop :=
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
@@ -115,7 +115,9 @@ abbrev StartNode.spec : Prop :=
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
-      ∃ (γn : NodeNames) (n : Loc),
+      -- (D17d, 2026-10-18) what the `InitialState` premise gives back: `InitialState` runs before
+      -- the node's goroutine starts
+      R ∗ ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = RNMode.static ∧
          nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗

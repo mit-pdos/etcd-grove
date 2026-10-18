@@ -132,7 +132,7 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si σ hs csm
+  intro c cv lok si σ hs csm R
     Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
@@ -157,7 +157,7 @@ theorem newRaft.wp_proof
   wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hss Hpe rfl Hmcs' $$ [$HisSto $HSto $Hlg0]
     as %l %ip ⟨%Hip0, HSto, HLback⟩
   rw [HpSt, Hsto]
-  wp_apply HInit $$ [$HSto] as %hp %cs %al HSto #Hhsp #Hcs
+  wp_apply HInit $$ [$HSto] as %hp %cs %al HSto HR #Hhsp #Hcs
   ihave HL := HLback $$ HSto
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
@@ -385,7 +385,7 @@ theorem newRaft.wp_proof
   ihave Hphys := Hlogback $$ Hlog3
   wp_raft_log
   iapply HΦ $$ %«$r0_ptr» %s3 %cv'
-  iframe Hphys Hc
+  iframe HR Hphys Hc
   isplitr
   · ipureintro; exact HpAW
   -- `becomeFollower(r.Term, None)` keeps the term, so `reset` keeps the

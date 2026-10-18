@@ -75,7 +75,8 @@ theorem mvcc.NewStore_backend
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
-    (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -110,7 +111,7 @@ theorem mvcc.NewStore_backend
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false γi γok hcfg)
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f false γi γok hcfg hrb)
     $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hifresh Hok0]
   · iframe Hpkg Hbk Hle Hifresh Hok0
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,

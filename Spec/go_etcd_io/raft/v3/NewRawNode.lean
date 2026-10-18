@@ -97,7 +97,7 @@ def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :
 abbrev NewRawNode.spec : Prop :=
   ∀ (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM),
+    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF),
   -- the Config, as for `newRaft`
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -135,11 +135,13 @@ abbrev NewRawNode.spec : Prop :=
       -- or not, `al`), `ownStorage` back at once
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
+      -- (D17d, 2026-10-18) what the `InitialState` premise's caller gets back
+      R ∗
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
         rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' cv.PreVote' s ∗

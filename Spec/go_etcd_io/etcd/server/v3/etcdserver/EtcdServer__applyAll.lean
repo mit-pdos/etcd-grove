@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `ms`, consecutive from `f0` with no gap after the applied index `ai`, as `applyEntries` takes them;
 no snapshot, `rnApP`; its `notifyc`, a unit bag channel raft signals once it persisted the batch),
 by the apply thread: `applySnapshot` (nothing: no snapshot), `applyEntries` (the KV goes from `x`
-to `x'` by `entriesStep` over the entries above `ai`, under `entriesOk`; the applied index to `ai'`,
+to `x'` by `entriesStep` over the entries above `ai`, under their shapes, `logShape`; the
+applied index to `ai'`,
 the last entry's or `ai`; each `setAppliedIndex` deposits the KV log after its entry, so the log
 applied through `ai'` is `x'.log`; 2026-10-14, unit C2a: each entry committed,
 `batchCommittedIdx`, and its log deposited ahead of its result), the backend's verification (`VerifyBackendConsistency`, the
@@ -46,7 +47,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → entriesOk (ciEff γ st.k) (unapplied ai ms) x →
+  loopOk γ st ai → logShape (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗ taSnapshotAddr ap ↦□ (null : Loc) ∗

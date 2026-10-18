@@ -42,8 +42,7 @@ abbrev txn.put.spec : Prop :=
         else ⌜prev = null⌝) ∗
       ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState ilog pend)).isSome⌝ ∗
       txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState ilog pend))) ∗
-      lease.leaseOwn γ.leases L ∗
-      ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
+      lease.leaseOwn γ.leases L }}
     (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;

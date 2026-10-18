@@ -11,8 +11,8 @@ server-construction unit; statements placed at stage N0, 2026-10-16; D13 and D13
 * `isServerBuilt_of_gap`: `NewServer`'s built part and the residual give `start`'s construction
   premise.
 * `clusterWorkloadOk_of` (D19c, 2026-10-18): the workload clause from the KV invariant's workload
-  facts (`kvWork`), the reserved id `0` (`idNoZero`) and the residual size bound
-  (`clusterLogBound`).
+  facts (`kvWork`) and the reserved id `0` (`idNoZero`) (until D19c's move, also the residual
+  size bound `clusterLogBound`, gone: the apply thread checks the size clauses at execution).
 -/
 module
 
@@ -81,17 +81,13 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
 
 /-- **The workload clause, proved** (D19c, 2026-10-18; until then a premise of `NewServer.spec`):
 a committed log is a prefix of the KV invariant's, whose entries have good shapes and claimed ids
-(`kvWork`); with the size bound (`clusterLogBound`) the shapes give the apply premises
-(`entriesOk_of_shape`), with the reserved id `0` the claims give the ids (`batchWaitOk_of_work`). -/
+(`kvWork`); with the reserved id `0` the claims give the ids (`batchWaitOk_of_work`). -/
 theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64) (x₀ : apply.ApplyKV) :
-    kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterLogBound ρ c₀ x₀ ∗
-        idNoZero ρ.ids ⊢
+    kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ idNoZero ρ.ids ⊢
       clusterWorkloadOk ρ E c₀ x₀ := by
-  iintro ⟨#Hkv, #Hr, #Hlb, #HNZ⟩
+  iintro ⟨#Hkv, #Hr, #HNZ⟩
   iunfold clusterWorkloadOk
   iintro !> %L #HL
-  iunfold clusterLogBound at Hlb
-  ihave %Hsm := Hlb $$ HL
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
   icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
@@ -106,7 +102,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) (c₀ : w64) (x
   icases BigSepL.bigSepL_append.1 $$ Hcl with ⟨#HclL, -⟩
   imodintro
   isplitr
-  · ipureintro; exact entriesOk_of_shape c₀ L x₀ Hsh.1 Hsm
+  · ipureintro; exact Hsh.1
   iapply batchWaitOk_of_work ρ E L Hsh.1 $$ HclL HNZ HL
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
@@ -114,7 +110,7 @@ names `γw` over the server's raft names (raft's, the start log and index the se
 static mode over the `MemoryStorage`, with the budget `bud`: the tick's resource and the read
 registrations by `srvEr`'s definition, every message admitted, a committed log's `E.C` from the
 KV invariant's indices (a committed log is a prefix of the KV invariant's, `srvIdxOkW`, and its
-next index fits), the workload clause's `entriesOk` and `batchWaitOk`, and back from `srvC`. -/
+next index fits), the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. -/
 theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames)
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)

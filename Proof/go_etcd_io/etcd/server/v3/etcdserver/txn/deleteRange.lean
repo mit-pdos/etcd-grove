@@ -35,7 +35,7 @@ theorem txn.deleteRange.wp_proof
     txn.deleteRange.spec (GF := GF) (hG := hG) := by
   have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   intro trace ctx cd nd mw s γ ilog pend puts deletes putSize dr o tyX vX
-  wp_start as ⟨#Hctx, #Hnd, Htx, #Hwrap, #Hdr, %Hbnd⟩
+  wp_start as ⟨#Hctx, #Hnd, Htx, #Hwrap, #Hdr⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.deleteRangeRequestIs at Hdr
@@ -92,7 +92,6 @@ theorem txn.deleteRange.wp_proof
     iframe Hwrap
     wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k (txn.srvEnd o.base.rangeEnd).2)
       $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
-    · ipureintro; rw [hDlen]; exact Hbnd
     rw [hD, hDlen] at Hnr
     rw [hD]
     obtain ⟨rfl, rfl⟩ := Hnr
@@ -178,7 +177,6 @@ theorem txn.deleteRange.wp_proof
       iframe Hwrap
       wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k
           (txn.srvEnd o.base.rangeEnd).2) $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
-      · ipureintro; rw [hDlen]; exact Hbnd
       rw [hD, hDlen] at Hnr
       rw [hD]
       obtain ⟨rfl, rfl⟩ := Hnr

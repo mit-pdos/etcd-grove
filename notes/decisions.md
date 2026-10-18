@@ -8287,6 +8287,30 @@ is a resource the model cannot give (`rnSnapOnce`).
   goroutine); (2) a trust-boundary premise that `InitialState` runs before any concurrent
   `Snapshot()`; (3) leave `rnSnapOnce` as the construction's premise. Not decided here.
 
+  **2026-10-18 · option (1) adopted by the user and done** (branch `raft-retarget`; notes/STATUS.md,
+  "D17d: `rnSnapOnce` proved"). How "the token lends the snapshot" is realized: an Iris lock
+  invariant cannot be opened without the lock, so the snapshot (`memSnapOwn`) lives in an Iris
+  invariant `memSnapInv` beside the lock, opened by **key sets**: the lock's key `lk` (in the lock's
+  ghost state, `memInvGhost`) with the owner's `ok` (`ownMemoryStorage`'s `memSnapShare`: raft's
+  `Snapshot`, `ApplySnapshot`, `CreateSnapshot`) or with the application's `ak` (`memSnapTok`: the
+  application's `Snapshot`), or `ok` and `ak` together without the lock (`InitialState`). The
+  taker deposits its keys and keeps a receipt (`sw`); any two key sets share a key, so a taker
+  always finds the snapshot at home. The snapshot's id and conf state are a ghost value split half
+  at home, a quarter the owner's, a quarter the token's (`memSnap_update` needs all three: the
+  writers take the token). The invariant's contents are not timeless (protobuf's `pbMsg`
+  invariants), so `memSnap_take` returns the snapshot under a later, stripped by the next pure
+  step (credits would need `HasLC.hasLC`, which raft's specs do not fix). Two consequences beyond
+  D17d's text: (a) `StartNode` must give the token back after `InitialState`, so `newRaft`,
+  `NewRawNode`, `setupNode` and `StartNode` take a resource `R` that the `InitialState` premise's
+  continuation returns and their posts carry (`RestartNode` instantiates `R = emp`: its premise is
+  `□`); (b) `run` reads the clone's `Metadata.ConfState` pointers, so `EnsureSnapshotMetadata`/
+  `EnsureSnapshot` now state the conf-state pointer set (`smPtsW`/`ownSnapW`) and the trust-boundary
+  `proto.CloneSnapshot` spec gains a conjunct "the clone of a whole snapshot is whole" (true of
+  protobuf-go: a non-`nil` message field is present and copied into a fresh destination field; no
+  axiom added, the statement of an existing one strengthened). `bootOk` (bootstrap's contract)
+  hands the fresh storage's token and states its `InitialState` closure with the token as an
+  argument; `NewServer.spec`'s post gives `srvBuildGap` (`rnSnapOnce_of_tok`).
+
 ## A client's facts from persistent updates: monotone ghost state, a prophecy only for a general client (D18)
 
 **2026-10-17 · proposed; 2026-10-18 · adopted by the user (the monotone route for the adequacy

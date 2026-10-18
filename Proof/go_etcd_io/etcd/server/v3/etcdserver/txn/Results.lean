@@ -128,15 +128,14 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} :=
   put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f L ot te hlen
 
-/-- **`DeleteRange` at the sole writer of `log`** (fewer than `mvcc.putMax γ` keys in the range): the client's delete
+/-- **`DeleteRange` at the sole writer of `log`**: the client's delete
 on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
 committed log; or, with `PrevKv`, the range read's context error, the sole writer back. Under the
 critical-section contract: `Post`. -/
 theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
     (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool)
-    (hlen : log.length + 4 ≤ 2 ^ 63)
-    (hst : (rangeIn (mvcc.stateAfter log) o).length < mvcc.putMax γ) :
+    (hlen : log.length + 4 ≤ 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ kvWriter s γ log ∗ mvcc.storeWT γ ∗
         deleteRangeRequestIs dr o ∗
@@ -160,7 +159,6 @@ theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
            kvWriter s γ log)) }} :=
   deleteRange_soleWriter_of wp_DeleteRange ctx cd nd lg kv s γ dr o log P Pre Q Post f ot te hlen
-    hst
 
 end unit1
 

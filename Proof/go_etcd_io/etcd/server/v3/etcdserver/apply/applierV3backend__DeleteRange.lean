@@ -48,14 +48,13 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   wp_apply hTODO
   iunfold apply.isApplyKV at Hkv
   icases Hkv with ⟨#Hkv, -⟩
-  obtain ⟨hdel, hk, hlen, hst⟩ := Hrq
+  obtain ⟨hdel, hk, hlen⟩ := Hrq
   ihave #Hcok := apply.certPre_backend_applied E rq log
     (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false
     (by unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, rfl⟩) $$ Hcp
   ihave #Hcok := apply.certOkNext_of_commitLog E.γ log _ $$ Hcok
   wp_apply (txn.deleteRange_soleWriter_floor hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f none false hlen
-      (Nat.lt_of_lt_of_le hst (txn.putMax_ge E.γ)) F) $$ [$Hrd $Hsw $Hwt $Hcs]
+      E.s E.γ r o log E.P Pre Q Post E.f none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs]
     as %resp %trace %err ⟨Hrd, %Htr, HPost, Htrc, -, Hout⟩
   · iframe #
     isplitr

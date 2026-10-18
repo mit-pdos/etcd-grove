@@ -57,7 +57,8 @@ theorem server_kv_watchable_of
     (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
-    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -95,7 +96,7 @@ theorem server_kv_watchable_of
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok hcfg)
+  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok hcfg hrb)
     $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
   · iframe Hpkg Hle Hif Hok
     isplitr
@@ -138,7 +139,7 @@ theorem server_kv_watchable_of
       have hsb : txn.soleBudget [[], []] = mvcc.wBudget [[], []] := rfl
       rw [hsb]
       iframe Htoks
-      ipureintro; simp
+      ipureintro; exact ⟨txn.soleLog_boot, hrb⟩
     iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
     iexists ws, γw
     iframe Hws Hhalf Hc

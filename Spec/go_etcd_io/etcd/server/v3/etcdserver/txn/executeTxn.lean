@@ -32,7 +32,9 @@ anything after it), `tresp`'s `Responses` the skeleton of the chosen branch, at 
 canceled: the server's run of the branch (`srvOps`, the nested branches by the path) at the
 pending revision on the state after `pend`, its changes pending, its responses filled in
 (`respsIs`; `skip`: ranges header-only); `nil` and the number of nested transactions. Premises:
-the run's (`OpsOk`), room for its changes, the leases its puts name known (`checkTxn`'s) and
+the run's (`OpsOk`), for the read-only wrapper a small log (`LogSmall`: its gets' sorts; a write
+transaction's states are small by its receipts, D19c, 2026-10-18, which replaced the premise of
+room for the run's changes), the leases its puts name known (`checkTxn`'s) and
 those of the state (not for the read-only wrapper). At a context that may be done (`nd = false`,
 only for the read-only wrapper; 2026-10-12, the request path's unit 3b), a range may fail with
 the context error: `executeTxn` returns `fmt.Errorf`'s wrapping of it (`mvcc.errorfIs`), the
@@ -56,9 +58,7 @@ abbrev txn.executeTxn.spec : Prop :=
       (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
       ⌜txn.OpsOk false (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
-        pend.length + (txn.srvOps (mvcc.stateAfter ilog) (W64 (ilog.length : Int))
-          (txn.pendState ilog pend) (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1.length <
-          mvcc.putMax γ ∧
+        (ro = true → txn.LogSmall ilog) ∧
         (ro = true → ∀ op ∈ t.branch (txn.txnOk (mvcc.stateAfter ilog) t), txn.opIsGet op = true) ∧
         (nd = false → ro = true)⌝ }}
     (App (App (App (App (App (App (App (Val (@! txn.executeTxn)) (Val #(GoInterface.ok ctx)))

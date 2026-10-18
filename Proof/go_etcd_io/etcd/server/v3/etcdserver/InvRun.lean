@@ -282,8 +282,9 @@ def compactorOk (c : GoInterface) : IProp GF :=
 instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF := GF) c) := by
   unfold compactorOk; infer_instance
 
-/-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`: a trust-boundary
-contract, as `isRNMemStor`; not persistent: the snapshot changes once the server takes one):
+/-- **The raft storage's snapshot when `run` starts** (`*raft.MemoryStorage`; not persistent: the
+snapshot changes once the server takes one; since D17d, 2026-10-18, proved by `NewServer` from the
+storage's application token, `rnSnapOnce_of_tok`, until then a trust-boundary contract):
 `Snapshot()` returns the snapshot the server started from, read-only (raft's `ownSnapM` at `□`:
 raft's `MemoryStorage.Snapshot` spec hands out a fresh clone, owned, which nothing writes), of
 index `ai₀` and term `at₀`, with its metadata and conf-state pointers allocated (`pm`, `cs`:

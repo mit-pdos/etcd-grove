@@ -28,13 +28,11 @@ theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro trace mw s γ ilog pend puts deletes putSize key endk k e crev Z
-  wp_start as ⟨Htx, #Hkey, #Hend, %Hb⟩
-  have hpm := mvcc.putMax_le γ
+  wp_start as ⟨Htx, #Hkey, #Hend⟩
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   (try wp_auto)
   wp_apply (hDel trace tw s γ ilog pend key endk k e crev Z) $$ [$Htw $Hkey $Hend] as %n %rev ⟨Htw, %Hnr⟩
-  · ipureintro; exact Hb
   (try wp_auto)
   iapply HΦ
   isplitl [Hmw Htw Htrc]

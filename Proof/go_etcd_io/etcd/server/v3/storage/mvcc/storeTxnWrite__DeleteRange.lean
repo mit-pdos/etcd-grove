@@ -28,11 +28,9 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (hdel : mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key endk k e crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
-  have hpm := mvcc.putMax_le γ
+  wp_start as ⟨Htw, #Hkey, #Hend⟩
   (try wp_auto)
   wp_apply (hdel trace tw s γ ilog pend key endk k e crev Z) $$ [$Htw $Hkey $Hend] as Htw
-  · ipureintro; exact Hb
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -52,6 +50,14 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     · intro h
       rw [h] at h1
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
+  -- the changes' slice bounds the pending changes (until D19c, the premise did)
+  have hchlen : pend.length + ks.length < 2 ^ 63 ∧ (pend.length + ks.length : Int) = sint.Z chs.len := by
+    have h1 := Hlen.1
+    have h2 : sint.Z chs.len < 2 ^ 63 := by word
+    have h3 : ps.length = (pend ++ ks.map mvcc.Change.del).length := Hps
+    simp only [List.length_append, List.length_map] at h3
+    have h4 : ((sint.nat chs.len : Nat) : Int) = sint.Z chs.len := Int.toNat_of_nonneg Hlen.2
+    omega
   have hkslt : ks.length < 2 ^ 63 := by omega
   have hksZ : sint.Z (W64 (ks.length : Int) : w64) = ks.length := by
     unfold sint.Z W64

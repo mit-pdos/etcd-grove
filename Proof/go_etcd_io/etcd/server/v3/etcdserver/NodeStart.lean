@@ -37,10 +37,10 @@ its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok
   closure; `StartNode` calls it once -- B's spec could drop the `□`), `bootMarshal` (protobuf's
   determinism at the peers' conf changes), the names-only contracts (`rnLoggerZapOk`,
   `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnRaftStatusOk`, `rnNewStorageOk`, `rnClusterOk`,
-  `isRNTransport`), and -- not in this theorem, a premise of the construction as before --
-  `rnSnapOnce ms 0 0` (`isServerBuilt`'s `Hsnap`: the server holds no `ownMemoryStorage` once
-  raft owns the storage, and raft's `MemoryStorage.Snapshot.spec` does not state the clone's
-  pointers non-nil, which `run` needs).
+  `isRNTransport`). Since D17d (2026-10-18) the closure borrows the storage's application
+  snapshot token (`memSnapTok`, `bootOk`'s), which `StartNode` gives back (its `R`) and this
+  theorem returns: `NewServer` reads `run`'s snapshot contract `rnSnapOnce ms 0 0` off it
+  (`rnSnapOnce_of_tok`, `InvBoot.lean`; until then a residual premise of the construction).
 -/
 module
 
@@ -217,13 +217,17 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
         -- trust boundary: `StartNode.spec`'s `InitialState` closure (see the file header)
         "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
+           memSnapTok bv.storage' γs memStorEmpty -∗
            (∀ (hp cs : Loc) (al : Bool),
             ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
+            memSnapTok bv.storage' γs memStorEmpty -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
             csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
              (Val #())) {{ Φ }}) ∗
+        -- (D17d, 2026-10-18) the application's snapshot token, which `InitialState` borrows
+        "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
         -- the peers, their contexts; trust boundary: `Marshal` at their conf changes
         "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
         "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
@@ -267,7 +271,9 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
             -- transport's field (unit N4, 2026-10-17: `NewServer`'s `srvReqBuilt`)
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
-          b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv }}
+          b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
+          -- (D17d) the snapshot token back
+          memSnapTok bv.storage' γs memStorEmpty }}
 
 set_option maxHeartbeats 0 in
 /-- **The composition** (see `NodeStartSpec` and the file header): from
@@ -291,9 +297,10 @@ theorem raftNode_of_StartNode (reg : GName)
   iNamed Hpre
   wp_apply (wp_bnr E γ bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
     Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
-    Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost]
-    as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers⟩
-  · iframe #; iframe Hb Hc Hsto Hpeers Hghost
+    Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost Htok]
+    as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers,
+      Htok⟩
+  · iframe #; iframe Hb Hc Hsto Hpeers Hghost Htok
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwreg⟩ := Hnames
   subst Hwreg
   iunfold rnBuilt at Hbuilt
@@ -331,7 +338,7 @@ theorem raftNode_of_StartNode (reg : GName)
     refine ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
       by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hwid, Hwpre, Hwms, Hwγs, rfl,
       Hrvlg, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
-  iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers
+  iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers Htok
   -- the installer
   iintro %a %s %tr #Henv' #Hcommi Ha #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []

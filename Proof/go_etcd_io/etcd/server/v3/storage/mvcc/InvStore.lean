@@ -2062,7 +2062,10 @@ positive `CompactionBatchLimit`: the job's loop needs it to end,
 channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The fields `restore`
 and `Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
 (`muInv`, `revMuInv`); and the certificate of the initial log `[[], []]` (`NewStore`'s:
-revision 1, `currentRev = 1`), so every committed log extends it. -/
+revision 1, `currentRev = 1`), so every committed log extends it. The time receipts' bound is
+at most `2 ^ 48` (D19c, 2026-10-18: `NewStore`'s premise): a write transaction's index writer
+holds a receipt per change, so its pending changes stay below the backend's bound on a session's
+puts (`putMax`) without a premise on the transaction's size. -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (Dep : IProp GF)
       (scfg : StoreConfig) (ssched : GoInterface) (sstop shs : Loc),
@@ -2088,7 +2091,8 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
-    "#Hc0" ∷ idxCert γ.idx [[], []])
+    "#Hc0" ∷ idxCert γ.idx [[], []] ∗
+    "%Hrb" ∷ ⌜receiptBound GF ≤ 2 ^ 48⌝)
 
 /-- **The store's backend contract** (what `NewStore` takes, for every store of the instance):
 `isKeyBackendG` at the store's view, tokens and put condition of its instance, its deletable keys
@@ -2609,6 +2613,29 @@ theorem storeTxnWriteIs_writeRev (tw s : Loc) (γ : StoreNames) (ilog : Log) (pe
       (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
   omega
 
+/-- **A write transaction's changes are fewer than the receipts' bound** (D19c, 2026-10-18):
+its index writer holds a receipt per change (`idxWriter_lt`), and the store's bound is
+`2 ^ 48` (`isStore`). -/
+theorem storeTxnWriteIs_small' (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (crev : Int) (Z : IProp GF) :
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
+      ⌜logCh ilog + pend.length < receiptBound GF ∧ receiptBound GF ≤ 2 ^ 48⌝ := by
+  iintro H
+  iunfold storeTxnWriteIs at H
+  iNamed H
+  iunfold isStore at Hs
+  iNamedSuffix Hs "S"
+  icases idxWriter_lt γ.idx ilog pend $$ Hw with ⟨%h, -⟩
+  ipureintro; exact ⟨h, HrbS⟩
+
+/-- `storeTxnWriteIs_small'`, keeping the transaction. -/
+theorem storeTxnWriteIs_small (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (crev : Int) (Z : IProp GF) :
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
+      ⌜logCh ilog + pend.length < receiptBound GF ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+        storeTxnWriteIs tw s γ trace ilog pend crev Z :=
+  (persistent_entails_left (storeTxnWriteIs_small' tw s γ ilog pend crev Z)).trans sep_comm.1
+
 /-- The write transaction as its core, its `changes` and their key-values. -/
 theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
@@ -2734,6 +2761,19 @@ theorem isTxnWrite_logQ (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log
   isplitl [Hh Hla Hrc]
   · iunfold idxWriter; iframe Hh Hla Hrc; iframe #; ipureintro; exact Hwf
   ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
+
+/-- **A write transaction's changes are fewer than the receipts' bound** (D19c), keeping it. -/
+theorem isTxnWrite_small (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) (Z : IProp GF) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
+      ⌜logCh ilog + pend.length < receiptBound GF ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z := by
+  refine (persistent_entails_left ?_).trans sep_comm.1
+  iintro Ht
+  iunfold isTxnWrite at Ht
+  icases Ht with ⟨%tw, %ranges, Ht⟩
+  iNamed Ht
+  iapply storeTxnWriteIs_small' $$ Htw
 
 /-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/
 def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)

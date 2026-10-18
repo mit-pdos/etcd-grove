@@ -25,9 +25,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- **`DeleteRange(ctx, lg, kv, dr)`**: the delete request `o` as one write transaction, opened
 with a revision token, at a committed log `ilog` the caller's other tokens and certificate pin
-(`Pinned`; at the sole writer, its own log), with fewer than `mvcc.putMax γ` keys in the
-request's range there (`2^56` for the real backend; 2026-10-13, unit 6: it was the whole state
-below `2^63`), spending a write token (`mvcc.storeWT γ`). The keys of the
+(`Pinned`; at the sole writer, its own log), spending a write token (until D19c, 2026-10-18,
+with fewer than `mvcc.putMax γ` keys in the request's range there, which the store's receipts now
+give: `mvcc.storeTxnWriteIs_small`) (`mvcc.storeWT γ`). The keys of the
 request's range at `ilog`'s state deleted (`delChanges`; the client's delete there:
 `stateAfter_commit_delete`): the committed log `commitLog` (no revision, the token back, if
 nothing was deleted), the response with their number, the revision (`writeRev`: the new one, or
@@ -50,8 +50,6 @@ abbrev txn.DeleteRange.spec : Prop :=
       txn.wlogOwn s γ Lw ∗ ⌜γ.watchQ = true → m + 1 = txn.soleBudget Lw ∧ Lw.length + 4 ≤ 2 ^ 63⌝ ∗
       txn.deleteRangeRequestIs dr o ∗
       mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog →
-        (rangeIn (mvcc.stateAfter ilog) o).length < mvcc.putMax γ⌝ ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
         mvcc.certOkNext γ ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}

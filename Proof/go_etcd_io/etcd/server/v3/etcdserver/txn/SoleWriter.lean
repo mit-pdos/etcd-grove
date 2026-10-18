@@ -58,6 +58,14 @@ theorem commitLog_length (ilog : Log) (pend : List Change) :
 /-- The tokens a sole writer at `log` holds: every token not spent on a committed revision. -/
 def soleBudget (log : Log) : Nat := 2 ^ 63 - 3 - log.length
 
+/-- **The sole writer's log's length** (D19c's move, 2026-10-18): at least `NewStore`'s two
+revisions, and a revision per non-empty change set past those two (a commit makes a revision
+only of a non-empty pending one, `commitLog`), so the log's length is bounded by its changes,
+which the time receipts bound (`mvcc.idxCert`). -/
+def soleLog (log : Log) : Prop := 2 ≤ log.length ∧ log.length ≤ logCh log + 2
+
+theorem soleLog_boot : soleLog [[], []] := by unfold soleLog logCh; simp
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -65,23 +73,57 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+theorem soleLog_commit (log : Log) (pend : List Change) (h : soleLog log) :
+    soleLog (commitLog log pend) := by
+  unfold commitLog
+  split
+  · exact h
+  · rename_i hp
+    have : 0 < pend.length := List.length_pos_iff.2 hp
+    unfold soleLog at h ⊢
+    rw [logCh_snoc]; simp only [List.length_append, List.length_singleton]; omega
+
 /-- **The sole writer** at the committed log `log`: its certificate and every revision token not
 spent (`soleBudget log`), and the log at least `NewStore`'s two revisions (`[[], []]`: so a
 response's revision is at least `1`, what the gRPC layer's `header.fill` needs not to overwrite
-it; 2026-10-12, the request path's unit 3a). Not persistent. -/
+it; 2026-10-12, the request path's unit 3a); since D19c's move (2026-10-18) a revision per
+non-empty change set past those (`soleLog`) and the time receipts' bound at most `2 ^ 48` (the
+store's, `NewStore`'s premise), so that the log the apply thread meets is small
+(`soleWriter_small`). Not persistent. -/
 def soleWriter (γ : mvcc.StoreNames) (log : Log) : IProp GF :=
-  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log) ∗ ⌜2 ≤ log.length⌝)
+  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log) ∗
+    ⌜soleLog log ∧ receiptBound GF ≤ 2 ^ 48⌝)
 
 /-- The sole writer with a write transaction open: one token fewer (the transaction's). -/
 def soleWriterOpen (γ : mvcc.StoreNames) (log : Log) : IProp GF :=
-  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log - 1) ∗ ⌜2 ≤ log.length⌝)
+  iprop(idxCert γ.idx log ∗ ownToks γ.revs (soleBudget log - 1) ∗
+    ⌜soleLog log ∧ receiptBound GF ≤ 2 ^ 48⌝)
 
 /-- The sole writer's log has `NewStore`'s two revisions. -/
 theorem soleWriter_len (γ : mvcc.StoreNames) (log : Log) :
     soleWriter (GF := GF) γ log ⊢ ⌜2 ≤ log.length⌝ := by
   unfold soleWriter
   iintro ⟨-, -, %h⟩
-  ipureintro; exact h
+  ipureintro; exact h.1.1
+
+/-- **The log the sole writer is at is small** (D19c's move, 2026-10-18): a revision per change
+past its first two, fewer than `2 ^ 48` changes (its certificate's receipts, `idxCert`). -/
+theorem soleWriter_small' (γ : mvcc.StoreNames) (log : Log) :
+    soleWriter (GF := GF) γ log ⊢ ⌜log.length ≤ logCh log + 2 ∧ logCh log < 2 ^ 48⌝ := by
+  unfold soleWriter
+  iintro ⟨#Hc, -, %h⟩
+  ihave #hc := idxCert_sealed γ.idx log $$ Hc
+  ihave %hc' := idxSealed_small γ.idx log $$ hc
+  ipureintro
+  have h1 := h.1.2
+  have h2 := h.2
+  omega
+
+/-- `soleWriter_small'`, keeping the sole writer. -/
+theorem soleWriter_small (γ : mvcc.StoreNames) (log : Log) :
+    soleWriter (GF := GF) γ log ⊢
+      ⌜log.length ≤ logCh log + 2 ∧ logCh log < 2 ^ 48⌝ ∗ soleWriter γ log :=
+  persistent_entails_right (soleWriter_small' γ log)
 
 /-- The sole writer's certificate (persistent). -/
 theorem soleWriter_cert (γ : mvcc.StoreNames) (log : Log) :
@@ -105,17 +147,18 @@ theorem soleWriter_len' (γ : mvcc.StoreNames) (log : Log) :
   iintro ⟨Hc, Ht, %h⟩
   iframe Hc Ht
   isplitl
-  all_goals (ipureintro; exact h)
+  · ipureintro; exact h.1.1
+  · ipureintro; exact h
 
 /-- **`NewStore` makes the sole writer** of its initial log `[[], []]`: its `2 ^ 63 - 5` tokens
 are the budget, with the certificate of `[[], []]` (both in `NewStore`'s post, in this order). -/
-theorem soleWriter_of_NewStore (γ : mvcc.StoreNames) :
+theorem soleWriter_of_NewStore (γ : mvcc.StoreNames) (hrb : receiptBound GF ≤ 2 ^ 48) :
     ownToks (GF := GF) γ.revs (2 ^ 63 - 5) ∗ idxCert γ.idx [[], []] ⊢ soleWriter γ [[], []] := by
   have h : soleBudget [[], []] = 2 ^ 63 - 5 := by unfold soleBudget; simp
   unfold soleWriter; rw [h]
   iintro ⟨Ht, Hc⟩
   iframe Ht Hc
-  ipureintro; simp
+  ipureintro; exact ⟨soleLog_boot, hrb⟩
 
 /-- **Opening a write transaction**: one token for `store.Write`, while the log leaves room for
 one more revision (`log.length + 4 ≤ 2 ^ 63`). -/
@@ -158,7 +201,7 @@ theorem soleWriter_close (γ : mvcc.StoreNames) (log : Log) (pend : List Change)
     simp only [hp, ↓reduceIte, hc, hb]
     iintro ⟨⟨-, Hn, %hl⟩, #Hc, -⟩
     iframe Hc Hn
-    ipureintro; simp only [List.length_append, List.length_singleton]; omega
+    ipureintro; rw [← hc]; exact ⟨soleLog_commit log pend hl.1, hl.2⟩
 
 /-- `soleWriter_close` from what `metricsTxnWrite.End` returns (`txnEndPost`). -/
 theorem soleWriter_close_end (γ : mvcc.StoreNames) (log : Log) (pend : List Change)

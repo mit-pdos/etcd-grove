@@ -285,15 +285,14 @@ theorem put_soleWriter_floor (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoIn
       itrivial
     ipureintro; exact stateAfter_put ilog o
 
-/-- **`DeleteRange` at the sole writer of `log`** (fewer than `mvcc.putMax γ` keys in the range): the client's delete
+/-- **`DeleteRange` at the sole writer of `log`**: the client's delete
 on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
 committed log; or, with `PrevKv`, the range read's context error, the sole writer back. Under the
 critical-section contract: `Post`. -/
 theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
     (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool)
-    (hlen : log.length + 4 ≤ 2 ^ 63)
-    (hst : (rangeIn (mvcc.stateAfter log) o).length < mvcc.putMax γ) :
+    (hlen : log.length + 4 ≤ 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ kvWriter s γ log ∗ mvcc.storeWT γ ∗
         deleteRangeRequestIs dr o ∗
@@ -328,11 +327,6 @@ theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)
   · iframe # ∗
     isplitr
     · ipureintro; exact fun _ => ⟨hsb, hlen⟩
-    isplitr
-    · ipureintro
-      intro ilog hp
-      rw [pinned_sole log ilog hlen hp]
-      exact hst
     imodintro
     iintro %ilog %Hpin
     rw [pinned_sole log ilog hlen Hpin]
@@ -377,7 +371,7 @@ theorem deleteRange_soleWriter_floor (hDel : DeleteRange.spec (GF := GF) (hG := 
     (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
     (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool)
     (hlen : log.length + 4 ≤ 2 ^ 63)
-    (hst : (rangeIn (mvcc.stateAfter log) o).length < mvcc.putMax γ) (F : mvcc.Log) :
+    (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ kvWriter s γ log ∗ mvcc.storeWT γ ∗
         deleteRangeRequestIs dr o ∗
@@ -413,11 +407,6 @@ theorem deleteRange_soleWriter_floor (hDel : DeleteRange.spec (GF := GF) (hG := 
   · iframe # ∗
     isplitr
     · ipureintro; exact fun _ => ⟨hsb, hlen⟩
-    isplitr
-    · ipureintro
-      intro ilog hp
-      rw [(pinned_floor log F L0 ilog hlen HL0.1 HL0.2 hp).1]
-      exact hst
     imodintro
     iintro %ilog %Hpin
     rw [(pinned_floor log F L0 ilog hlen HL0.1 HL0.2 Hpin).1]

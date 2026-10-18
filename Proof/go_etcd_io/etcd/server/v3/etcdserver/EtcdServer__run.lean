@@ -60,7 +60,7 @@ batch's share of the write budget (`txn.storeWTs`, one token per entry of `ce`) 
 theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (TM : MetaCI → IProp GF) (ρ : ReqNames) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
-    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : entriesOk C.c₀ (A ++ ce) C.x₀)
+    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape (A ++ ce))
     (hw : C.γw = ρ.wait) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServer C.s C.γ C.ci TM C.E ρ C.γr ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk ρ C.E (A ++ ce) ∗
@@ -84,9 +84,9 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   have hun : unapplied ai ce = ce := unapplied_all ai ce habove
   have hcong : ∀ m ∈ ce, (uint.Z (ciEff C.γ st.k) < uint.Z m.index ↔ uint.Z C.c₀ < uint.Z m.index) :=
     fun m hm => ciJ_iff _ _ _ HJ m (habove m hm)
-  have hok' : entriesOk (ciEff C.γ st.k) (unapplied ai ce) x := by
+  have hok' : logShape (unapplied ai ce) := by
     rw [hun]
-    exact (entriesOk_congr _ _ ce hcong x).2 (entriesOk_append_run C.c₀ A ce C.x₀ x hok Hstep)
+    exact ((logShape_append A ce).1 hok).2
   have hb1 : uint.Z ai + 1 < 2 ^ 64 := by
     have h1 := hidx.1
     simp only [List.length_append] at h1

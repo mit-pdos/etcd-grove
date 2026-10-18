@@ -279,12 +279,6 @@ theorem txn.executeTxn.wp_proof
     have hokn := (opsOk_drop false s0 r _ ops (sint.nat n) op Hop_lookup).1
       (opsOk_drop' false s0 r st ops (sint.nat n) Hpre.1)
     have hmem : op ∈ ops := List.mem_of_getElem? Hop_lookup
-    have hbnd : pend.length + (srvOps s0 r st (ops.take (sint.nat n))).1.length +
-        (srvOp s0 r (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1) op).1.length
-          < mvcc.putMax γ := by
-      have h := Hpre.2.1
-      rw [srvOps_take_drop s0 r st ops (sint.nat n + 1), htake] at h
-      simp only [List.length_append] at h; omega
     have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     have hrl : sint.nat n < rps.length := by omega
     ihave %Hrsll := ownSlice_len _ _ _ $$ Hrsl
@@ -338,6 +332,8 @@ theorem txn.executeTxn.wp_proof
         icases txnWriteIs_kind _ s γ ro ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
         obtain ⟨hkis, hkok, hkst, hne, hlen⟩ := Hk
         have hget : GetOk stn o := hokn.1
+        -- the log read is small: the sort's premise (D19c: the receipts, or the caller's)
+        icases txnViewIs_small _ s γ kind ro ilog _ hkis Hpre.2.1 $$ Hv with ⟨%Hsmall, Hv⟩
         have hkst' : kindState kind = stn := by
           rw [hkst, pendState_append, hr, hst, hstn]
         have hRR : mvcc.rangeRev kind.readRev o.base.rev = kind.readRev := by
@@ -347,8 +343,8 @@ theorem txn.executeTxn.wp_proof
           $$ [$Hv $Hctx $Hct $Hnd $Hrr] as %resp %err ⟨Hv, #Hres, -, %Hnd'⟩
         · ipureintro
           refine ⟨hget.2.1, ?_⟩
-          rw [hRR]; unfold kindState at hkst'; rw [hkst']; exact hget.2.2.2
-        icases txn.rangeResult_txn_or_err_et resp err _ _ o hget.1 hkok.2.1 Hset hget.2.2.1 $$ Hres
+          rw [hRR]; exact sortSmall_of_sortOk o kind.readLog hkok.1 _ (fun _ => Hsmall)
+        icases txn.rangeResult_txn_or_err_et resp err _ _ o hget.1 hkok.2.1 Hset hget.2.2 $$ Hres
           with (⟨%Herr, %kvs, %more, #Hresp, %Hkvs⟩ | #He)
         rotate_left
         · -- the context done: `fmt.Errorf`'s error, returned
@@ -525,7 +521,7 @@ theorem txn.executeTxn.wp_proof
       have hps : pendState ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) = stn := by
         rw [pendState_append, hr, hst, hstn]
       have hdel1 := srvOp_delete s0 r stn o
-      rw [hdel1] at hbnd htake
+      rw [hdel1] at htake
       have hdl : (delChanges stn o).length = (rangeIn stn o).length := by simp [delChanges]
       ihave Htx : mvcc.isTxnWrite mw s γ trace ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1)
           puts deletes putSize $$ [Htx]
@@ -533,10 +529,7 @@ theorem txn.executeTxn.wp_proof
       wp_auto
       wp_apply (hDel trace ctx cd true mw s γ ilog _ puts deletes putSize dr o _ _)
         $$ [$Hctx $Htx $Hwr $Hdr] as %dresp %derr Hout
-      · isplitl []
-        · simp only [↓reduceIte]; iexact Hnd
-        ipureintro
-        rw [hps]; simp only [List.length_append] at hbnd ⊢; omega
+      · simp only [↓reduceIte]; iexact Hnd
       rw [hps]
       icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp, -⟩ | ⟨%Hc, -⟩)
       rotate_left
@@ -618,7 +611,7 @@ theorem txn.executeTxn.wp_proof
       · iframe Hrsp0 Hps0 Hsk0
       have hokT := txn.opOk_txn_et s0 r stn cs ts es hokn.1
       have hsrv := srvOp_txn s0 r stn cs ts es
-      rw [hsrv] at hbnd htake
+      rw [hsrv] at htake
       wp_apply IH $$ %(pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) %rq'
           %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) %(slice.slice plv Bool (W64 1) plv.len)
           %(opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) %r0 [Htw Hrsk Hown]
@@ -633,7 +626,7 @@ theorem txn.executeTxn.wp_proof
           rw [txn.opLeases_txn_et]; exact hl
         ipureintro
         refine ⟨hokT, ?_, ?_, ?_⟩
-        · simp only [List.length_append, TxnModel.branch, txnOk] at hbnd ⊢; omega
+        · intro hro; cases hro
         · intro hro; cases hro
         · intro h; cases h
       icases Hres with (⟨%Hres, Htw, #Hresps, #Hknown', Hown⟩ | ⟨%Hc, -⟩)
@@ -704,7 +697,7 @@ theorem txn.executeTxn.wp_proof
           | exact Or.inr (Or.inl ⟨_, _, rfl⟩)
           | exact Or.inr (Or.inr ⟨_, _, rfl⟩)) $$ Hrq
         with ⟨%Hrqn, %w', %pr, %o, %Hop, #Hrqw, #Hw'pr, #Hpr⟩
-      rw [Hop] at Hop_lookup hokn htake hbnd hmem hdropo
+      rw [Hop] at Hop_lookup hokn htake hmem hdropo
       rw [Hop, txn.opSkel_put_et]
       iunfold txn.putSkel at Hp
       icases Hp with ⟨%Hpn, %w, #Hpw, Hw⟩
@@ -761,8 +754,7 @@ theorem txn.executeTxn.wp_proof
       · ipureintro; exact Htrace
       rw [hkst, hps]
       have hput1 := srvOp_putTxnOp s0 r stn o
-      rw [hput1] at hbnd htake
-      simp only [List.length_singleton] at hbnd
+      rw [hput1] at htake
       ihave Htx : mvcc.isTxnWrite mw s γ trace ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1)
           puts deletes putSize $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
@@ -777,8 +769,7 @@ theorem txn.executeTxn.wp_proof
       · rw [hps]
         iframe Hpv Hlo Hown
         ipureintro
-        refine ⟨txn.opOk_put_et s0 r stn o hokn.1, ?_⟩
-        simp only [List.length_append]; omega
+        exact txn.opOk_put_et s0 r stn o hokn.1
       rw [hps]
       ipersist Hw
       icases mvcc.isTxnWrite_trace_acc mw s γ trace _ _ _ _ _ $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩

@@ -37,8 +37,12 @@
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
 agreeing with `E₀`, auth disabled, and the client's `etcdKV` at the bootstrap log's model. The
-row of `isServerBuilt` no `NewServer` proof gives (`rnSnapOnce`) is the residual `srvBuildGap`
-(`isServerBuilt_of_gap`, `BuildGap.lean`).
+row of `isServerBuilt` the built part leaves out, `run`'s snapshot contract `rnSnapOnce`
+(`srvBuildGap`, `isServerBuilt_of_gap`, `BuildGap.lean`), is given too since D17d (2026-10-18):
+`bootOk` hands the fresh `MemoryStorage`'s application snapshot token, which raft's `StartNode`
+lends `InitialState` and gives back, and `MemoryStorage.Snapshot`'s application triple reads
+(`rnSnapOnce_of_tok`); until then it was the residual premise of whoever composed `NewServer`
+with `start`.
 -/
 module
 
@@ -129,6 +133,8 @@ abbrev NewServer.spec : Prop :=
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
             (W64 0) bootKV N ∗
+          -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
+          srvBuildGap srv (W64 0) (W64 0) ∗
           etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) }}
 
 end spec

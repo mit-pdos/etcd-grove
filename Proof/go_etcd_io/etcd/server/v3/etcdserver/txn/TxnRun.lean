@@ -317,10 +317,13 @@ def sortSmall (o : OpFull) (s : List EtcdKv) : Prop :=
     (srvPre o s).length ≤ 2 ^ 62 ∧ ∀ v ∈ srvPre o s, kvOk v
 
 /-- **A get in a transaction** reads the transaction's state (revision `0`, as the client's
-`txnOpOf`), with a valid sort target, a sort not cut by the limit, and a small sorted
-selection. -/
-def GetOk (s : List EtcdKv) (o : OpFull) : Prop :=
-  o.base.rev = W64 0 ∧ validSortTarget o ∧ ¬ cutEarly o ∧ sortSmall o s
+`txnOpOf`), with a valid sort target and a sort not cut by the limit. (Its sorted selection is
+small at the state it reads, `sortSmall`: until D19c, 2026-10-18, a premise here; since then
+`executeTxn` derives it from the write transaction's receipts, `mvcc.isTxnWrite_small`, or a read
+transaction's small log, `TxnPre`'s `LogSmall`.) The state `s` is unused, kept for the shape of
+`OpOk`. -/
+def GetOk (_s : List EtcdKv) (o : OpFull) : Prop :=
+  o.base.rev = W64 0 ∧ validSortTarget o ∧ ¬ cutEarly o
 
 /-- A put that needs the previous key-value finds it at `s`, or (`weak`) did not at `s0`. -/
 def IgnOk (weak : Bool) (s0 s : List EtcdKv) (k : GoString) : Prop :=
@@ -446,13 +449,17 @@ theorem putLeaseOf_mem (s0 : List EtcdKv) (o : OpFull) (s : List EtcdKv) :
 
 /-- **`Txn`'s premises** at the sole writer's log `log`: room for one more revision, the run's
 premises (weak: an `IgnoreValue`/`IgnoreLease` put whose key is missing at `log` fails
-`checkTxn`), room for the run's changes (fewer than `2 ^ 56`: the real backend's bound on a
-session's puts, `mvcc.putMax`; 2026-10-13, unit 6: it was `2 ^ 63`). -/
+`checkTxn`), and `log` small (`LogSmall`: the sort's premise of a read-only transaction, which
+runs on a read transaction of `log`). Until D19c (2026-10-18) the third conjunct was room for the
+run's changes (fewer than `2 ^ 56`, the real backend's bound on a session's puts) and `OpsOk`'s
+gets had small sorted selections at the run's states: both are now derived during the run from
+the write transaction's time receipts (`mvcc.isTxnWrite_small`), so the premise depends on the
+log the transaction starts at only. -/
 def TxnPre (log : Log) (t : TxnModel) : Prop :=
   log.length + 4 ≤ 2 ^ 63 ∧
   OpsOk true (stateAfter log) (W64 (log.length : Int)) (stateAfter log)
     (t.branch (txnOk (stateAfter log) t)) ∧
-  (srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.1.length < 2 ^ 56
+  LogSmall log
 
 /-! ## Read-only and serializable requests -/
 

@@ -48,9 +48,15 @@ theorem RestartNode.wp_proof
       icases Hg with ⟨Hg, -⟩
       iapply ownRaftGhost_inv_md $$ Hg
   wp_auto
-  wp_apply wp_NewRawNode c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9
+  -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
+  wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
     P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24
-    $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨%s, Hfresh, %Herr⟩
+    $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s, Hfresh, %Herr⟩
+  · iintro %Φ %ss' Hs HK
+    iapply Hinit $$ Hs
+    iintro %hp %cs %al Hs Hhs Hcs
+    iapply HK $$ Hs [] Hhs Hcs
+    iempintro
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
   -- leaves it open, `rawNodeFresh`)

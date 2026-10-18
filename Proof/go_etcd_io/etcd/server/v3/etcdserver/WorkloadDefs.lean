@@ -7,11 +7,15 @@ package's per-request premise `apply.rqOk` at the KV log the entry meets, and `d
 server's construction took it for every committed log as a premise (`clusterWorkloadOk`, D13c).
 Since D19c it is split in two:
 
-* **the size clauses** (`rqSmall log rq`): room for a revision (`putOk`), fewer than `2 ^ 56`
-  keys in a delete's range, the sort's small log, a transaction's changes fewer than `2 ^ 56` and
-  its gets' sorted selections small (`txn.OpsSort`). They depend on how much the cluster has
-  written, not on the request's shape: the residual premise `clusterLogBound` (`Workload.lean`),
-  for D19b's time receipts to discharge;
+* **the size clauses** (`rqSmall log rq`): room for a revision (`putOk`), the sort's small log
+  (`LogSmall`). They depend on how much the cluster has written, not on the request's shape, and
+  hold at every log the apply thread meets (`rqSmall_of_small`: the sole writer's log has a
+  revision per non-empty change set past its first two, `txn.soleWriter`, and fewer changes than
+  the time receipts' bound, `mvcc.idxCert`). (Until D19c's move, 2026-10-18, they also had fewer
+  than `2 ^ 56` keys in a delete's range, a transaction's changes fewer than `2 ^ 56` and its
+  gets' sorted selections small, and were a premise of the server's construction on every
+  committed log, `clusterLogBound`; the store's write transaction now has them by its receipts
+  as the run produces its changes, `mvcc.storeTxnWriteIs_small`.)
 * **the request's shape** (`rqShape rq`): the request meets its premise at every log at which the
   size clauses hold (for a transaction: every `IgnoreValue` put finds its key unless it was
   missing at the start, every get reads revision `0` with a valid sort target and no sort cut by
@@ -42,28 +46,9 @@ namespace txn
 open mvcc
 
 mutual
-/-- The sort clause of one operation of a run (the size part of `OpOk`): a get's sorted
-selection small at the state it reads. -/
-def OpSort (s0 : List EtcdKv) (r : w64) : List EtcdKv → TxnOp → Prop
-  | s, .get o => sortSmall o s
-  | _, .put _ _ _ => True
-  | _, .delete _ => True
-  | _, .putKeep _ _ => True
-  | _, .putIgnVal _ _ => True
-  | s, .txn cs ts es =>
-    match cs.all (cmpHolds s0) with
-    | true => OpsSort s0 r s ts
-    | false => OpsSort s0 r s es
-
-/-- The sort clauses of a run. -/
-def OpsSort (s0 : List EtcdKv) (r : w64) : List EtcdKv → List TxnOp → Prop
-  | _, [] => True
-  | s, op :: ops => OpSort s0 r s op ∧ OpsSort s0 r (applyChanges r s (srvOp s0 r s op).1) ops
-end
-
-mutual
-/-- The rest of `OpOk` (the shape part): a get at revision `0`, with a valid sort target, its
-sort not cut by the limit; a put that needs the previous key-value finds it. -/
+/-- `OpOk` by the operation's shape: a get at revision `0`, with a valid sort target, its sort
+not cut by the limit; a put that needs the previous key-value finds it. (Until D19c's move,
+2026-10-18, `OpOk` also had the gets' sorted selections small, `OpSort`, the size part.) -/
 def OpIG (weak : Bool) (s0 : List EtcdKv) (r : w64) : List EtcdKv → TxnOp → Prop
   | _, .get o => o.base.rev = W64 0 ∧ validSortTarget o ∧ ¬ cutEarly o
   | _, .put _ _ _ => True
@@ -83,35 +68,33 @@ end
 
 mutual
 theorem OpOk_of (weak : Bool) (s0 : List EtcdKv) (r : w64) :
-    ∀ (s : List EtcdKv) (op : TxnOp), OpIG weak s0 r s op → OpSort s0 r s op → OpOk weak s0 r s op
-  | s, .get o, h1, h2 => ⟨h1.1, h1.2.1, h1.2.2, h2⟩
-  | _, .put _ _ _, _, _ => trivial
-  | _, .delete _, _, _ => trivial
-  | _, .putKeep _ _, h1, _ => h1
-  | _, .putIgnVal _ _, h1, _ => h1
-  | s, .txn cs ts es, h1, h2 => by
-    simp only [OpIG, OpSort, OpOk] at h1 h2 ⊢
-    split at h1 <;> split at h2 <;> split <;> simp_all <;>
+    ∀ (s : List EtcdKv) (op : TxnOp), OpIG weak s0 r s op → OpOk weak s0 r s op
+  | _, .get _, h1 => h1
+  | _, .put _ _ _, _ => trivial
+  | _, .delete _, _ => trivial
+  | _, .putKeep _ _, h1 => h1
+  | _, .putIgnVal _ _, h1 => h1
+  | s, .txn cs ts es, h1 => by
+    simp only [OpIG, OpOk] at h1 ⊢
+    split at h1 <;> split <;> simp_all <;>
       first
-        | exact OpsOk_of weak s0 r s ts h1 h2
-        | exact OpsOk_of weak s0 r s es h1 h2
+        | exact OpsOk_of weak s0 r s ts h1
+        | exact OpsOk_of weak s0 r s es h1
         | skip
 
 theorem OpsOk_of (weak : Bool) (s0 : List EtcdKv) (r : w64) :
-    ∀ (s : List EtcdKv) (ops : List TxnOp), OpsIG weak s0 r s ops → OpsSort s0 r s ops →
-      OpsOk weak s0 r s ops
-  | _, [], _, _ => trivial
-  | s, op :: ops, h1, h2 =>
-    ⟨OpOk_of weak s0 r s op h1.1 h2.1, OpsOk_of weak s0 r _ ops h1.2 h2.2⟩
+    ∀ (s : List EtcdKv) (ops : List TxnOp), OpsIG weak s0 r s ops → OpsOk weak s0 r s ops
+  | _, [], _ => trivial
+  | s, op :: ops, h1 =>
+    ⟨OpOk_of weak s0 r s op h1.1, OpsOk_of weak s0 r _ ops h1.2⟩
 end
 
 /-- **A transaction's size clauses** at the log `log` (see the file header): room for a
-revision, its changes fewer than `2 ^ 56`, its gets' sorted selections small. -/
-def txnSmall (log : Log) (t : TxnModel) : Prop :=
-  log.length + 4 ≤ 2 ^ 63 ∧
-  OpsSort (stateAfter log) (W64 (log.length : Int)) (stateAfter log)
-    (t.branch (txnOk (stateAfter log) t)) ∧
-  (srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.1.length < 2 ^ 56
+revision, and `log` small (`LogSmall`). Until D19c's move (2026-10-18) also its changes fewer
+than `2 ^ 56` and its gets' sorted selections small at the run's states, which the run now
+gets from the write transaction's receipts. -/
+def txnSmall (log : Log) (_t : TxnModel) : Prop :=
+  log.length + 4 ≤ 2 ^ 63 ∧ LogSmall log
 
 /-- **A transaction's shape**: the rest of its premises at every (sorted) start state and
 revision. -/
@@ -121,7 +104,7 @@ def txnShape (t : TxnModel) : Prop :=
 
 theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (hm : txnSmall log t) :
     TxnPre log t :=
-  ⟨hm.1, OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log)) hm.2.1, hm.2.2⟩
+  ⟨hm.1, OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log)), hm.2⟩
 
 /-! ### A transaction's shape from its run's keys -/
 
@@ -253,6 +236,23 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63 ∧ txn.sortOk o log
   | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
   | _ => True
+
+/-- **The size clauses hold at a small log** (D19c's move, 2026-10-18): a log with a revision
+per change past its first two (`txn.soleWriter`) and fewer than `2 ^ 48` changes (the time
+receipts' bound, `mvcc.idxCert`, under the store's `receiptBound GF ≤ 2 ^ 48`). -/
+theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
+    (hl : log.length ≤ txn.logChanges log + 2) (hc : txn.logChanges log < 2 ^ 48) :
+    rqSmall log rq := by
+  have hls : txn.LogSmall log := by unfold txn.LogSmall; omega
+  have h4 : log.length + 4 ≤ 2 ^ 63 := by omega
+  unfold rqSmall
+  split
+  all_goals first
+    | exact trivial
+    | (unfold apply.putOk; omega)
+    | (intro o _; unfold apply.delOk; omega)
+    | (intro o _; exact ⟨by omega, fun _ => hls⟩)
+    | (intro t _; exact ⟨h4, hls⟩)
 
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its
 premise at every log at which the size clauses hold. -/

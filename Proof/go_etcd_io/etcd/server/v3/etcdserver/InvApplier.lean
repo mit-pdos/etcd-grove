@@ -18,8 +18,9 @@ server's `uberApply`).
 **What a batch does to the KV** (pure): one normal entry by `entryStep` (no data: nothing;
 else its request decoded, `apply.applyStep`), a batch by `entriesStep c` (each normal entry
 applied with `v3` iff it is above the consistent index `c` the batch starts at; a conf change
-leaves the KV), under `entriesOk c` (every normal entry `entryOk` at every state a run of the
-batch reaches it in).
+leaves the KV), under the entries' shapes (`logShape`), each normal entry `entryOk` at the state
+it meets (`entryOk_of_shape`, at the apply thread's small log, `srvApplyKV_small`; until D19c's
+move, 2026-10-18, `entriesOk c`: `entryOk` at every state a run of the batch reaches it in).
 
 **The server** (`isServer s γ ci TM E`, persistent): the fields the apply thread reads, their
 values and contracts. `uberApply` is replaced by `applySnapshot` (not translated), on the
@@ -107,6 +108,16 @@ compaction nor empty (`dispatchOk`), and satisfying the txn package's premises a
 def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
     apply.rqOk x.log rq ∧ apply.dispatchOk x.chain.authOn rq
+
+/-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
+invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
+small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
+theorem entryOk_of_shape [FfiSyntax] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape m)
+    (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
+    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk x m := by
+  rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
+  · exact Or.inl hd
+  · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (rqSmall_of_small x.log rq hl hc), hsh.1 _⟩
 
 /-- **What `applyEntryNormal` does to the KV** with the normal entry `m` (`v3`: above `ci`): no
 data, nothing (`skipped`); else its decoded request through `apply.Apply` (`applyStep`). -/
@@ -212,14 +223,6 @@ def entriesStep (c : w64) : List EntryModel → apply.ApplyKV → apply.ApplyKV 
   | [], x, x' => x' = x
   | m :: ms, x, x' => ∃ x1, batchStep c m x x1 ∧ entriesStep c ms x1 x'
 
-/-- **The premise on a batch** from the KV state `x` (consistent index `c`): every normal entry
-is `entryOk` at every state a run of the batch's earlier entries (`batchStep`) reaches it in.
-Stated over every run, since `applyStep` is a relation (an auth or quota rejection, the alarm
-store's answers): the server cannot choose the run. -/
-def entriesOk (c : w64) : List EntryModel → apply.ApplyKV → Prop
-  | [], _ => True
-  | m :: ms, x => (m.typ = W32 0 → entryOk x m) ∧ ∀ x1, batchStep c m x x1 → entriesOk c ms x1
-
 /-- The entries of a batch above the applied index `ai` (those `applyEntries` hands to
 `apply`). -/
 def unapplied (ai : w64) (ms : List EntryModel) : List EntryModel :=
@@ -233,19 +236,6 @@ theorem entriesStep_append (c : w64) (l : List EntryModel) (m : EntryModel)
   | cons m' l ih =>
     obtain ⟨y, hy, hl⟩ := h1
     exact ⟨y, hy, ih y hl⟩
-
-theorem entriesOk_drop (c : w64) (ms : List EntryModel) (x : apply.ApplyKV) (j : Nat)
-    (m : EntryModel) (h : entriesOk c (ms.drop j) x) (hm : ms[j]? = some m) :
-    (m.typ = W32 0 → entryOk x m) ∧
-      ∀ x1, batchStep c m x x1 → entriesOk c (ms.drop (j + 1)) x1 := by
-  have hj : j < ms.length := by
-    rcases Nat.lt_or_ge j ms.length with h | h
-    · exact h
-    · rw [List.getElem?_eq_none h] at hm; cases hm
-  rw [List.drop_eq_getElem_cons hj] at h
-  have hm' : ms[j] = m := by rw [List.getElem?_eq_getElem hj] at hm; exact Option.some.inj hm
-  rw [hm'] at h
-  exact h
 
 theorem entriesStep_take_succ (c : w64) (ms : List EntryModel) (j : Nat) (m : EntryModel)
     (x xj x1 : apply.ApplyKV) (hm : ms[j]? = some m) (h1 : entriesStep c (ms.take j) x xj)
@@ -568,6 +558,30 @@ theorem srvApplyKV_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   isplitl [Hkv]
   · iexact Hkv
   iexact Hw
+
+/-- **The apply thread's KV log is small** (D19c's move, 2026-10-18): the sole writer's log has
+a revision per change past its first two and fewer than `2 ^ 48` changes (`txn.soleWriter_small`:
+the time receipts), so the size clauses of every request's premise hold at it
+(`rqSmall_of_small`). -/
+theorem srvApplyKV_small' (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV s E γw x ⊢
+      ⌜x.log.length ≤ mvcc.logCh x.log + 2 ∧ mvcc.logCh x.log < 2 ^ 48⌝ := by
+  iintro H
+  iunfold srvApplyKV at H
+  icases H with ⟨%ua, -, Hkv, -⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, -, -, Hk⟩
+  iunfold apply.kvOwn at Hk
+  icases Hk with ⟨-, Hsw, -⟩
+  iunfold txn.kvWriter at Hsw
+  icases Hsw with ⟨Hsw, -⟩
+  iapply txn.soleWriter_small' $$ Hsw
+
+/-- `srvApplyKV_small'`, keeping the applier state. -/
+theorem srvApplyKV_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV s E γw x ⊢
+      ⌜x.log.length ≤ mvcc.logCh x.log + 2 ∧ mvcc.logCh x.log < 2 ^ 48⌝ ∗ srvApplyKV s E γw x :=
+  persistent_entails_right (srvApplyKV_small' s E γw x)
 
 /-- Two claims of one id agree on the data and the ghost name. -/
 theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : GName) :

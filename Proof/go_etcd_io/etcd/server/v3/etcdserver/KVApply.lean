@@ -72,7 +72,8 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (x : apply.ApplyKV) (m : Ent
         · cases ho : rq.deleteRange with
           | some o =>
             have := hrq; simp only [apply.rqOk, hk] at this
-            have := (this o ho).1; omega
+            have : apply.delOk x.log o := this o ho
+            unfold apply.delOk at this; omega
           | none =>
             have hb : backendLog rq x.log = x.log := by
               unfold backendLog; rw [hk]; simp only [ho]

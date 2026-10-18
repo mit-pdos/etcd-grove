@@ -30,7 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 apply thread's relation `loopOk` (processed through the larger of `ci` and the applied
 index) is kept. **The KV** (the apply package's unit 3): the apply thread's applier state goes
 from `x` to `x'` by `entriesStep c (unapplied ai ms) x x'`, `c` the consistent index at the
-start (`ciEff γ st.k`), under `entriesOk c (unapplied ai ms) x`, and `batchWaitOk` of the
+start (`ciEff γ st.k`), under `logShape (unapplied ai ms)` (D19c's move; until then
+`entriesOk c (unapplied ai ms) x`), and `batchWaitOk` of the
 batch (unit 2 of the request path: the wait's premise, see `apply`). **The applied index** (the
 request path's unit 4b): the apply thread's half of the ghost applied index (`srvAppliedOwn γr`)
 at `ai`, with the log applied through `ai` the KV's (`appliedLogAt γr ai x.log`), goes to `ai'`, the
@@ -49,7 +50,7 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → entriesOk (ciEff γ st.k) (unapplied ai ms) x →
+  loopOk γ st ai → logShape (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗

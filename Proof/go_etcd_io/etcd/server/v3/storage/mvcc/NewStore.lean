@@ -87,7 +87,7 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0
+  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0 Hrb0
   wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -392,7 +392,7 @@ theorem mvcc.NewStore.wp_proof
     iexists (GoInterface.ok bi), (lease.lessorIface lp), ti, lg', P, Dep, cfg2, sc, stopc, hp
     simp only [named]
     iframe #
-    ipureintro; exact ⟨Hlgnn, Hcfg2⟩
+    ipureintro; exact ⟨Hlgnn, Hcfg2, Hrb0⟩
   ispecialize Hmus $$ Hmu1
   ihave Hok' : (ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) : IProp GF) $$ [Hok]
   · rw [hγok]; iexact Hok

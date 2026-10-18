@@ -181,7 +181,7 @@ theorem txn.Put.wp_proof
   icases Hu with ⟨Hown, Hrdo⟩
   wp_apply hp $$ [$Hctx' $Hct' $Htx $Hw $Hp $Hprev $Hlok2 $Hown]
     as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr, Hown⟩
-  · ipureintro; exact ⟨Hn, by have := mvcc.putMax_ge γ; omega⟩
+  · ipureintro; exact Hn
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
