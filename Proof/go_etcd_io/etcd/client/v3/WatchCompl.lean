@@ -12,6 +12,7 @@ no Rocq counterpart.
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.WatchContent
+public import Proof.go_etcd_io.etcd.client.v3.PrefixRange
 
 @[expose] public section
 
@@ -80,6 +81,32 @@ theorem splitBatches_block (x : w64) (B : List EvModel)
       show e'.rev = e.rev
       rw [hA e' (List.mem_cons_of_mem _ List.mem_cons_self), hA e List.mem_cons_self]
     simp only [h1, ↓reduceIte]
+
+/-! ## The prefix watch's range -/
+
+/-- **A prefix watch's registered range covers exactly the keys under its key** (a non-empty key,
+not all `0xff`: its range end is neither empty nor `[0]`). -/
+theorem covers_prefix (c : v3rpc.CreateReqM) (id : w64) (r : WatchRange)
+    (hc : v3rpc.createRangeOk c id r) (hkey : c.key ≠ []) (hend : c.rangeEnd = prefixRangeEnd c.key)
+    (hff : prefixRangeEnd c.key ≠ [W8 0]) : ∀ k, r.covers k = true ↔ c.key <+: k := by
+  intro k
+  rw [← concurrency.inRange_prefix c.key k hkey, ← hend]
+  obtain ⟨hk, -, -, he⟩ := hc
+  rw [if_neg hkey] at hk
+  have h0 : c.rangeEnd ≠ [] := by rw [hend]; exact concurrency.prefixRangeEnd_ne_nil _
+  have h1 : c.rangeEnd ≠ [W8 0] := by rw [hend]; exact hff
+  rw [if_neg h0, if_neg h1] at he
+  unfold WatchRange.covers inRange
+  rw [he, if_neg h0, if_neg h1, hk]
+  simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+    decide_eq_false_iff_not, adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt]
+  by_cases hk0 : k = go!""
+  · subst hk0
+    have hlt : go.GoStringLt [] c.key := by
+      obtain ⟨a, t, ht⟩ := List.exists_cons_of_ne_nil hkey
+      rw [ht]; exact concurrency.goStringLt_nil_cons a t
+    simp [hlt]
+  · simp [hk0, hkey, h0]
 
 /-! ## The second cursor's steps (pure) -/
 
