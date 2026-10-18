@@ -6929,10 +6929,19 @@ by the user's decision the fix is folded into the verified fork, as W-Q's. Stage
         (a context's cause may be any error): a premise about the caller's contexts.
       - `noRetryableStreamErr`, `srvNoDupKeys`: excluded behaviours, each with its issue
         (`etcd-watch-resume-closing-substream.md`, `etcd-txn-check-intervals-sibling.md`).
-      - `watchTokSupply` (`□ |==> watchTok`): an unbounded supply against mvcc's finite budget
-        (`2 ^ 63 - 3` tokens), so as a hypothesis of a closed theorem it is refutable (item 9's
-        point 3, D17a's kind); D19b's time receipts (a create costs a receipt) would replace it:
-        a decision for the user.
+      - ~~`watchTokSupply`~~ (done 2026-10-18, the user's choice: D19b's time receipts): the
+        unbounded supply `□ |==> watchTok` is gone. `mvcc.watchTokPool γ` (`InvWatchStore.lean`)
+        is an invariant of `a` receipts and the `n` tokens left, `receiptBound GF ≤ a + n + 1`
+        (D19b stage 2's `srvWTPool` shape: the budget the lock keeps is fractional, so the
+        receipts go in a pool beside it); `watchTokPool_take` gives a token for `⧗ 1`,
+        `watchTokPool_alloc` makes the pool from `New`'s `2 ^ 63 - 3` tokens under
+        `receiptBound GF ≤ 2 ^ 63 - 2` (which `NewServer`'s `≤ 2 ^ 48` implies). `run` takes the
+        receipt of `toPB`'s resolution for each create it sends (`wp_take_receipt`). The pool is
+        a conjunct of the server's `watchSrvOk` (so of `isWatchServer`), `watchConnFacts` and
+        `watchAddrFacts` list it in place of the supply, and `etcd_cache_served` reads it off
+        `isWatchServer` (`watchTokPool_of_server`). Its producer: whoever builds `watchSrvOk`
+        from `NewServer` (item 9's point 7) allocates the pool from the tokens `NewServer` now
+        drops (`Hwtoks`).
   - **K2e next (decided 2026-10-17: a second cursor)**: the client's channel element gains a
     completeness part with its own cursor (moved by progress responses); `rangeWatchRespOk` and
     its consumers stay. What the cache's progress case needs (`watchRespOk`: `EtcdStep c p pfx []`

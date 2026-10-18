@@ -223,6 +223,16 @@ theorem srvLogsSmall_of_read (R : v3rpc.WSrv GF) (s : Loc) (γr : ReadNames)
   rw [h]
   iexact Hsm
 
+/-- The watch server's watch-token pool (`watchSrvOk`; D19b's method, 2026-10-18). -/
+theorem watchTokPool_of_server (p : Loc) (R : v3rpc.WSrv GF) :
+    v3rpc.isWatchServer (GF := GF) p R ⊢ mvcc.watchTokPool R.γ := by
+  iintro #H
+  iunfold v3rpc.isWatchServer at H
+  icases H with ⟨-, -, -, -, -, -, -, -, Hok⟩
+  iunfold v3rpc.watchSrvOk at Hok
+  icases Hok with ⟨-, -, -, -, -, #Hp⟩
+  iexact Hp
+
 /-- The watch server's store names are its environment's (`watchSrvOk`). -/
 theorem watchSrvLink_of_server (p : Loc) (R : v3rpc.WSrv GF) :
     v3rpc.isWatchServer (GF := GF) p R ⊢ ⌜R.γ.st = R.E.γ⌝ := by

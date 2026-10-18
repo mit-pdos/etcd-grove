@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.ReceiptTactics
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__run
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__newWatchClient
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__nextResume
@@ -2029,18 +2030,13 @@ theorem watchGRPCStream.run.wp_proof
           have h1 : (S.l ++ [«$r0_ptr»]).length = 1 := by rw [hl]; rfl
           have := Hslen.1; rw [h1] at this; word
         simp only [hlen1, _root_.decide_true]
-        wp_auto
         iunfold wrRO at Hro
         icases Hro with ⟨-, -, -, -, -, -, -, -, #Rflts, -⟩
+        wp_take_receipt as Hrc
         wp_apply wp_toPB (wsF «$r0_ptr» go!"initReq") P0.key P0.ed P0.rev P0.pn P0.flt
           (DFrac.own (1 : Qp).half) P0.sr $$ [Hrev2] as %preq ⟨Hrev2, Hpsend⟩
         · iframe #; iframe
-        ihave #Htoks' := Htoks
-        iunfold watchTokSupply at Htoks'
-        ihave Hwt0 : iprop(|==> mvcc.watchTok V.R.γ) $$ []
-        · icases Htoks' with #H
-          iexact H
-        imod Hwt0 with Hwt
+        imod mvcc.watchTokPool_take V.R.γ $$ Htoks Hrc with Hwt
         wp_apply HSend $$ %S.L %preq %(.create (createOf P0.key P0.ed P0.rev P0.pn P0.sr)) [Hstok Hpsend Hwt]
           as %err ⟨-, Hres⟩
         · iframe
@@ -2862,16 +2858,11 @@ theorem watchGRPCStream.run.wp_proof
           icases HP2' with ⟨#Hro2, -⟩
           iunfold wrRO at Hro2
           icases Hro2 with ⟨-, #Rkey, #Rend, -, #Rpn, #Rfrag, -, #Rflt, #Rflts, #Rprev⟩
-          wp_auto
+          wp_take_receipt as Hrc
           wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed P2.rev P2.pn P2.flt
             (DFrac.own (1 : Qp).half) P2.sr $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
           · iframe #; iframe
-          ihave #Htoks' := Htoks
-          iunfold watchTokSupply at Htoks'
-          ihave Hwt0 : iprop(|==> mvcc.watchTok V.R.γ) $$ []
-          · icases Htoks' with #H
-            iexact H
-          imod Hwt0 with Hwt
+          imod mvcc.watchTokPool_take V.R.γ $$ Htoks Hrc with Hwt
           wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed P2.rev P2.pn P2.sr)) [Hstok Hpsend Hwt]
             as %err ⟨-, Hres'⟩
           · iframe

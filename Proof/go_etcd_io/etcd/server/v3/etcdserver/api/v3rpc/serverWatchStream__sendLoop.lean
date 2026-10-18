@@ -1695,7 +1695,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     #Hmug, %Hγoc, #Hsp, #Hcq, %Hγoc2⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.watchSrvOk at Hsrv'
-  icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars⟩
+  icases Hsrv' with ⟨#Hwsto, %Hγst, #Hrso, #Hauth, #Hvars, -⟩
   ihave #Hvars' := Hvars
   iunfold v3rpc.watchVars at Hvars'
   icases Hvars' with ⟨#Heof, #HeInv, #HeOld, #HeEmpty, #HeDenied, #HeEWR, #HeDup, #HmCompacted,

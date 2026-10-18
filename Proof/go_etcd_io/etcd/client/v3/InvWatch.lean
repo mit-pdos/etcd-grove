@@ -27,9 +27,9 @@ consumer's resources, `retcP`).
 **The premises about the server and the transport** (persistent; `watchSrvFacts`):
 * the stub, the connection and the registration of etcd's `Watch` stream (`isGrpcStream` with
   `watchUp`/`watchSpec`, what `etcd_watch_served*` give);
-* the watch-token supply (`watchTokSupply`: a token whenever one is needed; a create, and so
-  every `Watch`, spends one; a finite budget would need a bound on the creates, which the
-  client cannot give);
+* the watch-token pool (`mvcc.watchTokPool`, 2026-10-18: a create, and so every `Watch`, spends
+  a token, which `run` takes from the pool for a time receipt of its own Go step: D19b's
+  method, in place of the unbounded supply `watchTokSupply`);
 * `noRetryableStreamErr`: no stream error has the status code `Unavailable` or `Internal`, the
   codes `isHaltErr` lets `run` retry on. Under it `run` stops at the first receive error, and
   the reconnection (`newWatchClient` after `errc`, the resume queue, `waitCancelSubstreams`) is
@@ -231,14 +231,6 @@ theorem srvEventIdsAssigned_holds (R : v3rpc.WSrv GF) : ⊢ srvEventIdsAssigned 
   iapply He
   ipureintro; exact Or.inl Hs.2
 
-/-- **The watch-token supply** (a premise, persistent; the user's decision): a watch token of the
-store whenever one is needed (every create, so every `Watch`, spends one). -/
-def watchTokSupply (γ : mvcc.WsNames) : IProp GF := iprop(□ |==> mvcc.watchTok γ)
-
-instance watchTokSupply_persistent (γ : mvcc.WsNames) :
-    Persistent (watchTokSupply (GF := GF) γ) := by
-  unfold watchTokSupply; infer_instance
-
 /-- **The server's sealed logs are small** (persistent; the read path's `storeSmall`, unit
 W-M2b: over `mvcc.idxSealed`, the logs the watch events are of). -/
 def srvLogsSmall (R : v3rpc.WSrv GF) : IProp GF :=
@@ -308,7 +300,7 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
   iprop(grpcConn V.conn V.addr V.ics [] ∗
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
-    v3rpc.watchDescOk ∗ watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
+    v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗ noRetryableStreamErr ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 

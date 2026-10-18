@@ -38,7 +38,7 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
     (V : WEnv GF) : IProp GF :=
   iprop(isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
-    watchTokSupply V.R.γ ∗ noRetryableStreamErr ∗
+    mvcc.watchTokPool V.R.γ ∗ noRetryableStreamErr ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
