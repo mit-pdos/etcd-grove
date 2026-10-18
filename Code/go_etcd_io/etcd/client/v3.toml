@@ -240,6 +240,11 @@ translate = [
   "Client.dialSetupOpts",
   "authority",
   "Client.autoSync",
+  # the adequacy example (item 9, point 7): `(*Client).Put`/`Get`, promoted from the embedded
+  # `KV` interface (no body: the filter only lets the translator emit their `MethodUnfold`
+  # rules, `ptr_Put_unfold`/`ptr_Get_unfold`, the call through the `KV` field)
+  "Client.Put",
+  "Client.Get",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors", "google.golang.org/grpc/peer", "crypto/tls", "strings", "google.golang.org/grpc/keepalive", "google.golang.org/grpc/credentials/insecure", "go.etcd.io/etcd/client/v3/internal/endpoint", "go.etcd.io/etcd/client/pkg/v3/logutil", "io"]
 
