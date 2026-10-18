@@ -100,11 +100,6 @@ def rblKeys (W : WView) (B : BRec) : Prop := ∃ bnd, rblKeysB W B bnd none
 def rblAcyc (B : BRec) : Prop :=
   ∃ ht : Loc → Nat, ∀ l r, B.ns !! l = some r → r.nv.parent' ≠ null → ht l < ht r.nv.parent'
 
-/-- The pages of `P` have the heights `pht`: a leaf 0, a branch one more than its children. -/
-def pageHts (P : GMap Nat (List w8)) (pht : Nat → Nat) : Prop :=
-  ∀ id pg, P !! id = some pg → (pageFlags pg = leafPageFlag → pht id = 0) ∧
-    (pageFlags pg = branchPageFlag → ∀ i < pageCount pg, pht (branchPgid pg i) + 1 = pht id)
-
 /-- The bucket's nodes and the view's pages have heights (all the leaves of a tree are at one
 depth): a leaf 0, a branch one more than its children, nodes or pages. -/
 def rblHt (W : WView) (B : BRec) : Prop :=

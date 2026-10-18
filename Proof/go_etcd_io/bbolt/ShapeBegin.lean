@@ -137,7 +137,7 @@ theorem txShape_wtxInit (dbl txl ml ibl : Loc) (pm bm nm : GoMap) (w : Reader) (
   refine txShape_alloc (GF := GF) (wViewOf dbl w data ps lg dl fli)
     (wtxInitT (hG := hG) txl dbl ml ibl pm bm nm v0 v1) _ _ rfl ?_ rfl rfl ?_
   · simp [txInitOf, newBucketOf]
-  · intro _; exact hstrict.2.2
+  · intro _; exact hstrict.2.2.1
 
 /-- `ownWriteTx_init` with the transaction's shape. -/
 theorem ownWriteTx_init_s (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0 v1 : Meta)

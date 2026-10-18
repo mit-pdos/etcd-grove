@@ -56,10 +56,17 @@ def viewUnique (pages : GMap Nat (List w8)) : Prop :=
 def pagesStrict (pages : GMap Nat (List w8)) : Prop :=
   (∀ id pg, pages !! id = some pg → pageGood pg) ∧ viewUnique pages
 
+/-- The pages of `P` have the heights `pht`: a leaf 0, a branch one more than its children. -/
+def pageHts (P : GMap Nat (List w8)) (pht : Nat → Nat) : Prop :=
+  ∀ id pg, P !! id = some pg → (pageFlags pg = leafPageFlag → pht id = 0) ∧
+    (pageFlags pg = branchPageFlag → ∀ i < pageCount pg, pht (branchPgid pg i) + 1 = pht id)
+
 /-- The tree rooted at `root` (high-water mark `hwm`) in `pages`: well-formed and strict, its
-keys a B+tree's (`treeKeys`, `TreeKeys.lean`). -/
+keys a B+tree's (`treeKeys`, `TreeKeys.lean`), its leaves all at one depth (`pageHts`: `rebalance`
+merges siblings, which must be of one height). -/
 def treeStrict (pages : GMap Nat (List w8)) (hwm root : Nat) : Prop :=
-  treeWF pages hwm root ∧ pagesStrict pages ∧ treeKeys pages root none none
+  treeWF pages hwm root ∧ pagesStrict pages ∧ treeKeys pages root none none ∧
+    ∃ pht, pageHts pages pht
 
 end bbolt
 end EtcdGrove

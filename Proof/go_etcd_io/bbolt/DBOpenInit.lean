@@ -262,7 +262,7 @@ theorem fileWF_initBytes (ps : Nat) (h80 : 80 ≤ ps) (h32 : ps < 2 ^ 32) :
   have hn : flN (pageAt (initBytes ps) ps 2) = 0 := by rw [hfpg, oi_flN]
   rw [← hfpg] at hfl2 hl2
   simp only [hpg, hrt, hfl, hids, hoff, hn]
-  refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- the tree: the empty leaf
     refine treeWF.page 3 (initEmptyPage ps 3 (W16 2)) (by omega) ((ht _ _).2 ⟨rfl, rfl⟩) hid3 ?_
     refine pageTreeWF.leaf _ _ hfl3 ⟨Nat.le_refl _, ?_, ?_, ?_⟩ ?_
@@ -282,6 +282,10 @@ theorem fileWF_initBytes (ps : Nat) (h80 : 80 ≤ ps) (h32 : ps < 2 ^ 32) :
         exact ⟨fun i _ hi => by rw [hc3] at hi; omega, fun i hi => by rw [hc3] at hi; omega⟩
   · exact treeKeys.leaf 3 _ none none ((ht _ _).2 ⟨rfl, rfl⟩) hfl3
       (fun i hi => by rw [hc3] at hi; omega) (fun i hi => by rw [hc3] at hi; omega)
+  · -- heights: the one page is a leaf
+    refine ⟨fun _ => 0, fun id pg hid => ⟨fun _ => rfl, fun hb => ?_⟩⟩
+    obtain ⟨rfl, rfl⟩ := (ht _ _).1 hid
+    rw [hfl3] at hb; cases hb
   · intro id1 pg1 id2 pg2 h1 h2 hne
     obtain ⟨rfl, -⟩ := (ht _ _).1 h1
     obtain ⟨rfl, -⟩ := (ht _ _).1 h2
