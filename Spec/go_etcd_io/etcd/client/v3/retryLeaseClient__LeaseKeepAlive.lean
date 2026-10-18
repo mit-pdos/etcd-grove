@@ -24,14 +24,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `rlc.LeaseKeepAlive(ctx, opts...)` on a `*retryLeaseClient` over a stub on a connection to
 `addr` serving the keep-alive stream: `rlc.lc.LeaseKeepAlive(ctx, append(opts,
-withRepeatablePolicy())...)` (the options' slice full): a client end of a new stream, both tokens at
+withRepeatablePolicy())...)` (the options' capacity owned: the `append` may write it): a
+client end of a new stream, both tokens at
 `[]`, or a client error and a `nil` stream. -/
 abbrev retryLeaseClient.LeaseKeepAlive.spec : Prop :=
   ∀ (rlc conn : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
       isEtcdConn conn addr ∗ leaseKAStreamOk addr ∗ ctxOk ctx cd ∗
-      opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ streamCallOptsOk vs }}
+      opts ↦*□ vs ∗ ownSliceCap GoInterface opts (DFrac.own 1) ∗ streamCallOptsOk vs }}
     (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
         go!"LeaseKeepAlive")) (Val #(GoInterface.ok ctx))) (Val #opts))
   {{ (st err : GoInterface), RET (PairV #st #err);

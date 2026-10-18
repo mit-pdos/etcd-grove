@@ -207,6 +207,24 @@ end defs
 
 /-! ## Lemmas -/
 
+/-- The `i`th key of a list without duplicates is not among the keys before it. -/
+theorem nodup_getElem?_not_mem_take {α : Type _} (l : List α) (hnd : l.Nodup) (i : Nat) (x : α)
+    (h : l[i]? = some x) : x ∉ l.take i := by
+  intro hm
+  obtain ⟨j, hj, hjx⟩ := List.getElem_of_mem hm
+  rw [List.getElem_take] at hjx
+  have hjl : j < l.length := by
+    have := List.length_take_le' i l; simp at hj; omega
+  have hil : i < l.length := (List.getElem?_eq_some_iff.1 h).1
+  have hji : j < i := by simp at hj; omega
+  have := list_nodup_getElem?_inj l hnd i j x h (by rw [List.getElem?_eq_getElem hjl, hjx])
+  omega
+
+/-- The `i`th key is among the first `i + 1`. -/
+theorem getElem?_mem_take_succ {α : Type _} (l : List α) (i : Nat) (x : α)
+    (h : l[i]? = some x) : x ∈ l.take (i + 1) := by
+  rw [List.take_add_one, h]; simp
+
 /-- An element of a big separating conjunction over a list, and the way back. -/
 theorem bigSepL_get_acc {PROP : Type _} [BI PROP] {A : Type _} (Φ : A → PROP) (l : List A) (i : Nat)
     (h : i < l.length) :
@@ -223,6 +241,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **`rpctypes`' fact gives `ErrNoLeader`** (an `EtcdError`). -/
+theorem errNoLeader_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ⊢
+      ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrNoLeader ↦□
+          interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x := by
+  iintro #Hp
+  ihave Hi : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%x, #Hx⟩⟩
+  iexists x
+  iexact Hx
 
 /-- **`etcdserverpb`'s fact gives the Lease service's stream descriptor** (`leaseDescOk`,
 `etcdserverpbDescs`). -/

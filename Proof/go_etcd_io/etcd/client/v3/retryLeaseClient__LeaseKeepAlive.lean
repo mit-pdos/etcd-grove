@@ -33,7 +33,7 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
     (wp_stub : leaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG)) :
     retryLeaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro rlc conn addr ctx cd opts vs
-  wp_start as ⟨#Hrlc, #Hconn, #Hstr, #Hctx, #Hopts, %Hcap, #Hok⟩
+  wp_start as ⟨#Hrlc, #Hconn, #Hstr, #Hctx, #Hopts, Hocap, #Hok⟩
   iunfold retryLeaseAt at Hrlc
   icases Hrlc with ⟨%lc, #Hlc, #Hstub⟩
   wp_auto
@@ -44,8 +44,6 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hsl, -⟩
   wp_auto
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hopts
-  ihave Hocap := ownSliceCap_empty (GF := GF) (V := GoInterface) opts Hcap Hlen.2
   wp_apply wp_slice_append_persistent opts vs _ _ (DFrac.own 1) $$ [$Hopts $Hocap $Hsl]
     as %copts ⟨#Hco, -, -⟩
   ihave #Hro1 : callOptOk (GF := GF) (interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro) $$ []
