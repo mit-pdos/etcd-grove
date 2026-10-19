@@ -10139,3 +10139,12 @@ against the Go source:
   (`opaqueInitsOk`, `errorsNewVarsInit`, `<X>_init`; 157 baseline entries newly reached, none
   added) and six `sorry`s, all Perennial's own initializer proofs (`crypto/rand`, `errors`'
   `errorType`, `log`, `math/big`, `math`, `time`), as the register's closed theorem does.
+
+## Multi-member before D20 (b) (the user, 2026-10-19)
+
+With `putget_safe` closed (item 9), the next unit is the multi-member generalization of the
+server's proofs (D19p's "one-member restriction": `bootOk`'s `reTracked = some {id}`, a real
+`MsgSnap` path, learners and membership changes, peers in `transportEffectsOk`). D20 (b) (at-most-once
+firing of a write, through a one-shot delivery token per `MsgProp` in raft's environment model) comes
+after it and is built on the multi-member model, not on the one-member one. Who carries out (b) is
+still open.
