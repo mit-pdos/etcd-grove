@@ -1965,6 +1965,15 @@ theorem ownRaftPhysC_nowit (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : N
   isplitr; · ipureintro; exact Hnw
   iapply Hback $$ %tv %s.votes Hf Htrk
 
+/-- No tracked id is `0` (2026-10-19, witness support: `ownTrackerC_no0`). -/
+theorem ownRaftPhysC_no0 (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜W64 0 ∉ c.ids⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_no0 c tv _ $$ Htrk with ⟨%H0, Htrk⟩
+  isplitr; · ipureintro; exact H0
+  iapply Hback $$ %tv %s.votes Hf Htrk
+
 /-- `r.trk.Epoch` (2026-10-19, witness support): a witness-free epoch (`ownEpochNW`). -/
 theorem raft.wp_load_trk_EpochC (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}

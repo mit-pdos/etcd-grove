@@ -378,6 +378,23 @@ theorem raft.campaign.wp_proof
     · -- a peer: read the last entry, log, and send it a request
       rw [decide_eq_false Hyid]
       wp_auto
+      -- (2026-10-19, witness support) `if id == r.trk.Witnesses[0] || id == r.trk.Witnesses[1]`:
+      -- both are `0`, which no voter is
+      icases ownRaftPhysC_no0 c r id _ $$ Hphys with ⟨%H0, Hphys⟩
+      have Hy0 : y ≠ W64 0 := by
+        intro h
+        apply H0
+        have hyc : y ∈ cfg := by
+          rw [← GMap.elem_of_elements, ← Hkeys_perm.mem_iff, Hxs.mem_iff]
+          exact List.mem_of_getElem? Hy
+        rw [← h]
+        exact (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ (hV ▸ hyc)
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+      try rw [decide_eq_false Hy0]
+      try wp_auto
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      try rw [decide_eq_false Hy0]
+      try wp_auto
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
       ihave Hlog : ownRaftLog (campRoleState id s pre).log (campRoleState id s pre).logst $$ [Hlog]

@@ -554,6 +554,7 @@ theorem wp_stepLeader_transfer
   have Hfcfg : m.From' ∈ domSet s.progress := (GMap.elem_of_dom _ _).2 ⟨pr, Hlk⟩
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! m.From' = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
+  icases ownRaftPhysC_nowit c r id s $$ Hphys with ⟨%Hnwit, Hphys⟩
   icases ownRaftPhysC_pr c r id s m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
@@ -576,6 +577,9 @@ theorem wp_stepLeader_transfer
     iframe Hphys
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
+  wp_auto
+  -- (2026-10-19, witness support) `if pr.IsWitness`: no peer is the witness (`NoWitP`)
+  rw [Habs'.2.2.2.2.2.2.2.2.trans (Hnwit _ p Hpvs).1]
   wp_auto
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl %Habs
