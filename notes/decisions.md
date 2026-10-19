@@ -11369,3 +11369,390 @@ Following the design above, with D21i (A) and D21j. Where it departs from the de
   (`putAuOk_of_box`, `putReplied_mono`), so putget, putget3, `ServerKVPut` and `PutThenGet` keep
   their statements. No axiom or `sorry` changed: D21j restates `grpcInvokerOk`, a definition the
   `Invoke` axiom's promise is stated with.
+
+## T-S: the snapshot path, scope and staging (D22, 2026-10-19 · proposed)
+
+A design pass only (no Lean change); track T-S of D21 ("Later tracks"), D21c (B). Goal: lift D21
+M3's run bound, so that `NewServer.spec` drops `receiptBound ≤ SnapshotCatchUpEntries + 1`,
+`bootOk` drops `"%Hnosnap"` (`γ.reNoSnap = true ∧ γs.cap = 1`), and a cluster member may
+compact its raft log anywhere, send `MsgSnap`s, and install a received snapshot. Go citations at
+the pins: etcd fork `8a24be2a3` (`git -C /shared/etcd show 8a24be2a3:<path>`; `/shared/etcd`'s
+checkout is at `bc8b52a50`, not a descendant of the pin, and `.lake/go-src/etcd` is at
+`0df483bee6`), raft fork `c8217eb9` (`/shared/etcd-raft37-a1`). Constraint (the user): no edit
+to the bbolt proofs (`Proof`/`Spec` under `go_etcd_io/bbolt`); bbolt-level facts become specs or
+axioms at etcd's backend boundary (`server/v3/storage/backend`, `server/v3/storage`).
+
+**What T-S buys, stated plainly.** `putget_safe` and `putget3_safe` already hold for every run of
+their programs: the examples set `SnapshotCatchUpEntries: 1 << 48`, so the run bound follows from
+the receipt bound and is no hypothesis (D21 M3). What T-S changes is *which program* is verified:
+with it, the examples run etcd's defaults (in-memory snapshot every 100 applied entries,
+compaction at `appliedi - 5000`), and the code production runs on every lagging follower --
+raft's `MsgSnap` send and receive, `createMergedSnapshotMessage`, `sendMergedSnap`, the snapshot
+stream, `applySnapshot`'s restore -- is covered instead of configured away. The theorem's
+statement barely moves; its scope does.
+
+### Inventory
+
+Paths under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` (server) and
+`Proof/go_etcd_io/raft/v3/` (P), `Spec/go_etcd_io/raft/v3/` (S) unless said otherwise.
+
+**Raft, sending** (all proved, no `sorry`, no snapshot axiom):
+- `maybeSendSnapshot` (`raft.go:666-690`; P `raft__maybeSendSnapshot.lean:90`, S `:65`): premises
+  `s.gh.ns = false` and `prev.index ≠ 0 ∨ storPast storage 1`. `maybeSendAppend` (`raft.go:618-661`;
+  P `raft__maybeSendAppend.lean:292`) closes both snapshot fallbacks in the mode (`PrOkN`,
+  `LogNsOk`, `storPast_cap` against `NsCap`) and calls `maybeSendSnapshot` outside it. `raft.send`'s
+  `MsgSnap` clause takes `ns = false` (S `raft__send.lean:129-134`).
+- The protocol's `.snap` message (`P/Protocol/GhostState.lean:242-256`): `isLeader src term`,
+  `isSnapMeta`, **the snapshot's last entry in the leader's log at `m.term`** (`leadPrefix`,
+  `plogTermAt … = some logterm`, `lpfull`), `commitIn … m.index m.term`, `isCommitted` of the
+  covered prefix, `dst ≠ src` and both in `reTracked`. `SnapOk` (`P/Protocol/Model.lean:1527`).
+  `raftSnapCert` (`P/SnapConf.lean:147`) and `LogState.ksn` exist and are used by nothing (stage S,
+  2026-10-15, `notes/STATUS.md` "Snapshots at the public API (stage S)"; the on-message variant is
+  on the remote branch `stage-s-msg-extension`, `8fdbfceb4`, not merged).
+- The mode: `RaftNames.reNoSnap` (`P/Protocol/Ghost.lean:317`), `NGhost.ns`/`xf`, `NsLink`
+  (`P/StepGhostMode.lean:241`: **`ns = xf = reNoSnap`**, one flag for "no snapshot" and "no leader
+  transfer", D21 M2r), `isRaftMsg`'s `reNoSnap = true → Type ≠ MsgSnap ∧ SentMsgOk`
+  (`P/InvRawnode.lean:939`), set by `ownRaftGhost_alloc_boot ns` (`P/Protocol/Facts.lean:1622`),
+  the server's `NewServerAlloc.lean:221` with `true`.
+
+**Raft, receiving:**
+- `raft.Step`'s `MsgSnap` branch (`raft.go:1690`, `:1735`; P `raft__Step/MsgSnap.lean:53`),
+  `handleSnapshot` (`raft.go:1837`; P `raft__handleSnapshot.lean:53`), `raft.restore`
+  (`raft.go:1857`; P `raft__restore.lean:245`), `raftLog.restore` (`log.go:466`),
+  `unstable.restore`: proved, with premises `ns = false`, `scfg.Has id` (the `!found` exit
+  undescribed), `SnapScope`, `md.SnapOk`, `isMessage (absSnap …)` (S `raft__Step.lean:525-530`).
+- Not reachable: `netStepTypes` has no `MsgSnap` (`P/InvRawnode.lean:482`); `ownRawNode`,
+  `ownRawNodeReady`, `ownRawNodeIdle` hold `s.logst.snap = none` (`P/InvRawnode.lean:1281`, 19
+  files read it); `readyData`/`RawNode.Ready` give `rd.Snapshot = null` (`P/InvNode.lean:552`,
+  S `RawNode__Ready.lean:102`); `raft.Step` takes `MsgStorageAppendResp` only with no snapshot
+  (S `raft__Step.lean:429`).
+- **Unverified Go on the path** (no spec, not in `etc/link-lean-first-raft.txt`):
+  `raft.appliedSnap` (`raft.go:766`), `raftLog.stableSnapTo` (`log.go:369`),
+  `unstable.stableSnapTo` (`log_unstable.go:185`); `readyWithoutAccept` (`rawnode.go:139`) and
+  `acceptReady` (`:400`) with a snapshot in progress.
+- `MemoryStorage`: `ApplySnapshot` (premise `index ≤ γs.cap`, and it needs `ownMemoryStorage`,
+  which raft's `ownRaftLog` holds: no handout exists for it, unlike `Append`'s
+  `Hhandout`/`Habsorb`, `P/InvStorage.lean:494-496`), `Compact` (`ci ≤ γs.cap`, the application's
+  `memSnapTok`/`memFloorTok`), `CreateSnapshot`, `Snapshot`: proved. `ReportSnapshot`/
+  `MsgSnapStatus`: proved (`P/RawNode__ReportSnapshot.lean:39`, `stepLeader/Rest.lean:334`,
+  server `EtcdServer__ReportSnapshot.lean:27`).
+
+**etcd, the trigger** (`server.go:1220-1237`, `2088-2174`): `snapshotIfNeededAndCompactRaftLog`,
+`shouldSnapshotToDisk`/`ToMemory` proved; `EtcdServer.snapshot` and `compactRaftLog` axioms
+(names-only), the latter restated in M3 with `(if scu < snapi then snapi - scu else 1) ≤ γs.cap`
+and silent on the `inflightSnapshots` skip (`:2150`); the cap discharged through `srvWTPool`/
+`srvWTAt` (`InvApplier.lean:647-740`: `ai < receiptBound ≤ scu + 1`). `srvSnapState`
+(`InvApplyAll.lean:93`) at `sl = 0`.
+
+**etcd, the sender:** `applyAll`'s `msgSnapC` receive (`server.go:1002-1009`) translated, dead
+(`#Hnosnap`, `srvMsgSnapC_false`, `InvBuild.lean:162`); `processMessages`' `MsgSnap` branch
+(`raft.go:374-384`, the 16-slot `msgSnapC`) proved. `createMergedSnapshotMessage`
+(`snapshot_merge.go:32-80`: `KV().Commit()`, `be.Snapshot()`, a goroutine streaming it through an
+`io.Pipe` that panics on a failed close, `ConfState` cloned, `m.Snapshot` **overwritten** with
+`(ep.appliedi, ep.appliedt, ep.confState)`) and `sendMergedSnap` (`server.go:1854-1892`:
+`inflightSnapshots`, `transport.SendSnapshot`, a `GoAttach` goroutine releasing the count after
+`CloseNotify` and `releaseDelayAfterSnapshot = 30s`): names-only, no spec since D19p (they were the
+`True`-postcondition axioms of `aac0122b4b`, removed in `4b2744b8a5`).
+
+**etcd, the receiver:**
+- `raftNode.start`'s snapshot branch (`raft.go:219-283`: `proto.Clone`, `storage.SaveSnap`,
+  `storage.Sync`, `notifyc`, `raftStorage.ApplySnapshot` with its error ignored,
+  `storage.Release`): translated, proved only at `rd.Snapshot = null` (`raftNode__start.lean:158`,
+  `410-437`).
+- `applySnapshot` (`server.go:1011-1159`): translated; spec and proof only for the empty snapshot
+  (`Spec/…/EtcdServer__applySnapshot.lean`, `taSnapshotAddr ap ↦□ null`). Its body: panic if the
+  snapshot index `≤ ep.appliedi`; `<-notifyc`; `bemu.Lock`; `storage.OpenSnapshotBackend`
+  (`server/storage/backend.go:63-72`: `Snapshotter.DBFilePath`, `os.Rename` onto the backend path,
+  `OpenBackend` -> `newBackend`, a goroutine and a 10 s timer); `consistIndex.SetBackend`;
+  `lessor.Recover` (`lease/lessor.go:600`); `kv.Restore` (`mvcc/watchable_store.go:207`, which
+  moves every synced watcher to unsynced with `restore = true`, -> `store.Restore`,
+  `mvcc/kvstore.go:292-314`: **closes `stopc` and stops the FIFO scheduler**, a new tree index and
+  scheduler, `restore()` of a backend *with data*); `SetTxPostLockInsideApplyHook`; the swap
+  `s.be = newbe` (under `bemu`, already a reader-slot `RWMutex` with `s.be` in its invariant,
+  `InvApplyAll.lean:57-65`); `oldbe.Close()` in a goroutine; `restoreAlarms`; `authStore.Recover`
+  (`auth/store.go:396`); `cluster.SetBackend`/`Recover` (`membership/cluster.go:247-302`:
+  `UnsafeLoad`, `MustDetectDowngrade`); `transport.RemoveAllPeers` and `AddPeer` per member;
+  `ep` reset to the snapshot; `NewUberApplier`.
+- Status of the callees: `consistIndex.SetBackend`, `backend.Close`, `restoreAlarms` proved;
+  `watchableStore.Restore` translated, no spec; `store.Restore`, `lessor.Recover`,
+  `authStore.Recover`, `RaftCluster.SetBackend`/`Recover`, `Transport.RemoveAllPeers`,
+  `OpenSnapshotBackend`/`OpenBackend` names-only, no spec; `mvcc.store.restore` an axiom for an
+  **empty** key bucket under `backendNoCompaction` (D19l (v) (B)); `AddPeer`/`AddRemote` axioms.
+- **The backend model** reads one bucket: `isKeyBackendG` (`storage/mvcc/InvStore.lean:992`), the
+  rest opaque premises of `NewServer.spec` about the data directory at startup: `bkFresh`
+  (lease/auth buckets empty, `InvBoot.lean:97`), `backendNoCompaction` (`InvStore.lean:210`),
+  `backendUnderQuota` (`apply/Contracts.lean:520`). `backend.Snapshot()` (`backend.go:381`) and
+  the `Snapshot` interface (`WriteTo`, `:86-90`) are not translated; `newBackend`/`New` are proved
+  from `fileHolds cfg.Path D` (an axiom-level predicate of the bbolt boundary,
+  `InvBbolt.lean:89`).
+- **The KV invariant:** `kvInv` (`InvRequest.lean:1195`, the cluster's since M4: raft's `srvRLog`,
+  the KV state as `kvModel` of the log), each apply thread's `kvApplied` (`:1344`, `srvRLogLb A`,
+  `x.log = kvModel A`) and `appliedLogAt` (`:1552`), `loopOk` (`InvApplier.lean:98`, the
+  consistent index's `ciEff`). Nothing relates a store installed from a snapshot.
+
+**The transport:** `rafthttp` and `snap` are names-only (`translate = ["!*"]`). `Net.lean`
+(`api/rafthttp/Net.lean`) is generic in the payload; `netTransport` has `Send`/`Stop`, no
+`SendSnapshot`; the snapshot handler (`rafthttp/http.go:208-330`: decode the envelope, refuse a
+non-`MsgSnap`, `Snapshotter.SaveDBFrom` -- temp file, fsync, rename to `<index>.snap.db`, **keeping
+an existing file of that index** (`snap/db.go:37-90`) -- then `Process`); `snapshotSender.send`
+(`snapshot_sender.go:66-140`: `ReportSnapshot(Failure|Finish)`, `CloseWithError`);
+`Transport.SendSnapshot` (`transport.go:409-418`: a missing peer closes the message with
+`errMemberNotFound`). `ReleaseSnapDBs` (`snap/snapshotter.go:45-70`, from `storage.Release`)
+removes only `.snap.db` files *below* the released index, so a file `applySnapshot` will open is
+never removed under it.
+
+### Findings
+
+1. **A Go bug, filed:** `issues/etcd-quota-stale-backend-after-snapshot.md`. The gRPC quota servers
+   (`v3rpc/quota.go:53-95`) capture `s.Backend()` at construction; `applySnapshot` swaps `s.be`
+   and closes the old backend, whose `Size()` is then frozen. If the old db was over the quota,
+   every write through the member re-raises NOSPACE for the whole cluster until it restarts, through
+   the documented recovery (compact, defragment, disarm). Reproduced by an integration test at the
+   pin; the fix (read `s.Backend()` per check) passes it. For the proof: D22g.
+2. **etcd's merged snapshot is not raft's `.snap` message.** `createMergedSnapshotMessage`
+   overwrites the snapshot raft produced (the storage's, at the last memory snapshot `i0`) with
+   `(ep.appliedi, ep.appliedt, ep.confState)` of the apply thread, `appliedi ≥ i0`. The receiver's
+   raft restores that, and its `MsgAppResp` acknowledges `appliedi`. Two consequences:
+   - the protocol clause's "last entry in the leader's log at `m.term`" is not what the apply
+     thread knows: it knows its applied prefix is committed, not that the raft node is still leader
+     at `m.term`;
+   - **it can be false**: `msgSnapC` holds up to 16 messages and `applyAll` takes one per batch,
+     so a `MsgSnap` of term `T` can be taken after the member has stepped down and applied entries
+     committed by a later leader of term `T' > T`. The merged message then has `Term = T` and a
+     snapshot whose last term is `T'`. A receiver at term `≤ T` restores it and holds a log whose
+     last term is greater than its current term. Not a safety bug (by code reading): a quorum
+     acknowledged an entry of term `≥ T'`, so its members have terms `≥ T'` and refuse any vote
+     below `T'`, and the receiver cannot lead before `T'`; a stale `MsgApp` of term `T` cannot
+     match at the snapshot's index (its `LogTerm ≤ T < T'`). Not filed. But the proof must state
+     the `.snap` clause so that it holds of this message (D22a), and S-0 must check that no protocol
+     invariant assumes "a node's last log term is at most its term".
+3. **`store.Restore` stops the store's scheduler**, which needs the stop token D19m (C) gave up at
+   `NewStore`'s success (`isStore` holds `isFifo` without `schedLive`; the closer `storeCloser` is
+   dropped by `NewServer`). D22d.
+4. **The single mode flag.** `NsLink` makes "no snapshot" and "no leader transfer" one flag
+   (`reNoSnap`); lifting the first must not lift the second (etcd still needs `MsgTimeoutNow`
+   excluded, D21 M0), and `SentMsgOk` (what the receiver's `NetMsgOk` comes from) is given only
+   under `reNoSnap = true`. Stage S-a splits it.
+5. **The applied index jumps.** After an install, `ep.appliedi = snapi` without this member's apply
+   pool having paid a token per covered entry, so `srvWTAt`'s "`ai ≤` tokens taken" fails. What
+   it bounds besides M3's cap (revision and counter overflow, D19b) needs a cluster-level source:
+   the committed log's length (`rnLogFits`, D19b stage 5). D22h.
+6. **The backend's other buckets.** The receiver reads, from the image, the `meta` bucket
+   (consistent index and term, the confState, the compaction keys, the storage version), `lease`
+   (`lessor.Recover`), `auth*` (`authStore.Recover`), `members`/`members_removed`/`cluster`
+   (`cluster.Recover`), `alarm` (`restoreAlarms`). Today these are opaque premises *about the
+   data directory at startup* (`bkFresh`, `backendNoCompaction`, `backendUnderQuota`); a received
+   image is produced by the program, so they must be derived, not assumed (D19a). D22c.
+7. Liveness only, not filed (as D21's): `raftStorage.ApplySnapshot`'s error is ignored
+   (`raft.go:277`; unreachable: the storage's snapshot index is at most the applied index, below
+   the incoming one); a stale merged snapshot whose file another sender's `SaveDBFrom` already
+   wrote at the same index is dropped in favour of the first (`db.go`'s exists branch), harmless
+   since both are the state at that committed index.
+
+### Decisions
+
+**D22a. The `.snap` message's content.**
+- *(A) Split the clause: an envelope and a content certificate.* The envelope: `isLeader src
+  m.term`, `src ≠ 0`, `dst ≠ src`, the tracked bound (what `stepFollower` reads: `lead = m.From`).
+  The content: `isCommitted` of a prefix ending at `(index, logterm)` and the configuration's
+  certificate (`raftSnapCert`, A3) -- no leader prefix, no `commitIn` at `m.term`. raft's sender
+  builds both (it has them); an application that applied a committed prefix mints the content
+  (`snapContent_mint`, from `kvApplied`'s `srvRLogLb` and raft's committed records) and replaces a
+  message's content with it (`isMessage_snap_recontent`). The receiving `raft.Step` keeps its proof
+  shape if the leader-prefix fact was only used to derive `isCommitted` (S-0 checks; the protocol's
+  restore step, `StepC.snap*`, and `ownRaftGhost_step_snap*` read what?).
+- *(B) A fork fix that drops a stale merged snapshot* (`applyAll` sends only when `ep.appliedt ≤
+  m.Term` and the member is still leader): racy (leadership can end after the check) and not
+  sufficient (an applied entry of term `≤ T` may still be missing from the leader of `T`'s log,
+  the Figure 8 shape), so (A) is needed anyway.
+- *(C) Keep raft's snapshot metadata* (no rewrite): changes etcd's protocol (the db image is at
+  `appliedi`, not `i0`); no.
+- *Recommendation:* (A), checked first by S-0.
+
+**D22b. The certificate's carrier** (stage S's open "Left" 1).
+- *(A) On the message*, as `stage-s-msg-extension` did (`Msg` gains the lists, `isMessage`'s
+  `.snap` carries `raftSnapCert`), restated per D22a (A).
+- *(B) Local to `RawNode`* (`ownRawNode` holds the certificates of `ksn`, `Ready` hands one out
+  with each `MsgSnap`). With etcd's rewrite, the content the receiver gets is the server's, not
+  `ksn`'s: a raft-local certificate of `i0` says nothing about `appliedi`, so the server would
+  need the on-message form anyway.
+- *Recommendation:* (A). It reverses the integration session's 2026-10-15 preference (avoid
+  touching `Msg`/`isMessage`/`ownRaftGhost` when a local route exists), because for etcd no local
+  route exists; asked of the user for that reason.
+
+**D22c. What the image certificate says about the backend.**
+- *(A) The key and meta buckets modeled, the rest by determinism.* `dbImage γ i D`: `D`'s key view
+  is `kvModel` of the committed prefix of length `i` (with its compaction: D19l (v) (A), the meta
+  bucket's compaction keys modeled), `D`'s consistent index and term are `i` and its term, its
+  confState the static configuration; the other buckets are `bkRestAt i` -- the value every
+  member's backend has at consistent index `i`, one trust-boundary axiom at the backend (the
+  apply path writes those buckets as a function of the applied entries) under which the
+  `Recover` axioms are stated, plus the facts `bkFresh` gave for putget's workload (no lease or
+  auth writes: from the workload, as `noGrant`).
+- *(B) Model every bucket the `Recover`s read* (lease, auth, members, cluster version, alarm,
+  downgrade): faithful, large (four packages' backend contracts).
+- *(C) Opaque premises per received image:* not of D19a's kinds (a fact about the program's own
+  state); rejected.
+- *Recommendation:* (A); (B) piecewise when a package's proofs need it.
+
+**D22d. The store's stop token for `Restore`.**
+- *(A) The apply thread keeps `storeCloser`* (`NewServer` stops dropping it): `Restore` takes it,
+  stops the old scheduler, and returns a new one for the new scheduler (`store.Restore`
+  translated and proved; it is short); the compaction right (`compactRight`, `compactQueue`) is
+  re-made from it as at `NewStore`.
+- *(B) `store.Restore` an axiom over `isFifo` only*: hides a real ownership transfer (a compaction
+  job of the old scheduler running against the new backend is what Go's `Stop` prevents).
+- *Recommendation:* (A).
+
+**D22e. A cheaper intermediate first?** The run bound cannot be weakened short of T-S: compaction
+past a lagging follower forces a `MsgSnap` (raft cannot know the follower is merely delayed), so
+"compaction on, snapshots off" is not a reachable mode, and a bound on the followers' lag is not
+of D19a's kinds; "the server's trigger off" buys nothing, since the in-memory snapshot ignores
+`SnapshotCount` (D21 M0). The intermediate worth having is on raft's side:
+- *(A) Raft's snapshot path end to end on `examples/kv` first* (stage S-r): the store's Go code
+  compacts its raft log every `K` entries and puts its map, encoded, in the snapshot's `Data`;
+  `kv_porcupine_safe` keeps its statement with snapshots live. It exercises S-b..S-d with a
+  trivial application state, gives a closed theorem with raft's `MsgSnap` verified before any
+  backend work, and de-risks D22a/b. Cost: a Go change in the example and its proofs (medium).
+- *(B) Straight to etcd*: S-b..S-d tested only through putget3, after the server stages.
+- *(C) Stop at M3's bound* (T-S later): nothing new verified.
+- *Recommendation:* (A), in parallel with the server stages S-f..S-i (it gates nothing).
+
+**D22f. putget3's configuration after T-S.** *(A) etcd's defaults* (`SnapshotCatchUpEntries`
+`5000`, memory snapshot every `100`), the point of the track; *(B) a small value* (e.g. `5`) so
+that snapshots happen in short runs (the theorem does not care; tests would). *Recommendation:*
+(A) in putget3; (B) only in a test configuration.
+
+**D22g. The stale quota (finding 1).**
+- *(A) Fix in the fork* (the quota reads `s.Backend()` per check; the issue's patch) and verify
+  the fixed code: the quota's contract is over the current backend.
+- *(B) Keep upstream's code*: the quota's contract (`apply.isQuota`, D19j's `quotaAlarmer`) is
+  over the backend captured at construction, closed or not (`Size()` of a closed backend is its
+  last value); a refusal is an error path the request specs already allow, and the opaque
+  `backendUnderQuota` must then speak of every backend a member opens or captured.
+- *Recommendation:* (A), the fork's practice for reproduced bugs (`raft-stale-term-…`, D21c′), if
+  the user agrees to carry it; else (B).
+
+**D22h. The applied index after a jump.**
+- *(A) A cluster-level bound*: `srvWTAt` replaced, where it bounds anything but M3's cap, by the
+  committed log's length bound (`rnLogFits`) and a per-entry receipt of the proposer (the
+  revision grows by at most one per committed entry, whoever applies it).
+- *(B) Snapshot-carried tokens* (the sender passes the covered entries' tokens): there are none to
+  pass (every member applies every entry with its own tokens).
+- *Recommendation:* (A), its exact form from S-0's list of `srvWTPool`'s users.
+
+**D22i. The mode flag** (finding 4). *(A) Split* `reNoSnap` into `reNoXfer` (no leader transfer,
+`SentMsgOk`; on for the server) and `reNoSnap` (no snapshot, the cap; off after T-S), `NsLink`
+into two links. *(B) Drop the no-transfer mode* and give `MsgTimeoutNow` a tick credit (the
+register's budget). *Recommendation:* (A): mechanical, and etcd never transfers in the runs
+covered.
+
+### Stages
+
+Each small enough for one agent; dependencies in brackets.
+
+- **S-0. Pen-and-paper check** [none; no Lean]: (1) D22a (A) against the receiving raft's proof
+  (which uses of the leader-prefix and `commitIn` in the `.snap` ghost steps survive), and whether
+  any protocol invariant assumes "last log term `≤` term" (finding 2's stale case); (2) the sender's
+  facts at the `msgSnapC` receive: the applied prefix committed, `ep.appliedt` its last term,
+  `ep.confState` the static configuration, the db's consistent index `= ep.appliedi` after
+  `KV().Commit()` (`applyEntryNormal`'s deferred `SetConsistentIndex`); (3) which entries write the
+  buckets of finding 6 (D22c (A)'s determinism claim); (4) `srvWTPool`'s users (D22h); (5) the
+  holders of a backend across the swap (`s.Backend()` callers, the quota, the hooks), with
+  finding 1 as the one found so far. Output: a note, amendments to the stages.
+- **S-a. Split the mode flag** [none; parallel with S-0]: D22i (A). Raft (`Protocol/Ghost`,
+  `StepGhostMode`, `InvRawnode`, `RawNode__Bootstrap`, the allocation) and the server's `bootOk`/
+  `InvBuild`. Small. Trust base unchanged.
+- **S-b. The `.snap` message restated, its certificate on the message** [S-0]: D22a (A), D22b
+  (A): the protocol clause, raft's sender (`maybeSendSnapshot`'s ghost step), the receiver's
+  `raft.Step` premises derived from the message (`SnapScope`, `md.SnapOk`), the minting and
+  re-content lemmas for an application. Raft files. Medium. Unchanged trust base.
+- **S-c. `MsgSnap` at `RawNode.Step`/`node.Step`** [S-b] (stage S2): `netStepTypes`, `NetMsgOk`
+  for `MsgSnap`, a pending snapshot in `ownRawNode` (the 19 files reading `Hsnap`), `node.Step`'s
+  `netP`; `SentMsgOk` for `MsgSnap` (under `reNoXfer`). Medium-large. Unchanged.
+- **S-d. A pending snapshot through `Ready`/`Advance`** [S-c] (stage S3): `appliedSnap`,
+  `stableSnapTo` (both), `MsgStorageAppendResp`'s snapshot arm, `readyWithoutAccept`/
+  `acceptReady` with a snapshot in progress; `readyData` with `rd.Snapshot ≠ null` handing out the
+  content certificate; `RNState`'s delivered/applied jump; a handout protocol for the
+  application's `MemoryStorage.ApplySnapshot` while raft holds the storage (beside
+  `Hhandout`/`Habsorb`); `MemoryStorage`'s cap at `2^64` outside the mode. Large. Unchanged.
+- **S-r. `examples/kv` with snapshots** [S-d] (D22e (A); optional): Go change in the example,
+  its proofs, `kv_porcupine_safe` unchanged in statement. Medium. Unchanged (the example's own
+  code).
+- **S-f. The backend boundary** [S-0; parallel with S-b..S-d]: `backend.Snapshot()` and
+  `snapshot.WriteTo` (axioms: the image written is the backend's committed state, as
+  `fileHolds`'s abstract state), `storage.OpenSnapshotBackend` translated with its body over
+  `Snapshotter.DBFilePath` and `os.Rename` (axioms here; `OpenBackend`'s goroutine and timer
+  translated if Perennial's `time.After` suffices, else one axiom for `OpenBackend`), `newBackend`
+  proved already; the `dbImage` certificate of D22c (A) and `bkRestAt`. Server and `storage`
+  files only, no bbolt file. Medium. **+3 to +5 axioms.**
+- **S-g. The store's restore with data** [S-0, S-f's `dbImage`]: D19l (v) (A) (the compaction
+  keys in the backend contract, `backendNoCompaction` from the model instead of an opaque
+  premise), `mvcc.store.restore` restated for a key bucket with data (the index rebuilt, the
+  compaction finished or rescheduled), `store.Restore` translated and proved under D22d (A),
+  `watchableStore.Restore` proved (watchers to unsynced with `restore = true`, against the watch
+  invariants: `InvWatchSync`, the client's `isClientWatcher`). mvcc files. Medium-large. **0 net**
+  (`restore` restated, one opaque premise fewer).
+- **S-h. The sender** [S-b, S-f, S-i]: `createMergedSnapshotMessage` and `newSnapshotReaderCloser`
+  translated and proved (the merged content minted from the apply thread's `kvApplied`, the image
+  from `KV().Commit()` and `Snapshot`), `sendMergedSnap` translated and proved (the
+  `inflightSnapshots` count, the release goroutine), `compactRaftLog`'s contract restated with the
+  inflight skip and no cap, `applyAll`'s `msgSnapC` branch live (the message bundle from raft, as
+  `srvMsgNet`). Server files. Medium. **+2 to +4 axioms** (`snap.NewMessage`/`CloseNotify` unless
+  `snap/message.go` is translated, `io.Pipe` unless Perennial models it); the two removed in D19p
+  come back as *proved*.
+- **S-i. The snapshot stream in the network contract** [S-0; parallel]: D21b's contract extended:
+  `netTransport` gains `SendSnapshot` (in `Transport.Start`'s restated postcondition: a merged
+  message whose payload is a `.snap` with its content certificate and whose reader streams an
+  image with `dbImage`); the receiver's snapshot directory as a ghost map, written by the
+  transport before it calls `Process(MsgSnap)` (`SaveDBFrom`'s order, `http.go:279-330`), read by
+  `OpenSnapshotBackend`; `ReportSnapshot` at any time (proved); `Snapshotter` at `bootstrap`.
+  `api/rafthttp/Net.lean`, the transport axioms. Small-medium. **0 new declarations**
+  (`Start` restated), +1 if `Snapshotter`'s constructor needs one.
+- **S-j. The receiver** [S-d, S-f, S-g, S-i]: `raftNode.start`'s snapshot branch (`SaveSnap`,
+  `Sync`, `Release` of the WAL storage: axioms unless already there; `raftStorage.ApplySnapshot`
+  through S-d's handout), `applySnapshot` past the empty case: the backend swap under `bemu`'s
+  writer side, `consistIndex.SetBackend` (proved), `lessor.Recover`, `authStore.Recover`,
+  `cluster.SetBackend`/`Recover` (axioms under `bkRestAt`; `rcLockInv`'s empty removed map and
+  `localKept` from the image), `kv.Restore` (S-g), `oldbe.Close` in a goroutine (the old
+  backend's closer, which the server must keep), `restoreAlarms` (proved), `RemoveAllPeers`
+  (axiom; the transport's peer set re-made) and the `AddPeer` loop, `NewUberApplier` (proved);
+  the member's share of `kvInv` and `loopOk` re-established at `snapi`, D22h's bound. Large;
+  splits into S-j1 (`raftNode.start` and the hand-off) and S-j2 (`applySnapshot`) if needed.
+  **+6 to +8 axioms** (`lessor.Recover`, `authStore.Recover`, `RaftCluster.SetBackend`,
+  `RaftCluster.Recover`, `Transport.RemoveAllPeers`, the WAL's `SaveSnap`/`Sync`/`Release` as
+  needed).
+- **S-k. The quota after the swap** [S-0; with S-j]: D22g, (A) a fork commit and re-translation,
+  or (B) `isQuota` restated over the captured backend. Small. 0 net.
+- **S-l. Lifting the bound** [S-a..S-k but S-r]: `bootOk` without `"%Hnosnap"` (cluster at
+  `reNoSnap = false`, `γs.cap = 2^64`), `NewServer.spec` without `receiptBound ≤
+  SnapshotCatchUpEntries + 1`, `isServerApplyAll` without `scu`'s bound, `srvMsgSnapC_false` gone,
+  putget/putget3 at etcd's defaults (D22f (A)), their closed theorems re-checked
+  (`etc/tcb-collections/putget3.txt`). Small-medium. 0 axioms; `compactRaftLog`/`snapshot`
+  restated.
+
+Parallelism: S-0 and S-a at once; then the raft chain S-b -> S-c -> S-d (-> S-r) alongside the
+server's S-f, S-g, S-i (disjoint files: raft, backend/storage, mvcc, rafthttp); S-h after S-b,
+S-f, S-i; S-j after S-d, S-f, S-g, S-i; S-k with S-j; S-l last. Track it with a collection
+`etc/tcb-collections/snapshot.txt` (roots: `applySnapshot`, `createMergedSnapshotMessage`,
+`sendMergedSnap`, `raft__Step`, the RawNode `Ready`/`Step`).
+
+**Trust base (estimate).** Added: about 11 to 17 trust-boundary axioms (S-f 3-5, S-h 2-4, S-i 0-1,
+S-j 6-8), more than D21's "about eight" because `OpenSnapshotBackend`'s and the merged message's
+callees are counted one by one and the WAL storage's snapshot calls are new. Restated:
+`Transport.Start` (the snapshot stream), `compactRaftLog`, `EtcdServer.snapshot`,
+`mvcc.store.restore`, `isQuota` under D22g (B). Removed as premises: `backendNoCompaction` (S-g),
+the run bound (S-l). Proved again: `createMergedSnapshotMessage`, `sendMergedSnap` (removed as
+false `True`-postcondition axioms in D19p). The raft stages add nothing.
+
+**What the collaborator's bbolt work could discharge later** (each stated here as an axiom at the
+backend boundary, none touching `Proof`/`Spec` under `go_etcd_io/bbolt`): `backend.Snapshot()`'s
+read transaction sees the committed state (bbolt's `DB.Begin(false)` isolation); `WriteTo`'s
+bytes are an image of that state (bbolt's `Tx.WriteTo`); opening a file holding such an image
+gives a database with the same state (`bolt.Open` of `Tx.WriteTo`'s output: the `fileHolds`
+round trip, `newBackend`'s premise); closing the old backend while its read transactions finish
+(`DB.Close`). `os.Rename` keeping `fileHolds` is a file-system fact, not bbolt's.
+
+*Asked of the user:* D22a-i (recommendations: (A) each; D22b (A) reverses the 2026-10-15
+preference for the local route, for the reason given; D22g (A) adds a fork commit), and whether
+S-r (D22e (A)) is wanted before the server stages finish.
