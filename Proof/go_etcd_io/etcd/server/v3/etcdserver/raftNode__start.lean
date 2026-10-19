@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__onStop
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.google_golang_org.protobuf.proto.Clone
 public import Spec.go_uber_org.zap.Error
@@ -47,6 +48,7 @@ theorem raftNode.start.wp_proof
     (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG))
     (wp_IsEmptyHardState : IsEmptyHardState.spec (GF := GF) (hG := hG))
     (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG))
+    (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Clone : proto.Clone.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
@@ -57,6 +59,7 @@ theorem raftNode.start.wp_proof
   have wp_IsEmptySnap := wp_IsEmptySnap_nil wp_IsEmptySnap
   have wp_IsEmptyHardState := wp_hardStateAt_IsEmptyHardState wp_IsEmptyHardState
   have wp_GetCommit := wp_hardStateAt_GetCommit wp_GetCommit
+  have wp_GetTerm := wp_hardStateAt_GetTerm wp_GetTerm
   have wp_GetType := wp_entryAt_GetType wp_GetType
   intro E γ r rh L R
   wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone⟩
@@ -102,9 +105,11 @@ theorem raftNode.start.wp_proof
   wp_apply wp_fork $$ [Htok Hdone r rh HR]
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
-    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool),
-        "islead" ∷ islead_ptr ↦ b ∗ "Htok" ∷ rnLoopTok γ L' ∗ "HR" ∷ R) $$ [islead Htok HR]
-    · iexists L, false
+    -- (D22a) `raftTerm`, the latest `HardState`'s term: only carried to the batches for now
+    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64),
+        "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗ "Htok" ∷ rnLoopTok γ L' ∗
+        "HR" ∷ R) $$ [islead raftTerm Htok HR]
+    · iexists L, false, _
       iframe
     wp_for HI
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Ready")]
@@ -133,7 +138,7 @@ theorem raftNode.start.wp_proof
       wp_apply wp_tick E γ r $$ [$Hpkg $Hr]
       wp_for_post
       iframe
-      iexists L', b
+      iexists L', b, rt
       iframe
     -- `rd := <-r.Ready()`
     iapply BigAndL.bigAndL_cons.2
@@ -320,6 +325,23 @@ theorem raftNode.start.wp_proof
         itrivial
       subst Hv
       wp_auto_lc 3
+      -- (D22a) `if !raft.IsEmptyHardState(rd.HardState) { raftTerm = rd.HardState.GetTerm() }`
+      wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs0 -
+      wp_join iprop(∃ rt' : w64, raftTerm_ptr ↦ rt' ∗ rd_ptr ↦ rd) at next with [raftTerm rd]
+        as ⟨%rt', raftTerm, rd⟩
+      · cases ehs0
+        · wp_auto
+          wp_apply wp_GetTerm rd.HardState' hs $$ [$Hpbpkg $Hhs]
+          (try wp_auto)
+          isplitr
+          · itrivial
+          iexists _
+          iframe
+        · (try wp_auto)
+          isplitr
+          · itrivial
+          iexists _
+          iframe
       -- `notifyc`, `raftAdvancedC`: unit bags
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc ⟨#Hncch, -, Hncown⟩
       · ipureintro; decide
@@ -340,6 +362,7 @@ theorem raftNode.start.wp_proof
       wp_apply wp_Clone.2 $$ [$Hppkg]
       irename notifyc => Hncl
       irename raftAdvancedC => Hacl
+      irename raftTerm => Hrtl
       ipersist ap
       ihave #Hapf := ap
       iStructNamed Hapf
@@ -506,7 +529,7 @@ theorem raftNode.start.wp_proof
             (try wp_auto)
             wp_for_post
             iframe
-            iexists (L' ++ ce), false
+            iexists (L' ++ ce), false, rt'
             iframe
             iunfold rnLoopTok
             iexists _, cums ++ [L' ++ ce]
@@ -545,7 +568,7 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists (L' ++ ce), false
+              iexists (L' ++ ce), false, rt'
               iframe
               iunfold rnLoopTok
               iexists _, cums ++ [L' ++ ce]
@@ -589,7 +612,7 @@ theorem raftNode.start.wp_proof
           (try wp_auto)
           wp_for_post
           iframe
-          iexists (L' ++ ce), true
+          iexists (L' ++ ce), true, rt'
           iframe
           iunfold rnLoopTok
           iexists _, cums ++ [L' ++ ce]

@@ -135,7 +135,8 @@ links:
   redesigning those invariants (D22a (A″)). With the fix the clause holds of the merged message
   unchanged.
 - **Possible fixes**:
-  1. (The fork's, 2026-10-19.) The raft goroutine keeps the latest `rd.HardState.Term` it has seen
+  1. (The fork's, 2026-10-19: `goose-lean` `de825d8c6`, regression test
+     `TestMergedSnapshotDroppedAtStaleTerm` in `server/etcdserver/merged_snapshot_term_test.go`.) The raft goroutine keeps the latest `rd.HardState.Term` it has seen
      and passes it in `toApply` (a new field). `applyAll`'s `msgSnapC` branch merges and sends
      only when it equals `m.GetTerm()`; otherwise it drops the message. Then the sender is not
      leader at `m.Term`, so raft has dropped its progress for that peer and the current leader

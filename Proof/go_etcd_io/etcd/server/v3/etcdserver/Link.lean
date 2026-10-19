@@ -1176,7 +1176,7 @@ theorem raftNode.wp_onStop :
 
 theorem raftNode.wp_start :
     raftNode.start.spec (GF := GF) (hG := hG) :=
-  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.Entry.wp_GetType proto.wp_Clone zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn
+  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.Entry.wp_GetType proto.wp_Clone zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn
 
 theorem raftNode.wp_apply :
     raftNode.apply.spec (GF := GF) (hG := hG) :=

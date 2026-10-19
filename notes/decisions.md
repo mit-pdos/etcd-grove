@@ -11953,3 +11953,16 @@ tests; `authStore.lockedReadTx` translated (`auth.toml`).
 - `applySnapshot` needed no change (its proof is of the empty snapshot). Trust base unchanged (525
   axioms, 2 sorries); the request-path collections (`cache-client`, `client`, `lease-served`,
   `slice`) now list the existing `storage.NewBackendQuota` axiom (the quota built per request).
+
+**D22a carried out** (2026-10-19): the etcd pin at the fork's `de825d8c6` (`goose-lean`, after
+`d52eec43e`). `raftNode.start` keeps `raftTerm` (from `0`, set to `rd.HardState.GetTerm()` when the
+`HardState` is non-empty, before the `toApply` is built) and passes it in `toApply.raftTerm`;
+`applyAll` merges and sends a queued `MsgSnap` only when `m.GetTerm() == apply.raftTerm` (test
+`TestMergedSnapshotDroppedAtStaleTerm`: fails 3/3 without, passes 5/5 with `-race`). Starting at
+`0` drops nothing wrongly: a node must raise its term, which a `HardState` carries, before it can
+lead and make a `MsgSnap`. In the proof, `raftNode.start`'s loop invariant only carries the
+variable (`∃ rt, raftTerm_ptr ↦ rt`; `wp_hardStateAt_GetTerm` from raft's `wp_hsOpt_GetTerm`);
+`applyAll`'s `msgSnapC` branch stays dead (`Hnosnap`). For S-b: tie `raftTerm` to raft's term --
+raft's `readyP` exports that a non-empty `hs.term` is raft's term at that `Ready`, the loop
+invariant keeps a ghost "latest term handed out = `rt`", and `rnApP` gains `ap.raftTerm' = rt` with
+that witness. Trust base unchanged (525 axioms, 2 sorries).

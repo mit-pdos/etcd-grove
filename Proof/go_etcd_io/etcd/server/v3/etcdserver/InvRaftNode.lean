@@ -67,8 +67,8 @@ variable [FfiSyntax]
 -- stage R7b, the file importing raft's node layer).
 
 instance toApply_countable : Pos.Countable toApply :=
-  countableOfLeftInverse (fun a : toApply => (a.entries', a.snapshot', a.notifyc', a.raftAdvancedC'))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun a : toApply => (a.entries', a.snapshot', a.notifyc', a.raftAdvancedC', a.raftTerm'))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
 
 -- `ReadState`'s instance (`readState_countable`): `InvRequest.lean` (2026-10-13, the read loop).
 

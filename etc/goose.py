@@ -145,12 +145,14 @@ PROJECTS = [
         # and the gRPC quota's current backend (8f793b820,
         # issues/etcd-quota-stale-backend-after-snapshot.md; D22g (A)) and the auth store's move
         # before the old backend's close (d52eec43e,
-        # issues/etcd-auth-snapshot-closed-backend-panic.md; D22k (A)).
+        # issues/etcd-auth-snapshot-closed-backend-panic.md; D22k (A)), and the merged snapshot
+        # sent only at its message's term (de825d8c6, issues/etcd-merged-snapshot-stale-term.md;
+        # D22a).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="d52eec43e6eeca28632063a3025942309a888e2a",
+        rev="de825d8c64cd64e493373e61a278eb1c99f151fb",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
