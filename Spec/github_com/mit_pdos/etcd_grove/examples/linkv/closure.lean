@@ -2,8 +2,9 @@
 
 `closure(s)` (linkv.go): a new state holding the configurations of `s` and, up to the pending
 puts' order, every configuration a pending put reaches from them (`ClosureOk`), closed under
-pending puts (`GClosed`), with no configuration longer than allowed (`Bounded`, its premise on
-`s`: the configurations it pushes are no longer than their parents, `bounded_succAt`).
+pending puts (`GClosed`). Its premise bounds `s`'s configurations' lengths by `n ≤ 2^63`
+(`Bounded n`, for `set`'s premise), and so are the result's (`bounded_succAt`: a configuration
+it pushes is no longer than its parent).
 -/
 module
 
@@ -28,14 +29,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumption
 
 /-- See the file header. -/
 abbrev closure.spec : Prop :=
-  ∀ (s : GoSlice) (cs : List kvConfig) (gs : List GCfg) (dq : DFrac),
+  ∀ (s : GoSlice) (cs : List kvConfig) (gs : List GCfg) (dq : DFrac) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv ∗
-      s ↦*{dq} cs ∗ ([∗list] c;g ∈ cs;gs, cfgOwn c g) ∗ ⌜∀ g ∈ gs, Bounded g⌝ }}
+      s ↦*{dq} cs ∗ ([∗list] c;g ∈ cs;gs, cfgOwn c g) ∗ ⌜n ≤ 2 ^ 63 ∧ ∀ g ∈ gs, Bounded n g⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv.closure)) (Val #s))
   {{ (out : GoSlice) (cs' : List kvConfig) (gs' : List GCfg), RET #out;
       s ↦*{dq} cs ∗ out ↦* cs' ∗ ownSliceCap kvConfig out (DFrac.own 1) ∗
       ([∗list] c;g ∈ cs';gs', cfgOwn c g) ∗
-      ⌜ClosureOk gs gs' ∧ GClosed gs' ∧ ∀ g ∈ gs', Bounded g⌝ }}
+      ⌜ClosureOk gs gs' ∧ GClosed gs' ∧ ∀ g ∈ gs', Bounded n g⌝ }}
 
 end spec
 

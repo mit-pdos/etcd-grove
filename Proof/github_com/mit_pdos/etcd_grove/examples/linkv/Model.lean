@@ -1,252 +1,386 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# linkv: the porcupine model of a key-value store with failed writes (2026-10-19)
-
-The sequential model the `lintest` instance over etcd's client checks against (D20, part (c)):
-operations `Put(k, v)` and `Get(k)` (`KVIn`), whose outputs (`KVOut`) are `ok` (a put),
-`okGet r` (a get that read `r`: the key's value, or none) or `err` (the call returned an error).
-
-## An error's effect is unknown, and may come late
-
-A put that returned an error may have been applied, or not; and when it was, it may have been
-applied *after* the call returned (the client gave up on the reply, a timeout, while the
-proposal was still in raft: the server applies it later). etcd's robustness checker handles
-both: its model is nondeterministic (`tests/robustness/model/non_deterministic.go`: the state is
-the list of the states the history may have reached, and a failed request keeps each state and
-adds its successor), and a failed request's return time is set to infinity before porcupine
-checks the history (`validate/validate.go`, `prepareAndCategorizeOperations`). `lintest.Run`
-passes porcupine the return time the clock read, so a model that only lets a failed put take
-effect within its call would reject a correct history (a failed put, then a get that does not see
-it, then a get that does). This model puts the late effect in the state instead: a failed put
-leaves the put **pending** (`Cfg.pend`), and a pending put may take effect at any later time, at
-most once (`Silent`: the server applies the proposal it got once, part (b)), or never. The
-pending puts are a multiset: `Silent.perm` reorders them (the Go model keeps them sorted, a
-failed put here is consed; `ModelLemmas.lean` relates the two up to order).
-
-## Why a set of configurations (`KVSet`)
-
-`SeqModel.step` is a function (`σ → α → Option σ`), and `lintest`'s generic theorem is over it;
-a nondeterministic step would change the theory. So the model's state is the **set of
-configurations** the history may have reached (`KVSet`), the powerset construction of the
-nondeterministic model, as etcd's own model does: `kvSeq.step S (i, o)` is the set of
-configurations reachable from a configuration of `S` by any pending puts taking effect, then the
-operation `(i, o)` (`CStep`), then any pending puts taking effect again (`post`), and `none`
-when it is empty (the history is not allowed). The alternatives:
-
-- *an output naming the choice* ("error, applied" / "error, not applied"): the output is the Go
-  value the closure returns and porcupine sees; the closure does not know which happened;
-- *a state carrying a prophesied choice*: a deterministic step needs the choice as part of the
-  state or the operation, which porcupine's Go model would then need too; and the choice's time
-  (a late effect) is not one value;
-- *a set of configurations*: no change to `lintest`, and the Go model is etcd's shape (a list of
-  states, `Equal` on lists). At a commit, the proof steps the real configuration (`CStep`), which
-  is in the set (`kvSeq_step_of_cstep`); a late effect is a step of the real configuration
-  within the set (`KVSet.Closed`, `Closed.reach`), with no operation of the log.
-
-A failed get changes nothing and constrains nothing (etcd's checker drops failed reads from the
-linearization, `isLinearizable`). Keys and values are any types with decidable equality; the
-instance takes etcd's `GoString`s (`ModelKV.lean`). Values only: no revisions (etcd's model also
-checks them; a later refinement).
-
-`kvM dec` is the model on porcupine's operations `α` (the instance: `OpV`, pairs of Go interface
-values) through a decoder `dec` of the Go input and output types, fixed by the translation of
-the Go program (`examples/linkv/linkv.go`: `Input`, `Output`); an operation `dec` rejects is not
-allowed.
+The proof of `Model`: the three closures. `Init`'s state is one empty configuration
+(`gok_init`). `Step` runs `step` on each configuration and `addConfig`s the results
+(`stepAllL`), then `closure`; its result represents `post S i o` (`step_closure_ok`), or is empty
+when the decoder rejects the operation (`step_closure_none`), so its verdict is `kvM`'s.
+`Equal` compares the two lists configuration by configuration (`configEqual`): equal lists
+represent one state.
 -/
 module
 
-public import Proof.github_com.anishathalye.porcupine.Theory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Model
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.step
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.addConfig
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.closure
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.configEqual
 
 @[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 namespace linkv
 
-open github_com.anishathalye.porcupine.Theory
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open github_com.mit_pdos.etcd_grove.examples.linkv github_com.anishathalye.porcupine
 
-variable {K V : Type} [DecidableEq K] [DecidableEq V]
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
 
-/-- An operation's input. -/
-inductive KVIn (K V : Type) where
-  | put (k : K) (v : V)
-  | get (k : K)
+include sem package_sem in
+/-- `Step`'s verdict and next state, from `closure`'s result `out` on `stepAllL gs x y`. -/
+theorem step_result (gs out : List GCfg) (S : KVSet GoString GoString) (x : Input) (y : Output)
+    (hS : GOk gs S) (hc : ClosureOk (stepAllL gs x y) out) (hcl : GClosed out) :
+    ((kvM decOp).step S (boxIn x, boxOut y)).isSome = decide (out ≠ []) ∧
+    ∀ S', (kvM decOp).step S (boxIn x, boxOut y) = some S' → GOk out S' := by
+  have hstep : (kvM decOp).step S (boxIn x, boxOut y) = (decIO x y).bind (kvSeq.step S) := by
+    simp only [kvM, decOp_box (sem := sem) (package_sem := package_sem)]
+  rw [hstep]
+  cases hd : decIO x y with
+  | none =>
+    have := step_closure_none gs out x y hd hc
+    subst this
+    simp
+  | some io =>
+    obtain ⟨i, o⟩ := io
+    have hok := step_closure_ok gs out S x y i o hS hd hc hcl
+    have hpost : post S i o = setOf out := hok.2
+    simp only [Option.bind_some]
+    refine ⟨?_, ?_⟩
+    · simp only [kvSeq]
+      split
+      · next h =>
+        rw [hpost] at h
+        simp [(setOf_nonempty out).1 h]
+      · next h =>
+        have : ¬ out ≠ [] := fun hne => h (hpost ▸ (setOf_nonempty out).2 hne)
+        simp only [Option.isSome_none]
+        exact (decide_eq_false this).symm
+    · intro S' h
+      rw [kvSeq_step_some h]
+      exact hok
 
-/-- An operation's output: a put's `ok`, a get's value (none: the key is absent), or an error. -/
-inductive KVOut (V : Type) where
-  | ok
-  | okGet (r : Option V)
-  | err
+theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
+    (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
+    (wp_closure : closure.spec (GF := GF) (hG := hG))
+    (wp_configEqual : configEqual.spec (GF := GF) (hG := hG)) :
+    Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpecB
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    wp_apply wp_slice_literal (V := kvConfig) (l := [zero_val kvConfig])
+    isplitr
+    · ipureintro; rfl
+    iintro %sl0 ⟨Hsl, _⟩
+    ipersist Hsl
+    wp_auto
+    iapply HΦ'
+    unfold stRepB
+    iexists _, [zero_val kvConfig], [⟨[], []⟩]
+    isplitr
+    · ipureintro
+      exact ⟨rfl, gok_init, fun g hg => by
+        simp only [List.mem_singleton] at hg; subst hg; simp [Bounded]⟩
+    isplitr
+    · iexact Hsl
+    iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
+    unfold cfgOwn
+    ihave Hn := ownSlice_nil (V := kvEntry) (GF := GF) DFrac.discard
+    isplit
+    · iexact Hn
+    · iexact Hn
+  isplitr
+  · ipureintro; exact ⟨trivial, nofun⟩
+  isplitr
+  · -- Step
+    unfold stepSpecB
+    simp only [linkvS, stRepB]
+    iintro %n %v %S %i %o
+    iintro !> %Φ' ⟨%Hn, #Hrep, %Hio⟩ HΦ'
+    obtain ⟨x, y, rfl, rfl⟩ := Hio
+    icases Hrep with ⟨%sl, %cs, %gs, ⟨%hv, %hok, %hbd⟩, #Hs, #Hcs⟩
+    subst hv
+    ihave %Hl := ownSlice_len $$ Hs
+    ihave %Hlen := BigSepL2.bigSepL2_length $$ Hcs
+    wp_auto
+    wp_apply wp_slice_literal (V := kvConfig) (l := [])
+    isplitr
+    · ipureintro; rfl
+    iintro %nsl ⟨Hn0, Hn0cap⟩
+    wp_auto
+    irename : (in_ptr ↦ x : IProp GF) => Hin
+    ihave HI : (∃ (j : w64) (c0 : kvConfig) (sn : GoSlice) (ncs : List kvConfig),
+        "i" ∷ i_ptr ↦ j ∗ "c" ∷ c_ptr ↦ c0 ∗ "next" ∷ next_ptr ↦ sn ∗ "Hn" ∷ sn ↦* ncs ∗
+        "Hncap" ∷ ownSliceCap kvConfig sn (DFrac.own 1) ∗
+        "#Hncs" ∷ ([∗list] c;g ∈ ncs;(gs.take (sint.nat j)).foldl (stepOneL x y) [], cfgOwn c g) ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len⌝ : IProp GF)
+      $$ [i c next Hn0 Hn0cap]
+    · iexists W64 0, _, _, []
+      rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.foldl_nil]
+      iframe
+      isplitl []
+      · iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2
+        iempintro
+      ipureintro; word
+    wp_for HI
+    wp_if_destruct
+    · have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hif⟩
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      list_elem cs (sint.nat j) as c
+      list_elem gs (sint.nat j) as g
+      wp_apply wp_load_slice_index sl (sint.Z j) cs _ c Hj.1 $$ [Hs] as -
+      · isplit
+        · iexact Hs
+        · ipureintro; exact Hc_lookup
+      ihave #Hc := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
+        Hc_lookup Hg_lookup $$ Hcs
+      have Hgb : Bounded n g := hbd g (List.mem_of_getElem? Hg_lookup)
+      wp_apply wp_step c g x y $$ [$Hc] as %r %rcs ⟨Hr, #Hrcs⟩
+      · ipureintro; unfold Bounded at Hgb; constructor <;> omega
+      ihave %Hrl := ownSlice_len $$ Hr
+      ihave %Hrlen := BigSepL2.bigSepL2_length $$ Hrcs
+      have Htake : (gs.take (sint.nat (j + W64 1))).foldl (stepOneL x y) [] =
+          stepOneL x y ((gs.take (sint.nat j)).foldl (stepOneL x y) []) g := by
+        rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, List.take_add_one, Hg_lookup]
+        simp
+      generalize (gs.take (sint.nat j)).foldl (stepOneL x y) [] = acc at Htake ⊢
+      ihave HJ : (∃ (k : w64) (d0 : kvConfig) (sn' : GoSlice) (ncs' : List kvConfig),
+          "i" ∷ i_ptr ↦ k ∗ "d" ∷ d_ptr ↦ d0 ∗ "next" ∷ next_ptr ↦ sn' ∗ "Hn" ∷ sn' ↦* ncs' ∗
+          "Hncap" ∷ ownSliceCap kvConfig sn' (DFrac.own 1) ∗
+          "#Hncs" ∷ ([∗list] c;g ∈ ncs';((stepL g x y).take (sint.nat k)).foldl addConfigL acc,
+            cfgOwn c g) ∗
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z r.len⌝ : IProp GF)
+        $$ [i d next Hn Hncap]
+      · iexists W64 0, _, _, ncs
+        rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.foldl_nil]
+        iframe
+        isplitl []
+        · iexact Hncs
+        ipureintro; word
+      wp_for HJ
+      wp_if_destruct
+      · have Hk' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z r.len := ⟨Hk.1, Hif⟩
+        simp only [Hk', _root_.and_self, ↓reduceIte]
+        list_elem rcs (sint.nat k) as d
+        list_elem (stepL g x y) (sint.nat k) as g'
+        wp_apply wp_load_slice_index r (sint.Z k) rcs _ d Hk.1 $$ [Hr] as Hr
+        · iframe; ipureintro; exact Hd_lookup
+        ihave #Hd := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
+          Hd_lookup Hg'_lookup $$ Hrcs
+        wp_apply wp_addConfig sn' ncs' _ d g' $$ [$Hn $Hncap $Hncs $Hd] as %sn'' %ncs'' ⟨Hn, Hncap, #Hncs'⟩
+        wp_for_post
+        iframe
+        iexists k + W64 1, _, sn'', ncs''
+        iframe
+        rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word, List.take_add_one, Hg'_lookup]
+        simp only [Option.toList_some, List.foldl_append, List.foldl_cons, List.foldl_nil]
+        isplitl []
+        · iexact Hncs'
+        ipureintro; word
+      · -- the inner loop's end: `stepOneL` of `g`
+        have hall : (stepL g x y).take (sint.nat k) = stepL g x y :=
+          List.take_of_length_le (by word)
+        rw [hall] at *
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, sn', ncs'
+        iframe
+        rw [Htake, stepOneL]
+        isplitl []
+        · iexact Hncs
+        ipureintro; word
+    · -- `closure` of the configurations' steps
+      have hall : gs.take (sint.nat j) = gs := List.take_of_length_le (by word)
+      rw [hall, show gs.foldl (stepOneL x y) [] = stepAllL gs x y from rfl]
+      have hb1 : ∀ g' ∈ stepAllL gs x y, Bounded (n + 1) g' := by
+        intro g' hg'
+        obtain ⟨g, hg, hs⟩ := (mem_stepAllL gs x y g').1 hg'
+        exact stepL_bounded n g x y (hbd g hg) g' hs
+      wp_apply +noauto wp_closure sn ncs (stepAllL gs x y) (DFrac.own 1) (n + 1) $$ [$Hn $Hncs]
+        as %out %ocs %ogs ⟨-, Hout, -, #Hocs, %Hco⟩
+      · ipureintro; exact ⟨by omega, hb1⟩
+      ipersist Hout
+      obtain ⟨hc, hcl, hob⟩ := Hco
+      obtain ⟨hres1, hres2⟩ := step_result (sem := sem) (package_sem := package_sem) gs ogs S x y hok hc hcl
+      ihave %Hol := ownSlice_len $$ Hout
+      ihave %Holen := BigSepL2.bigSepL2_length $$ Hocs
+      wp_auto
+      iapply HΦ'
+      isplitl []
+      · ipureintro
+        rw [hres1]
+        have h0 : sint.Z (W64 0) = 0 := rfl
+        rw [h0]
+        have hlenO : ogs.length = sint.nat out.len := by rw [← Holen]; exact Hol.1
+        by_cases he : ogs = []
+        · subst he
+          have : sint.Z out.len = 0 := by
+            simp only [List.length_nil] at hlenO; have := Hol.2; word
+          simp [this]
+        · have : 0 < sint.Z out.len := by
+            have := List.length_pos_iff.2 he
+            have := Hol.2
+            word
+          simp [he, this]
+      cases hst : (kvM decOp).step S (boxIn x, boxOut y) with
+      | none => itrivial
+      | some S' =>
+        simp only
+        iexists out, ocs, ogs
+        isplitl []
+        · ipureintro; exact ⟨rfl, hres2 S' hst, hob⟩
+        isplit
+        · iexact Hout
+        · iexact Hocs
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal
+    unfold equalSpec
+    simp only [linkvS]
+    iintro %v %w %s %t
+    iintro !> %Φ' ⟨#Hv, #Hw⟩ HΦ'
+    unfold stRep
+    icases Hv with ⟨%sla, %csa, %gsa, ⟨%hva, %hoka⟩, #Hsa, #Hcsa⟩
+    icases Hw with ⟨%slb, %csb, %gsb, ⟨%hvb, %hokb⟩, #Hsb, #Hcsb⟩
+    subst hva hvb
+    ihave %Hla := ownSlice_len $$ Hsa
+    ihave %Hlb := ownSlice_len $$ Hsb
+    ihave %Hlena := BigSepL2.bigSepL2_length $$ Hcsa
+    ihave %Hlenb := BigSepL2.bigSepL2_length $$ Hcsb
+    wp_auto
+    wp_if_destruct
+    · rename_i iu_ptr
+      have Heq := Hif; clear Hif
+      irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+      ihave HI : (∃ (k j : w64),
+          "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ j ∗
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sla.len ∧
+            gsa.take (sint.nat k) = gsb.take (sint.nat k)⌝ : IProp GF) $$ [i Hiu]
+      · iexists W64 0, _
+        iframe
+        ipureintro; refine ⟨by word, by word, rfl⟩
+      wp_for HI
+      wp_if_destruct
+      · have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sla.len := ⟨Hk.1, Hif⟩
+        have Hb2' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z slb.len := by rw [← Heq]; exact Hb'
+        simp only [Hb', _root_.and_self, ↓reduceIte]
+        list_elem csa (sint.nat k) as ca
+        list_elem gsa (sint.nat k) as ga
+        list_elem csb (sint.nat k) as cb
+        list_elem gsb (sint.nat k) as gb
+        wp_apply wp_load_slice_index sla (sint.Z k) csa _ ca Hk.1 $$ [Hsa] as _
+        · isplit
+          · iexact Hsa
+          · ipureintro; exact Hca_lookup
+        rw [if_pos Hb']
+        wp_apply wp_load_slice_index sla (sint.Z k) csa _ ca Hk.1 $$ [Hsa] as _
+        · isplit
+          · iexact Hsa
+          · ipureintro; exact Hca_lookup
+        simp only [Hb2', _root_.and_self, ↓reduceIte]
+        wp_apply wp_load_slice_index slb (sint.Z k) csb _ cb Hk.1 $$ [Hsb] as _
+        · isplit
+          · iexact Hsb
+          · ipureintro; exact Hcb_lookup
+        ihave #Hca := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
+          Hca_lookup Hga_lookup $$ Hcsa
+        ihave #Hcb := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
+          Hcb_lookup Hgb_lookup $$ Hcsb
+        wp_apply wp_configEqual ca cb ga gb $$ [$Hca $Hcb]
+        cases hab : decide (ga = gb)
+        · -- different: `false`
+          wp_auto
+          wp_for_post
+          iapply HΦ'
+          isplitl []
+          · iexists sla, csa, gsa
+            isplitl []
+            · ipureintro; exact ⟨rfl, hoka⟩
+            isplit
+            · iexact Hsa
+            · iexact Hcsa
+          isplitl []
+          · iexists slb, csb, gsb
+            isplitl []
+            · ipureintro; exact ⟨rfl, hokb⟩
+            isplit
+            · iexact Hsb
+            · iexact Hcsb
+          ipureintro; nofun
+        · wp_auto
+          wp_for_post
+          iframe
+          iexists k + W64 1, _
+          iframe
+          ipureintro
+          refine ⟨by word, by word, ?_⟩
+          rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word, List.take_add_one,
+            List.take_add_one, Hk.2.2, Hga_lookup, Hgb_lookup, of_decide_eq_true hab]
+      · -- all equal: `true`, one state
+        have h1 : gsa.length = sint.nat k := by word
+        have h2 : gsb.length = sint.nat k := by rw [← Hlenb, Hlb.1, ← Heq]; word
+        have heq : gsa = gsb := by
+          have := Hk.2.2
+          rwa [← h1, List.take_length, h1, ← h2, List.take_length] at this
+        iapply HΦ'
+        isplitl []
+        · iexists sla, csa, gsa
+          isplitl []
+          · ipureintro; exact ⟨rfl, hoka⟩
+          isplit
+          · iexact Hsa
+          · iexact Hcsa
+        isplitl []
+        · iexists slb, csb, gsb
+          isplitl []
+          · ipureintro; exact ⟨rfl, hokb⟩
+          isplit
+          · iexact Hsb
+          · iexact Hcsb
+        ipureintro
+        intro _
+        rw [hoka.2, hokb.2, heq]
+    · -- different lengths: `false`
+      iapply HΦ'
+      isplitl []
+      · iexists sla, csa, gsa
+        isplitl []
+        · ipureintro; exact ⟨rfl, hoka⟩
+        isplit
+        · iexact Hsa
+        · iexact Hcsa
+      isplitl []
+      · iexists slb, csb, gsb
+        isplitl []
+        · ipureintro; exact ⟨rfl, hokb⟩
+        isplit
+        · iexact Hsb
+        · iexact Hcsb
+      ipureintro; nofun
+  ileft
+  ipureintro; trivial
 
-/-- A store: every key's value, if any. -/
-abbrev Store (K V : Type) := K → Option V
-
-/-- The store after writing `v` at `k`. -/
-def Store.set (m : Store K V) (k : K) (v : V) : Store K V :=
-  fun k' => if k' = k then some v else m k'
-
-/-- A configuration: the store, and the failed puts that may still take effect. -/
-structure Cfg (K V : Type) where
-  kv : Store K V
-  pend : List (K × V)
-
-/-- A pending put takes effect (once: it leaves the pending list); or the pending list is
-reordered (`perm`: it is a multiset, which the Go model keeps sorted, `insertSorted`, while
-`CStep.putErr` conses; the order is not observable). -/
-inductive Silent : Cfg K V → Cfg K V → Prop where
-  | apply (c : Cfg K V) (k : K) (v : V) (h : (k, v) ∈ c.pend) :
-      Silent c ⟨c.kv.set k v, c.pend.erase (k, v)⟩
-  | perm (c : Cfg K V) (p : List (K × V)) (h : p.Perm c.pend) : Silent c ⟨c.kv, p⟩
-
-/-- Any number of pending puts take effect. -/
-inductive Reach : Cfg K V → Cfg K V → Prop where
-  | refl (c : Cfg K V) : Reach c c
-  | step {c c₁ c₂ : Cfg K V} : Silent c c₁ → Reach c₁ c₂ → Reach c c₂
-
-/-- **One operation on a configuration**: a put that returned `ok` takes effect; a put that
-failed becomes pending; a get that read `r` finds `r` at its key; a failed get does nothing. -/
-inductive CStep : Cfg K V → KVIn K V → KVOut V → Cfg K V → Prop where
-  | putOk (c : Cfg K V) (k : K) (v : V) : CStep c (.put k v) .ok ⟨c.kv.set k v, c.pend⟩
-  | putErr (c : Cfg K V) (k : K) (v : V) : CStep c (.put k v) .err ⟨c.kv, (k, v) :: c.pend⟩
-  | getOk (c : Cfg K V) (k : K) : CStep c (.get k) (.okGet (c.kv k)) c
-  | getErr (c : Cfg K V) (k : K) : CStep c (.get k) .err c
-
-/-- The model's state: the configurations the history may have reached. -/
-abbrev KVSet (K V : Type) := Cfg K V → Prop
-
-/-- The configurations after `(i, o)` from `S` (see the file header). -/
-def post (S : KVSet K V) (i : KVIn K V) (o : KVOut V) : KVSet K V :=
-  fun c' => ∃ c₀ c c₁, S c₀ ∧ Reach c₀ c ∧ CStep c i o c₁ ∧ Reach c₁ c'
-
-/-- The initial state: the empty store, nothing pending. -/
-def kvInit : KVSet K V := fun c => c = ⟨fun _ => none, []⟩
-
-open Classical in
-/-- **The sequential model** on abstract operations (see the file header). -/
-noncomputable def kvSeq : SeqModel (KVSet K V) (KVIn K V × KVOut V) where
-  init := kvInit
-  step S io := if ∃ c, post S io.1 io.2 c then some (post S io.1 io.2) else none
-
-/-- **The model on porcupine's operations** `α`, through the decoder `dec`. -/
-noncomputable def kvM {α : Type} (dec : α → Option (KVIn K V × KVOut V)) :
-    SeqModel (KVSet K V) α where
-  init := kvInit
-  step S a := (dec a).bind (kvSeq.step S)
-
-theorem kvM_step {α : Type} (dec : α → Option (KVIn K V × KVOut V)) (S : KVSet K V) (a : α)
-    (i : KVIn K V) (o : KVOut V) (h : dec a = some (i, o)) :
-    (kvM dec).step S a = kvSeq.step S (i, o) := by
-  simp [kvM, h]
-
-/-! ## The lemmas the instance's proof needs -/
-
-theorem Reach.trans {c₁ c₂ c₃ : Cfg K V} (h₁ : Reach c₁ c₂) (h₂ : Reach c₂ c₃) : Reach c₁ c₃ := by
-  induction h₁ with
-  | refl => exact h₂
-  | step hs _ ih => exact .step hs (ih h₂)
-
-theorem Reach.single {c c' : Cfg K V} (h : Silent c c') : Reach c c' := .step h (.refl _)
-
-/-- **A commit**: the real configuration `c` is in `S` and steps by `(i, o)` to `c₁` (and then
-by pending puts to `c'`); the model allows `(i, o)`, and its next state holds `c'`. -/
-theorem kvSeq_step_of_cstep {S : KVSet K V} {c c₁ c' : Cfg K V} {i : KVIn K V} {o : KVOut V}
-    (hS : S c) (h : CStep c i o c₁) (hr : Reach c₁ c') :
-    ∃ S', kvSeq.step S (i, o) = some S' ∧ S' c' := by
-  have hp : post S i o c' := ⟨c, c, c₁, hS, .refl _, h, hr⟩
-  refine ⟨post S i o, ?_, hp⟩
-  simp only [kvSeq]
-  split
-  · rfl
-  · next hn => exact absurd ⟨c', hp⟩ hn
-
-/-- What the model's next state is, when it allows `(i, o)`. -/
-theorem kvSeq_step_some {S S' : KVSet K V} {i : KVIn K V} {o : KVOut V}
-    (h : kvSeq.step S (i, o) = some S') : S' = post S i o := by
-  simp only [kvSeq] at h
-  split at h
-  · exact (Option.some.inj h).symm
-  · cases h
-
-/-- A state is closed under late effects. -/
-def KVSet.Closed (S : KVSet K V) : Prop := ∀ c c', S c → Reach c c' → S c'
-
-/-- **A late effect**: a pending put of the real configuration takes effect, within the set. -/
-theorem KVSet.Closed.reach {S : KVSet K V} (hS : S.Closed) {c c' : Cfg K V} (hc : S c)
-    (h : Reach c c') : S c' := hS c c' hc h
-
-theorem kvInit_closed : (kvInit : KVSet K V).Closed := by
-  intro c c' hc h
-  subst hc
-  suffices H : ∀ a b : Cfg K V, Reach a b → a = ⟨fun _ => none, []⟩ → b = ⟨fun _ => none, []⟩ from
-    H _ _ h rfl
-  intro a b h
-  induction h with
-  | refl => exact id
-  | step hs _ ih =>
-    intro ha
-    subst ha
-    cases hs with
-    | apply _ _ hm => cases hm
-    | perm p hp => exact ih (by simp only at hp; rw [List.Perm.eq_nil hp])
-
-theorem post_closed (S : KVSet K V) (i : KVIn K V) (o : KVOut V) : (post S i o).Closed := by
-  rintro c c' ⟨c₀, c₂, c₁, h0, hr0, hs, hr1⟩ h
-  exact ⟨c₀, c₂, c₁, h0, hr0, hs, hr1.trans h⟩
-
-/-- Every state the model reaches is closed. -/
-theorem kvSeq_step_closed {S S' : KVSet K V} {i : KVIn K V} {o : KVOut V}
-    (h : kvSeq.step S (i, o) = some S') : S'.Closed := by
-  rw [kvSeq_step_some h]; exact post_closed S i o
-
-/-- A put that returned `ok`, at the real configuration `c ∈ S`. -/
-theorem kvSeq_putOk {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) (v : V) :
-    ∃ S', kvSeq.step S (.put k v, .ok) = some S' ∧ S' ⟨c.kv.set k v, c.pend⟩ :=
-  kvSeq_step_of_cstep hS (.putOk c k v) (.refl _)
-
-/-- A put that failed, having taken effect at the commit (the server applied it during the
-call): pending, then applied. -/
-theorem kvSeq_putErr_applied {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) (v : V) :
-    ∃ S', kvSeq.step S (.put k v, .err) = some S' ∧ S' ⟨c.kv.set k v, c.pend⟩ := by
-  refine kvSeq_step_of_cstep hS (.putErr c k v) (.single ?_)
-  have h := Silent.apply ⟨c.kv, (k, v) :: c.pend⟩ k v List.mem_cons_self
-  simpa [List.erase_cons_head] using h
-
-/-- A put that failed, not (yet) applied at the commit (the call's return): pending. -/
-theorem kvSeq_putErr_pending {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) (v : V) :
-    ∃ S', kvSeq.step S (.put k v, .err) = some S' ∧ S' ⟨c.kv, (k, v) :: c.pend⟩ :=
-  kvSeq_step_of_cstep hS (.putErr c k v) (.refl _)
-
-/-- A get that read the real configuration's value. -/
-theorem kvSeq_getOk {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) :
-    ∃ S', kvSeq.step S (.get k, .okGet (c.kv k)) = some S' ∧ S' c :=
-  kvSeq_step_of_cstep hS (.getOk c k) (.refl _)
-
-/-- A failed get. -/
-theorem kvSeq_getErr {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) :
-    ∃ S', kvSeq.step S (.get k, .err) = some S' ∧ S' c :=
-  kvSeq_step_of_cstep hS (.getErr c k) (.refl _)
-
-/-- A pending put takes effect late (no operation of the log). -/
-theorem KVSet.Closed.apply {S : KVSet K V} (hS : S.Closed) {c : Cfg K V} (hc : S c) {k : K} {v : V}
-    (hm : (k, v) ∈ c.pend) : S ⟨c.kv.set k v, c.pend.erase (k, v)⟩ :=
-  hS.reach hc (.single (.apply c k v hm))
-
-/-! ## Sanity: the history of the file header is allowed -/
-
-/-- A failed put of `k ↦ v`, a get of `k` not seeing it, a get seeing it: allowed (`run` reaches
-a state), with the put taking effect between the gets. -/
-example (k : K) (v : V) :
-    (run kvSeq kvInit [(.put k v, .err), (.get k, .okGet none), (.get k, .okGet (some v))]).isSome := by
-  have h0 : (kvInit : KVSet K V) ⟨fun _ => none, []⟩ := rfl
-  obtain ⟨S1, h1, m1⟩ := kvSeq_putErr_pending h0 k v
-  obtain ⟨S2, h2, m2⟩ := kvSeq_getOk m1 k
-  have m2' : S2 ⟨Store.set (fun _ => none) k v, []⟩ := by
-    have := (kvSeq_step_closed h2).apply m2 (k := k) (v := v) List.mem_cons_self
-    simpa [List.erase_cons_head] using this
-  obtain ⟨S3, h3, -⟩ := kvSeq_getOk m2' k
-  simp only [Store.set, ite_true] at h3
-  simp [run, h1, h2, h3]
+end proof
 
 end linkv
 end EtcdGrove

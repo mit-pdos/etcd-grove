@@ -1,12 +1,12 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# linkv: the Go model's pure form, against `Model.lean`'s (2026-10-19)
+# linkv: the Go model's pure form, against `KVModel.lean`'s (2026-10-19)
 
 `examples/linkv/linkv.go`'s `Model()` computes on Go values: a state is a list of
 configurations (`kvConfig`), each a store (`kv`, a list of `kvEntry`s) and the pending puts
 (`pend`, a list of `kvEntry`s). Here are the pure functions the Go helpers compute, as the specs
-state them (`Spec/.../linkv/<fn>.lean`), and how they abstract to `Model.lean`'s model
+state them (`Spec/.../linkv/<fn>.lean`), and how they abstract to `KVModel.lean`'s model
 (`kvSeq`, `kvM`):
 
 - `GCfg`: a configuration's contents (the two lists); `absCfg g` its `Cfg` (`absStore`: a key's
@@ -33,7 +33,7 @@ the pending puts' order (`Silent.perm`) or the state's lack of duplicates (`addC
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.KVModel
 public import Code.github_com.mit_pdos.etcd_grove.examples.linkv
 
 @[expose] public section
@@ -409,8 +409,8 @@ theorem closed_of_succ (out : List GCfg)
     | perm p hp =>
       exact ih g hg ⟨he.1, he.2.trans hp.symm⟩
 
-/-- A configuration's lengths, bounded (`set`'s and `insertSorted`'s premise). -/
-def Bounded (g : GCfg) : Prop := g.kv.length + g.pend.length + 1 < 2 ^ 63
+/-- A configuration's lengths, bounded by `n` (for `set`'s and `insertSorted`'s premise). -/
+def Bounded (n : Nat) (g : GCfg) : Prop := g.kv.length + g.pend.length < n
 
 theorem length_setR_le (k v : GoString) (es : List kvEntry) :
     (setR k v es).length ≤ es.length + 1 := by
@@ -432,8 +432,8 @@ theorem length_removeAtL (es : List kvEntry) (i : Nat) (h : i < es.length) :
   omega
 
 /-- A configuration `closure` pushes is no longer than its parent. -/
-theorem bounded_succAt (g : GCfg) (i : Nat) (hb : Bounded g) (hi : i < g.pend.length) :
-    Bounded (succAt g i) := by
+theorem bounded_succAt (n : Nat) (g : GCfg) (i : Nat) (hb : Bounded n g)
+    (hi : i < g.pend.length) : Bounded n (succAt g i) := by
   unfold Bounded at hb ⊢
   have h1 := length_setL_le g.kv (pendAt g i).key' (pendAt g i).val'
   have h2 := length_removeAtL g.pend i hi
@@ -449,12 +449,13 @@ theorem mem_succsUpTo (g h : GCfg) (j : Nat) :
   simp [succsUpTo]
 
 /-- `closure`'s loop invariant, on `out` and `work` (see `closure.lean`). -/
-def CloInv (gs out work : List GCfg) : Prop :=
-  (∀ g ∈ out ++ work, (∃ g₀ ∈ gs, Reach (absCfg g₀) (absCfg g)) ∧ Bounded g) ∧
+def CloInv (gs : List GCfg) (n : Nat) (out work : List GCfg) : Prop :=
+  (∀ g ∈ out ++ work, (∃ g₀ ∈ gs, Reach (absCfg g₀) (absCfg g)) ∧ Bounded n g) ∧
   (∀ g₀ ∈ gs, g₀ ∈ out ++ work) ∧
   (∀ g ∈ out, ∀ i < g.pend.length, succAt g i ∈ out ++ work)
 
-theorem cloInv_init (gs : List GCfg) (hb : ∀ g ∈ gs, Bounded g) : CloInv gs [] gs := by
+theorem cloInv_init (gs : List GCfg) (n : Nat) (hb : ∀ g ∈ gs, Bounded n g) :
+    CloInv gs n [] gs := by
   refine ⟨?_, ?_, ?_⟩
   · intro g hg
     simp only [List.nil_append] at hg
@@ -463,8 +464,8 @@ theorem cloInv_init (gs : List GCfg) (hb : ∀ g ∈ gs, Bounded g) : CloInv gs 
   · intro g hg; cases hg
 
 /-- A configuration already in `out`: dropped. -/
-theorem cloInv_skip (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (work ++ [h]))
-    (hm : h ∈ out) : CloInv gs out work := by
+theorem cloInv_skip (gs : List GCfg) (n : Nat) (out work : List GCfg) (h : GCfg)
+    (hI : CloInv gs n out (work ++ [h])) (hm : h ∈ out) : CloInv gs n out work := by
   obtain ⟨h1, h2, h3⟩ := hI
   have sub : ∀ g, g ∈ out ++ (work ++ [h]) → g ∈ out ++ work := by
     intro g hg
@@ -484,8 +485,9 @@ theorem cloInv_skip (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (wo
   · intro g hg i hi; exact sub _ (h3 g hg i hi)
 
 /-- A configuration not yet in `out`: added, and its successors pushed. -/
-theorem cloInv_add (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (work ++ [h]))
-    (hm : h ∉ out) : CloInv gs (out ++ [h]) (work ++ succsUpTo h h.pend.length) := by
+theorem cloInv_add (gs : List GCfg) (n : Nat) (out work : List GCfg) (h : GCfg)
+    (hI : CloInv gs n out (work ++ [h])) (hm : h ∉ out) :
+    CloInv gs n (out ++ [h]) (work ++ succsUpTo h h.pend.length) := by
   obtain ⟨h1, h2, h3⟩ := hI
   have hh := h1 h (by simp)
   refine ⟨?_, ?_, ?_⟩
@@ -497,7 +499,7 @@ theorem cloInv_add (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (wor
     · exact h1 g (by simp [hg])
     · obtain ⟨i, hi, rfl⟩ := (mem_succsUpTo h g _).1 hg
       obtain ⟨⟨g₀, hg₀, hr⟩, hb⟩ := hh
-      exact ⟨⟨g₀, hg₀, hr.trans (reach_succAt h i hi)⟩, bounded_succAt h i hb hi⟩
+      exact ⟨⟨g₀, hg₀, hr.trans (reach_succAt h i hi)⟩, bounded_succAt n h i hb hi⟩
   · intro g₀ hg₀
     have := h2 g₀ hg₀
     simp only [List.mem_append, List.mem_singleton] at this ⊢
@@ -517,8 +519,8 @@ theorem cloInv_add (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (wor
     · exact Or.inr (Or.inr ((mem_succsUpTo _ _ _).2 ⟨i, hi, rfl⟩))
 
 /-- At the end of `closure`'s loop (`work` empty): `ClosureOk`, closed, bounded. -/
-theorem cloInv_done (gs out : List GCfg) (hI : CloInv gs out []) :
-    ClosureOk gs out ∧ GClosed out ∧ ∀ g ∈ out, Bounded g := by
+theorem cloInv_done (gs : List GCfg) (n : Nat) (out : List GCfg) (hI : CloInv gs n out []) :
+    ClosureOk gs out ∧ GClosed out ∧ ∀ g ∈ out, Bounded n g := by
   obtain ⟨h1, h2, h3⟩ := hI
   simp only [List.append_nil] at h1 h2 h3
   have hc : GClosed out := closed_of_succ out h3
@@ -561,6 +563,27 @@ theorem lookupL_none (es : List kvEntry) (k : GoString) (h : ∀ x ∈ es, x.key
   have hn : es.find? (fun e => decide (e.key' = k)) = none := by
     rw [List.find?_eq_none]; intro x hx; simpa using h x hx
   unfold lookupL; rw [hn]
+
+/-- A step lengthens a configuration by at most one entry. -/
+theorem stepL_bounded (n : Nat) (g : GCfg) (x : Input) (y : Output) (hb : Bounded n g)
+    (g' : GCfg) (hg' : g' ∈ stepL g x y) : Bounded (n + 1) g' := by
+  unfold Bounded at hb ⊢
+  unfold stepL at hg'
+  have hins := (insertSortedL_perm g.pend ⟨x.Key', x.Val'⟩).length_eq
+  have hset := length_setL_le g.kv x.Key' x.Val'
+  simp only [List.length_cons] at hins
+  split at hg'
+  · split at hg'
+    · simp only [List.mem_singleton] at hg'; subst hg'; simp only; omega
+    · split at hg'
+      · cases hg'
+      · simp only [List.mem_singleton] at hg'; subst hg'; simp only; omega
+  · split at hg'
+    · simp only [List.mem_singleton] at hg'; subst hg'; omega
+    · simp only at hg'
+      split at hg'
+      · cases hg'
+      · simp only [List.mem_singleton] at hg'; subst hg'; omega
 
 /-- A configuration's step by `stepL` is a `CStep` of its model configuration. -/
 theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (i : KVIn GoString GoString)

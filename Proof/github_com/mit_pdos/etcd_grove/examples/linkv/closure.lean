@@ -37,8 +37,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumption
 theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
     (wp_set : set.spec (GF := GF) (hG := hG)) (wp_removeAt : removeAt.spec (GF := GF) (hG := hG)) :
     closure.spec (GF := GF) (hG := hG) := by
-  intro s cs gs dq
-  wp_start as ⟨Hs, #Hcs, %Hb⟩
+  intro s cs gs dq n
+  wp_start as ⟨Hs, #Hcs, %Hn, %Hb⟩
   ihave %Hl := ownSlice_len $$ Hs
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hcs
   wp_auto
@@ -60,7 +60,7 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       "Hwcap" ∷ ownSliceCap kvConfig sw (DFrac.own 1) ∗
       "#Hocs" ∷ ([∗list] c;g ∈ ocs;ogs, cfgOwn c g) ∗
       "#Hwcs" ∷ ([∗list] c;g ∈ wcs;wgs, cfgOwn c g) ∗
-      "%Hinv" ∷ ⌜CloInv gs ogs wgs⌝ : IProp GF) $$ [out Ho Hocap work Hw Hwcap]
+      "%Hinv" ∷ ⌜CloInv gs n ogs wgs⌝ : IProp GF) $$ [out Ho Hocap work Hw Hwcap]
   · iexists (slice.mk osl (W64 (go.arrayLiteralSize [])) (W64 (go.arrayLiteralSize []))), w,
       [], cs, [], gs
     iframe
@@ -69,7 +69,7 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       iempintro
     isplitl []
     · iexact Hcs
-    ipureintro; exact cloInv_init gs Hb
+    ipureintro; exact cloInv_init gs n Hb
   wp_for HI
   ihave %Hwl := ownSlice_len $$ Hw
   ihave %Hwlen := BigSepL2.bigSepL2_length $$ Hwcs
@@ -121,11 +121,11 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
       · iexact Hocs'
       isplitl []
       · iexact Hwc
-      ipureintro; exact cloInv_skip gs ogs wg h Hinv hm
+      ipureintro; exact cloInv_skip gs n ogs wg h Hinv hm
     · rw [if_neg hm] at Holen'
       have hlen : so'.len ≠ so.len := by intro he; rw [he] at Hol'; word
       rw [show addConfigL ogs h = ogs ++ [h] from if_neg hm, decide_eq_false hlen]
-      have Hhb : Bounded h := (Hinv.1 h (by simp)).2
+      have Hhb : Bounded n h := (Hinv.1 h (by simp)).2
       unfold cfgOwn
       icases Hd with ⟨#Hdk, #Hdp⟩
       ihave %Hpl := ownSlice_len $$ Hdp
@@ -157,7 +157,9 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
           · iexact Hdp
           · ipureintro; exact Hx_lookup
         wp_apply wp_set d.kv' h.kv DFrac.discard x.key' x.val' $$ [$Hdk] as %nk ⟨-, Hnk, -⟩
-        · ipureintro; unfold Bounded at Hhb; omega
+        · ipureintro; unfold Bounded at Hhb
+          have : 0 < h.pend.length := by word
+          omega
         ipersist Hnk
         wp_apply wp_removeAt d.pend' h.pend DFrac.discard j $$ [$Hdp] as %np ⟨-, Hnp, -⟩
         · ipureintro; exact Hb'
@@ -205,14 +207,14 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
           isplit
           · iexact Hwc
           · iexact Hn
-        ipureintro; exact cloInv_add gs ogs wg h Hinv hm
+        ipureintro; exact cloInv_add gs n ogs wg h Hinv hm
   · have Hz : ¬ 0 < sint.Z sw.len := by
       have h0 : sint.Z (W64 0) = 0 := rfl
       rw [h0] at Hif; exact Hif
     have hw0 : wcs = [] := List.eq_nil_of_length_eq_zero (by word)
     have hg0 : wgs = [] := List.eq_nil_of_length_eq_zero (by rw [← Hwlen, hw0]; rfl)
     subst hg0
-    obtain ⟨h1, h2, h3⟩ := cloInv_done gs ogs Hinv
+    obtain ⟨h1, h2, h3⟩ := cloInv_done gs n ogs Hinv
     iapply HΦ
     iframe
     isplitl []

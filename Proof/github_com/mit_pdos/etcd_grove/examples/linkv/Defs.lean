@@ -21,7 +21,9 @@ configuration `c`'s two slices hold `g`, read-only: configurations share slices,
 `c.kv` in a new configuration); `stRep v S` (a Go state value: a boxed `state`, its slice and
 configurations read-only, whose contents `gs` represent `S`, `GOk gs S`); and `linkvS`, the
 model's `ModelSpec`: `kvM decOp`, `stRep`, and `ioOk i o` (a boxed `Input` and a boxed `Output`,
-what `Step`'s type assertions need).
+what `Step`'s type assertions need). `stRepB n v S` is `stRep v S` with every configuration's
+lengths below `n` (`Bounded n`): `Model.spec`'s `Step` keeps the state's lengths bounded, one
+more after each step (see `Spec/.../linkv/Model.lean`).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
 translation's field projections (`get_Put`, ...: a deterministic pure step from `#x` to `#x.f`),
@@ -146,6 +148,24 @@ def stRep (v : GoInterface) (S : KVSet GoString GoString) : IProp GF :=
 instance stRep_persistent (v : GoInterface) (S : KVSet GoString GoString) :
     Persistent (stRep (GF := GF) v S) := by
   unfold stRep; infer_instance
+
+/-- `stRep`, with every configuration's lengths bounded by `n` (`Bounded n`). -/
+def stRepB (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) : IProp GF :=
+  iprop(∃ (sl : GoSlice) (cs : List kvConfig) (gs : List GCfg),
+    ⌜v = boxSt sl ∧ GOk gs S ∧ ∀ g ∈ gs, Bounded n g⌝ ∗ sl ↦*□ cs ∗
+      [∗list] c;g ∈ cs;gs, cfgOwn c g)
+
+instance stRepB_persistent (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) :
+    Persistent (stRepB (GF := GF) n v S) := by
+  unfold stRepB; infer_instance
+
+theorem stRepB_stRep (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) :
+    stRepB (GF := GF) n v S ⊢ stRep v S := by
+  unfold stRepB stRep
+  iintro ⟨%sl, %cs, %gs, ⟨%hv, %hok, -⟩, Hs, Hcs⟩
+  iexists sl, cs, gs
+  iframe
+  ipureintro; exact ⟨hv, hok⟩
 
 /-- **The model's specification** (see the file header). -/
 def linkvS : github_com.anishathalye.porcupine.ModelSpec GF (KVSet GoString GoString) where
