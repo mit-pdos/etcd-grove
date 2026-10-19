@@ -592,12 +592,24 @@ needs (`ownTracker_lookup`). -/
     (progressSentEntries p e b).learner = p.learner := by
   unfold progressSentEntries; split <;> (try split) <;> rfl
 
+@[simp] theorem progressSentEntries_witness (p : Progress) (e b : w64) :
+    (progressSentEntries p e b).witness = p.witness := by
+  unfold progressSentEntries; split <;> (try split) <;> rfl
+
 @[simp] theorem progressMaybeUpdate_learner (p : Progress) (n : w64) :
     (progressMaybeUpdate p n).learner = p.learner := by
   unfold progressMaybeUpdate; split <;> rfl
 
+@[simp] theorem progressMaybeUpdate_witness (p : Progress) (n : w64) :
+    (progressMaybeUpdate p n).witness = p.witness := by
+  unfold progressMaybeUpdate; split <;> rfl
+
 @[simp] theorem progressMaybeDecrTo_learner (p : Progress) (a b : w64) :
     (progressMaybeDecrTo p a b).2.learner = p.learner := by
+  unfold progressMaybeDecrTo; split <;> (try split) <;> rfl
+
+@[simp] theorem progressMaybeDecrTo_witness (p : Progress) (a b : w64) :
+    (progressMaybeDecrTo p a b).2.witness = p.witness := by
   unfold progressMaybeDecrTo; split <;> (try split) <;> rfl
 
 section logstate

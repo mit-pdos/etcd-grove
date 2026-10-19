@@ -1956,6 +1956,15 @@ theorem ownRaftPhysC_tracker (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with votes := votes' }
 
+/-- No peer is the witness (2026-10-19, witness support): `NoWitP` of the `Progress` records. -/
+theorem ownRaftPhysC_nowit (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜NoWitP s.prvals⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_nowit c tv _ $$ Htrk with ⟨%Hnw, Htrk⟩
+  isplitr; · ipureintro; exact Hnw
+  iapply Hback $$ %tv %s.votes Hf Htrk
+
 /-- `r.trk.Epoch` (2026-10-19, witness support): a witness-free epoch (`ownEpochNW`). -/
 theorem raft.wp_load_trk_EpochC (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}

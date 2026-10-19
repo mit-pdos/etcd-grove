@@ -201,7 +201,7 @@ local macro "msa_send" : tactic => `(tactic| (
     fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; obtain ⟨Hl1, -⟩ := Hlen; simp only [List.length_nil] at Hl1; word)
   wp_apply wp_Progress_SentEntries pr p _ _ Hnosnap Hwin2 $$ [Hpa] as Hpa
   · iframe
-  ihave Hphys := Hpback $$ %_ Hpa %(progressSentEntries_learner _ _ _)
+  ihave Hphys := Hpback $$ %_ Hpa %(And.intro (progressSentEntries_learner _ _ _) (progressSentEntries_witness _ _ _))
     %(sentEntries_ok s p sl_e es_e psz Hok Hnw Hlen Hlo Hpkgpre)
   -- `pr.SentCommit(r.raftLog.committed)`: the argument first, then `pr` once more, at
   -- the value `SentEntries` left
@@ -324,6 +324,7 @@ theorem raft.maybeSendAppend.wp_proof
   rw [Hlk]
   dsimp only [Option.getD_some]
   -- `pr.IsPaused()` and `prevIndex := pr.Next - 1`, on `pr` borrowed
+  icases ownRaftPhysC_nowit c r id s $$ Hphys with ⟨%Hnwit, Hphys⟩
   icases ownRaftPhysC_pr c r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_IsPaused $$ [$Hpa] as Hpa
   cases Hpaused : progressIsPaused p
@@ -345,6 +346,11 @@ theorem raft.maybeSendAppend.wp_proof
   -- `pr.Next`, read off the value: the record's `next`
   iNamed Hpa
   obtain ⟨-, Hst, -, Hnx, -⟩ := (progressAbs_Some _ _ _).1 Habs
+  -- (2026-10-19, witness support) `|| pr.IsWitness`: not the witness (`NoWitP`)
+  have Hw : pv.IsWitness' = false :=
+    ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnwit to p Hpvs)
+  wp_auto
+  rw [Hw]
   wp_auto
   rw [Hnx]
   ihave Hphys := Hpback $$ [Hpv Hinfl]
