@@ -409,6 +409,122 @@ theorem closed_of_succ (out : List GCfg)
     | perm p hp =>
       exact ih g hg ⟨he.1, he.2.trans hp.symm⟩
 
+/-- A configuration's lengths, bounded (`set`'s and `insertSorted`'s premise). -/
+def Bounded (g : GCfg) : Prop := g.kv.length + g.pend.length + 1 < 2 ^ 63
+
+theorem length_setR_le (k v : GoString) (es : List kvEntry) :
+    (setR k v es).length ≤ es.length + 1 := by
+  induction es with
+  | nil => simp [setR]
+  | cons e es ih =>
+    simp only [setR]
+    split
+    · split <;> simp
+    · simp only [List.length_cons]; omega
+
+theorem length_setL_le (es : List kvEntry) (k v : GoString) :
+    (setL es k v).length ≤ es.length + 1 := by
+  rw [setL_eq]; exact length_setR_le k v es
+
+theorem length_removeAtL (es : List kvEntry) (i : Nat) (h : i < es.length) :
+    (removeAtL es i).length = es.length - 1 := by
+  simp only [removeAtL, List.length_append, List.length_take, List.length_drop]
+  omega
+
+/-- A configuration `closure` pushes is no longer than its parent. -/
+theorem bounded_succAt (g : GCfg) (i : Nat) (hb : Bounded g) (hi : i < g.pend.length) :
+    Bounded (succAt g i) := by
+  unfold Bounded at hb ⊢
+  have h1 := length_setL_le g.kv (pendAt g i).key' (pendAt g i).val'
+  have h2 := length_removeAtL g.pend i hi
+  simp only [succAt]
+  omega
+
+theorem succsUpTo_succ (g : GCfg) (j : Nat) :
+    succsUpTo g (j + 1) = succsUpTo g j ++ [succAt g j] := by
+  simp [succsUpTo, List.range_succ]
+
+theorem mem_succsUpTo (g h : GCfg) (j : Nat) :
+    h ∈ succsUpTo g j ↔ ∃ i < j, succAt g i = h := by
+  simp [succsUpTo]
+
+/-- `closure`'s loop invariant, on `out` and `work` (see `closure.lean`). -/
+def CloInv (gs out work : List GCfg) : Prop :=
+  (∀ g ∈ out ++ work, (∃ g₀ ∈ gs, Reach (absCfg g₀) (absCfg g)) ∧ Bounded g) ∧
+  (∀ g₀ ∈ gs, g₀ ∈ out ++ work) ∧
+  (∀ g ∈ out, ∀ i < g.pend.length, succAt g i ∈ out ++ work)
+
+theorem cloInv_init (gs : List GCfg) (hb : ∀ g ∈ gs, Bounded g) : CloInv gs [] gs := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro g hg
+    simp only [List.nil_append] at hg
+    exact ⟨⟨g, hg, .refl _⟩, hb g hg⟩
+  · intro g hg; simpa using hg
+  · intro g hg; cases hg
+
+/-- A configuration already in `out`: dropped. -/
+theorem cloInv_skip (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (work ++ [h]))
+    (hm : h ∈ out) : CloInv gs out work := by
+  obtain ⟨h1, h2, h3⟩ := hI
+  have sub : ∀ g, g ∈ out ++ (work ++ [h]) → g ∈ out ++ work := by
+    intro g hg
+    simp only [List.mem_append, List.mem_singleton] at hg ⊢
+    rcases hg with hg | hg | rfl
+    · exact Or.inl hg
+    · exact Or.inr hg
+    · exact Or.inl hm
+  refine ⟨?_, ?_, ?_⟩
+  · intro g hg
+    refine h1 g ?_
+    simp only [List.mem_append, List.mem_singleton] at hg ⊢
+    rcases hg with hg | hg
+    · exact Or.inl hg
+    · exact Or.inr (Or.inl hg)
+  · intro g₀ hg₀; exact sub _ (h2 g₀ hg₀)
+  · intro g hg i hi; exact sub _ (h3 g hg i hi)
+
+/-- A configuration not yet in `out`: added, and its successors pushed. -/
+theorem cloInv_add (gs out work : List GCfg) (h : GCfg) (hI : CloInv gs out (work ++ [h]))
+    (hm : h ∉ out) : CloInv gs (out ++ [h]) (work ++ succsUpTo h h.pend.length) := by
+  obtain ⟨h1, h2, h3⟩ := hI
+  have hh := h1 h (by simp)
+  refine ⟨?_, ?_, ?_⟩
+  · intro g hg
+    simp only [List.mem_append, List.mem_singleton] at hg
+    rcases hg with (hg | rfl) | hg | hg
+    · exact h1 g (by simp [hg])
+    · exact hh
+    · exact h1 g (by simp [hg])
+    · obtain ⟨i, hi, rfl⟩ := (mem_succsUpTo h g _).1 hg
+      obtain ⟨⟨g₀, hg₀, hr⟩, hb⟩ := hh
+      exact ⟨⟨g₀, hg₀, hr.trans (reach_succAt h i hi)⟩, bounded_succAt h i hb hi⟩
+  · intro g₀ hg₀
+    have := h2 g₀ hg₀
+    simp only [List.mem_append, List.mem_singleton] at this ⊢
+    rcases this with h' | h' | rfl
+    · exact Or.inl (Or.inl h')
+    · exact Or.inr (Or.inl h')
+    · exact Or.inl (Or.inr rfl)
+  · intro g hg i hi
+    simp only [List.mem_append, List.mem_singleton] at hg ⊢
+    rcases hg with hg | rfl
+    · have := h3 g hg i hi
+      simp only [List.mem_append, List.mem_singleton] at this
+      rcases this with h' | h' | rfl
+      · exact Or.inl (Or.inl h')
+      · exact Or.inr (Or.inl h')
+      · exact Or.inl (Or.inr rfl)
+    · exact Or.inr (Or.inr ((mem_succsUpTo _ _ _).2 ⟨i, hi, rfl⟩))
+
+/-- At the end of `closure`'s loop (`work` empty): `ClosureOk`, closed, bounded. -/
+theorem cloInv_done (gs out : List GCfg) (hI : CloInv gs out []) :
+    ClosureOk gs out ∧ GClosed out ∧ ∀ g ∈ out, Bounded g := by
+  obtain ⟨h1, h2, h3⟩ := hI
+  simp only [List.append_nil] at h1 h2 h3
+  have hc : GClosed out := closed_of_succ out h3
+  exact ⟨⟨fun g hg => (h1 g hg).1, fun g₀ hg₀ c hr => hc g₀ (h2 g₀ hg₀) c hr⟩, hc,
+    fun g hg => (h1 g hg).2⟩
+
 /-- The representation of a closed list is closed. -/
 theorem setOf_closed {gs : List GCfg} (hc : GClosed gs) : (setOf gs).Closed := by
   rintro c c' ⟨g, hg, he⟩ hr
