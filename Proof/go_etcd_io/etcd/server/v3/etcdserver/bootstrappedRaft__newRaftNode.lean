@@ -36,7 +36,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γ bud b ss wal cl dq bv cv lok γs reg pre pv ps ctxs bootLog
     Hlg Hhb Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
-    Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk
+    Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk Hnwit
   wp_start as Hpre
   iNamed Hpre
   rw [method_unfold (t := go.GoType.PointerType bootstrappedRaft.ty) (m := go!"newRaftNode")]
@@ -70,7 +70,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
     (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
-    rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk)
+    rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk Hnwit)
     $$ [Hc Hsto Hghost Hpeers Htok] as %nd ⟨Htok, Hpost⟩
   · rfl
   · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk)) =

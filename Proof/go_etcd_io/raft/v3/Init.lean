@@ -424,8 +424,10 @@ theorem go_etcd_io.raft.v3.tracker.wp_initialize' (get_is_pkg_init : GoString �
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := GoArray GoString 3) go_etcd_io.raft.v3.tracker.prstmap _ as _
-  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H5⟩
-  wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
+  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H6⟩
+  wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H5⟩
+  -- (2026-10-19, witness support) `strconv`, for the replication sets' `String`
+  wp_apply strconv.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
   wp_apply strings.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
   wp_apply slices.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
   wp_apply fmt.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #H1⟩
@@ -494,6 +496,8 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  -- (2026-10-19, witness support) `ErrWitnessStateModified`, which no proof reads
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrWitnessStateModified go.error as _
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isResponseMsg _ as HisResp
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isLocalMsg _ as HisLocal
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapshotTemporarilyUnavailable go.error as HESU

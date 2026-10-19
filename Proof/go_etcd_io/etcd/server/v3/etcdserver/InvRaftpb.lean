@@ -71,26 +71,29 @@ theorem ccIdOf_of_decode [FfiSyntax] {bs : List w8} {m : CCV1M} (h : ccDecodeV1 
   unfold ccIdOf; rw [h]
 
 /-- A raft entry as the apply thread uses it (the server's model; raft's is `EntryM`,
-`Proof/go_etcd_io/raft/v3/PbModel.lean`, the same four values). -/
+`Proof/go_etcd_io/raft/v3/PbModel.lean`, the same five values). (2026-10-19, witness support:
+raft#168's `Entry.Subterm`, which the server never reads, is carried so that `toM`/`ofM` stay
+inverse; the server's specs constrain it nowhere.) -/
 structure EntryModel where
   term : w64
   index : w64
   typ : w32
   data : List w8
+  subterm : w64
 
 /-- (Moved here from `InvRaftNode.lean`, 2026-10-14, unit T1: the server's raft contract keeps
 logs of entries in ghost state.) -/
 instance entryModel_countable : Pos.Countable EntryModel :=
-  .ofInjective (fun m => Pos.Countable.encode (((m.term, m.index), m.typ), m.data))
-    (fun ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h => by
+  .ofInjective (fun m => Pos.Countable.encode ((((m.term, m.index), m.typ), m.data), m.subterm))
+    (fun ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := h
+      obtain ⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩ := h
       rfl)
 
 /-- The server's entry as raft's record (`EntryM`: what the getters return, field for field;
 `raftpb.EntryType` is `w32`). -/
-def EntryModel.toM [FfiSyntax] (m : EntryModel) : EntryM := ⟨m.term, m.index, m.typ, m.data⟩
+def EntryModel.toM [FfiSyntax] (m : EntryModel) : EntryM := ⟨m.term, m.index, m.typ, m.data, m.subterm⟩
 
 -- Projection lemmas, `@[simp, word_unfold]` (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`).
 proj_simps Perennial.EtcdGrove.EntryModel.toM
@@ -98,12 +101,13 @@ proj_simps Perennial.EtcdGrove.EntryModel.toM
 theorem EntryModel.toM_inj [FfiSyntax] {m m' : EntryModel} (h : m.toM = m'.toM) : m = m' := by
   cases m; cases m'
   simp only [EntryModel.toM, EntryM.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 /-- Raft's record as the server's entry (2026-10-16, stage R7b: the server's contract is defined
 over raft's protocol, whose logs are of `EntryM`). -/
-def EntryModel.ofM [FfiSyntax] (e : EntryM) : EntryModel := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+def EntryModel.ofM [FfiSyntax] (e : EntryM) : EntryModel :=
+  ⟨e.Term', e.Index', e.Type', e.Data', e.Subterm'⟩
 
 proj_simps Perennial.EtcdGrove.EntryModel.ofM
 

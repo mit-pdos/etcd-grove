@@ -146,7 +146,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       cv.ID' = id ∧
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
-      BootLogOk γ.reCCOk ps bootLog⌝ ∗
+      BootLogOk γ.reCCOk ps bootLog ∧
+      -- (2026-10-19, raft#168) no peer a witness: etcd's `bootstrap` never sets `IsWitness`
+      (∀ p ∈ pv, p.IsWitness' = false)⌝ ∗
     -- (D21 M3, 2026-10-19) raft's no-snapshot mode (`RaftNames.reNoSnap`, what
     -- `ownRaftGhost_alloc_boot` gives the servers), so raft sends no snapshot, and the fresh
     -- `MemoryStorage` at the cap `1` (`MemStorNames.cap`, `NewMemoryStorage`'s choice): never

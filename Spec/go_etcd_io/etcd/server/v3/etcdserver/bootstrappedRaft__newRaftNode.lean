@@ -88,6 +88,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk γ.reCCOk ps bootLog →
+  -- (2026-10-19, witness support) no peer is a witness (`StartNode.spec`)
+  (∀ p ∈ pv, p.IsWitness' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,

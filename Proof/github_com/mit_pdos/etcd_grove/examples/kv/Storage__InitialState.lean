@@ -45,12 +45,14 @@ theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG
   -- `&pb.ConfState{Voters: s.voters}`: the voters read-only, the other slices `nil`, `AutoLeave`
   -- `nil`, frozen
   imod csPts_of_struct_ro cs
-      (⟨zero_val _, vsl, slice.nil, slice.nil, slice.nil, null, slice.nil, 0⟩ : raftpb.ConfState)
+      (⟨zero_val _, vsl, slice.nil, slice.nil, slice.nil, null, null, null, slice.nil, 0⟩ :
+        raftpb.ConfState)
       (kvConfState voters) ⊤ rfl $$ [Hcs] with #Hcs
   · iframe Hcs
     simp only [kvConfState]
     iframe Hvs
     repeat (isplitr; · iapply ownSlice_nil)
+    repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   wp_auto
   iapply HΦ
