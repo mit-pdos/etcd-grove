@@ -34,6 +34,7 @@ public import Perennial.Code.fmt
 public import Perennial.Code.io
 public import Perennial.Code.log
 public import Perennial.Code.math
+public import Perennial.Code.os
 public import Perennial.Code.sort
 public import Perennial.Code.strconv
 public import Perennial.Code.strings
@@ -66,6 +67,7 @@ inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop
   | k8s_io_utils_third_party_forked_golang_btree : ExternalInit pkg_id.k8s_io.utils.third_party.forked.golang.btree _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
+  | os : ExternalInit pkg_id.os _root_.Perennial.os.initialize'
   | sort : ExternalInit pkg_id.sort _root_.Perennial.sort.initialize'
   | strconv : ExternalInit pkg_id.strconv _root_.Perennial.strconv.initialize'
   | strings : ExternalInit pkg_id.strings _root_.Perennial.strings.initialize'

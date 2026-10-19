@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.bbolt.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Init
