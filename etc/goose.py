@@ -396,6 +396,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
     ),
     Project(
+        name="linkv3",
+        # linkv over a three-member cluster (D20, D21): three members started in-process as in
+        # putget3, a client to the first, and linkv's workload (`linkv.Check`, imported). A Go
+        # module of this repository, with putget's replaces (keep them in step); its imports
+        # are the etcd, linkv, lintest and porcupine projects' translations (names reached
+        # through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "linkv3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3")],
+    ),
+    Project(
         name="putget3",
         # putget with three members (D21 stage M5): three members started in-process, each
         # serving its raft handler on its own peer listener, a client's Put and Get through the
