@@ -11966,3 +11966,94 @@ variable (`∃ rt, raftTerm_ptr ↦ rt`; `wp_hardStateAt_GetTerm` from raft's `w
 raft's `readyP` exports that a non-empty `hs.term` is raft's term at that `Ready`, the loop
 invariant keeps a ghost "latest term handed out = `rt`", and `rnApP` gains `ap.raftTerm' = rt` with
 that witness. Trust base unchanged (525 axioms, 2 sorries).
+
+## D22 S-f carried out: the backend boundary of the snapshot path (2026-10-19)
+
+Stage S-f of T-S (D22c (A) as amended by S-0). Server and `storage` files only; no bbolt file, no
+raft file. `OpenSnapshotBackend` is translated with its body (`storage.toml`) and proved; the rest
+is vocabulary and six trust-boundary axioms. Nothing is wired into the sender or receiver yet.
+
+**Vocabulary** (no new axiom-declared predicate: all `opaque` or defined):
+- `backend/InvSnapshot.lean`: `snapOpen sp D` (the `*snapshot` open over bbolt's committed `D`),
+  `boltImage bs D` (bytes that are a bbolt file holding `D`), `pathOwn p` (the program's right to a
+  directory entry: the data directory's closed world, as `netAddrFree`; `os.Rename` onto `p` needs
+  it, so that no `fileHolds p` goes stale), `writerOk w Wr` (`io.Writer`'s contract by a predicate
+  of the bytes written), `viewAt γ vd` (the batch lock's quarter of the readers' view).
+- `storage/InvOpen.lean`: `dbOpensOk` (opaque `Prop`, an environment premise of D19a's first kind:
+  bbolt's `Open` succeeds on the files the server opens), `openLimit cfg`, `openPre` (what
+  `OpenBackend` needs besides `fileHolds`: as `backend.New`'s, plus the logger, the feature gate).
+- `snap/Defs.lean`: `isSnapshotter ss` (persistent: `□` of an opaque), `snapDBPath ss id` (opaque);
+  `config/Defs.lean`: `backendPathOf dataDir` (opaque).
+- `mvcc/Image.lean`: `keyImage log D` (`Key` bucket `= bucketMap log`, no compaction key in `meta`;
+  for S-g), `keyView_of_keyImage`, `dget_of_keyView`.
+- `etcdserver/InvImage.lean`: **`bkRestOf L n` / `bkRestAt L D`** (pure, per bucket of
+  `restBuckets`: lease, alarm, authUsers, authRoles empty; auth `authBoot = {authRevision ↦ 1}`;
+  members, members_removed, cluster `clusterBktOf n L`, opaque), stated for the server's workload
+  (no lease, auth or alarm request: `plainCover`), the form S-0 allowed instead of the
+  configuration-agreement premise; **`imageAt γk i L A D`** (`keyImage (kvModel γk A)`, stored index
+  `encMeta i`, stored term some `encMeta t`, `bkRestAt L`) and **`dbImage γ γk i D`** (persistent:
+  `imageAt` of a committed prefix `A`, `srvRLogLb γ A`, `i = ai0 + |A|`, `L = pre ++ A`). Lemmas:
+  `bkRestAt_boot`, `imageAt_keyView` (the opened backend's `bView` is the KV model's bucket),
+  `imageAt_metaIs` (`metaIs D (i, t)`: the receiver's `ApplyNames.m0`), `imageAt_of_snap` (the
+  modeled half from the snapshot's observation). The stored term is not specified (S-0 (2) (d)),
+  only that it decodes (the protocol's `MetaCI` needs one).
+
+**The axioms** (+6: 525 → 531; 2 sorries unchanged), each with what would discharge it in its
+docstring:
+1. `backend.backend.Snapshot` (backend's Link): commits, begins a read transaction outside the
+   batch lock, returns `snapOpen sp D`. Its pre carries the caller's **observation**: a resource `R`
+   it holds through the call and `Q` with `□ (R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ ⌜Q vd d⌝)`;
+   the post gives `Q (sData P D) (hkData P D)`. Why true: `D` is what the last bbolt commit before the
+   read transaction left (the call's own, a later `run`/`Unlock` commit, or the call's own finding
+   nothing pending, then the writer's contents committed and the read buffer empty), and at the
+   end of that commit its committer held `W ∗ Pk` and the lock's shares were at `C`. A plain
+   lin-point observation at `Begin` would be false (a write-back after the commit makes the view
+   differ from `C`), hence "at every commit". The model's `ownDB` is the batch lock's alone, so the
+   body (a `Begin(false)` outside the lock, a ticker goroutine) cannot be proved over it.
+2. `backend.snapshot.WriteTo` (backend's Link; bbolt's `Tx.WriteTo` promoted): through
+   `writerOk` only, bytes appended; `err = nil → boltImage bs D`.
+3. `os.Rename` (`Spec/os/`): `fileHolds src D ∗ pathOwn dst` to `fileHolds dst D ∗ pathOwn src`, or
+   an error (`fmt.argOk`) and nothing moved.
+4. `snap.Snapshotter.DBFilePath`: `snapDBPath ss id` or an error.
+5. `config.ServerConfig.BackendPath`: `backendPathOf c.DataDir` (needed by the translated body: one
+   more than the plan's +3 to +5).
+6. `storage.OpenBackend`: `fileHolds (backendPathOf cfg.DataDir) D ∗ openPre` to `newPost`. Not
+   provable as translated: its goroutine runs `newBackend`, whose spec (`backend.New`) may panic
+   (bbolt's `Open` failed), and a goroutine must not panic (`wp_fork`); the timer `select` alone
+   would be (`time.After` has a spec). Hence `dbOpensOk` in its pre.
+
+**`storage.OpenSnapshotBackend`** (server's Link, proved over 4-6, raft's `GetIndex` and
+`fmt.Errorf`): pre `isSnapshotter ss`, the snapshot's `Metadata` field and `smOpt`, `fileHolds
+(snapDBPath ss md.Index) D`, `pathOwn (backendPathOf cfg.DataDir)`, `openPre`; post `newPost γ P W
+Pk b D ∗ pathOwn (snapDBPath …)`, or an error with `nil` and the file and entry back. The config
+and snap package instances moved from the server's `BaseApply.lean` to `apply/Base.lean` (storage's
+is there and now imports them).
+
+**For S-h (the sender)**: after `KV().Commit()`, call `Snapshot` with `R` = the apply thread's
+resources and `Q vd d := keyView vd (bucketMap (kvModel γk A)) ∧ d's ci = encMeta ai ∧ ∃ t, d's
+term = encMeta t`: `W` (`lateW` → `writerRes`) holds `bucketView ½ (bucketMap ilog)` and `clog ½
+ilog`, `Pk` (`batchLockInv γA (metaTM γB P)`) the meta keys and `mt ½ mm.1`; `R` must pin `ilog =
+kvModel A` (the other half of `clog`, or a fact through it) and `mm.1 = ai` at every commit of the
+window (today `consInv` has only `mi ≤ k`: S-0's "`store.Commit` saves ci" amendment, e.g. the
+apply thread keeping a share of `mt` once its commit stored `k`). Then `imageAt_of_snap`. The
+unmodeled half (`bkRestAt (pre ++ A) D` and no compaction key) is **not derivable** (hook buckets
+the model does not track): S-h adds the D22c (A) determinism axiom (a snapshot of a member's
+backend at applied prefix `A`, plain workload, has them), +1. Also for S-h: `snapshot.Size`
+(promoted, names only) and `snapshot.Close` (translated; with `snapOpen` opaque it needs an axiom
+or `snapOpen` made concrete: fields, `rtxSnap`, `txLive`, the stop/done channels), and `writerOk`
+of the `io.Pipe` writer (`sint.Z n = k`, all bytes unless an error).
+
+**For S-i**: the transport's saved file: `boltImage bs D` bytes written by `SaveDBFrom` at
+`snapDBPath ss id` give `fileHolds (snapDBPath ss id) D` with `dbImage`; `isSnapshotter` from
+`snap.New` (bootstrap).
+
+**For S-j (the receiver)**: `OpenSnapshotBackend` needs `pathOwn (backendPathOf cfg.DataDir)` (a new
+conjunct of `bootOk`/bootstrap's contract: the server owns its data directory) and `dbOpensOk` (a
+new premise of `NewServer.spec`); the opened backend's `newPost` has `bView γ 1 (vData P (D, ∅))`,
+which `imageAt_keyView` turns into the store's key view (S-g's `restore` with `keyImage`); the
+consistent-index protocol of the new backend is named with `m0 = (i, t)` (`imageAt_metaIs`); the
+`Recover` axioms of lessor, auth and cluster take `bkRestAt` (`bkRestAt_boot`: the boot state's
+lease/auth/alarm buckets) — a sole-writer token per bucket of the new backend, as `bkFresh` is at
+boot, would be minted by them or by `OpenSnapshotBackend`'s post (not stated yet). `go oldbe.Close()`
+waits for the old backend's open snapshots (bbolt's `Close` takes the mmap lock): liveness only.
+`etc/tcb-collections/snapshot.txt` tracks the path (26 axioms, 0 sorries).

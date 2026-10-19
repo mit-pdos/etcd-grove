@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Size
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__SizeInUse
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__begin
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run
@@ -103,6 +104,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
 public import Proof.sort.Stable
 public import Proof.time.Duration__Seconds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset
@@ -391,6 +393,10 @@ theorem backend.wp_SizeInUse :
     EtcdGrove.backend.backend.SizeInUse.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.SizeInUse.wp_proof
 
+theorem backend.wp_Snapshot :
+    EtcdGrove.backend.backend.Snapshot.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.backend.Snapshot.wp_proof
+
 theorem backend.wp_UnlockForSafeRangeDelete :
     EtcdGrove.backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.UnlockForSafeRangeDelete.wp_proof
@@ -590,6 +596,10 @@ theorem readTx.wp_RUnlock :
 theorem readTx.wp_UnsafeRange :
     EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.UnsafeRange.wp_proof baseReadTx.wp_UnsafeRange
+
+theorem snapshot.wp_WriteTo :
+    EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.WriteTo.wp_proof
 
 theorem txReadBuffer.wp_ForEach :
     EtcdGrove.backend.txReadBuffer.ForEach.spec (GF := GF) (hG := hG) :=
