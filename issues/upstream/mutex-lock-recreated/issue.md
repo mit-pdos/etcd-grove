@@ -1,4 +1,4 @@
-Title: Mutex.Lock returns while another session holds the lock when a Mutex on the same session recreates the session's key
+Title: Mutex.Lock returns while another session holds the lock
 
 ### What happened?
 
@@ -36,7 +36,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-`main` (22cc5d9ac), `go test` with go1.27.2 linux/amd64; no `etcd` or `etcdctl` binaries.
+`main` (22cc5d9ac), `go test` with go1.27.2 linux/amd64.
 
 </details>
 

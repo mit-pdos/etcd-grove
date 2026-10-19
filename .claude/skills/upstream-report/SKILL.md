@@ -129,7 +129,7 @@ cause, code names, code links, history, other issues, or claims about other rele
   word: "Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and
   reviewed the report."
 - **Version** and **configuration**: what the reproduction ran on (the base commit; `etcd --version` and `etcdctl
-  version` if it ran binaries) and the configuration it needs.
+  version` if it ran binaries; not that it ran none) and the configuration it needs.
 
 Outputs are pasted from runs, never typed; trivial lines (setup `OK`s, trailing blank lines) may go, and test output
 may be trimmed to the assertion.
