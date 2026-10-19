@@ -8,8 +8,13 @@ links:
 
 # A merged snapshot message can carry a term older than its content
 
-- **Status**: not a safety bug. No wrong result, panic or lost write was found, by code
-  reading or in the reproduction. What breaks is a Raft invariant: etcd can send a `MsgSnap`
+- **Status**: with a gap of one term between the message and its content, no wrong result,
+  panic or lost write was found, by code reading or in the reproduction. **With a gap of two or
+  more terms, a reachable raft panic** (2026-10-19, below: "A gap of two terms"): the stale
+  receiver can step up to a term in between and accept, at that term, a log the leader of that
+  term never had, which puts the leader's `Match` past its last index; the leader's next send
+  panics (`need non-empty snapshot`) if its storage has no snapshot. No wrong commit was found
+  (by reasoning only, below). What breaks first is a Raft invariant: etcd can send a `MsgSnap`
   whose term `m.Term` is older than the snapshot it carries. It pairs a message made by the
   leader of term `T` with content applied later, which can come from a newer term or have been
   committed by a later leader. A follower still at term `T` accepts it. Its log then ends at a
@@ -18,12 +23,9 @@ links:
   merge checks the term (below; user's decision, 2026-10-19). One consequence is untraced:
   restarting such a member with `--force-new-cluster` writes log terms that go down (below).
   Reproduced deterministically at raft level with the real raft code and an emulation of etcd's
-  pipeline, and the etcd half with the real `raftNode` and `applyAll`; not end to end.
-  **Open question:** the "no wrong result" reading covers a gap of one term between the message
-  and its content (the message's term `T`, the content's `T + 1`, the only leader of `T` being the
-  sender). A gap of two or more terms (content of term `T + 2` or later under a message of term
-  `T`) is not analyzed; a raft-harness test or `issues/raft-conf-lag-model/model.py` extended with
-  the merged message would settle it. The fork's check excludes every gap.
+  pipeline, and the etcd half with the real `raftNode` and `applyAll`; not end to end. The panic
+  is reproduced with the real raft code from the receiver's stale state, with the messages built
+  by hand. The fork's check excludes every gap.
 - **Where**: etcd fork pin `8a24be2a3` (`etc/goose.py`). Upstream `main` has the same
   `applyAll` (`server.go:978-998`, read, not run). raft fork `c8217eb9` (raft v3.7.0 has the
   same code; the raft test passes there too).
@@ -98,6 +100,43 @@ links:
   given one). This is a disaster-recovery mode and the consequences are not traced. The fix
   below excludes the state.
 
+  **A gap of two terms** (2026-10-19; the question the gap-of-one analysis left open). The
+  content is of term `T + 2` (or later) under a message of term `T`; E installs it at `T`, with
+  commit `idx`. Unlike a gap of one, there is now a term in between, `T + 1`, whose leader L
+  need not be the sender and need not have left its term: it can be a leader cut off from the
+  term-`T + 2` quorum, still up (check-quorum steps it down only after an election timeout of
+  ticks without a quorum, which raft's safety and panic-freedom do not assume). L's probe of E
+  at `T + 1` makes E step up to `T + 1` (`Step`, `raft.go:1089`), and its index is below E's
+  commit, so `handleAppendEntries` (`raft.go:1793-1796`) answers `MsgAppResp{Index: idx}` at
+  `T + 1`: an acceptance, at L's term, of a log L never had. L's `MaybeUpdate` puts
+  `Progress[E].Match = idx`, past L's last index when L's log is shorter (raft's tracker assumes
+  `Match ≤ lastIndex`), and in the same `Step` L sends to E from `Next - 1 = idx`:
+  `raftLog.term(idx)` is `ErrUnavailable` (`log.go:401-403`), so `maybeSendAppend` falls back to
+  `maybeSendSnapshot` (`raft.go:666-690`), which panics `need non-empty snapshot` when L's
+  storage has no snapshot (a member that has not taken one yet: raft's `MemoryStorage` starts
+  with an empty snapshot, as does etcd's until its first `CreateSnapshot`). With a snapshot, L
+  sends it; it is at or below L's commit, so below E's, E answers `MsgAppResp{Index: idx}` again,
+  and L loops between probe and snapshot for E. With a gap of one there is no such L: the only
+  leader E can hear at `T` is the sender, which has left `T` (step 3), and E's acceptance at `T`
+  reaches it at a later term, where it is dropped.
+
+  What L can commit with E's acceptance (by reasoning, static configuration; not checked by a
+  tool): nothing wrong, it seems. The quorum that committed E's content did so at a term above
+  `T + 1`, before E installed it; none of its members can later answer at `T + 1`, and L, at
+  `T + 1` throughout, is not one of them. So it meets L's commit quorum in a member that acked L
+  genuinely, before it acked at the later term; and every leader elected after `T + 1` before
+  E's install has a voter of L's quorum other than L and E, whose genuine acknowledgement came
+  before its vote, so every such leader's log has L's entries up to the index L commits. The
+  content E holds was made by those leaders. This is a Leader Completeness argument over commit
+  quorums that mix genuine and false acceptances; the proof has none.
+
+  For the proof: permitting the state (`TermsLe`, `CampOk` and the commit justification's term
+  bound weakened, the snapshot clause carrying only a commit certificate) is not enough. The
+  leader's progress invariant (every `Match` an `isAcked` of the peer, at most the last index)
+  would have to admit false acceptances, and `stepLeader`'s proof would have to show the panic
+  above unreachable, which it is not. So the proof cannot permit a gap of two terms without a
+  premise on the leader's storage, and then only with the snapshot loop.
+
   **Reproduction** (`issues/etcd-merged-snapshot-stale-term/`):
   - `merged_snapshot_stale_term_test.go` (package `raft`; copy into a raft checkout, `go test
     -run TestMergedSnapshotStaleTerm .`). Five real `RawNode`s with `PreVote` and `CheckQuorum`
@@ -116,6 +155,15 @@ links:
     fake raft node. Ready 1 is a follower's, with two term-1 `MsgSnap`s and the entry `(1, 1)`.
     Ready 2 has HardState term 2 and the entry `(2, 2)`. The transport records the second merged
     message, to 5: `Term=1, Snapshot (index 2, term 2)`. Passes at `8a24be2a3`, 30 of 30 runs.
+  - `stale_term_gap2_ack_test.go` (package `raft`; copy into a raft checkout, `go test -run
+    TestStaleSnapGap2 .`). From E's stale state with a gap of two (E at term 1 after stepping a
+    `MsgSnap` of term 1 with snapshot `(index 3, term 3)`), node 1 as leader of term 2 with log
+    `[(2, 1)]` probes E. E answers `MsgAppResp{Term: 2, Index: 3}`, node 1's `Progress[5]`
+    becomes `StateReplicate match=3 next=4` with its last index 1, and its `Step` panics `need
+    non-empty snapshot`. Passes at the fork `c8217eb9`. The messages are built by hand: the state
+    is the gap-of-one reproduction's with one more election (term 3, by C, D and A after A's
+    stall) before A's job takes E's message, and term 2's leader kept up and cut off from them;
+    that run is not written.
   - What is shown: each half with the real code. raft reaches the state (steps 1-6), and etcd
     merges as emulated. Not shown end to end: an integration test would need the fsync stall
     (gofail's `raftBeforeSave` is a comment unless the tree is rewritten by `gofail enable`; the

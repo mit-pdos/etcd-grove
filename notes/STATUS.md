@@ -48,6 +48,23 @@ module system").
 
 
 
+## The merged snapshot's gap of two terms: a raft panic; the proof not revised (2026-10-19, branch `raft-stale-snap-terms`)
+
+Asked: revise the raft proof to admit a log of term `T + 2` at a node of term `T` (the stale
+merged snapshot, `issues/etcd-merged-snapshot-stale-term.md`), without `TermsLe`/`CampOk`.
+Stopped before any Lean change. Tracing the uses: `CampOk`'s term bound is used only by
+`lc_adj_gen` (`HtcT`, the IH at the campaign log's last term) and the winner's first entry
+(`Step.win`); the other `isCamp_ok` uses need only `PlogWf`, `CampOk.term_nz` only `0 < T`. A
+campaign log with a term `≥ T` would be a committed log, which closes `HtcT` by `recs_mono`
+without the IH; only "a stale node cannot win" (from the snapshot's commit certificate, carried
+in the campaign record, against each voter's acknowledgements) would still be needed. But a gap
+of two terms also falsifies the leader's side: the stale node, stepped up to `T + 1`, accepts at
+`T + 1` a log the leader of `T + 1` never had (`MsgAppResp{Index: commit}`), the leader's `Match`
+goes past its last index, and its next send panics `need non-empty snapshot` without a snapshot
+in its storage (reproduced with the real raft code, `stale_term_gap2_ack_test.go`). So the
+proof cannot admit the state: `stepLeader`'s spec would have to exclude a reachable panic. The
+issue's open question is answered there. No Lean change; trust base unchanged.
+
 ## D22g and D22k carried out (2026-10-19, branch `raft-retarget`)
 
 The etcd pin at the fork's `d52eec43e` (pushed to `goose-lean`): `8f793b820` (the gRPC quota reads
