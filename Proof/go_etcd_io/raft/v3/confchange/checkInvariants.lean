@@ -114,6 +114,8 @@ nothing. (A macro: the loop's locals are the proof's own names.) -/
 local macro "ci_wit_loop" : tactic => `(tactic| (
   -- raft#168: `for id, voters := range cfg.Voters { w := cfg.Witnesses[id]; if w > 0 {...} }`,
   -- with no witness (`Witnesses = [0, 0]`) a loop that checks nothing
+  (try wp_pures)
+  (try wp_auto)
   icases (Access.access (A := iprop(cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses'))
     (A' := iprop(cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses'))
     (P := iprop(cfg_ptr ↦ cfg))) $$ cfg with ⟨HW, -⟩
@@ -128,9 +130,9 @@ local macro "ci_wit_loop" : tactic => `(tactic| (
     have Hn01 : (sint.Z n).toNat = 0 ∨ (sint.Z n).toNat = 1 := by omega
     obtain ⟨v, Hv⟩ : ∃ v, cfg.Voters'.arr[sint.nat n]? = some v :=
       ⟨_, List.getElem?_eq_getElem (by rw [Harr]; simp only [List.length_cons, List.length_nil]; word)⟩
-    rw [Hv]
+    rw [Hv, ite_eq_left Hn.1]
     wp_auto
-    rw [ite_eq_left Hn2]
+    rw [ite_eq_left ⟨Hn.1, Hn2⟩]
     icases array_acc _ (sint.Z n) _ _ _ (W64 0) Hn.1
         (by rcases Hn01 with h | h <;> rw [Hwit, h] <;> rfl) $$ HW with ⟨Hw0, Hwback⟩
     wp_auto
@@ -604,6 +606,7 @@ theorem confchange.checkInvariants.wp_proof
     rw [flagsOf_mem, ← Hdom]
     exact ciTracked_all c prs Htracked k hk
   -- `if !joint(cfg) { ... }`
+  wp_pures
   wp_auto
   wp_apply wp_confchange_joint cfg vin vout c.outgoing dqc Harr $$ [$Hout] as Hout
   wp_if_destruct
@@ -633,8 +636,7 @@ theorem confchange.checkInvariants.wp_proof
       have Hln0 : c.learnersNext = ∅ := HlnE (by simpa using Hif)
       rw [Hal]
       cases hal : c.autoLeave
-      · wp_auto
-        ci_wit_loop
+      · ci_wit_loop
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
