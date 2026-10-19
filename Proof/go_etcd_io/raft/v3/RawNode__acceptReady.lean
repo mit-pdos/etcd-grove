@@ -66,7 +66,7 @@ in progress and the handed-out ones the application's to persist (`logAcceptUnst
 def readyNstate (s : NState) (ce : List EntryM) (sz : w64) : NState :=
   { s with outbox := [],
            logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz,
-           gh := { tc := s.gh.tc, ns := s.gh.ns },
+           gh := { tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf },
            rd := { s.rd with states := [] } }
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
@@ -200,6 +200,7 @@ theorem RawNode.acceptReady.wp_proof
   simp only [↓reduceIte]
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
+  icases ghostRest_nsLink γ _ cf id _ $$ Hrest with ⟨%Hnl, Hrest⟩
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -546,15 +547,15 @@ theorem RawNode.acceptReady.wp_proof
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
-    $$ Hout Hself
+    (fun h => (Hxf.2 (Hnl.1.trans h)).2.2) $$ Hout Hself
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
-    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns } : NGhost)
+    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf } : NGhost)
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] [] [] Hlog
+    [] [] [] [] [] [] [] [] Hlog
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil
@@ -569,6 +570,8 @@ theorem RawNode.acceptReady.wp_proof
     unfold logAcceptApplying logAcceptUnstable
     split <;> exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable]; exact Int.le_refl _
+  · ipureintro
+    exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => ⟨(Hxf.2 h).1, (Hxf.2 h).2.1⟩)
   -- the node after `Ready`
   have Hlf := logAcceptApplying_fields (logAcceptUnstable s.logst) ce sz
   have Hlogst : (readyNstate s ce sz).logst = logAcceptApplying (logAcceptUnstable s.logst) ce sz :=

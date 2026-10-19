@@ -450,8 +450,10 @@ transfer campaign's vote request). (2026-10-16, stage R5: the message at `ml`, o
 def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
       -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log, whose
-      -- nodes are past term `0` (`RawNode.Step`'s premise)
-      ⌜st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []⌝ ∗
+      -- nodes are past term `0` (`RawNode.Step`'s premise); (2026-10-19, D21 M2r) a leader-transfer
+      -- request only outside the cluster's no-snapshot mode, where leader transfer is off
+      ⌜(st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []) ∧
+        (st.msg.Type' = MsgTransferLeader → γ.raft.reNoSnap = false)⌝ ∗
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
         isMessage γ.raft (absMsg ty st.msg st.ents st.ctx)) ∗
       termLB γ.bud st.msg.Term' ∗
@@ -464,7 +466,9 @@ fact. (2026-10-16, stage R5: over the message's state.) -/
 theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨
       st.msg.Type' = MsgUnreachable ∨ st.msg.Type' = MsgSnapStatus)
-    (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = []) :
+    (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = [])
+    -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-snapshot mode
+    (Hxt : st.msg.Type' = MsgTransferLeader → γ.raft.reNoSnap = false) :
     ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
       termLB γ.bud (W64 0) -∗ rdCred γ.raft 0 -∗ tickCred γ.bud 0 -∗
       netP γ id ml := by
@@ -499,7 +503,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
   isplitr
   · ipureintro; exact Hok
   isplitr
-  · ipureintro; intro h; exfalso
+  · ipureintro; refine ⟨fun h => ?_, Hxt⟩; exfalso
     rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
       simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
   rw [Ht, ite_eq_right Hnr, ite_eq_right Hnt]

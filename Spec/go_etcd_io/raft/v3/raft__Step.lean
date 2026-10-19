@@ -83,7 +83,9 @@ follower to the leader it knew, `To: r.lead`) reaches a node that, at that term,
 follower with a leader -- the leader it was sent to stays leader for the term, or (2026-10-17,
 `checkQuorum` on) steps down at it to a follower with no leader, and no other node leads it -- since a follower would
 forward it again and `send` panics on a stamped `MsgTransferLeader`; and it carries no
-entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it).
+entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it); and
+(2026-10-19, D21 M2r) only at a node with leader transfer on (`NGhost.xf = false`): with it
+off no transferee is recorded, so no `MsgTimeoutNow` is sent.
 These are transport premises, like the others: no message fact carries them
 (`MsgTransferLeader` and `MsgTimeoutNow` are outside the model, `mtypeOf` is `none`). -/
 def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
@@ -95,7 +97,9 @@ def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) ∧
   (m.Type' = MsgTransferLeader →
      ents = [] ∧ ctx = [] ∧
-     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0))
+     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) ∧
+     -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
+     s.gh.xf = false)
 
 /-- `RestMsgOk` of a message of none of those types. -/
 theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : MessageM} {ents : List EntryM}
@@ -174,12 +178,13 @@ def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   -- (D19i part 1) the floor, and `applied` does not move back
   s'.logst.fl = s.logst.fl ∧ uint.Z s.logst.applied ≤ uint.Z s'.logst.applied
 
-/-- (2026-10-19, D21 M3) A frame keeps the no-snapshot mode. -/
-theorem NetFrame.ns [FfiSyntax] {s s' : NState} (H : NetFrame s s') : s'.gh.ns = s.gh.ns := by
-  rw [H.2.2.2.2.2.2.2.1]
+/-- (2026-10-19, D21 M3) A frame keeps the no-snapshot mode; (D21 M2r) and leader transfer: the
+ghost state's flags (`NGhost`), all of it. -/
+theorem NetFrame.ns [FfiSyntax] {s s' : NState} (H : NetFrame s s') : s'.gh = s.gh :=
+  H.2.2.2.2.2.2.2.1
 
-theorem LocalFrame.ns [FfiSyntax] {s s' : NState} (H : LocalFrame s s') : s'.gh.ns = s.gh.ns := by
-  rw [H.2.2.2.2.2.2.2.2.1]
+theorem LocalFrame.ns [FfiSyntax] {s s' : NState} (H : LocalFrame s s') : s'.gh = s.gh :=
+  H.2.2.2.2.2.2.2.2.1
 
 theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩

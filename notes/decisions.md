@@ -11015,3 +11015,45 @@ the following open; each choice is recorded here.
 Trust base: the axioms and `sorry`s are the same by name (486, 8); two axioms' statements
 changed (`compactRaftLog`, `monitorStorageVersion`), and `bootstrap`'s contract (a premise) says
 `γs.cap = 1` and the mode instead of `reTracked`.
+
+**D21 M2r carried out (2026-10-19):** D21g (A), raft's side, with M2 (the server's half) using it.
+The text left the following open; each choice is recorded here. Trust base unchanged.
+- *Where the promise is carried: `isRaftMsg`, not `readyData`.* `isRaftMsg` gains a second pure
+  conjunct, `γ.reNoSnap = true → SentMsgOk st`. The server's `srvMsgNet` already carries
+  `isRaftMsg` to the network, so `readyData`'s shape and the server's consumers did not change.
+  Because `isRaftMsg` is also said of the self-addressed responses `acceptReady` queues,
+  `SentMsgOk` has no `To ≠ id`. It has `From ≠ To` but for a `MsgReadIndex`, a vote or pre-vote
+  response and an accepting `MsgAppResp`, which is what `NetMsgOk` asks at the destination. It has
+  no `From = sender`: a forwarded `MsgReadIndex` keeps its requester (`send` stamps `From` only
+  when it is `0`).
+- *How it is proved: a per-message invariant of `ownRaftPhys`* (`XfOk s (msgs ++ msgsAA)`). In
+  the no-snapshot mode every queued message is `SentMsgOk`, proved at `send` from `SendOk` and
+  the node's term being past `0` (a new fact of the mode: `Bootstrap` sets it at term `1`, and
+  the term only grows).
+- *The transfer mode: the same cluster flag, a second per-node flag.* The flag is `reNoSnap`
+  ("the server's mode": no snapshot, no transfer), since etcd needs both and the register
+  neither. A separate cluster flag would add allocation plumbing for no client. The node keeps
+  its own `NGhost.xf`, not `ns`, for this reason: setting the mode needs the queues free of
+  `MsgTimeoutNow`/forwarded `MsgTransferLeader`, which nothing at `Bootstrap` can show (the
+  queues are sealed and the abstract outbox drops those types). `xf` is therefore on from
+  `newRaft`, whose queues are empty, and turned off by a ghost step (`ownRaftPhysC_xf_off`)
+  outside the mode (`RestartNode`, `Bootstrap` at `reNoSnap = false`). Setting `ns` needs
+  `xf = true` and an empty abstract outbox, which then empties the queues
+  (`outboxRel_nil_types`). `NsLink` ties both flags to `reNoSnap`. With `xf` on: `leadTransferee = 0`;
+  `send`'s clause (c), the model-less types, takes `xf = false`; `raft.Step` (`RestMsgOk`),
+  `stepLeader` and `stepFollower` take `MsgTransferLeader` only with `xf = false`;
+  `sendTimeoutNow` and the transferee's store take it too. `stepLeader`'s `MsgAppResp` branch
+  (`From = leadTransferee`) is dead with `xf` on, since `From ≠ 0`.
+- *The API's premises (D21g (A)'s "excluded in that mode").* `RawNode.Step`:
+  `MsgTransferLeader → γ.reNoSnap = false`. `RawNode.TransferLeader` and
+  `node.TransferLeadership`: `reNoSnap = false`. `netP`: its pre-vote pure conjunct became a
+  pair with `MsgTransferLeader → reNoSnap = false`, so existing destructurings kept their shape.
+  The register, outside the mode, records `reNoSnap = false` in `RegCC`/`isReplica`. `Main`
+  derives it from the ghost state at allocation (nothing committed), as `RestartNode` does.
+  Its exported results are unchanged.
+- *The ghost steps keep the whole `NGhost`.* The `Hng` hypotheses (`ghost_stepCD`/`CDS`,
+  `finish_branch`'s, `MsgSnap`'s posts) and `NetFrame.ns`/`LocalFrame.ns`/`HandleSnapResult.ns`
+  now state `s'.gh = s.gh`, which they all had, so that `NsLink` is kept.
+The interface M2 uses (agreed with it): `SentMsgOk`, `isRaftMsg_sent`, `NetMsgOk.of_sent` (all
+but a `MsgProp`, which is `fwdP`'s), `SentMsgOk.ne_snap`/`ne_timeoutNow`/`ne_transferLeader`,
+`isMessage_propose_ctx`.

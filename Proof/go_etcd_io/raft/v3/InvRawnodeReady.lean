@@ -528,7 +528,9 @@ theorem outboxRel_join (o : List Msg) (ms1 ms2 : List QMsg) :
 theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMsg) (q : QMsg)
     (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
     -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
-    (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap) :
+    (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
+    -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in it (`XfOk`)
+    (Hsent : γ.reNoSnap = true → SentMsgOk q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ isRaftMsg γ q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -565,6 +567,8 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     · rw [hty, mtypeOf_MsgSnap] at Hn; cases Hn
     · rw [hty, mtypeOf_MsgSnap] at Hty'; cases Hty'; exact Hne rfl
     · exact Hns hns _ (Hin (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) (by simp)) rfl
+  isplitr
+  · ipureintro; exact Hsent
   iexists a
   isplitr
   · ipureintro; exact Ha
@@ -583,7 +587,7 @@ theorem isRaftMsg_isMessage (γ : RaftNames) (st : MsgSt) (ty : MsgType)
     isRaftMsg (GF := GF) γ st ⊢ isMessage γ (absMsg ty st.msg st.ents st.ctx) := by
   iintro #H
   unfold isRaftMsg
-  icases H with ⟨-, %a, %Ha, #H⟩
+  icases H with ⟨-, -, %a, %Ha, #H⟩
   rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', -, rfl⟩ | ⟨sv, Hs, -, -⟩
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
@@ -624,6 +628,8 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "%Hout_term" ∷ ⌜∀ m ∈ ms1 ++ ms2, OutTermOk s.term s.gh.tc m.st.msg⌝ ∗
     "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
     "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
+    -- (2026-10-19, D21 M2r) the modes' facts of the queues
+    "%Hxf" ∷ ⌜XfOk s (ms1 ++ ms2)⌝ ∗
     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
                ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
@@ -654,6 +660,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
         ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
+        ⌜XfOk { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
         ownRaftLog s.log ls' -∗
         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
 
@@ -899,7 +906,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns }
+                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
@@ -907,7 +914,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
-    %(fun _ => Int.le_refl _) Hlog
+    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl rfl) Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -1046,7 +1053,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog
         Hf_state Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
       ipureintro
-      exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
+      exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hnsout⟩
@@ -1241,14 +1248,16 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     isplitr
     · ipureintro; exact Hgh_unst
     isplitr
+    · ipureintro; exact Hxf
+    isplitr
     · ipureintro; simp
     isplitl [Hmsgs Hmsgs_cap Hown1 Hhalf]
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
-      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 Hl
+      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 Hl
+      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
   ipureintro
   refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by

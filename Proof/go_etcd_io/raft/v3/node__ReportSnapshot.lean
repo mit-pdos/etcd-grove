@@ -62,7 +62,8 @@ theorem node.ReportSnapshot.wp_proof
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl $$ Hmsg Hlb Hcr Htc
+    · iapply netP_local γ id _ _ (by first | exact .inl rfl | exact .inr (.inl rfl) | exact .inr (.inr (.inl rfl)) | exact .inr (.inr (.inr rfl))) rfl rfl rfl
+        (by intro h; exfalso; revert h; first | decide | simp [MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]) $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
     wp_auto

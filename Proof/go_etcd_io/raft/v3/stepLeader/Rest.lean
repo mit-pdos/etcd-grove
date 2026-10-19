@@ -510,7 +510,9 @@ theorem wp_stepLeader_transfer
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) :
+    (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader)
+    -- (2026-10-19, D21 M2r) leader transfer on (`NGhost.xf`)
+    (Hxo : s.gh.xf = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
@@ -627,7 +629,7 @@ theorem wp_stepLeader_transfer
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_raft_logC
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
-    wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself $$ Hphys as Hphys
+    wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself (by exact Hxo) $$ Hphys as Hphys
     -- `if pr.Match == r.raftLog.lastIndex()`
     icases ownRaftPhysC_pr c r id _ m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
     iNamed Hpa
@@ -640,7 +642,7 @@ theorem wp_stepLeader_transfer
     ihave Hphys := Hlogback $$ Hlog
     wp_if_destruct
     · -- caught up: `MsgTimeoutNow` now
-      wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself $$ [$Hphys] as Hphys
+      wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself (by exact Hxo) $$ [$Hphys] as Hphys
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_raft_logC
       iapply HΦ $$ %interface.nil %_
@@ -1588,6 +1590,10 @@ theorem wp_stepLeader_appresp
         wp_auto
         icases ownRaftPhysC_lt_ne c r id _ $$ Hphys with ⟨%Hltid, Hphys⟩
         have Hfid : m.From' ≠ id := by rw [Hft]; exact Hltid
+        -- (2026-10-19, D21 M2r) with leader transfer off no transferee is recorded, and the
+        -- sender is not `0`: transfer is on here
+        icases ownRaftPhysC_xf c r id _ $$ Hphys with ⟨%Hxfs, Hphys⟩
+        have Hxo := Bool.eq_false_iff.2 (fun hx => Hfrom0 (Hft.trans (Hxfs.1 hx)))
         icases ownRaftPhysC_pr c r id _ m.From' pr p5 $$ Hphys
           %(by show (sendMsgs s2 hb).progress !! m.From' = some pr
                simp only [sendMsgs]; rw [Hs2p]; exact Hlk) %Hp5 with ⟨Hpa, Hpback⟩
@@ -1604,7 +1610,7 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_raft_logC
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-          wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hfid $$ [$Hphys] as Hphys
+          wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hfid (by exact Hxo) $$ [$Hphys] as Hphys
           wp_join_done
         · wp_join_done
       · rw [decide_eq_false Hft]

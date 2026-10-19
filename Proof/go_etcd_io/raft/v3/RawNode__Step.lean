@@ -67,9 +67,9 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok _Hdns Hmtc Htn Hpvb Hflw
+  intro γ rn id rs ml st Hok _Hdns Hmtc Htn Hpvb Hflw Hxt
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hok _Hdns Hmtc Htn Hpvb ⊢
+  simp only at Hok _Hdns Hmtc Htn Hpvb Hxt ⊢
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
@@ -106,9 +106,10 @@ theorem RawNode.Step.wp_proof
       try wp_auto
       icases ownStepGhost_boot_term γ _ cf id s (m.Type' = MsgPreVote) Hpvb $$ Hghost
         with ⟨%Hb1, Hghost⟩
+      icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
+      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (fun h => Hnl.2.trans (Hxt h)) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
         (GMode.Pre.of_facts Hpf (by not_net) (by not_net)) (fun h => absurd h (by not_net))
         $$ [$Hphys $Hghost $Hlc1 Hm Hcred]

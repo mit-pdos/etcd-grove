@@ -452,7 +452,7 @@ theorem RawNode.Bootstrap.wp_proof
   -- (2026-10-19, D21 M3) into the cluster's no-snapshot mode: a follower with its boot log
   -- committed (non-empty in the mode, `RaftNames.noSnap_boot`)
   ihave Hphys := ownRaftPhys_set_ns _ rnv.raft' id { sk with gh := { sk.gh with tc := W64 1 } }
-    γ.reNoSnap (by show sk.gh.ns = false; rw [HNgh])
+    γ.reNoSnap (by show sk.gh.ns = false; rw [HNgh]) (by show sk.gh.xf = true; rw [HNgh])
     (fun hb => by
       have Hne := RaftNames.noSnap_boot hb
       rw [R8] at Hne
@@ -461,9 +461,12 @@ theorem RawNode.Bootstrap.wp_proof
         by simp only; rw [HNls]; simp only [logAppend, Hp]; decide, ?_⟩
       refine ⟨?_, by simp only; rw [HNo]; intro _ h; cases h⟩
       simp only; rw [HNls]; simp only; rw [Hlen']; omega)
+    -- (2026-10-19, D21 M2r) leader transfer kept off in the mode: past term `0`, an empty outbox
+    (fun _ => ⟨by simp only; rw [HNt]; decide, by simp only; rw [HNo]⟩)
     $$ [] Hphys
   · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hnscap
-  have Hnl0 : NsLink γ { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } := rfl
+  have Hnl0 : NsLink γ { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoSnap } } :=
+    ⟨rfl, rfl⟩
   iapply HΦ
   isplitl []
   · ipureintro; rfl
@@ -472,7 +475,7 @@ theorem RawNode.Bootstrap.wp_proof
         { delivered := [], unpersisted := [], steps := [], term := W64 1,
           storage := interface.ok si, mode := RNMode.static,
           cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
-        { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap } } (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
+        { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoSnap } } (bootPState bootLog) ({ rnv with prevHardSt' := es } : RawNode) sv
         (HardStateM.mk (W64 0) (W64 0) (W64 0)) [] rfl HNrel
         (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6) Hasync
         (by rw [HNls]; simp only [logAppend, Hapg0]; rfl)

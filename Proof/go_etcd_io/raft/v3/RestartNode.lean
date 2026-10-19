@@ -66,7 +66,7 @@ theorem RestartNode.wp_proof
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
     P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28
-    $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s, Hfresh, %Herr⟩
+    $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s0, Hfresh0, %Herr⟩
   · iintro %Φ %ss' Hs HK
     iapply Hinit $$ Hs
     iintro %hp %cs %al Hs Hhs Hcs
@@ -75,6 +75,8 @@ theorem RestartNode.wp_proof
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
   -- leaves it open, `rawNodeFresh`)
+  -- (2026-10-19, D21 M2r) out of the no-snapshot mode: leader transfer on
+  icases rawNodeFresh_xf_off _ _ _ _ _ _ s0 $$ Hfresh0 with ⟨%s, Hfresh⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
@@ -121,7 +123,7 @@ theorem RestartNode.wp_proof
           (uint_Z_nonneg _) (HrnflR _ rfl)
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
-          (by unfold NsLink; rw [Hgh, Hns0])
+          (by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -154,7 +156,7 @@ theorem RestartNode.wp_proof
         rw [Hro]
         iframe Hgr
         ipureintro
-        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]⟩
+        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩⟩
         rw [Hdiff]; rfl
       iapply ownRawNode_intro γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,

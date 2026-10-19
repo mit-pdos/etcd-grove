@@ -88,7 +88,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
-        "%Hng" ∷ ⌜s'.gh.ns = s.gh.ns⌝ }} := by
+        "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid Hcfg

@@ -84,7 +84,7 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   -- a leader is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
@@ -151,7 +151,7 @@ theorem stepLeader.wp_proof
     iexact Hinit
   · iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead $$ [Hphys Hm] HΦ'
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Hxft Hty) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · -- (2026-10-17) `MsgCheckQuorum`

@@ -333,7 +333,7 @@ request (`Hcr`). -/
 theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s s' : NState) (a : Msg) (recv : List Msg) (n : Nat) (B : Int) (HB : B < 2 ^ 64)
     (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepCD c id B m s recv s') (Hdh : DynHypFor md m s s')
-    (Hn : rdCount recv ≤ n) (Hng : s'.gh.ns = s.gh.ns) :
+    (Hn : rdCount recv ≤ n) (Hng : s'.gh = s.gh) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
@@ -359,7 +359,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
 /-- The same, for a branch that receives nothing. -/
 theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s s' : NState) (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
-    (Hdh : DynHypFor md m s s') (Hng : s'.gh.ns = s.gh.ns) :
+    (Hdh : DynHypFor md m s s') (Hng : s'.gh = s.gh) :
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
   iintro Hlc Hg Hrest
@@ -386,7 +386,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') (Hng : s'.gh.ns = s.gh.ns)
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh)
     (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
     ⊢ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -422,7 +422,7 @@ theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id B m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') (Hng : s'.gh.ns = s.gh.ns)
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh)
     (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -452,7 +452,7 @@ theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s')
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') (Hng : s'.gh.ns = s.gh.ns) :
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh) :
     ⊢ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨

@@ -412,6 +412,8 @@ def isReplica (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = regStorIface st⌝ ∗
+    -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (`RegCC`): leader transfer on
+    "%Hns" ∷ ⌜γp.node.raft.reNoSnap = false⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RRegister, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ regInv γr)
 
@@ -497,7 +499,10 @@ def RegCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
   (∃ h0 h1, γn.mode = .dyn (ccDecOf op) c0 h0 h1) ∧
   (∀ ty bs, γn.raft.reCCOk ty bs →
     ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
-  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false
+  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
+  -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (a cluster without a bootstrap log), in
+  -- which leader transfer is on (`node.TransferLeadership`'s premise)
+  γn.raft.reNoSnap = false
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

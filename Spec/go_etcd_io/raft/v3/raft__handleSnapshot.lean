@@ -69,7 +69,7 @@ def HandleSnapResult (id : w64) (s : NState) (m : MessageM)
 
 /-- (2026-10-19, D21 M3) `handleSnapshot` keeps the no-snapshot mode (`NGhost.ns`). -/
 theorem HandleSnapResult.ns {id : w64} {s : NState} {m : MessageM} {sv : SnapshotM} {cl : CSLists}
-    {s' : NState} (H : HandleSnapResult id s m sv cl s') : s'.gh.ns = s.gh.ns := by
+    {s' : NState} (H : HandleSnapResult id s m sv cl s') : s'.gh = s.gh := by
   unfold HandleSnapResult at H
   rcases H with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩ <;> rfl
 

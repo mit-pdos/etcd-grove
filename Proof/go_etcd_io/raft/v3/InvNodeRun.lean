@@ -111,7 +111,7 @@ theorem ownRaftPhys_lead (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   iintro Hl Ht
   ihave H := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Ht Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
-    %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) Hlog
+    %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ H
 
 /-- The raft struct out of the node (`r` is the node's raft pointer), and back. -/
@@ -231,7 +231,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
       Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose
     ipureintro
-    exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
+    exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
     Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hnsout⟩
@@ -278,7 +278,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns }
+                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
@@ -286,7 +286,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
-    %(fun _ => Int.le_refl _) Hlog
+    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl rfl) Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -379,7 +379,9 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc)
     (Hpvb : st.msg.Type' = MsgPreVote → γ.reBoot ≠ [])
     -- (D19i part 1) the floor not raised (a `MsgTimeoutNow` campaigns)
-    (Hflw : rs.flw = false) :
+    (Hflw : rs.flw = false)
+    -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-snapshot mode
+    (Hxt : st.msg.Type' = MsgTransferLeader → γ.reNoSnap = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         msgIn ml DFrac.discard st ∗
@@ -395,7 +397,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
               (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }} := by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   have Hok0 := Hok
-  simp only [NetMsgOk] at Hok0 Htn Hmtc Hpvb ⊢
+  simp only [NetMsgOk] at Hok0 Htn Hmtc Hpvb Hxt ⊢
   obtain ⟨Hty, -⟩ := Hok0
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hmsg, Hcred, Hlc⟩ HΦ
   iNamed Hrn
@@ -404,9 +406,10 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   subst Heq
   icases ownStepGhost_boot_term γ _ cf id s (m.Type' = MsgPreVote) Hpvb $$ Hghost
     with ⟨%Hb1, Hghost⟩
+  icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
   have HnP : m.Type' ≠ MsgProp := by not_net
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-  wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
+  wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (fun h => Hnl.2.trans (Hxt h)) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
       Hwf
     (GMode.Pre.of_facts Hpf (by not_net) (by not_net)) (fun h => absurd h (by not_net))
     $$ [$Hphys $Hghost $Hlc Hmin Hcred]
@@ -491,6 +494,15 @@ theorem isMessage_propose_from (γ : RaftNames) (m : MessageM) (ents : List Entr
     (x : w64) :
     ⊢ isMessage (GF := GF) γ (absMsg .propose m ents) -∗
       isMessage γ (absMsg .propose { m with From' := x } ents) := by
+  iintro H
+  unfold isMessage absMsg absMsgFrom at *
+  iexact H
+
+/-- (2026-10-19, D21 M2r) A proposal's protocol fact ignores the message's context: a received
+copy's (`isRaftMsg`, at its context) is `fwdP`'s (at none). -/
+theorem isMessage_propose_ctx (γ : RaftNames) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
+    ⊢ isMessage (GF := GF) γ (absMsg .propose m ents ctx) -∗
+      isMessage γ (absMsg .propose m ents) := by
   iintro H
   unfold isMessage absMsg absMsgFrom at *
   iexact H

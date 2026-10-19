@@ -51,7 +51,8 @@ theorem node.ForgetLeader.wp_proof
   · iframe Hnode Hctx
     unfold stepP
     ileft
-    iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl $$ Hmsg Hlb Hcr Htc
+    iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl
+        (by intro h; exfalso; revert h; first | decide | simp [MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]) $$ Hmsg Hlb Hcr Htc
   iintro %err #Herr
   wp_auto
   iapply HΦ

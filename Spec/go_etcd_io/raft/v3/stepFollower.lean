@@ -257,7 +257,9 @@ abbrev stepFollower.spec : Prop :=
   -- wrap and `r.step` agrees with the role (`hup`'s premises)
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
-        ents = [] ∧ cl = []) ∧
+        ents = [] ∧ cl = [] ∧
+        -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
+        s.gh.xf = false) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        -- (D19i part 1) the floor at most `applied` (`hup`'s)
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →

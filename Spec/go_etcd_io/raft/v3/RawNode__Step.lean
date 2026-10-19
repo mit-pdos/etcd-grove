@@ -95,6 +95,9 @@ abbrev RawNode.Step.spec : Prop :=
   (st.msg.Type' = MsgPreVote → γ.reBoot ≠ []) →
   -- (D19i part 1) the floor not raised past `applied` (a `MsgTimeoutNow` campaigns: `Campaign`'s)
   rs.flw = false →
+  -- (2026-10-19, D21 M2r) a leader-transfer request only outside the cluster's no-snapshot mode,
+  -- where leader transfer is off (`NGhost.xf`, `NsLink`)
+  (st.msg.Type' = MsgTransferLeader → γ.reNoSnap = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then

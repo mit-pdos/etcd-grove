@@ -1009,6 +1009,15 @@ structure NGhost where
   `entries(Next)` never fail and it sends no `MsgSnap` (D21 M0's (N)). Set once, when the node
   is built (`ownRaftPhys_set_ns`), never changed: every step and `Ready` keeps it. -/
   ns : Bool := false
+  /-- (2026-10-19, D21 M2r) **Leader transfer off**: the node never records a transferee
+  (`leadTransferee = 0`, `ownRaftPhys`'s `Hxf`) and queues no message of a type the model does not
+  describe (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`): `raft.Step` takes no
+  `MsgTransferLeader` (`RestMsgOk`). On when the struct is built (`newRaft`, its queues empty:
+  the default), turned off by a ghost step (`ownRaftPhysC_xf_off`) when the node's construction
+  leaves the cluster's no-snapshot mode (`RestartNode`, `Bootstrap` outside it), so that a node
+  is in it exactly when in the cluster's mode (`RaftNames.reNoSnap`, `NsLink`); the no-snapshot
+  mode implies it. -/
+  xf : Bool := true
 deriving DecidableEq
 
 
