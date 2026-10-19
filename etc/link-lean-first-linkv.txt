@@ -18,3 +18,21 @@ step: lookup set insertSorted
 linkv_Model: step addConfig closure configEqual
 # the generator
 linkv_Gen:
+# the instance's operation (over the client's specs, which its proof uses directly)
+linkv_Apply:
+# the checker (D20 (c)): lintest's `Run` and `CounterClock`, linked in lintest's `Link.lean`
+Run: @
+CounterClock: @
+linkv_Check: Run CounterClock linkv_Model linkv_Gen linkv_Apply
+# `Main`: putget's start of the server and the client (the server's, v3rpc's and the client's
+# results, linked in their `Link.lean`s; zap's, the feature gate's, `net`'s and grpc's
+# trust-boundary axioms), then `Check`
+etcdserver_NewServer: @
+EtcdServer__Start: @
+v3rpc_Server: @
+client_v3_New: @
+zap_NewNop:
+features_NewDefaultServerFeatureGate:
+net_Listen:
+grpc_Server__Serve:
+linkv_Main: zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New linkv_Check

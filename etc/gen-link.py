@@ -258,9 +258,13 @@ LEAN_FIRST = {
                           "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
                           "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
                           [""]),
-    # the linearizability instance over etcd's client (examples/linkv, D20): its porcupine model
-    # and its generator so far
-    "--linkv": ("link-lean-first-linkv.txt", "github_com.mit_pdos.etcd_grove.examples.linkv",
+    # the linearizability instance over etcd's client (examples/linkv, D20): its porcupine model,
+    # its generator, `Apply`, `Check` (over the driver's, `@`) and `Main` (over the server's,
+    # v3rpc's and the client's, `@`)
+    "--linkv": ("link-lean-first-linkv.txt",
+                "github_com.mit_pdos.etcd_grove.examples.linkv "
+                "github_com.mit_pdos.etcd_grove.examples.lintest "
+                "github_com.anishathalye.porcupine",
                 "github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions",
                 "The linearizability instance's proofs (`examples/linkv`)", [""]),
 }
@@ -283,7 +287,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv"}
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
@@ -462,6 +466,20 @@ if cache:
         links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
         todo.extend(re.findall(r"^public import (Proof\.\S+\.Link)$", src, re.M))
     here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
+    # an `@` callee's result named, in its Link, by the name `result` gives but in another
+    # namespace than this one's (the client's `v3.clientv3.wp_New`, in `EtcdGrove.client`, called
+    # from linkv's): referred to with that namespace (`client.v3.clientv3.wp_New`)
+    ext_ref = {}
+    for fn in external:
+        mod = external_link(fn)
+        if not os.path.exists(link_file(mod)):
+            continue
+        src = open(link_file(mod)).read()
+        ns = link_namespace(src)
+        rel = ns[len("EtcdGrove."):] if ns.startswith("EtcdGrove.") else ""
+        if (ns != here_ns and rel and result(fn) in re.findall(r"^theorem (\S+)", src, re.M)
+                and not result(fn).startswith(rel + ".")):
+            ext_ref[fn] = f"{rel}.{result(fn)}"
     for fn in fns:
         if fn in external or fn in pending:
             continue
@@ -539,6 +557,8 @@ variable [package_sem : {assumptions}]
         # calling `wp_evalCmp`; `bootstrappedRaft.wp_newRaftNode` calling `wp_newRaftNode`,
         # 2026-10-16) would resolve to the theorem itself: qualify it
         r = result(c)
+        if c in ext_ref:
+            return ext_ref[c]
         if "." in result(fn) and r == result(fn).split(".")[-1]:
             return f"EtcdGrove.{nsd}.{r}" if nsd else f"EtcdGrove.{r}"
         return r
