@@ -41,14 +41,14 @@ theorem snapshot_Range_find_eq_filter (k : GoString) (l0 : Loc) (m : KvMap)
     unfold btFind
     by_cases h1 : kvLess w (k, l0)
     · rw [ite_eq_left h1, ih hs.2, List.filter_cons]
-      have : w.1 ≠ k := fun h => goStringLt_irrefl k (by have := h1; unfold kvLess at this; simpa [h] using this)
+      have : w.1 ≠ k := fun h => go.goStringLt_irrefl k (by have := h1; unfold kvLess at this; simpa [h] using this)
       simp [this]
     · rw [ite_eq_right h1]
       by_cases h2 : kvLess (k, l0) w
       · rw [ite_eq_left h2]
         have hk : ∀ x ∈ ws, x.1 ≠ k := fun x hx he =>
-          goStringLt_irrefl k (goStringLt_trans h2 (he ▸ hgt x hx))
-        have hw : w.1 ≠ k := fun he => goStringLt_irrefl k (by have := h2; unfold kvLess at this; simpa [he] using this)
+          go.goStringLt_irrefl k (go.goStringLt_trans h2 (he ▸ hgt x hx))
+        have hw : w.1 ≠ k := fun he => go.goStringLt_irrefl k (by have := h2; unfold kvLess at this; simpa [he] using this)
         rw [List.filter_cons, ite_eq_right (by simpa using hw)]
         symm
         rw [List.filter_eq_nil_iff]
@@ -56,7 +56,7 @@ theorem snapshot_Range_find_eq_filter (k : GoString) (l0 : Loc) (m : KvMap)
       · rw [ite_eq_right h2]
         have hw : w.1 = k := kvLess_equiv h1 h2
         have hk : ∀ x ∈ ws, x.1 ≠ k := fun x hx he => by
-          have := hgt x hx; rw [hw, he] at this; exact goStringLt_irrefl k this
+          have := hgt x hx; rw [hw, he] at this; exact go.goStringLt_irrefl k this
         rw [List.filter_cons, ite_eq_left (by simpa using hw)]
         have : List.filter (fun e => decide (e.fst = k)) ws = [] := by
           rw [List.filter_eq_nil_iff]; intro x hx; simpa using hk x hx

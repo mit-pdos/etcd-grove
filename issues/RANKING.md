@@ -195,6 +195,18 @@ fork carries #21987).
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
   merges, little impact).
 
+## bbolt (etcd's storage; none reachable through etcd as configured)
+
+etcd's backend exits on any `Commit` error (`batchTx.commit`: `lg.Fatal("failed to commit
+tx")`), bounds requests at 1.5 MiB by default and uses the default page size, so none of these
+reaches etcd. For bbolt's own maintainers the order would be:
+[bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
+(MVCC broken after an I/O error, for any user that keeps the `DB` after a failed `Commit`;
+reproduced, small fix), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
+(values `Put` accepts make data unreadable; reproduced; the 256 MB variant, etcd-io/bbolt#931,
+was fixed), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
+[bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
+
 ## How to bring them
 
 Each report or PR should be reviewed and submitted by a person, with its Go reproduction test

@@ -38,7 +38,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.OnceFrame
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.Token
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 
@@ -791,7 +791,7 @@ theorem watcher_recv_au (w ch : Loc) (γ : WatcherNames) (pred : Option (GoStrin
     ihave %Hlen := respsSent_length _ _ $$ Hvs
     have Hd : sent.drop received.length = [] := by
       rw [← List.length_eq_zero_iff]; simpa using Hlen.symm
-    have Heq := prefix_drop_nil Hpre Hd
+    have Heq := Hpre.eq_of_length_le (List.drop_eq_nil_iff.1 Hd)
     subst sent
     rcases cl with _ | ⟨sc, c⟩
     · simp [chanIsClosed] at Hclosed
@@ -879,7 +879,7 @@ theorem watcher_recv_au (w ch : Loc) (γ : WatcherNames) (pred : Option (GoStrin
       ihave %Hlen := respsSent_length _ _ $$ Hvs
       have Hd : sent.drop received.length = [] := by
         rw [← List.length_eq_zero_iff]; simpa using Hlen.symm
-      have Heq := prefix_drop_nil Hpre Hd
+      have Heq := Hpre.eq_of_length_le (List.drop_eq_nil_iff.1 Hd)
       subst sent
       rcases cl with _ | ⟨sc, c⟩
       · simp [chanIsClosed] at Hclosed

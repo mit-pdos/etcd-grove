@@ -11,7 +11,10 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 public import Perennial.Proof.sync
 
 @[expose] public section
@@ -69,7 +72,7 @@ instance v3rpc.intervalP_fractional : Fractional (v3rpc.intervalP (GF := GF)) wh
     unfold v3rpc.intervalP
     constructor
     · iintro ⟨%d, Hd, %Hb⟩
-      icases (ptsto_frac_add _ _ q1 q2).1 $$ Hd with ⟨H1, H2⟩
+      icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hd with ⟨H1, H2⟩
       isplitl [H1]
       · iexists d; iframe; ipureintro; exact Hb
       · iexists d; iframe; ipureintro; exact Hb
@@ -78,7 +81,7 @@ instance v3rpc.intervalP_fractional : Fractional (v3rpc.intervalP (GF := GF)) wh
       subst Hd
       iexists d1
       isplitl [H1 H2]
-      · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+      · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
       · ipureintro; exact Hb
 
 /-- An `auth` error variable (`authErrVar`) in the apply package's shape (`errVarLeaf`). -/

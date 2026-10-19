@@ -62,7 +62,7 @@ public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.status.Init
 public import Proof.math.rand.Init
 public import Proof.unicode.utf8.Init
-public import Proof.Lib.Sync
+public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -356,7 +356,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iframe HprogressReportInterval
     ipureintro
     first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word
-  ihave ⟨-, #HIG⟩ := EtcdGrove.guard_of_slots _ _ $$ HIS
+  ihave ⟨-, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS
   iframe Hown
   imodintro
   isplitr

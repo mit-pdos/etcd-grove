@@ -196,3 +196,22 @@ on an `I1` value read through a `*I2` (two named interfaces with the same method
 byte-memory review, round 3; unclear what in Go should change; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
+
+## bbolt
+
+Found by the bbolt proof (branch `bbolt`, not merged: bbolt v1.5.0 on Perennial's provisional
+unsafe-memory model; `notes/STATUS.md` there, "bbolt"), each reproduced by a Go test kept next to
+it (copy it into bbolt's package directory) unless said otherwise; none filed:
+[bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
+(a `Commit` whose meta write reaches the file and then fails rolls back by reloading the new
+freelist: pages an open reader still reads are reused, its snapshot changes; and the "failed"
+commit takes effect), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md) (a value
+of `MaxValueSize` panics `Commit`; a leaf of a few values near it commits and then panics every
+read), [bbolt-large-page-size](bbolt-large-page-size.md) (`Options.PageSize` unbounded: from
+about 1 MiB a 65535-entry leaf panics `Commit`, from `2^31` the first `Commit` panics, from
+`2^32` the meta stores it truncated), [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (a
+failed `madvise` leaks the new mapping; code reading). Checked and not real at v1.5.0 (so not
+here): a nil `db.data` after a failed remap (`Begin` checks it, `ErrInvalidMapping`), a forged
+meta found by `getPageSize`'s probes (they stay inside page 0, zero after the meta),
+`hashMap.Init([])`'s stale cache (no caller reaches it with stale free ids), panics on a
+malformed file (bbolt trusts its file).

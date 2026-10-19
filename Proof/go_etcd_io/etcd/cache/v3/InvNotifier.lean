@@ -30,7 +30,8 @@ public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -121,7 +122,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : NotifierNames) :
     · iintro H
       unfold notifierLockInv
       iNamed H
-      rw [qp_half_add] at *
+      rw [Qp_half_add] at *
       icases (hcur c).1 $$ Hcur with ⟨Hc1, Hc2⟩
       icases (hch _).1 $$ Hch with ⟨Hl1, Hl2⟩
       icases (hmono _).1 $$ Hauth with ⟨Ha1, Ha2⟩
@@ -145,7 +146,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : NotifierNames) :
       · iapply (hmono _).2; iframe
       isplitr
       · iexact Hbc1
-      rw [qp_half_add]
+      rw [Qp_half_add]
       iapply (hpend _).2; iframe
 
 /-- A handle on the `notifier` `n` with ghost names `γ`: a token of `n.mu` (one of the

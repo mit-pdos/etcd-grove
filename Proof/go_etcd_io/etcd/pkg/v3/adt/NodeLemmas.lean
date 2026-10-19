@@ -7,7 +7,10 @@ Lean-first.
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Defs
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -100,12 +103,12 @@ theorem ownNode_split (s : Loc) (q1 q2 : Qp) : ∀ (p n : Loc) (T : RbT Entry),
   | p, n, .node c l e r => by
     rw [ownNode_node, ownNode_node, ownNode_node]
     iintro ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hiv with ⟨Hiv1, Hiv2⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hmx with ⟨Hmx1, Hmx2⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hl with ⟨Hl1, Hl2⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hr with ⟨Hr1, Hr2⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hp with ⟨Hp1, Hp2⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ Hc with ⟨Hc1, Hc2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hiv with ⟨Hiv1, Hiv2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hmx with ⟨Hmx1, Hmx2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hl with ⟨Hl1, Hl2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hr with ⟨Hr1, Hr2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hp with ⟨Hp1, Hp2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hc with ⟨Hc1, Hc2⟩
     icases ownNode_split s q1 q2 n lp l $$ Hnl with ⟨Hnl1, Hnl2⟩
     icases ownNode_split s q1 q2 n rp r $$ Hnr with ⟨Hnr1, Hnr2⟩
     isplitl [Hiv1 Hmx1 Hl1 Hr1 Hp1 Hc1 Hnl1 Hnr1]
@@ -151,17 +154,17 @@ theorem ownNode_combine (s : Loc) (q1 q2 : Qp) : ∀ (p n : Loc) (T1 T2 : RbT En
     isplitl []
     · ipureintro; exact Hn
     isplitl [Hiv1 Hiv2]
-    · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
     isplitl [Hmx1 Hmx2]
-    · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
     isplitl [Hl1 Hl2]
-    · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
     isplitl [Hr1 Hr2]
-    · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
     isplitl [Hp1 Hp2]
-    · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
     isplitl [Hc1 Hc2]
-    · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
     iframe
 
 theorem ownSentinel_split (s : Loc) (q1 q2 : Qp) :
@@ -169,7 +172,7 @@ theorem ownSentinel_split (s : Loc) (q1 q2 : Qp) :
   unfold ownSentinel
   constructor
   · iintro ⟨%v, H⟩
-    icases (ptsto_frac_add _ _ q1 q2).1 $$ H with ⟨H1, H2⟩
+    icases (typedPointsto_frac_add _ _ q1 q2).1 $$ H with ⟨H1, H2⟩
     isplitl [H1]
     · iexists v; iexact H1
     · iexists v; iexact H2
@@ -177,14 +180,14 @@ theorem ownSentinel_split (s : Loc) (q1 q2 : Qp) :
     icombine H1 H2 gives %Hv
     subst Hv
     iexists v1
-    iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+    iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
 
 /-- **The tree splits by fractions.** -/
 theorem ownIvt_split' (t : Loc) (L : List Entry) (q1 q2 : Qp) :
     ownIvt (GF := GF) t L (q1 + q2) ⊢ ownIvt t L q1 ∗ ownIvt t L q2 := by
   unfold ownIvt
   iintro ⟨%tv, %T, Ht, Hs, Hn, %Hp⟩
-  icases (ptsto_frac_add _ _ q1 q2).1 $$ Ht with ⟨Ht1, Ht2⟩
+  icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Ht with ⟨Ht1, Ht2⟩
   icases (ownSentinel_split _ q1 q2).1 $$ Hs with ⟨Hs1, Hs2⟩
   icases ownNode_split _ q1 q2 _ _ T $$ Hn with ⟨Hn1, Hn2⟩
   isplitl [Ht1 Hs1 Hn1]
@@ -205,7 +208,7 @@ theorem ownIvt_combine (t : Loc) (L1 L2 : List Entry) (q1 q2 : Qp) :
   · ipureintro; rw [← Hp1.1, ← Hp2.1]
   iexists tv1, T1
   isplitl [Ht1 Ht2]
-  · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+  · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
   isplitl [Hs1 Hs2]
   · iapply (ownSentinel_split _ q1 q2).2; iframe
   iframe

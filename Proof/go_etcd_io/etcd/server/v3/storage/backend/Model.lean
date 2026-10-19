@@ -22,7 +22,7 @@ version. `wbPut`, `wbReset`, `rbReset`, `writebackR`/`writebackW` are the code's
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
-public import Proof.Lib.GoString
+public import Perennial.Golang.Defn.String
 
 @[expose] public section
 

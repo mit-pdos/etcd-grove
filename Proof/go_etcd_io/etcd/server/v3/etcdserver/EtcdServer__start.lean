@@ -318,7 +318,7 @@ theorem EtcdServer.start.wp_proof
   icases ownStopChan_pending_unknown _ _ _ $$ Hsg with ⟨Hsg, #HsgU⟩
   imod goAttach_init s sgc γsg (GoInterface.ok cctx) fv.lg Hbound Hlgn $$ Hstopping Hsg Hwg HwgMu
     Hctx Hlgf with ⟨%γg, #Hgok, Hclose, Hwgs⟩
-  icases replicate_take2 _ _ actualMaxReaders_ge_2 $$ Hwgs with ⟨Hwg1, Hwg2, Hwgs⟩
+  icases replicate_take2 _ _ sync.actualMaxReaders_ge_2 $$ Hwgs with ⟨Hwg1, Hwg2, Hwgs⟩
   -- the views `run` needs
   ihave #Hsrv : isServer s γ ci TM E { ρ with wait := γw } γr $$ []
   · iunfold isServer
@@ -476,7 +476,7 @@ theorem EtcdServer.start.wp_proof
       Er.RQ $$ []
   · rw [← HEr.2]
     iapply isReadRaft_of_raftNode hRSt hRI Er γn (srvRAddr s) $$ [$Hpkg $Hrn]
-  icases replicate_take1 _ _ (by have := actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
+  icases replicate_take1 _ _ (by have := sync.actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
   iapply HΦ
   iexists γw
   iframe Hreq Hrd HWB

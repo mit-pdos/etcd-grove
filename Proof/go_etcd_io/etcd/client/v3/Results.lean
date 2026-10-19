@@ -152,7 +152,7 @@ theorem filter_key_of_findKey (k : GoString) :
         intro hyk
         simp only [decide_eq_true_eq] at hyk
         rw [hw, hyk] at hlt
-        exact goStringLt_irrefl _ hlt
+        exact go.goStringLt_irrefl _ hlt
       simp [hw, hnil]
     · rw [ite_eq_right hw] at h
       simp only [List.filter_cons, hw, decide_false, Bool.false_eq_true, ↓reduceIte]

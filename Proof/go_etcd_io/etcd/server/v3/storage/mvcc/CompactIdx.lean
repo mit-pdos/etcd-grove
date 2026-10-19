@@ -380,10 +380,10 @@ theorem idx_key_unique {idx : IndexM} (hs : idx.Pairwise idxLess) {i j : Nat} {a
   obtain ⟨hjl, rfl⟩ := List.getElem?_eq_some_iff.1 hj
   rcases Nat.lt_trichotomy i j with h | h | h
   · have := hs i j hil hjl h; unfold idxLess at this; rw [hk] at this
-    exact absurd this (goStringLt_irrefl _)
+    exact absurd this (go.goStringLt_irrefl _)
   · exact h
   · have := hs j i hjl hil h; unfold idxLess at this; rw [hk] at this
-    exact absurd this (goStringLt_irrefl _)
+    exact absurd this (go.goStringLt_irrefl _)
 
 /-- A key the index has: its generations as `doCompact` walks them. -/
 theorem IdxCRep.gensOk {cmax : Int} {log : Log} (hb : LogB log) {idx : IndexM}

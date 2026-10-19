@@ -59,8 +59,9 @@ public import Proof.go_etcd_io.etcd.cache.v3.InvBtree
 public import Proof.go_etcd_io.etcd.cache.v3.InvRingBuffer
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
-public import Proof.Lib.GoString
-public import Proof.Lib.Iris
+public import Perennial.Golang.Defn.String
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -88,18 +89,18 @@ def kvLess (a b : KvEntry) : Prop := go.GoStringLt a.1 b.1
 instance kvLess_dec : DecidableRel kvLess := fun a b => go.goStringLt_dec a.1 b.1
 
 theorem kvLess_swo : StrictWeakOrder kvLess where
-  irrefl a := goStringLt_irrefl a.1
-  trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  irrefl a := go.goStringLt_irrefl a.1
+  trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
   incomp_trans a b c h1 h2 h3 h4 := by
-    have e1 := goStringLt_eq_of_not_lt h1 h2
-    have e2 := goStringLt_eq_of_not_lt h3 h4
+    have e1 := go.goStringLt_eq_of_not_lt h1 h2
+    have e2 := go.goStringLt_eq_of_not_lt h3 h4
     unfold kvLess
     rw [e1, e2]
-    exact ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+    exact ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
 
 /-- Entries equivalent under `kvLess` have the same key. -/
 theorem kvLess_equiv {a b : KvEntry} (h1 : ¬ kvLess a b) (h2 : ¬ kvLess b a) : a.1 = b.1 :=
-  goStringLt_eq_of_not_lt h1 h2
+  go.goStringLt_eq_of_not_lt h1 h2
 
 /-! ## The model -/
 
@@ -753,7 +754,7 @@ instance storeLockRest_fractional (γ : StoreNames) (st : StoreState) :
     have hgv := (ghostVar_fractional (GF := GF) γ.tree (some st.latest)).fractional q1.half q2.half
     have hmono := (monoNatAuthOwn_fractional (GF := GF) γ.snap (storeSnapKey st)).fractional q1 q2
     unfold storeLockRest
-    rw [qp_half_add]
+    rw [Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro ⟨Ht, Hs, %Hsy⟩
       icases hgv.1 $$ Ht with ⟨Ht1, Ht2⟩

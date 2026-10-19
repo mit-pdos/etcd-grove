@@ -8,7 +8,10 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 public import Perennial.Proof.time
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -79,7 +82,7 @@ instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) 
     unfold leaseItems
     constructor
     · iintro ⟨%sm, %S, Hsm, HS⟩
-      icases (ptsto_frac_add _ _ q1 q2).1 $$ Hsm with ⟨Hs1, Hs2⟩
+      icases (typedPointsto_frac_add _ _ q1 q2).1 $$ Hsm with ⟨Hs1, Hs2⟩
       icases ((ownMap_fractional (GF := GF) sm S).fractional q1 q2).1 $$ HS with ⟨HS1, HS2⟩
       isplitl [Hs1 HS1]
       · iexists sm, S; iframe
@@ -91,17 +94,17 @@ instance leaseItems_fractional (l : Loc) : Fractional (leaseItems (GF := GF) l) 
       subst HS
       iexists sm1, S1
       isplitl [Hsm1 Hsm2]
-      · iapply (ptsto_frac_add _ _ q1 q2).2; iframe
+      · iapply (typedPointsto_frac_add _ _ q1 q2).2; iframe
       · iapply ((ownMap_fractional (GF := GF) sm1 S1).fractional q1 q2).2; iframe
 
 /-- What a lease's `expiryMu` guards is fractional. -/
 instance leaseExpiry_fractional (l : Loc) : Fractional (leaseExpiry (GF := GF) l) where
   fractional q1 q2 := by
     unfold leaseExpiry
-    rw [qp_half_add]
+    rw [Qp_half_add]
     constructor
     · iintro ⟨%e, He⟩
-      icases (ptsto_frac_add _ _ _ _).1 $$ He with ⟨H1, H2⟩
+      icases (typedPointsto_frac_add _ _ _ _).1 $$ He with ⟨H1, H2⟩
       isplitl [H1]
       · iexists e; iframe
       · iexists e; iframe
@@ -109,7 +112,7 @@ instance leaseExpiry_fractional (l : Loc) : Fractional (leaseExpiry (GF := GF) l
       icombine H1 H2 gives %He
       subst He
       iexists e1
-      iapply (ptsto_frac_add _ _ _ _).2; iframe
+      iapply (typedPointsto_frac_add _ _ _ _).2; iframe
 
 theorem lessorGhost_insert (lp : Loc) (γga : GName) (L L' : List w64) :
     (lessorGhost lp γga L).insert true (Sum.inr L' : LessorGV) = lessorGhost lp γga L' := by

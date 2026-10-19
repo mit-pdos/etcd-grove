@@ -203,15 +203,15 @@ theorem sub_neg_iff (a b : w64) (ha : 0 ≤ sint.Z a) (hb : 0 ≤ sint.Z b) :
 /-- The strict order on strings is a strict weak order. -/
 theorem goStringLt_swo {E : Type} (f : E → GoString) :
     slices.StrictWeakOrder (fun a b : E => go.GoStringLt (f a) (f b)) where
-  strict_weak_order_irrefl x := goStringLt_irrefl _
-  strict_weak_order_trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  strict_weak_order_irrefl x := go.goStringLt_irrefl _
+  strict_weak_order_trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
   strict_weak_order_equiv := {
-    refl := fun _ => ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+    refl := fun _ => ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
     symm := fun h => ⟨h.2, h.1⟩
     trans := fun h1 h2 => by
-      have e1 := goStringLt_eq_of_not_lt h1.1 h1.2
-      have e2 := goStringLt_eq_of_not_lt h2.1 h2.2
-      refine ⟨?_, ?_⟩ <;> rw [e1, e2] <;> exact goStringLt_irrefl _ }
+      have e1 := go.goStringLt_eq_of_not_lt h1.1 h1.2
+      have e2 := go.goStringLt_eq_of_not_lt h2.1 h2.2
+      refine ⟨?_, ?_⟩ <;> rw [e1, e2] <;> exact go.goStringLt_irrefl _ }
 
 theorem intLt_swo {E : Type} (f : E → w64) :
     slices.StrictWeakOrder (fun a b : E => sint.Z (f a) < sint.Z (f b)) where
@@ -251,10 +251,10 @@ theorem kvLtBy_false_iff (target : w64) (a b : EtcdKv) :
     · intro h
       by_cases hxy : go.GoStringLt x y
       · exact Or.inr hxy
-      · exact Or.inl (goStringLt_eq_of_not_lt hxy h)
+      · exact Or.inl (go.goStringLt_eq_of_not_lt hxy h)
     · rintro (h | h)
-      · subst h; exact goStringLt_irrefl _
-      · exact goStringLt_asymm h
+      · subst h; exact go.goStringLt_irrefl _
+      · exact go.goStringLt_asymm h
   split
   · simp only [decide_eq_false_iff_not]; omega
   split

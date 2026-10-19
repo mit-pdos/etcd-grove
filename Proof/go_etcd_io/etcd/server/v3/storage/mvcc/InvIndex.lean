@@ -32,7 +32,8 @@ public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -123,14 +124,14 @@ instance kiItemIs_persistent (p : Loc) (v : KiItem) : Persistent (kiItemIs (GF :
   unfold kiItemIs; infer_instance
 
 theorem kiItemLess_swo : StrictWeakOrder kiItemLess where
-  irrefl a := goStringLt_irrefl a.2
-  trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  irrefl a := go.goStringLt_irrefl a.2
+  trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
   incomp_trans a b c h1 h2 h3 h4 := by
-    have e1 := goStringLt_eq_of_not_lt h1 h2
-    have e2 := goStringLt_eq_of_not_lt h3 h4
+    have e1 := go.goStringLt_eq_of_not_lt h1 h2
+    have e2 := go.goStringLt_eq_of_not_lt h3 h4
     unfold kiItemLess
     rw [e1, e2]
-    exact ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+    exact ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
 
 theorem kiKey_agree (p : Loc) (k1 k2 : GoString) :
     ⊢ kiKey (GF := GF) p k1 -∗ kiKey p k2 -∗ ⌜k1 = k2⌝ := by
@@ -503,8 +504,8 @@ theorem btDelete_items_eraseIdx : ∀ (L : List IdxEntry), L.Pairwise entryLess 
     subst h
     simp only [itemsOfEntries, List.map_cons, List.eraseIdx_cons_zero]
     unfold btDelete
-    have h1 : ¬ kiItemLess (w.1, w.2.1) (q, w.2.1) := goStringLt_irrefl _
-    have h2 : ¬ kiItemLess (q, w.2.1) (w.1, w.2.1) := goStringLt_irrefl _
+    have h1 : ¬ kiItemLess (w.1, w.2.1) (q, w.2.1) := go.goStringLt_irrefl _
+    have h2 : ¬ kiItemLess (q, w.2.1) (w.1, w.2.1) := go.goStringLt_irrefl _
     rw [ite_eq_right h1, ite_eq_right h2]
   | w :: ws, hs, j + 1, z, q, h => by
     simp only [List.getElem?_cons_succ] at h
@@ -600,7 +601,7 @@ theorem kiKeys_nodup (L : List IdxEntry) (hs : L.Pairwise entryLess) :
   have := Hk a b ha hb heq
   unfold entryLess at hlt
   rw [this] at hlt
-  exact goStringLt_irrefl _ hlt
+  exact go.goStringLt_irrefl _ hlt
 
 /-! ### The lock invariant, the writer and the certificate -/
 
@@ -706,13 +707,13 @@ theorem ptrs_btInsert_new : ∀ (L : List IdxEntry) (z : IdxEntry), (∀ w ∈ L
     · split
       · simp only [List.map_cons, List.mem_cons] at hp ⊢; exact Or.inr hp
       · rename_i h1 h2
-        exact absurd (goStringLt_eq_of_not_lt h1 h2) (hn w List.mem_cons_self)
+        exact absurd (go.goStringLt_eq_of_not_lt h1 h2) (hn w List.mem_cons_self)
 
 theorem idxCmpOwn_split (γ : IdxNames) (L : List IdxEntry) (cmax : Int) (q1 q2 : Qp) :
     idxCmpOwn (GF := GF) γ (q1 + q2) L cmax ⊢ idxCmpOwn γ q1 L cmax ∗ idxCmpOwn γ q2 L cmax := by
   unfold idxCmpOwn
   iintro ⟨%cc, %P, H, %Hp⟩
-  rw [qp_half_add]
+  rw [Qp_half_add]
   icases (ghostVar_fractional (GF := GF) γ.cmp (cc, P)).fractional q1.half q2.half |>.1 $$ H
     with ⟨H1, H2⟩
   isplitl [H1]
@@ -726,7 +727,7 @@ theorem idxCmpOwn_combine (γ : IdxNames) (L : List IdxEntry) (c1 c2 : Int) (q1 
   ihave %Ha := ghostVar_agree γ.cmp _ _ _ _ $$ H1 H2
   cases Ha
   iexists cc1, P1
-  rw [qp_half_add]
+  rw [Qp_half_add]
   isplitl [H1 H2]
   · iapply (ghostVar_fractional (GF := GF) γ.cmp (cc1, P1)).fractional q1.half q2.half |>.2
     iframe H1 H2

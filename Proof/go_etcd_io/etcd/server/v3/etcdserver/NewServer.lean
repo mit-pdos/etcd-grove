@@ -818,7 +818,7 @@ theorem NewServer.wp_proof
   imod sync.init_RWMutex (leadTimeP s) (E := ⊤) (srvLeadTimeMuAddr s) $$ [leadElectedTime] leadTimeMu
     with Hltslots
   · inext; iunfold leadTimeP; iexists _; iexact leadElectedTime
-  icases guard_of_slots _ _ $$ Hltslots with ⟨Hltslots, #Hltg⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hltslots with ⟨Hltslots, #Hltg⟩
   -- (D19g (b)) `leadTimeMu`'s reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hltslots with ⟨Hlts, -⟩
   -- (D19i part 2) half of `s.be` kept out of `bemu`, for good: the storage version monitor's
