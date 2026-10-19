@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
 
 @[expose] public section
 
@@ -59,7 +60,8 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_maybeSendAppend : raft.maybeSendAppend.spec (GF := GF) (hG := hG))
     (wp_JointConfig_IDs : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
-    (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
+    (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
+    (wp_Epoch_HasWitness : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
   intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
   wp_start as H
@@ -71,17 +73,53 @@ theorem raft.switchToConfig.wp_proof
   iStructNamed Htrkf
   ihave Htrkf : r.[raft, go!"trk"] ↦
       ({ tv0 with Config' := cfgv, Progress' := prsm } : tracker.ProgressTracker)
-      $$ [Votes MaxInflight MaxInflightBytes Config Progress]
+      $$ [Votes MaxInflight MaxInflightBytes Config Progress Epoch]
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi $$ Hvotes Hnew
+  ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi $$ Hvotes Hnew Hepoch
   ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk %Hpok
   -- from here on the state is `s0`, and `s1` once `r.isLearner` is stored
   generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
   have Hrole0 : s0.role = s.role := by rw [← Hs0]
   have Hprs0 : s0.progress = prs := by rw [← Hs0]
   have Hsdr0 : s0.sdr = s.sdr := by rw [← Hs0]
+  -- (2026-10-19, witness support) `if r.state == StateLeader && (r.trk.Witnesses[0] != 0 ||
+  -- r.trk.Witnesses[1] != 0 || r.trk.Epoch.HasWitness()) { r.maybeStartNewSubterm(false, true) }`:
+  -- witness-free, so no new subterm
+  wp_join at next with [Hphys r]
+  · wp_apply raft.wp_load_stateC $$ Hphys as Hphys
+    by_cases Hl0 : s0.role = .leader
+    · rw [show stateW64 s0.role = W64 2 by rw [Hl0]; rfl]
+      wp_auto
+      icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tvw, Htrkf, Htrk, Hback⟩
+      icases ownTrackerC_witnesses $$ Htrk with ⟨%Hwit, Htrk⟩
+      icases ownTrackerC_epoch $$ Htrk with ⟨#Hepw, Htrk⟩
+      icases (Access.access
+          (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config,
+            go!"Witnesses"] ↦ tvw.Config'.Witnesses')
+          (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config,
+            go!"Witnesses"] ↦ tvw.Config'.Witnesses')
+          (P := r.[raft, go!"trk"] ↦ tvw)) $$ Htrkf with ⟨Hwf, Htrkback⟩
+      icases array_acc_same _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+        $$ Hwf with ⟨Hw0, Hw0back⟩
+      wp_pures
+      wp_auto
+      ihave Hwf := Hw0back $$ Hw0
+      icases array_acc_same _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+        $$ Hwf with ⟨Hw1, Hw1back⟩
+      wp_auto
+      ihave Hwf := Hw1back $$ Hw1
+      ihave Htrkf := Htrkback $$ Hwf
+      wp_auto
+      wp_apply wp_Epoch_HasWitness $$ [$Hepw]
+      ihave Hphys := Hback $$ %tvw Htrkf Htrk
+      wp_join_done
+    · rw [decide_eq_false (show stateW64 s0.role ≠ W64 2 by
+        rw [Hrole0] at Hl0 ⊢
+        cases h : s.role <;> simp_all [stateW64, StateFollower, StateCandidate, StatePreCandidate])]
+      wp_auto
+      wp_join_done
   -- the log line: `r.id`, `r.trk.Config`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback⟩
@@ -154,7 +192,7 @@ theorem raft.switchToConfig.wp_proof
       ihave %Hxlen := ownSlice_len $$ Hv
       wp_auto
       ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true
-        $$ [HV Hv HL Hl HO Ho HN Hn HA]
+        $$ [HV Hv HL Hl HO Ho HN Hn HA HW HWO]
       · iunfold csPts
         iexists sv, sl, so, sn, pa, pw, pwo
         iframe

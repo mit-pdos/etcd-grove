@@ -401,6 +401,21 @@ theorem ownTrackerC_autoleave (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk
     $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln] Hepoch
   iapply ownCfgCC_intro _ _ c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
 
+/-- The configuration's witnesses, none (2026-10-19, witness support: `switchToConfig`,
+`campaign` and `stepCandidate` read them). -/
+theorem ownTrackerC_witnesses (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTrackerC (GF := GF) c tv t ⊢
+      ⌜tv.Config'.Witnesses'.arr = [W64 0, W64 0]⌝ ∗ ownTrackerC c tv t := by
+  iintro Hown
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
+  isplitr
+  · ipureintro; exact Hwit
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln] Hepoch
+  iapply ownCfgCC_intro _ _ c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
+
 /-- The voters of either half number at most `2^62` (they are tracked). -/
 theorem ownTrackerC_voters_size (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ownTrackerC (GF := GF) c tv t ⊢

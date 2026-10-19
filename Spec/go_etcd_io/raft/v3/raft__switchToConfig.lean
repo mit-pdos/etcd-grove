@@ -149,6 +149,9 @@ abbrev raft.switchToConfig.spec : Prop :=
            ownRaftPhysCV c (c.voters ∪ {[id]}) r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
       "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
+      -- (2026-10-19, witness support) the old tracker's epoch, which the new one keeps and the
+      -- body reads (`r.trk.Epoch.HasWitness()`): witness-free
+      "#Hepoch" ∷ ownEpochNW tv0.Epoch' ∗
       "Hnew" ∷ ownConfigC c cfgv prsm prs pvs }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
@@ -176,6 +179,7 @@ abbrev raft.switchToConfig.specS : Prop :=
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
       "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
+      "#Hepoch" ∷ ownEpochNW tv0.Epoch' ∗
       "Hnew" ∷ ownConfigV cfg cfgv prsm prs pvs }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
@@ -191,12 +195,12 @@ theorem raft.switchToConfig.spec_simple
     (H : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.specS (GF := GF) (hG := hG) := by
   intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
-  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, %Hmi, Hnew⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, %Hmi, #Hepoch, Hnew⟩ HΦ
   ihave Hnew := ownConfigV_toC _ _ _ _ _ $$ Hnew
   iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv0 cfgv prsm prs pvs
       (fun hl => .inl (by rw [CfgM.voters_simple]; exact Hlead hl))
       (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc) Hpok
-    $$ [$Hpkg $Htrkf Hback $Hvotes $Hnew]
+    $$ [$Hpkg $Htrkf Hback $Hvotes $Hepoch $Hnew]
   · isplitl [Hback]
     · iintro %tv' %prs' %pvs' Hf Ht %Hok
       icases ownTrackerC_toTracker _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
@@ -249,7 +253,7 @@ theorem raft.switchToConfig.spec_nonleader_open
            ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
            ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
-        tv.Votes' ↦$ s.votes ∗
+        tv.Votes' ↦$ s.votes ∗ ownEpochNW tv.Epoch' ∗
         ownConfig cfg cfgv prsm prs }}
       (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
         (Val #cfgv)) (Val #prsm))
@@ -257,13 +261,13 @@ theorem raft.switchToConfig.spec_nonleader_open
         (pvs : GMap w64 Progress), RET #cs;
         ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, Hcfg⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, #Hepoch, Hcfg⟩ HΦ
   icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
   iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs
       (fun h => absurd (Hrole.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
       (fun h => absurd (Hrole.symm.trans h) (by decide))
-    $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
+    $$ [$Hpkg $Htrkf $Hback $Hvotes $Hepoch $Hcfg]
   · ipureintro; exact Hmi
   inext
   iintro %cs %xs %ls %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
