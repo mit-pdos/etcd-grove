@@ -113,7 +113,8 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (raft's, the start log and index the server's), in the
 static mode over the `MemoryStorage`, with the budget `bud`: the tick's resource and the read
-registrations by `srvEr`'s definition, every message but a snapshot admitted (D19p: a one-member cluster), a committed log's `E.C` from the
+registrations by `srvEr`'s definition, every message but a snapshot admitted (D19p: a one-member cluster), with
+its bundle (`srvMsgNet`, D21 stage M1), a committed log's `E.C` from the
 KV invariant's indices (a committed log is a prefix of the KV invariant's, `srvIdxOkW`, and its
 next index fits), the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. -/
 theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
@@ -136,11 +137,16 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact ⟨hmode, hstor⟩
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, -⟩
+  · iintro !> %m %st ⟨#Hmo, #Hrm, #Htl, Hc⟩
+    rw [hraft, hbud] at *
+    isplitl [Hc]
+    · -- (D21 stage M1) the bundle a receiver's `Step` takes
+      iunfold srvMsgNet
+      iexists st
+      iframe Hmo Hrm Htl Hc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
-    rw [hraft] at *
     iapply isRaftMsg_not_snap ρ.raft.raft k htrk st $$ Hrm
   isplitr
   · iintro !> %L #HL %Hfit

@@ -11,7 +11,8 @@ node contract is to be discharged from raft's specs.
   names `γr` and the read-index registrations `RQ id n` (`ReadIndex` registered the request id
   `id` at a lower bound `n` of the committed index), which the read states a `Ready` carries
   answer (`srvReadStateOk`, `read/Inv.lean`). What the discharge needs of `E` is `rnEnvOk E γ`
-  (persistent, in `isRaftNode`): `E.T` raft's tick credit, `E.M` of a message raft handed out,
+  (persistent, in `isRaftNode`): `E.T` raft's tick credit, `E.M` of a message raft handed out
+  (with its read credit, D21 stage M1),
   `E.C` from the committed log (and back: the log prefix and the indices), `E.RQ` raft's read
   registration (`srvRQ`), and the names tied (`E.γr.raft.raft = γ.node.raft`, ...).
 - **The node** (`isRaftNodeIfc E γ n`, the `raft.Node` interface, shaped like node.go's verified
@@ -145,12 +146,11 @@ structure RNEnv (GF : BundledGFunctors) where
   γr : ReadNames
   RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF
 
-/-- A message the node handed out, as the wrapper reads and forwards it (persistent). -/
+/-- A message the node handed out, as the wrapper reads and forwards it: its destination and
+type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persistent, so that
+`E.M` can carry a message's one-shot read credit to the transport; until then `□ E.M m`.) -/
 def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
-  iprop(∃ (to : w64) (ty : w32), msgAt m to ty ∗ □ E.M m)
-
-instance rnMsgOk_persistent (E : RNEnv GF) (m : Loc) : Persistent (rnMsgOk E m) := by
-  unfold rnMsgOk; infer_instance
+  iprop(∃ (to : w64) (ty : w32), msgAt m to ty ∗ E.M m)
 
 /-! ## The node's `Ready`/`Advance` exchange -/
 
@@ -232,14 +232,17 @@ node's, the start log and index the same); the node in the static mode, its stor
 reached) is one `E.M` admits; `E.C` of a committed log prefix whose next index fits (the
 server's composition proves it from its KV invariant), and back, the committed log and the
 indices of what `E.C` holds (the ready loop's `updateCommittedIndex` needs them); `E.RQ` raft's
-read registration. -/
+read registration. (2026-10-19, D21 stage M1: a message's bundle includes its read credit, one
+for a `MsgReadIndex`, which raft's `readyData` hands out with it and the receiver's `Step` takes,
+`netP`; until then the credit was dropped.) -/
 def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
   iprop(⌜E.T = iprop(True)⌝ ∗
     ⌜E.γr.raft.raft = γ.node.raft ∧ E.γr.raft.pre = γ.pre ∧
       uint.Z E.γr.raft.ai0 = γ.pre.length⌝ ∗
     ⌜γ.node.mode = RNMode.static ∧ γ.node.stor = memStorIface γ.ms⌝ ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
-        termLB γ.node.bud st.msg.Term' -∗ E.M m) ∗
+        termLB γ.node.bud st.msg.Term' ∗
+        rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗ E.M m) ∗
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
         ⌜uint.Z E.γr.raft.ai0 + 1 + L.length < 2 ^ 64⌝ ={⊤}=∗ □ E.C L) ∗
     □ (∀ L : List EntryModel, E.C L -∗ srvRLogLb E.γr.raft L ∗ ⌜srvIdxOk E.γr.raft.ai0 L⌝) ∗
@@ -391,26 +394,32 @@ theorem txnCtx_nodeCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
 
 /-! ### Receiving a `Ready`: raft's data in the server's terms -/
 
-/-- The messages a `Ready` hands out, persisted, each one `E.M` admits. -/
+/-- The messages a `Ready` hands out, persisted, each one `E.M` admits, with its read credit
+(2026-10-19, D21 stage M1). -/
 theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
       ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
-          termLB γ.node.bud st.msg.Term' -∗ E.M m) -∗
+          termLB γ.node.bud st.msg.Term' ∗
+          rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗ E.M m) -∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.node.raft q.st ∗
-          termLB γ.node.bud q.st.msg.Term') ={⊤}=∗
+          termLB γ.node.bud q.st.msg.Term') -∗
+        ([∗list] q ∈ ms, rdCred γ.node.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0))
+          ={⊤}=∗
         [∗list] m ∈ ms.map QMsg.loc, rnMsgOk E m
   | [] => by
-    iintro #HM -
+    iintro #HM - -
     imodintro
     simp only [List.map_nil]
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     itrivial
   | q :: ms => by
-    iintro #HM H
+    iintro #HM H Hc
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗
       isRaftMsg γ.node.raft q.st ∗ termLB γ.node.bud q.st.msg.Term'))).1 $$ H with ⟨⟨Hm, #Hrm, #Htl⟩, Hrest⟩
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => rdCred (GF := GF) γ.node.raft
+      (if q.st.msg.Type' = MsgReadIndex then 1 else 0))).1 $$ Hc with ⟨Hc1, Hcrest⟩
     imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
-    imod rnMsgOk_of_raft E γ ms $$ HM Hrest with #Hrest
+    imod rnMsgOk_of_raft E γ ms $$ HM Hrest Hcrest with Hrest
     imodintro
     simp only [List.map_cons]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgOk (GF := GF) E m)).2
@@ -422,9 +431,8 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
       iexists q.st
       iframe Hm
       ipureintro; exact ⟨rfl, rfl⟩
-    iintro !>
     iapply HM $$ %q.loc %q.st
-    iframe Hm Hrm Htl
+    iframe Hm Hrm Htl Hc1
 
 /-- The read states a `Ready` hands out, each answering the server's registrations (through
 the bridge). -/
@@ -476,8 +484,8 @@ theorem entriesAt_of_entRO (ls : List Loc) (es : List EntryM) :
 /-- **Receiving a `Ready`** (in the loop's `select`; 2026-10-16, stage R7b: raft's payload, the
 server's data derived): the idle driver at `L` learns the payload's log is `L`, and is busy with
 it; the messages persisted (`msgOwn_persist`), `E.C` of the committed log (`rnEnvOk`), the entries
-fit (`rnLogFits`), the read states answered (`rnReadStateBridge`); the read credits raft hands
-out with its messages are dropped. -/
+fit (`rnLogFits`), the read states answered (`rnReadStateBridge`); each message with the read
+credit raft hands out with it (2026-10-19, D21 stage M1; until then dropped). -/
 theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : Ready) :
     rnEnvOk E γ -∗ rnLogFits γ -∗ rnReadStateBridge E γ -∗ rnDrv γ L -∗ rnReadyP E γ rd ={⊤}=∗
       ∃ ce es, rnReadyData E γ rd L ce es ∗ rnBusy γ L ce es := by
@@ -499,7 +507,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   iunfold rnLogFits at Hfits
   icases Hfits with %Hrb
   iunfold readyData at Hdata
-  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, -, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
+  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
     #Hss, %Hsnap, #Hri⟩
   -- (2026-10-18, D19b stage 5) the indices handed out, bounded by the receipt of the log's last
   iunfold readyIdx at Hri
@@ -521,7 +529,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
   icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
   imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
-  imod rnMsgOk_of_raft E γ ms $$ HM Hmo with #Hmok
+  imod rnMsgOk_of_raft E γ ms $$ HM Hmo Hmc with Hmok
   -- `E.C (L ++ ce)` from the committed log, the next index fitting
   ihave #HLb : srvRLogLb E.γr.raft (L ++ ce.map EntryModel.ofM) $$ []
   · iunfold srvRLogLb
@@ -537,7 +545,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
     omega
   imodintro
   iexists ce.map EntryModel.ofM, es.map EntryModel.ofM
-  isplitl [Happ]
+  isplitl [Happ Hmok]
   · iunfold rnReadyData
     iexists ceL, esL, ms.map QMsg.loc, HardStateModel.ofM h
     iframe HceL HesL Hmsgs Hmok HEC

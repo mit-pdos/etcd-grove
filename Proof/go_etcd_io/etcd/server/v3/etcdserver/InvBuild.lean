@@ -75,13 +75,24 @@ bound to another (`isMessage`), so raft sends none. -/
 def srvMsgNoSnap (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝)
 
+/-- **A message raft hands the server, with what its receiver needs** (2026-10-19, D21 stage
+M1): read-only, a message raft sent (`isRaftMsg`, its protocol abstraction), at a term the
+budget `bud` reached (`termLB`), with its read credit, one for a `MsgReadIndex` (`rdCred`):
+what a peer's `node.Step` takes of a network message (`netP`) but the receiver's own facts
+(`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. -/
+def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (m : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
+    rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0))
+
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
-contract, `rafthttp.Transport`, asking nothing of them), a tick's resource raft's tick credit of
-the budget `bud`, the read names `ρ.rd`, raft's read registrations. -/
+contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
+M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
+registrations. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, srvMsgNoSnap, iprop(True), ρ.rd, srvRQ ρ.rd.raft⟩
+  ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud m ∗ srvMsgNoSnap m), iprop(True),
+    ρ.rd, srvRQ ρ.rd.raft⟩
 
 /-- **A one-member cluster's raft sends no snapshot** (D19p): with raft's tracked bound one
 node, a `MsgSnap`'s sender and receiver (two nodes of the bound, `isMessage`) would be the same. -/
@@ -126,11 +137,11 @@ theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     rnMsgOk (srvEr ρ E ai₀ c₀ x₀ bud) m ∗ (∃ to : w64, msgAt m to MsgSnap) ⊢ (False : IProp GF) := by
   iintro ⟨H1, H2⟩
   iunfold rnMsgOk at H1
-  icases H1 with ⟨%to0, %ty0, -, #HM⟩
+  simp only [srvEr]
+  icases H1 with ⟨%to0, %ty0, -, ⟨-, HM⟩⟩
   icases H2 with ⟨%to, H2⟩
   iunfold msgAt at H2
   icases H2 with ⟨%st', #Hst', %Hst'⟩
-  simp only [srvEr]
   iunfold srvMsgNoSnap at HM
   icases HM with ⟨%st, #Hst, %Hns⟩
   ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']

@@ -40,7 +40,7 @@ theorem raftNode.processMessages.wp_proof
   have wp_GetTo := wp_msgAt_GetTo wp_GetTo
   have wp_GetType := wp_msgAt_GetType wp_GetType
   intro E γ r sl msL
-  wp_start as ⟨#Hr, #Hsl, #Hall⟩
+  wp_start as ⟨#Hr, #Hsl, Hall⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
@@ -51,9 +51,13 @@ theorem raftNode.processMessages.wp_proof
       "messages" ∷ messages_ptr ↦ out ∗ "Hout" ∷ out ↦* outL ∗
       "Hcap" ∷ ownSliceCap Loc out (DFrac.own 1) ∗ "Houtok" ∷ ([∗list] m ∈ outL, rnMsgOk E m) ∗
       "sentAppResp" ∷ sentAppResp_ptr ↦ b ∗
-      "%Hk" ∷ ⌜-1 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len⌝) $$ [r ms i messages sentAppResp]
+      -- (D21 stage M1) the messages not yet looked at, each with its bundle
+      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgOk E m) ∗
+      "%Hk" ∷ ⌜-1 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len⌝) $$ [r ms i messages sentAppResp Hall]
   · iexists sl.len - W64 1, slice.nil, [], false
     iframe r ms i sentAppResp
+    rw [List.take_of_length_le (by rw [Hlen.1]; word)]
+    iframe Hall
     isplitl [messages]
     · iexact messages
     isplitr
@@ -74,11 +78,19 @@ theorem raftNode.processMessages.wp_proof
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
     wp_apply wp_load_slice_index sl (sint.Z k) msL DFrac.discard m (by word) $$ [] as -
     · iframe Hsl; ipureintro; exact hm
-    ihave #HmOk := (BigSepL.bigSepL_lookup (Φ := fun _ m => rnMsgOk E m) hm) $$ Hall
-    ihave #Hm := HmOk
-    iunfold rnMsgOk at Hm
-
-    icases Hm with ⟨%to, %ty, #Hmat, #HM⟩
+    -- (D21 stage M1) the message's bundle, taken from the ones not yet looked at
+    have htake : msL.take (sint.Z k + 1).toNat = msL.take (sint.Z k).toNat ++ [m] := by
+      rw [show (sint.Z k + 1).toNat = (sint.Z k).toNat + 1 by omega, List.take_succ, hm]; rfl
+    have hk1 : (sint.Z (k - W64 1) + 1).toNat = (sint.Z k).toNat := by
+      have : sint.Z (k - W64 1) = sint.Z k - 1 := by word
+      omega
+    rw [htake]
+    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgOk (GF := GF) E m)).1 $$ Hall
+      with ⟨Hall, HmOk⟩
+    iunfold rnMsgOk at HmOk
+    icases HmOk with ⟨%to, %ty, #Hmat, HM⟩
+    ihave HmOk : rnMsgOk E m $$ [HM]
+    · iunfold rnMsgOk; iexists to, ty; iframe Hmat HM
     wp_apply wp_GetTo m to ty $$ [$Hrpb $Hmat]
     iunfold isRNIDRemoved at Hidri
     ispecialize Hidri $$ %to
@@ -89,6 +101,7 @@ theorem raftNode.processMessages.wp_proof
       wp_for_post
       iframe HΦ
       iexists k - W64 1, out, outL, b
+      rw [hk1]
       iframe
       ipureintro; constructor <;> word
     wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
@@ -100,6 +113,7 @@ theorem raftNode.processMessages.wp_proof
         wp_for_post
         iframe HΦ
         iexists k - W64 1, out, outL, true
+        rw [hk1]
         iframe
         ipureintro; constructor <;> word
       wp_auto
@@ -114,8 +128,9 @@ theorem raftNode.processMessages.wp_proof
       wp_for_post
       iframe HΦ
       iexists k - W64 1, out', outL ++ [m], _
-      iframe r ms i messages Hout Hcap sentAppResp
-      isplitl [Houtok]
+      rw [hk1]
+      iframe r ms i messages Hout Hcap sentAppResp Hall
+      isplitl [Houtok HmOk]
 
       · iapply BigSepL.bigSepL_snoc.2
         iframe Houtok HmOk
@@ -124,7 +139,7 @@ theorem raftNode.processMessages.wp_proof
       wp_if_destruct
       · -- `MsgSnap`: to `msgSnapC` if it has room, then `continue`
         -- (D19p) handed on with its type
-        ihave #HmS : iprop(rnMsgOk E m ∗ ∃ to' : w64, msgAt m to' MsgSnap) $$ []
+        ihave HmS : iprop(rnMsgOk E m ∗ ∃ to' : w64, msgAt m to' MsgSnap) $$ [HmOk]
         · iframe HmOk
           iexists to
           rw [show MsgSnap = (W32 7 : w32) from rfl]
@@ -161,20 +176,21 @@ theorem raftNode.processMessages.wp_proof
                 dsimp only
                 iintro Hoc
                 imod Hmask with -
-                imod Hclose $$ [Hoc] with -
+                imod Hclose $$ [Hoc HmS] with -
                 · inext; iexists .SndCommit m; iframe Hoc; dsimp only; iexact HmS
                 imodintro
                 wp_auto
                 wp_for_post
                 iframe HΦ
                 iexists k - W64 1, out, outL, _
+                rw [hk1]
                 iframe
                 ipureintro; constructor <;> word
               | Buffered buff =>
                 dsimp only
                 iintro Hoc
                 imod Hmask with -
-                imod Hclose $$ [Hoc Hi] with -
+                imod Hclose $$ [Hoc Hi HmS] with -
                 · inext; iexists .Buffered (buff ++ [m]); iframe Hoc; dsimp only
                   iapply BigSepL.bigSepL_snoc.2; iframe Hi HmS
                 imodintro
@@ -182,6 +198,7 @@ theorem raftNode.processMessages.wp_proof
                 wp_for_post
                 iframe HΦ
                 iexists k - W64 1, out, outL, _
+                rw [hk1]
                 iframe
                 ipureintro; constructor <;> word
               | Closed d =>
@@ -196,6 +213,7 @@ theorem raftNode.processMessages.wp_proof
           wp_for_post
           iframe HΦ
           iexists k - W64 1, out, outL, _
+          rw [hk1]
           iframe
           ipureintro; constructor <;> word
 
@@ -250,8 +268,9 @@ theorem raftNode.processMessages.wp_proof
           wp_for_post
           iframe HΦ
           iexists k - W64 1, out', outL ++ [m], _
-          iframe r ms i messages Hout Hcap sentAppResp
-          isplitl [Houtok]
+          rw [hk1]
+          iframe r ms i messages Hout Hcap sentAppResp Hall
+          isplitl [Houtok HmOk]
           · iapply BigSepL.bigSepL_snoc.2
             iframe Houtok HmOk
           ipureintro; constructor <;> word
@@ -268,8 +287,9 @@ theorem raftNode.processMessages.wp_proof
           wp_for_post
           iframe HΦ
           iexists k - W64 1, out', outL ++ [m], _
-          iframe r ms i messages Hout Hcap sentAppResp
-          isplitl [Houtok]
+          rw [hk1]
+          iframe r ms i messages Hout Hcap sentAppResp Hall
+          isplitl [Houtok HmOk]
           · iapply BigSepL.bigSepL_snoc.2
             iframe Houtok HmOk
           ipureintro; constructor <;> word
@@ -284,8 +304,9 @@ theorem raftNode.processMessages.wp_proof
       wp_for_post
       iframe HΦ
       iexists k - W64 1, out', outL ++ [m], _
-      iframe r ms i messages Hout Hcap sentAppResp
-      isplitl [Houtok]
+      rw [hk1]
+      iframe r ms i messages Hout Hcap sentAppResp Hall
+      isplitl [Houtok HmOk]
       · iapply BigSepL.bigSepL_snoc.2
         iframe Houtok HmOk
       ipureintro; constructor <;> word
