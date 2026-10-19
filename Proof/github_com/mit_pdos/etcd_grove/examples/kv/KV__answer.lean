@@ -101,7 +101,7 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
         iframe
         ipureintro; constructor <;> word
       | some x =>
-        obtain ⟨rep, sq, kd, vl⟩ := x
+        obtain ⟨rep, sq, kd, key, vl⟩ := x
         simp only [decodeRet, Hdec]
         wp_auto
         have Hkey : opKey cx = some (rep, sq) := by simp [opKey, Hdec]
@@ -117,32 +117,31 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
             wp_auto
             wp_apply wp_map_lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)
               mR Rd sq (DFrac.own 1) $$ [$HRd] as HRd
-            ihave Hrun : iprop(r.[RKV, go!"value"] ↦ v -∗ r.[RKV, go!"applied"] ↦ mA -∗
+            ihave Hrun : iprop(r.[RKV, go!"kv"] ↦ mK -∗ mK ↦$ K -∗ r.[RKV, go!"applied"] ↦ mA -∗
                 mA ↦$ A -∗ runOwn γr r ap) $$ []
-            · iintro Hv HmA HA
+            · iintro HmK HK HmA HA
               unfold runOwn
-              iexists v, mA, A, ods
-              iframe Hv HmA HA Hap Hods
+              iexists mK, K, mA, A, ods
+              iframe HmK HK HmA HA Hap Hods
               ipureintro; exact ⟨Hval, HA⟩
             cases HRs : Rd !! sq with
             | none =>
               simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
               wp_auto
+              wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own 1) $$ [$HK] as HK
               wp_apply sync.Mutex.wp_Unlock _ _
-                $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters HmR HRd Hreads]
+                $$ [$Hmu $Hlocked Hns HmW HW Hseq Hwaiters HmR HRd Hreads]
               · inext
                 unfold lockInv
-                iexists ns, mW, W, c
+                iexists ns, mW, W
                 iframe
-                isplitr
-                · ipureintro; exact Hc
                 isplitr
                 · ipureintro; exact HWdom
                 unfold readsOwn
                 iexists mR, Rd
                 iframe
                 ipureintro; exact HRdom
-              ihave Hrun := Hrun $$ Hv HmA HA
+              ihave Hrun := Hrun $$ HmK HK HmA HA
               wp_for_post
               iframe
               iexists k + W64 1, sv, restv, ps'
@@ -167,14 +166,13 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
               imod kv_read_minted γr cx c0 Lc' (id, sq) ⊤ CoPset.subseteq_top raftN_regN Hkey
                 $$ Hinv Hcinv Hrq' Hmint with %Hc0
               subst Hc0
+              wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own 1) $$ [$HK] as HK
               wp_apply sync.Mutex.wp_Unlock _ _
-                $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters HmR HRd Hreads]
+                $$ [$Hmu $Hlocked Hns HmW HW Hseq Hwaiters HmR HRd Hreads]
               · inext
                 unfold lockInv
-                iexists ns, mW, W, c
+                iexists ns, mW, W
                 iframe
-                isplitr
-                · ipureintro; exact Hc
                 isplitr
                 · ipureintro; exact HWdom
                 unfold readsOwn
@@ -186,16 +184,19 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
                 · subst Hss; rw [GMap.lookup_delete_eq] at Hs; cases Hs
                 · rw [GMap.lookup_delete_ne _ (Ne.symm Hss)] at Hs; exact HRdom s ch' Hs
               wp_apply wp_handoff_send (t := go.string) γh ch (readAns γr c0) iprop(True)
-                iprop(False) v $$ [$Hho $Hprod]
+                iprop(False) ((K !! key).getD (zero_val GoString)) $$ [$Hho $Hprod]
               · isplitl
                 · unfold readAns
                   iexists sv.Index', ap, ods
                   iframe Hok' Hap Hods
-                  ipureintro; exact ⟨Hle, Hval⟩
+                  ipureintro
+                  refine ⟨Hle, ?_⟩
+                  have Hdk : dkey c0 = key := by simp [dkey, Hdec]
+                  rw [Hdk]; exact Hval key
                 · itrivial
               iintro -
               wp_auto
-              ihave Hrun := Hrun $$ Hv HmA HA
+              ihave Hrun := Hrun $$ HmK HK HmA HA
               wp_for_post
               iframe
               iexists k + W64 1, sv, restv, ps'

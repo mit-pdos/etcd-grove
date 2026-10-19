@@ -30,6 +30,7 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   intro γr γn id n st send op c0 c1
   wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, #Hsend⟩
   wp_auto
+  wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mK HK
   wp_apply wp_map_make1 (K := List w8) (V := Bool) as %mA HA
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mW HW
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mR HRd
@@ -37,22 +38,15 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   ipersist id
   ipersist node
   ipersist storage
-  obtain ⟨N, hN⟩ : ∃ N : Nat, N = 2 ^ 64 - 1 := ⟨_, rfl⟩
-  rw [← hN]
-  imod own_alloc ((● N : Auth Nat) • ◯ N)
-    (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γc, HC⟩
-  icases (own_op γc _ _).1 $$ HC with ⟨HCa, HCf⟩
-  imod sync.init_Mutex (lockInv γr ⟨γn, γc⟩ id «$r0_ptr») ⊤
-    («$r0_ptr».[RKV, go!"mu"]) $$ mu [nextSeq waiters HW Hseq HCa reads HRd] with #Hmu
+  imod sync.init_Mutex (lockInv γr ⟨γn⟩ id «$r0_ptr») ⊤
+    («$r0_ptr».[RKV, go!"mu"]) $$ mu [nextSeq waiters HW Hseq reads HRd] with #Hmu
   · inext
     unfold lockInv
-    iexists W64 0, mW, ∅, N
-    iframe waiters HW Hseq HCa
+    iexists W64 0, mW, ∅
+    iframe waiters HW Hseq
     simp only [named]
     rw [show (W64 0 : w64) = 0 from rfl]
     iframe nextSeq
-    isplitr
-    · ipureintro; rw [hN]; word
     isplitr
     · ipureintro; intro s ch Hs; cases Hs
     isplitr
@@ -68,14 +62,14 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
     itrivial
   unfold nodeDriver
   icases Hdrv with ⟨#HisNode, Hdlv, #Hdlb, Hreq⟩
-  ihave #Hrep : isReplica γr ⟨γn, γc⟩ «$r0_ptr» id n st $$ []
+  ihave #Hrep : isReplica γr ⟨γn⟩ «$r0_ptr» id n st $$ []
   · unfold isReplica
     simp only [named]
     iframe #
     ipureintro; exact ⟨Hraft, Hstor⟩
-  wp_apply wp_fork $$ [Hdlv Hreq value applied HA Hncfg]
-  · wp_apply wp_run γr ⟨γn, γc⟩ «$r0_ptr» id n st send op c0 c1
-      $$ [$Hpkg $Hrep Hdlv Hreq value applied HA Hncfg]
+  wp_apply wp_fork $$ [Hdlv Hreq kv HK applied HA Hncfg]
+  · wp_apply wp_run γr ⟨γn⟩ «$r0_ptr» id n st send op c0 c1
+      $$ [$Hpkg $Hrep Hdlv Hreq kv HK applied HA Hncfg]
     · iframe #
       isplitr
       · ipureintro; exact Hmd
@@ -83,22 +77,21 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
       unfold nodeDriver
       iframe HisNode Hdlv Hdlb Hreq
       unfold runOwn
-      iexists [], mA, ∅, []
+      iexists mK, ∅, mA, ∅, []
       simp only [named]
-      iframe value applied HA Hc0
+      iframe kv HK applied HA Hc0
       isplitl []
       · iapply BigSepL2.bigSepL2_nil.2; itrivial
       ipureintro
-      refine ⟨rfl, ?_⟩
-      intro d
-      simp [firstOcc]
+      refine ⟨?_, ?_⟩
+      · intro k; simp [firstOcc, kvFold, kvEmpty]
+      · intro d
+        simp [firstOcc]
     itrivial
   iapply HΦ
-  iexists ⟨γn, γc⟩
+  iexists ⟨γn⟩
   isplitr
   · ipureintro; rfl
-  unfold opCred
-  iframe HCf
   unfold isKV
   iexists id, n, st
   iexact Hrep

@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__do.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): `Node.Propose` wants the data frozen and
-non-empty (D6); an encoding is at least 17 bytes.
+non-empty (D6); an encoding is at least 25 bytes.
 -/
 module
 
@@ -31,8 +31,8 @@ theorem KV.do.wp_proof
     (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
     (wp_node_Propose : node.Propose.spec (GF := GF) (hG := hG)) :
     KV.do.spec (GF := GF) (hG := hG) := by
-  intro γr γp r kind val Ψ Hval
-  wp_start as ⟨#Hreg, Hcr, Hau⟩
+  intro γr γp r kind key val Ψ Hkey Hval
+  wp_start as ⟨#Hreg, Hau⟩
   iunfold isKV at Hreg
   icases Hreg with ⟨%id, %n, %st, #Hrep⟩
   ihave #Hrep' := Hrep
@@ -43,18 +43,27 @@ theorem KV.do.wp_proof
   wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
   iNamed HR
-  imod opCred_spend γp c $$ Hcred Hcr with ⟨%Hc1, Hcred⟩
-  have Hns : uint.Z ns + 1 < 2 ^ 64 := by omega
   wp_auto_lc 1
+  wp_if_destruct
+  · -- out of sequence numbers: the replica stops
+    ihave Hspin : iprop(True) $$ []
+    · itrivial
+    wp_for Hspin
+    wp_for_post
+    iframe
+  have Hns : uint.Z ns + 1 < 2 ^ 64 := by
+    have : ns ≠ W64 18446744073709551615 := by assumption
+    word
   -- the operation's datum, minted, with its slot holding the client's update (2026-10-14,
   -- stage R)
-  ihave Hau : opAu γr (opNext kind val) Ψ $$ [Hau]
+  ihave Hau : opAu γr (kvNext kind key val) key Ψ $$ [Hau]
   · unfold opAu; iexact Hau
-  imod kv_mint γr id ns kind val Ψ ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq Hlc1 Hau
+  imod kv_mint γr id ns kind key val Ψ ⊤ CoPset.subseteq_top Hns (by omega) $$ Hinv Hseq Hlc1 Hau
     with ⟨Hseq, #Hmint, Hfresh, %γo, #Hop, #Hsp, Htok⟩
-  have Hdne : encodeOp id (ns + W64 1) kind val ≠ [] := by
-    intro h; have := encodeOp_length id (ns + W64 1) kind val; rw [h] at this; simp at this; omega
-  generalize Hd : encodeOp id (ns + W64 1) kind val = d at Hdne
+  have Hdne : encodeOp id (ns + W64 1) kind key val ≠ [] := by
+    intro h; have := encodeOp_length id (ns + W64 1) kind key val; rw [h] at this
+    simp at this; omega
+  generalize Hd : encodeOp id (ns + W64 1) kind key val = d at Hdne
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
@@ -66,13 +75,11 @@ theorem KV.do.wp_proof
     | some ch' => have := HWdom _ _ h; word
   wp_apply wp_mapInsert go.uint64 mW W (ns + W64 1) ch $$ [$HW] as HW
   ihave Hrds := readsOwn_mono γr id r ns (ns + W64 1) (by word) $$ Hrds
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hprod Hrds]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hwaiters Hprod Hrds]
   · inext
     unfold lockInv
-    iexists ns + W64 1, mW, W.insert (ns + W64 1) ch, c - 1
-    iframe Hns HmW HW Hseq Hcred Hrds
-    isplitr
-    · ipureintro; word
+    iexists ns + W64 1, mW, W.insert (ns + W64 1) ch
+    iframe Hns HmW HW Hseq Hrds
     isplitr
     · ipureintro
       intro s ch' Hs
@@ -96,7 +103,7 @@ theorem KV.do.wp_proof
     iframe Hfresh Hpau
   wp_for HI
   wp_apply context.wp_Background
-  wp_apply wp_encode id (ns + W64 1) kind val Hval as %b ⟨Hb, Hbcap⟩
+  wp_apply wp_encode id (ns + W64 1) kind key val Hkey Hval as %b ⟨Hb, Hbcap⟩
   rw [Hd]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
   -- `Propose`: the first time with the update, after that with `d` deposited

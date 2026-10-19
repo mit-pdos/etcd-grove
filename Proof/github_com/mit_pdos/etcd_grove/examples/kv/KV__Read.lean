@@ -40,8 +40,8 @@ theorem KV.Read.wp_proof
     (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
     (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG)) :
     KV.Read.spec (GF := GF) (hG := hG) := by
-  intro γr γp r L0
-  wp_start as ⟨#Hreg, Hcr, Hrdc, #Hlb⟩
+  intro γr γp r key L0 Hkey
+  wp_start as ⟨#Hreg, Hrdc, #Hlb⟩
   iunfold isKV at Hreg
   icases Hreg with ⟨%id, %n, %st, #Hrep⟩
   ihave #Hrep' := Hrep
@@ -52,13 +52,21 @@ theorem KV.Read.wp_proof
   wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
   iNamed HR
-  imod opCred_spend γp c $$ Hcred Hcr with ⟨%Hc1, Hcred⟩
-  have Hns : uint.Z ns + 1 < 2 ^ 64 := by omega
   wp_auto
+  wp_if_destruct
+  · -- out of sequence numbers: the replica stops
+    ihave Hspin : iprop(True) $$ []
+    · itrivial
+    wp_for Hspin
+    wp_for_post
+    iframe
+  have Hns : uint.Z ns + 1 < 2 ^ 64 := by
+    have : ns ≠ W64 18446744073709551615 := by assumption
+    word
   -- the read's context, minted, with its fresh token for raft's read registry
-  imod kv_mint_read γr id ns ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq
+  imod kv_mint_read γr id ns key ⊤ CoPset.subseteq_top Hns (by omega) $$ Hinv Hseq
     with ⟨Hseq, #Hmint, Hrf⟩
-  generalize Hc : encodeOp id (ns + W64 1) opReadB [] = cx
+  generalize Hc : encodeOp id (ns + W64 1) opReadB key [] = cx
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
@@ -73,13 +81,11 @@ theorem KV.Read.wp_proof
   wp_auto
   wp_apply wp_mapInsert go.uint64 mR Rd (ns + W64 1) ch $$ [$HRd] as HRd
   wp_apply sync.Mutex.wp_Unlock _ _
-    $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters HmR HRd Hreads Hprod]
+    $$ [$Hmu $Hlocked Hns HmW HW Hseq Hwaiters HmR HRd Hreads Hprod]
   · inext
     unfold lockInv
-    iexists ns + W64 1, mW, W, c - 1
-    iframe Hns HmW HW Hseq Hcred Hwaiters
-    isplitr
-    · ipureintro; word
+    iexists ns + W64 1, mW, W
+    iframe Hns HmW HW Hseq Hwaiters
     isplitr
     · ipureintro
       intro s ch' Hs
@@ -103,7 +109,7 @@ theorem KV.Read.wp_proof
   -- `ReadIndex`, with the context's bytes read-only, its fresh token and the read's (trivial)
   -- persistent update, at the committed log of the caller's lower bound
   wp_apply context.wp_Background
-  wp_apply wp_encode id (ns + W64 1) (W8 3) [] (by simp) as %b ⟨Hb, -⟩
+  wp_apply wp_encode id (ns + W64 1) (W8 3) key [] Hkey (by simp) as %b ⟨Hb, -⟩
   rw [show (W8 3 : w8) = opReadB from rfl, Hc]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -139,7 +145,8 @@ theorem KV.Read.wp_proof
     ipureintro; rfl
   ipureintro
   rw [HL0]
-  exact ⟨firstOcc_prefix_of_prefix _ _ Hpre2, Hi.2⟩
+  have Hdk : dkey cx = key := by rw [← Hc]; exact dkey_encodeOp _ _ _ _ _ (by omega)
+  exact ⟨firstOcc_prefix_of_prefix _ _ Hpre2, Hdk ▸ Hi.2⟩
 
 end proof
 
