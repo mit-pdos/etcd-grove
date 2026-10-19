@@ -58,7 +58,7 @@ theorem read.NewRead.wp_proof
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   imod sync.init_RWMutex (readMuP r γr) (readMuAddr r) $$ [notifier Hg1] mux with Hslots
   · inext; iunfold readMuP; iexists nc, γn; iframe notifier Hg1
-  icases guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
   ihave #Hrd : readInv (GF := GF) γr $$ []
   · iunfold readInv; iexact Hinv
   ihave #Hpre : isReadPre (GF := GF) r γr $$ []

@@ -30,7 +30,10 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -80,7 +83,7 @@ instance waitShardP_fractional (mref : Loc) (γs : GName) :
     unfold waitShardP
     refine ⟨?_, ?_⟩
     · iintro ⟨%M, Hm, Hg⟩
-      rw [qp_half_add]
+      rw [Qp_half_add]
       icases (hm M).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (hg M).1 $$ Hg with ⟨Hg1, Hg2⟩
       isplitl [Hm1 Hg1]
@@ -90,7 +93,7 @@ instance waitShardP_fractional (mref : Loc) (γs : GName) :
       ihave %Heq := ghostMapAuth_agree γs _ _ M1 M2 $$ Hg1 Hg2
       subst Heq
       iexists M1
-      rw [qp_half_add]
+      rw [Qp_half_add]
       isplitl [Hm1 Hm2]
       · iapply (hm M1).2; iframe
       · iapply (hg M1).2; iframe

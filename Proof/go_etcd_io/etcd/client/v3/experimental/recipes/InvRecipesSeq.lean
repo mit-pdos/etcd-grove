@@ -285,8 +285,8 @@ theorem seqKey_le (kp : GoString) (a b : Nat) (ha : a < 10 ^ 16)
   refine Nat.le_of_not_lt fun hlt => ?_
   have hlt' := seqKey_lt kp b a hlt ha
   rcases h with e | h
-  · rw [e] at hlt'; exact goStringLt_irrefl _ hlt'
-  · exact goStringLt_irrefl _ (goStringLt_trans h hlt')
+  · rw [e] at hlt'; exact go.goStringLt_irrefl _ hlt'
+  · exact go.goStringLt_irrefl _ (go.goStringLt_trans h hlt')
 
 theorem padZeros_decimalNat_noSlash (m : Nat) :
     W8 47 ∉ _root_.Perennial.fmt.padZeros 16 (_root_.Perennial.fmt.decimalNat m) := by
@@ -363,7 +363,7 @@ theorem seqNext_absent (kp : GoString) (sg : List EtcdKv) (key : GoString) (hkp 
   have hpre : kp <+: v.key := by
     rw [e, hk]; unfold seqKey; rw [List.append_assoc]; exact List.prefix_append _ _
   have := hlt v hv hpre
-  rw [e] at this; exact goStringLt_irrefl _ this
+  rw [e] at this; exact go.goStringLt_irrefl _ this
 
 section sprintf
 variable [FfiSyntax] [GoGlobalContext]

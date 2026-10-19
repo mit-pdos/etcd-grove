@@ -8,7 +8,7 @@ fraction; and the empty results (`kvsOut` of nothing). Lean-first (no Rocq count
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 

@@ -792,7 +792,7 @@ names) and the four
 `watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
 `progressReportInterval` (`10 * time.Minute`: `intervalP`).""",
-    imports=['Proof.Lib.Sync'],
+    imports=['Perennial.Proof.sync.RWMutexGuard'],
     alloc_types={'progressReportIntervalMu': '_root_.Perennial.sync.RWMutex',
                  'progressReportInterval': 'w64', 'metricsServerCached': 'Loc',
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
@@ -876,7 +876,7 @@ names) and the four
              '  iframe HprogressReportInterval',
              '  ipureintro',
              '  first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word',
-             'ihave ⟨-, #HIG⟩ := EtcdGrove.guard_of_slots _ _ $$ HIS'] +
+             'ihave ⟨-, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),

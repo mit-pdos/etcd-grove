@@ -9637,7 +9637,12 @@ with nothing past it). The modules are split by what they import, so that each s
 import graph: `Iris` needs only Perennial's ghost state (the raft protocol's `Ghost.lean` imports
 it without the heap), `GoString` only `Perennial.Golang.Defn.String`, `List` nothing.
 
-*Temporary, per fact.* `Proof/Lib/` is a holding place, not a library of this repository: each
+*Carried out (2026-10-19).* Every fact moved to Perennial (`face95d51`, branch
+`proof-lib-facts`, off `lean-temp`) or was deleted (unused, or a one-liner from Lean core), and
+`Proof/Lib/` is gone (STATUS.md, "Proof/Lib: the package-independent facts"). A new fact of this
+kind goes to Perennial directly, on a branch off `lean-temp`, not into a holding place here.
+
+*Temporary, per fact.* `Proof/Lib/` was a holding place, not a library of this repository: each
 fact is one Perennial (or Lean core) is missing, and a candidate for an independent Perennial
 proposal under "Changes to Perennial" in CLAUDE.md (designed and reviewed on its own, not shaped
 by a proof here). A fact goes from `Proof/Lib/` when its Perennial counterpart lands, its users

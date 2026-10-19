@@ -427,10 +427,10 @@ theorem pad5_inj (p p' : Nat) (hp : p < 10 ^ 5) (hp' : p' < 10 ^ 5)
       _root_.Perennial.fmt.padZeros 5 (_root_.Perennial.fmt.decimalNat p')) : p = p' := by
   rcases Nat.lt_trichotomy p p' with hlt | e | hlt
   · have := _root_.Perennial.fmt.padZeros_decimalNat_lt 5 p p' hlt hp'
-    rw [h] at this; exact absurd this (goStringLt_irrefl _)
+    rw [h] at this; exact absurd this (go.goStringLt_irrefl _)
   · exact e
   · have := _root_.Perennial.fmt.padZeros_decimalNat_lt 5 p' p hlt hp
-    rw [h] at this; exact absurd this (goStringLt_irrefl _)
+    rw [h] at this; exact absurd this (go.goStringLt_irrefl _)
 
 /-- **The order of the priority queue's keys**: lexicographic in (priority, sequence number). -/
 theorem pqKey_lt (key : GoString) (p1 n1 p2 n2 : Nat) (hp1 : p1 < 10 ^ 5) (hp2 : p2 < 10 ^ 5)
@@ -453,8 +453,8 @@ theorem pqKey_le (key : GoString) (p1 n1 p2 n2 : Nat) (hp1 : p1 < 10 ^ 5) (hp2 :
   refine Classical.byContradiction fun hc => ?_
   have hlt := pqKey_lt key p2 n2 p1 n1 hp2 hp1 hn1 (by omega)
   rcases h with e | h
-  · rw [e] at hlt; exact goStringLt_irrefl _ hlt
-  · exact goStringLt_irrefl _ (goStringLt_trans h hlt)
+  · rw [e] at hlt; exact go.goStringLt_irrefl _ hlt
+  · exact go.goStringLt_irrefl _ (go.goStringLt_trans h hlt)
 
 /-- **The dequeue's premise gives each priority's**: if every key under `key/` is a `pqKey`,
 every key under `key/%05d(p)` is a sequential key of that prefix (`SeqKeysWf`; the enqueue's

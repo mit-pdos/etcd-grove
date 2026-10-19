@@ -8,7 +8,10 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.ownIvt_split
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -71,7 +74,7 @@ theorem wFractional_typed {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (l
 
 theorem wFractional_half {Φ : Qp → IProp GF} (h : Fractional Φ) :
     Fractional (fun q => Φ q.half) where
-  fractional p q := by rw [qp_half_add]; exact h.fractional p.half q.half
+  fractional p q := by rw [Qp_half_add]; exact h.fractional p.half q.half
 
 /-! ## Maps -/
 

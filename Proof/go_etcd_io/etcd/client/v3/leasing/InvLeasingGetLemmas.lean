@@ -59,7 +59,7 @@ theorem filter_btInsert (nv : EtcdKv) (s : List EtcdKv) (p : EtcdKv → Bool)
     · split
       · rw [List.filter_cons, hnv]; simp
       · rename_i h1 h2
-        have he : w.key = nv.key := goStringLt_eq_of_not_lt h1 h2
+        have he : w.key = nv.key := go.goStringLt_eq_of_not_lt h1 h2
         have hw : p w = false := by
           cases h : p w
           · rfl

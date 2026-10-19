@@ -135,7 +135,7 @@ instance wgMuP_fractional (γ : GoNames) : Fractional (wgMuP (GF := GF) γ) wher
     have hgv := fun (b : Bool) => (ghostVar_fractional (GF := GF) γ.b b).fractional q1.half q2.half
     have hdv := (dghostVar_fractional (GF := GF) γ.chi.doneGn false).fractional q1.half q2.half
     unfold wgMuP stopPart
-    rw [qp_half_add]
+    rw [Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro ⟨%b, Hg, Hs⟩
       icases (hgv b).1 $$ Hg with ⟨Hg1, Hg2⟩

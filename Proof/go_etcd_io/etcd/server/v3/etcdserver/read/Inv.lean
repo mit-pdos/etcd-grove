@@ -40,7 +40,9 @@ public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Perennial.Proof.time
 public import Perennial.Proof.encoding.binary
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -428,7 +430,7 @@ instance readMuP_fractional (r : Loc) (γr : ReadNames) : Fractional (readMuP (G
     have hgv := fun (x : Loc × NeedNames) =>
       (ghostVar_fractional (GF := GF) γr.notifier x).fractional q1.half q2.half
     unfold readMuP
-    rw [qp_half_add]
+    rw [Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro ⟨%nc, %γn, Hp, Hg⟩
       icases (hpt nc).1 $$ Hp with ⟨Hp1, Hp2⟩

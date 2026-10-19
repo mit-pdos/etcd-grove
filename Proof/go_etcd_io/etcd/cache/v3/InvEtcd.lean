@@ -190,14 +190,14 @@ instance pairLess_dec : DecidableRel pairLess := fun a b => go.goStringLt_dec a.
 def PairsOk (Z : List (KvEntry × EtcdKv)) : Prop := ∀ z ∈ Z, z.1.1 = z.2.key
 
 theorem etcdKvLess_swo : StrictWeakOrder etcdKvLess where
-  irrefl a := goStringLt_irrefl a.key
-  trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  irrefl a := go.goStringLt_irrefl a.key
+  trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
   incomp_trans a b c h1 h2 h3 h4 := by
-    have e1 := goStringLt_eq_of_not_lt h1 h2
-    have e2 := goStringLt_eq_of_not_lt h3 h4
+    have e1 := go.goStringLt_eq_of_not_lt h1 h2
+    have e2 := go.goStringLt_eq_of_not_lt h3 h4
     unfold etcdKvLess
     rw [e1, e2]
-    exact ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+    exact ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
 
 /-- One event, on both sides: if the store's `applyEv` succeeds, the pairs after it project to
 the new map and to `applyEvState` of the state, and every new pair is an old one or the event's
@@ -468,17 +468,17 @@ theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess
     by_cases h1 : kvLess w (k, null)
     · rw [ite_eq_left h1]
       rcases List.mem_cons.1 hx with rfl | hx
-      · exfalso; unfold kvLess at h1; rw [hxk] at h1; exact goStringLt_irrefl _ h1
+      · exfalso; unfold kvLess at h1; rw [hxk] at h1; exact go.goStringLt_irrefl _ h1
       · exact btFind_isSome_of_key k ws hs.2 ⟨x, hx, hxk⟩
     · rw [ite_eq_right h1]
       by_cases h2 : kvLess (k, null) w
       · exfalso
         rcases List.mem_cons.1 hx with rfl | hx
-        · unfold kvLess at h2; rw [hxk] at h2; exact goStringLt_irrefl _ h2
+        · unfold kvLess at h2; rw [hxk] at h2; exact go.goStringLt_irrefl _ h2
         · have h3 := hs.1 x hx
           unfold kvLess at h2 h3
           rw [hxk] at h3
-          exact goStringLt_irrefl _ (goStringLt_trans h2 h3)
+          exact go.goStringLt_irrefl _ (go.goStringLt_trans h2 h3)
       · rw [ite_eq_right h2]; rfl
 
 omit EM in

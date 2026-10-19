@@ -3,13 +3,14 @@ defaultTargets = ["EtcdGrove"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). For now the pin follows branch
-# `lean-temp` of mit-pdos/perennial (at `b0a0fb557`: `a54e1999f`, on `lean`'s history, plus
-# its own commits), not `lean` itself, which has moved on and needs fixing up first
+# `lean-temp` of mit-pdos/perennial (at `face95d51`, branch
+# `proof-lib-facts` until it is fast-forwarded into `lean-temp`: `a54e1999f`, on `lean`'s
+# history, plus `lean-temp`'s own commits), not `lean` itself, which has moved on and needs fixing up first
 # (notes/STATUS.md, "Perennial: the `lean-temp` branch").
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "b0a0fb557dd0ef29fad228a17e74b0f5749d642f"
+rev = "face95d51cc46586aec3457489d5d0c1364becda"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's

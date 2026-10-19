@@ -43,14 +43,14 @@ def IdxRep (evs : List Ev) (idx : IndexM) : Prop :=
   idx.Pairwise idxLess ∧ ∀ k, (idxGet idx k).getD kiEmpty = kiOfKey evs k
 
 theorem idxLess_swo : StrictWeakOrder idxLess where
-  irrefl a := goStringLt_irrefl a.1
-  trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  irrefl a := go.goStringLt_irrefl a.1
+  trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
   incomp_trans a b c h1 h2 h3 h4 := by
-    have e1 := goStringLt_eq_of_not_lt h1 h2
-    have e2 := goStringLt_eq_of_not_lt h3 h4
+    have e1 := go.goStringLt_eq_of_not_lt h1 h2
+    have e2 := go.goStringLt_eq_of_not_lt h3 h4
     unfold idxLess
     rw [e1, e2]
-    exact ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+    exact ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
 
 theorem idxLess_iff (a b : GoString × KeyIndex) : idxLess a b ↔ go.GoStringLt a.1 b.1 := Iff.rfl
 
@@ -62,14 +62,14 @@ theorem btFind_btInsert_idx (k' : GoString) (ki : KeyIndex) (k : GoString) (x : 
   | [], _ => by
     simp only [btInsert, btFind, idxLess_iff]
     by_cases h1 : go.GoStringLt k' k
-    · have : k' ≠ k := fun e => goStringLt_irrefl _ (e ▸ h1)
+    · have : k' ≠ k := fun e => go.goStringLt_irrefl _ (e ▸ h1)
       simp [h1, this]
     · by_cases h2 : go.GoStringLt k k'
-      · have : k' ≠ k := fun e => goStringLt_irrefl _ (e ▸ h2)
+      · have : k' ≠ k := fun e => go.goStringLt_irrefl _ (e ▸ h2)
         simp [h1, h2, this]
-      · have := goStringLt_eq_of_not_lt h1 h2
+      · have := go.goStringLt_eq_of_not_lt h1 h2
         subst this
-        simp [goStringLt_irrefl]
+        simp [go.goStringLt_irrefl]
   | w :: ws, hs => by
     rw [List.pairwise_cons] at hs
     have ih := btFind_btInsert_idx k' ki k x ws hs.2
@@ -93,34 +93,34 @@ theorem btFind_btInsert_idx (k' : GoString) (ki : KeyIndex) (k : GoString) (x : 
         conv => lhs; unfold btFind
         simp only [idxLess_iff]
         by_cases h3 : go.GoStringLt k' k
-        · have : k' ≠ k := fun e => goStringLt_irrefl _ (e ▸ h3)
+        · have : k' ≠ k := fun e => go.goStringLt_irrefl _ (e ▸ h3)
           simp only [h3, ↓reduceIte, this]
         · by_cases h4 : go.GoStringLt k k'
-          · have : k' ≠ k := fun e => goStringLt_irrefl _ (e ▸ h4)
+          · have : k' ≠ k := fun e => go.goStringLt_irrefl _ (e ▸ h4)
             simp only [h3, h4, ↓reduceIte, this]
             unfold btFind
-            have h5 : ¬ go.GoStringLt w.1 k := fun h => goStringLt_irrefl _
-              (goStringLt_trans (goStringLt_trans h h4) h2)
-            have h6 : go.GoStringLt k w.1 := goStringLt_trans h4 h2
+            have h5 : ¬ go.GoStringLt w.1 k := fun h => go.goStringLt_irrefl _
+              (go.goStringLt_trans (go.goStringLt_trans h h4) h2)
+            have h6 : go.GoStringLt k w.1 := go.goStringLt_trans h4 h2
             simp only [idxLess_iff, h5, h6, ↓reduceIte]
-          · have := goStringLt_eq_of_not_lt h3 h4
+          · have := go.goStringLt_eq_of_not_lt h3 h4
             subst this
-            simp only [goStringLt_irrefl, ↓reduceIte]
+            simp only [go.goStringLt_irrefl, ↓reduceIte]
       · rw [ite_eq_right h2]
         rw [idxLess_iff] at h2
-        have hw : w.1 = k' := goStringLt_eq_of_not_lt h1 h2
+        have hw : w.1 = k' := go.goStringLt_eq_of_not_lt h1 h2
         conv => lhs; unfold btFind
         conv => rhs; unfold btFind
         simp only [idxLess_iff, hw]
         by_cases h3 : go.GoStringLt k' k
-        · have : k' ≠ k := fun e => goStringLt_irrefl _ (e ▸ h3)
+        · have : k' ≠ k := fun e => go.goStringLt_irrefl _ (e ▸ h3)
           simp only [h3, ↓reduceIte, this]
         · by_cases h4 : go.GoStringLt k k'
-          · have : k' ≠ k := fun e => goStringLt_irrefl _ (e ▸ h4)
+          · have : k' ≠ k := fun e => go.goStringLt_irrefl _ (e ▸ h4)
             simp only [h3, h4, ↓reduceIte, this]
-          · have := goStringLt_eq_of_not_lt h3 h4
+          · have := go.goStringLt_eq_of_not_lt h3 h4
             subst this
-            simp only [goStringLt_irrefl, ↓reduceIte]
+            simp only [go.goStringLt_irrefl, ↓reduceIte]
 
 theorem idxGet_btInsert {idx : IndexM} (hs : idx.Pairwise idxLess) (k' : GoString) (ki : KeyIndex)
     (k : GoString) :
@@ -222,13 +222,13 @@ theorem findKey_btInsert (nv : EtcdKv) :
       rw [findKey_cons, findKey_btInsert nv ws hs.2 k, findKey_cons]
       by_cases hwk : w.key = k
       · have : nv.key ≠ k := by
-          intro h; unfold etcdKvLess at hwv; rw [hwk, h] at hwv; exact goStringLt_irrefl _ hwv
+          intro h; unfold etcdKvLess at hwv; rw [hwk, h] at hwv; exact go.goStringLt_irrefl _ hwv
         simp [hwk, this]
       · simp [hwk]
     · split
       · rw [findKey_cons, findKey_cons]
       · rename_i hwv hvw
-        have heq : w.key = nv.key := goStringLt_eq_of_not_lt hwv hvw
+        have heq : w.key = nv.key := go.goStringLt_eq_of_not_lt hwv hvw
         rw [findKey_cons, findKey_cons]
         by_cases hwk : w.key = k
         · simp [hwk, ← heq]

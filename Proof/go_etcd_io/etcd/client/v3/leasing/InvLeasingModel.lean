@@ -129,7 +129,7 @@ theorem kvOf_of_mem (s : List EtcdKv) (v : EtcdKv) (hwf : EtcdStateWf [] s) (hv 
         intro he
         have := hpw.1 v.key (List.mem_map_of_mem hv')
         rw [he] at this
-        exact goStringLt_irrefl _ this
+        exact go.goStringLt_irrefl _ this
       simp only [List.find?_cons, hne, decide_false]
       exact ih hv' hpw.2
 

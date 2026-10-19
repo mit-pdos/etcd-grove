@@ -43,7 +43,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Proof.sync
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 

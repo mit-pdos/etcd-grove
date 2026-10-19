@@ -21,7 +21,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__getToken
 public import Spec.go_etcd_io.etcd.client.v3.Client__autoSync
 public import Perennial.Proof.sync
 public import Perennial.Proof.context
-public import Proof.Lib.Sync
+public import Perennial.Proof.sync.RWMutexGuard
 
 @[expose] public section
 
@@ -134,7 +134,7 @@ theorem newClient.wp_proof
   ipersist callOpts
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
-  icases guard_of_slots _ _ $$ Hslots with ⟨-, #Hguard⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
   wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil [ep] cfg.Endpoints' [ep]
     $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
   ipersist endpoints

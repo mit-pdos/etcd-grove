@@ -83,7 +83,7 @@ theorem keepFold_spec (log : Log) (hb : LogB log) {cmax : Int} {L : List IdxEntr
         unfold idxLess at this
         simp only at this
         rw [hk] at this
-        exact goStringLt_irrefl _ this
+        exact go.goStringLt_irrefl _ this
       have ih' := ih (z :: S) (by rw [← hPS]; simp) 
       rw [keepFold_append]
       unfold keepApply

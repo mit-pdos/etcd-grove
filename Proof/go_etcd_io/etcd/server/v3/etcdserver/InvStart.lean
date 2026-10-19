@@ -351,7 +351,7 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
     iunfold stopPart
     simp only [↓reduceIte]
     iexact Hflag
-  icases guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
   ihave #Hok : srvGoAttachOk s γ $$ []
   · iunfold srvGoAttachOk
     iexists ch, c
