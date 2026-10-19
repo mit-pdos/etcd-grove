@@ -128,7 +128,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iNamed Hpr
       wp_auto
       have Hw : pv.IsWitness' = false :=
-        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw i p1 Hp1)
+        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw i p1 Hp1).1
       rw [Hw]
       ihave Htrk := Hprback $$ %p1 [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs

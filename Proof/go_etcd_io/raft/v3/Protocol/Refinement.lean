@@ -2415,7 +2415,7 @@ theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (EntryM × w64)) (T 
 operation's ticket becomes its index). -/
 private theorem entData_mapIdx_stampF (γ : RaftNames) (ents : List EntryM)
     (f : Nat → EntryM → EntryM)
-    (Hf : ∀ k e, ∃ t i, f k e = { e with Term' := t, Index' := i }) :
+    (Hf : ∀ k e, ∃ t i st, f k e = { e with Term' := t, Index' := i, Subterm' := st }) :
     ⊢ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) ==∗
       [∗list] x ∈ ents.mapIdx f, entData γ x := by
   induction ents generalizing f with
@@ -2432,9 +2432,9 @@ private theorem entData_mapIdx_stampF (γ : RaftNames) (ents : List EntryM)
     icases (BigSepL.bigSepL_cons (Φ := fun _ (e : EntryM) => entTk (GF := GF) γ e)).1 $$ Htk
       with ⟨Ht, Hts⟩
     rw [List.mapIdx_cons]
-    obtain ⟨t, i, Hfe⟩ := Hf 0 e
+    obtain ⟨t, i, st, Hfe⟩ := Hf 0 e
     rw [Hfe]
-    imod propData_stampTk γ e t i $$ He Ht with #He'
+    imod propData_stampTk γ e t i st $$ He Ht with #He'
     imod ih (fun k => f (k + 1)) (fun k e => Hf (k + 1) e) $$ Hes Hts with #Hes'
     imodintro
     iapply (BigSepL.bigSepL_cons (Φ := fun _ (e : EntryM) => entData (GF := GF) γ e)).2
@@ -2443,7 +2443,7 @@ private theorem entData_mapIdx_stampF (γ : RaftNames) (ents : List EntryM)
 private theorem entData_mapIdx_stamp (γ : RaftNames) (t L : w64) (ents : List EntryM) :
     ⊢ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) ==∗
       [∗list] x ∈ ents.mapIdx (stamp t L), entData γ x :=
-  entData_mapIdx_stampF γ ents (stamp t L) (fun k e => ⟨t, L + W64 1 + W64 k, rfl⟩)
+  entData_mapIdx_stampF γ ents (stamp t L) (fun k e => ⟨t, L + W64 1 + W64 k, W64 0, rfl⟩)
 
 /-- `Step.propose`: the stamped entries go into the leader's term log
 (`term_log_insert_stamped`), which gives each its `isEntryR` (the first after the old

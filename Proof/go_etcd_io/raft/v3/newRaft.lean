@@ -90,6 +90,7 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
         (domSet_gset _) (by rw [GMap.map_union_empty]; exact domSet_empty_loc)
         (fun k hk => absurd hk (GMap.not_elem_of_empty _))
         (by rw [GMap.map_union_empty, GMap.size_empty]; decide)
+        (by rw [domSet_empty_loc]; exact GMap.not_elem_of_empty _)
         $$ Hv0 [] Hpm []
       · rw [Hl]; iapply ownIdsetC_nil
       · iapply BigSepM.bigSepM_empty.2; iempintro
@@ -112,6 +113,7 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
         vref vm Hcfgarr Hcfgln Hcfgal Hcfgwit Hvm Hprs
         (fun k hk => by rw [Hcl] at hk; exact absurd hk (GMap.not_elem_of_empty _))
         (by rw [Hcl, show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
+        (by rw [Hprs', GMap.elem_of_list_to_set]; exact Hv0n)
         $$ Hvref Hlm Hprsm Hprogs
     · ipureintro; exact Hprs'
 

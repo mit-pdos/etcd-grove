@@ -57,6 +57,33 @@ private theorem gset_size_union_le (X Y : GSet w64) :
   have := GMap.subseteq_size (GMap.difference_subseteq Y X)
   omega
 
+/-- The ids of the progress map `Restore` builds for the lists `cl`. -/
+private theorem restore_prs_dom (cl : CSLists) (prs : GMap w64 Loc) (al : Bool)
+    (Hprs : domSet prs =
+      domSet (cfgStateC (csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext al)).prs) :
+    domSet prs = (GMap.listToSet cl.voters ∪ GMap.listToSet cl.outgoing) ∪
+      GMap.listToSet cl.learners := by
+  rw [Hprs]
+  apply GMap.set_eq; intro k
+  rw [GMap.elem_of_dom']
+  simp only [cfgStateC, csCfgM, CfgM.voters]
+  rw [cfgFlags_mem]
+  simp only [GMap.elem_of_union]
+
+/-- ... and none of them is `0` (`CSWf`; 2026-10-19, witness support: `NoWitP`). -/
+private theorem restore_prs_no0 (cl : CSLists)
+    (Hwf : CSWf cl.outgoing cl.voters cl.learners cl.learnersNext) (prs : GMap w64 Loc) (al : Bool)
+    (Hprs : domSet prs =
+      domSet (cfgStateC (csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext al)).prs) :
+    W64 0 ∉ domSet prs := by
+  rw [restore_prs_dom cl prs al Hprs]
+  intro h
+  simp only [GMap.elem_of_union, GMap.elem_of_list_to_set] at h
+  rcases h with (h | h) | h
+  · exact Hwf.2.1 (W64 0) (.inr (.inl h)) rfl
+  · exact Hwf.2.1 (W64 0) (.inl h) rfl
+  · exact Hwf.2.1 (W64 0) (.inr (.inr (.inl h))) rfl
+
 /-- The progress map `Restore` builds for the lists `cl` has at most as many entries as the
 lists have ids. -/
 private theorem restore_prs_size (cl : CSLists) (Hvnd : cl.voters.Nodup) (Hlnd : cl.learners.Nodup)
@@ -91,7 +118,8 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
     (prs : GMap w64 Loc) (Hinv : CfgInv (cfgStateC c))
     (Hdom : domSet prs = domSet (cfgStateC c).prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62)
     (P : w64 → Progress → Prop)
-    (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner ∧ p.witness = false) :
+    (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner ∧ p.witness = false)
+    (H0 : W64 0 ∉ domSet prs) :
     ⊢ ownCfgCC (GF := GF) cfgv (DFrac.own 1) c -∗ prsm ↦$□ prs -∗
       ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜P k p⌝) -∗
       ∃ pvs, ownConfigC c cfgv prsm prs pvs := by
@@ -141,7 +169,7 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
     intro k p hp
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
       ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
-    exact (Hfl k pr p hpr hp).2
+    exact ⟨(Hfl k pr p hpr hp).2, ne0_of_dom H0 hpr⟩
   · rw [Htf]; exact Hinv
   · rw [Hdom]
     apply GMap.set_eq; intro k
@@ -541,7 +569,8 @@ theorem raft.restore.wp_proof
     ihave Hcfg := ownCfgCC_cast cfgv _
       (csCfgM sv.Metadata'.ConfState'.VotersOutgoing' sv.Metadata'.ConfState'.Voters' sv.Metadata'.ConfState'.Learners' sv.Metadata'.ConfState'.LearnersNext' sv.Metadata'.ConfState'.AutoLeave')
       (snapCfg sv sv.Metadata'.ConfState'.lists) rfl $$ Hcfg
-    icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h) $$ Hcfg Hprsm Hprogs
+    icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h)
+      (restore_prs_no0 _ Hwf prs _ Hprs) $$ Hcfg Hprsm Hprogs
       with ⟨%pvs, Hnew⟩
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 Htv0wit

@@ -191,8 +191,9 @@ public import Proof.go_etcd_io.raft.v3.raft__loadState
 public import Proof.go_etcd_io.raft.v3.raft__maybeCommit
 public import Proof.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Proof.go_etcd_io.raft.v3.raft__maybeSendSnapshot
+public import Proof.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
 public import Proof.go_etcd_io.raft.v3.raft__pastElectionTimeout
-public import Proof.go_etcd_io.raft.v3.raft__poll
+public import Proof.go_etcd_io.raft.v3.raft__pollAndReportDiff
 public import Proof.go_etcd_io.raft.v3.raft__promotable
 public import Proof.go_etcd_io.raft.v3.raft__reduceUncommittedSize
 public import Proof.go_etcd_io.raft.v3.raft__reset
@@ -728,6 +729,14 @@ theorem tracker.ProgressTracker.wp_Committed :
     tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.Committed.wp_proof quorum.JointConfig.wp_CommittedIndex tracker.matchAckIndexer.wp_AckedIndex
 
+theorem tracker.Epoch.wp_ReplicateToWitness :
+    tracker.Epoch.ReplicateToWitness.spec (GF := GF) (hG := hG) :=
+  tracker.Epoch.ReplicateToWitness.wp_proof
+
+theorem tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet :
+    tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness
+
 theorem raftLog.wp_matchTerm [StorageModel GF] :
     raftLog.matchTerm.spec (GF := GF) (hG := hG) :=
   raftLog.matchTerm.wp_proof raftLog.wp_term
@@ -742,7 +751,7 @@ theorem raftLog.wp_maybeCommit [StorageModel GF] :
 
 theorem raft.wp_maybeCommit [StorageModel GF] :
     raft.maybeCommit.spec (GF := GF) (hG := hG) :=
-  raft.maybeCommit.wp_proof wp_traceCommit tracker.ProgressTracker.wp_Committed raftLog.wp_maybeCommit
+  raft.maybeCommit.wp_proof wp_traceCommit tracker.ProgressTracker.wp_Committed tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet raftLog.wp_maybeCommit
 
 theorem tracker.ProgressTracker.wp_Visit :
     tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG) :=
@@ -912,9 +921,13 @@ theorem raft.wp_becomeFollower [StorageModel GF] :
     raft.becomeFollower.spec (GF := GF) (hG := hG) :=
   raft.becomeFollower.wp_proof raft.wp_reset wp_traceBecomeFollower
 
+theorem tracker.Epoch.wp_HasWitness :
+    tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG) :=
+  tracker.Epoch.HasWitness.wp_proof
+
 theorem raft.wp_switchToConfig [StorageModel GF] :
     raft.switchToConfig.spec (GF := GF) (hG := hG) :=
-  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower
+  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower tracker.Epoch.wp_HasWitness
 
 theorem proto.wp_EqualConfState :
     proto.EqualConfState.spec (GF := GF) (hG := hG) :=
@@ -972,26 +985,6 @@ theorem raft.wp_becomePreCandidate [StorageModel GF] :
     raft.becomePreCandidate.spec (GF := GF) (hG := hG) :=
   raft.becomePreCandidate.wp_proof tracker.ProgressTracker.wp_ResetVotes
 
-theorem tracker.ProgressTracker.wp_RecordVote :
-    tracker.ProgressTracker.RecordVote.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.RecordVote.wp_proof
-
-theorem quorum.MajorityConfig.wp_VoteResult :
-    quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG) :=
-  quorum.MajorityConfig.VoteResult.wp_proof
-
-theorem quorum.JointConfig.wp_VoteResult :
-    quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG) :=
-  quorum.JointConfig.VoteResult.wp_proof quorum.MajorityConfig.wp_VoteResult
-
-theorem tracker.ProgressTracker.wp_TallyVotes :
-    tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.TallyVotes.wp_proof quorum.JointConfig.wp_VoteResult
-
-theorem raft.wp_poll [StorageModel GF] :
-    raft.poll.spec (GF := GF) (hG := hG) :=
-  raft.poll.wp_proof tracker.ProgressTracker.wp_RecordVote tracker.ProgressTracker.wp_TallyVotes
-
 theorem wp_voteRespMsgType :
     voteRespMsgType.spec (GF := GF) (hG := hG) :=
   voteRespMsgType.wp_proof
@@ -1006,7 +999,7 @@ theorem raft.wp_promotable [StorageModel GF] :
 
 theorem raft.wp_campaign [StorageModel GF] :
     raft.campaign.spec (GF := GF) (hG := hG) :=
-  raft.campaign.wp_proof raft.wp_becomeCandidate raft.wp_becomePreCandidate raft.wp_poll raft.wp_send wp_voteRespMsgType raft.wp_promotable quorum.JointConfig.wp_IDs raftLog.wp_lastEntryID slices.wp_Sort raftpb.MessageType.wp_Enum
+  raft.campaign.wp_proof raft.wp_becomeCandidate raft.wp_becomePreCandidate raft.wp_send wp_voteRespMsgType raft.wp_promotable quorum.JointConfig.wp_IDs raftLog.wp_lastEntryID slices.wp_Sort raftpb.MessageType.wp_Enum
 
 theorem raftLog.wp_scan [StorageModel GF] :
     raftLog.scan.spec (GF := GF) (hG := hG) :=
@@ -1024,9 +1017,37 @@ theorem raft.wp_hup [StorageModel GF] :
     raft.hup.spec (GF := GF) (hG := hG) :=
   raft.hup.wp_proof raft.wp_campaign raft.wp_promotable raft.wp_hasUnappliedConfChanges
 
+theorem tracker.ProgressTracker.wp_RecordVote :
+    tracker.ProgressTracker.RecordVote.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.RecordVote.wp_proof
+
+theorem quorum.MajorityConfig.wp_VoteResultWithDifference :
+    quorum.MajorityConfig.VoteResultWithDifference.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.VoteResultWithDifference.wp_proof
+
+theorem quorum.JointConfig.wp_VoteResultWithDifference :
+    quorum.JointConfig.VoteResultWithDifference.spec (GF := GF) (hG := hG) :=
+  quorum.JointConfig.VoteResultWithDifference.wp_proof quorum.MajorityConfig.wp_VoteResultWithDifference
+
+theorem tracker.ProgressTracker.wp_TallyVotesWithDifference :
+    tracker.ProgressTracker.TallyVotesWithDifference.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.TallyVotesWithDifference.wp_proof quorum.JointConfig.wp_VoteResultWithDifference
+
+theorem raft.wp_pollAndReportDiff [StorageModel GF] :
+    raft.pollAndReportDiff.spec (GF := GF) (hG := hG) :=
+  raft.pollAndReportDiff.wp_proof tracker.ProgressTracker.wp_RecordVote tracker.ProgressTracker.wp_TallyVotesWithDifference
+
 theorem wp_traceBecomeLeader [StorageModel GF] :
     traceBecomeLeader.spec (GF := GF) (hG := hG) :=
   traceBecomeLeader.wp_proof
+
+theorem tracker.ProgressTracker.wp_ResetReplicationSet :
+    tracker.ProgressTracker.ResetReplicationSet.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.ResetReplicationSet.wp_proof
+
+theorem tracker.ProgressTracker.wp_ChangeReplicationSet :
+    tracker.ProgressTracker.ChangeReplicationSet.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.ChangeReplicationSet.wp_proof tracker.Epoch.wp_HasWitness
 
 theorem raft.wp_increaseUncommittedSize [StorageModel GF] :
     raft.increaseUncommittedSize.spec (GF := GF) (hG := hG) :=
@@ -1052,13 +1073,17 @@ theorem raft.wp_appendEntry [StorageModel GF] :
     raft.appendEntry.spec (GF := GF) (hG := hG) :=
   raft.appendEntry.wp_proof raftLog.wp_lastIndex raft.wp_increaseUncommittedSize wp_traceReplicate raftLog.wp_append raft.wp_send proto.wp_CloneEntry raftpb.MessageType.wp_Enum
 
+theorem raft.wp_maybeStartNewSubterm [StorageModel GF] :
+    raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG) :=
+  raft.maybeStartNewSubterm.wp_proof tracker.ProgressTracker.wp_ResetReplicationSet tracker.ProgressTracker.wp_ChangeReplicationSet tracker.Epoch.wp_HasWitness raft.wp_appendEntry
+
 theorem tracker.Progress.wp_BecomeReplicate :
     tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG) :=
   tracker.Progress.BecomeReplicate.wp_proof tracker.Progress.wp_ResetState
 
 theorem raft.wp_becomeLeader [StorageModel GF] :
     raft.becomeLeader.spec (GF := GF) (hG := hG) :=
-  raft.becomeLeader.wp_proof raft.wp_reset wp_traceBecomeLeader raftLog.wp_lastIndex raft.wp_appendEntry tracker.Progress.wp_BecomeReplicate
+  raft.becomeLeader.wp_proof raft.wp_reset wp_traceBecomeLeader raftLog.wp_lastIndex raft.wp_maybeStartNewSubterm tracker.Progress.wp_BecomeReplicate
 
 theorem raftpb.Message.wp_GetLogTerm :
     raftpb.Message.GetLogTerm.spec (GF := GF) (hG := hG) :=
@@ -1138,7 +1163,7 @@ theorem raftpb.Message.wp_GetReject :
 
 theorem wp_stepCandidate [StorageModel GF] :
     stepCandidate.spec (GF := GF) (hG := hG) :=
-  stepCandidate.wp_proof raft.wp_poll raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
+  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
 
 theorem wp_stepFollower [StorageModel GF] :
     stepFollower.spec (GF := GF) (hG := hG) :=
@@ -1255,6 +1280,14 @@ theorem raftpb.Message.wp_GetRejectHint :
 theorem raftpb.EntryType.wp_Enum :
     raftpb.EntryType.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.EntryType.Enum.wp_proof
+
+theorem quorum.MajorityConfig.wp_VoteResult :
+    quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.VoteResult.wp_proof
+
+theorem quorum.JointConfig.wp_VoteResult :
+    quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG) :=
+  quorum.JointConfig.VoteResult.wp_proof quorum.MajorityConfig.wp_VoteResult
 
 theorem tracker.ProgressTracker.wp_QuorumActive :
     tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG) :=
@@ -1424,14 +1457,6 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
 
-theorem quorum.MajorityConfig.wp_VoteResultWithDifference :
-    quorum.MajorityConfig.VoteResultWithDifference.spec (GF := GF) (hG := hG) :=
-  quorum.MajorityConfig.VoteResultWithDifference.wp_proof
-
-theorem quorum.JointConfig.wp_VoteResultWithDifference :
-    quorum.JointConfig.VoteResultWithDifference.spec (GF := GF) (hG := hG) :=
-  quorum.JointConfig.VoteResultWithDifference.wp_proof quorum.MajorityConfig.wp_VoteResultWithDifference
-
 theorem quorum.MajorityConfig.wp_OneLessThanQuorum :
     quorum.MajorityConfig.OneLessThanQuorum.spec (GF := GF) (hG := hG) :=
   quorum.MajorityConfig.OneLessThanQuorum.wp_proof slices.wp_Sort
@@ -1484,14 +1509,6 @@ theorem raftpb.Snapshot.wp_GetData :
     raftpb.Snapshot.GetData.spec (GF := GF) (hG := hG) :=
   raftpb.Snapshot.GetData.wp_proof
 
-theorem tracker.Epoch.wp_HasWitness :
-    tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG) :=
-  tracker.Epoch.HasWitness.wp_proof
-
-theorem tracker.Epoch.wp_ReplicateToWitness :
-    tracker.Epoch.ReplicateToWitness.spec (GF := GF) (hG := hG) :=
-  tracker.Epoch.ReplicateToWitness.wp_proof
-
 theorem tracker.Inflights.wp_Clone :
     tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
   tracker.Inflights.Clone.wp_proof
@@ -1500,25 +1517,13 @@ theorem tracker.Inflights.wp_Count :
     tracker.Inflights.Count.spec (GF := GF) (hG := hG) :=
   tracker.Inflights.Count.wp_proof
 
-theorem tracker.ProgressTracker.wp_ChangeReplicationSet :
-    tracker.ProgressTracker.ChangeReplicationSet.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.ChangeReplicationSet.wp_proof tracker.Epoch.wp_HasWitness
-
 theorem tracker.ProgressTracker.wp_LearnerNodes :
     tracker.ProgressTracker.LearnerNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.LearnerNodes.wp_proof slices.wp_Sort
 
-theorem tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet :
-    tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness
-
-theorem tracker.ProgressTracker.wp_ResetReplicationSet :
-    tracker.ProgressTracker.ResetReplicationSet.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.ResetReplicationSet.wp_proof
-
-theorem tracker.ProgressTracker.wp_TallyVotesWithDifference :
-    tracker.ProgressTracker.TallyVotesWithDifference.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.TallyVotesWithDifference.wp_proof quorum.JointConfig.wp_VoteResultWithDifference
+theorem tracker.ProgressTracker.wp_TallyVotes :
+    tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.TallyVotes.wp_proof quorum.JointConfig.wp_VoteResult
 
 end links
 

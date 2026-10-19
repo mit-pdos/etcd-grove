@@ -348,7 +348,7 @@ theorem raft.maybeSendAppend.wp_proof
   obtain ⟨-, Hst, -, Hnx, -⟩ := (progressAbs_Some _ _ _).1 Habs
   -- (2026-10-19, witness support) `|| pr.IsWitness`: not the witness (`NoWitP`)
   have Hw : pv.IsWitness' = false :=
-    ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnwit to p Hpvs)
+    ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnwit to p Hpvs).1
   wp_auto
   rw [Hw]
   wp_auto

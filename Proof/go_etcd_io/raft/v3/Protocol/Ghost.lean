@@ -1112,12 +1112,13 @@ theorem entDataIs_idx (γ : RaftNames) (e : EntryM) (d : List w8) :
   · iexfalso; iapply propOnce_multi γ d $$ Ho H
 
 /-- Stamping keeps a proposed entry's data. -/
-theorem propDataIs_stamp (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (List w8)) :
-    propDataIs (GF := GF) γ { e with Term' := t, Index' := i } o = propDataIs γ e o := by
+theorem propDataIs_stamp (γ : RaftNames) (e : EntryM) (t i st : w64) (o : Option (List w8)) :
+    propDataIs (GF := GF) γ { e with Term' := t, Index' := i, Subterm' := st } o =
+      propDataIs γ e o := by
   cases o <;> rfl
 
-theorem propData_stamp (γ : RaftNames) (e : EntryM) (t i : w64) :
-    propData (GF := GF) γ { e with Term' := t, Index' := i } = propData γ e := by
+theorem propData_stamp (γ : RaftNames) (e : EntryM) (t i st : w64) :
+    propData (GF := GF) γ { e with Term' := t, Index' := i, Subterm' := st } = propData γ e := by
   unfold propData; simp only [propDataIs_stamp]
 
 /-- **The ticket a proposed entry carries** (D21 M6): a client operation's (a normal entry with
@@ -1303,8 +1304,9 @@ theorem entTk_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es 
 
 /-- **Stamping a proposed entry with its ticket** (D21 M6): at index `i`, a client operation's
 ticket becomes its index. -/
-theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
-    ⊢ propData (GF := GF) γ e -∗ entTk γ e ==∗ entData γ { e with Term' := t, Index' := i } := by
+theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i st : w64) :
+    ⊢ propData (GF := GF) γ e -∗ entTk γ e ==∗
+      entData γ { e with Term' := t, Index' := i, Subterm' := st } := by
   iintro Hd Htk
   unfold propData
   icases Hd with ⟨%o, #Hd⟩
@@ -1314,7 +1316,7 @@ theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
     imodintro
     iexists none
     simp only [entDataIs]
-    rw [propDataIs_stamp γ e t i]
+    rw [propDataIs_stamp γ e t i st]
     iexact Hd
   | some d =>
     ihave %Hdd : ⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ $$ [Hd]
