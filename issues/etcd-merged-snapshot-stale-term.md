@@ -4,6 +4,9 @@ checked: 2026-10-19
 links:
   - etcd-io/etcd#7470 issue closed: a different bug in the same merge (`createMergedSnapshotMessage` looked up the snapshot's term in a possibly compacted raft log, a panic); not the message's term
   - etcd-io/etcd#7513 pr merged: the fix of #7470 (the snapshot's term from `etcdProgress.appliedt`), which is the code this finding is about
+  - etcd-io/raft#47 pr open: states the invariant broken here (`m.Term >= m.Snapshot.Metadata.Term` for a `MsgSnap`) and adds an out-of-order-term panic in raft; does not fix etcd
+  - etcd-io/raft#108 issue open: the same `need non-empty snapshot` panic, from `MemoryStorage.Snapshot` in a fuzzing harness; a different cause
+candidate: issues/upstream/etcd-merged-snapshot-stale-term/
 ---
 
 # A merged snapshot message can carry a term older than its content
@@ -198,6 +201,19 @@ links:
      and neither is `s.Term()` (the applied entry's term).
   3. Restamp `m.Term` with the term the content is committed at. Not sound: the sender need not
      be leader at that term.
+
+  The upstream candidate (`issues/upstream/etcd-merged-snapshot-stale-term/`, 2026-10-19) is fix 1
+  with `m.Term >= raftTerm` in place of `==`: it drops only a message of a term raft has left.
+  The raft goroutine can run Readys ahead of the apply jobs (the run loop schedules a job as soon
+  as it receives the batch), so job `k` can take a `MsgSnap` that raft made in a later Ready, at a
+  term newer than batch `k`'s `raftTerm`. Fix 1 with `==` drops that message without a
+  `ReportSnapshot`, and the leader's progress for that peer stays in `StateSnapshot` until the
+  next term change (a liveness loss, found by code reading, not reproduced). Merging it is sound:
+  the data applied up to batch `k` is committed at a term `≤ raftTerm < m.Term`, in the log of
+  the leader of `m.Term`. The same goes for `raftTerm = 0` before the first non-empty HardState
+  after a restart. Whether the fork moves to `>=` is the user's decision: the proof's `.snap`
+  clause would then need content committed at a term `≤ m.Term` in the term-`m.Term` leader's log,
+  not at `m.Term` itself.
 - **Found**: 2026-10-19, by stage S-0 of the snapshot track (T-S). The plan's `.snap` clause was
   checked against what `applyAll` sends (`notes/snapshot-path-s0.md`, part 1). The reproduction
   was written the same day. Building it showed that the step-down has to happen inside the stall,
