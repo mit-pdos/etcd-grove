@@ -1,9 +1,8 @@
 # etcd-grove (Lean)
 
 This branch verifies **etcd** — starting with its Raft implementation — in Lean,
-using the Lean port of Perennial ([mit-pdos/perennial](https://github.com/mit-pdos/perennial);
-for now branch `lean-temp`, not `lean`: `notes/STATUS.md`, "Perennial: the `lean-temp`
-branch"), which is a Lake dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
+using the Lean port of Perennial ([mit-pdos/perennial](https://github.com/mit-pdos/perennial),
+branch `lean`), which is a Lake dependency (`lakefile.toml`, pinned in `lake-manifest.json`). Perennial has the
 framework and the Goose translator; this repository has the Goose translation of
 raft (v3.7) and of etcd (`Code/`, `GeneratedProof/`), and the proofs.
 Every file is a module of Lean's module system (see "Modules" below).
@@ -75,7 +74,7 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `--check` exits 1 if a file differs). Never edit them by hand: change the script.
 - There is no `Proof/Lib/`: a fact about Perennial's, Iris's or Lean's own definitions that
   belongs to no Go package (fractions, `Fractional`, ghost state, `ownMap`, `GoStringLt`, lists)
-  goes to Perennial (a branch off `lean-temp`, "Changes to Perennial" below), so that packages
+  goes to Perennial (a branch off its `lean`, "Changes to Perennial" below), so that packages
   share one lemma instead of each proving a copy (`notes/decisions.md`, "Proof/Lib: facts that
   belong to no Go package").
 - A project translated into a module root of its own (`<root>/{Code,GeneratedProof,Spec,Proof}/`,
@@ -231,13 +230,10 @@ without touching `.lake/packages/perennial`, which other worktrees share;
 
 ## Changes to Perennial
 
-For now the pin follows Perennial's branch `lean-temp` (at `face95d51`, on `proof-lib-facts`, one
-commit past `lean-temp`, until that is fast-forwarded), not `lean`, which
-has moved on and needs fixing up before this repository can follow it. A Perennial change
-this repository needs goes on a branch off `lean-temp` and is merged into `lean-temp`
-(Perennial's `etc/land.sh` and hooks still land on and guard `lean` only, so `lean-temp`
-moves by a reviewed fast-forward done by hand); the pin then moves to it. Delete such
-branches once merged, as above.
+The pin follows Perennial's branch `lean`. A Perennial change this repository needs goes on
+a branch off Perennial's `lean` and lands there by Perennial's own workflow (its
+`AGENTS.md`, `etc/land.sh`); the pin then moves to it. Delete such branches once merged, as
+above.
 
 Perennial (the Go framework, its standard-library models and Goose) is a shared,
 general-purpose dependency. Do not change it to unblock a particular proof: no model
