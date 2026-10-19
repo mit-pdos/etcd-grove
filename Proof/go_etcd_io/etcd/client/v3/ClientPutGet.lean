@@ -44,7 +44,8 @@ by key, `mvcc.stateAfter_sorted`): from the client's `etcdKV` at `kvStateOf l` (
 log's model, as the server's allocation gives it, `srvBootOut`). -/
 theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString) (Em : CoPset) :
     etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢ |={Em}=> ∃ γf : GName, putGetInv γr γf key val :=
-  putGetInv_alloc γr key val (kvStateOf l) (mvcc.stateAfter_sorted l) Em
+  putGetInv_alloc γr key val (kvStateOf l)
+    (by rw [kvStateOf_kvs]; exact mvcc.stateAfter_sorted l) Em
 
 /-- **`cli.Put(ctx, key, val)` by `New`'s client `cl`** (`client_put_own` through the `KV` field):
 `nil`, the reply and the put's flag; or an error. -/

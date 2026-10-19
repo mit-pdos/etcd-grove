@@ -10711,3 +10711,72 @@ stage's text in D21 is amended to say so.
 
 *M0 carried out (2026-10-19).* No Lean change. Output: this note, the amended M3 text, and
 `issues/raft-stale-term-appresp-index-zero-ack.md`. Stopped on (A1)/(A2) for the user.
+
+## The KV specs over a state machine (D22, 2026-10-19 · the user's design, carried out for `Put`, `DeleteRange`, `Range`, `Txn`)
+
+The user asked for the server's top-level KV specs in a shape a reader of etcd can check:
+no apply environment (`apply.AEnv`), no mvcc certificate (`idxCert`), no id credit (`idCred`),
+no `RWMutex` reader slot (`srvLeadTimeReader`) in the statements; etcd's abstract data as a pure
+state machine, written to be audited by etcd's experts; and that state treated as a monolith:
+one ghost variable holding the whole multi-revision store, half in the server's invariants, half
+the caller's.
+
+- **D22a: the state machine** (`Proof/go_etcd_io/etcd/server/v3/etcdserver/StateMachine.lean`,
+  `EtcdSM`). The state is the map at every revision (`State.revs`; mvcc keeps every revision,
+  compaction is off), a request's step and response are plain functions (`put`, `deleteRange`,
+  `txn`) or, where the server is not deterministic, a relation (`RangeOk`: Go's sort is not
+  stable). It names no implementation definition: its own `inRange`, `KVMap.put`/`store` (the
+  btree's insert), `candidates`/`RangeKvsOk` (`range.go`'s read limit, filters, sort, cut).
+  Where the verified server departs from etcd's documentation the definition says so
+  (**Deviation**: the keys-only lease, `issues/etcd-range-keys-only-lease.md`; the sort with no
+  order and a limit, `issues/etcd-range-sort-none-limit.md`). Left out, and said so: compaction,
+  leases (the specs cover puts with no lease), the header's cluster/member/term fields, the gRPC
+  layer's checks.
+- **D22b: the monolith.** `KVState` is now `EtcdSM.State` (`KVModelDefs.lean`): the KV
+  invariant's ghost variable holds the state of raft's committed log at every revision
+  (`kvStateOf l`: `stateAt l r` for each `r`), its other half is the client's (`etcdKV`,
+  `etcdState`). `kvOpStep` is unchanged in form (it commits a new revision, `newRevision`);
+  `σ.kvs` and `σ.rev` are the state's current map and revision. The AU firing proofs are
+  generic in the state and did not change; the consumers that unfolded `kvStateOf` use
+  `kvStateOf_kvs`/`kvStateOf_rev`.
+- **D22c: the refinement** (`StateMachineRefinement.lean`, pure): the state machine's requests
+  of the server's decoded ones (`putReqOf`, `deleteRangeReqOf`, `rangeReqOf`, `txnReqOf`), its
+  steps equal to `kvOpStep` at every state (`putNext_eq`, `deleteRangeNext_eq`, `txnNext_eq`:
+  so an atomic update by the one is one by the other), its responses at the state of a log the
+  server's outcome predicates' (`put_ok`, `deleteRange_resp`, `rangeKvsOk_iff`, `txn_ok`).
+- **D22d: the specs** (`KVSpecs.lean`, restated in the server's `Results.lean`):
+  `EtcdServer.{Put,DeleteRange,Range,Txn}.kvSpec`, proved from the linked log-level specs
+  (`EtcdServer.wp_Put`, ...), which stay what v3rpc and the clients' `EtcdModel` route use
+  until those move (the caller migration is a later stage). A request takes the client's
+  persistent update `etcdAU γ (EtcdSM.putNext req) Q` (persistent: a write may be applied after
+  an error, or twice) and on success returns `□ Q σ` at the state it took effect on and the
+  response the state machine gives there; on failure an error `applyErrIs` admits. The floor of
+  the old specs is `[]` inside the proof (`idxCert_nil`); `idCred` is the premise
+  `receiptBound GF ≤ 2 ^ 48` (D19b; the user, 2026-10-19: "for now").
+- **D22e: the reader slots as a handle, not thread tokens.** The user preferred thread tokens
+  where possible, else an `ownEtcdServer` in the precondition. A pool of slots paid for by thread
+  tokens (an invariant holding `K` bundles and one token per bundle lent) cannot work at the
+  specs' level: the bundle is not timeless (the store reader's `idxReader`/`storeRT`, the auth
+  store's backend resource `R`), so an invariant cannot give one up before the call, and the old
+  specs take the slots in their precondition. Thread tokens need the slots taken at each `RLock`
+  step (`raftRequest`, the read loop, the auth checks, the store's reads), a change of the request
+  path's internal specs. So the specs take `ownEtcdServer s γ` (the server's persistent views and
+  one bundle, `srvCallSlot`), given back; `NewServer` hands out 64 (`srvServeBuilt`).
+- **D22f: what each spec does not cover yet.** `Range`: linearizable ranges only (a serializable
+  one reads the member's store with no client update fired: it needs a lower bound on the
+  monolith's history, which the client half does not give), from a context carrying no trace.
+  `DeleteRange`: a range end other than `"\x00"` (the wire's encoding, `deletePermit`).
+  `Txn` (`KVSpecsTxn.lean`): the transactions of `TxnCovered`, stated over the state machine's
+  request (ranges at revision `0`, with a sort target and order of the protobuf's, not cut early;
+  puts with no lease and not keeping it; no `"\x00"` range end; no panic,
+  `EtcdSM.txnPanics`, at any map; not serializable and read-only), which give the server's
+  `txnPlain`, `txnNoZeroEnd`, `txnShape` and `txnGetsOk` (`txnCovered_model`). Both paths: a
+  read-only transaction's update is the state machine's identity (`txnNext_readonly`), a
+  writing one's `kvOpStep`'s. Its response (`kvTxnResponseIs`) is the server's response
+  predicate of the state machine's results (`resultsOf`), so a put's previous key-value, a
+  delete's previous key-values and a range's `More` stay open, and a writing transaction's
+  ranges may be header-only (`skip`), as the old proof leaves them.
+- **D22g: the deviation the state machine records for `Txn`**
+  (`issues/etcd-txn-delete-then-ignore-put.md`): the key check of a put keeping a value or lease
+  is made at the transaction's start, so a put of a key the same transaction deleted passes it
+  and the server panics; `EtcdSM.txnPanics` names the condition and the spec excludes it.

@@ -23,10 +23,12 @@ statements about the verified server once applied to its instance.
   `r1`; the events under `pfx` at `r1` are exactly `evs`. Persistent and timeless; its laws
   `etcdStep_transfer`, `etcdStep_compose`, `etcdStep_delete_present` take it as a conjunct.
 
-The pure vocabulary they are stated in (`EtcdKv`, `EtcdEv`, `applyEvsState`) is here too.
+The pure vocabulary they are stated in (`EtcdEv`, `applyEvsState`) is here too; `EtcdKv` is in
+`api/v3/mvccpb/KeyValue.lean` (shared with the server's state machine).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.KeyValue
 public import Proof.go_etcd_io.etcd.cache.v3.InvBtree
 
 @[expose] public section
@@ -39,15 +41,6 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 /-! ## The pure vocabulary -/
-
-/-- A key-value as etcd stores it (`mvccpb.KeyValue`'s fields). -/
-structure EtcdKv where
-  key : GoString
-  createRev : w64
-  modRev : w64
-  version : w64
-  value : GoString
-  lease : w64
 
 /-- An event as etcd stores it (`mvccpb.Event`): its type (`0` put, `1` delete) and its
 key-value (for a delete, the key and the revision of the delete). -/

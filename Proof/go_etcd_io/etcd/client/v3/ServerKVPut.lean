@@ -199,7 +199,7 @@ theorem putResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (lo :
   icases Hrep with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, %Hfl⟩
   obtain ⟨Hst, -, -, -, -, -, H2, H4⟩ := Hp
   have hlog := put_applied_exact o hm x x' l skip Hst
-  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf] at Hfl; omega
+  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf_rev, kvStateOf_kvs] at Hfl; omega
   obtain ⟨hg, hd, ht, hres⟩ := putTxnOp_putLike o
   iunfold revMinted at HMint
   icases HMint with (%He | ⟨%cs, %He, Htok⟩)
@@ -428,7 +428,7 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
   have hop' : op' = deleteWireOf o := Hz hnz
   subst hop'
   have hlog := delete_applied_exact _ _ hm rq' x x' l skip Hw Hop Hst
-  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf] at Hfl; omega
+  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf_rev, kvStateOf_kvs] at Hfl; omega
   have hrin : rangeIn (stateAfter x.log) (deleteWireOf o) = rangeIn (stateAfter x.log) o := rfl
   have happ : ∀ r st, applyTxnOp r st (.delete (deleteWireOf o)) = applyTxnOp r st (.delete o) :=
     fun _ _ => rfl

@@ -2400,10 +2400,9 @@ theorem client_get_value (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
   iexists kvStateOf l
   iframe HQ
   ipureintro
+  rw [kvStateOf_kvs, kvStateOf_rev]
   refine ⟨getKey_value key l m.kvs m.more hsel, ?_⟩
   rw [hrev]
-  unfold kvStateOf
-  simp only
   congr 1
   omega
 
@@ -2434,10 +2433,9 @@ theorem rangeReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64)
   iexists kvStateOf l
   iframe HQ
   ipureintro
+  rw [kvStateOf_kvs, kvStateOf_rev]
   refine ⟨?_, hsel, hcount⟩
   rw [hr]
-  unfold kvStateOf
-  simp only
   congr 1
   omega
 

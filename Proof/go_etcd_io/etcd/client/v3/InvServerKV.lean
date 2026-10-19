@@ -206,7 +206,9 @@ variable [sem : go.Semantics]
 
 /-- **A step never lowers the state's revision** (a step commits one revision or none). -/
 theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commit cs).rev := by
-  unfold KVState.commit; split <;> simp
+  unfold KVState.commit; split
+  · exact Nat.le_refl _
+  · exact EtcdSM.State.rev_le_newRevision _ _
 
 theorem kvOpStep_rev (op : KVOp) (σ : KVState) : σ.rev ≤ (kvOpStep op σ).rev := by
   cases op <;> simp only [kvOpStep] <;> (try split) <;> (first | exact Nat.le_refl _ | exact commit_rev _ _)
@@ -416,8 +418,8 @@ theorem rangeReply_etcdState (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   iexists kvStateOf l
   iframe HQ
   have hr : W64 ((l.length : Int) - 1) = W64 (((kvStateOf l).rev : Nat) : Int) := by
-    unfold kvStateOf; simp only; congr 1; omega
-  rw [← hr, show (kvStateOf l).kvs = mvcc.stateAfter l from rfl]
+    rw [kvStateOf_rev]; congr 1; omega
+  rw [← hr, kvStateOf_kvs]
   iframe Hst
   ipureintro; exact Hwf
 

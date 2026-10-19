@@ -652,7 +652,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
         simp only [hser, Bool.false_eq_true, ↓reduceIte]
         ihave %h := Himp' $$ HQl
         ipureintro; intro _
-        simp only [kvStateOf] at h
+        simp only [kvStateOf_rev, kvStateOf_kvs] at h
         omega
     iclear HQl
     have hall : ∀ op ∈ t.thenOps ++ t.elseOps, TxnOp.isGet op = true := fun op ho =>
@@ -721,7 +721,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     rw [hw] at hlog hok hrel hrev
     have hfl := srvRunTxn_runTxn_flat (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t (flat_branch t hp _)
     have hS := mvcc.stateAfter_sorted x.log
-    have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf] at Hfl; omega
+    have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf_rev, kvStateOf_kvs] at Hfl; omega
     have hnil := srvOps_changes_nil (mvcc.stateAfter x.log) (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) _ (plain_branch t hp (txn.txnOk (mvcc.stateAfter x.log) t))
     by_cases hcs : (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t).2.1 = []
     · -- nothing written: the log as it was, the revision its last

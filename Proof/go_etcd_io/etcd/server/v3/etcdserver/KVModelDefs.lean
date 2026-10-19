@@ -30,9 +30,11 @@ says exactly where the relation departs from it.
   for a plain request, every outcome the relation allows changes the log as `dispatchLog` does
   and leaves the chain alone, unless the chain is not `kvExact` (an enabled auth layer's
   rejection, a capped layer's), the log unchanged. The start's chain is `kvExact`.
-- **The state** (`KVState`, `kvStateOf`: the store at its latest revision; 2026-10-15, unit T2)
-  and **an operation's step on it** (`KVOp`, `kvOpStep`, `reqKVOp`, `kvReqStep`): the backend's
-  log follows the state (`kvStateOf_backendLog`), so the KV ghost state can be the state.
+- **The state** (`KVState`, `kvStateOf`; 2026-10-15, unit T2: the store at its latest revision;
+  2026-10-19: the store at every revision, the state machine's `EtcdSM.State`,
+  `StateMachine.lean`) and **an operation's step on it** (`KVOp`, `kvOpStep`, `reqKVOp`,
+  `kvReqStep`): the backend's log follows the state (`kvStateOf_backendLog`), so the KV ghost
+  state can be the state.
 - **Shape** (`kvEntry_grow`, `kvRaftOf_prefix`) and the **intermediate value lemma** (`kvRaftOf_ivt`): a log
   between `kvRaftOf A₀` and `kvRaftOf B` (prefix order) is `kvRaftOf A` for some `A` between `A₀` and `B`,
   because each entry appends at most one revision.
@@ -41,6 +43,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StateMachine
 
 @[expose] public section
 
@@ -526,29 +529,45 @@ theorem kvEntry_base (c₀ : w64) (log : mvcc.Log) (e : EntryModel) (rq : apply.
   rw [decide_eq_true hidx]
   exact dispatchLog_base rq log
 
-/-! ## The state at the latest revision (2026-10-15, unit T2)
+/-! ## The state (2026-10-15, unit T2; 2026-10-19: every revision)
 
-`notes/decisions.md`, "Every KV operation as a persistent atomic update on the whole state". The
-abstract state of etcd's KV is the store at its latest revision (`KVState`): every key's
-key-value (its value, create and mod revisions, version, lease: `EtcdKv`) and the current
-revision. A log's state is `kvStateOf`; an operation's effect on it is `kvOpStep` (a read's the
-identity, a rejected request's too), a function of the state, which the backend's log follows
-(`kvStateOf_backendLog`). -/
+`notes/decisions.md`, "Every KV operation as a persistent atomic update on the whole state" and
+"The KV specs over a state machine (D22)". The abstract state of etcd's KV is the state
+machine's (`EtcdSM.State`, `StateMachine.lean`): the map at every revision, whose last is the
+store at its latest revision (`σ.kvs`, every key's key-value: `EtcdKv`) and whose length less
+one the current revision (`σ.rev`). A log's state is `kvStateOf`; an operation's effect on it is
+`kvOpStep` (a read's the identity, a rejected request's too), a function of the state, which the
+backend's log follows (`kvStateOf_backendLog`). That `kvOpStep` is the state machine's step is
+`StateMachineRefinement.lean`'s. -/
 
-/-- **The store at its latest revision**: the key-values (sorted by key) and the current
-revision. -/
-structure KVState where
-  kvs : List EtcdKv
-  rev : Nat
+/-- **The store at every revision** (the state machine's state). -/
+abbrev KVState := EtcdSM.State
 
-/-- **The state of a log**: after every revision, at its last revision (`log.length - 1`: a read
-at `log` answers it). -/
-def kvStateOf (l : mvcc.Log) : KVState := ⟨mvcc.stateAfter l, l.length - 1⟩
+/-- **The state of a log**: the state at each of its revisions (`stateAt`), the last
+(`log.length - 1`: a read at `log` answers it) after every revision. -/
+def kvStateOf (l : mvcc.Log) : KVState := ⟨(List.range l.length).map (mvcc.stateAt l)⟩
+
+@[simp] theorem kvStateOf_rev (l : mvcc.Log) : (kvStateOf l).rev = l.length - 1 := by
+  simp [kvStateOf, EtcdSM.State.rev]
+
+@[simp] theorem kvStateOf_kvs (l : mvcc.Log) : (kvStateOf l).kvs = mvcc.stateAfter l := by
+  unfold kvStateOf EtcdSM.State.kvs
+  rcases Nat.eq_zero_or_pos l.length with h | h
+  · rw [List.length_eq_zero_iff.1 h]; rfl
+  · obtain ⟨n, hn⟩ : ∃ n, l.length = n + 1 := ⟨l.length - 1, by omega⟩
+    rw [hn, List.range_succ, List.map_append, List.map_singleton, List.getLastD_concat,
+      show n = l.length - 1 by omega, mvcc.stateAt_last]
+
+theorem kvStateOf_at (l : mvcc.Log) {r : Nat} (hr : r < l.length) :
+    (kvStateOf l).atRev r = mvcc.stateAt l r := by
+  unfold kvStateOf EtcdSM.State.atRev
+  simp [hr]
 
 /-- A write's commit of the changes `cs` at the next revision (none if it changed nothing:
 `mvcc.commitLog`'s). -/
 def KVState.commit (σ : KVState) (cs : List mvcc.Change) : KVState :=
-  if cs = [] then σ else ⟨mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs, σ.rev + 1⟩
+  if cs = [] then σ
+  else σ.newRevision (mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs)
 
 /-- **A KV operation** as the server applies it. -/
 inductive KVOp where
@@ -592,22 +611,26 @@ def kvReqStep (rq : apply.IRRModel) (σ : KVState) : KVState :=
 theorem kvStateOf_commitLog (l : mvcc.Log) (cs : List mvcc.Change) (hl : l ≠ []) :
     kvStateOf (mvcc.commitLog l cs) = (kvStateOf l).commit cs := by
   have hpos := List.length_pos_iff.2 hl
-  unfold kvStateOf KVState.commit mvcc.commitLog
+  unfold KVState.commit mvcc.commitLog
   split
   · rfl
-  · simp only [List.length_append, List.length_singleton, KVState.mk.injEq]
-    refine ⟨?_, by omega⟩
-    rw [mvcc.stateAfter_append]
-    congr 2
-    omega
+  · rw [kvStateOf_rev, kvStateOf_kvs, show l.length - 1 + 1 = l.length by omega]
+    unfold kvStateOf EtcdSM.State.newRevision
+    simp only [List.length_append, List.length_singleton, List.range_succ, List.map_append,
+      List.map_singleton, EtcdSM.State.mk.injEq]
+    congr 1
+    · apply List.map_congr_left
+      intro r hr
+      exact mvcc.stateAt_append_lt _ _ (List.mem_range.1 hr)
+    · rw [mvcc.stateAt_append_ge _ _ (Nat.le_refl _)]
 
 /-- **The backend's log follows the state**: the state after a request's backend log is the
 request's step on the state before (a log with a revision: the server's always has two). -/
 theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []) :
     kvStateOf (backendLog rq l) = kvReqStep rq (kvStateOf l) := by
   have hpos := List.length_pos_iff.2 hl
-  have hrev : (kvStateOf l).rev + 1 = l.length := by unfold kvStateOf; simp only; omega
-  have hs : (kvStateOf l).kvs = mvcc.stateAfter l := rfl
+  have hrev : (kvStateOf l).rev + 1 = l.length := by rw [kvStateOf_rev]; omega
+  have hs : (kvStateOf l).kvs = mvcc.stateAfter l := kvStateOf_kvs l
   unfold backendLog kvReqStep reqKVOp
   cases hk : apply.dispatchKind rq
   case put =>
@@ -634,8 +657,7 @@ theorem kvStateOf_backendLog (rq : apply.IRRModel) (l : mvcc.Log) (hl : l ≠ []
     | none => rfl
     | some op =>
       simp only [Option.map_some, kvOpStep]
-      rw [kvStateOf_commitLog _ _ hl]
-      rfl
+      rw [kvStateOf_commitLog _ _ hl, hs]
   case txn =>
     dsimp only
     cases hp : rq.txn with

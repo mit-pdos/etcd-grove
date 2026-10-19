@@ -272,7 +272,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
   iframe Hσ
   ipureintro
   rw [← Hag]
-  simp only [kvStateOf]
+  simp only [kvStateOf_rev, kvStateOf_kvs]
   unfold kvModel at *
   omega
 

@@ -72,8 +72,8 @@ theorem findKey_putKv_val (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (r : w6
 
 /-- What `kvOpStep` does with a plain put: commit its one change at the next revision. -/
 theorem kvOpStep_put_eq (k v : GoString) (σ : KVState) :
-    kvOpStep (.put (putOp k v)) σ =
-      ⟨putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs, σ.rev + 1⟩ := by
+    (kvOpStep (.put (putOp k v)) σ).kvs =
+      putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs := by
   simp [kvOpStep, KVState.commit, txn.needsPrev, txn.putOpOf, OpFull.newOp, txn.putChangeOf,
     txn.putValOf, txn.putLeaseOf, mvcc.applyChanges, mvcc.applyChange]
 
@@ -81,8 +81,8 @@ theorem kvOpStep_put_eq (k v : GoString) (σ : KVState) :
 theorem absKV_put (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess) :
     absKV (kvOpStep (.put (putOp k v)) σ) = (absKV σ).set k v := by
   funext k'
-  rw [kvOpStep_put_eq]
   unfold absKV Store.set
+  rw [kvOpStep_put_eq]
   by_cases hk : k' = k
   · subst hk
     obtain ⟨nv, hnv, -, hv⟩ := findKey_putKv_val σ.kvs hs (W64 ((σ.rev + 1 : Nat) : Int)) k' v (W64 0)
@@ -108,7 +108,8 @@ theorem absKV_get (k : GoString) (σ : KVState) :
   rw [List.head?_filter]
 
 /-- The empty state's store is the model's initial one. -/
-theorem absKV_empty (r : Nat) : absKV ⟨[], r⟩ = fun _ => none := rfl
+theorem absKV_empty (σ : KVState) (h : σ.kvs = []) : absKV σ = fun _ => none := by
+  funext k; simp [absKV, h, mvcc.findKey]
 
 /-! ### The model's steps follow the server's -/
 

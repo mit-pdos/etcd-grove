@@ -340,7 +340,7 @@ theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF
       simp only [hs, Bool.false_eq_true, ↓reduceIte]
       ihave %h := Himp $$ HQl
       ipureintro; intro _
-      simp only [kvStateOf] at h
+      simp only [kvStateOf_rev, kvStateOf_kvs] at h
       omega
     · ipureintro; intro h
       exact absurd (by rw [(wire_fields _).2.2.2.2.2.2.1]; exact h) hs

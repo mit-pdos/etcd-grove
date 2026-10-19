@@ -64,6 +64,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVSpecsTxn
 
 @[expose] public section
 
@@ -1121,6 +1122,40 @@ theorem scheduler_fifo : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) 
 
 end goroutines
 
+/-! ## The KV specs over the state machine (D22, 2026-10-19)
+
+`KVSpecs.lean` and `KVSpecsTxn.lean`: `EtcdServer`'s `Put`, `DeleteRange`, `Range` and `Txn`
+stated over the state machine (`StateMachine.lean`, `EtcdSM`) only, the whole multi-revision
+store one ghost variable (`etcdState`), a request's effect the client's atomic update
+(`etcdAU`), the server one handle (`ownEtcdServer`); proved from the linked specs above. -/
+
+section kvspecs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **`s.Put(ctx, r)` over the state machine** (`EtcdServer.Put.kvSpec`). -/
+theorem etcd_kv_put : EtcdServer.Put.kvSpec (GF := GF) (hG := hG) := EtcdServer.wp_Put_kv
+
+/-- **`s.DeleteRange(ctx, r)` over the state machine** (`EtcdServer.DeleteRange.kvSpec`). -/
+theorem etcd_kv_deleteRange : EtcdServer.DeleteRange.kvSpec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_DeleteRange_kv
+
+/-- **`s.Range(ctx, r)` over the state machine** (`EtcdServer.Range.kvSpec`). -/
+theorem etcd_kv_range : EtcdServer.Range.kvSpec (GF := GF) (hG := hG) := EtcdServer.wp_Range_kv
+
+/-- **`s.Txn(ctx, r)` over the state machine** (`EtcdServer.Txn.kvSpec`). -/
+theorem etcd_kv_txn : EtcdServer.Txn.kvSpec (GF := GF) (hG := hG) := EtcdServer.wp_Txn_kv
+
+end kvspecs
+
+#print axioms Perennial.EtcdGrove.etcd_kv_put
+#print axioms Perennial.EtcdGrove.etcd_kv_deleteRange
+#print axioms Perennial.EtcdGrove.etcd_kv_range
+#print axioms Perennial.EtcdGrove.etcd_kv_txn
 #print axioms Perennial.EtcdGrove.cindex_hook_backend
 #print axioms Perennial.EtcdGrove.cindex_hookFnSpec
 #print axioms Perennial.EtcdGrove.backend_server_hooks
