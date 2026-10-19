@@ -176,6 +176,8 @@ theorem raft.reset.wp_proof
     rw [ite_eq_right (Ne.symm Hif)]
   -- `lead := None`, `electionElapsed := 0`, `heartbeatElapsed := 0`
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
+  -- (2026-10-19, witness support) `witnessVoteAsked = nil`
+  wp_apply raft.wp_store_witnessVoteAsked_nilC $$ Hphys as Hphys
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
   wp_apply raft.wp_store_heartbeatElapsedC $$ Hphys as Hphys
   wp_apply wp_raft_resetRandomizedElectionTimeout $$ [$Hphys] as Hphys
@@ -250,11 +252,12 @@ theorem raft.reset.wp_proof
     ihave Htrk := Hprback $$ %(progressOf
         { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
           PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
-          Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _) [Hpv Hifl] %Hnolearner
+          Inflights' := ifl, IsLearner' := pv1.IsLearner', IsWitness' := pv1.IsWitness' } .probe _) [Hpv Hifl]
+        %(And.intro Hnolearner ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2)
     · iapply ownProgress_of pr
         { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
           PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
-          Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ rfl $$ Hpv Hifl
+          Inflights' := ifl, IsLearner' := pv1.IsLearner', IsWitness' := pv1.IsWitness' } .probe _ rfl $$ Hpv Hifl
     -- the fresh value is within the log: `Next = lastIndex + 1`, `Match = 0` (whatever its window)
     have Hli' : li = logLast s.logst := logLast_unsigned _ _ Hli0
     -- (D21 M3) in the no-snapshot mode a leader's last index is at least `1`: the peer `i` it
@@ -268,7 +271,7 @@ theorem raft.reset.wp_proof
     have Hfresh : ∀ I, s.role = .leader → PrOkN s.gh.ns s.logst (progressOf
           { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
             PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
-            Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe I) :=
+            Inflights' := ifl, IsLearner' := pv1.IsLearner', IsWitness' := pv1.IsWitness' } .probe I) :=
       fun I hl => PrOkN.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl rfl
         (HliP hl)
     ihave Hphys := HI $$ Htrkf [Htrk]
@@ -300,7 +303,7 @@ theorem raft.reset.wp_proof
       have Habs2 := (progressAbs_Some _ _ _).1 Habs
       wp_auto
       ihave Htrk := Hprback $$ %(progressOf { pv2 with Match' := li2 } p2.state _)
-          [Hpv Hinfl] %Habs2.1
+          [Hpv Hinfl] %(And.intro Habs2.1 Habs2.2.2.2.2.2.2.2.2)
       · iapply ownProgress_of pr { pv2 with Match' := li2 } p2.state _ Habs2.2.1
           $$ Hpv Hinfl
       -- the node's own value: `Match = lastIndex`, the rest as just written

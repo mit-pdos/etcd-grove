@@ -2530,6 +2530,18 @@ theorem raft.wp_store_leadC (r : Loc) (id : w64) (s : NState) (v : w64) :
   wp_apply wp_store_access _ rv.lead' v _ _ (raftOwn_access_store_lead _ _ _) $$ Hr as Hr
   iapply HΦ; resealC c { s with lead := v }
 
+/-- `r.witnessVoteAsked = nil` (2026-10-19, witness support; `reset`): it was nil. -/
+theorem raft.wp_store_witnessVoteAsked_nilC (r : Loc) (id : w64) (s : NState) :
+    {{ ownRaftPhysCV (GF := GF) c V r id s }}
+      (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool))))
+        (Val (PairV #(r.[raft, go!"witnessVoteAsked"]) #map.nil)))
+    {{ RET #(); ownRaftPhysCV c V r id s }} := by
+  iintro %Φ H HΦ
+  iNamed_physC H
+  wp_apply wp_store_access _ rv.witnessVoteAsked' map.nil _ _
+    (raftOwn_access_store_witnessVoteAsked_nil _ _) $$ Hr as Hr
+  iapply HΦ; resealC c s
+
 /-- Stated at `stateW64 ro`, so the caller names the role; the Go code stores the
 constant (`StateFollower` = `W64 0`), which unifies with `stateW64 .follower` by
 computation. -/
