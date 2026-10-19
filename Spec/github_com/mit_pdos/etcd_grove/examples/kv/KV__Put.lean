@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*KV).Put(key, val)` (kv.go), logically atomic:
-`<<∀ m, kvVal γr m>> Put key val <<kvVal γr (m[key := val])>>`, in Iris's form: the client's
+`<<∀ m, rkvVal γr m>> Put key val <<rkvVal γr (m[key := val])>>`, in Iris's form: the client's
 atomic update (at `kvMask`: not raft's commit invariant nor the store's).
 -/
 module
@@ -29,10 +29,10 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.Put.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (key val : List w8) (Φ : IProp GF),
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (key val : List w8) (Φ : IProp GF),
   (key.length : Int) < 2 ^ 61 → (val.length : Int) < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isKV γr γp r ∗
-      AU <{ ∃∃ (x : KVMap), kvVal γr x }> @ kvMask, ∅ <{ kvVal γr (kvUpd x key val), COMM Φ }> }}
+      AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvMask, ∅ <{ rkvVal γr (kvUpd x key val), COMM Φ }> }}
     (App (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"Put")) (Val #key)) (Val #val))
   {{ RET #(); Φ }}
 

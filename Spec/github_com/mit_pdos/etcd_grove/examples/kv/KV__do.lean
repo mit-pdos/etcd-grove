@@ -31,12 +31,12 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.do.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (kind : w8) (key val : List w8)
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (kind : w8) (key val : List w8)
     (Φ : List w8 → IProp GF),
   (key.length : Int) < 2 ^ 61 → (val.length : Int) < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isKV γr γp r ∗
-      AU <{ ∃∃ (x : KVMap), kvVal γr x }> @ kvMask, ∅
-        <{ kvVal γr (kvNext kind key val x), COMM Φ (kvNext kind key val x key) }> }}
+      AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvMask, ∅
+        <{ rkvVal γr (kvNext kind key val x), COMM Φ (kvNext kind key val x key) }> }}
     (App (App (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"do")) (Val #kind)) (Val #key))
       (Val #val))
   {{ (res : List w8), RET #res; Φ res }}

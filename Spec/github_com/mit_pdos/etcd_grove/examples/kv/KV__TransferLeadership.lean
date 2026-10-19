@@ -28,7 +28,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.TransferLeadership.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (to : w64),
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (to : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isKV γr γp r }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"TransferLeadership")) (Val #to))

@@ -17,7 +17,7 @@ Lean-first (no Rocq counterpart).
   the first it runs the client's update from the operation's slot (the linearization point);
   `kv_noopAu`, the standing update for raft's own entries; `kv_readAu`, a read's update.
 - `kv_collect`: the client's result, from its slot, with its ticket.
-- `kvVal_agree`, `kvVal_update`: the client's half of the history's ghost variable against the
+- `rkvVal_agree`, `rkvVal_update`: the client's half of the history's ghost variable against the
   invariant's (2026-10-19).
 -/
 module
@@ -167,20 +167,20 @@ variable [KVStor GF]
 
 /-- The client's half of the history's ghost variable agrees with the invariant's: its state
 is the history's fold. -/
-theorem kvVal_agree (γr : KVNames) (H : List (List w8)) (x : KVMap) :
-    ⊢ ghostVar (GF := GF) γr.val (1 : Qp).half H -∗ kvVal γr x -∗ ⌜kvFold H = x⌝ := by
+theorem rkvVal_agree (γr : RKVNames) (H : List (List w8)) (x : KVMap) :
+    ⊢ ghostVar (GF := GF) γr.val (1 : Qp).half H -∗ rkvVal γr x -∗ ⌜kvFold H = x⌝ := by
   iintro Hv Hx
-  unfold kvVal
+  unfold rkvVal
   icases Hx with ⟨%H', Hx, %Hf⟩
   ihave %Heq := ghostVar_agree γr.val H (1 : Qp).half H' (1 : Qp).half $$ Hv Hx
   ipureintro; rw [Heq]; exact Hf
 
 /-- Both halves move to the history `H'`; the client's at its fold. -/
-theorem kvVal_update (γr : KVNames) (H : List (List w8)) (x : KVMap) (H' : List (List w8)) :
-    ⊢ ghostVar (GF := GF) γr.val (1 : Qp).half H -∗ kvVal γr x ==∗
-      ghostVar γr.val (1 : Qp).half H' ∗ kvVal γr (kvFold H') := by
+theorem rkvVal_update (γr : RKVNames) (H : List (List w8)) (x : KVMap) (H' : List (List w8)) :
+    ⊢ ghostVar (GF := GF) γr.val (1 : Qp).half H -∗ rkvVal γr x ==∗
+      ghostVar γr.val (1 : Qp).half H' ∗ rkvVal γr (kvFold H') := by
   iintro Hv Hx
-  unfold kvVal
+  unfold rkvVal
   icases Hx with ⟨%H0, Hx, -⟩
   imod ghostVar_update_halves H' γr.val H H0 $$ Hv Hx with ⟨Hv, Hx⟩
   imodintro
@@ -243,17 +243,17 @@ theorem kvStor_register (s ms : Loc) (γs : MemStorNames) (E : CoPset) (HE : ↑
 
 /-- A new sequence number mints the operation's fresh token and records it; the operation's
 slot, with the client's atomic update and a later credit (2026-10-14, stage R). -/
-theorem kv_mint (γr : KVNames) (id ns : w64) (kind : w8) (key val : List w8)
-    (Ψ : List w8 → IProp GF) (E : CoPset) (HE : ↑kvN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64)
+theorem kv_mint (γr : RKVNames) (id ns : w64) (kind : w8) (key val : List w8)
+    (Ψ : List w8 → IProp GF) (E : CoPset) (HE : ↑rkvN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64)
     (Hk : (key.length : Int) < 2 ^ 64) :
-    ⊢ kvInv (GF := GF) γr -∗ id ↪[γr.seq] ns -∗ £ 1 -∗ opAu γr (kvNext kind key val) key Ψ ={E}=∗
+    ⊢ rkvInv (GF := GF) γr -∗ id ↪[γr.seq] ns -∗ £ 1 -∗ opAu γr (kvNext kind key val) key Ψ ={E}=∗
       id ↪[γr.seq] (ns + W64 1) ∗
       (id, ns + W64 1) ↪[γr.mint]□ encodeOp id (ns + W64 1) kind key val ∗
       propFresh γr.raft (encodeOp id (ns + W64 1) kind key val) ∗
       ∃ γp : GName × GName, encodeOp id (ns + W64 1) kind key val ↪[γr.ops]□ γp ∗
         savedPredOwn γp.1 DFrac.discard Ψ ∗ token γp.2 := by
   iintro #Hinv Hseq Hlc Hau
-  unfold kvInv kvInvBody
+  unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
@@ -315,14 +315,14 @@ theorem kv_mint (γr : KVNames) (id ns : w64) (kind : w8) (key val : List w8)
 
 /-- A new sequence number mints a read's context (2026-10-13) and (2026-10-14, stage R) its
 fresh token for raft's read registry (`rdFresh`), and records it. -/
-theorem kv_mint_read (γr : KVNames) (id ns : w64) (key : List w8) (E : CoPset)
-    (HE : ↑kvN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64) (Hk : (key.length : Int) < 2 ^ 64) :
-    ⊢ kvInv (GF := GF) γr -∗ id ↪[γr.seq] ns ={E}=∗
+theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (E : CoPset)
+    (HE : ↑rkvN ⊆ E) (Hns : uint.Z ns + 1 < 2 ^ 64) (Hk : (key.length : Int) < 2 ^ 64) :
+    ⊢ rkvInv (GF := GF) γr -∗ id ↪[γr.seq] ns ={E}=∗
       id ↪[γr.seq] (ns + W64 1) ∗
       (id, ns + W64 1) ↪[γr.mint]□ encodeOp id (ns + W64 1) opReadB key [] ∗
       rdFresh γr.raft (encodeOp id (ns + W64 1) opReadB key []) := by
   iintro #Hinv Hseq
-  unfold kvInv kvInvBody
+  unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
@@ -353,20 +353,20 @@ theorem kv_mint_read (γr : KVNames) (id ns : w64) (key : List w8) (E : CoPset)
 
 /-- A deposited read context with a minted key is the one minted there (2026-10-13; since
 2026-10-14, stage R, through its fresh token, which raft's read registry keeps). -/
-theorem kv_read_minted (γr : KVNames) (c c0 : List w8) (Lc : List EntryM)
-    (k : w64 × w64) (E : CoPset) (HE1 : ↑kvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑kvN)
+theorem kv_read_minted (γr : RKVNames) (c c0 : List w8) (Lc : List EntryM)
+    (k : w64 × w64) (E : CoPset) (HE1 : ↑rkvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑rkvN)
     (Hk : opKey c = some k) :
-    ⊢ kvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ readReq γr.raft c Lc -∗
+    ⊢ rkvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ readReq γr.raft c Lc -∗
       k ↪[γr.mint]□ c0 ={E}=∗ ⌜c0 = c⌝ := by
   iintro #Hinv #Hcinv #Hrq #Hmint
   unfold readReq
   icases Hrq with ⟨%γq, #Hel, -⟩
   ihave #Hri := raftCommitInv_reg γr.raft $$ Hcinv
-  unfold kvInv kvInvBody
+  unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
-  have HE3 : (↑raftRegN : CoPset) ⊆ E \ ↑kvN := raftRegN_of HE2
+  have HE3 : (↑raftRegN : CoPset) ⊆ E \ ↑rkvN := raftRegN_of HE2
   unfold raftRegInv regsOwn
   iinv Hri with ⟨%l, Hq, Hregs⟩ Hclose2
   iunfold regsAt at Hregs
@@ -406,7 +406,7 @@ theorem kv_read_minted (γr : KVNames) (c c0 : List w8) (Lc : List EntryM)
   ipureintro; rfl
 
 /-- Every committed log is a prefix of the store's log (the global one). -/
-theorem kv_log_prefix (γr : KVNames) (L l : List EntryM) (E : CoPset)
+theorem kv_log_prefix (γr : RKVNames) (L l : List EntryM) (E : CoPset)
     (HE : ↑raftLogN ⊆ E) :
     ⊢ raftCommitInv (GF := GF) γr.raft -∗ rLog γr.raft L -∗ isCommitted γr.raft l ={E}=∗
       rLog γr.raft L ∗ ⌜l <+: L⌝ := by
@@ -428,17 +428,17 @@ theorem kv_log_prefix (γr : KVNames) (L l : List EntryM) (E : CoPset)
   ipureintro; exact Hpre
 
 /-- The history now is a lower bound, at the client's state (2026-10-13). -/
-theorem kvLb_current (γr : KVNames) (x : KVMap) (E : CoPset)
-    (HE1 : ↑kvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑kvN) :
-    ⊢ kvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ kvVal γr x ={E}=∗
-      kvVal γr x ∗ ∃ L, kvLb γr L ∗ ⌜kvFold L = x⌝ := by
+theorem kvLb_current (γr : RKVNames) (x : KVMap) (E : CoPset)
+    (HE1 : ↑rkvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑rkvN) :
+    ⊢ rkvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ rkvVal γr x ={E}=∗
+      rkvVal γr x ∗ ∃ L, kvLb γr L ∗ ⌜kvFold L = x⌝ := by
   iintro #Hinv #Hcinv Hx
-  unfold kvInv kvInvBody
+  unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
-  ihave %Hxeq := kvVal_agree γr (firstOcc ods) x $$ Hv Hx
-  have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑kvN := raftLogN_of HE2
+  ihave %Hxeq := rkvVal_agree γr (firstOcc ods) x $$ Hv Hx
+  have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑rkvN := raftLogN_of HE2
   imod rLog_committed γr.raft L _ HE3 $$ Hcinv HrL with ⟨HrL, #HLc⟩
   imod Hclose $$ [HrL Hv HM HF HS HMi HO Hsl] with -
   · inext
@@ -459,18 +459,18 @@ theorem kvLb_current (γr : KVNames) (x : KVMap) (E : CoPset)
 
 /-- A deposited datum was minted (its fresh token is raft's registry's, and every token
 was minted), so it is the one minted at its key. -/
-theorem kv_deposited_minted (γr : KVNames) (d d0 : List w8) (k : w64 × w64) (E : CoPset)
-    (HE1 : ↑kvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑kvN) (Hk : opKey d = some k) :
-    ⊢ kvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ deposited γr.raft d -∗
+theorem kv_deposited_minted (γr : RKVNames) (d d0 : List w8) (k : w64 × w64) (E : CoPset)
+    (HE1 : ↑rkvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑rkvN) (Hk : opKey d = some k) :
+    ⊢ rkvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ deposited γr.raft d -∗
       k ↪[γr.mint]□ d0 ={E}=∗ ⌜d0 = d⌝ := by
   iintro #Hinv #Hcinv #Hdep #Hmint
   ihave #Hri := raftCommitInv_reg γr.raft $$ Hcinv
-  unfold kvInv kvInvBody
+  unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
   -- the datum's fresh token is in raft's registry: `d ∈ M`
-  have HE3 : (↑raftRegN : CoPset) ⊆ E \ ↑kvN := raftRegN_of HE2
+  have HE3 : (↑raftRegN : CoPset) ⊆ E \ ↑rkvN := raftRegN_of HE2
   unfold raftRegInv regsOwn
   iinv Hri with ⟨%l, Hq, Hregs⟩ Hclose2
   iunfold regsAt at Hregs
@@ -512,7 +512,7 @@ theorem kv_deposited_minted (γr : KVNames) (d d0 : List w8) (k : w64 × w64) (E
   ipureintro; rfl
 
 /-- A slot of another datum keeps its state as the history grows by `d`. -/
-theorem opSlot_grow (γr : KVNames) (d' d : List w8) (γp : GName × GName) (H : List (List w8))
+theorem opSlot_grow (γr : RKVNames) (d' d : List w8) (γp : GName × GName) (H : List (List w8))
     (Hne : d' ≠ d) :
     ⊢ opSlot (GF := GF) γr d' γp H -∗ opSlot γr d' γp (H ++ [d]) := by
   unfold opSlot
@@ -535,20 +535,20 @@ theorem opSlot_grow (γr : KVNames) (d' d : List w8) (γp : GName × GName) (H :
 operation's datum `d`, whose slot is `γp` (2026-10-14, stage R; see the file header). At every
 committed occurrence it moves the store's log; at the first (`d` not yet in the history) it
 runs the client's update from the slot, with the slot's later credit, and moves the value. -/
-theorem kv_propAu (γr : KVNames) (d : List w8) (γp : GName × GName) :
-    ⊢ kvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗ propAu γr.raft d (fun _ => iprop(True)) := by
+theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) :
+    ⊢ rkvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗ propAu γr.raft d (fun _ => iprop(True)) := by
   iintro #Hinv #Hop
   unfold propAu
   imodintro
   iauintro
-  unfold atomic_acc kvInv kvInvBody
-  have Hdisj := kvN_raftN
+  unfold atomic_acc rkvInv rkvInvBody
+  have Hdisj := rkvN_raftN
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
   icases ghost_map_lookup $$ HO Hop with %HOd
   have HMd : M !! d = some () := Hok.2.2.2 d γp HOd
-  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑kvN from Std.LawfulSet.empty_subset)
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑rkvN from Std.LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iexists L
@@ -608,11 +608,11 @@ theorem kv_propAu (γr : KVNames) (d : List w8) (γp : GName × GName) :
         imod Hacc with Hacc
         isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
         icases Hacc with ⟨%x, Hx, Hucl⟩
-        ihave %Hxeq := kvVal_agree γr (firstOcc ods) x $$ Hv Hx
+        ihave %Hxeq := rkvVal_agree γr (firstOcc ods) x $$ Hv Hx
         subst Hxeq
         have Hf : kvFold (firstOcc ods ++ [d]) = kvApply (kvFold (firstOcc ods)) d :=
           kvFold_snoc _ _
-        imod kvVal_update γr (firstOcc ods) (kvFold (firstOcc ods)) (firstOcc ods ++ [d])
+        imod rkvVal_update γr (firstOcc ods) (kvFold (firstOcc ods)) (firstOcc ods ++ [d])
           $$ Hv Hx with ⟨Hv, Hx⟩
         icases Hucl with ⟨-, Hcommit⟩
         isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
@@ -652,18 +652,18 @@ theorem kv_propAu (γr : KVNames) (d : List w8) (γp : GName × GName) :
 
 /-- The standing update for raft's own entries (2026-10-14, stage R): the store's log
 grows, its history and value do not. -/
-theorem kv_noopAu (γr : KVNames) :
-    ⊢ kvInv (GF := GF) γr -∗ noopAu γr.raft := by
+theorem kv_noopAu (γr : RKVNames) :
+    ⊢ rkvInv (GF := GF) γr -∗ noopAu γr.raft := by
   iintro #Hinv
   unfold noopAu
   imodintro
   iauintro
-  unfold atomic_acc kvInv kvInvBody
-  have Hdisj := kvN_raftN
+  unfold atomic_acc rkvInv rkvInvBody
+  have Hdisj := rkvN_raftN
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
-  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑kvN from Std.LawfulSet.empty_subset)
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑rkvN from Std.LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iexists L
@@ -703,18 +703,18 @@ theorem kv_noopAu (γr : KVNames) :
     itrivial
 
 /-- A read's update (2026-10-14, stage R): the log lent and returned, nothing moved. -/
-theorem kv_readAu (γr : KVNames) :
-    ⊢ kvInv (GF := GF) γr -∗ readAu γr.raft (fun _ => iprop(True)) := by
+theorem kv_readAu (γr : RKVNames) :
+    ⊢ rkvInv (GF := GF) γr -∗ readAu γr.raft (fun _ => iprop(True)) := by
   iintro #Hinv
   unfold readAu
   imodintro
   iauintro
-  unfold atomic_acc kvInv kvInvBody
-  have Hdisj := kvN_raftN
+  unfold atomic_acc rkvInv rkvInvBody
+  have Hdisj := rkvN_raftN
   iinv Hinv with ⟨%L, %ods, %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods, Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
-  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑kvN from Std.LawfulSet.empty_subset)
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑raftN) \ ↑rkvN from Std.LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_nil, Std.Tele.app, ULift.down]
   iexists L
@@ -748,21 +748,21 @@ given a committed log `l` with its entries' data `ods`, in which `d` first occur
 position `m`, the ticket buys the result of the client's update at `d`'s key's value after
 the history before it and `d`, under two laters (the invariant it was stored in; the saved
 predicate naming it). -/
-theorem kv_collect (γr : KVNames) (d : List w8) (γp : GName × GName) (Ψ : List w8 → IProp GF)
+theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : List w8 → IProp GF)
     (l : List EntryM) (ods : List (Option (List w8))) (m : Nat) (E : CoPset)
-    (HE1 : ↑kvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑kvN) :
+    (HE1 : ↑rkvN ⊆ E) (HE2 : ↑raftN ⊆ E \ ↑rkvN) :
     ods[m]? = some (some d) → d ∉ firstOcc (ods.take m) →
-    ⊢ kvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ d ↪[γr.ops]□ γp -∗
+    ⊢ rkvInv (GF := GF) γr -∗ raftCommitInv γr.raft -∗ d ↪[γr.ops]□ γp -∗
       savedPredOwn γp.1 DFrac.discard Ψ -∗ token γp.2 -∗ isCommitted γr.raft l -∗
       ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ={E}=∗
       ▷ ▷ Ψ (kvFold (firstOcc (ods.take m) ++ [d]) (dkey d)) := by
   intro Hm Hfirst
   iintro #Hinv #Hcinv #Hop #Hsp Htok #Hl #Hds
-  unfold kvInv kvInvBody
+  unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%L, %ods', %M, %F, %S, %Mi, %O, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
   icases Hc with ⟨HrL, #Hods', Hv, HM, HF, HS, HMi, HO, %Hok, %Hodm⟩
-  have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑kvN := raftLogN_of HE2
+  have HE3 : (↑raftLogN : CoPset) ⊆ E \ ↑rkvN := raftLogN_of HE2
   imod kv_log_prefix γr L l _ HE3 $$ Hcinv HrL Hl with ⟨HrL, %Hpre⟩
   icases ghost_map_lookup $$ HO Hop with %HOd
   -- `d` is in the history, right after `firstOcc (ods.take m)`
@@ -894,9 +894,9 @@ theorem kvCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : KVCC 
 
 end confs
 
-/-! ## Raft's read states, at the register (raft v3.7, 2026-10-16, stage R6b)
+/-! ## Raft's read states, at the store (raft v3.7, 2026-10-16, stage R6b)
 
-The store's own view of a `Ready`'s read states (`rsOk`). What the register needed of
+The store's own view of a `Ready`'s read states (`rsOk`). What the store needed of
 `InvPb.lean`'s message predicates moved to raft's shared files on 2026-10-16 (stage R7a):
 `msgPtsC_persist_els`, `msgPtsC_store_Entries`, `msgPtsC_fields_acc`, `entsPts_elim`
 (`InvPbMsg.lean`), `csPts_of_struct_ro`, `ownCCV1_persistent`, `ownCCV1_persist`

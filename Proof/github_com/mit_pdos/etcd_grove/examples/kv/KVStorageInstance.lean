@@ -3,8 +3,8 @@ Lean-first (no Rocq counterpart).
 
 # `*kv.Storage` meets raft's `Storage` contract (2026-10-10; raft v3.7, 2026-10-16, stage R6b)
 
-A registered register storage (`kvStorRec s ms γs`) is a raft `Storage` under the
-register's storage model (`kvStorageModel`, `Defs.lean`): `isStorage (kvStorIface s)`,
+A registered store storage (`kvStorRec s ms γs`) is a raft `Storage` under the
+store's storage model (`kvStorageModel`, `Defs.lean`): `isStorage (kvStorIface s)`,
 the contract `RestartNode` takes (`kvStorage_isStorage`), and its `InitialState` is what
 `newRaft` reads of it (`kvStorage_initialState`). The methods raft calls are the
 embedded `MemoryStorage`'s (promoted: the field read, then `MemoryStorage`'s method),
@@ -25,11 +25,11 @@ frozen read-only (`csPts cs □ (kvConfState voters) false`: its `AutoLeave` is 
 Raft's own instance for a bare `*MemoryStorage` (`memStorageModel`, `memStorage_isStorage`,
 `Proof/go_etcd_io/raft/v3/MemstorageInstance.lean`, 2026-10-16, stage R7a: a registry from the
 storage's pointer to its names, the snapshot premise `prev.index ≠ 0 → ss.index ≠ 0` in
-`ownStorage`) does not serve the register: its `Storage` is its own struct (another interface
+`ownStorage`) does not serve the store: its `Storage` is its own struct (another interface
 value, the promoted methods behind a field read), and its registry is keyed by that struct (its
 `MemoryStorage` field holds the registration's exclusivity). (Its `Snapshot` override, which let
 it start with no snapshot under the clause before R8a, is no longer needed for that; the
-register's Go code is unchanged.) Everything here is register-specific; the method clauses are
+store's Go code is unchanged.) Everything here is store-specific; the method clauses are
 proved as raft's are (`is_Storage_MemoryStorage`), one `wp_apply` of `MemoryStorage`'s
 collection each.
 -/
@@ -276,7 +276,7 @@ theorem kvStorage_isStorage
 
 /-- `InitialState`, as `RestartNode` asks of its storage (`RestartNode.spec`'s premise, the shape
 of `newRaft`'s): a fresh empty hard state (`hsOpt`) and the voters' conf state, read-only for
-good, its `AutoLeave` cell unset (`al = false`: the register sets none; 2026-10-16, stage R6b,
+good, its `AutoLeave` cell unset (`al = false`: the store sets none; 2026-10-16, stage R6b,
 raft's specs admit either), the owner's state unchanged. -/
 theorem kvStorage_initialState
     (wp_InitialState : kv.Storage.InitialState.spec (GF := GF) (hG := hG))

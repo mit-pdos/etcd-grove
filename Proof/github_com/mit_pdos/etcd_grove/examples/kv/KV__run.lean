@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__run.lean`. Lean-fi
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): a `Ready`'s entries and committed entries
 are read-only entry pointers (`entsRO`), its messages owned pointers (`sendSpec`), its read
 states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its hard state `hsOpt`
-(unused: the register persists no hard state); a conf-change entry is decoded with
+(unused: the store persists no hard state); a conf-change entry is decoded with
 `proto.Unmarshal` into a fresh `pb.ConfChange`, applied by pointer (`ownCCV1_persist`:
 `node.ApplyConfChange` reads it on raft's goroutine).
 -/

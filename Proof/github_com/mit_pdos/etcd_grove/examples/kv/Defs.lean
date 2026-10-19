@@ -8,14 +8,14 @@ Lean-first (no Rocq counterpart).
 A cluster of replicas shares raft's ghost state `γr.raft`. The store keeps the client's half
 of raft's full committed log (`rLog γr.raft L`, `Protocol/GhostState.lean`) with its entries'
 data `ods`; the store's history is their client data, first occurrences (`firstOcc ods`),
-and the invariant keeps half of a ghost variable at the history (`kvInv`); the store's state
-is its fold (`kvFold`, `Base.lean`: every key's value). A client holds `kvVal γr m`, the other
+and the invariant keeps half of a ghost variable at the history (`rkvInv`); the store's state
+is its fold (`kvFold`, `Base.lean`: every key's value). A client holds `rkvVal γr m`, the other
 half, at a history whose fold is `m` (a ghost variable holds a countable value: the history,
-not the map). `Put`/`Get`/`Append` hand their atomic update over `kvVal` to `do`, which mints
+not the map). `Put`/`Get`/`Append` hand their atomic update over `rkvVal` to `do`, which mints
 the operation and keeps the update in the operation's slot (`opSlot`, with a later credit),
 and gives `Node.Propose` the persistent atomic update over raft's log that moves the store's
 log at every committed occurrence of the operation's datum (`kv_propAu`, `Lemmas.lean`): at
-the first, it opens `kvInv`, runs the client's update from the slot and moves the history --
+the first, it opens `rkvInv`, runs the client's update from the slot and moves the history --
 the linearization point; at a later one (a retry, a redelivered proposal) only the log moves.
 The result -- the key's value after the operation -- stays in the slot until the client
 collects it with its ticket (`kv_collect`). The standing update for raft's own entries is the
@@ -24,8 +24,8 @@ store's too (`kv_noopAu`, given at allocation).
 ## Fresh data
 
 `Node.Propose` wants a fresh token (`propFresh`) for an operation's first proposal. The
-register mints one per operation, keyed by the operation's `(replica, seq)`
-(`MintOk`): `kvInv` holds the authority of raft's fresh-token map (`reFresh`), each
+store mints one per operation, keyed by the operation's `(replica, seq)`
+(`MintOk`): `rkvInv` holds the authority of raft's fresh-token map (`reFresh`), each
 replica's last sequence number (`seq`, the replica's element under its lock), and the
 persistent record of each minted operation (`mint`): every token is of a minted
 operation, and every minted `(i, s)` has `s` at most replica `i`'s last sequence number.
@@ -70,7 +70,7 @@ what the getters of a `*pb.Entry` return), as raft's ghost state has them since 
 ## The storage
 
 `*kv.Storage` is a raft `Storage` (`KVStorageInstance.lean`): the instance of
-`StorageModel` for the register (`kvStorageModel`), given a registry (`KVStor`: a
+`StorageModel` for the store (`kvStorageModel`), given a registry (`KVStor`: a
 ghost map from a `Storage` struct to its `MemoryStorage` and that storage's ghost names,
 whose authority is in `kvStorInv`) so that a storage's tokens are of its own names.
 -/
@@ -147,7 +147,7 @@ theorem kvStorRec_agree (s ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
   icases ghostMapElem_agree $$ H1 H2 with %H
   ipureintro; exact memStorRec_inj _ _ _ _ H
 
-/-- The raft `Storage` interface value of the register storage `s`. -/
+/-- The raft `Storage` interface value of the store's storage `s`. -/
 def kvStorIface (s : Loc) : Storage :=
   interface.mkOk (go.GoType.PointerType rStorageTy) #s
 
@@ -173,7 +173,7 @@ def kvStorFloor (st : Storage) (x : w64) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
     memFloorTok ms γs x)
 
-/-- The store's storage model: every `Storage` is a registered register storage. -/
+/-- The store's storage model: every `Storage` is a registered store storage. -/
 instance kvStorageModel : StorageModel GF where
   ownStorage := kvOwnStorage
   appendTok := kvAppendTok
@@ -202,30 +202,30 @@ end stor
 /-! ## The store's ghost state -/
 
 /-- The ghost names of a store's cluster. -/
-structure KVNames where
+structure RKVNames where
   raft : RaftNames
-  /-- the store's history (`ghostVar`, halves: `kvInv`'s and the client's, `kvVal`) -/
+  /-- the store's history (`ghostVar`, halves: `rkvInv`'s and the client's, `rkvVal`) -/
   val : GName
-  /-- each replica's last sequence number (a ghost map, its authority in `kvInv`) -/
+  /-- each replica's last sequence number (a ghost map, its authority in `rkvInv`) -/
   seq : GName
   /-- the minted operations, `(replica, seq) ↦ data` (persistent elements) -/
   mint : GName
   /-- (2026-10-14, stage R) the operations' slots, `data ↦ (γq, γk)` (persistent elements,
-  authority in `kvInv`): each holds the client's atomic update until the datum's first
+  authority in `rkvInv`): each holds the client's atomic update until the datum's first
   committed occurrence, then its result or the client's ticket `γk` (`opSlot`) -/
   ops : GName
 
-def kvN : Namespace := nroot.@"kv"
+def rkvN : Namespace := nroot.@"rkv"
 
 /-- What `Put`/`Get`/`Append`'s atomic update may open: everything but raft's commit invariant
 and the store's. -/
-def kvMask : CoPset := (⊤ \ ↑raftN) \ ↑kvN
+def kvMask : CoPset := (⊤ \ ↑raftN) \ ↑rkvN
 
-theorem kvN_raftN : (↑kvN : CoPset) ⊆ ⊤ \ ↑raftN :=
-  mask_ndot_ne' nroot "kv" "raft_commit" (by decide)
+theorem rkvN_raftN : (↑rkvN : CoPset) ⊆ ⊤ \ ↑raftN :=
+  mask_ndot_ne' nroot "rkv" "raft_commit" (by decide)
 
-theorem raftN_regN : (↑raftN : CoPset) ⊆ ⊤ \ ↑kvN :=
-  mask_ndot_ne' nroot "raft_commit" "kv" (by decide)
+theorem raftN_regN : (↑raftN : CoPset) ⊆ ⊤ \ ↑rkvN :=
+  mask_ndot_ne' nroot "raft_commit" "rkv" (by decide)
 
 /-- The minting discipline (see the file header): the fresh-data tokens `M`, (2026-10-14,
 stage R) the fresh read-context tokens `F` and the operations' slots `O` are minted. -/
@@ -251,22 +251,22 @@ variable [KVStor GF]
 
 /-- The client's half of the store's state `m`: half of the history's ghost variable, at a
 history whose fold is `m`. -/
-def kvVal (γr : KVNames) (m : KVMap) : IProp GF :=
+def rkvVal (γr : RKVNames) (m : KVMap) : IProp GF :=
   iprop(∃ H : List (List w8), ghostVar γr.val (1 : Qp).half H ∗ ⌜kvFold H = m⌝)
 
 /-- An operation's atomic update over the store's state, the state moving by `f`, answering
 key `k`'s value after it (`Put`/`Get`/`Append` give `kvNext kind key val` and `key`; a slot
 keeps it as `kvApply · d` and `dkey d`). -/
-def opAu (γr : KVNames) (f : KVMap → KVMap) (k : List w8) (Φ : List w8 → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (x : KVMap), kvVal γr x }> @ kvMask, ∅
-    <{ kvVal γr (f x), COMM Φ (f x k) }>)
+def opAu (γr : RKVNames) (f : KVMap → KVMap) (k : List w8) (Φ : List w8 → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvMask, ∅
+    <{ rkvVal γr (f x), COMM Φ (f x k) }>)
 
 /-- An operation's slot (2026-10-14, stage R; until then raft's proposal slot did this), for the
 store's history `H`: the result predicate (tied to `γp.1`), and either the client's update
 with a later credit, while `d` is not in the history, or -- once `d` first occurred, after
 the history `H0` -- the update's result at the key's value after `H0 ++ [d]` or the client's
 ticket `γp.2`. -/
-def opSlot (γr : KVNames) (d : List w8) (γp : GName × GName) (H : List (List w8)) : IProp GF :=
+def opSlot (γr : RKVNames) (d : List w8) (γp : GName × GName) (H : List (List w8)) : IProp GF :=
   iprop(∃ Φ : List w8 → IProp GF, savedPredOwn γp.1 DFrac.discard Φ ∗
     ( (⌜d ∉ H⌝ ∗ £ 1 ∗ opAu γr (fun x => kvApply x d) (dkey d) Φ)
     ∨ (∃ H0, ⌜H0 ++ [d] <+: H ∧ d ∉ H0⌝ ∗ (Φ (kvFold (H0 ++ [d]) (dkey d)) ∨ token γp.2)) ))
@@ -276,7 +276,7 @@ half, `rLog`, 2026-10-14, stage R) with its entries' data `ods` -- the history i
 data, first occurrences (`firstOcc ods`) --, half of the history's ghost variable, the
 authorities of raft's fresh tokens (data and read contexts), the sequence numbers, the mint and
 the slots' registry. -/
-def kvCore (γr : KVNames) (L : List EntryM) (ods : List (Option (List w8)))
+def kvCore (γr : RKVNames) (L : List EntryM) (ods : List (Option (List w8)))
     (M : GMap (List w8) Unit) (F : GMap (List w8) Unit) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) : IProp GF :=
   iprop(rLog γr.raft L ∗ ([∗list] e;o ∈ L;ods, entDataIs γr.raft e o) ∗
@@ -287,51 +287,51 @@ def kvCore (γr : KVNames) (L : List EntryM) (ods : List (Option (List w8)))
     -- every datum in the log was minted (only the store's updates move `rLog`)
     ⌜∀ d, some d ∈ ods → M !! d = some ()⌝)
 
-instance kvCore_timeless (γr : KVNames) (L : List EntryM) (ods : List (Option (List w8)))
+instance kvCore_timeless (γr : RKVNames) (L : List EntryM) (ods : List (Option (List w8)))
     (M : GMap (List w8) Unit) (F : GMap (List w8) Unit) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) :
     Timeless (kvCore (GF := GF) γr L ods M F S Mi O) := by
   unfold kvCore; infer_instance
 
-def kvInvBody (γr : KVNames) : IProp GF :=
+def rkvInvBody (γr : RKVNames) : IProp GF :=
   iprop(∃ (L : List EntryM) (ods : List (Option (List w8))) (M : GMap (List w8) Unit)
       (F : GMap (List w8) Unit) (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8))
       (O : GMap (List w8) (GName × GName)),
     kvCore γr L ods M F S Mi O ∗ [∗map] d ↦ γp ∈ O, opSlot γr d γp (firstOcc ods))
 
 /-- See the file header. -/
-def kvInv (γr : KVNames) : IProp GF := inv kvN (kvInvBody γr)
+def rkvInv (γr : RKVNames) : IProp GF := inv rkvN (rkvInvBody γr)
 
-instance kvInv_persistent (γr : KVNames) : Persistent (kvInv (GF := GF) γr) := by
-  unfold kvInv; infer_instance
+instance rkvInv_persistent (γr : RKVNames) : Persistent (rkvInv (GF := GF) γr) := by
+  unfold rkvInv; infer_instance
 
 /-- What a waiter learns with the value `v`: the operation's datum `d` first occurs at
 `m` in a committed log, and `v` is its key's value after it. -/
-def waitP (γr : KVNames) (d : List w8) (v : List w8) : IProp GF :=
+def waitP (γr : RKVNames) (d : List w8) (v : List w8) : IProp GF :=
   iprop(∃ (l : List EntryM) (ods : List (Option (List w8))) (m : Nat),
     isCommitted γr.raft l ∗ ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ∗
     ⌜ods[m]? = some (some d) ∧ d ∉ firstOcc (ods.take m) ∧
       v = kvFold (firstOcc (ods.take m) ++ [d]) (dkey d)⌝)
 
-instance waitP_persistent (γr : KVNames) (d v : List w8) :
+instance waitP_persistent (γr : RKVNames) (d v : List w8) :
     Persistent (waitP (GF := GF) γr d v) := by
   unfold waitP; infer_instance
 
 /-- A lower bound on the store's history (see the file header; persistent). -/
-def kvLb (γr : KVNames) (L : List (List w8)) : IProp GF :=
+def kvLb (γr : RKVNames) (L : List (List w8)) : IProp GF :=
   iprop(∃ (l : List EntryM) (ods : List (Option (List w8))),
     isCommitted γr.raft l ∗ ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ∗ ⌜L = firstOcc ods⌝)
 
-instance kvLb_persistent (γr : KVNames) (L : List (List w8)) :
+instance kvLb_persistent (γr : RKVNames) (L : List (List w8)) :
     Persistent (kvLb (GF := GF) γr L) := by
   unfold kvLb; infer_instance
 
 /-- What a read of key `k` waiting with the lower bound `L0` learns with the value `v`: `v` is
 `k`'s value after a history extending `L0`. -/
-def readP (γr : KVNames) (L0 : List (List w8)) (k v : List w8) : IProp GF :=
+def readP (γr : RKVNames) (L0 : List (List w8)) (k v : List w8) : IProp GF :=
   iprop(∃ L, kvLb γr L ∗ ⌜L0 <+: L ∧ v = kvFold L k⌝)
 
-instance readP_persistent (γr : KVNames) (L0 : List (List w8)) (k v : List w8) :
+instance readP_persistent (γr : RKVNames) (L0 : List (List w8)) (k v : List w8) :
     Persistent (readP (GF := GF) γr L0 k v) := by
   unfold readP; infer_instance
 
@@ -340,34 +340,34 @@ index `i` of `c` (`readOk`), and the value `v` of `c`'s key after a committed lo
 `i` long.
 The reader, which knows the log its deposit was made at (`readReq`, from `Node.ReadIndex`),
 turns it into `readP`. -/
-def readAns (γr : KVNames) (c : List w8) (v : List w8) : IProp GF :=
+def readAns (γr : RKVNames) (c : List w8) (v : List w8) : IProp GF :=
   iprop(∃ (i : w64) (ap : List EntryM) (ods : List (Option (List w8))),
     readOk γr.raft c i ∗ isCommitted γr.raft ap ∗
     ([∗list] e;o ∈ ap;ods, entDataIs γr.raft e o) ∗
     ⌜uint.Z i ≤ (ap.length : Int) ∧ v = kvFold (firstOcc ods) (dkey c)⌝)
 
-instance readAns_persistent (γr : KVNames) (c v : List w8) :
+instance readAns_persistent (γr : RKVNames) (c v : List w8) :
     Persistent (readAns (GF := GF) γr c v) := by
   unfold readAns; infer_instance
 
 /-- A read's entry in the lock's invariant: the context `c` minted at `(id, s)`, and the
 producer of its handoff channel (2026-10-14, stage R: the read's record comes with its
 deposit, inside `Node.ReadIndex`, after the entry is made, so the answer carries `readAns`). -/
-def readWaiterOk (γr : KVNames) (id s : w64) (ch : Loc) : IProp GF :=
+def readWaiterOk (γr : RKVNames) (id s : w64) (ch : Loc) : IProp GF :=
   iprop(∃ (c : List w8) (γh : HandoffNames),
     (id, s) ↪[γr.mint]□ c ∗
     isHandoff γh ch (readAns γr c) iprop(True) iprop(False) ∗
     handoffProducer γh false)
 
 /-- A replica's waiting reads (the lock's), each of a sequence number at most `ns`. -/
-def readsOwn (γr : KVNames) (id : w64) (r : Loc) (ns : w64) : IProp GF :=
+def readsOwn (γr : RKVNames) (id : w64) (r : Loc) (ns : w64) : IProp GF :=
   iprop(∃ (mR : Loc) (Rd : GMap w64 Loc),
     "HmR" ∷ r.[RKV, go!"reads"] ↦ mR ∗
     "HRd" ∷ mR ↦$ Rd ∗
     "%HRdom" ∷ ⌜∀ s ch, Rd !! s = some ch → uint.Z s ≤ uint.Z ns⌝ ∗
     "Hreads" ∷ [∗map] s ↦ ch ∈ Rd, readWaiterOk γr id s ch)
 
-theorem readsOwn_mono (γr : KVNames) (id : w64) (r : Loc) (ns ns' : w64)
+theorem readsOwn_mono (γr : RKVNames) (id : w64) (r : Loc) (ns ns' : w64)
     (h : uint.Z ns ≤ uint.Z ns') :
     readsOwn (GF := GF) γr id r ns ⊢ readsOwn γr id r ns' := by
   iintro H
@@ -382,12 +382,12 @@ theorem readsOwn_mono (γr : KVNames) (id : w64) (r : Loc) (ns ns' : w64)
 
 /-- A waiter's entry in the lock's invariant: the operation minted at `(id, s)`, and the
 producer of its handoff channel. -/
-def waiterOk (γr : KVNames) (id s : w64) (ch : Loc) : IProp GF :=
+def waiterOk (γr : RKVNames) (id s : w64) (ch : Loc) : IProp GF :=
   iprop(∃ (d : List w8) (γh : HandoffNames), (id, s) ↪[γr.mint]□ d ∗
     isHandoff γh ch (waitP γr d) iprop(True) iprop(False) ∗ handoffProducer γh false)
 
 /-- A replica's lock invariant (see the file header). -/
-def lockInv (γr : KVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
+def lockInv (γr : RKVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
   iprop(∃ (ns : w64) (mW : Loc) (W : GMap w64 Loc),
     "Hns" ∷ r.[RKV, go!"nextSeq"] ↦ ns ∗
     "HmW" ∷ r.[RKV, go!"waiters"] ↦ mW ∗
@@ -398,7 +398,7 @@ def lockInv (γr : KVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
     "Hrds" ∷ readsOwn γr id r ns)
 
 /-- Replica `id` at `r`, on node `n`, with the storage `st` (persistent). -/
-def isReplica (γr : KVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=
+def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
     "#Hid" ∷ r.[RKV, go!"id"] ↦□ id ∗
@@ -409,19 +409,19 @@ def isReplica (γr : KVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = kvStorIface st⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
-    "#Hinv" ∷ kvInv γr)
+    "#Hinv" ∷ rkvInv γr)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
-instance isReplica_persistent (γr : KVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) :
+instance isReplica_persistent (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) :
     Persistent (isReplica (GF := GF) γr γp r id n st) := by
   unfold isReplica; infer_instance
 
 /-- A replica (persistent; what `Put`, `Get`, `Append` and `Read` take). -/
-def isKV (γr : KVNames) (γp : RepNames) (r : Loc) : IProp GF :=
+def isKV (γr : RKVNames) (γp : RepNames) (r : Loc) : IProp GF :=
   iprop(∃ (id : w64) (n st : Loc), isReplica γr γp r id n st)
 
-instance isKV_persistent (γr : KVNames) (γp : RepNames) (r : Loc) :
+instance isKV_persistent (γr : RKVNames) (γp : RepNames) (r : Loc) :
     Persistent (isKV (GF := GF) γr γp r) := by
   unfold isKV; infer_instance
 
@@ -459,7 +459,7 @@ instance rsOk_persistent (γ : RaftNames) (v : ReadState) : Persistent (rsOk (GF
 /-- The applier's state (the `run` goroutine's): the store's map, every key's value (a key it
 lacks has the value `[]`, as for Go's lookup), and the applied-encodings table, at the
 committed prefix `ap` it applied. -/
-def runOwn (γr : KVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
+def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
   iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (mA : Loc) (A : GMap (List w8) Bool)
       (ods : List (Option (List w8))),
     "HmK" ∷ r.[RKV, go!"kv"] ↦ mK ∗

@@ -31,7 +31,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.apply.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
     (ap : List EntryM) (e : Loc) (em : EntryM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗ runOwn γr r ap ∗ entRO e em ∗

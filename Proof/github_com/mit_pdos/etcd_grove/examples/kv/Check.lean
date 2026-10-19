@@ -5,7 +5,7 @@ The proof of `Check`: `Run`'s premises, met by the model (`Model`), `Gen` (`genS
 closure `apply`. `Run`'s `applySpec` hands `apply` a one-shot update (Perennial's atomic-fupd
 style: it cannot be closed without committing), but the store's operations take an Iris
 atomic update (`AU`), which they may open and abort. So the library's state `libState` is not
-the store's client half `kvVal γr` itself but a copy `kvVal γd` (a second ghost variable
+the store's client half `rkvVal γr` itself but a copy `rkvVal γd` (a second ghost variable
 holding the same history), and the invariant `checkN` holds the client half with the other
 half of the copy. The store's `AU` (`kvAu_of_run`) opens that invariant (abort closes it
 back); its commit runs `Run`'s update on the copy, at the mask `⊤ \ checkMask` (`Run`'s `Eapp`
@@ -66,7 +66,7 @@ theorem checkN_sub : (↑checkN : CoPset) ⊆ kvMask := by
     rw [LawfulSet.mem_diff] at this
     exact this.2 h
   · intro h
-    have := mask_ndot_ne' nroot "kvcheck" "kv" (by decide) _ hp
+    have := mask_ndot_ne' nroot "kvcheck" "rkv" (by decide) _ hp
     rw [LawfulSet.mem_diff] at this
     exact this.2 h
 
@@ -80,7 +80,7 @@ theorem lintestN_checkMask : (↑lintest.lintestN : CoPset) ⊆ ⊤ \ checkMask 
     rw [LawfulSet.mem_diff] at this
     exact this.2 h'
   · intro h'
-    have := mask_ndot_ne' nroot "lintest" "kv" (by decide) _ hp
+    have := mask_ndot_ne' nroot "lintest" "rkv" (by decide) _ hp
     rw [LawfulSet.mem_diff] at this
     exact this.2 h'
   · intro h'
@@ -88,22 +88,22 @@ theorem lintestN_checkMask : (↑lintest.lintestN : CoPset) ⊆ ⊤ \ checkMask 
     rw [LawfulSet.mem_diff] at this
     exact this.2 h'
 
-instance kvVal_timeless (γr : KVNames) (x : KVMap) : Timeless (kvVal (GF := GF) γr x) := by
-  unfold kvVal; infer_instance
+instance rkvVal_timeless (γr : RKVNames) (x : KVMap) : Timeless (rkvVal (GF := GF) γr x) := by
+  unfold rkvVal; infer_instance
 
 /-- The store's atomic update, for the input `xin` (whose operation takes the state `x` to
 `g x`, answering `out x`), from `Run`'s one-shot update: opened, it lends the store's client half
 from the invariant `checkN` (so it can be closed back); committed, it runs `Run`'s update, moving
 the driver's copy along. -/
-theorem kvAu_of_run (γr γd : KVNames) (xin : KVInput) (g : KVMap → KVMap)
+theorem kvAu_of_run (γr γd : RKVNames) (xin : KVInput) (g : KVMap → KVMap)
     (out : KVMap → GoString) (Ψ : GoInterface → IProp GF)
     (Hg : ∀ s, inStep xin s = g s) (Hout : ∀ s, inOut xin s = out s) :
-    ⊢ inv checkN iprop(∃ x, kvVal (GF := GF) γr x ∗ kvVal γd x) -∗
-      (|={⊤ \ checkMask, ∅}=> ∃ s, kvVal γd s ∗
-        ∀ s' o, kvVal γd s' ∗ ⌜kvS (GF := GF).M.step s (boxIn xin, o) = some s'⌝ ={∅, ⊤ \ checkMask}=∗
+    ⊢ inv checkN iprop(∃ x, rkvVal (GF := GF) γr x ∗ rkvVal γd x) -∗
+      (|={⊤ \ checkMask, ∅}=> ∃ s, rkvVal γd s ∗
+        ∀ s' o, rkvVal γd s' ∗ ⌜kvS (GF := GF).M.step s (boxIn xin, o) = some s'⌝ ={∅, ⊤ \ checkMask}=∗
           Ψ o) -∗
-      AU <{ ∃∃ (x : KVMap), kvVal γr x }> @ kvMask, ∅
-        <{ kvVal γr (g x), COMM Ψ (boxS (out x)) }> := by
+      AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvMask, ∅
+        <{ rkvVal γr (g x), COMM Ψ (boxS (out x)) }> := by
   iintro #Hinv HAU
   iauintro
   unfold atomic_acc
@@ -129,7 +129,7 @@ theorem kvAu_of_run (γr γd : KVNames) (xin : KVInput) (g : KVMap → KVMap)
     imod Hclose2 with -
     imod fupd_mask_subseteq checkMask_sub with Hclose3
     imod HAU with ⟨%s, Hds, Hcommit⟩
-    unfold kvVal
+    unfold rkvVal
     icases Hd with ⟨%Hx, Hd, %Hdx⟩
     icases Hds with ⟨%Hs, Hds, %Hss⟩
     icombine Hd Hds gives % ⟨_, Heq⟩
@@ -185,20 +185,20 @@ theorem Check.wp_proof
   wp_start as ⟨#Hcc, #Hks, #Hrs, Hval, #Hclk, Ht0⟩
   wp_auto
   ipersist kvs
-  iunfold kvVal at Hval
+  iunfold rkvVal at Hval
   icases Hval with ⟨%Hs0, Hv, %HH0⟩
   imod ghostVar_alloc (GF := GF) Hs0 with ⟨%γc, Hc⟩
   icases (ghostVar_split_half γc 1 Hs0).1 $$ Hc with ⟨Hc1, Hc2⟩
-  let γd : KVNames := { γr with val := γc }
-  imod inv_alloc checkN ⊤ iprop(∃ x, kvVal γr x ∗ kvVal γd x) $$ [Hv Hc1] with #Hinv
+  let γd : RKVNames := { γr with val := γc }
+  imod inv_alloc checkN ⊤ iprop(∃ x, rkvVal γr x ∗ rkvVal γd x) $$ [Hv Hc1] with #Hinv
   · inext
     iexists kvEmpty
-    unfold kvVal
+    unfold rkvVal
     isplitl [Hv]
     · iexists Hs0; iframe; ipureintro; exact HH0
     · iexists Hs0; iframe; ipureintro; exact HH0
   wp_apply wp_Model as %m #Hm
-  wp_apply wp_Run KVMap kvS m _ _ clock kvInOk (kvVal γd) clockVal t0 checkMask Eclk clients ops
+  wp_apply wp_Run KVMap kvS m _ _ clock kvInOk (rkvVal γd) clockVal t0 checkMask Eclk clients ops
     (W64 0) lintestN_checkMask HN H0 H31 Hops Hmul $$ [Hc2 Ht0]
   · isplitr
     · iexact Hcc
@@ -268,7 +268,7 @@ theorem Check.wp_proof
     isplitr
     · iexact Hclk
     iframe
-    unfold kvVal
+    unfold rkvVal
     iexists Hs0
     iframe
     ipureintro

@@ -4,10 +4,10 @@
 `Gen`'s random traffic, the given clock, and the store as the library: `apply` runs an input's
 operation (`Get`, `Put`, or else `Append`) on the replica `kvs[Replica % len(kvs)]`. For
 replicas of one store (`isKV γr`, the slice read-only and not empty) whose state is still the
-empty store (the client's half, `kvVal γr kvEmpty`: no operation has run yet), for any clock
+empty store (the client's half, `rkvVal γr kvEmpty`: no operation has run yet), for any clock
 with `clockSpec` (whose invariants are not `lintestN`), under `Run`'s bounds on `clients` and
 `ops`, porcupine answers `Ok` (the timeout is 0): the store's operations are logically atomic
-against the model (`applySpec`, at `kvAppMask`).
+against the model (`applySpec`; `Check.lean` says how).
 -/
 module
 
@@ -35,14 +35,14 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ (γr : KVNames) (ksl : GoSlice) (rs : List Loc) (clockVal : w64 → IProp GF) (t0 : w64)
+  ∀ (γr : RKVNames) (ksl : GoSlice) (rs : List Loc) (clockVal : w64 → IProp GF) (t0 : w64)
     (Eclk : CoPset) (clock : GoFunc) (clients ops : w64),
   (↑lintest.lintestN : CoPset) ⊆ ⊤ \ Eclk →
   rs ≠ [] →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ context.isClosedchanInit ∗
-      ksl ↦*□ rs ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ kvVal γr kvEmpty ∗
+      ksl ↦*□ rs ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ rkvVal γr kvEmpty ∗
       lintest.clockSpec clockVal Eclk clock ∗ clockVal t0 }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.Check)) (Val #ksl)) (Val #clock)) (Val #clients))
       (Val #ops))

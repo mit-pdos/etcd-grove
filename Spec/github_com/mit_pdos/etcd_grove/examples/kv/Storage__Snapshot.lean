@@ -9,7 +9,7 @@ raft v3.7 (2026-10-16, stage R6b): the snapshot is a pointer, the fresh clone
 the nil-safe getters (`snap.GetMetadata().GetIndex() == 0`). Stated as `isStorage`'s `HSnapshot`
 clause (`InvStorage.lean`) asks of the method, on the storage's owner's view
 (`ownMemoryStorage`), which `kvStorage_isStorage` (`KVStorageInstance.lean`) turns into the
-register's `ownStorage`.
+store's `ownStorage`.
 -/
 module
 

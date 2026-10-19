@@ -5,10 +5,6 @@ callees' results. All of them are Lean-first, listed with their callees in
 hand.
 
 `#print axioms` on a result is its trust base.
-
-Generated with `--skip-unproved`: not linked yet (no proof file, or reaching such a function):
-`kv_Check`, `kv_Gen`, `kv_Main`, `kv_Model`, `kv_StartCluster`, `kv_copyMap`, `kv_hashMap`,
-`kv_hashString`, `kv_within`.
 -/
 module
 
@@ -28,15 +24,24 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.decode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.fits
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Gen
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.New
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.StartCluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.copyMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.deliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.hashMap
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.hashString
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Debugf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Errorf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Infof
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Warningf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.tick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.transfers__take
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.within
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.raft.v3.Link
 
@@ -133,6 +138,34 @@ theorem kv.Storage.wp_Snapshot [KVStor GF] :
     kv.Storage.Snapshot.spec (GF := GF) (hG := hG) :=
   kv.Storage.Snapshot.wp_proof MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
+theorem kv.wp_copyMap :
+    kv.copyMap.spec (GF := GF) (hG := hG) :=
+  kv.copyMap.wp_proof
+
+theorem kv.wp_within :
+    kv.within.spec (GF := GF) (hG := hG) :=
+  kv.within.wp_proof
+
+theorem kv.wp_hashString :
+    kv.hashString.spec (GF := GF) (hG := hG) :=
+  kv.hashString.wp_proof
+
+theorem kv.wp_hashMap :
+    kv.hashMap.spec (GF := GF) (hG := hG) :=
+  kv.hashMap.wp_proof kv.wp_hashString
+
+theorem kv.wp_Model :
+    kv.Model.spec (GF := GF) (hG := hG) :=
+  kv.Model.wp_proof kv.wp_copyMap kv.wp_within kv.wp_hashMap
+
+theorem kv.wp_Gen :
+    kv.Gen.spec (GF := GF) (hG := hG) :=
+  kv.Gen.wp_proof
+
+theorem kv.wp_Check [KVStor GF] :
+    kv.Check.spec (GF := GF) (hG := hG) :=
+  kv.Check.wp_proof lintest.wp_Run kv.wp_Model kv.wp_Gen kv.KV.wp_Get kv.KV.wp_Put kv.KV.wp_Append
+
 theorem kv.wp_New [KVStor GF] :
     kv.New.spec (GF := GF) (hG := hG) :=
   kv.New.wp_proof kv.KV.wp_run
@@ -148,6 +181,10 @@ theorem kv.transfers.wp_take [StorageModel GF] :
 theorem kv.wp_deliver [StorageModel GF] :
     kv.deliver.spec (GF := GF) (hG := hG) :=
   kv.deliver.wp_proof kv.wp_deliverable kv.transfers.wp_take node.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetTo
+
+theorem kv.wp_tick [StorageModel GF] :
+    kv.tick.spec (GF := GF) (hG := hG) :=
+  kv.tick.wp_proof node.wp_Tick
 
 theorem kv.quietLogger.wp_Debugf :
     kv.quietLogger.Debugf.spec (GF := GF) (hG := hG) :=
@@ -165,9 +202,13 @@ theorem kv.quietLogger.wp_Warningf :
     kv.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   kv.quietLogger.Warningf.wp_proof
 
-theorem kv.wp_tick [StorageModel GF] :
-    kv.tick.spec (GF := GF) (hG := hG) :=
-  kv.tick.wp_proof node.wp_Tick
+theorem kv.wp_StartCluster [KVStor GF] :
+    kv.StartCluster.spec (GF := GF) (hG := hG) :=
+  kv.StartCluster.wp_proof kv.wp_NewStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_New kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode
+
+theorem kv.wp_Main :
+    kv.Main.spec (GF := GF) (hG := hG) :=
+  kv.Main.wp_proof kv.wp_StartCluster kv.wp_Check lintest.wp_CounterClock
 
 end links_hasLC
 

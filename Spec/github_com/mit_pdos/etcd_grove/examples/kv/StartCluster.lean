@@ -7,7 +7,7 @@ change is `RemoveMember(3)`'s, `KVCC`), with its storage, the transport between 
 from nothing but the storage registry (`kvStorInv`, for the storages): raft's ghost state, the
 term budget and its tick credits, the store's invariant. It returns the replicas (a fresh
 slice of three, of one store, `isKV γr`) and the client's half of the store's state, the empty
-store (`kvVal γr kvEmpty`).
+store (`rkvVal γr kvEmpty`).
 -/
 module
 
@@ -40,8 +40,8 @@ abbrev StartCluster.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ kvStorInv (GF := GF) ∗
       vsl ↦*□ [W64 1, W64 2, W64 3] }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.StartCluster)) (Val #vsl))
-  {{ (ksl : GoSlice), RET #ksl; ∃ (γr : KVNames) (rs : List Loc), ksl ↦* rs ∗
-      ⌜rs.length = 3⌝ ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ kvVal γr kvEmpty }}
+  {{ (ksl : GoSlice), RET #ksl; ∃ (γr : RKVNames) (rs : List Loc), ksl ↦* rs ∗
+      ⌜rs.length = 3⌝ ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ rkvVal γr kvEmpty }}
 
 end spec
 

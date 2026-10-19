@@ -4,9 +4,9 @@
 to propose removing replica `id` from the cluster's voters (`Node.ProposeConfChange` of
 `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID: id}`, `rmCC id`). The change must be one the
 cluster admits (`CCAllowed`: raft's `reCCOk`, which the cluster fixes at allocation; a cluster
-of the register applies its conf changes with a decoder of the entry alone, `KVCC`). Nothing is
+of the store applies its conf changes with a decoder of the entry alone, `KVCC`). Nothing is
 promised of the outcome: raft drops a change proposed while another one is not applied, and the
-register's operations are specified whatever the configuration.
+store's operations are specified whatever the configuration.
 -/
 module
 
@@ -32,7 +32,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.RemoveMember.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (id : w64),
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64),
   CCAllowed γr.raft (.v1 (rmCC id)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isKV γr γp r }}

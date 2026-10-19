@@ -5,7 +5,7 @@ Rocq counterpart).
 The cluster bring-up of the register's `Main` (until 2026-10-19), at any storage registry
 (`[KVStor GF]`): raft's ghost state for the voters `1, 2, 3` (in the dynamic mode of the
 cluster's one configuration change, `RemoveMember(3)`: `opR`, `c0R`, `c1R`, `ccOkR`) with the
-store's invariant (`kvInv_alloc`, which gives the client's half at the empty store), the term
+store's invariant (`rkvInv_alloc`, which gives the client's half at the empty store), the term
 budget, then a first loop over the voters (`NewStorage`, `RestartNode` into `peers` and
 `storages`), the transfer budget and the `send` closure (`deliver`), and a second loop that
 starts each replica (`New`), appends it to `kvs` and forks its `tick`.
@@ -268,7 +268,7 @@ variable [KVStor GF]
 /-- What `StartCluster` holds of a replica between starting its node and starting its replica: the
 node's driver token (with the node, `isNode`, in it), the storage's record and the replica's
 sequence-number token. -/
-def drvRes (γr : KVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (st : Loc) :
+def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (st : Loc) :
     IProp GF :=
   iprop(∃ (γn : NodeNames) (n : Loc),
     ⌜γn.raft = γr.raft ∧ γn.bud = bud ∧ γn.stor = kvStorIface st ∧
@@ -307,14 +307,14 @@ theorem StartCluster.wp_proof
   -- allocated from the client's share once raft's names exist: the store builds the standing
   -- update for raft's own entries (`kv_noopAu`)
   imod raft_dyn_alloc (GF := GF) ⊤ (ccDecOf opR) c0R c0R_ok (GMap.listToSet clusterIds) ccOkR
-    (fun γ => iprop(∃ γr : KVNames, ⌜γr.raft = γ⌝ ∗ kvInv γr ∗ kvVal γr kvEmpty ∗
+    (fun γ => iprop(∃ γr : RKVNames, ⌜γr.raft = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
       ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s)))
     (by rw [GMap.elem_of_list_to_set]; decide) $$ []
     with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩, Hghosts, #Hc0,
       -, #HrdI⟩
   · unfold allocClient
     iintro %γ0 %_ #_ HcL Hfresh HrdF
-    imod kvInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
+    imod rkvInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
       with ⟨%γr0, %Hγr0, #Hreg0, Hval0, Hseqs0⟩
     ihave #Hnoop := kv_noopAu γr0 $$ Hreg0
     subst Hγr0

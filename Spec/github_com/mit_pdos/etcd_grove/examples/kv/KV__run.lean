@@ -30,7 +30,7 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.run.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc)
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc)
     (op : CCOp) (c0 c1 : CCState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isReplica γr γp r id n st ∗
       -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are

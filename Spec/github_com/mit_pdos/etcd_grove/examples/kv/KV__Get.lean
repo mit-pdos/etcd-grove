@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*KV).Get(key)` (kv.go), logically atomic:
-`<<∀ m, kvVal γr m>> Get key <<kvVal γr m, RET m key>>`.
+`<<∀ m, rkvVal γr m>> Get key <<rkvVal γr m, RET m key>>`.
 -/
 module
 
@@ -28,10 +28,10 @@ variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.Get.spec : Prop :=
-  ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (key : List w8) (Φ : List w8 → IProp GF),
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (key : List w8) (Φ : List w8 → IProp GF),
   (key.length : Int) < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isKV γr γp r ∗
-      AU <{ ∃∃ (x : KVMap), kvVal γr x }> @ kvMask, ∅ <{ kvVal γr x, COMM Φ (x key) }> }}
+      AU <{ ∃∃ (x : KVMap), rkvVal γr x }> @ kvMask, ∅ <{ rkvVal γr x, COMM Φ (x key) }> }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"Get")) (Val #key))
   {{ (v : List w8), RET #v; Φ v }}
 

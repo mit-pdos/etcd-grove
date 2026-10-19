@@ -8,7 +8,7 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
 * `kvStorInv_alloc`: the storage registry's invariant, from the authority of an empty
   ghost map at the registry's name (allocated first, `ghost_map_alloc_empty`, and made the
   `KVStor` instance).
-* `kvInv_alloc`: the store's invariant over raft's full committed log, from what raft's
+* `rkvInv_alloc`: the store's invariant over raft's full committed log, from what raft's
   allocation (`ownRaftGhost_alloc`, `Protocol/Facts.lean`) hands the client -- its half of
   the empty log, the authority of the fresh-data tokens and (2026-10-14, stage R) that of
   the fresh read-context tokens -- with the client's half
@@ -58,10 +58,10 @@ then the client log), at the empty log: from the client's share of raft's alloca
 of the empty log, the authorities of the fresh-data and fresh read-context tokens), the
 invariant, the client's half of the value and the sequence-number tokens of `S0` (`New` takes
 `id ↪[γr.seq] 0`). -/
-theorem kvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
+theorem rkvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
     ⊢ rLog (GF := GF) γ [] -∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
       ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
-      ∃ γr : KVNames, ⌜γr.raft = γ⌝ ∗ kvInv γr ∗ kvVal γr kvEmpty ∗
+      ∃ γr : RKVNames, ⌜γr.raft = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
         [∗map] id ↦ s ∈ S0, id ↪[γr.seq] s := by
   iintro Hcl HM HF
   imod ghostVar_alloc (GF := GF) ([] : List (List w8)) with ⟨%γv, Hv⟩
@@ -69,10 +69,10 @@ theorem kvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
   imod ghost_map_alloc (GF := GF) S0 with ⟨%γs, HS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γm, HMi⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γo, HO⟩
-  imod inv_alloc kvN E (kvInvBody (GF := GF) ⟨γ, γv, γs, γm, γo⟩)
+  imod inv_alloc rkvN E (rkvInvBody (GF := GF) ⟨γ, γv, γs, γm, γo⟩)
     $$ [Hcl Hv1 HM HF HS HMi HO] with #Hinv
   · inext
-    unfold kvInvBody
+    unfold rkvInvBody
     iexists [], [], ∅, ∅, _, ∅, ∅
     isplitl
     · unfold kvCore
@@ -94,7 +94,7 @@ theorem kvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
   iexists ⟨γ, γv, γs, γm, γo⟩
   isplitr
   · ipureintro; rfl
-  unfold kvInv kvVal
+  unfold rkvInv rkvVal
   iframe Hinv Hels
   iexists []
   iframe Hv2

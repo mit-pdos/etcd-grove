@@ -27,8 +27,9 @@ state (a `Get`).
 ## The driver's side
 
 `kvInOk i` (the driver's `inOk`): `i` is a boxed `Input` with a key and a value shorter than
-`2^61`, which `Gen` returns (one byte each) and `apply` asserts. The library's state is the client's half of the store (`kvVal γr`, `Defs.lean`), and
-its mask is `kvMask` less the driver's invariant (`kvAppMask`).
+`2^61`, which `Gen` returns (one byte each) and `apply` asserts. The library's state and mask
+are `Check`'s proof's (`Check.lean`): a copy of the store's state, kept in step with the client's
+half of the store (`rkvVal γr`, `Defs.lean`) by an invariant.
 -/
 module
 
@@ -191,10 +192,6 @@ def kvS : ModelSpec GF KVMap where
 `int`). -/
 abbrev kvInOk (i : GoInterface) : IProp GF :=
   iprop(⌜∃ x, i = boxIn x ∧ (x.Key'.length : Int) < 2 ^ 61 ∧ (x.Val'.length : Int) < 2 ^ 61⌝)
-
-/-- The mask of the store's operations as the driver runs them: what their atomic updates may
-open (`kvMask`) but the driver's invariant. -/
-def kvAppMask : CoPset := kvMask \ ↑lintest.lintestN
 
 end defs
 
