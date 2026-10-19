@@ -2672,7 +2672,7 @@ theorem ownRaftPhysC_pr_upd (r : Loc) (id : w64) (s : NState) (to : w64) (pr : L
       ⌜s.prvals !! to = some p⌝ -∗
       ⌜s.role = .leader → PrOkN s.gh.ns s.logst p⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗
       ownProgress pr p ∗
-      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
+      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner ∧ p'.witness = p.witness⌝ -∗
          ⌜s.role = .leader → PrOkN s.gh.ns s.logst p'⌝ -∗
          ownRaftPhysCV c V r id { s with prvals := <[to := p']> s.prvals }) := by
   iintro Hphys %Hlk %Hv

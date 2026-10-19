@@ -192,8 +192,8 @@ theorem tracker.ProgressTracker.Visit.wp_proof
       List.mem_reverse]
     exact Hkset y
   -- re-seal the tracker: the closure is lent all of it
-  ihave Hown := ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-    $$ Hvotes Hprs Hprogs Hcfg
+  ihave Hown := ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
   -- The tracker *value* is part of the invariant: the closure may hand back a
   -- different one (see `visitClosure`, `InvTracker.lean`), and the loop only ever
   -- needs `domSet prs = cfg`, which holds at any of them. The range variable `id` is

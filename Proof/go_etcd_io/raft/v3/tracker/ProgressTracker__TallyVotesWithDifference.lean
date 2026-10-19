@@ -202,8 +202,8 @@ theorem tracker.ProgressTracker.TallyVotesWithDifference.wp_proof
   iapply HΦ
   iframe Htrk
   isplitl [Hvotes Hprogs Hcfg]
-  · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-      $$ Hvotes Hprs Hprogs Hcfg
+  · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+      $$ Hvotes Hprs Hprogs Hcfg Hepoch
   ipureintro
   exact ⟨Hres, Hwon, Hlost, Hd⟩
 

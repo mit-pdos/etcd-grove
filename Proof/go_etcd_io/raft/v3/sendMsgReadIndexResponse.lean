@@ -54,8 +54,8 @@ theorem ownTrackerC_incoming (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
   iframe Hv0
   iintro Hv0
   ihave Hcfg := Hcback $$ Hv0 Hv1
-  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-    $$ Hvotes Hprs Hprogs Hcfg
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
 end helpers
 

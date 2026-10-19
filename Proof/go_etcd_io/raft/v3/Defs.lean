@@ -391,6 +391,8 @@ structure Progress where
   paused : Bool
   infl : Inflights
   learner : Bool
+  /-- `IsWitness` (2026-10-19, witness support): the peer is the witness -/
+  witness : Bool
 
 /-- The tracker, as `ownTracker` is indexed by it: the vote tally, the progress map (id
 to `*Progress` -- physical state, like `NState.log`, because callers hold a raw
@@ -450,7 +452,7 @@ out. (Until 2026-10-13 also `none` on a learner.) -/
 def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
   (prstateOfW64 pv.State').map fun st =>
     ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
-      pv.IsLearner'⟩
+      pv.IsLearner', pv.IsWitness'⟩
 
 /-- What `progressAbs pv i = some p` says, field by field. -/
 theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) :
@@ -462,19 +464,20 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     pv.sentCommit' = p.sentCommit ∧
     pv.PendingSnapshot' = p.pendingSnapshot ∧
     pv.MsgAppFlowPaused' = p.paused ∧
-    i = p.infl := by
+    i = p.infl ∧
+    pv.IsWitness' = p.witness := by
   unfold progressAbs
-  obtain ⟨m, n, sc, st, ps, pa, inf, l⟩ := p
+  obtain ⟨m, n, sc, st, ps, pa, inf, l, w⟩ := p
   rw [← prstateOfW64_Some]
   cases hs : prstateOfW64 pv.State' with
   | none => simp
   | some st' =>
     simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
     constructor
-    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
-      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
-    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7⟩
-      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩
+      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7, h9⟩
+    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7, h9⟩
+      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩
 
 end abs
 

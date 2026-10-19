@@ -46,8 +46,8 @@ theorem ownTrackerC_halves (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
   iframe Hv0 Hv1
   iintro Hv0 Hv1
   ihave Hcfg := Hcback $$ Hv0 Hv1
-  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-    $$ Hvotes Hprs Hprogs Hcfg
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
 /-! ### The `Entries` field of a message, held apart (`stepLeader`'s `MsgProp` loop)
 

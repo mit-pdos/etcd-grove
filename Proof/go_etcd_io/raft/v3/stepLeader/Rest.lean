@@ -98,7 +98,7 @@ private theorem ownRaftPhys_pr_at (r : Loc) (id : w64) (s : NState) (pvs : GMap 
       -- (stage R8a) the leader's progress bound of the value, taken back of the new one
       ⌜s.role = .leader → PrOkN s.gh.ns s.logst p⌝ ∗ ⌜LogNoWrap s.logst⌝ ∗
       ownProgress pr p ∗
-      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
+      (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner ∧ p'.witness = p.witness⌝ -∗
          ⌜s.role = .leader → PrOkN s.gh.ns s.logst p'⌝ -∗
          ownRaftPhysCV c c.voters r id { s with prvals := <[to := p']> pvs }) := by
   iintro Hphys %Hlk %Hv

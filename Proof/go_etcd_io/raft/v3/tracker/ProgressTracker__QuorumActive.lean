@@ -128,8 +128,8 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
   ihave Hcfgf := Hback2 $$ Hvf
   ihave Htrk := Hback1 $$ Hcfgf
   ihave Hcfg := Hcback $$ Hv0 Hv1
-  ihave Hown := ownTrackerC_intro c tvfin t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
-    $$ Hvotes Hprs Hprogs Hcfg
+  ihave Hown := ownTrackerC_intro c tvfin t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
   have Hsub : granted vm ⊆ c.voters := by
     rw [GMap.elem_of_subseteq]
     intro x hx

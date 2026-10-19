@@ -163,8 +163,8 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   iapply HΦ
   iframe Htrk «$r0»
   isplitl [Hvotes Hprogs Hcfg]
-  · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-      $$ Hvotes Hprs Hprogs Hcfg
+  · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+      $$ Hvotes Hprs Hprogs Hcfg Hepoch
   ipureintro
   rw [domSet_gset] at Hxs0 Hxs1 Hxs2 Hxs3
   exact ⟨Hxs0, Hxs1, Hxs2, Hxs3⟩
