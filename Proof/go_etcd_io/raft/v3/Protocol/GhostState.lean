@@ -189,6 +189,45 @@ theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : 
     ⊢ dynEnv (GF := GF) γ id c s := by
   unfold dynEnv; ileft; ipureintro; exact HC
 
+/-! ### The witness's votes (2026-10-19, witness support, `notes/raft-witness.md`) -/
+
+/-- What a candidate's witness vote request carries (`sendRequestVoteToWitness`): its campaign
+record, whose last entry it reports (`(lt, li)`), with that entry's subterm (`ls`; `0` when the
+log's last entry is a snapshot's), and `quorum - 1` granted votes `G` of the campaign so far, each
+a responder (`resp`: `trk.Votes`'s keys), on the campaign's granted list. -/
+def wVoteReq (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) : IProp GF :=
+  iprop(∃ (F0 : List EntryM) (G : GSet w64), isCamp γ c T F0 ∗ logRecs γ base0 F0 ∗
+    ⌜plogLast base0 F0 = entryID.mk lt li ∧
+      (ls = W64 0 ∨ ∃ e, F0.getLast? = some e ∧ e.Subterm' = ls) ∧
+      G ⊆ γ.reCfg ∧ (∀ g, g ∈ G → g ∈ resp) ∧ size γ.reCfg / 2 ≤ size G⌝ ∗
+    grantLb γ c T G ∗ [∗map] g ↦ _u ∈ toMap G, isVote γ g T c)
+
+instance wVoteReq_persistent (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) :
+    Persistent (wVoteReq (GF := GF) γ c T lt li ls resp) := by
+  unfold wVoteReq; infer_instance
+instance wVoteReq_timeless (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) :
+    Timeless (wVoteReq (GF := GF) γ c T lt li ls resp) := by
+  unfold wVoteReq; infer_instance
+
+/-- The witness grants a vote request (`witness.handleVote`): the candidate's last entry's
+`(term, subterm)` is newer than the witness's, or the same and every responder is in the
+replication set the witness stored with it. -/
+def WGrantOk (st : WState) (lt ls : w64) (resp : List w64) : Prop :=
+  (LexLe st.lt st.ls lt ls ∧ ¬ (st.lt = lt ∧ st.ls = ls)) ∨
+  (st.lt = lt ∧ st.ls = ls ∧ ∀ v, v ∈ resp → v ∈ st.rs)
+
+/-- The witness's vote for `c` in `T`: its state then, of term `T`, granted `c`'s request. -/
+def wVoteJust (γ : RaftNames) (T c : w64) : IProp GF :=
+  iprop(∃ (st : WState) (lt li ls : w64) (resp : List w64),
+    ⌜st.term = T ∧ WGrantOk st lt ls resp⌝ ∗ wSt γ st ∗ wVoteReq γ c T lt li ls resp)
+
+instance wVoteJust_persistent (γ : RaftNames) (T c : w64) :
+    Persistent (wVoteJust (GF := GF) γ T c) := by
+  unfold wVoteJust; infer_instance
+instance wVoteJust_timeless (γ : RaftNames) (T c : w64) :
+    Timeless (wVoteJust (GF := GF) γ T c) := by
+  unfold wVoteJust; infer_instance
+
 /-! ### Messages -/
 
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -271,6 +310,19 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)
   | .readIndexResp =>
       iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readOk γ c m.index)
+  -- (2026-10-19, witness support) a leader's witness request, to the witness: of its own
+  -- term's entry, with the replication set's voters
+  | .wapp =>
+      if m.dst = γ.reWit ∧ γ.reWit ≠ W64 0 then
+        iprop(∃ (x : w64) (H : GSet w64),
+          ⌜m.logterm = m.term ∧ ∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})⌝ ∗
+          wJust γ m.term m.sub m.index x H)
+      else iprop(True)
+  -- a candidate's vote request to the witness
+  | .wvote =>
+      if m.dst = γ.reWit ∧ γ.reWit ≠ W64 0 then
+        wVoteReq γ m.src m.term m.logterm m.index m.sub m.voters
+      else iprop(True)
   | _ => iprop(True)
 
 instance isMessage_persistent (γ : RaftNames) (m : Msg) :
@@ -604,12 +656,14 @@ theorem ev_pair (γ : RaftNames) (v t i T : w64) (d : Bool) (F : List EntryM) :
   exact ⟨ev_pair_pure L0 La t i T d F HtT Hin Hsort Hp, HtT⟩
 
 def voteJust (γ : RaftNames) (v T c : w64) : IProp GF :=
-  iprop(∃ k d Fv Fc, isVlog γ v k T d Fv ∗ isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
+  iprop((∃ k d Fv Fc, isVlog γ v k T d Fv ∗ isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
     ⌜PlogWf base0 Fv ∧ plogUpToDate base0 Fv (plogLast base0 Fc) = true⌝ ∗
     (if d then iprop(∃ ldr q, isWin γ ldr T q ∗ ⌜v ∉ q⌝) else iprop(True)) ∗
     voteEv γ v T d Fv ∗
     -- (2026-10-14, stage B5) the candidate's campaign's dynamic facts
-    dynOn γ (campDyn γ c T Fc))
+    dynOn γ (campDyn γ c T Fc)) ∨
+    -- (2026-10-19, witness support) the witness's vote
+    (⌜v = γ.reWit ∧ γ.reWit ≠ W64 0⌝ ∗ wVoteJust γ T c))
 
 instance voteJust_persistent (γ : RaftNames) (v T c : w64) :
     Persistent (voteJust (GF := GF) γ v T c) := by
@@ -2057,6 +2111,68 @@ def RoleOk (id : w64) (s : PState) : Prop :=
   (s.role ≠ .follower → s.vote = id) ∧
   (s.role = .candidate → s.lead = W64 0)
 
+/-- (2026-10-19, witness support) A node's lists of its current term: as candidate the granted
+list (the votes it recorded, as `s.votes` grants them) with an empty subterm list; as leader the
+subterm list (an item per entry it appended, within its log, of a subterm at most its current one,
+the current one's with its current excluded voter). -/
+def wRole (s : PState) (tm : GMap w64 (GName × GName)) : IProp GF :=
+  match s.role with
+  | .candidate => iprop(∃ (γes γg : GName) (Lg : List (Option w64)),
+      ⌜tm !! s.term = some (γes, γg) ∧ none ∉ Lg ∧ ∀ v, v ∈ granted s.votes ↔ some v ∈ Lg⌝ ∗
+      monoListAuthOwn γg 1 Lg ∗ monoListAuthOwn γes 1 ([] : List SubItem))
+  | .leader => iprop(∃ (γes γg : GName) (Les : List SubItem),
+      ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
+        ∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = s.rsx)⌝ ∗
+      monoListAuthOwn γes 1 Les)
+  | .follower => iprop(True)
+
+/-- A node's witness-related ghost state (2026-10-19): its map `reWG` of terms to lists, of terms
+it has reached, and its current term's (`wRole`). -/
+def wOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
+  iprop(∃ (γN : GName) (tm : GMap w64 (GName × GName)), ⌜γ.reWG !! id = some γN⌝ ∗
+    ghostMapAuth γN 1 tm ∗ ([∗map] t ↦ p ∈ tm, t ↪[γN]□ p) ∗
+    ⌜∀ t, (tm !! t).isSome → uint.Z t ≤ uint.Z s.term⌝ ∗ wRole s tm)
+
+theorem wRole_follower (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .follower) :
+    ⊢ wRole (GF := GF) s tm := by
+  unfold wRole; rw [h]; iempintro
+
+/-- `wOwn` across a step that keeps a candidate's term and votes and a leader's term, subterm and
+excluded voter, and does not shrink a leader's log. -/
+theorem wOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    uint.Z s.term ≤ uint.Z s'.term →
+    (s'.role = .candidate → s.role = .candidate ∧ s'.term = s.term ∧ s'.votes = s.votes) →
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.sub = s.sub ∧ s'.rsx = s.rsx ∧
+      plogLastIndexZ s.base s.log ≤ plogLastIndexZ s'.base s'.log) →
+    wOwn (GF := GF) γ id s ⊢ wOwn γ id s' := by
+  intro Hle Hc Hl
+  have Hrole : ∀ tm : GMap w64 (GName × GName), wRole (GF := GF) s tm ⊢ wRole s' tm := by
+    intro tm
+    cases Hr' : s'.role with
+    | follower => iintro -; iapply wRole_follower s' tm Hr'
+    | candidate =>
+      obtain ⟨Hrc, Ht, Hv⟩ := Hc Hr'
+      unfold wRole; rw [Hr', Ht, Hv, Hrc]
+    | leader =>
+      obtain ⟨Hrl, Ht, Hsb, Hrx, Hli⟩ := Hl Hr'
+      unfold wRole; rw [Hr', Hrl]
+      iintro ⟨%γes, %γg, %Les, %HL, Hauth⟩
+      iexists γes, γg, Les
+      iframe Hauth
+      ipureintro
+      obtain ⟨H1, H2, H3⟩ := HL
+      refine ⟨by rw [Ht]; exact H1, H2, fun it hit => ?_⟩
+      obtain ⟨a, b, c⟩ := H3 it hit
+      exact ⟨by omega, by rw [Hsb]; exact b, fun h => by rw [Hrx]; exact c (by rw [h, Hsb])⟩
+  unfold wOwn
+  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, Hr⟩
+  iexists γN, tm
+  iframe Ha Hf
+  isplitr; · ipureintro; exact HN
+  isplitr; · ipureintro; intro t ht; have := Hk t ht; omega
+  iapply Hrole tm $$ Hr
+
 def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) : IProp GF :=
   iprop(∃ γv, ∃ (voted : GMap w64 w64), ∃ (kl : Option w64),
     "%Hname"  ∷ ⌜γ.reVotes !! id = some γv⌝ ∗
@@ -2078,7 +2194,9 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) :
     "Hrd"      ∷ rdOwn γ id s ∗
     -- 2026-10-14 (reconfiguration stage B5): the mode, `md` (`false` by default: the code's
     -- ghost state is static, `γ.reDyn = none`, `ownRaftGhost_static`)
-    "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝)
+    "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝ ∗
+    -- 2026-10-19 (witness support): the subterm and granted lists
+    "Hwg"      ∷ wOwn γ id s)
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
@@ -2100,10 +2218,11 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
       rdOwn γ id s -∗
+      wOwn γ id s -∗
       ownRaftGhost γ id s md := by
   intro Hname Hidnz Hmode
   unfold ownRaftGhost
-  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13
+  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13 H14
   iexists γv, voted, kl
   isplitr; · ipureintro; exact Hname
   isplitr; · ipureintro; exact Hidnz
@@ -2120,7 +2239,8 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitr; · ipureintro; exact H11
   isplitl [H12]; · iexact H12
   isplitl [H13]; · iexact H13
-  ipureintro; exact Hmode
+  isplitr; · ipureintro; exact Hmode
+  iexact H14
 
 /-- The mode of a node's ghost state. -/
 theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :

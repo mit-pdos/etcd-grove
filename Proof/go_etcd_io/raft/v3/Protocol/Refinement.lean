@@ -4782,7 +4782,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
       unfold entTk; simp only [show (zero_val EntryM).Data' = [] from rfl, ne_eq, not_true_eq_false,
         and_false, ↓reduceIte]; iempintro
     imodintro; iframe Hregs Hown
-  | sendWApp s i e vs _ _ _ _ _ _ _ _ =>
+  | sendWApp s i e vs _ _ _ _ _ _ _ _ _ =>
     iintro #Hrc Hregs Hrecv Hcr - Hown
     imod ownRaftGhost_step_sendW γ id s
       (Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []) (Or.inl rfl)

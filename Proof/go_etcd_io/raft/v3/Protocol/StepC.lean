@@ -687,6 +687,7 @@ inductive StepC : PState → List Msg → PState → Prop where
       s.role = .leader →
       c.wit ≠ W64 0 →
       exclOf c s ≠ c.wit →
+      exclOf c s ∈ c.incoming →
       plogEntryAt s.base s.log i = some e →
       e.Term' = s.term →
       e.Subterm' = s.sub →
