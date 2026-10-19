@@ -13,7 +13,13 @@ state of `Theory` (the frames `fs`, the state `s`, the cursor `p`, the cache):
 - `cache` is a map of buckets, each a read-only slice of entries (`bucketOwn`) whose bitset and
   state are a configuration of the abstract cache (`cacheP`; which bucket is irrelevant);
 - `calls` holds the frames, oldest first, each with its call's node and a value of its state
-  (`callsOwn`).
+  (`callsOwn`);
+- the frames were lifted at calls of the list (`FramesPos`), and the cursor is in the list if
+  it is not empty.
+
+`Theory.Inv` is not part of it: `checkSingle`'s loop carries `⌜Inv …⌝ ∨ □ cs.PDone` beside it,
+since a `StepContext` on a done context may refuse an operation the model allows
+(`stepCtxSpec`).
 -/
 module
 
@@ -53,14 +59,21 @@ theorem cacheP_cons {n : Nat} {cache : List ((Nat → Prop) × σ)} {ws : List w
   obtain ⟨c', hc', h1, h2⟩ := h
   exact ⟨c', List.mem_cons_of_mem _ hc', h1, h2⟩
 
+/-- The part of `FramesOk` that does not mention the model: each frame was lifted at a call of
+the list below it. It is what memory safety needs, and it survives a step that answers `false`
+wrongly once the context is done (`stepCtxSpec`), after which `Inv` may not hold. -/
+def FramesPos (es : List Entry) : List (Frame σ) → Prop
+  | [] => True
+  | f :: fs => FramesPos es fs ∧ (rem es (ids fs))[f.pos]? = some ⟨false, f.id⟩
+
 /-- Every frame lifted a call of the history. -/
-theorem framesOk_mem {α : Type} {M : SeqModel σ α} {h : List (Op α)} {es : List Entry} :
-    ∀ {fs : List (Frame σ)}, FramesOk M h es fs → ∀ f ∈ fs, (⟨false, f.id⟩ : Entry) ∈ es
+theorem framesPos_mem {es : List Entry} :
+    ∀ {fs : List (Frame σ)}, FramesPos es fs → ∀ f ∈ fs, (⟨false, f.id⟩ : Entry) ∈ es
   | [], _, _, hf => by cases hf
-  | g :: fs, ⟨hfr, _, hpos⟩, f, hf => by
+  | g :: fs, ⟨hfr, hpos⟩, f, hf => by
     rcases List.mem_cons.mp hf with rfl | hf
     · exact rem_get_mem hpos
-    · exact framesOk_mem hfr f hf
+    · exact framesPos_mem hfr f hf
 
 theorem curLoc_null {loc : Entry → Loc} {es : List Entry} {B : List Nat}
     (hnn : ∀ e ∈ es, loc e ≠ null) {p : Nat} :
@@ -350,7 +363,7 @@ def searchInv (S : ModelSpec GF σ) (h : List (Op OpV)) (aes : List Entry) (hd :
     "calls" ∷ calls_ptr ↦ csl ∗ "Hcalls" ∷ csl ↦* ces ∗
     "Hcap" ∷ ownSliceCap callsEntry csl (DFrac.own 1) ∗ "#Hces" ∷ callsRep S loc ces fs ∗
     "%Hws" ∷ ⌜ws.length = bsChunks h.length ∧ ∀ i, bsBit ws i = decide (i ∈ ids fs)⌝ ∗
-    "%Hinv" ∷ ⌜Inv S.M h aes fs s p cache ∧
+    "%Hinv" ∷ ⌜FramesPos aes fs ∧
       (rem aes (ids fs) ≠ [] → p < (rem aes (ids fs)).length)⌝)
 
 end heap

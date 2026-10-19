@@ -1,7 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
 `checkSingle(ctx, model, history, computePartial)`: the search loop, against the abstract
-search of `Theory` (`searchInv`, `Search.lean`; one `Theory` lemma per branch).
+search of `Theory` (`searchInv`, `Search.lean`; one `Theory` lemma per branch). The loop also
+carries `⌜Inv …⌝ ∨ □ cs.PDone`: `StepContext` may answer `false` wrongly once the context is
+done (`stepCtxSpec`), after which the search is no longer the abstract one, and an exit on
+`len(calls) == 0` then answers `false` with the context done (which the spec allows).
 -/
 module
 
@@ -88,7 +91,7 @@ local macro "longest_update" : tactic => `(tactic| (
           · iframe; ipureintro; exact Hce'_lookup
           ihave %Hcent' := callsRep_get S loc ces fs Hce'_lookup Hf'_lookup $$ Hces
           have hfm' : f' ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf'_lookup)
-          have hcm' : (⟨false, f'.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f' hfm'
+          have hcm' : (⟨false, f'.id⟩ : Entry) ∈ es.map entryOf := framesPos_mem Hfp f' hfm'
           rw [Hcent']
           icases nodesG_read hnd (mem_slots_some hcm') _ $$ HG with ⟨Hc', HG⟩
           simp only [slotLoc]
@@ -248,11 +251,14 @@ theorem checkSingle.wp_proof
   · iframe
   -- the loop invariant
   ihave HI : (∃ (fs : List (Frame σ)) (s : σ) (p : Nat) (cache : List ((Nat → Prop) × σ)),
+      "#Hgood" ∷ (⌜Inv S.M h (es.map entryOf) fs s p cache⌝ ∨ □ cs.PDone) ∗
       "Hs" ∷ searchInv S h (es.map entryOf) hd loc entry_ptr state_ptr linearized_ptr cm
         calls_ptr fs s p cache ∗
       "Hlongest" ∷ longestOwn lgst h.length : IProp GF)
       $$ [entry Hnodes state linearized Hlsl Hcm calls Hlgst]
   · iexists [], S.M.init, 0, []
+    isplitl []
+    · ileft; ipureintro; exact inv_init _ _ _
     unfold searchInv
     simp only [named]
     isplitr [Hlgst]
@@ -274,7 +280,7 @@ theorem checkSingle.wp_proof
       isplitl []
       · unfold callsRep; simp only [List.reverse_nil]; iapply BigSepL2.bigSepL2_nil.2; iempintro
       · ipureintro
-        refine ⟨⟨by rw [List.length_replicate]; congr 1; word, fun i => ?_⟩, inv_init _ _ _,
+        refine ⟨⟨by rw [List.length_replicate]; congr 1; word, fun i => ?_⟩, trivial,
           fun hne => List.length_pos_iff.mpr hne⟩
         rw [bsBit_replicate]; simp
     · rw [show sint.nat (W64 h.length) = h.length by word]
@@ -288,7 +294,7 @@ theorem checkSingle.wp_proof
   wp_for HI
   iNamed Hs
   obtain ⟨Hws1, Hws2⟩ := Hws
-  obtain ⟨Hinv, Hpb⟩ := Hinv
+  obtain ⟨Hfp, Hpb⟩ := Hinv
   iunfold nodesOwn at Hnodes
   icases Hnodes with ⟨HG, %Hnn⟩
   icases nodesG_read hnd mem_slots_none _ $$ HG with ⟨Hh, HG⟩
@@ -333,17 +339,25 @@ theorem checkSingle.wp_proof
       rw [hval1, hval2]
       ihave #Hioy := BigSepL.bigSepL_lookup (Φ := fun _ o => S.ioOk o.val.1 o.val.2) ho $$ Hio
       iunfold stepCtxSpec at Hstep
-      wp_apply Hstep $$ %(GoInterface.ok c) %sv %s %o.val.1 %o.val.2 [$Hsv $Hioy]
-        as %ok %nsv ⟨%Hok, #Hpost⟩
+      wp_apply Hstep $$ %c %cs %sv %s %o.val.1 %o.val.2 [$Hctx $Hsv $Hioy]
+        as %ok %nsv #Hres
       ctx_check
       have hpq1 : p + 1 < (rem (es.map entryOf) (ids fs)).length :=
         Nat.lt_of_le_of_lt hpq (List.getElem?_eq_some_iff.mp hq).1
-      cases hst : S.M.step s (o.val.1, o.val.2) with
-      | none =>
-        -- the model refuses the operation: skip it
-        rw [hst] at Hok
-        simp only [Option.isSome_none] at Hok
-        subst Hok
+      cases ok with
+      | false =>
+        -- the step refuses the operation (the model does, or the context is done): skip it
+        ihave #Hgood' : (⌜Inv S.M h (es.map entryOf) fs s (p + 1) cache⌝ ∨ □ cs.PDone : IProp GF) $$ []
+        · icases Hres with (⟨%Hok, -⟩ | ⟨-, #HPD⟩)
+          · icases Hgood with (%Hinv | #HPD)
+            · ileft; ipureintro
+              refine inv_skip Hinv he (fun o' t' ho' hst' => ?_)
+              rw [ho] at ho'; cases ho'
+              have hst'' : S.M.step s (o.val.1, o.val.2) = some t' := hst'
+              rw [hst''] at Hok; cases Hok
+            · iright; iexact HPD
+          · iright; iexact HPD
+        iclear Hgood
         wp_auto
         icases nodesG_read hnd (mem_slots_some hes_e) _ $$ HG with ⟨He, HG⟩
         simp only [slotLoc]
@@ -356,20 +370,21 @@ theorem checkSingle.wp_proof
         iframe
         unfold searchInv
         simp only [named]
+        isplitl []
+        · iexact Hgood'
         iexists sv, lsl, ws, csl, ces
         iframe
         iframe Hsv Hces
         isplitl [HG]
         · iunfold nodesOwn; iframe; ipureintro; exact Hnn
         ipureintro
-        refine ⟨⟨Hws1, Hws2⟩, ?_, fun _ => hpq1⟩
-        refine inv_skip Hinv he (fun o' t' ho' hst' => ?_)
-        rw [ho] at ho'; cases ho'
-        rw [hst] at hst'; cases hst'
-      | some t' =>
-        rw [hst] at Hok
-        simp only [Option.isSome_some] at Hok
-        subst Hok
+        exact ⟨⟨Hws1, Hws2⟩, Hfp, fun _ => hpq1⟩
+      | true =>
+        icases Hres with (⟨%Hok, #Hpost⟩ | ⟨%Hc, -⟩)
+        rotate_left
+        · cases Hc
+        obtain ⟨t', hst⟩ : ∃ t', S.M.step s (o.val.1, o.val.2) = some t' :=
+          Option.isSome_iff_exists.mp Hok.symm
         iunfold stepPost at Hpost
         simp only [hst]
         wp_auto
@@ -402,7 +417,7 @@ theorem checkSingle.wp_proof
           intro i hi
           simp only [ids, List.mem_map] at hi
           obtain ⟨f, hf, rfl⟩ := hi
-          exact (hok.2.1 _).mp (framesOk_mem Hinv.2.1 f hf)
+          exact (hok.2.1 _).mp (framesPos_mem Hfp f hf)
         have hbits1 : ∀ i, bsBit (bsSet ws (W64 y)) i = decide (i ∈ y :: ids fs) := by
           intro i
           rw [bsBit_set _ _ _ hyb, Hws2, show uint.nat (W64 y) = y by word]
@@ -470,12 +485,20 @@ theorem checkSingle.wp_proof
           wp_auto
           ihave HG := HG $$ Hh
           rw [nbrLoc_head' hd loc hnd]
+          ihave #Hgood' : (⌜Inv S.M h (es.map entryOf) (⟨y, s, p⟩ :: fs) t' 0 (cnew :: cache)⌝ ∨
+              □ cs.PDone : IProp GF) $$ []
+          · icases Hgood with (%Hinv | #HPD)
+            · ileft; ipureintro; exact inv_push Hinv he ho (by simpa using hst)
+            · iright; iexact HPD
+          iclear Hgood
           wp_for_post
           iframe
           iexists ⟨y, s, p⟩ :: fs, t', 0, cnew :: cache
           iframe
           unfold searchInv
           simp only [named]
+          isplitl []
+          · iexact Hgood'
           iexists nsv, lsl, bsSet ws (W64 y), csl', ces ++ [⟨loc ⟨false, y⟩, sv⟩]
           iframe
           iframe Hpost
@@ -489,8 +512,7 @@ theorem checkSingle.wp_proof
             iframe Hces Hsv
             ipureintro; rfl
           ipureintro
-          refine ⟨⟨by rw [bsSet_length]; exact Hws1, hbits1⟩, ?_, fun hne => List.length_pos_iff.mpr hne⟩
-          exact inv_push Hinv he ho (by simpa using hst)
+          exact ⟨⟨by rw [bsSet_length]; exact Hws1, hbits1⟩, ⟨Hfp, he⟩, fun hne => List.length_pos_iff.mpr hne⟩
         · -- in the cache: skip
           wp_auto
           icases nodesG_read hnd (mem_slots_some hes_e) _ $$ HG with ⟨He, HG⟩
@@ -508,12 +530,33 @@ theorem checkSingle.wp_proof
           wp_auto
           ihave HG := HG $$ He
           rw [nbrLoc_next hd loc hnd he]
+          ihave #Hgood' : (⌜Inv S.M h (es.map entryOf) fs s (p + 1) cache⌝ ∨ □ cs.PDone : IProp GF) $$ []
+          · icases Hgood with (%Hinv | #HPD)
+            · ileft; ipureintro
+              refine inv_skip Hinv he (fun o' t'' ho' hst' => ?_)
+              rw [ho] at ho'; cases ho'
+              rw [hst] at hst'; cases hst'
+              obtain ⟨c', hc', h1, h2⟩ := Hhit rfl
+              refine ⟨c', hc', fun i => ?_, h2⟩
+              rw [h1 i, hbits1 i]
+              constructor
+              · rintro ⟨_, hb⟩; simpa using hb
+              · intro hi
+                have : i < h.length := by
+                  rcases List.mem_cons.mp hi with rfl | hi
+                  · exact hy
+                  · exact hidsn i hi
+                exact ⟨this, by simpa using hi⟩
+            · iright; iexact HPD
+          iclear Hgood
           wp_for_post
           iframe
           iexists fs, s, p + 1, cache
           iframe
           unfold searchInv
           simp only [named]
+          isplitl []
+          · iexact Hgood'
           iexists sv, lsl, _, csl, ces
           iframe
           iframe Hsv Hces
@@ -522,25 +565,11 @@ theorem checkSingle.wp_proof
           isplitl [Hcm HB]
           · iunfold cacheOwn; iexists CM; iframe
           ipureintro
-          refine ⟨⟨by rw [bsClear_length, bsSet_length]; exact Hws1, fun i => ?_⟩, ?_, fun _ => hpq1⟩
-          · rw [bsBit_clear _ _ _ hyb', hbits1, show uint.nat (W64 y) = y by word]
-            by_cases hiy : i = y
-            · subst hiy; simp [hyids]
-            · simp [hiy]
-          · refine inv_skip Hinv he (fun o' t'' ho' hst' => ?_)
-            rw [ho] at ho'; cases ho'
-            rw [hst] at hst'; cases hst'
-            obtain ⟨c', hc', h1, h2⟩ := Hhit rfl
-            refine ⟨c', hc', fun i => ?_, h2⟩
-            rw [h1 i, hbits1 i]
-            constructor
-            · rintro ⟨_, hb⟩; simpa using hb
-            · intro hi
-              have : i < h.length := by
-                rcases List.mem_cons.mp hi with rfl | hi
-                · exact hy
-                · exact hidsn i hi
-              exact ⟨this, by simpa using hi⟩
+          refine ⟨⟨by rw [bsClear_length, bsSet_length]; exact Hws1, fun i => ?_⟩, Hfp, fun _ => hpq1⟩
+          rw [bsBit_clear _ _ _ hyb', hbits1, show uint.nat (W64 y) = y by word]
+          by_cases hiy : i = y
+          · subst hiy; simp [hyids]
+          · simp [hiy]
     | true =>
       -- a return
       simp only [↓reduceIte, _root_.decide_true, Bool.not_true]
@@ -557,8 +586,10 @@ theorem checkSingle.wp_proof
         wp_for_post
         iapply HΦ
         iframe
-        iright; ileft; ipureintro
-        exact inv_fail hok Hinv he rfl
+        icases Hgood with (%Hinv | #HPD)
+        · iright; ileft; ipureintro
+          exact inv_fail hok Hinv he rfl
+        · iright; iright; iexact HPD
       -- `if computePartial { ... }`: memory safety only
       wp_join iprop(longestOwn lgst h.length ∗ csl ↦* ces ∗
           nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
@@ -602,7 +633,7 @@ theorem checkSingle.wp_proof
           · iframe; ipureintro; exact Hce_lookup
           ihave %Hcent := callsRep_get S loc ces fs Hce_lookup Hf_lookup $$ Hces
           have hfm : f ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf_lookup)
-          have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f hfm
+          have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesPos_mem Hfp f hfm
           have hfid : f.id < h.length := (hok.2.1 _).mp hcm
           rw [Hcent]
           icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
@@ -676,7 +707,7 @@ theorem checkSingle.wp_proof
       wp_apply wp_load_slice_index csl _ (ces' ++ [ce]) (DFrac.own 1) ce Hb.1 $$ [Hcalls] as Hcalls
       · iframe; ipureintro; rw [hlen1]; simp
       -- the frame's call
-      obtain ⟨hfr, hpre, hpos⟩ := Hinv.2.1
+      obtain ⟨hfr, hpos⟩ := Hfp
       have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := rem_get_mem hpos
       have hfid : f.id < h.length := (hok.2.1 _).mp hcm
       have hfnot : f.id ∉ ids fs' := rem_get_not_mem hpos
@@ -721,19 +752,26 @@ theorem checkSingle.wp_proof
       wp_auto
       ihave HG := HG $$ Hc
       rw [nbrLoc_next hd loc hnd hpos]
+      ihave #Hgood' : (⌜Inv S.M h (es.map entryOf) fs' f.pre (f.pos + 1) cache⌝ ∨ □ cs.PDone : IProp GF) $$ []
+      · icases Hgood with (%Hinv | #HPD)
+        · ileft; ipureintro; exact inv_pop hok Hinv he rfl
+        · iright; iexact HPD
+      iclear Hgood
       wp_for_post
       iframe
       iexists fs', f.pre, f.pos + 1, cache
       iframe
       unfold searchInv
       simp only [named]
+      isplitl []
+      · iexact Hgood'
       iexists ce.state', lsl, bsClear ws (W64 f.id), _, ces'
       iframe
       iframe Hcsv Hces'
       isplitl [HG]
       · iunfold nodesOwn; iframe; ipureintro; exact Hnn'
       ipureintro
-      refine ⟨⟨by rw [bsClear_length]; exact Hws1, fun i => ?_⟩, inv_pop hok Hinv he rfl, fun _ => ?_⟩
+      refine ⟨⟨by rw [bsClear_length]; exact Hws1, fun i => ?_⟩, hfr, fun _ => ?_⟩
       · rw [bsBit_clear _ _ _ hfb, Hws2, show uint.nat (W64 f.id) = f.id by word]
         by_cases hif : i = f.id
         · subst hif; simp [hfnot]
@@ -776,7 +814,7 @@ theorem checkSingle.wp_proof
       · iframe; ipureintro; exact Hce_lookup
       ihave %Hcent := callsRep_get S loc ces fs Hce_lookup Hf_lookup $$ Hces
       have hfm : f ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf_lookup)
-      have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f hfm
+      have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesPos_mem Hfp f hfm
       rw [Hcent]
       icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
       simp only [slotLoc]
