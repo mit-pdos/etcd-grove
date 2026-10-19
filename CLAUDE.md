@@ -232,7 +232,7 @@ without touching `.lake/packages/perennial`, which other worktrees share;
 
 ## Changes to Perennial
 
-For now the pin follows Perennial's branch `lean-temp` (at `a54e1999f`), not `lean`, which
+For now the pin follows Perennial's branch `lean-temp` (at `b0a0fb557`), not `lean`, which
 has moved on and needs fixing up before this repository can follow it. A Perennial change
 this repository needs goes on a branch off `lean-temp` and is merged into `lean-temp`
 (Perennial's `etc/land.sh` and hooks still land on and guard `lean` only, so `lean-temp`
