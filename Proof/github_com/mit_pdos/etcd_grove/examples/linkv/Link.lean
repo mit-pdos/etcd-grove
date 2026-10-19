@@ -8,13 +8,13 @@ hand.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.addConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.closure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.entriesEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.entryLess
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.insertSorted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.lookup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.removeAt
@@ -37,10 +37,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
-
-theorem wp_Gen :
-    EtcdGrove.linkv.Gen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv.Gen.wp_proof
 
 theorem wp_entriesEqual :
     EtcdGrove.linkv.entriesEqual.spec (GF := GF) (hG := hG) :=
@@ -73,6 +69,10 @@ theorem wp_entryLess :
 theorem wp_insertSorted :
     EtcdGrove.linkv.insertSorted.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv.insertSorted.wp_proof wp_entryLess
+
+theorem wp_Gen :
+    EtcdGrove.linkv.Gen.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv.Gen.wp_proof
 
 theorem wp_lookup :
     EtcdGrove.linkv.lookup.spec (GF := GF) (hG := hG) :=

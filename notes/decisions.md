@@ -10712,6 +10712,30 @@ stage's text in D21 is amended to say so.
 *M0 carried out (2026-10-19).* No Lean change. Output: this note, the amended M3 text, and
 `issues/raft-stale-term-appresp-index-zero-ack.md`. Stopped on (A1)/(A2) for the user.
 
+## The key-value store's porcupine test (2026-10-19)
+
+**The example.** The register became a key-value store (the user's request: Put/Get/Append, a
+randomized porcupine test proved never to fail, still several raft nodes, runnable). It keeps
+the register's proof structure (minting, slots, the persistent proposal updates over raft's
+log) with the store's state as the fold of the history; the encoding packs the key's length
+into the header, so `opKey` and the freshness argument are unchanged.
+
+**The library's atomic update in `Check`.** lintest's `applySpec` gives the library a one-shot
+atomic update (Perennial's `<<{ }>>` triple) at mask `⊤ \ Eapp`; the store's specs take an Iris
+`AU` at `kvMask`, which they may open and abort. Neither weakens to the other. Options: (a)
+change `applySpec` to an Iris `AU` (`Run`'s proof changes); (b) change the store's specs to
+one-shot updates (their proofs open the update inside raft's persistent proposal update, where
+aborting is needed); (c) in `Check`, a copy of the store's state in an invariant with the
+client's half, the store's `AU` built from the driver's update and committed with it. (c) is
+taken: local to `Check`'s proof, no shared spec changes.
+
+**Operation credits.** The register's `Put`/`Get` took an operation credit each (sequence
+numbers below `2^64`); the driver passes nothing per call but the input. The Go code now stops a
+replica at `maxSeq` (an infinite loop, as `fits` does for the log), so the specs need no credit.
+
+**Perennial gaps** (to propose there, each on its own): `context`'s `isPkgInit` should contain
+`isClosedchanInit` (then neither porcupine's nor raft's initialization is re-proved here); `allG`
+should have a code for iris-lean's `NaInvF` (then the porcupine results lose `[NaInvG GF]`).
 ## D21 M1 carried out: the sender's message bundle (2026-10-19)
 
 Stage M1 of D21, as staged; no design choice beyond the text. The server's `E.M` keeps, for each

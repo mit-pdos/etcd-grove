@@ -17,4 +17,4 @@ closure: addConfig set removeAt
 step: lookup set insertSorted
 linkv_Model: step addConfig closure configEqual
 # the generator
-Gen:
+linkv_Gen:
