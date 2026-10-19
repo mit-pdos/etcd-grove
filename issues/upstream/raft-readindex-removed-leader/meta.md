@@ -16,10 +16,11 @@ decides how to file, as for the sibling.
   (revised 2026-10-19 after review, below): 1917bb4 adds the test, which fails there; 3009105 is the fix. The
   first version (a15b631 test, 9fa83d5 fix, 30d3548 changelog; base 638f42739), pushed 2026-10-18 and opened as the
   PR, is kept locally as `backup/raft-readindex-removed-leader-v1`. The revision replaces it on
-  `upamanyus/etcd-raft` by a force-push (`--force-with-lease=fix/raft-readindex-removed-leader:30d3548`), which the
-  reviewer's request to rebase calls for.
+  `upamanyus/etcd-raft` by a force-push (`--force-with-lease=fix/raft-readindex-removed-leader:30d3548`, done
+  2026-10-19 with the user's approval, as the reviewer asked for a rebase); the PR's head is now 3009105.
 - **Base**: upstream `main` 1d3216d845a72ef5a78c55772ea220a931e2c3ef (2026-10-19, the merge of #535)
-- **State**: filed (the issue and the PR, 2026-10-19); revision drafted 2026-10-19, not pushed yet
+- **State**: filed (the issue and the PR, 2026-10-19); revision pushed 2026-10-19 (the PR description and the
+  issue's test link still to be edited on GitHub by the user)
 - **Upstream issue**: [etcd-io/raft#534](https://github.com/etcd-io/raft/issues/534), filed 2026-10-19. Its test
   link (`blob/fix/raft-readindex-removed-leader/raft_test.go#L2227-L2260`) is off by 36 lines after the rebase;
   `issue.md` now has the permalink `blob/1917bb4/raft_test.go#L2263-L2296` and base 1d3216d84, to edit into the issue.
