@@ -12,7 +12,7 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
   allocation (`ownRaftGhost_alloc`, `Protocol/Facts.lean`) hands the client -- its half of
   the empty log, the authority of the fresh-data tokens and (2026-10-14, stage R) that of
   the fresh read-context tokens -- with the client's half
-  of the value (empty) and the replicas' sequence-number tokens at `S0` (for `New`, each
+  of the value (the empty store, `kvEmpty`) and the replicas' sequence-number tokens at `S0` (for `New`, each
   at 0: `S0 = gsetToGmap (W64 0) ids`).
 -/
 module
@@ -61,11 +61,11 @@ invariant, the client's half of the value and the sequence-number tokens of `S0`
 theorem kvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
     ⊢ rLog (GF := GF) γ [] -∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
       ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
-      ∃ γr : KVNames, ⌜γr.raft = γ⌝ ∗ kvInv γr ∗ kvVal γr [] ∗
+      ∃ γr : KVNames, ⌜γr.raft = γ⌝ ∗ kvInv γr ∗ kvVal γr kvEmpty ∗
         [∗map] id ↦ s ∈ S0, id ↪[γr.seq] s := by
   iintro Hcl HM HF
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γv, Hv⟩
-  icases ghostVar_halves γv ([] : List w8) $$ Hv with ⟨Hv1, Hv2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List (List w8)) with ⟨%γv, Hv⟩
+  icases ghostVar_halves γv ([] : List (List w8)) $$ Hv with ⟨Hv1, Hv2⟩
   imod ghost_map_alloc (GF := GF) S0 with ⟨%γs, HS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γm, HMi⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γo, HO⟩
@@ -76,7 +76,7 @@ theorem kvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
     iexists [], [], ∅, ∅, _, ∅, ∅
     isplitl
     · unfold kvCore
-      simp only [show kvFold (firstOcc []) = ([] : List w8) from rfl]
+      simp only [show firstOcc ([] : List (Option (List w8))) = [] from rfl]
       iframe Hcl Hv1 HM HF HS HMi HO
       isplitr
       · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => entDataIs (GF := GF) γ e o)).2
@@ -95,7 +95,10 @@ theorem kvInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
   isplitr
   · ipureintro; rfl
   unfold kvInv kvVal
-  iframe Hinv Hv2 Hels
+  iframe Hinv Hels
+  iexists []
+  iframe Hv2
+  ipureintro; rfl
 
 end alloc
 
