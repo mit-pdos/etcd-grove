@@ -48,7 +48,7 @@ module system").
 
 
 
-## The key-value store example and its porcupine test (2026-10-19, branch `kv-porcupine`)
+## The key-value store example and its porcupine test (2026-10-19, branch `kv-porcupine`, merged into `lean`)
 
 The register example (`examples/register`) is now `examples/kv`: a replicated string-to-string
 key-value store on a cluster of three raft nodes (`Put`, `Get`, `Append`, and `Read` by read
@@ -86,9 +86,11 @@ restart (as before).
   driver's is a one-shot update, the store's take Iris's abortable `AU`, and the masks differ):
   `Check` keeps a copy of the store's state in an invariant (`checkN`) and builds the store's
   `AU` from the driver's, committing both at the store's linearization point (`kvAu_of_run`).
-- **Trust base**: `etc/tcb-collections/kv.txt` (the register's, renamed) matches unchanged, 24
-  axioms and 6 `sorry`s (package initializers and the raft/protobuf trust boundary); lintest and
-  porcupine add none. `etc/tcb-report.py --check`: 521 axioms, 8 `sorry`s, unchanged.
+- **Trust base**: `etc/tcb-collections/kv.txt` (the register's, renamed) matches unchanged: 24
+  axioms (the raft/protobuf trust boundary, `fmt.Errorf`, `context.ErrAny`, the untranslated
+  initializers' `opaqueInitsOk`/`initFuncsOk`, `initLb_of_spec`) and, since the merge with `lean`
+  (Perennial `e81f4a6ce`, its initializers proved), no `sorry`; lintest and porcupine add none.
+  `etc/tcb-report.py --check` after the merge: 525 axioms, 2 `sorry`s, `lean`'s.
 - **Workarounds** (Perennial gaps, recorded in `notes/decisions.md`, "The key-value store's porcupine
   test"): `context`'s `isPkgInit` lacks `isClosedchanInit`, so `kv/Init.lean` re-proves raft's
   initialization over porcupine's `context` re-proof (`wp_initialize'_closedchan`, ~130 lines);
