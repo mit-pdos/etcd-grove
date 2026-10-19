@@ -14,7 +14,9 @@ Three things are not facts of the model, and are premises:
   (raftpb's protobuf descriptors, which `raftpb.toml` does not translate; the names-only
   packages `google.golang.org/protobuf/proto` and the standard library's `os`, `strconv`), so
   they call opaque values `X.init`: the trust-boundary axioms `<pkg>.opaqueInitsOk` say these
-  run (the generated `Init.lean` files' method, `etc/gen-init.py`), and `os.Stderr_init` that
+  run (the generated `Init.lean` files' method, `etc/gen-init.py`), `<pkg>.initFuncsOk` that
+  their untranslated `func init()`s (`init.0`, as gc names it) return (2026-10-19, when Goose
+  began calling a package's `init`s by name), and `os.Stderr_init` that
   `Stderr`'s gives the variable some `*File`, which `os`'s fact reads (2026-10-18; until then
   the four `wp_initialize'` were `sorry`). `raftpb`'s and `proto`'s call the generated
   `protoreflect`/`protoimpl` theorems, so they (and `quorum`'s, `tracker`'s, `confchange`'s)
@@ -116,6 +118,17 @@ axiom Stderr_init :
     {{ (True : IProp GF) }} (App (Val Stderr.init) (Val #()))
     {{ RET #(); ∃ f : Loc, globalAddr Stderr ↦ f }}
 
+/-- **The trust boundary: `os`'s untranslated `init` functions return.** Goose names a package's
+`func init()`s `init.<k>`, as gc does, and translates `os` names-only, so the model does not unfold
+them (`@! init.<k>`: the semantics' `functions`, which the package's `Assumptions` do not constrain
+for them). Go runs them at program start (`os`'s `func init()`, `proc.go`'s `Args =
+runtime_args()`), and every Go program starts, so each returns without panicking. A fact about the
+Go code, as the axioms of other names-only functions
+(`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 end os
 
 namespace strconv
@@ -145,6 +158,16 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([wireTypes.init, errRecursionDepth.init, errDecode.init, errUnknown.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `proto`'s untranslated `init` functions return.** Goose names a package's
+`func init()`s `init.<k>`, as gc does, and translates `proto` names-only, so the model does not
+unfold them (`@! init.<k>`: the semantics' `functions`, which the package's `Assumptions` do not
+constrain for them). Go runs them at program start (its `func init()`, `proto.go`'s `Error =
+errors.Error`), and etcd starts, so each returns without panicking. A fact about the Go code, as
+the axioms of other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 end google_golang_org.protobuf.proto
 
 namespace go_etcd_io.raft.v3.raftpb
@@ -154,12 +177,22 @@ does not translate the generated protobuf descriptors (`file_raft_proto_enumType
 `_goTypes`, `_depIdxs`: slice and array literals of zero messages, enum values and type
 indices), so each `X.init` is an axiom of the translation; Go runs them at program start, and
 etcd starts, so each returns without panicking. Satisfiable whatever the semantics (the
-`X.init`s are uninterpreted constants). (The package's `func init()`, `file_raft_proto_init`'s
-registration, is not translated, so the model's initializer does not run it.) -/
+`X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
     ∀ v ∈ ([file_raft_proto_depIdxs.init, file_raft_proto_goTypes.init,
         file_raft_proto_msgTypes.init, file_raft_proto_enumTypes.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
+
+/-- **The trust boundary: `raftpb`'s untranslated `init` functions return.** Goose names a
+package's `func init()`s `init.<k>`, as gc does, and translates it names-only (`raftpb.toml`), so
+the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which the package's
+`Assumptions` do not constrain for them). Go runs them at program start (its `func init()` is
+`file_raft_proto_init()`, the registration of the file descriptor), and etcd starts, so each
+returns without panicking. A fact about the Go code, as the axioms of other names-only functions
+(`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
 end go_etcd_io.raft.v3.raftpb
 
@@ -217,6 +250,7 @@ theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply (os.opaqueInitsOk os.errPatternHasSeparator.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.pollCopyFileRange.init (by mem_tac))
   wp_apply (os.opaqueInitsOk os.pollSplice.init (by mem_tac))
+  wp_apply (os.initFuncsOk os.init.«0» (by mem_tac))
   ipersist Hstderr
   iframe Hown
   imodintro
@@ -273,6 +307,7 @@ theorem google_golang_org.protobuf.proto.wp_initialize'
   wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errDecode.init (by mem_tac))
   wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errRecursionDepth.init (by mem_tac))
   wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.wireTypes.init (by mem_tac))
+  wp_apply (google_golang_org.protobuf.proto.initFuncsOk google_golang_org.protobuf.proto.init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 
@@ -342,6 +377,7 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_msgTypes.init (by mem_tac))
   wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_goTypes.init (by mem_tac))
   wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_depIdxs.init (by mem_tac))
+  wp_apply (go_etcd_io.raft.v3.raftpb.initFuncsOk go_etcd_io.raft.v3.raftpb.init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 

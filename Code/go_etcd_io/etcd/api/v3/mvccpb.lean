@@ -91,6 +91,9 @@ axiom file_kv_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def file_kv_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescGZIP"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/mvccpb.init.0"
+
 noncomputable def file_kv_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_init"
 
@@ -109,8 +112,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val file_kv_proto_depIdxs.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val file_kv_proto_depIdxs.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val file_kv_proto_goTypes.init) (Val #()))))))
   (App (Val doExecute)

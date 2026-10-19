@@ -201,6 +201,9 @@ noncomputable def write [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newFilePipeline [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.newFilePipeline"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/wal.init.0"
+
 noncomputable def Repair [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Repair"
 
@@ -322,8 +325,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val crcTable.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val crcTable.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrDecoderNotFound.init) (Val #()))))))
   (App (Val doExecute)

@@ -106,6 +106,9 @@ noncomputable def AllVersions [FfiSyntax] [GoGlobalContext] : GoString :=
 
 axiom AllVersions.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/version.init.0"
+
 noncomputable def Cluster [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Cluster"
 
@@ -142,8 +145,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val AllVersions.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val AllVersions.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val V4_0.init) (Val #()))))))
   (App (Val doExecute)

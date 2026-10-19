@@ -1338,11 +1338,17 @@ noncomputable def Auth_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def file_etcdserver_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_rawDescGZIP"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/etcdserverpb.init.0"
+
 noncomputable def file_etcdserver_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_init"
 
 noncomputable def file_raft_internal_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_rawDescGZIP"
+
+noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/etcdserverpb.init.1"
 
 noncomputable def file_raft_internal_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_init"
@@ -1361,6 +1367,9 @@ noncomputable def NewLoggablePutRequest [FfiSyntax] [GoGlobalContext] : GoString
 
 noncomputable def file_rpc_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_rawDescGZIP"
+
+noncomputable def init.«2» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/api/v3/etcdserverpb.init.2"
 
 noncomputable def file_rpc_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_init"
@@ -3323,8 +3332,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v3" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue []))
   (Let "$v4" (Val #(go!"rpc.proto"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType AuthServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Auth_ServiceDesc))) (Val #())) (Var "$r0")))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Auth_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Maintenance_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)

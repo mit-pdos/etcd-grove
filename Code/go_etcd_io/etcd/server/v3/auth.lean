@@ -301,6 +301,9 @@ axiom ErrVerifyOnly.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def newTokenProviderJWT [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.newTokenProviderJWT"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/auth.init.0"
+
 noncomputable def newTokenProviderNop [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.newTokenProviderNop"
 
@@ -946,8 +949,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val ErrVerifyOnly.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val ErrVerifyOnly.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrKeyMismatch.init) (Val #()))))))
   (App (Val doExecute)

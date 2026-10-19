@@ -102,6 +102,9 @@ noncomputable def RecoverSnapshotBackend [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def NewBackendHooks [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.NewBackendHooks"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage.init.0"
+
 noncomputable def NewBackendQuota [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.NewBackendQuota"
 
@@ -222,8 +225,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val maxQuotaSize.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val maxQuotaSize.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val DefaultQuotaSize.init) (Val #()))))))
   (App (Val doExecute)

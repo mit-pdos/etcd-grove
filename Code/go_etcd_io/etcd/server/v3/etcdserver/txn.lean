@@ -98,6 +98,9 @@ noncomputable def ApplySecObserve [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def RangeSecObserve [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.RangeSecObserve"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/txn.init.0"
+
 noncomputable def Put [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.Put"
 
@@ -2776,8 +2779,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val rangeSec.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val rangeSec.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val applySec.init) (Val #()))))))
   (App (Val doExecute)

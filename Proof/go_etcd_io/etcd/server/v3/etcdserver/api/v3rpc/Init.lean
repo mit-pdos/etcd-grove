@@ -97,6 +97,16 @@ axiom opaqueInitsOk :
         receivedBytes.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 /-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil. -/
 axiom toGRPCErrorMap_init :
     {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
@@ -272,6 +282,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply watchSendLoopProgressDuration_init as ⟨%hwatchSendLoopProgressDuration, HwatchSendLoopProgressDuration, #SwatchSendLoopProgressDuration⟩
   wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, %PtoGRPCErrorMap⟩
   -- translated initializer of progressReportInterval))
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HtoGRPCErrorMap
   ipersist HclientRequests
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []

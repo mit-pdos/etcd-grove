@@ -56,8 +56,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.log _root_.Perennial.log.initialize'
       EtcdGrove.ExternalInit.log _root_.Perennial.log.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  -- translated initializer of closec))
-  -- translated initializer of closec))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
   wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩
   wp_apply_core chan.wp_close (V := Unit) ch γ $$ His_ch
   iintro -

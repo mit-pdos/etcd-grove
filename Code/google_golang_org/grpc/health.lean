@@ -64,8 +64,14 @@ axiom logger.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def producerBuilderSingleton [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.producerBuilderSingleton"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc/health.init.0"
+
 noncomputable def clientHealthCheck [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.clientHealthCheck"
+
+noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc/health.init.1"
 
 noncomputable def registerClientSideHealthCheckListener [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.registerClientSideHealthCheckListener"
@@ -84,8 +90,14 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val logger.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val logger.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val backoffFunc.init) (Val #()))))))
   (App (Val doExecute)

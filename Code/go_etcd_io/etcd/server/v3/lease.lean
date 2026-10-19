@@ -198,6 +198,9 @@ noncomputable def newLessor [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def greaterOrEqual [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.greaterOrEqual"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/lease.init.0"
+
 /-- go: lease.go:42:6 -/
 noncomputable def NewLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "id"
@@ -1188,8 +1191,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val leaseTotalTTLs.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val leaseTotalTTLs.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val leaseRenewed.init) (Val #()))))))
   (App (Val doExecute)

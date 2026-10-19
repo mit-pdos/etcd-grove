@@ -151,6 +151,9 @@ axiom Health_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def file_grpc_health_v1_health_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_rawDescGZIP"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc/health/grpc_health_v1.init.0"
+
 noncomputable def file_grpc_health_v1_health_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_init"
 
@@ -186,8 +189,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val Health_ServiceDesc.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val Health_ServiceDesc.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val file_grpc_health_v1_health_proto_depIdxs.init) (Val #()))))))
   (App (Val doExecute)
