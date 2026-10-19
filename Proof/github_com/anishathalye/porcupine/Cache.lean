@@ -35,11 +35,13 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 variable {σ : Type}
 
-/-- A cache entry: a read-only bitset of words `ws` and a state value of `t` shared in the pool
-`p`, with `P ws t`. -/
+/-- A cache entry: a read-only bitset of words `ws` and a state value of `t` (of some index:
+a cached value is only compared and hashed, never stepped) shared in the pool `p`, with
+`P ws t`. -/
 def cacheEntryOk (S : ModelSpec GF σ) (p : NaInvPoolName) (P : List w64 → σ → Prop)
     (ce : cacheEntry) : IProp GF :=
-  iprop(∃ (ws : List w64) (t : σ), ce.linearized' ↦*□ ws ∗ shared S p ce.state' t ∗ ⌜P ws t⌝)
+  iprop(∃ (ws : List w64) (t : σ) (k : Nat), ce.linearized' ↦*□ ws ∗ shared S p k ce.state' t ∗
+    ⌜P ws t⌝)
 
 instance cacheEntryOk_persistent (S : ModelSpec GF σ) (p : NaInvPoolName)
     (P : List w64 → σ → Prop) (ce : cacheEntry) : Persistent (cacheEntryOk S p P ce) := by

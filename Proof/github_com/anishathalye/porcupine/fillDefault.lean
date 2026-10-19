@@ -155,14 +155,15 @@ theorem fillDefault.wp_proof
     -- the closure `func(ctx, state, input, output) { return model.Step(state, input, output) }`
     simp only
     unfold stepCtxSpec
-    iintro %c %cs %v %st %i %o
-    iintro !> %Φ' ⟨-, Hrep, Hio⟩ HΦ'
+    iintro %c %cs %k %v %st %i %o
+    iintro !> %Φ' ⟨-, %Hk, Hrep, Hio⟩ HΦ'
     ihave #M := model
     iStructNamedPrefix M "M"
     wp_auto
     rw [hS4]
     iunfold stepSpec at Hst
-    wp_apply Hst $$ %v %st %i %o [$Hrep $Hio] as %ok %v' ⟨Hrep, %Hok, Hpost⟩
+    wp_apply Hst $$ %k %v %st %i %o [$Hrep $Hio] as %ok %v' ⟨Hrep, %Hok, Hpost⟩
+    · ipureintro; exact Hk
     iapply HΦ'
     iframe Hrep
     ileft

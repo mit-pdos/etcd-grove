@@ -8,13 +8,20 @@ Lean-first (no Rocq counterpart).
 A `porcupine.Model` is a struct of closures. Its specification (`ModelSpec`) is a sequential
 model `M` (`Theory.SeqModel`) over abstract states `σ`, whose operations are the
 `(input, output)` pairs of interface values, with what a Go state value represents
-(`rep v s`, not necessarily persistent: the model's closures may write to a state value, as
+(`rep k v s`, not necessarily persistent: the model's closures may write to a state value, as
 etcd's robustness model sorts its states in place in `Equal`,
 `issues/etcd-robustness-model-equal-mutates.md`; each closure is given the `rep`s it reads and
 gives them back, of the same abstract states) and what an operation's input and output own
 (`ioOk i o`, persistent: the model's `Step` may read memory they point to, e.g. etcd's requests
 and responses). The checker keeps a state value in several places (its stack, its cache): it
 shares each one in a non-atomic invariant (`Shared.lean`), not the model.
+
+`rep k v s` is indexed by the number `k` of steps that made `v` from `Init`'s value (`Init`
+gives index `0`, a step from index `k` gives `k + 1`), and `Step` need only work from an index
+below `2^60`: the checker steps a value only along its stack of linearized operations, distinct
+operations of a history of fewer than `2^60` (`HistOk`). A model whose values grow with each step
+(a Go slice per pending operation, as `examples/linkv`'s) can bound their sizes by the index; a
+model whose values do not ignores it.
 
 A new state value's `rep` is separate from the old's (`S.rep v s ∗ stepPost …` in `Step`'s
 postcondition): what one owns, the other does not (memory they share must be read-only in both,
@@ -76,7 +83,7 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 /-- A porcupine model's specification (see the file header). -/
 structure ModelSpec (GF : BundledGFunctors) (σ : Type) where
   M : SeqModel σ OpV
-  rep : GoInterface → σ → IProp GF
+  rep : Nat → GoInterface → σ → IProp GF
   ioOk : GoInterface → GoInterface → IProp GF
   ioOk_pers : ∀ i o, Persistent (ioOk i o)
 
@@ -85,41 +92,42 @@ variable {σ : Type}
 instance ModelSpec.ioOk_persistent (S : ModelSpec GF σ) (i o : GoInterface) :
     Persistent (S.ioOk i o) := S.ioOk_pers i o
 
-/-- What a step returns besides its verdict: a value of the new state, if the model allows
-the operation. -/
-def stepPost (S : ModelSpec GF σ) (s : σ) (io : OpV) (v' : GoInterface) : IProp GF :=
+/-- What a step from a value of index `k` returns besides its verdict: a value of the new state,
+of index `k + 1`, if the model allows the operation. -/
+def stepPost (S : ModelSpec GF σ) (k : Nat) (s : σ) (io : OpV) (v' : GoInterface) : IProp GF :=
   match S.M.step s io with
-  | some s' => S.rep v' s'
+  | some s' => S.rep (k + 1) v' s'
   | none => iprop(True)
 
 /-- `Init()` returns a value of the model's initial state. -/
 def initSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
   iprop({{ True }}
     (App (Val #f) (Val #()))
-  {{ (v : GoInterface), RET #v; S.rep v S.M.init }})
+  {{ (v : GoInterface), RET #v; S.rep 0 v S.M.init }})
 
-/-- `Step(state, input, output)` steps as the model does, and gives the state value back. -/
+/-- `Step(state, input, output)`, on a value of index below `2^60`, steps as the model does, and
+gives the state value back. -/
 def stepSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
-  iprop(∀ (v : GoInterface) (s : σ) (i o : GoInterface),
-    {{ S.rep v s ∗ S.ioOk i o }}
+  iprop(∀ (k : Nat) (v : GoInterface) (s : σ) (i o : GoInterface),
+    {{ ⌜k < 2 ^ 60⌝ ∗ S.rep k v s ∗ S.ioOk i o }}
       (App (App (App (Val #f) (Val #v)) (Val #i)) (Val #o))
     {{ (ok : Bool) (v' : GoInterface), RET (PairV #ok #v');
-        S.rep v s ∗ ⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S s (i, o) v' }})
+        S.rep k v s ∗ ⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S k s (i, o) v' }})
 
 /-- `Equal(a, b)` returns `true` only on values of one state, and gives both values back (of
 the same states: it may write to them, as etcd's robustness model sorts its states). -/
 def equalSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
-  iprop(∀ (v w : GoInterface) (s t : σ),
-    {{ S.rep v s ∗ S.rep w t }}
+  iprop(∀ (k j : Nat) (v w : GoInterface) (s t : σ),
+    {{ S.rep k v s ∗ S.rep j w t }}
       (App (App (Val #f) (Val #v)) (Val #w))
-    {{ (b : Bool), RET #b; S.rep v s ∗ S.rep w t ∗ ⌜b = true → s = t⌝ }})
+    {{ (b : Bool), RET #b; S.rep k v s ∗ S.rep j w t ∗ ⌜b = true → s = t⌝ }})
 
 /-- `Hash(state)` returns some hash, and gives the state value back. -/
 def hashSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
-  iprop(∀ (v : GoInterface) (s : σ),
-    {{ S.rep v s }}
+  iprop(∀ (k : Nat) (v : GoInterface) (s : σ),
+    {{ S.rep k v s }}
       (App (Val #f) (Val #v))
-    {{ (x : w64), RET #x; S.rep v s }})
+    {{ (x : w64), RET #x; S.rep k v s }})
 
 /-- `Equal` and `Hash`, as the checker uses them. -/
 def isEqHash (S : ModelSpec GF σ) (m : Model) : IProp GF :=
@@ -180,18 +188,18 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 variable {σ : Type}
 
-/-- `StepContext(ctx, state, input, output)`, on a context `ctx` (`isContext c cs`), steps as
-the model does, or refuses the operation once the context is done (`□ cs.PDone`, what
+/-- `StepContext(ctx, state, input, output)`, on a context `ctx` (`isContext c cs`) and a value
+of index below `2^60`, steps as the model does, or refuses the operation once the context is done (`□ cs.PDone`, what
 `isContext`'s `Err()` gives for a non-`nil` error): etcd's robustness model returns
 `(false, nil)` whenever `ctx.Err() != nil`. It gives the state value back in both cases. -/
 def stepCtxSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
-  iprop(∀ (c : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (v : GoInterface) (s : σ)
-      (i o : GoInterface),
-    {{ context.isContext c cs ∗ S.rep v s ∗ S.ioOk i o }}
+  iprop(∀ (c : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (k : Nat) (v : GoInterface)
+      (s : σ) (i o : GoInterface),
+    {{ context.isContext c cs ∗ ⌜k < 2 ^ 60⌝ ∗ S.rep k v s ∗ S.ioOk i o }}
       (App (App (App (App (Val #f) (Val #(GoInterface.ok c))) (Val #v)) (Val #i)) (Val #o))
     {{ (ok : Bool) (v' : GoInterface), RET (PairV #ok #v');
-        S.rep v s ∗
-        ((⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S s (i, o) v') ∨
+        S.rep k v s ∗
+        ((⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S k s (i, o) v') ∨
           (⌜ok = false⌝ ∗ □ cs.PDone)) }})
 
 instance stepCtxSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
@@ -203,6 +211,21 @@ def isModel (S : ModelSpec GF σ) (m : Model) : IProp GF :=
     ((⌜m.StepContext' ≠ func.nil⌝ ∗ stepCtxSpec S m.StepContext') ∨
       (⌜m.StepContext' = func.nil ∧ m.Step' ≠ func.nil⌝ ∗ stepSpec S m.Step')) ∗
     isEqHash S m)
+
+/-- A model with `Step` and no `StepContext`, from its parts (which are stated over any
+`HasLC`). -/
+theorem isModel_of_step (S : ModelSpec GF σ) (m : Model) :
+    ⌜m.Partition' = func.nil⌝ ∗ initSpec S m.Init' ∗
+      ⌜m.StepContext' = func.nil ∧ m.Step' ≠ func.nil⌝ ∗ stepSpec S m.Step' ∗ isEqHash S m ⊢
+      isModel S m := by
+  iintro ⟨%Hp, #Hi, %Hsc, #Hs, #Heh⟩
+  unfold isModel
+  iframe Hi Heh
+  isplitr
+  · ipureintro; exact Hp
+  iright
+  iframe Hs
+  ipureintro; exact Hsc
 
 /-- The model after `fillDefault` (see the file header). -/
 def isModelFilled (S : ModelSpec GF σ) (m : Model) : IProp GF :=

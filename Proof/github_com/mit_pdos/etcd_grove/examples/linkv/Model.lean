@@ -84,7 +84,8 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
   · ipureintro; trivial
   isplitr
   · -- Init
-    unfold initSpecB
+    unfold initSpec
+    simp only [linkvS]
     iintro !> %Φ' _ HΦ'
     wp_auto
     wp_apply wp_slice_literal (V := kvConfig) (l := [zero_val kvConfig])
@@ -112,10 +113,14 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
   · ipureintro; exact ⟨trivial, nofun⟩
   isplitr
   · -- Step
-    unfold stepSpecB
-    simp only [linkvS, stRepB]
-    iintro %n %v %S %i %o
-    iintro !> %Φ' ⟨%Hn, #Hrep, %Hio⟩ HΦ'
+    unfold stepSpec stepPost
+    simp only [linkvS]
+    iintro %k %v %S %i %o
+    iintro !> %Φ' ⟨%Hk, #Hrep, %Hio⟩ HΦ'
+    have Hn : k + 1 < 2 ^ 63 := by omega
+    generalize k + 1 = n at Hn ⊢
+    ihave #Hrep0 := Hrep
+    iunfold stRepB at Hrep
     obtain ⟨x, y, rfl, rfl⟩ := Hio
     icases Hrep with ⟨%sl, %cs, %gs, ⟨%hv, %hok, %hbd⟩, #Hs, #Hcs⟩
     subst hv
@@ -226,6 +231,8 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       wp_auto
       iapply HΦ'
       isplitl []
+      · iexact Hrep0
+      isplitl []
       · ipureintro
         rw [hres1]
         have h0 : sint.Z (W64 0) = 0 := rfl
@@ -245,6 +252,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       | none => itrivial
       | some S' =>
         simp only
+        unfold stRepB
         iexists out, ocs, ogs
         isplitl []
         · ipureintro; exact ⟨rfl, hres2 S' hst, hob⟩
@@ -257,11 +265,13 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
   · -- Equal
     unfold equalSpec
     simp only [linkvS]
-    iintro %v %w %s %t
+    iintro %ka %kb %v %w %s %t
     iintro !> %Φ' ⟨#Hv, #Hw⟩ HΦ'
-    unfold stRep
-    icases Hv with ⟨%sla, %csa, %gsa, ⟨%hva, %hoka⟩, #Hsa, #Hcsa⟩
-    icases Hw with ⟨%slb, %csb, %gsb, ⟨%hvb, %hokb⟩, #Hsb, #Hcsb⟩
+    ihave #Hv0 := Hv
+    ihave #Hw0 := Hw
+    iunfold stRepB at Hv Hw
+    icases Hv with ⟨%sla, %csa, %gsa, ⟨%hva, %hoka, -⟩, #Hsa, #Hcsa⟩
+    icases Hw with ⟨%slb, %csb, %gsb, ⟨%hvb, %hokb, -⟩, #Hsb, #Hcsb⟩
     subst hva hvb
     ihave %Hla := ownSlice_len $$ Hsa
     ihave %Hlb := ownSlice_len $$ Hsb
@@ -313,19 +323,9 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
           wp_for_post
           iapply HΦ'
           isplitl []
-          · iexists sla, csa, gsa
-            isplitl []
-            · ipureintro; exact ⟨rfl, hoka⟩
-            isplit
-            · iexact Hsa
-            · iexact Hcsa
+          · iexact Hv0
           isplitl []
-          · iexists slb, csb, gsb
-            isplitl []
-            · ipureintro; exact ⟨rfl, hokb⟩
-            isplit
-            · iexact Hsb
-            · iexact Hcsb
+          · iexact Hw0
           ipureintro; nofun
         · wp_auto
           wp_for_post
@@ -344,38 +344,18 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
           rwa [← h1, List.take_length, h1, ← h2, List.take_length] at this
         iapply HΦ'
         isplitl []
-        · iexists sla, csa, gsa
-          isplitl []
-          · ipureintro; exact ⟨rfl, hoka⟩
-          isplit
-          · iexact Hsa
-          · iexact Hcsa
+        · iexact Hv0
         isplitl []
-        · iexists slb, csb, gsb
-          isplitl []
-          · ipureintro; exact ⟨rfl, hokb⟩
-          isplit
-          · iexact Hsb
-          · iexact Hcsb
+        · iexact Hw0
         ipureintro
         intro _
         rw [hoka.2, hokb.2, heq]
     · -- different lengths: `false`
       iapply HΦ'
       isplitl []
-      · iexists sla, csa, gsa
-        isplitl []
-        · ipureintro; exact ⟨rfl, hoka⟩
-        isplit
-        · iexact Hsa
-        · iexact Hcsa
+      · iexact Hv0
       isplitl []
-      · iexists slb, csb, gsb
-        isplitl []
-        · ipureintro; exact ⟨rfl, hokb⟩
-        isplit
-        · iexact Hsb
-        · iexact Hcsb
+      · iexact Hw0
       ipureintro; nofun
   ileft
   ipureintro; trivial

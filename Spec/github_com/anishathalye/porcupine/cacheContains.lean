@@ -33,13 +33,13 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 abbrev cacheContains.spec : Prop :=
   ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (p : NaInvPoolName) (P : List w64 → σ → Prop)
     (bk : GoSlice) (ces : List cacheEntry) (dqb : DFrac) (lin : GoSlice) (ws : List w64)
-    (dq : DFrac) (st : GoInterface) (t : σ),
+    (dq : DFrac) (k : Nat) (st : GoInterface) (t : σ),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ isEqHash S m ∗ bk ↦*{dqb} ces ∗
-      ([∗list] ce ∈ ces, cacheEntryOk S p P ce) ∗ lin ↦*{dq} ws ∗ S.rep st t ∗
+      ([∗list] ce ∈ ces, cacheEntryOk S p P ce) ∗ lin ↦*{dq} ws ∗ S.rep k st t ∗
       NonAtomicInvariant.own p ⊤ }}
     (App (App (App (App (Val (@! github_com.anishathalye.porcupine.cacheContains)) (Val #m))
       (Val #bk)) (Val #lin)) (Val #st))
-  {{ (b : Bool), RET #b; bk ↦*{dqb} ces ∗ lin ↦*{dq} ws ∗ S.rep st t ∗
+  {{ (b : Bool), RET #b; bk ↦*{dqb} ces ∗ lin ↦*{dq} ws ∗ S.rep k st t ∗
       NonAtomicInvariant.own p ⊤ ∗ ⌜b = true → P ws t⌝ }}
 
 end spec
