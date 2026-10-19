@@ -378,9 +378,18 @@ pvs` (so `Proph.lean`'s "What the Go program calls" is stale: `Apply`'s calls re
 names; it calls `ResolveBool` through `*ProphId`, the generated `ptr_ResolveBool_unfold`). The Go
 program changed once: `Gen`'s `keys`/`vals` are locals, not package variables, so the package's
 initializer runs no translated code. `Code`/`GeneratedProof` build; `linkv/Base.lean` gives the
-package's fact (`True`). Its `Init.lean` is to be hand-written, like the counter's: `linkv` is not
-a root of `etc/gen-init.py`, since its closure contains porcupine and lintest, whose `Init.lean`
-are hand-written (they return `context`'s `isClosedchanInit`) and which the script would regenerate.
+package's fact (`True`); it has no `Init.lean` yet. `linkv` is not a root of `etc/gen-init.py`,
+since its closure contains porcupine and lintest (see the next paragraph). Planned (agreed with the
+D21 session): `gen-init.py` learns the `isClosedchanInit` variant, generates the three files below,
+and `linkv` becomes a plain root.
+
+**Hand-written `Init.lean` files, outside `etc/gen-init.py` (and its `--check`)**: porcupine's
+(`Proof/github_com/anishathalye/porcupine/Init.lean`: it returns `context`'s `isClosedchanInit`, at
+`PorcupineInitTable`), lintest's (`examples/lintest/Init.lean`) and the counter's
+(`examples/lintest/counter/Init.lean`). No root of the script reaches them, so `--check` passing
+says nothing about them; they are not generated output, despite CLAUDE.md's rule. Making a package
+that imports porcupine or lintest a root would overwrite the first two (without `isClosedchanInit`)
+and break the counter's.
 
 Next: part (b) (the server's
 write specs firing an ordinary update at most once); the instance's proof: `Model`'s spec against
