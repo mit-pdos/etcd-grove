@@ -121,11 +121,13 @@ local macro "trig'" : tactic => `(tactic| (
   iintro %Ψ HR
   iunfold reqWaitR at HR
   icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
-  obtain ⟨hd', hΨ⟩ := Hp'
+  obtain ⟨hd', hΨ, hpx⟩ := Hp'
   subst hΨ
   ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
   obtain ⟨Hdd, Hγ⟩ := Hdd
   subst Hdd Hγ
+  -- (D21e (A)) a registered id is of the member's prefix: the floor its claim recorded
+  ihave #HfF := HfFo $$ %hpx
   ihave %HFF := floorAt_agree γf' F' F $$ Hfl' HfF
   subst HFF
   rw [hdec] at hd'
@@ -160,11 +162,13 @@ local macro "trig" : tactic => `(tactic| (
   iintro %Ψ HR
   iunfold reqWaitR at HR
   icases HR with ⟨%d', %rq', %γf', %F', #Hcl', #Hfl', %Hp'⟩
-  obtain ⟨hd', hΨ⟩ := Hp'
+  obtain ⟨hd', hΨ, hpx⟩ := Hp'
   subst hΨ
   ihave %Hdd := idClaim_agree' ρ.ids id d' m.data γf' γf $$ Hcl' Hcl0
   obtain ⟨Hdd, Hγ⟩ := Hdd
   subst Hdd Hγ
+  -- (D21e (A)) a registered id is of the member's prefix: the floor its claim recorded
+  ihave #HfF := HfFo $$ %hpx
   ihave %HFF := floorAt_agree γf' F' F $$ Hfl' HfF
   subst HFF
   rw [hdec] at hd'
@@ -469,11 +473,28 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave #Hgen' := Hgen
       iunfold srvGenAt at Hgen'
       icases Hgen' with ⟨%gidg, -, #Hidg⟩
-      imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp) $$ Hidg Hcl0
-        with Hff
-      icases Hff with >#Hff
-      iunfold srvFloorFact at Hff
-      icases Hff with ⟨%F, #HfF, #HcF⟩
+      -- (D21e (A), stage M4) an id of the member's prefix: the floor its claimer recorded (the
+      -- generator's facts); another member's: no waiter here (`reqWaitR`), the empty floor
+      ihave Hfl : iprop(|={⊤}=> ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+          (⌜idPfx id0 = ρ.ids.pfx⌝ -∗ floorAt γf F)) $$ []
+      · by_cases hpx : idPfx id0 = ρ.ids.pfx
+        · imod idClaim_fact ρ.ids gidg (srvFloorFact E) id0 m.data γf ⊤ (by simp)
+            $$ Hidg Hcl0 %hpx with Hff
+          icases Hff with >#Hff
+          iunfold srvFloorFact at Hff
+          icases Hff with ⟨%F, #HfF, #HcF⟩
+          imodintro
+          iexists F
+          iframe HcF
+          iintro -
+          iexact HfF
+        · imod mvcc.idxCert_nil E.γ.idx with #HcF
+          imodintro
+          iexists []
+          iframe HcF
+          iintro %hpx'
+          exact absurd hpx' hpx
+      imod Hfl with ⟨%F, #HcF, #HfFo⟩
       -- D14i: the snapshot right and the consistent index's resources, lent out of `Pre`
       ihave HFSE : E.FS $$ [HFS]
       · rw [HEo.1]; iexact HFS

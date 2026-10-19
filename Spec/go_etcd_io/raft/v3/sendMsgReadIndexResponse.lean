@@ -106,6 +106,12 @@ theorem readRespondAll_progress (id : w64) (s : NState) (qs : List ReadReq) :
   obtain ⟨o, r, h⟩ := readRespondAll_eq id s qs
   rw [h]
 
+/-- (D21 M3) Answering keeps the ghost bounds and the mode. -/
+theorem readRespondAll_gh (id : w64) (s : NState) (qs : List ReadReq) :
+    (readRespondAll id s qs).gh = s.gh := by
+  obtain ⟨o, r, h⟩ := readRespondAll_eq id s qs
+  rw [h]
+
 /-- Answering does not read the `Progress` values. -/
 theorem readRespondAll_prvals (id : w64) (t : NState) (pv : GMap w64 Progress)
     (qs : List ReadReq) :

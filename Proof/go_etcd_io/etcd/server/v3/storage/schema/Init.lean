@@ -81,6 +81,16 @@ axiom opaqueInitsOk :
         schemaChanges.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.schema`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 /-- `AllBuckets = []backend.Bucket{Key, Meta, ...}` (`bucket.go`): a slice. -/
 axiom AllBuckets_init :
     {{ (True : IProp GF) }} (App (Val AllBuckets.init) (Val #()))
@@ -187,6 +197,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk MetaStorageVersionName.init (by mem_tac))
   wp_apply (opaqueInitsOk emptyStorageVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk schemaChanges.init (by mem_tac))
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
   -- translated initializer of metaBucketName))
   -- translated initializer of keyBucketName))
   ipersist Hskey

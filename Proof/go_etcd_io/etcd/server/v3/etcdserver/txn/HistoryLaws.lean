@@ -559,7 +559,7 @@ theorem sel_keys_nodup {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (p : EtcdK
   refine h.imp ?_
   intro a b hab e
   rw [e] at hab
-  exact goStringLt_irrefl _ hab
+  exact go.goStringLt_irrefl _ hab
 
 end txn
 end EtcdGrove

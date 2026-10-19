@@ -15,7 +15,7 @@ successor-based delete keep the in-order sequence).
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
-public import Proof.Lib.GoString
+public import Perennial.Golang.Defn.String
 
 @[expose] public section
 
@@ -80,14 +80,14 @@ theorem affCmp_neg_iff (a b : GoString) : affCmp a b < 0 ↔ affLt a b := by
 theorem affCmp_swap (a b : GoString) : affCmp b a = - affCmp a b := by
   unfold affCmp
   by_cases ha : a = go!"" <;> by_cases hb : b = go!"" <;> by_cases h1 : go.GoStringLt a b <;>
-    by_cases h2 : go.GoStringLt b a <;> simp_all [goStringLt_irrefl]
-  exact goStringLt_asymm ‹_› ‹_›
+    by_cases h2 : go.GoStringLt b a <;> simp_all [go.goStringLt_irrefl]
+  exact go.goStringLt_asymm ‹_› ‹_›
 
 theorem affCmp_eq_zero_iff (a b : GoString) : affCmp a b = 0 ↔ a = b := by
   unfold affCmp
   by_cases ha : a = go!"" <;> by_cases hb : b = go!"" <;> by_cases h1 : go.GoStringLt a b <;>
-    by_cases h2 : go.GoStringLt b a <;> simp_all [goStringLt_irrefl]
-  all_goals first | exact goStringLt_eq_of_not_lt ‹_› ‹_› | (rintro rfl; exact goStringLt_irrefl _ ‹_›)
+    by_cases h2 : go.GoStringLt b a <;> simp_all [go.goStringLt_irrefl]
+  all_goals first | exact go.goStringLt_eq_of_not_lt ‹_› ‹_› | (rintro rfl; exact go.goStringLt_irrefl _ ‹_›)
 
 theorem affCmp_bounds (a b : GoString) : -1 ≤ affCmp a b ∧ affCmp a b ≤ 1 := by
   unfold affCmp
@@ -99,7 +99,7 @@ theorem affCmp_bounds (a b : GoString) : -1 ≤ affCmp a b ∧ affCmp a b ≤ 1 
 theorem affLt_irrefl (a : GoString) : ¬ affLt a a := by
   rintro ⟨ha, h | h⟩
   · exact ha h
-  · exact goStringLt_irrefl a h
+  · exact go.goStringLt_irrefl a h
 
 theorem affLt_trans {a b c : GoString} (h1 : affLt a b) (h2 : affLt b c) : affLt a c := by
   obtain ⟨ha, hab⟩ := h1
@@ -109,7 +109,7 @@ theorem affLt_trans {a b c : GoString} (h1 : affLt a b) (h2 : affLt b c) : affLt
   · exact Or.inl hc
   · rcases hab with hb' | hab
     · exact absurd hb' hb
-    · exact Or.inr (goStringLt_trans hab hbc)
+    · exact Or.inr (go.goStringLt_trans hab hbc)
 
 /-- The affine order is total. -/
 theorem affLt_trichotomy (a b : GoString) : affLt a b ∨ a = b ∨ affLt b a := by

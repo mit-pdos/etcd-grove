@@ -65,7 +65,10 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       -- this node's ghost state at the bootstrap state, and the committed boot log
-      ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog }}
+      ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗
+      -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode, a storage that never compacts
+      -- past index `1`
+      NsCap γ.reNoSnap (interface.ok si) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Bootstrap")) (Val #peers))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗

@@ -71,7 +71,7 @@ theorem raft.loadState.wp_proof
     all_goals first
       | (intro Hs; exact StoredSnapOk_commit _ _ _ _ _ Hc.1 (Hssnap Hs))
       | word
-  ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+  ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl (hcm := Hc.1))
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   wp_apply wp_HardState_GetTerm.1 hp hs $$ [$Hhs]
   wp_apply raft.wp_store_Term cfg r id { s with logst := { s.logst with committed := hs.Commit' } }

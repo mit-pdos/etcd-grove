@@ -46,7 +46,8 @@ public import Perennial.Golang.Theory.Map
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.MonoList
-public import Proof.Lib.Heap
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 

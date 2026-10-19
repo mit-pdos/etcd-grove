@@ -23,7 +23,7 @@ public import Perennial.Proof.encoding.binary
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 -- schema imports auth, etcdserverpb and zap since N4c (2026-10-17: `NewAuthBackend`, `alarmBackend`)
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
-public import Proof.Lib.Sync
+public import Perennial.Proof.sync.RWMutexGuard
 
 @[expose] public section
 

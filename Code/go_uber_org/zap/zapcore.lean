@@ -579,6 +579,9 @@ noncomputable def ParseLevel [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def LevelOf [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.LevelOf"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.uber.org/zap/zapcore.init.0"
+
 noncomputable def NewMapObjectEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewMapObjectEncoder"
 
@@ -647,8 +650,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)

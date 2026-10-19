@@ -6,7 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.lessor__keepAliveCtxCloser
 public import Spec.context.ValueKeepAlive
-public import Proof.Lib.Slice
+public import Perennial.Golang.Theory.Slice
 
 @[expose] public section
 

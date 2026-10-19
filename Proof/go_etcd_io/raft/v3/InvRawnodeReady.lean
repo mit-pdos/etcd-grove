@@ -526,7 +526,9 @@ theorem outboxRel_join (o : List Msg) (ms1 ms2 : List QMsg) :
 (`isRaftMsg`, 2026-10-16): what `readyWithoutAccept` says of the messages it hands out, and
 `acceptReady` of the self-addressed responses it queues. -/
 theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMsg) (q : QMsg)
-    (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2) :
+    (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
+    -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
+    (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ isRaftMsg γ q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -556,6 +558,13 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
   obtain ⟨a, Ha, Hin⟩ := Hex
   iintro #Ho
   unfold isRaftMsg
+  isplitr
+  · ipureintro
+    intro hns hty
+    rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, -, rfl⟩
+    · rw [hty, mtypeOf_MsgSnap] at Hn; cases Hn
+    · rw [hty, mtypeOf_MsgSnap] at Hty'; cases Hty'; exact Hne rfl
+    · exact Hns hns _ (Hin (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) (by simp)) rfl
   iexists a
   isplitr
   · ipureintro; exact Ha
@@ -574,7 +583,7 @@ theorem isRaftMsg_isMessage (γ : RaftNames) (st : MsgSt) (ty : MsgType)
     isRaftMsg (GF := GF) γ st ⊢ isMessage γ (absMsg ty st.msg st.ents st.ctx) := by
   iintro #H
   unfold isRaftMsg
-  icases H with ⟨%a, %Ha, #H⟩
+  icases H with ⟨-, %a, %Ha, #H⟩
   rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', -, rfl⟩ | ⟨sv, Hs, -, -⟩
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
@@ -643,6 +652,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
         ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
+        ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
         ownRaftLog s.log ls' -∗
         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
@@ -831,7 +841,10 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "#Hents" ∷ entsRO rd.Entries' es ∗
   "%Hceok" ∷ ⌜CeOk s.logst ce⌝ ∗
   "%Hes" ∷ ⌜es = nextUnstable s.logst⌝ ∗
-  "%Hrdc" ∷ ⌜rdCountM (ms.map QMsg.st) ≤ rdCount s.outbox⌝)
+  "%Hrdc" ∷ ⌜rdCountM (ms.map QMsg.st) ≤ rdCount s.outbox⌝ ∗
+  -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`,
+  -- `NsLink`): what the handed-out messages' `isRaftMsg` says
+  "%Hnsout" ∷ ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝)
 
 /-- The `Ready`'s `SoftState`, read-only for the application (`softStateRO`; 2026-10-16, stage R7a):
 from `Hrdsoft`, keeping the node. -/
@@ -886,12 +899,15 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc }
+                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
-    %(fun h => .inl (of_decide_eq_true h)) %(fun _ => Int.le_refl _) Hlog
+    %(fun h => .inl (of_decide_eq_true h))
+    %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
+      g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
+    %(fun _ => Int.le_refl _) Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -1033,7 +1049,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc⟩
+      Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hnsout⟩
   isplitl [Happ]
   · rw [Hes, ← Hstor]; iexact Happ
   isplitl [Hcr]
@@ -1148,7 +1164,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     rw [Hrs_unst]
     cases Hu : s.gh.unst
     · rfl
-    · rcases Hgh Hu with H | H
+    · rcases Hgh.1 Hu with H | H
       · exact absurd Hidle.2.1 H
       · exact absurd Hsnap H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
@@ -1184,6 +1200,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have Hsteps_nil : steps = [] := by
     rw [Hsteps0] at Hlen; exact List.eq_nil_of_length_eq_zero Hlen
   subst Hsteps_nil
+  icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
@@ -1229,14 +1246,14 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
-      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 Hl
+      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 Hl
+      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 Hl
   ipureintro
   refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩, Hrdz,
-    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _⟩
+    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, Hnsout⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne

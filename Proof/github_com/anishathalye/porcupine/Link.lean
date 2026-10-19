@@ -51,6 +51,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+variable [NaInvG GF]
 
 theorem sort.wp_Sort :
     EtcdGrove.sort.«Sort».spec (GF := GF) (hG := hG) :=
@@ -66,6 +67,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+variable [NaInvG GF]
 
 theorem wp_noPartition :
     EtcdGrove.porcupine.noPartition.spec (GF := GF) (hG := hG) :=

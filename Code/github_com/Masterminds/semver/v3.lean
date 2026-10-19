@@ -141,6 +141,9 @@ axiom ErrVersionTooLong.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def NewConstraint [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.NewConstraint"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/Masterminds/semver/v3.init.0"
+
 noncomputable def parseConstraint [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.parseConstraint"
 
@@ -173,6 +176,9 @@ noncomputable def isX [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def rewriteRange [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.rewriteRange"
+
+noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/Masterminds/semver/v3.init.1"
 
 noncomputable def StrictNewVersion [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.StrictNewVersion"
@@ -229,8 +235,14 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val ErrVersionTooLong.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val ErrVersionTooLong.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val ErrInvalidPrerelease.init) (Val #()))))))
   (App (Val doExecute)

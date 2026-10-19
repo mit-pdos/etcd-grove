@@ -1,0 +1,129 @@
+From c8217eb91ae5948182c1035ff0464b1e54b8f1d0 Mon Sep 17 00:00:00 2001
+From: Frans Kaashoek <kaashoek@mit.edu>
+Date: Mon, 19 Oct 2026 02:32:06 +0000
+Subject: [PATCH] raft: do not take a stale-term index-0 MsgAppResp as an ack
+ of the probe
+
+A voter answers a MsgApp or MsgHeartbeat of a lower term (check-quorum or
+pre-vote on) with an empty MsgAppResp of its own term: Index 0, Reject false.
+Its only purpose is to carry the higher term. A leader of that same term
+whose progress for the voter is still StateProbe with Match 0 took it as an
+ack through the probe-to-replicate shortcut (pr.Match == m.Index): it moved
+the peer to StateReplicate with Next = 1, resending the whole log, or, with a
+log compacted at index 1 (etcd after its first in-memory snapshot), sending a
+MsgSnap to a follower that may hold the whole log.
+
+Take the shortcut only when the probe is at the acked index,
+pr.Next == pr.Match+1 (as after BecomeProbe from StateReplicate, the case of
+heartbeat_rep_recovers_from_probing.txt). TestLeaderAppResp's fourth case,
+probing at Next = 3 and answered at 0, now expects no change and no message.
+Add TestStaleMsgAppGetsIndexZeroAck and TestLeaderIndexZeroAckSendsNoSnapshot.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01PpdwDqSDPMEoJMNPdpb5Cf
+---
+ raft.go      |  7 +++++-
+ raft_test.go | 62 +++++++++++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 62 insertions(+), 7 deletions(-)
+
+diff --git a/raft.go b/raft.go
+index 6ad8ac0..64637ba 100644
+--- a/raft.go
++++ b/raft.go
+@@ -1516,7 +1516,12 @@ func stepLeader(r *raft, m *pb.Message) error {
+ 			// equals pr.Match we know we don't m.Index+1 in our log, so moving
+ 			// back to replicating state is not useful; besides pr.PendingSnapshot
+ 			// would prevent it.
+-			if pr.MaybeUpdate(m.GetIndex()) || (pr.Match == m.GetIndex() && pr.State == tracker.StateProbe) {
++			// The shortcut needs the probe to be at the acked index
++			// (pr.Next == pr.Match+1): a voter answers a stale-term MsgApp or
++			// MsgHeartbeat with an empty MsgAppResp of its own term (Index 0,
++			// not a rejection), which acknowledges nothing and must not move a
++			// peer probing at a later index back to Next = 1.
++			if pr.MaybeUpdate(m.GetIndex()) || (pr.Match == m.GetIndex() && pr.State == tracker.StateProbe && pr.Next == pr.Match+1) {
+ 				switch {
+ 				case pr.State == tracker.StateProbe:
+ 					pr.BecomeReplicate()
+diff --git a/raft_test.go b/raft_test.go
+index 8d82cf8..76f7af9 100644
+--- a/raft_test.go
++++ b/raft_test.go
+@@ -2240,12 +2240,11 @@ func TestLeaderAppResp(t *testing.T) {
+ 		{3, true, 0, 3, 0, 0, 0},  // stale resp; no replies
+ 		{2, true, 0, 2, 1, 1, 0},  // denied resp; leader does not commit; decrease next and send probing msg
+ 		{2, false, 2, 4, 2, 2, 2}, // accept resp; leader commits; broadcast with commit index
+-		// Follower is StateProbing at 0, it sends MsgAppResp for 0 (which
+-		// matches the pr.Match) so it is moved to StateReplicate and as many
+-		// entries as possible are sent to it (1, 2, and 3). Correspondingly the
+-		// Next is then 4 (an Entry at 4 does not exist, indicating the follower
+-		// will be up to date should it process the emitted MsgApp).
+-		{0, false, 0, 4, 1, 0, 0},
++		// Follower is StateProbing at 2 (Next = 3), it sends MsgAppResp for 0
++		// (which matches the pr.Match but not the probe: it is, e.g., the
++		// empty answer to a stale-term MsgApp). It acknowledges nothing, so the
++		// progress is unchanged and nothing is sent.
++		{0, false, 0, 3, 0, 0, 0},
+ 	}
+ 
+ 	for _, tt := range tests {
+@@ -2283,6 +2282,57 @@ func TestLeaderAppResp(t *testing.T) {
+ 	}
+ }
+ 
++// TestStaleMsgAppGetsIndexZeroAck: a follower at term 2 answers a stale MsgApp
++// of term 1 (check-quorum on) with an empty MsgAppResp of its own term: Index
++// 0, not a rejection.
++func TestStaleMsgAppGetsIndexZeroAck(t *testing.T) {
++	s := newTestMemoryStorage(withPeers(1, 2, 3))
++	require.NoError(t, s.Append(index(1).terms(1, 1, 1)))
++	r := newTestRaft(2, 10, 1, s)
++	r.checkQuorum = true
++	r.becomeFollower(2, None) // voted in term 2, no leader heard yet
++	require.NoError(t, r.Step(&pb.Message{From: new(uint64(1)), To: new(uint64(2)), Term: new(uint64(1)),
++		Type: pb.MsgApp.Enum(), Index: new(uint64(3)), LogTerm: new(uint64(1))}))
++	msgs := r.readMessages()
++	if len(msgs) != 1 || msgs[0].GetType() != pb.MsgAppResp || msgs[0].GetTo() != 1 ||
++		msgs[0].GetTerm() != 2 || msgs[0].GetIndex() != 0 || msgs[0].GetReject() {
++		t.Fatalf("unexpected response %v", msgs)
++	}
++}
++
++// TestLeaderIndexZeroAckSendsNoSnapshot: a leader of term 2 that has not yet
++// heard from peer 2 (StateProbe, Match 0, Next 4) receives the response of
++// TestStaleMsgAppGetsIndexZeroAck. It acknowledges nothing: the leader must not
++// move 2 to StateReplicate with Next = 1, which, with its log compacted at
++// index 1, would send 2 a MsgSnap although 2 holds the whole log.
++func TestLeaderIndexZeroAckSendsNoSnapshot(t *testing.T) {
++	s := newTestMemoryStorage(withPeers(1, 2, 3))
++	require.NoError(t, s.Append(index(1).terms(1, 1, 1)))
++	s.SetHardState(&pb.HardState{Term: new(uint64(1)), Commit: new(uint64(3))})
++	cs := &pb.ConfState{Voters: []uint64{1, 2, 3}}
++	_, err := s.CreateSnapshot(3, cs, nil)
++	require.NoError(t, err)
++	require.NoError(t, s.Compact(1))
++	r := newTestRaft(1, 10, 1, s)
++	r.checkQuorum = true
++	r.becomeCandidate() // term 2
++	r.becomeLeader()
++	r.readMessages()
++	pr := r.trk.Progress[2]
++	require.Equal(t, tracker.StateProbe, pr.State)
++	require.Equal(t, uint64(0), pr.Match)
++	require.Equal(t, uint64(4), pr.Next)
++	require.NoError(t, r.Step(&pb.Message{From: new(uint64(2)), To: new(uint64(1)), Term: new(uint64(2)),
++		Type: pb.MsgAppResp.Enum()}))
++	pr = r.trk.Progress[2]
++	require.Equal(t, tracker.StateProbe, pr.State, "%v", pr)
++	require.Equal(t, uint64(0), pr.Match)
++	require.Equal(t, uint64(4), pr.Next)
++	for _, m := range r.readMessages() {
++		require.NotEqual(t, pb.MsgSnap, m.GetType(), "%v", DescribeMessage(m, nil))
++	}
++}
++
+ // TestBcastBeat is when the leader receives a heartbeat tick, it should
+ // send a MsgHeartbeat with m.Index = 0, m.LogTerm=0 and empty entries.
+ func TestBcastBeat(t *testing.T) {
+-- 
+2.53.0
+

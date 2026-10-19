@@ -2,9 +2,10 @@
 Package initialization of `go_uber_org.zap.zapcore`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
+Its fact is `True`. Its initializer initializes its imports, runs the untranslated
 initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
 -/
 module
 
@@ -65,6 +66,16 @@ axiom opaqueInitsOk :
         «_».init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `go_uber_org.zap.zapcore`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 end go_uber_org.zap.zapcore
 end opaqueInits
 
@@ -114,6 +125,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 

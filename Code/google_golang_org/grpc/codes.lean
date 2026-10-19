@@ -75,6 +75,9 @@ noncomputable def strToCode [FfiSyntax] [GoGlobalContext] : GoString :=
 
 axiom strToCode.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc/codes.init.0"
+
 noncomputable def canonicalString [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.canonicalString"
 
@@ -87,8 +90,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.codes)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val strToCode.init) (Val #())))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val strToCode.init) (Val #()))))))))
 
 abbrev Code [FfiSyntax] : Type := w32
 

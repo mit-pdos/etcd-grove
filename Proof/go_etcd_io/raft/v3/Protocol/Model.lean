@@ -1292,6 +1292,17 @@ def CampOk (T : w64) (F : List EntryM) : Prop :=
   PlogWf base0 F ∧
   ∀ (j x : w64), plogTermAt base0 F j = some x → uint.Z x < uint.Z T
 
+/-- (2026-10-19, D21 M3) What `handleAppendEntries` computes for a rejection's hint, at a log
+`(b, l)` rejecting `(logterm, index)`: `findConflictByTerm(min(index, lastIndex), logterm)`, at
+most the rejected index, and at least `1` once the index and the log's last index are and the
+log's term at `1`, if it has one, is at most `logterm` (the walk down stops there). What the
+leader's `MaybeDecrTo` needs to keep a peer's `Next ≥ 2` in the no-snapshot mode (`isMessage`'s
+clause of a rejecting `appResp`). -/
+def RejHintOk (b : entryID) (l : List EntryM) (index logterm hint : w64) : Prop :=
+  uint.Z hint ≤ uint.Z index ∧
+  (1 ≤ uint.Z index → 1 ≤ plogLastIndexZ b l →
+    (∀ t0, plogTermAt b l (W64 1) = some t0 → uint.Z t0 ≤ uint.Z logterm) → 1 ≤ uint.Z hint)
+
 /-- What an entry's record says of its predecessor term `pt` (`isEntryR`): the entry,
 at index `k`, is past the leader's campaign log `F0`; it follows `F0`'s last entry or
 one of its own term; `pt ≤ T`. -/
@@ -1737,7 +1748,9 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
   /-- `handleAppendEntries`, rejecting: the log does not have `(logterm, index)`. The
-  hint is an optimisation; any is allowed. -/
+  hint is an optimisation; (2026-10-19, D21 M3) what `findConflictByTerm` computes
+  (`RejHintOk`): at most the index, and at least `1` under the conditions the leader's
+  no-snapshot mode reads. -/
   | appReject (m : Msg) (s : PState) (hint hintterm : w64) :
       m.ty = .app →
       m.dst = id →
@@ -1746,6 +1759,7 @@ inductive Step : PState → List Msg → PState → Prop where
       s.role ≠ .leader →
       uint.Z s.commit ≤ uint.Z m.index →
       ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
+      RejHintOk s.base s.log m.index m.logterm hint →
       Step s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])

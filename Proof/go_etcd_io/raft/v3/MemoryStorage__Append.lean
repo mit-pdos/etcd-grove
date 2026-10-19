@@ -50,6 +50,7 @@ application's snapshot (both within the floor, which the batch is above). -/
 private theorem append_close (ms : Loc) (γs : MemStorNames) (σ σL S0 : StorState) (c : entryID)
     (H : List StorState) (p : List EntryM) (e0 : EntryM) (hp : p.head? = some e0)
     (Hde : DataEq σ σL) (Hcok : CutOk σL c ∧ uint.Z c.index' ≤ uint.Z S0.ss.index')
+    (Hccap : uint.Z c.index' ≤ γs.cap)
     (Hcb : uint.Z c.index' < uint.Z e0.Index')
     (Hhi : uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1)
     (Hsb : (S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal) ∨
@@ -106,6 +107,8 @@ private theorem append_close (ms : Loc) (γs : MemStorNames) (σ σL S0 : StorSt
     refine ⟨?_, Hcok.2⟩
     have := HcokS.app p (fun e he => by rw [hp] at he; cases he; exact Hcb) Hhi'
     simpa only [storAbsorb, storApp_pend] using this
+  isplitr
+  · ipureintro; exact Hccap
   icases Hsrel with (%Hs | ⟨%Hs, #Hc⟩)
   · ileft; ipureintro
     simp only [storAbsorb]
@@ -349,7 +352,7 @@ theorem MemoryStorage.Append.wp_proof
         ipureintro
         exact ⟨Hd0i, Hd0t⟩
       rw [← Hσf]
-      iapply append_close ms γs σ σL S c H (e0 :: rest) e0 rfl Hde Hcok Hcb He0hi0 Hsb Hok Hpbσ
+      iapply append_close ms γs σ σL S c H (e0 :: rest) e0 rfl Hde Hcok Hccap Hcb He0hi0 Hsb Hok Hpbσ
         $$ Hd_inv Hlbn Hlk_inv Hf' Hcb Hbd Hcfl Hsq Hsrel
     iapply HΦ
     isplitr [Hsb]
@@ -392,7 +395,7 @@ theorem MemoryStorage.Append.wp_proof
         ipureintro
         exact ⟨Hd0i, Hd0t⟩
       rw [← Hσf]
-      iapply append_close ms γs σ σL S c H (e0 :: rest) e0 rfl Hde Hcok Hcb He0hi0 Hsb Hok Hpbσ
+      iapply append_close ms γs σ σL S c H (e0 :: rest) e0 rfl Hde Hcok Hccap Hcb He0hi0 Hsb Hok Hpbσ
         $$ Hd_inv Hlbn Hlk_inv Hf' Hcb Hbd Hcfl Hsq Hsrel
     iapply HΦ
     isplitr [Hsb]

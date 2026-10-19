@@ -82,7 +82,10 @@ abbrev setupNode.spec : Prop :=
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog }}
+      ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog ∗
+      -- (2026-10-19, D21 M3) `Bootstrap`'s: in the no-snapshot mode, a storage never compacted
+      -- past `1`
+      NsCap γ.reNoSnap (interface.ok si) }}
     (App (App (Val #(functions setupNode [])) (Val #c)) (Val #peers))
   {{ (n : Loc), RET #n;
       R ∗ ∃ (nv : node) (rn : Loc),

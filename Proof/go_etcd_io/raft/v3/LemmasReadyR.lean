@@ -222,7 +222,8 @@ theorem readStatesPts_nil : ⊢ readStatesPts (GF := GF) slice.nil [] := by
 /-- The queued messages' contributions are in the outbox, so each one handed out was
 legitimately sent (`outboxRelP_isRaftMsg`, over a list). -/
 theorem outboxRelP_isRaftMsgs (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMsg)
-    (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2) :
+    (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
+    (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ [∗list] q ∈ l, isRaftMsg γ q.st := by
   induction l with
   | nil => iintro _; iempintro
@@ -230,7 +231,7 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QM
     iintro #Ho
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iapply outboxRelP_isRaftMsg γ o ms1 ms2 q Hp (Hsub q List.mem_cons_self) $$ Ho
+    · iapply outboxRelP_isRaftMsg γ o ms1 ms2 q Hp (Hsub q List.mem_cons_self) Hns $$ Ho
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))) $$ Ho
 
 /-- A hard state that may be `nil` and is not empty is a read-only one. -/
@@ -250,7 +251,7 @@ entries and no context, was legitimately sent (its contribution is in the outbox
 `outboxRelP_isRaftMsg`). -/
 theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms1 ms2 : List QMsg)
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
-    (Hok : ∀ q ∈ l, AAMsgOk id t q.st) :
+    (Hok : ∀ q ∈ l, AAMsgOk id t q.st) (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap) :
     ⊢ ([∗list] x ∈ o, isMessage (GF := GF) γ x) -∗ ([∗list] q ∈ l, selfOwn (GF := GF) id q) -∗
       pendList γ id ((selfmsgs id l).map QMsg.loc)
         ((selfmsgs id l).map (fun q => selfPending q.st.msg)) := by
@@ -276,7 +277,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms1 ms2 : Lis
         isplitl [Hq]
         · iapply msgOwn_to_msgIn q.loc q.st (resp_ne_MsgApp _ Hresp)
           unfold selfOwn; simp only [h, ↓reduceIte]; iexact Hq
-        · ihave #Hr := outboxRelP_isRaftMsg γ o ms1 ms2 q Hp (Hsub q List.mem_cons_self) $$ Ho
+        · ihave #Hr := outboxRelP_isRaftMsg γ o ms1 ms2 q Hp (Hsub q List.mem_cons_self) Hns $$ Ho
           unfold pendingRel selfPending
           isplitr
           · ipureintro; exact ⟨Hsm, rfl, rfl⟩

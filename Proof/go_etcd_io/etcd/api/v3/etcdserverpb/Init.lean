@@ -73,6 +73,16 @@ axiom opaqueInitsOk :
         file_rpc_proto_depIdxs.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `go_etcd_io.etcd.api.v3.etcdserverpb`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 /-- `RangeRequest_SortOrder_name = map[int32]string{...}` (`rpc.pb.go`): the enumeration's names, keys `0` to `2`. -/
 axiom RangeRequest_SortOrder_name_init :
     {{ (True : IProp GF) }} (App (Val RangeRequest_SortOrder_name.init) (Val #()))
@@ -172,6 +182,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pAm ⟨SAm, -⟩; try wp_auto
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pAs ⟨SAs, -⟩; try wp_auto
   try wp_auto
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  wp_apply (initFuncsOk init.«1» (by mem_tac))
+  wp_apply (initFuncsOk init.«2» (by mem_tac))
   ipersist SKVm
   ipersist SKVs
   ipersist SWm

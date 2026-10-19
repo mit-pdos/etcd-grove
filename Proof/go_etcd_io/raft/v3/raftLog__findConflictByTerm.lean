@@ -29,14 +29,19 @@ theorem raftLog.findConflictByTerm.wp_proof
   wp_start as H
   iNamed H
   wp_auto
+  -- (D21 M3) the walk stops at or above `1` once the log's term at `1` (if it has one) is at
+  -- most `term`
   ihave IH : iprop(∃ (idx : w64),
       "index" ∷ index_ptr ↦ idx ∗
       "Hlog" ∷ ownRaftLog l ls ∗
-      "%Hidx" ∷ ⌜uint.Z idx ≤ uint.Z index⌝) $$ [index Hlog]
+      "%Hidx" ∷ ⌜uint.Z idx ≤ uint.Z index ∧
+        (1 ≤ uint.Z index →
+          (∀ t0, plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 1) = some t0 →
+            uint.Z t0 ≤ uint.Z term) → 1 ≤ uint.Z idx)⌝) $$ [index Hlog]
   · iexists index
     iframe
     ipureintro
-    omega
+    exact ⟨Int.le_refl _, fun h _ => h⟩
   wp_for IH
   wp_if_destruct
   · wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr, %Ht, -⟩
@@ -47,7 +52,7 @@ theorem raftLog.findConflictByTerm.wp_proof
       iapply HΦ
       iframe
       ipureintro
-      exact Hidx
+      exact ⟨Hidx.1, fun _ _ => by word⟩
     | nil =>
       wp_auto
       wp_if_destruct
@@ -55,17 +60,24 @@ theorem raftLog.findConflictByTerm.wp_proof
         iapply HΦ
         iframe
         ipureintro
-        exact Hidx
+        exact ⟨Hidx.1, fun _ _ => by word⟩
       · wp_for_post
         iframe
         iexists _
         iframe
         ipureintro
-        word
+        refine ⟨by word, fun h1 hC => ?_⟩
+        have H1 := Hidx.2 h1 hC
+        by_cases hi : uint.Z idx = 1
+        · exfalso
+          have hw : idx = W64 1 := by word
+          have := hC t (by rw [← hw]; exact Ht rfl)
+          word
+        · word
   · iapply HΦ
     iframe
     ipureintro
-    word
+    exact ⟨by word, fun h1 hC => by have := Hidx.2 h1 hC; word⟩
 
 end proof
 

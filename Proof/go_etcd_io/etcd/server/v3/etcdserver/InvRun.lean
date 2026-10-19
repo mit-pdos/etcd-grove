@@ -232,6 +232,8 @@ structure ApplyCtx (GF : BundledGFunctors) where
   /-- (D19i part 1) the raft wrapper's `MemoryStorage` and its names (`srvSnapState`) -/
   ms : Loc
   γs : MemStorNames
+  /-- (2026-10-19, D21 M3) the write budget's counter (`srvWTPool`) -/
+  wt : GName
 
 /-- **The apply thread's KV ghost state at the committed raft log `A`** (2026-10-14, unit T1):
 `kvApplied`, with the model's start index and consistent index the apply thread's. -/
@@ -246,8 +248,10 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread C.γ st ∗ applyBackend C.γ C.ci C.b ∗ ciApplying C.ci a t ∗
     srvLgReader C.s ∗ srvBemuReader C.s ∗ srvWgReader C.s ∗ srvApplyKV C.s C.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
+    -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap
+    srvWTAt C.wt ai ∗
     ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
-      entriesStep C.c₀ A C.x₀ x⌝)
+      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap⌝)
 
 /-- The raft node contract's environment of the server: `E.C` is `srvC` (the rest is the raft
 wrapper's: messages, ticks, read names, read registrations). -/
@@ -374,7 +378,8 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "#HWB" ∷ srvWTPool E.γ)
+    -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
+    "#HWB" ∷ (∃ γp : GName, srvWTPool E.γ γp ∗ srvWTAt γp ai₀))
 
 end defs
 

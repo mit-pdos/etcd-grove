@@ -23,30 +23,34 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **Claiming an id** for the data `d` with the ghost name `γf`, given the claimer's fact
-`□ Φ id d γf`: its issued map element goes from `none` to `some (d, γf)`, read-only from then
-on, and the fact is kept in the generator's invariant. -/
+/-- **Claiming an id** of the member's prefix for the data `d` with the ghost name `γf`, given the
+claimer's fact `□ Φ id d γf`: its element of the cluster's issued map goes from `none` to
+`some (d, γf)`, read-only from then on, and the fact is kept in the cluster's claims invariant (at
+the member's prefix, whose facts are the generator's `Φ`; D21e (A)). -/
 theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) (id : w64)
-    (d : List w8) (γf : GName) (E : CoPset) (HE : ↑idN ⊆ E) :
-    ⊢ idGen (GF := GF) γi g Φ -∗ idUnclaimed γi id -∗ □ Φ id d γf ={E}=∗ idClaim γi id d γf := by
-  iintro #Hg Hu #HΦ
+    (d : List w8) (γf : GName) (E : CoPset) (HE : ↑idClusterN ⊆ E) :
+    ⊢ idGen (GF := GF) γi g Φ -∗ idUnclaimed γi id -∗ ⌜idPfx id = γi.pfx⌝ -∗ □ Φ id d γf ={E}=∗
+      idClaim γi id d γf := by
+  iintro #Hg Hu %Hp #HΦ
   iunfold idGen at Hg
-  icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
-  iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%Hdom, HF⟩
+  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %Φs, %HΦs, #Hcl⟩
+  iunfold idClusterInv at Hcl
+  iinv Hcl with Hi Hclose
+  icases Hi with ⟨%I, %C, >HI, >HC, >%Hok, HF⟩
   iunfold idUnclaimed at Hu
   icombine HI Hu gives %Hlk
   have Hlk' : I.lookup id = some none := Hlk
   imod ghost_map_update (some (d, γf)) $$ HI Hu with ⟨HI, Hu⟩
   imod ghostMapElem_persist $$ Hu with Hu
-  imod Hclose $$ [Hsuf Hcred HI HS HF] with -
+  have hΦ : Φs (idPfx id) = Φ := by rw [Hp, HΦs]
+  imod Hclose $$ [HI HC HF] with -
   · inext
-    iexists k, (I.insert id (some (d, γf))), S
-    iframe Hsuf Hcred HI HS
+    iexists (I.insert id (some (d, γf))), C
+    iframe HI HC
     isplitr
     · ipureintro
-      refine fun id' => ⟨?_, (Hdom id').2⟩
-      rw [← (Hdom id').1]
+      refine ⟨fun id' => ?_, Hok.2⟩
+      rw [← Hok.1 id']
       have := GMap.lookup_insert_is_Some I id id' (some (d, γf))
       rw [this]
       by_cases h : id = id'
@@ -54,37 +58,45 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
       · simp [h]
     iunfold idClaimsFacts at HF
     iunfold idClaimsFacts
-    ihave ⟨-, Hk⟩ := (BigSepM.bigSepM_insert_acc (PROP := IProp GF) (m := I) (Φ := idClaimFact Φ) Hlk') $$ HF
+    ihave ⟨-, Hk⟩ := (BigSepM.bigSepM_insert_acc (PROP := IProp GF) (m := I)
+      (Φ := fun id v => idClaimFact (Φs (idPfx id)) id v) Hlk') $$ HF
     iapply Hk
+    simp only [hΦ]
     iunfold idClaimFact
     iexact HΦ
   imodintro
   iunfold idClaim
   iexact Hu
 
-/-- **A claim's fact**: the claimer's `Φ`, from the generator's invariant. -/
+/-- **A claim's fact**, of an id of the member's prefix: the claimer's `Φ`, from the cluster's
+claims invariant (D21e (A): an id of another prefix has that member's facts). -/
 theorem idClaim_fact (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) (id : w64)
-    (d : List w8) (γf : GName) (E : CoPset) (HE : ↑idN ⊆ E) :
-    ⊢ idGen (GF := GF) γi g Φ -∗ idClaim γi id d γf ={E}=∗ ▷ □ Φ id d γf := by
-  iintro #Hg #Hc
+    (d : List w8) (γf : GName) (E : CoPset) (HE : ↑idClusterN ⊆ E) :
+    ⊢ idGen (GF := GF) γi g Φ -∗ idClaim γi id d γf -∗ ⌜idPfx id = γi.pfx⌝ ={E}=∗
+      ▷ □ Φ id d γf := by
+  iintro #Hg #Hc %Hp
   iunfold idGen at Hg
-  icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hinv⟩
-  iinv Hinv with Hi Hclose
-  icases Hi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%Hdom, HF⟩
+  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %Φs, %HΦs, #Hcl⟩
+  iunfold idClusterInv at Hcl
+  iinv Hcl with Hi Hclose
+  icases Hi with ⟨%I, %C, >HI, >HC, >%Hok, HF⟩
   iunfold idClaim at Hc
   ihave %Hlk := ghost_map_lookup $$ HI Hc
+  have hΦ : Φs (idPfx id) = Φ := by rw [Hp, HΦs]
   iunfold idClaimsFacts at HF
   ihave #Hf : iprop(▷ □ Φ id d γf) $$ [HF]
   · inext
-    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := I) (Φ := idClaimFact Φ) Hlk).1 $$ HF with ⟨Hf, -⟩
+    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := I)
+      (Φ := fun id v => idClaimFact (Φs (idPfx id)) id v) Hlk).1 $$ HF with ⟨Hf, -⟩
+    simp only [hΦ]
     iunfold idClaimFact at Hf
     iexact Hf
-  imod Hclose $$ [Hsuf Hcred HI HS HF] with -
+  imod Hclose $$ [HI HC HF] with -
   · inext
-    iexists k, I, S
-    iframe Hsuf Hcred HI HS
+    iexists I, C
+    iframe HI HC
     isplitr
-    · ipureintro; exact Hdom
+    · ipureintro; exact Hok
     iunfold idClaimsFacts
     iexact HF
   imodintro

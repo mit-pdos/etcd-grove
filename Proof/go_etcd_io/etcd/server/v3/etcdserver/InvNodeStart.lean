@@ -35,7 +35,9 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 

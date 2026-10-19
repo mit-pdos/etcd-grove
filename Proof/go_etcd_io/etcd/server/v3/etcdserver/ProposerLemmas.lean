@@ -24,6 +24,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 theorem idN_mintN : (↑idN : CoPset) ⊆ ⊤ \ ↑srvMintN :=
   mask_ndot_ne' nroot "idutil" "server_mint" (by decide)
 
+theorem idClusterN_mintN : (↑idClusterN : CoPset) ⊆ ⊤ \ ↑srvMintN :=
+  mask_ndot_ne' nroot "idutil_cluster" "server_mint" (by decide)
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -40,7 +43,8 @@ token is of data claimed under their id). The claim records the proposer's floor
 log its client saw; the vertical slice's unit V2) at a fresh ghost name `γf` (`floorAt`). -/
 theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) (d : List w8)
     (rq : apply.IRRModel) (F : mvcc.Log)
-    (Hd : apply.irrDecode d = some rq) (Hid : apply.irrId rq = some id) :
+    (Hd : apply.irrDecode d = some rq) (Hid : apply.irrId rq = some id)
+    (Hp : idPfx id = ρ.ids.pfx) :
     ⊢ idGen (GF := GF) ρ.ids g (srvFloorFact E) -∗ srvMintInv ρ -∗ idUnclaimed ρ.ids id -∗
       mvcc.idxCert E.γ.idx F ={⊤}=∗
       ∃ γf : GName, idClaim ρ.ids id d γf ∗ floorAt γf F ∗ srvPropFresh ρ.raft d := by
@@ -51,6 +55,7 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
   · iunfold floorAt; iexact Hγ
   iunfold srvMintInv at Hm
   icases Hm with ⟨#Hm, -⟩
+  iunfold srvPropMint at Hm
   iinv Hm with >Hi Hclose
   icases Hi with ⟨%Fm, HF', HFs⟩
   cases hF : Fm !! d with
@@ -65,7 +70,8 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
     iexfalso
     iapply idClaim_unclaimed $$ Hc Hu
   | none =>
-    imod idClaim_make ρ.ids g (srvFloorFact E) id d γf (⊤ \ ↑srvMintN) idN_mintN $$ Hg Hu [] with #Hc
+    imod idClaim_make ρ.ids g (srvFloorFact E) id d γf (⊤ \ ↑srvMintN) idClusterN_mintN
+      $$ Hg Hu %Hp [] with #Hc
     · imodintro
       iunfold srvFloorFact
       iexists F

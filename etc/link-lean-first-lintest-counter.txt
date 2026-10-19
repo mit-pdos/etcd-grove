@@ -9,3 +9,6 @@ counter_Model:
 counter_New:
 counter_Counter__Apply:
 counter_Check: Run counter_Model counter_New counter_Counter__Apply
+# the program (Main), over the driver's clock (linked in lintest's `Link.lean`)
+CounterClock: @
+counter_Main: CounterClock counter_Check

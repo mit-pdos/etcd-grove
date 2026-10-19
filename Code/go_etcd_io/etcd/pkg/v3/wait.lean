@@ -65,6 +65,9 @@ noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewWithResponse [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/wait.NewWithResponse"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/pkg/v3/wait.init.0"
+
 noncomputable def NewTimeList [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/wait.NewTimeList"
 
@@ -276,6 +279,21 @@ noncomputable def waitWithResponse.IsRegistered.impl [FfiSyntax] [GoGlobalContex
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"waitWithResponse.IsRegistered() shouldn't be called")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))
 
+/-- go: wait_time.go:30:6 -/
+noncomputable def init.«0».impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GlobalVarAddr closec))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr closec))) (Val #())) (Var "$r0")))))))))
+
 /-- go: wait_time.go:38:6 -/
 noncomputable def NewTimeList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -389,18 +407,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GlobalVarAddr closec))) (Val #())))
-  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr closec))) (Val #())) (Var "$r0"))))))))) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.log.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -595,6 +602,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   timeList_instance : timeList.TypeAssumptions
   New_unfold : FuncUnfold New [] New.impl
   NewWithResponse_unfold : FuncUnfold NewWithResponse [] NewWithResponse.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   NewTimeList_unfold : FuncUnfold NewTimeList [] NewTimeList.impl
   import_log_Assumption : _root_.Perennial.log.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -607,6 +615,7 @@ attribute [instance] Assumptions.Wait_instance
   Assumptions.timeList_instance
   Assumptions.New_unfold
   Assumptions.NewWithResponse_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.NewTimeList_unfold
   Assumptions.import_log_Assumption
   Assumptions.import_sync_Assumption

@@ -1,6 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
-`cacheContains(model, bucket, linearized, state)`: a loop over the bucket.
+`cacheContains(model, bucket, linearized, state)`: a loop over the bucket. Each entry's state is
+opened from its invariant (`shared_acc`, with the later credit of a pure step before `Equal`) for
+its `Equal` against the candidate, and closed after it.
 -/
 module
 
@@ -20,13 +22,13 @@ open Iris Iris.BI Iris.ProofMode github_com.anishathalye.porcupine
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NaInvG GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 theorem cacheContains.wp_proof (wp_equal : bitset.equal.spec (GF := GF) (hG := hG)) :
-    cacheContains.spec (GF := GF) (hG := hG) := fun σ S m P bk ces dqb lin ws dq st t => by
-  wp_start as ⟨#Heh, Hbk, #Hces, Hlin, #Hst⟩
+    cacheContains.spec (GF := GF) (hG := hG) := fun σ S m p P bk ces dqb lin ws dq st t => by
+  wp_start as ⟨#Heh, Hbk, #Hces, Hlin, Hst, Htok⟩
   ihave %Hlen := ownSlice_len $$ Hbk
   wp_auto
   ihave HI : (∃ (i : w64) (e : cacheEntry),
@@ -42,7 +44,7 @@ theorem cacheContains.wp_proof (wp_equal : bitset.equal.spec (GF := GF) (hG := h
     list_elem ces (sint.nat i) as ce
     wp_apply wp_load_slice_index bk (sint.Z i) ces dqb ce Hi.1 $$ [Hbk] as Hbk
     · iframe; ipureintro; exact Hce_lookup
-    ihave #Hce := BigSepL.bigSepL_lookup (Φ := fun _ ce => cacheEntryOk S P ce) Hce_lookup $$ Hces
+    ihave #Hce := BigSepL.bigSepL_lookup (Φ := fun _ ce => cacheEntryOk S p P ce) Hce_lookup $$ Hces
     unfold cacheEntryOk
     icases Hce with ⟨%ws', %t', #Hws', #Ht', %HP⟩
     wp_method_call
@@ -51,10 +53,12 @@ theorem cacheContains.wp_proof (wp_equal : bitset.equal.spec (GF := GF) (hG := h
     wp_apply wp_equal $$ [$Hlin $Hws'] as ⟨Hlin, -⟩
     by_cases hw : ws = ws'
     · simp only [hw, _root_.decide_true]
-      wp_auto
+      wp_auto_lc 1
       unfold isEqHash equalSpec
       icases Heh with ⟨-, #Heq, -⟩
-      wp_apply Heq $$ %st %ce.state' %t %t' [$Hst $Ht'] as %b %Hb
+      imod shared_acc S p ce.state' t' $$ [$Ht' $Htok $Hlc1] with ⟨Hrep, Hclose⟩
+      wp_apply Heq $$ %st %ce.state' %t %t' [$Hst $Hrep] as %b ⟨Hst, Hrep, %Hb⟩
+      imod Hclose $$ Hrep with Htok
       cases b
       · wp_auto
         wp_for_post

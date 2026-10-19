@@ -95,7 +95,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
   · iPkgInit
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
-  icases guard_of_slots _ _ $$ Hslots with ⟨-, #Hmug⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
   ipersist lgR
   ipersist tickMuR
   ipersist lgC
@@ -206,6 +206,8 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     γ.reBoot = bootLog → BootLogOk γ.reCCOk ps bootLog →
     -- the server's names: the raft names, the start log empty, the policy
     E.γr.raft.raft = γ → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 → srvCCPolicy E.γr.raft →
+    -- (2026-10-19, D21 M3) in raft's no-snapshot mode, the storage at the cap `1`
+    (γ.reNoSnap = true → γs.cap ≤ 1) →
     letI : MemStorReg GF := ⟨reg⟩
     {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         -- the receiver, the config and its logger
@@ -295,9 +297,13 @@ theorem raftNode_of_StartNode (reg : GName)
   letI : MemStorReg GF := ⟨reg⟩
   intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
-    HbootOk HEγ HEpre HEai Hpol
+    HbootOk HEγ HEpre HEai Hpol Hcap
   iintro %Φ Hpre HΦ
   iNamed Hpre
+  ihave #Hnscap : NsCap (GF := GF) γ.reNoSnap (memStorIface bv.storage') $$ []
+  · iunfold NsCap
+    iintro !> %h
+    iapply memStorCap_intro bv.storage' γs 1 (Hcap h) $$ Hreg
   wp_apply (wp_bnr E γ bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
     Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
     Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost Htok]

@@ -88,9 +88,7 @@ theorem MemoryStorage.Term.wp_proof
     · iright
       isplitr
       · ipureintro; exact ⟨rfl, by omega⟩
-      iunfold memStorCut
-      iunfold memStorCut at Hcutlb
-      iapply monoNatLbOwn_le _ (by omega) $$ Hcutlb
+      iapply memStorCut_mono γs _ _ (by omega) (by have := uint_Z_nonneg i0; omega) $$ Hcutlb
     unfold ownMemoryStorage memSnapShare
     iframe # ∗
     ipureintro; exact Hbounded

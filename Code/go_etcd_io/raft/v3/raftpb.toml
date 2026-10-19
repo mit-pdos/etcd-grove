@@ -4,12 +4,12 @@
 # `Enum()`s, the hand-written confchange.go, confstate.go, util.go's `Ensure*`, alias.go's
 # names) but the protobuf runtime plumbing, which is names only: `ProtoReflect`,
 # `Descriptor`, `Reset`, `String`, the enums' `Type`/`Number`/`EnumDescriptor`/
-# `UnmarshalJSON`, the file descriptor and its initialization (`file_raft_proto*`, `init`).
+# `UnmarshalJSON`, the file descriptor and its initialization (`file_raft_proto*`, `init.0`).
 # (After the configuration of branch raft-upstream-1c0011d2-wip, 2026-10-09.)
 translate = ["*",
   "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String", "!*.EnumDescriptor",
   "!*.Type", "!*.Number", "!*.UnmarshalJSON", "!file_raft_proto*", "!File_raft_proto",
-  "!init"]
+  "!init.*"]
 
 # confstate.go calls into fmt, slices and proto (Clone, Equal); confchange.go into fmt,
 # strconv, strings and proto (Marshal); raft.pb.go into the protobuf runtime (names only,

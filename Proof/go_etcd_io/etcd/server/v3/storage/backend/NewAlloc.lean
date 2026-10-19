@@ -111,7 +111,7 @@ instance tmTok_fractional (γ : BNames) : Fractional (fun q => tmTok (GF := GF) 
 
 instance ptOwn_fractional {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
     Fractional (fun q => typedPointsto (GF := GF) l v (DFrac.own q)) where
-  fractional q1 q2 := ptsto_frac_add l v q1 q2
+  fractional q1 q2 := typedPointsto_frac_add l v q1 q2
 
 /-- A broadcast channel's owner also has its persistent `Unknown` view. -/
 theorem bchan_dup_unknown (ch : GoChan) (γ : ChanNames) (Q : IProp GF) (st : Broadcast) :

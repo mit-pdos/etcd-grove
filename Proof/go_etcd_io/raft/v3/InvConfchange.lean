@@ -30,7 +30,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvTracker
 public import Proof.go_etcd_io.raft.v3.Protocol.StepC
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 

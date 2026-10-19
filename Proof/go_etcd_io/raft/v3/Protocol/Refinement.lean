@@ -219,9 +219,11 @@ private theorem isMessage_appResp (γ : RaftNames) (src dst term idx : w64) :
   · iexact H
   · iexact Hi
 
-private theorem isMessage_appResp_rej (γ : RaftNames) (src dst term idx a b c : w64) :
+private theorem isMessage_appResp_rej (γ : RaftNames) (src dst term idx a b c : w64)
+    (H : γ.reBoot ≠ [] → (γ.reBoot.length : Int) < uint.Z idx ∧ 1 ≤ uint.Z c ∧
+      uint.Z c ≤ uint.Z idx) :
     ⊢ isMessage (GF := GF) γ (Msg.mk .appResp src dst term true idx a b c []) := by
-  unfold isMessage; simp only [↓reduceIte]; exact true_intro
+  unfold isMessage; simp only [↓reduceIte]; iintro; ipureintro; exact H
 
 private theorem matchedOk_leader (γ : RaftNames) (s : PState) :
     s.role = .leader →
@@ -1446,29 +1448,124 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
   intro Hty Hfid Hterm Hrole
   exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole
 
-/-- `Step.appReject`: back to follower of `m.src`; a rejection carries nothing. -/
+/-- (2026-10-19, D21 M3) A follower's rejection of a leader's append, in a cluster with a non-empty
+bootstrap log, is of an index past the bootstrap log (both logs hold it, and the follower's commit
+index is at least its length), with a hint at least `1` (the walk stops at the bootstrap log's
+first entry, of term `1`, at most the leader's term at the index) and at most the index. -/
+theorem ownLogGhost_reject_ok (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
+    (m : Msg) (hint : w64) (Hty : m.ty = .app)
+    (Hle : uint.Z s.commit ≤ uint.Z m.index)
+    (Hnm : ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index))
+    (Hh : RejHintOk s.base s.log m.index m.logterm hint) :
+    ⊢ isMessage (GF := GF) γ m -∗ ownLogGhost γ id s kl -∗
+      ⌜γ.reBoot ≠ [] → (γ.reBoot.length : Int) < uint.Z m.index ∧ 1 ≤ uint.Z hint ∧
+        uint.Z hint ≤ uint.Z m.index⌝ ∗ ownLogGhost γ id s kl := by
+  iintro #Hm Hlg
+  icases isMessage_app_inv γ m Hty $$ Hm with ⟨-, -, ⟨%bL, %l, %fpL, #HlpL, %HlL, #HlfL, -⟩, -⟩
+  iunfold leadPrefix at HlpL
+  icases HlpL with ⟨-, %γt, %l0, -, -, #HrL, -⟩
+  iunfold lpfull at HlfL
+  icases HlfL with ⟨%F0, -, #HfrL, %HfL⟩
+  obtain ⟨HfokL, -, HwfL, -⟩ := HfL
+  ihave #HrFL := logRecs_full γ bL fpL l HfokL $$ HfrL HrL
+  have HwFL := full_wf _ _ _ HfokL HwfL
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  have Hf := Hfull.1
+  have Hw := Hfull.2.1
+  have HwF := full_wf _ _ _ Hf Hw
+  ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
+  icases logRecs_boot_termAt γ (fp ++ s.log) HwF $$ HrF with %HtF
+  icases logRecs_boot_termAt γ (fpL ++ l) HwFL $$ HrFL with %HtL
+  icases logRecs_boot γ (fp ++ s.log) HwF $$ HrF with %HbF
+  -- the leader's term at the index, in its full log
+  have HlL1 := HlL.1
+  have HrgL := plogTermAt_some_range _ _ _ _ HlL1
+  have HfullL : plogTermAt base0 (fpL ++ l) m.index = some m.logterm := by
+    rw [full_term_at _ _ _ _ HfokL HrgL.1]; exact HlL1
+  have HlenL := full_last_index _ fpL l HfokL
+  have HlenF := full_last_index _ fp s.log Hf
+  -- is it at least `1`?
+  ihave %Hlt1 : ⌜1 ≤ uint.Z m.index → γ.reBoot ≠ [] → 1 ≤ uint.Z m.logterm⌝ $$ []
+  · by_cases Hi : 1 ≤ uint.Z m.index
+    · icases logRecs_termAt_pos γ (fpL ++ l) m.index m.logterm HfullL Hi $$ HrFL with %Hp
+      ipureintro; intro _; exact Hp
+    · ipureintro; intro h; exact absurd h Hi
+  isplitr
+  · ipureintro
+    intro Hne
+    have Hbl : 1 ≤ (γ.reBoot.length : Int) := by
+      have := List.length_pos_iff.mpr Hne; omega
+    have Hlok2 := Hlog_ok.2.1
+    have Hlok3 := Hlog_ok.2.2
+    -- past the bootstrap log: at its last index both logs hold the boot entry
+    have Hpast : (γ.reBoot.length : Int) < uint.Z m.index := by
+      refine Int.lt_of_not_ge fun Hge => Hnm ?_
+      have Hidx : uint.Z m.index = (γ.reBoot.length : Int) := by omega
+      unfold PlogMatches
+      simp only
+      have Hfi : uint.Z s.base.index' ≤ uint.Z m.index := by omega
+      rw [← full_term_at _ _ _ _ Hf Hfi]
+      have HrgL2 := HrgL.2
+      rw [← HlenL] at HrgL2
+      unfold plogLastIndexZ at HrgL2; rw [base0_index] at HrgL2
+      have HlF : uint.Z m.index ≤ ((fp ++ s.log).length : Int) := by
+        have h2 := Hlok3
+        rw [← HlenF] at h2; unfold plogLastIndexZ at h2; rw [base0_index] at h2; omega
+      have HlL : uint.Z m.index ≤ ((fpL ++ l).length : Int) := by omega
+      rw [← HtF m.index (by omega) HlF, HtL m.index (by omega) HlL]
+      exact HfullL
+    refine ⟨Hpast, ?_, Hh.1⟩
+    refine Hh.2 (by omega) (by omega) (fun t0 Ht0 => ?_)
+    have Hlt := Hlt1 (by omega) Hne
+    -- the follower's term at `1` is the boot entry's, `1`
+    have Hr1 := plogTermAt_some_range _ _ _ _ Ht0
+    rw [← full_term_at _ _ _ _ Hf Hr1.1] at Ht0
+    unfold plogTermAt at Ht0
+    rw [base0_index] at Ht0
+    simp only [show ¬ (uint.Z (W64 1) < 0) by word, show ¬ (uint.Z (W64 1) = 0) by word,
+      ↓reduceIte] at Ht0
+    have Hk : (uint.Z (W64 1) - 0 - 1).toNat = 0 := by word
+    rw [Hk] at Ht0
+    cases He : (fp ++ s.log)[0]? with
+    | none => rw [He] at Ht0; cases Ht0
+    | some e =>
+      rw [He] at Ht0
+      simp at Ht0
+      have := (HbF 0 e He (by have := List.length_pos_iff.mpr Hne; omega)).2
+      rw [← Ht0, this]; word
+  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iframe % # ∗
+
+/-- `Step.appReject`: back to follower of `m.src`; (2026-10-19, D21 M3) the rejection carries
+`ownLogGhost_reject_ok`'s facts. -/
 theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (hint hintterm : w64) :
     m.ty = .app →
     m.src ≠ id →
     s.role ≠ .leader →
+    uint.Z s.commit ≤ uint.Z m.index →
+    ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
+    RejHintOk s.base s.log m.index m.logterm hint →
     ⊢ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term true m.index
               hintterm (W64 0) hint []]) md := by
-  intro _ Hfid Hrole
-  iintro #_ Hown
+  intro Hty Hfid Hrole Hle Hnm Hh
+  iintro #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
+  icases ownLogGhost_reject_ok γ id s kl m hint Hty Hle Hnm Hh $$ Hm Hlg with ⟨%Hrok, Hlg⟩
   imodintro
   iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
-    iapply isMessage_appResp_rej
+    iapply isMessage_appResp_rej _ _ _ _ _ _ _ _ Hrok
   · iapply tally_empty γ id _ (by rfl)
   · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
   · iapply ownLogGhost_mono γ id s _ kl (by rfl) (by rfl) (by rfl)
@@ -1508,6 +1605,111 @@ theorem ownRaftGhost_ackIn_le (γ : RaftNames) (id : w64) (s : PState) (i : w64)
   icases Hres with ⟨%Hle, Hlg⟩
   isplitr
   · ipureintro; exact Hle
+  iapply ownRaftGhost_intro γ id s γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally Hlead Hlg [] [] Hvrecs [] Hlcm Hrd
+  · ipureintro; exact Hhist
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+
+/-- (2026-10-19, D21 M3) A node's term at index `1`, if its log has one, is the bootstrap log's
+first entry's, `1`, once the bootstrap log is non-empty. -/
+theorem ownLogGhost_term1 (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl -∗
+      ⌜γ.reBoot ≠ [] → ∀ t0, plogTermAt s.base s.log (W64 1) = some t0 → uint.Z t0 ≤ 1⌝ ∗
+      ownLogGhost γ id s kl := by
+  iintro Hlg
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  have Hf := Hfull.1
+  have Hw := Hfull.2.1
+  have HwF := full_wf _ _ _ Hf Hw
+  ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
+  icases logRecs_boot γ (fp ++ s.log) HwF $$ HrF with %HbF
+  isplitr
+  · ipureintro
+    intro Hne t0 Ht0
+    have Hr1 := plogTermAt_some_range _ _ _ _ Ht0
+    rw [← full_term_at _ _ _ _ Hf Hr1.1] at Ht0
+    unfold plogTermAt at Ht0
+    rw [base0_index] at Ht0
+    simp only [show ¬ (uint.Z (W64 1) < 0) by word, show ¬ (uint.Z (W64 1) = 0) by word,
+      ↓reduceIte] at Ht0
+    have Hk : (uint.Z (W64 1) - 0 - 1).toNat = 0 := by word
+    rw [Hk] at Ht0
+    cases He : (fp ++ s.log)[0]? with
+    | none => rw [He] at Ht0; cases Ht0
+    | some e =>
+      rw [He] at Ht0
+      simp at Ht0
+      have := (HbF 0 e He (by have := List.length_pos_iff.mpr Hne; omega)).2
+      rw [← Ht0, this]; word
+  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iframe % # ∗
+
+theorem ownRaftGhost_term1 (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗
+      ⌜γ.reBoot ≠ [] → ∀ t0, plogTermAt s.base s.log (W64 1) = some t0 → uint.Z t0 ≤ 1⌝ ∗
+      ownRaftGhost γ id s md := by
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_term1 γ id s kl $$ Hlg with ⟨%Ht1, Hlg⟩
+  isplitr
+  · ipureintro; exact Ht1
+  iapply ownRaftGhost_intro γ id s γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally Hlead Hlg [] [] Hvrecs [] Hlcm Hrd
+  · ipureintro; exact Hhist
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+
+/-- (2026-10-19, D21 M3) With a non-empty bootstrap log a leader's last index is at least `2`:
+its campaign log holds the bootstrap log (`isCamp_boot`) and is a strict prefix of its full log
+(`campOwn`). -/
+theorem ownLogGhost_leader_last (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
+    ⊢ ownLogGhost (GF := GF) γ id s kl -∗
+      ⌜s.role = .leader → γ.reBoot ≠ [] → 2 ≤ plogLastIndexZ s.base s.log⌝ ∗
+      ownLogGhost γ id s kl := by
+  iintro Hlg
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  ihave %Hl : ⌜s.role = .leader → γ.reBoot ≠ [] → 2 ≤ plogLastIndexZ s.base s.log⌝ $$ []
+  · cases Hr : s.role with
+    | leader =>
+      iunfold campOwn at Hcown
+      rw [Hr]
+      icases Hcown with ⟨%F0, #Hc, %HF⟩
+      icases isCamp_boot γ id s.term F0 $$ Hc with %Hb
+      ipureintro
+      intro _ Hne
+      have Hpl := Hb.1.length_le
+      have Hbl : 1 ≤ γ.reBoot.length := List.length_pos_iff.mpr Hne
+      have HF2 := HF.2.1
+      rw [full_last_index _ _ _ Hfull.1] at HF2
+      unfold plogLastIndexZ at HF2 ⊢
+      rw [base0_index] at HF2
+      have := uint_Z_nonneg s.base.index'
+      have : uint.Z (W64 0) = 0 := rfl
+      omega
+    | _ => ipureintro; intro h; cases h
+  isplitr
+  · ipureintro; exact Hl
+  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iframe % # ∗
+
+theorem ownRaftGhost_leader_last (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗
+      ⌜s.role = .leader → γ.reBoot ≠ [] → 2 ≤ plogLastIndexZ s.base s.log⌝ ∗
+      ownRaftGhost γ id s md := by
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_leader_last γ id s kl $$ Hlg with ⟨%Ht1, Hlg⟩
+  isplitr
+  · ipureintro; exact Ht1
   iapply ownRaftGhost_intro γ id s γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally Hlead Hlg [] [] Hvrecs [] Hlcm Hrd
   · ipureintro; exact Hhist
   · ipureintro; exact Hlead_ok
@@ -4390,10 +4592,10 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
-  | appReject m s hint hintterm Hty _ Hfid _ Hrole _ _ =>
+  | appReject m s hint hintterm Hty _ Hfid _ Hrole Hle Hnm Hh =>
     iintro #Hrc Hregs Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
-    imod ownRaftGhost_step_app_reject γ id s m hint hintterm Hty Hfid Hrole $$ Hm Hown with Hown
+    imod ownRaftGhost_step_app_reject γ id s m hint hintterm Hty Hfid Hrole Hle Hnm Hh $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
   | heartbeat m s Hty Hto Hfid Hterm Hrole Hcm =>
     iintro #Hrc Hregs Hrecv - Hown

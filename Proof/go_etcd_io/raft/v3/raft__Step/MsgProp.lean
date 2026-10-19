@@ -387,7 +387,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
               Hrl (by have := Hrepl.length; omega))
             (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1)
               (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
-                have := (Hms m hm).2.2 h
+                have := (Hms m hm).2.2.1 h
                 simp only [proposed, sendMsgs] at this
                 rw [Hspp] at this; exact this)))
         · -- `StepR.propose`: the loop exactly, `pendingConfIndex` moved; then the broadcast

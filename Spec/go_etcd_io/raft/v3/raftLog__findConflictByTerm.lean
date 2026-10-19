@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `l.findConflictByTerm(index, term)`: a guess `(i', t')` at where our log stops
 agreeing with a log whose entry at `index` has term `term`.
 
-Only `i' <= index` is specified, and the log is unchanged. The result is a *hint* --
+Only `i' <= index` is specified (and, 2026-10-19, D21 M3, that the walk stops at or above `1`
+when the log's term at `1` is at most `term`), and the log is unchanged. The result is a *hint* --
 the `RejectHint`/`LogTerm` of a rejecting `MsgAppResp`, and the leader's next probe --
 and the protocol model takes any hint (`Step.appReject` quantifies over it), so
 pinning it buys nothing for safety.
@@ -49,7 +50,12 @@ abbrev raftLog.findConflictByTerm.spec : Prop :=
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"findConflictByTerm"))
       (Val #index)) (Val #term))
   {{ (i' t' : w64), RET (PairV #i' #t');
-      ownRaftLog l ls ∗ ⌜uint.Z i' ≤ uint.Z index⌝ }}
+      ownRaftLog l ls ∗ ⌜uint.Z i' ≤ uint.Z index ∧
+        -- (2026-10-19, D21 M3) the walk stops at or above `1` when the log's term at `1`, if it
+        -- has one, is at most `term` (a leader's rejection handling in the no-snapshot mode)
+        (1 ≤ uint.Z index →
+          (∀ t0, plogTermAt ls.prev (ls.sents ++ ls.uents) (W64 1) = some t0 →
+            uint.Z t0 ≤ uint.Z term) → 1 ≤ uint.Z i')⌝ }}
 
 end spec
 

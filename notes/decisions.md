@@ -6659,10 +6659,36 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   configurations each on the stack or without completion) with no termination argument
   (partial correctness).
 - **The model is specified by its closures** (`ModelSpec`: a deterministic `SeqModel` over
-  `(input, output)` interface values, a persistent `rep` of states, a persistent `ioOk` of an
+  `(input, output)` interface values, a `rep` of states, a persistent `ioOk` of an
   operation's input and output): what porcupine calls is exactly `Init`, `Step`/`StepContext`,
   `Equal`, `Hash`. `Equal` need only be sound (true ⇒ same state), `Hash` nothing: the cache is
   sound for any hash. *Rejected:* a pure model with the closures as a trusted translation.
+- **`StepContext` may refuse on a done context** (2026-10-19): etcd's robustness model returns
+  `(false, nil)` once `ctx.Err() != nil` (`nonDeterministicState.apply`), even for a step the
+  model allows, so `stepCtxSpec` takes the context (`isContext c cs`) and allows the answer
+  `false` with `□ cs.PDone` beside the model's. Never a wrong `true`: the checker would push and
+  cache a state that represents nothing. `checkSingle`'s loop carries `⌜Inv⌝ ∨ □ cs.PDone`
+  beside `searchInv` (whose pure part keeps only the model-free `FramesPos`): its spec already
+  allows `false` with the context done, so no caller's spec changes.
+- **`rep` is not necessarily persistent** (2026-10-19, decided with the user): etcd's robustness
+  model sorts its states in place in `Equal` (`issues/etcd-robustness-model-equal-mutates.md`),
+  so each closure spec takes the `rep`s it reads and gives them back, of the same abstract
+  states, and `checkSingle`, which keeps a state value in its stack, its cache and its current
+  state, shares each in a non-atomic invariant of a pool it allocates (`Shared.lean`; one
+  namespace, since it never opens two at once: `StepContext` opens the current state's, `Equal`
+  one cached entry's against the candidate, which is owned). *Rejected:* a persistent `rep`
+  (read-only: excludes etcd's model); a freshness premise on `Step`'s result (the separation of
+  the old and new `rep`s says it).
+- **`[NaInvG GF]` is assumed** (2026-10-19): the non-atomic invariants' camera is iris-lean's
+  `NaInvG GF`, and Perennial's ghost state is the one universal camera `allG`
+  (`Perennial/Ghost/All.lean`), which does not provide it. So every porcupine and lintest result
+  takes `[NaInvG GF]` (`etc/gen-link.py` emits `variable [NaInvG GF]` in the `--porcupine`,
+  `--lintest` and `--lintest-counter` modes, as it emits `EtcdModel` in `EM_MODES`): nothing in
+  this repository provides it at a `HeapGS`, so these results are conditional on it. The right
+  fix is in Perennial: `allG` should provide it (a code for the camera in `allG`'s syntax, or
+  `na_inv` rebuilt over `allG`), when the assumption goes. A closed theorem picks a concrete
+  bundle with a slot for `NaInvF` (`counterGF`, `lintest/counter/Adequacy.lean`), so it assumes
+  no instance.
 - **Cancellation as a token**: `checkSingle` returns `true`, or the history is not linearizable,
   or its context's Done proposition holds; `checkParallel` picks that proposition to be "this
   thread called `cancel`", minted from a token it holds until then, so a `false` result before it
@@ -9637,7 +9663,11 @@ with nothing past it). The modules are split by what they import, so that each s
 import graph: `Iris` needs only Perennial's ghost state (the raft protocol's `Ghost.lean` imports
 it without the heap), `GoString` only `Perennial.Golang.Defn.String`, `List` nothing.
 
-*Temporary, per fact.* `Proof/Lib/` is a holding place, not a library of this repository: each
+*Carried out (2026-10-19).* Every fact moved to Perennial (`lean`, `8d53c9e0d`) or was deleted (unused, or a one-liner from Lean core), and
+`Proof/Lib/` is gone (STATUS.md, "Proof/Lib: the package-independent facts"). A new fact of this
+kind goes to Perennial directly, on a branch off its `lean`, not into a holding place here.
+
+*Temporary, per fact.* `Proof/Lib/` was a holding place, not a library of this repository: each
 fact is one Perennial (or Lean core) is missing, and a candidate for an independent Perennial
 proposal under "Changes to Perennial" in CLAUDE.md (designed and reviewed on its own, not shaped
 by a proof here). A fact goes from `Proof/Lib/` when its Perennial counterpart lands, its users
@@ -10681,3 +10711,287 @@ stage's text in D21 is amended to say so.
 
 *M0 carried out (2026-10-19).* No Lean change. Output: this note, the amended M3 text, and
 `issues/raft-stale-term-appresp-index-zero-ack.md`. Stopped on (A1)/(A2) for the user.
+
+## D21 M1 carried out: the sender's message bundle (2026-10-19)
+
+Stage M1 of D21, as staged; no design choice beyond the text. The server's `E.M` keeps, for each
+message a `Ready` hands out, the message read-only, `isRaftMsg`, `termLB` and the read credit
+(`srvMsgNet`, `InvBuild.lean`), with `srvMsgNoSnap` beside it (from `"%Hone"` until M3); the transport
+contract's `Send` premise is unchanged in text (`[∗list] rnMsgOk E m`). One consequence the stage
+text did not spell out: since the read credit is one-shot, `rnMsgOk` and `E.M` are no longer
+persistent (`rnMsgOk E m := msgAt m to ty ∗ E.M m`; it was `□ E.M m`), so the wrapper's code
+threads them: `processMessages`'s loop owns the not-yet-read messages' bundles, and `start`'s
+leader send is a join that hands the bundles on to the follower's send. `msgSnapC`'s bag holds
+them owned, `srvMsgSnapC_false` unchanged in statement. Not carried (M2's, and M0's
+`MsgTimeoutNow` fact): `NetMsgOk` (the receiver's), a `MsgTimeoutNow`'s tick credit, a forwarded
+`MsgProp` owned (`fwdP`). Trust base unchanged.
+
+**D21c′ (the user, 2026-10-19): (A1).** Raft is fixed in the fork (the probe-to-replicate shortcut
+only when `pr.Next == pr.Match + 1`; `TestLeaderAppResp` case 4 updated); M3 proves `Next ≥ 2`,
+replicate ⇒ `Match ≥ 1` and `Next ≤ lastIndex + 1`, over the premise `receiptBound ≤
+SnapshotCatchUpEntries + 1` (`putget3` sets `SnapshotCatchUpEntries` large).
+
+## D21 M2: the network contract designed; stopped on the receiver's facts (D21g) and `Process`'s callees (D21h) (2026-10-19)
+
+Stage M2 of D21, design pass and translation check; no Lean change. Two things D21b did not
+foresee stop the stage, since both change specs or the trust base beyond D21b's estimate:
+**D21g** and **D21h** below, asked of the user. Everything else is settled here, so the stage can
+resume as soon as they are answered and M4 has committed (the regeneration rebuilds everything
+above the etcd translation, and `NewServer.lean`/putget's `Main` are M4's while it runs).
+
+### The translation (checked in a scratch copy, not regenerated)
+
+Pinned translator, etcd at the pin, **no fork change needed**. Configuration changes (nine
+generated files change, one new names-only package):
+- `Code/go_etcd_io/etcd/server/v3/etcdserver.toml`: `translate` gains `EtcdServer.Process`,
+  `EtcdServer.IsIDRemoved`, `EtcdServer.ReportUnreachable`, `EtcdServer.ReportSnapshot` and the
+  promoted wrappers `raftNode.Step`, `raftNodeConfig.Step`, `raftNode.ReportUnreachable`,
+  `raftNodeConfig.ReportUnreachable`, `raftNode.ReportSnapshot`, `raftNodeConfig.ReportSnapshot`
+  (the `MethodUnfold`s down to `raft.Node`, as for `Propose`); `imports` gains
+  `go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types` (`httptypes.NewHTTPError`, the two
+  `403` branches).
+- `etc/goose.py` (the etcd project's `packages`): `.../etcdserver/api/etcdhttp/types`, names-only,
+  with `Code/go_etcd_io/etcd/server/v3/etcdserver/api/etcdhttp/types.toml` a copy of
+  `v2stats.toml` (`translate = ["!*"]`). It joins etcdserver's imported packages, so
+  `etc/gen-init.py` must cover it (no package variables expected).
+- `Code/go_etcd_io/etcd/server/v3/etcdserver/api/membership.toml`: `RaftCluster.IsIDRemoved`, with
+  its body (`c.Lock()`, deferred `Unlock`, `c.removed[id]`).
+
+`Process`'s body (`server.go:699-721`) calls, on its live path: `s.Logger()` (translated),
+`s.cluster.IsIDRemoved(From)`, `s.MemberID()` (translated), and for a `MsgApp`
+`s.stats.RecvAppendReq(types.ID(From).String(), proto.Size(m))`, then `s.r.Step(ctx, m)`. The
+`403` branches (`zap.String`, `lg.Warn`, `httptypes.NewHTTPError`, `http.StatusForbidden`) are
+dead under the contract below.
+
+### The contract (D21b (A), made precise)
+
+Generic in what a message carries, so that D20 (b) plugs in without restating any axiom
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Net.lean`, to be written):
+
+- **The payload** `NetPayload GF`: `P : MsgSt → IProp GF` (persistent, what the receiver may
+  rely on, read as often as the message is delivered), `O : MsgSt → IProp GF` (one-shot),
+  `once : MsgSt → Prop` (delivered at most once), and `dup : ∀ st, ¬ once st → ⊢ |==> O st` (a
+  duplicate of another message gets its one-shot part anew).
+- **The network's names** `NetNames GF`: the payload `N`, a ghost name `g` for the members'
+  slots, and the URL directory `dir : w64 → List GoString`. `netSlot γn id` (exclusive) is
+  member `id`'s registration, allocated once for the cluster's ids (`netAlloc`, a ghost update in
+  the closed theorem's allocation; putget's one member included).
+- **A message sent** `netBundle N m`: `∃ st, msgOwn m □ st ∗ □ N.P st ∗ N.O st` (the sender's
+  message read-only for good: the transport's writer goroutines marshal it after `Send` returns).
+- **A message received** by member `id` at `ml`: `∃ st st', msgPtsC ml (own 1) (own 1) true st' ∗
+  ⌜wireEq st st' ∧ st.msg.To' = id⌝ ∗ □ N.P st ∗ N.O st` -- a fresh copy (unmarshalled:
+  `wireEq` is equality of the scalars, entries, context and snapshot, not of the `Responses`
+  pointers), owned with its entries' slots and capacity (what `fwdP` and a `MsgApp`'s `netP`
+  take), of a message sent into the network to `id`.
+- **The receiver's handler** `netRaftOk γn id r` (persistent): `r`'s `Process(ctx, ml)` for
+  `ctx` a context the node API takes (`nodeCtx`; rafthttp passes `context.TODO()` and the peer's
+  `context.WithCancel(context.Background())`) and a received message, returning some error;
+  `IsIDRemoved(id')`, `ReportUnreachable(id')`, `ReportSnapshot(id', s)` from `True`.
+- **Axioms.** `rafthttp.Transport.Send` (new): `{{ transportStarted γn t ∗ sl ↦* msL ∗
+  [∗list] m ∈ msL, netBundle γn.N m }} Send {{ True }}` (`isRNTransport`'s `Send` then derived for
+  any `E` whose `E.M m` gives `netBundle`). `Start` (restated): `transportEffectsOk` replaced by
+  `netSlot γn tv.ID' ∗ □ netRaftOk γn tv.ID' tv.Raft'`; what the axiom asserts of the Go code: the
+  transport's goroutines call `tv.Raft'` only as `netRaftOk` admits (`Process` with a message of
+  the network for `tv.ID'`, each sent message possibly lost, at most once if `once`, possibly
+  duplicated otherwise; the reports and `IsIDRemoved` at any time) and send nothing on `ErrorC`.
+  `AddPeer`/`AddRemote(id, us)` (restated): `transportEffectsOk` replaced by `ss = γn.dir id`.
+- **Why true of rafthttp** (`transport.go`, `peer.go`, `stream.go`, `pipeline.go`, `http.go` at
+  the pin): `Send` routes by `m.To` to the peer added for it, which posts to that peer's URLs;
+  every write is attempted once (stream writer and pipeline drop on error or a full buffer, report
+  `ReportUnreachable`, never retry), and a reader decodes each message once into a fresh
+  `raftpb.Message`, so a message is delivered at most once; the receiving transport's handler
+  hands it to its own `Raft.Process`. Realizable: per sent message, an invariant allocated at
+  `Send` holding `O st` or the transport's delivery token. Nothing reaches `ErrorC` because no
+  member says another was removed (static) and no message reaches the wrong member: the
+  deployment fact that every URL of `γn.dir id` is served by the transport holding `id`'s slot,
+  which excludes `issues/etcd-rafthttp-misaddressed-403-member-removed.md`'s run. It is stated
+  where the handler is served (M5: `putget3` serves each member's raft handler on that member's
+  own listener) -- in M2, with one member, no `AddPeer` or `AddRemote` runs.
+- **`transportEffectsOk` goes** (from `InvBoot.lean`, the three axioms, `NewServer.spec`, putget's
+  `Main` and `putget_safe`); `ckptEffectsOk` stays. `NewServer.spec` takes the member's slot and
+  the network's names instead.
+
+**The server's instance** `srvNet γ bud`: `P st := isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
+⌜SentOk st⌝` (D21g), `O st := rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0)`, `once st :=
+st.msg.Type' = MsgReadIndex`, `dup` from `rdCred_zero_upd`. `srvEr`'s `E.M` gives `netBundle`.
+
+**`Process`'s proof** (from the received message): `IsIDRemoved` is false (below), `To = id` by the
+promise, so both `403` branches are dead; a `MsgApp` calls `RecvAppendReq` and `proto.Size` (D21h);
+then `s.r.Step`, i.e. raft's `node.Step` with `stepP γ.node γ.id ml`: a `MsgProp` is `fwdP` (the
+copy owned, `isMessage (absMsg .propose ...)` from `isRaftMsg`), any other type `netP` (`NetMsgOk
+id` from `SentOk` and `To = id`; a pre-vote's `reBoot ≠ []` from `bootOk`'s bootstrap log;
+`termLB`; the read credit `O st`; the tick credit `0`, since `SentOk` excludes `MsgTimeoutNow`).
+`ReportUnreachable`/`ReportSnapshot` are raft's (`node.ReportUnreachable`/`ReportSnapshot`, proved).
+`isRaftNodeIfc` gains `Step` (`{{ nodeCtx ctx cd ∗ stepP γ.node γ.id ml }} … {{ err, nodeErr cd err
+}}`, from `node.Step.spec`) and the two reports. `netRaftOk` is proved at `tr.Start()` inside
+`NewServer` from the fields `Process` reads, persisted there (`s.cluster`, `s.stats`, `s.lgMu`'s
+logger, the member id, `s.r`'s embedded `Node`; `s.r.transport` is written later and not read).
+
+**`IsIDRemoved` with no axiom**: `membership.rcLockInv` gains the `removed` map, empty
+(`rcRemovedAddr c ↦ rm ∗ rm ↦$ ∅`); `RaftCluster.IsIDRemoved` is translated and proved `false`.
+True of every writer in the run: only `RemoveMember` and `UnsafeLoad` (from `Recover`: a restart
+or an applied snapshot) write `removed`, `cluster.go:258, 437`, all outside a static cluster
+booted once without snapshots; the existing axioms that hold the lock
+(`RaftCluster.String`, `SetVersionChangedNotifier`) and `bootstrap`'s contract
+(`NewClusterFromURLsMap` makes the map empty) keep it. Their statements are unchanged in text; what
+they assume grows by that clause, true of each.
+
+### Where D20 (b) plugs in
+
+The payload is the only server-specific part of the contract, so (b) changes the instance, not an
+axiom: `once st` becomes `st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp`, and `O st` gains,
+for a forwarded `MsgProp`, its one-shot proposal ticket (raft's half of (b): `readyData` hands out
+the ticket with each forwarded `MsgProp`, `fwdP` takes it, the first committed occurrence fires
+the update with it). `Send`, `Start`, `AddPeer`, `AddRemote` and `netRaftOk`'s shape stay;
+`Process`'s proof passes `O st` on to `fwdP` as it passes the read credit to `netP`. `dup` is
+unaffected (a `MsgProp` is then `once`, so the transport never duplicates it -- true of rafthttp,
+as for every message).
+
+### D21g. The receiver's `NetMsgOk`: where it comes from (asked of the user)
+
+`node.Step`'s `netP` takes `NetMsgOk id st` (`InvRawnode.lean:501`): the type among
+`netStepTypes`, and for a stamped type `To = id`, `Term ≠ 0`, `From ≠ 0`, `From ≠ id` for the
+leader-to-follower types and rejections, an unstamped type at term `0`, a transfer request empty.
+The register checks it at the transport (`deliverable`, `examples/register/cluster.go:40-64`);
+etcd's `Process` checks only `To` (and the sender not removed). The sender knows the rest, but
+raft's `readyData` does not say it: each message comes with `msgOwn`, `isRaftMsg` (its protocol
+abstraction: `isMessage` gives `src ≠ 0` for some types, nothing about `To ≠ From` or the term
+being stamped) and `termLB`. So does a `MsgTimeoutNow`'s tick credit, which no sender has: M0 found
+that no `MsgTimeoutNow` is sent because nothing steps a `MsgTransferLeader`, a fact about the run
+that raft's specs do not state. M1 left `NetMsgOk` "the receiver's"; with `Process` it cannot be.
+- *(A) A raft-side outbox fact.* `readyData` gives, per message, `SentOk id st`: `From = id ≠ 0`,
+  `To ≠ id`, the type one of `App`, `AppResp`, `Vote(Resp)`, `PreVote(Resp)`, `Heartbeat(Resp)`,
+  `ReadIndex(Resp)`, `Prop`, `Snap`; `Term ≠ 0` but for `Prop`/`ReadIndex`, which are at `0`;
+  never `MsgTimeoutNow` or `MsgTransferLeader`. Proved as a clause of `ownRaftPhys` beside
+  `"%Hout_term"` (`OutTermOk`) and `AAMsgOk`, from `send` (it stamps `From = r.id`; `SendOk` gives `To ≠ id`
+  for every message of `r.msgs`, and `readyWithoutAccept` hands out of `r.msgsAfterAppend` only
+  those with `To ≠ r.id`, `rawnode.go:175-182`), carried through `readyWithoutAccept`/
+  `acceptReady` and node's `readyData`; a response's term needs a fact of its own (the node's
+  term is nonzero once it answers a stamped message). The transfer half needs a node mode with transfers off:
+  `leadTransferee = 0` invariant, `MsgTransferLeader` excluded from what `Step` takes and
+  `TransferLeadership` from the node API in that mode (the server calls neither: `MoveLeader` is
+  uncalled, D19m), so `sendTimeoutNow` is dead. Raft's specs gain a clause (stronger
+  postconditions); no trust-base change. Medium; in raft's files that M3 also edits
+  (`InvRaftPhys`, `raft.go`'s proofs), so done by M3's agent or after it (stage **M2r**).
+- *(B) Weaken `netP`*: `RawNode.Step` proved without `NetMsgOk`'s clauses, raft checking what it
+  needs (it rejects local types and unknown responders, `rawnode.go`), the rest from `isMessage`.
+  Larger: `raft.Step`'s proofs use the clauses (a `MsgApp` from itself, an unstamped term), and a
+  `MsgTimeoutNow` still needs a credit, so the transfer half of (A) remains.
+- *(C) A premise "every message raft hands out is `SentOk`"*: not of D19a's kinds; rejected as
+  D21c (C).
+- *Recommendation:* **(A)**, as stage M2r before M2's server half, sequenced with M3 (same files).
+
+### D21h. `Process`'s live callees outside the estimate (asked of the user)
+
+D21b's trust-base estimate (`Transport.Send` new; `Start`/`AddPeer`/`AddRemote` restated;
+possibly `IsIDRemoved`, now 0, above) missed two calls on `Process`'s `MsgApp` path:
+`v2stats.ServerStats.RecvAppendReq` (names-only; `v2stats/server.go:91-110`: its lock, the
+leader's name and start time, `recvRateQueue.Insert` (`queue.go`, its own `RWMutex`, a
+200-slot ring), the counter; no panic) and `proto.Size` of a `*raftpb.Message` (protobuf's
+reflection; `proto.Size.spec` and `proto.SizeEntry.spec` cover etcdserverpb requests and raft
+entries only).
+- *(A) Two trust-boundary axioms*, of the kind already there: `v2stats.ServerStats.RecvAppendReq`
+  "returns" (as `ServerStats.BecomeLeader`), and `proto.SizeMessage` (as `proto.SizeEntry`: a
+  message at any fraction, returns `n ≥ 0`, the message back). +2.
+- *(B) Verify `RecvAppendReq`*: translate `v2stats` with bodies (`ServerStats`, `statsQueue`,
+  `RequestStats`, `NewServerStats`, `BecomeLeader`, `SendAppendReq`), the lock invariant over the
+  stats and the queue, `time.Now`; `NewServerStats`/`BecomeLeader` become proofs. +1
+  (`proto.SizeMessage`, unavoidable: protobuf is names-only), −2 (`NewServerStats`, `BecomeLeader`).
+  Medium, independent of D21.
+- *Recommendation:* **(A)** for M2; (B) later, if wanted, as its own unit.
+
+### Trust base, revised estimate for M2
+
+Added: `rafthttp.Transport.Send`, `v2stats.ServerStats.RecvAppendReq` and `proto.SizeMessage`
+(D21h (A)); restated: `Transport.Start`/`AddPeer`/`AddRemote`; `IsIDRemoved` proved. Removed: the
+premise `transportEffectsOk` (from `NewServer.spec` and `putget_safe`). Raft's specs strengthened
+by D21g (A).
+
+*Stopped (2026-10-19).* Asked of the user: D21g (recommendation (A), stage M2r with M3) and D21h
+(recommendation (A)). Next, once answered and M4 committed: regenerate with the configuration
+above, then M2 as designed here.
+
+**D21 M4 carried out (2026-10-19):** D21e (A) as stated, with two choices the text left open, both
+internal to the proofs (no spec's meaning for a client changes, no trust-base change):
+- *How a generator shares the cluster's map.* The issued ids' map's authority is the cluster's
+  (`idClusterInv`); a second cluster map records, per member prefix, the ids that member issued,
+  and each generator owns its prefix's element, so it knows a new id is in no map (its prefix's
+  ids are exactly its element's; the map's other prefixes differ). The premise's distinctness is
+  what gives each member its own element.
+- *Whose claimer's fact the apply thread reads.* The facts are per prefix (`Φs`, the cluster's
+  choice): a member's own floor fact (`srvFloorFact E`) speaks of its own store's certificates,
+  so another member's apply thread cannot use it. The apply thread uses the claim's floor for an id
+  of its own prefix and the empty floor (`idxCert_nil`) for another's; a registered id is of the
+  member's prefix (`reqWaitR`'s new clause, from `Next`), so the waiter's floor is the claim's.
+  The other way, a cluster-level floor (a committed prefix the entry follows) would need raft's
+  "a later proposal commits after a committed prefix" through the protocol, for no gain while the
+  client talks to one member (D21f (A)).
+The read budget splits `2 ^ 48` per member (fewer than `2 ^ 16` members, from the premise). Files:
+`pkg/v3/idutil/` (`Defs`, `Lemmas`, `NewGenerator`, `Generator__Next`, and the two specs),
+`etcdserver/` (`InvRequest`, `InvProposer`, `ProposerLemmas`, `BuildAlloc`, `NewServerAlloc`,
+`NewServer`, `EtcdServer__applyEntryNormal`, `EtcdServer__processInternalRaftRequestOnce`, the
+`NewServer` spec), putget's `Alloc` and `Main`.
+
+**D21 M3 carried out (2026-10-19):** stage M3 as amended by M0 and D21c′ (A1): the fork's fix
+pinned (`c8217eb9`), (N) proved in (A1)'s form, `"%Hone"` removed, the run bound
+`receiptBound ≤ SnapshotCatchUpEntries + 1` taken through the apply pool's count. The text left
+the following open; each choice is recorded here.
+- *Where (N) lives: a mode, not an unconditional invariant.* (N) holds only of a cluster started
+  from a bootstrap log whose storage is never compacted past index `1`, so it is conditional on a
+  flag of the raft struct's ghost state, `NGhost.ns` ("no-snapshot mode"), set once by `Bootstrap`
+  (`ownRaftPhys_set_ns`) and kept by every step. At a leader in the mode `PrLo` holds of every
+  peer (`Next ≥ 2`, replicate ⇒ `Match ≥ 1`, not `StateSnapshot`), in `PrvalsOk` beside D11's
+  `PrOk` (`Next ≤ lastIndex + 1`). The flag is the cluster's `RaftNames.reNoSnap` (`NsLink` in
+  `ghostRest`, both modes; `reNoSnap_ok`: only with a bootstrap log), chosen at the allocation
+  (`ownRaftGhost_alloc_boot`'s new argument). Outside the mode (the register, `RestartNode`, the
+  dynamic mode) nothing changes.
+- *The storage's first index: a cap on the `MemoryStorage`.* "First index `≤ 2`" is the storage's
+  boundary at most `1`. The `MemoryStorage` gets a ghost cap (`MemStorNames.cap`, chosen at
+  `NewMemoryStorage`, `2^64` for no cap): the boundary never passes it (`memCutInv`'s `Hccap`),
+  so `Compact` and `ApplySnapshot` take `index ≤ cap` as a premise; `StorageModel` gains
+  `storCap st k` (a persistent "never past `k`", `storCut_cap`), the register's `False`. Raft's
+  struct keeps `storCap storage 1` in the mode (`NsCap`), which makes `maybeSendAppend`'s
+  `ErrCompacted` branches dead (`storPast_cap`). The alternative, raft's `storFloor`/`storCut`
+  alone, gives no upper bound.
+- *The reject path.* As M0's "Corrected options" says, through a message clause: `isMessage` of a
+  rejecting `appResp` in a cluster with a bootstrap log has `|reBoot| < Index` and
+  `1 ≤ RejectHint ≤ Index`; the step relations (`Model.Step`, `StepC`, `StepR`, `StepCF`) take
+  `RejHintOk` at `appReject` (the hint from `findConflictByTerm`, whose spec now states the walk
+  stops at an index `≥ 1` when the log's term at `1` is at most the probe's term), and the leader
+  side reads its term at index `1` (`ownRaftGhost_term1`: the boot entries' term `1`). The
+  hint's term (`LogTerm`) is not needed: `findConflictByTerm` at the leader stops at `≥ 1` by the
+  same term-at-`1` fact.
+- *What raft promises a `Ready`'s messages.* `isRaftMsg` gains the clause `γ.reNoSnap = true →
+  Type ≠ MsgSnap`, from the outbox's no-snapshot fact (`LogNsOk`, kept by `send`: `SendOk`'s
+  `MsgSnap` clause takes `ns = false`, which `maybeSendSnapshot` has) through
+  `outboxRelP_isRaftMsg`; `ownRawNodeReady` keeps it (`Hnsout`). The server's `srvMsgNoSnap` is
+  then `isRaftMsg_not_snap` at `reNoSnap = true`.
+- *Two raft premises the mode adds.* `raft.Step` takes `m.Type' = MsgSnap → ns = false` (its
+  callers' messages are no `MsgSnap`: `NetMsgOk`, local types); `applyConfChange` takes "in the
+  mode a leader's last index is `≥ 2`" (a peer it starts tracking probes at `Next = lastIndex`),
+  which its callers get from the ghost state (`ownRaftGhost_leader_last`: the leader's campaign
+  log holds the bootstrap log and is a strict prefix of its log). `handleSnapshot`/`restore`/
+  `maybeSendSnapshot` take `ns = false` (dead in the mode).
+- *The server's compaction (trust base: `compactRaftLog`'s contract restated).* The contract now
+  names `SnapshotCatchUpEntries` (`scu`, read-only, which its body reads) and requires the
+  compaction index its body computes (`snapi - scu` past `scu`, else `1`) to be at most the
+  storage's cap: `Compact.spec`'s new premise, so the contract stays true of the code. The apply
+  thread discharges it at index `1 ≤ cap`: `srvWTPool` gains a monotone counter of the tokens
+  taken (`srvWTPool_take_at`, `srvWTPool_bound`), the apply thread keeps its lower bound at the
+  applied index (`srvWTAt`, through `apply`/`applyEntries`/`applyAll`/`run`'s `applyRes`), so
+  `ai < receiptBound ≤ scu + 1`. `isServerApplyAll` keeps `scu` with the bound; `NewServer.spec`
+  takes `receiptBound ≤ (SnapshotCatchUpEntries, 5000 for 0) + 1` (D21 M0's premise; `start`
+  sets the default); `start`/`Start` take `ai₀ = 0` (the counter starts at `0`);
+  `monitorStorageVersion`'s contract is over the counted pool (its statement's ghost name only).
+  The cap `1` is `bootOk`'s (`"%Hnosnap"`: `γ.reNoSnap = true ∧ γs.cap = 1`, in place of
+  `"%Hone"`), a premise of `NewServer.spec` through `bootstrap`'s contract (`NewMemoryStorage`'s
+  spec holds at every cap), and putget's `premises` give the contract at `γ.reNoSnap = true`
+  instead of the tracked bound.
+- *putget's configuration (a Go change).* With etcd's default `5000` the premise would limit
+  `putget_safe` to about 5000 steps; `putget.go` sets `SnapshotCatchUpEntries: 1 << 48` (M0's
+  recommendation for `putget3`, applied to putget), so the premise follows from
+  `receiptBound ≤ 2^48`, and `putget_safe`'s statement is unchanged.
+`reTracked` (D19p) stays in `RaftNames` and `isMessage`'s snapshot clause, unused by the server.
+Trust base: the axioms and `sorry`s are the same by name (486, 8); two axioms' statements
+changed (`compactRaftLog`, `monitorStorageVersion`), and `bootstrap`'s contract (a premise) says
+`γs.cap = 1` and the mode instead of `reTracked`.

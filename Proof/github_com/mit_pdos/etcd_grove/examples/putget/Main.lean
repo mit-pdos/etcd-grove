@@ -138,17 +138,25 @@ theorem Main.wp_proof
   imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
   imod ownMap_persist _ _ _ $$ Hpm with #Hpm
   -- the ghost state `NewServer` takes (`putget_alloc`)
-  imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Hal, Hghost, #Hcomm,
-    #Hcinv, #Hbinv, #Hlb, Hfresh, HrdFresh, HrdCred, Hids, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl⟩ := Hal
+  imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
+    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hidx, Hcok, Hrev,
+    Hnk, #Hkvinv, Hetcd⟩
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   have hblen : γ.reBoot.length ≤ 2 ^ 60 := by
     rw [hboot, Hbf.boot.1]; simp
   wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"putget"
       (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
-      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N hraft hpol hc0 hch hlog hcok
-      (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN hblen
-      Hbf.idLow ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost Hfresh HrdFresh HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
+      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs hraft hpol hc0 hch hlog hcok
+      (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN
+      -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48` (`Main`'s)
+      (by
+        have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
+        have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
+        simp only [hne, if_false, h48]
+        omega)
+      hblen
+      hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
+    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -200,7 +208,7 @@ theorem Main.wp_proof
     isplitr; · iExactEq Hmd; rfl
     iexists _
     iframe Hmf Hfgc
-  wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γn b (W64 0) (W64 0) (W64 0) bootKV N HrbN)
+  wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γn b (W64 0) (W64 0) (W64 0) bootKV N HrbN rfl)
     $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, -⟩
   · iframe; iframe #
   (try wp_auto)
@@ -240,7 +248,7 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
       (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]

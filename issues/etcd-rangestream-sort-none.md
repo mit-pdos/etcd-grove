@@ -1,9 +1,11 @@
 ---
-upstream: none
-checked: 2026-10-16
+upstream: known
+checked: 2026-10-19
 links:
+  - etcd-io/etcd#22615 pr open: would fix this bug without saying so: it fixes #22612 (etcd-range-sort-none-limit) by making IsDefaultOrdering false for a non-key target with NONE, so checkRangeStreamRequest rejects these requests, as this candidate's fix does
   - etcd-io/etcd#21631 pr merged: related, not this bug (the RangeStream server, whose IsDefaultOrdering check is the defect)
   - etcd-io/etcd@9acc0ebe3: related, not this bug (clones the chunk's last key before appending \x00 in rangeStream; does not touch the sort check)
+candidate: issues/upstream/etcd-rangestream-sort-none/
 ---
 
 # server: RangeStream accepts a sort by a non-key target with no order and returns duplicated and missing keys

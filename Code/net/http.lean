@@ -1899,6 +1899,9 @@ noncomputable def stringContainsCTLByte [FfiSyntax] [GoGlobalContext] : GoString
 noncomputable def hexEscapeNonASCII [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"net/http.hexEscapeNonASCII"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"net/http.init.0"
+
 noncomputable def http2ServerRequestFromRequest [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"net/http.http2ServerRequestFromRequest"
 
@@ -2027,6 +2030,9 @@ noncomputable def badRoundTrip [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def firstSegment [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"net/http.firstSegment"
+
+noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"net/http.init.1"
 
 noncomputable def appendSorted [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"net/http.appendSorted"
@@ -2402,8 +2408,14 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val gzipPool.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val gzipPool.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val errConcurrentReadOnResBody.init) (Val #()))))))
   (App (Val doExecute)

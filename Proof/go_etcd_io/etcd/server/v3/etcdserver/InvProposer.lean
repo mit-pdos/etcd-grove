@@ -329,15 +329,25 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The proposals' mint** (persistent; the cluster's since stage M4, 2026-10-19, allocated once,
+`srvPropMint_alloc`): the authority of raft's fresh-data tokens `F`, each token's data decoding to a
+request claimed under its id (in the cluster's claims, D21e (A): every member's proposals mint
+here). -/
+def srvPropMint (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
+  inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth γ.raft.reFresh 1 F ∗
+    [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
+      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim γi id d γf)
+
+instance srvPropMint_persistent (γ : ServerRaftNames) (γi : IdNames) :
+    Persistent (srvPropMint (GF := GF) γ γi) := by
+  unfold srvPropMint; infer_instance
+
 /-- **The mint** (see the file header): the authority of raft's fresh-data tokens `F`, each
 token's data decoding to a request claimed under its id; and (2026-10-16, stage R7b) the read
 contexts' mint (`srvRdFreshInv`, `InvRequest.lean`: the authority of raft's fresh read-context
 tokens and its read credits, both minted from the request ids the read loop takes). -/
 def srvMintInv (ρ : ReqNames) : IProp GF :=
-  iprop(inv srvMintN iprop(∃ F : GMap (List w8) Unit, ghostMapAuth ρ.raft.raft.reFresh 1 F ∗
-    [∗map] d ↦ _u ∈ F, ∃ (rq : apply.IRRModel) (id : w64),
-      ⌜apply.irrDecode d = some rq ∧ apply.irrId rq = some id⌝ ∗ ∃ γf : GName, idClaim ρ.ids id d γf) ∗
-    srvRdFreshInv ρ.raft ρ.ids)
+  iprop(srvPropMint ρ.raft ρ.ids ∗ srvRdFreshInv ρ.raft ρ.ids)
 
 instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := GF) ρ) := by
   unfold srvMintInv; infer_instance

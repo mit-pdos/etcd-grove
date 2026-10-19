@@ -28,7 +28,8 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.GhostVar
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -102,7 +103,7 @@ instance notifyLockInv_fractional (n : Loc) (γ : GName) :
     · iintro H
       unfold notifyLockInv
       iNamed H
-      rw [qp_half_add] at *
+      rw [Qp_half_add] at *
       icases (hcur c).1 $$ Hcur with ⟨Hc1, Hc2⟩
       icases (hch _).1 $$ Hch with ⟨Hl1, Hl2⟩
       icases (hpend _).1 $$ Hpend with ⟨Hp1, Hp2⟩
@@ -123,7 +124,7 @@ instance notifyLockInv_fractional (n : Loc) (γ : GName) :
       · iapply (hch _).2; iframe
       isplitr
       · iexact Hbc1
-      rw [qp_half_add]
+      rw [Qp_half_add]
       iapply (hpend _).2; iframe
 
 /-- `n` is a `Notifier` (persistent): its mutex's writer guard, with the lock invariant. -/

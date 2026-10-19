@@ -31,9 +31,9 @@ code (`issues/etcd-backend-duplicate-put-stale-read.md`: the migration may put t
 times in one session). Until 2026-10-18 (D19i part 2) the contract took only the package's
 initialization, false: the monitor wrote the backend without its resources (`notes/audit.md`). -/
 abbrev EtcdServer.monitorStorageVersion.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames),
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γp : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvSVRes s E.γ ∗ srvWTPool E.γ }}
+      isServerReq s E ρ ∗ srvSVRes s E.γ ∗ srvWTPool E.γ γp }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorStorageVersion")) (Val #()))
   {{ RET #(); True }}
 

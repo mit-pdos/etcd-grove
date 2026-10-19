@@ -518,7 +518,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ H2 Hcl
     exfalso
     try rw [Qp.half_add_half] at Hv
-    exact absurd Hv.1 (qp_one_add_not_le _)
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   rw [Hopen]
   -- `w` is not registered, and no response is of it
   by_cases HwL : w ∈ L

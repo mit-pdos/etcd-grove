@@ -46,6 +46,9 @@ noncomputable def loggableMetadataKeys [FfiSyntax] [GoGlobalContext] : GoString 
 
 axiom loggableMetadataKeys.init [FfiSyntax] [GoGlobalContext] : val
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc/metadata.init.0"
+
 noncomputable def DecodeKeyValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/metadata.DecodeKeyValue"
 
@@ -91,8 +94,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.metadata)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val loggableMetadataKeys.init) (Val #())))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val loggableMetadataKeys.init) (Val #()))))))))
 
 abbrev MD [FfiSyntax] : Type := GoMap
 

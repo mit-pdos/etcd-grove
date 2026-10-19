@@ -114,7 +114,10 @@ abbrev StartNode.spec : Prop :=
       -- this node's ghost state at the bootstrap state, and the committed boot log
       ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog ∗
       -- the cluster's term budget, at least at the bootstrap term `1` (`budget_alloc_boot`)
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) }}
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
+      -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode (`RaftNames.reNoSnap`), a storage
+      -- never compacted past index `1` (`Bootstrap`'s)
+      NsCap γ.reNoSnap (interface.ok si) }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       -- (D17d, 2026-10-18) what the `InitialState` premise gives back: `InitialState` runs before

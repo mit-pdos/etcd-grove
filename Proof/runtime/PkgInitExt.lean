@@ -31,7 +31,6 @@ public import Perennial.Code.context
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
-public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.io
 public import Perennial.Code.log
 public import Perennial.Code.math
@@ -60,7 +59,6 @@ inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop
   | encoding_binary : ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
   | errors : ExternalInit pkg_id.errors _root_.Perennial.errors.initialize'
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
-  | github_com_goose_lang_primitive : ExternalInit pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
   | go_etcd_io_raft_v3 : ExternalInit pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'

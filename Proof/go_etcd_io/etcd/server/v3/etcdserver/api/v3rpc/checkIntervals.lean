@@ -18,7 +18,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 public import Proof.go_etcd_io.raft.v3.FrameH
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 

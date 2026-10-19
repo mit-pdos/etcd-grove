@@ -502,14 +502,14 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
       | (simp [psendMsgs, padoptLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
-  | appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7 =>
+  | appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7 h8 =>
     iintro #Hrc Hregs #HS Hrecv Hcr Hown
     iapply fupd_frame_left
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
-    imod ownRaftGhost_step_app_reject γ id r.p m hint hintterm h1 h3 h5 $$ Hm Hg with Hg
+    imod ownRaftGhost_step_app_reject γ id r.p m hint hintterm h1 h3 h5 h6 h7 h8 $$ Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr

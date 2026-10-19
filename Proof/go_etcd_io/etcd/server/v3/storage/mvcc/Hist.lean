@@ -675,12 +675,12 @@ theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → 
     rw [List.find?_cons]
     by_cases h1 : less w x
     · rw [ite_eq_left h1, btFind_sorted_eq_find? keyf less hless ws hs.2 x]
-      have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h1)
+      have : keyf w ≠ keyf x := fun e => go.goStringLt_irrefl _ (e ▸ (hless _ _).1 h1)
       simp [this]
     · rw [ite_eq_right h1]
       by_cases h2 : less x w
       · rw [ite_eq_left h2]
-        have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h2)
+        have : keyf w ≠ keyf x := fun e => go.goStringLt_irrefl _ (e ▸ (hless _ _).1 h2)
         simp only [this, decide_false]
         rw [List.find?_eq_none.2]
         intro y hy
@@ -688,10 +688,10 @@ theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → 
         intro e
         have := hs.1 (keyf y) (List.mem_map_of_mem hy)
         rw [e] at this
-        exact goStringLt_irrefl _ (goStringLt_trans ((hless _ _).1 h2) this)
+        exact go.goStringLt_irrefl _ (go.goStringLt_trans ((hless _ _).1 h2) this)
       · rw [ite_eq_right h2]
         have : keyf w = keyf x :=
-          goStringLt_eq_of_not_lt (fun h => h1 ((hless _ _).2 h)) (fun h => h2 ((hless _ _).2 h))
+          go.goStringLt_eq_of_not_lt (fun h => h1 ((hless _ _).2 h)) (fun h => h2 ((hless _ _).2 h))
         simp [this]
 
 theorem idxGet_eq_find? (idx : IndexM) (hs : idx.Pairwise idxLess) (k : GoString) :
@@ -806,14 +806,14 @@ theorem idxOfEntries_btInsert (z : IdxEntry) (L : List IdxEntry) :
     (fun _ _ => ⟨Iff.rfl, Iff.rfl⟩)]
 
 theorem entryLess_swo : StrictWeakOrder entryLess where
-  irrefl a := goStringLt_irrefl a.2.1
-  trans _ _ _ h1 h2 := goStringLt_trans h1 h2
+  irrefl a := go.goStringLt_irrefl a.2.1
+  trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
   incomp_trans a b c h1 h2 h3 h4 := by
-    have e1 := goStringLt_eq_of_not_lt h1 h2
-    have e2 := goStringLt_eq_of_not_lt h3 h4
+    have e1 := go.goStringLt_eq_of_not_lt h1 h2
+    have e2 := go.goStringLt_eq_of_not_lt h3 h4
     unfold entryLess
     rw [e1, e2]
-    exact ⟨goStringLt_irrefl _, goStringLt_irrefl _⟩
+    exact ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
 
 theorem itemsOfEntries_sorted_iff (L : List IdxEntry) :
     (itemsOfEntries L).Pairwise kiItemLess ↔ L.Pairwise entryLess := by
@@ -827,8 +827,8 @@ theorem btInsert_set_entry : ∀ (L : List IdxEntry), L.Pairwise entryLess → �
     simp only [List.getElem?_cons_zero, Option.some.injEq] at h
     subst h
     unfold btInsert
-    have h1 : ¬ entryLess w z' := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
-    have h2 : ¬ entryLess z' w := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
+    have h1 : ¬ entryLess w z' := by unfold entryLess; rw [hk]; exact go.goStringLt_irrefl _
+    have h2 : ¬ entryLess z' w := by unfold entryLess; rw [hk]; exact go.goStringLt_irrefl _
     rw [ite_eq_right h1, ite_eq_right h2]
     rfl
   | w :: ws, hs, i + 1, z, z', h, hk => by
@@ -922,7 +922,7 @@ theorem idxGet_of_mem : ∀ (idx : IndexM), idx.Pairwise idxLess → ∀ z ∈ i
     rcases List.mem_cons.1 hz with rfl | hz
     · simp
     · have hlt : idxLess w z := hs.1 z hz
-      have hne : w.1 ≠ z.1 := fun h => goStringLt_irrefl _ (by unfold idxLess at hlt; rw [h] at hlt; exact hlt)
+      have hne : w.1 ≠ z.1 := fun h => go.goStringLt_irrefl _ (by unfold idxLess at hlt; rw [h] at hlt; exact hlt)
       simp only [hne, decide_false]
       rw [← idxGet_eq_find? _ hs.2]
       exact idxGet_of_mem ws hs.2 z hz
@@ -980,7 +980,7 @@ theorem mem_keys_iff (evs : List Ev) (key : GoString) :
       | some z =>
         have hmem := btFind_mem hf
         have heq := btFind_equiv hf
-        have hk : z.1 = key := goStringLt_eq_of_not_lt heq.1 heq.2
+        have hk : z.1 = key := go.goStringLt_eq_of_not_lt heq.1 heq.2
         rw [List.mem_map]
         exact ⟨z, hmem, hk⟩
 
@@ -1064,7 +1064,7 @@ theorem sublist_of_subset_sorted : ∀ (S T : List GoString), S.Pairwise go.GoSt
       intro x hx
       have hx' := h x (List.mem_cons_of_mem _ hx)
       rcases List.mem_cons.1 hx' with rfl | hx'
-      · exact absurd (hS.1 x hx) (goStringLt_irrefl x)
+      · exact absurd (hS.1 x hx) (go.goStringLt_irrefl x)
       · exact hx'
     · apply List.Sublist.cons
       apply sublist_of_subset_sorted (s :: S) T (List.pairwise_cons.2 hS) hT.2
@@ -1079,7 +1079,7 @@ theorem sublist_of_subset_sorted : ∀ (S T : List GoString), S.Pairwise go.GoSt
           have hs' := h s List.mem_cons_self
           rcases List.mem_cons.1 hs' with hs' | hs'
           · exact hst hs'
-          · exact goStringLt_irrefl _ (goStringLt_trans hlt (hT.1 s hs'))
+          · exact go.goStringLt_irrefl _ (go.goStringLt_trans hlt (hT.1 s hs'))
       · exact hx'
 
 theorem filterMap_sublist_eq {α β : Type} (f : α → Option β) : ∀ {S T : List α}, S.Sublist T →
@@ -1107,7 +1107,7 @@ theorem keys_sorted (evs : List Ev) : ((indexOf evs).map Prod.fst).Pairwise go.G
   rw [List.pairwise_map]; exact indexOf_sorted evs
 
 theorem nodup_of_sorted {l : List GoString} (h : l.Pairwise go.GoStringLt) : l.Nodup :=
-  List.Pairwise.imp (fun {a b} hlt (he : a = b) => by subst he; exact goStringLt_irrefl _ hlt) h
+  List.Pairwise.imp (fun {a b} hlt (he : a = b) => by subst he; exact go.goStringLt_irrefl _ hlt) h
 
 /-- **A reader's answer** (pure): the index's history (`ilog`, `pend`) and a certified log
 `log₀` are comparable lower bounds, and the index had at least `log₀`'s events; below
@@ -1218,7 +1218,7 @@ theorem filter_belowEnd_eq_takeWhile (e : GoString) : ∀ (G : List IdxEntry), G
       simp only [Bool.or_eq_true, decide_eq_true_eq] at hb ⊢
       rcases hb with hb | hb
       · exact Or.inl hb
-      · exact Or.inr (goStringLt_trans (hs.1 w hw) hb)
+      · exact Or.inr (go.goStringLt_trans (hs.1 w hw) hb)
 
 /-- `takeWhile` through the visited prefix. -/
 theorem takeWhile_eq_take {α : Type} (p : α → Bool) : ∀ (G : List α) (i : Nat), (∀ j (h : j < G.length), j < i → p G[j] = true) →

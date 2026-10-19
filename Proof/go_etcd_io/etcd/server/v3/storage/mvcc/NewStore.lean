@@ -319,7 +319,7 @@ theorem mvcc.NewStore.wp_proof
     isplitl []
     · iapply mvcc.crevSafe_neg γ (-1) [[], []] (by decide) (by simp) $$ Hcert
     ipureintro; decide
-  icases guard_of_slots _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   icases mvcc.slot_take _ $$ Hmus with ⟨Hmu1, Hmus⟩
   wp_apply +noauto sync.RWMutex.wp_Lock $$ [$Hmu1] as ⟨Hmul, HmuP⟩
   wp_auto_lc 1
@@ -371,7 +371,7 @@ theorem mvcc.NewStore.wp_proof
     isplitl []
     · iunfold mvcc.certOk; ileft; ipureintro; simp
     ipureintro; simp
-  icases guard_of_slots _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
   -- the deferred `s.mu.Unlock()`
   wp_apply sync.RWMutex.wp_Unlock $$ [$Hmul HcmpA HcrevM] as Hmu1
   · inext

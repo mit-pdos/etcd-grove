@@ -66,7 +66,7 @@ in progress and the handed-out ones the application's to persist (`logAcceptUnst
 def readyNstate (s : NState) (ce : List EntryM) (sz : w64) : NState :=
   { s with outbox := [],
            logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz,
-           gh := { tc := s.gh.tc },
+           gh := { tc := s.gh.tc, ns := s.gh.ns },
            rd := { s.rd with states := [] } }
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
@@ -545,15 +545,16 @@ theorem RawNode.acceptReady.wp_proof
   -- the self-addressed responses, as the queue's first pending steps (before the raft struct
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
-  ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok $$ Hout Hself
+  ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
+    $$ Hout Hself
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
-    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc } : NGhost)
+    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns } : NGhost)
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] [] Hlog
+    [] [] [] [] [] [] [] Hlog
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil
@@ -563,6 +564,10 @@ theorem RawNode.acceptReady.wp_proof
   · ipureintro; intro _ h; cases h
   · ipureintro; exact Nat.zero_le _
   · ipureintro; intro h; cases h
+  · ipureintro
+    refine ⟨rfl, fun _ => ?_, fun _ h => by cases h⟩
+    unfold logAcceptApplying logAcceptUnstable
+    split <;> exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable]; exact Int.le_refl _
   -- the node after `Ready`
   have Hlf := logAcceptApplying_fields (logAcceptUnstable s.logst) ce sz

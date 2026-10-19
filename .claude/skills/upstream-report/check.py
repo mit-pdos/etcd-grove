@@ -15,12 +15,10 @@ import subprocess
 import sys
 
 ISSUE_DISCLOSURE = (
-    "I found this while formally verifying etcd, working with AI tools. "
-    "I reproduced the bug and reviewed this report myself."
+    "Found while formally verifying etcd. "
+    "Written with the assistance of generative AI; I reproduced the bug and reviewed the report."
 )
-PR_DISCLOSURE = (
-    "This PR was written in part with the assistance of AI; I have reviewed and tested every change."
-)
+PR_DISCLOSURE = "Written with the assistance of generative AI; I reviewed and tested every change."
 # Vocabulary of this repository that means nothing upstream.
 LOCAL_WORDS = r"\b(specs?|proofs?|premises?|Goose|Gooseable|ghost|verified code|Lean|Rocq|Perennial|Iris)\b"
 MAX_PROSE_WORDS = 250
@@ -89,15 +87,37 @@ def main():
 
     diff = code_diff = ""
     if wt and base:
-        n = int(git(wt, "rev-list", "--count", f"{base}..HEAD"))
-        if n != 1:
-            fail(f"commit: {n} commits on top of the base {base[:9]}, not one")
-        msg = git(wt, "log", "-1", "--format=%B")
-        if re.search(r"^(Co-Authored-By|Assisted-by|Generated-by):", msg, flags=re.M | re.I):
-            fail("commit: an AI trailer (Co-Authored-By/Assisted-by); upstream's AI policy forbids it")
-        if not re.search(r"^Signed-off-by: ", msg, flags=re.M):
-            fail("commit: no Signed-off-by (git commit -s)")
-        subject = msg.splitlines()[0]
+        revs = git(wt, "rev-list", "--reverse", f"{base}..HEAD").split()
+
+        def names(rev):
+            return git(wt, "diff-tree", "--no-commit-id", "--name-only", "-r", rev).split()
+
+        # the tests, the fix, and optionally the changelog entry in a commit of its own
+        code_revs = revs[:2] if len(revs) == 3 and all(f.startswith("CHANGELOG/") for f in names(revs[2])) else revs
+        if len(code_revs) != 2:
+            fail(f"commit: {len(revs)} commits on top of the base {base[:9]}; want the tests, then the fix, then "
+                 "optionally the changelog entry")
+        else:
+            tests = names(code_revs[0])
+            if not tests or any(not f.endswith("_test.go") for f in tests):
+                fail(f"commit: the first commit should add only the tests (*_test.go), not {tests}")
+            if any(f.startswith("CHANGELOG/") for f in names(code_revs[1])):
+                warn("commit: the changelog entry goes in a commit of its own, after the fix")
+        if fork and fork.endswith("/etcd") and any(f.startswith("CHANGELOG/") for r in revs for f in names(r)):
+            warn("commit: etcd's changelog is updated separately; leave it out of the fix PR")
+        for rev in revs:
+            msg = git(wt, "log", "-1", "--format=%B", rev)
+            if re.search(r"^(Co-Authored-By|Assisted-by|Generated-by):", msg, flags=re.M | re.I):
+                fail(f"commit {rev[:9]}: an AI trailer (Co-Authored-By/Assisted-by); upstream's AI policy forbids it")
+            if not re.search(r"^Signed-off-by: ", msg, flags=re.M):
+                fail(f"commit {rev[:9]}: no Signed-off-by (git commit -s)")
+            if len(msg.splitlines()[0]) > 72:
+                warn(f"commit {rev[:9]}: subject longer than 72 characters")
+            body = [l for l in msg.split("\n\n", 1)[1:2] for l in l.splitlines() if l and not l.startswith("Signed-off-by:")]
+            if len(body) > 4:
+                warn(f"commit {rev[:9]}: {len(body)} lines of message body; upstream's are mostly none, at most a "
+                     "few sentences")
+        subject = git(wt, "log", "-1", "--format=%s", code_revs[-1] if code_revs else "HEAD").strip()
         diff = git(wt, "diff", f"{base}..HEAD")
         code_diff = git(wt, "diff", f"{base}..HEAD", "--", ".", ":(exclude)*_test.go")
         files = [f for f in git(wt, "diff", "--name-only", f"{base}..HEAD").split() if f.endswith(".go")]
@@ -124,8 +144,11 @@ def main():
             fail(f"issue: this repository's vocabulary: {sorted(set(re.findall(LOCAL_WORDS, p)))}")
         if re.search(r"linked branch|the branch\b", p) and not fork:
             fail("issue: refers to a branch without a link to it")
-        if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/{re.escape(a.slug)}\b", issue):
-            fail(f"issue: no link to the test on {fork}'s branch {a.slug}")
+        if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/fix/{re.escape(a.slug)}\b", issue):
+            fail(f"issue: no link to the test on {fork}'s branch fix/{a.slug}")
+        for link in re.findall(r"github\.com/[^/\s]+/[^/\s]+/blob/fix/[^\s)#]+_test\.go[^\s)]*", issue):
+            if "#L" not in link:
+                fail(f"issue: the link to the test does not name its lines (#L<a>-L<b>): {link}")
         for t in set(re.findall(r"\bTest\w+", p)):
             if diff and t not in diff:
                 fail(f"issue: names {t}, which the branch does not add")

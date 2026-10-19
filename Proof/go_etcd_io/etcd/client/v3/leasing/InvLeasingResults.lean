@@ -51,7 +51,7 @@ theorem filter_key (s : List EtcdKv) (k : GoString) (hwf : EtcdStateWf [] s) :
         have hvk' : v.key = k := by simpa [inRange] using hvk
         unfold etcdKvLess at hlt
         rw [hw, hvk'] at hlt
-        exact goStringLt_irrefl _ hlt
+        exact go.goStringLt_irrefl _ hlt
       rw [hnone]
       simp [kvOf, hw]
     · have hin : inRange k [] w.key = false := by simp [inRange, hw]

@@ -67,6 +67,12 @@ def HandleSnapResult (id : w64) (s : NState) (m : MessageM)
                             logst := logRestore ls (snapTrip sv cl), isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
 
+/-- (2026-10-19, D21 M3) `handleSnapshot` keeps the no-snapshot mode (`NGhost.ns`). -/
+theorem HandleSnapResult.ns {id : w64} {s : NState} {m : MessageM} {sv : SnapshotM} {cl : CSLists}
+    {s' : NState} (H : HandleSnapResult id s m sv cl s') : s'.gh.ns = s.gh.ns := by
+  unfold HandleSnapResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩ <;> rfl
+
 /-- Whether `restore` restored the snapshot (its third exit): newer than the commit index, and
 its last entry not in the log. -/
 def SnapRestores (s : NState) (sv : SnapshotM) : Prop :=
@@ -106,6 +112,8 @@ abbrev raft.handleSnapshot.spec : Prop :=
   SnapScope sv cl →
   -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
   m.From' ≠ id →
+  -- (2026-10-19, D21 M3) outside the no-snapshot mode (`raft.restore`'s premise)
+  s.gh.ns = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}

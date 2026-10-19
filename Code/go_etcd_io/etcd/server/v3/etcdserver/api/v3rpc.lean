@@ -361,6 +361,9 @@ noncomputable def NewClusterServer [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def membersToProtoMembers [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.membersToProtoMembers"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.init.0"
+
 noncomputable def NewQuotaKVServer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.NewQuotaKVServer"
 
@@ -4133,8 +4136,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Minute)))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr progressReportInterval))) (Val #())) (Var "$r0")))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr progressReportInterval))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val toGRPCErrorMap.init) (Val #()))))))
   (App (Val doExecute)

@@ -501,6 +501,10 @@ structure MemStorNames where
   /-- (D19i part 1) the true boundary's index, a monotone counter: the lock's authority, the
   `storCut` facts its lower bounds. -/
   bd : GName
+  /-- (2026-10-19, D21 M3) the **cap**: the true boundary never passes it (`memCutInv`'s
+  `Hccap`), so neither does any `storCut` fact (`memStorCut`); `Compact` and `ApplySnapshot` take
+  it as a premise. Chosen at `NewMemoryStorage`; `2 ^ 64` (or more) is no cap. -/
+  cap : Int
 
 /-- The snapshot's part of a storage state (D17d, 2026-10-18): what the snapshot's ghost value
 records (its id and conf state), the rest fixed. -/
@@ -760,6 +764,7 @@ def memCutInv (γs : MemStorNames) (σp : StorState) (c : entryID) : IProp GF :=
     "#Hcfl" ∷ (⌜c = σp.prev⌝ ∨ memFlLb γs c.index') ∗
     "Hsq" ∷ ghostVar γs.sn memQ (snapPart S) ∗
     "%Hcok" ∷ ⌜CutOk σp c ∧ uint.Z c.index' ≤ uint.Z S.ss.index'⌝ ∗
+    "%Hccap" ∷ ⌜uint.Z c.index' ≤ γs.cap⌝ ∗
     "#Hsrel" ∷ (⌜S.ss = σp.ss ∧ S.scs = σp.scs ∧ S.sal = σp.sal⌝ ∨
       (⌜uint.Z σp.ss.index' < uint.Z S.ss.index' ∧ uint.Z σp.prev.index' ≤ uint.Z S.ss.index' ∧
           termAt σp.prev σp.ents S.ss.index' = some S.ss.term'⌝ ∗ memFlLb γs S.ss.index')))
@@ -1269,7 +1274,7 @@ theorem memFloorTok_last (ms : Loc) (γs : MemStorNames) (σp : StorState) (x : 
 /-- (D19i part 1) The storage's boundary has reached `n` (`storCut` of the instance): a lower
 bound of the lock's counter `bd`. -/
 def memStorCut (γs : MemStorNames) (n : Int) : IProp GF :=
-  monoNatLbOwn γs.bd n.toNat
+  iprop(monoNatLbOwn γs.bd n.toNat ∗ ⌜n ≤ γs.cap⌝)
 
 instance memStorCut_persistent (γs : MemStorNames) (n : Int) :
     Persistent (memStorCut (GF := GF) γs n) := by
@@ -1296,12 +1301,31 @@ theorem memCut_view (γs : MemStorNames) (σ σ0 : StorState) (c : entryID) :
   isplitr
   · ipureintro; exact ⟨Hvw, Hcok.1, Hfl⟩
   isplitr
-  · iunfold memStorCut; iexact Hlb
+  · iunfold memStorCut; iframe Hlb; ipureintro; exact Hccap
   iframe Hv Hg
   iunfold memCutInv
   iexists S
   iframe Hcb Hbd Hcfl Hsq Hsrel
-  ipureintro; exact Hcok
+  ipureintro; exact ⟨Hcok, Hccap⟩
+
+/-- (D21 M3) A cut fact below a smaller index. -/
+theorem memStorCut_mono (γs : MemStorNames) (n m : Int) (h : m ≤ n) (h0 : 0 ≤ m) :
+    ⊢ memStorCut (GF := GF) γs n -∗ memStorCut γs m := by
+  iintro H
+  iunfold memStorCut at H
+  icases H with ⟨#Hlb, %Hc⟩
+  iunfold memStorCut
+  isplitr
+  · iapply monoNatLbOwn_le (GF := GF) m.toNat (by omega) $$ Hlb
+  · ipureintro; omega
+
+omit [StorageModel GF] package_sem in
+/-- (D21 M3) A cut fact is within the cap. -/
+theorem memStorCut_cap (γs : MemStorNames) (n : Int) :
+    ⊢ memStorCut (GF := GF) γs n -∗ ⌜n ≤ γs.cap⌝ := by
+  iintro H
+  iunfold memStorCut at H
+  icases H with ⟨-, %Hc⟩; ipureintro; exact Hc
 
 /-- The package initializer, read out of `ownMemoryStorage` without consuming it: the
 methods take the lock, which needs `isPkgInit sync`; `isStorage`'s method triples have

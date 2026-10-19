@@ -224,13 +224,35 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 ghost state's, and (D19p, 2026-10-18) its voters and learners -- the ids the tracker holds -- and
 the node are within the ghost state's tracked bound (`TrackedOk`); dynamically, `ownRaftGhostR`'s invariant, full prefix records and campaign
 record, with the ghost part over the configuration. -/
-def ghostRest (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
+def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
   | .static, c, id, _ => iprop(⌜CfgStatic γ c ∧ TrackedOk γ c id⌝)
   | .dyn dec c0 h0 g, c, id, s =>
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ RInv dec c0 (rOf s g)⌝ ∗
       logRecs γ base0 g.fp ∗
       (∀ (_ : (toPState s).role = .candidate),
         isCampK γ id (toPState s).term (rOf s g).full (toPState s).commit))
+
+/-- (2026-10-19, D21 M3) The node's no-snapshot mode (`NGhost.ns`) is the cluster's
+(`RaftNames.reNoSnap`): of a cluster with a non-empty bootstrap log (`RaftNames.noSnap_boot`), what
+the leader's rejection handling reads of the messages (`isMessage`'s clause of a rejecting
+`appResp`), and what the messages a `Ready` hands out say (`isRaftMsg`). Set with the node
+(`Bootstrap`), kept by every step. -/
+def NsLink (γ : RaftNames) (s : NState) : Prop := s.gh.ns = γ.reNoSnap
+
+theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns = true) :
+    γ.reBoot ≠ [] :=
+  RaftNames.noSnap_boot (by rw [← H]; exact h)
+
+/-- What the mode keeps beyond `ownRaftGhost` (`ghostRestM`), and (D21 M3) `NsLink`. -/
+def ghostRest (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
+  iprop(⌜NsLink γ s⌝ ∗ ghostRestM γ md c id s)
+
+theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ghostRest (GF := GF) γ md c id s ⊢ ⌜NsLink γ s⌝ ∗ ghostRest γ md c id s := by
+  unfold ghostRest
+  iintro ⟨%Hn, H⟩
+  iframe H
+  isplitr <;> ipureintro <;> exact Hn
 
 /-- The ghost state `raft.Step` keeps (see the file header). -/
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
@@ -264,43 +286,74 @@ theorem ownStepGhost_ackIn_le (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64
   iframe Hg Hrest
   ipureintro; exact H
 
+/-- (2026-10-19, D21 M3) In the no-snapshot mode a leader's last index is at least `2`
+(`ownRaftGhost_leader_last`, the mode only with a bootstrap log, `NsLink`): what
+`applyConfChange` needs for a peer it starts tracking (`PrLo`). -/
+theorem ownRaftGhost_ns_last (γ : RaftNames) (id : w64) (s : NState) {md : Bool}
+    (Hnl : NsLink γ s) :
+    ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md -∗
+      ⌜s.gh.ns = true → s.role = .leader →
+        2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ ∗
+      ownRaftGhost γ id (toPState s) md := by
+  iintro Hg
+  icases ownRaftGhost_leader_last γ id (toPState s) $$ Hg with ⟨%H, Hg⟩
+  iframe Hg
+  ipureintro
+  intro hns hl
+  exact H (by rw [toPState_role]; exact (proleRole_leader _).2 hl) (Hnl.boot hns)
+
+theorem ownStepGhost_ns_last (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ⊢ ownStepGhost (GF := GF) γ md c id s -∗
+      ⌜s.gh.ns = true → s.role = .leader →
+        2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ ∗
+      ownStepGhost γ md c id s := by
+  unfold ownStepGhost
+  iintro ⟨Hg, Hr⟩
+  icases ghostRest_nsLink γ md c id s $$ Hr with ⟨%Hnl, Hr⟩
+  icases ownRaftGhost_ns_last γ id s Hnl $$ Hg with ⟨%H, Hg⟩
+  iframe Hg Hr
+  ipureintro; exact H
+
 /-- In the dynamic mode, `ownStepGhost` is `ownRaftGhostR`. -/
 theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh)
     (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ (.dyn dec c0 h0 g) c id s ⊣⊢
-      ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c⌝ ∗
+      ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ NsLink γ s⌝ ∗
         ownRaftGhostR γ dec c0 id (rOf s g) := by
-  simp only [ownStepGhost, ghostRest, GMode.isDyn, ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
+  simp only [ownStepGhost, ghostRest, ghostRestM, GMode.isDyn, ownRaftGhostR, rOf.proj_p,
+    rOf.proj_fp]
   constructor
-  · iintro ⟨Hg, %Hdc, #Hfr, #Hc⟩
+  · iintro ⟨Hg, %Hnl, %Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     isplitr
-    · ipureintro; exact ⟨HD, hc⟩
+    · ipureintro; exact ⟨HD, hc, Hnl⟩
     iframe Hg Hfr
     isplitr
     · ipureintro; exact HI
     iintro %hcand; iapply Hc; exact hcand
   · iintro ⟨%Hdc, Hg, %HI, #Hfr, #Hc⟩
-    obtain ⟨HD, hc⟩ := Hdc
+    obtain ⟨HD, hc, Hnl⟩ := Hdc
     iframe Hg Hfr
+    isplitr
+    · ipureintro; exact Hnl
     isplitr
     · ipureintro; exact ⟨HD, hc, HI⟩
     iintro %hcand; iapply Hc; exact hcand
 
 /-- A branch's step updates the mode's ghost state: statically `ownRaftGhost_stepC`,
 dynamically `ownRaftGhostR_stepR` (the premises `DynHyp` from `Hdh`, given the invariant). -/
-theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (B : Int) (HB : B < 2 ^ 64)
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       RInv dec c0 (rOf s g) → DynHyp m s s' g) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
-      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
-        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
+        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c id s' := by
   cases md with
   | static =>
-    simp only [ghostRest, GMode.isDyn]
+    simp only [ghostRestM, GMode.isDyn]
     iintro #Hrc Hrecv Hcr Hlc Hg %HC
     imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
       Hrecv Hcr Hlc Hg
@@ -312,7 +365,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     · ipureintro; exact ⟨rfl, B, recv, Hstep.1⟩
     ipureintro; exact HC
   | dyn dec c0 h0 g =>
-    simp only [ghostRest, GMode.isDyn]
+    simp only [ghostRestM, GMode.isDyn]
     iintro #Hrc Hrecv Hcr Hlc Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
@@ -345,6 +398,33 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     · ipureintro; exact ⟨HD, hc, HI'⟩
     iintro %hcand; iapply Hc'; exact hcand
 
+
+/-- `ghost_stepCDM` with (D21 M3) `NsLink` kept: the step keeps the mode (`NGhost.ns`). -/
+theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+    (B : Int) (HB : B < 2 ^ 64)
+    (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
+    (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
+      RInv dec c0 (rOf s g) → DynHyp m s s' g)
+    (Hng : s'.gh.ns = s.gh.ns) :
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
+  iintro #Hrc Hrecv Hcr Hlc Hg Hrest
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hnl, Hrest⟩
+  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Hlc Hg Hrest
+    with ⟨%md', %Hout, Hg, Hrest⟩
+  imodintro
+  iexists md'
+  iframe Hg
+  isplitr
+  · ipureintro; exact Hout
+  iunfold ghostRest
+  iframe Hrest
+  ipureintro
+  unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
+
 /-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
 same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/
 theorem rOf_congr {s s' : NState} (g : RGh) (hp : toPState s' = toPState s)
@@ -354,15 +434,17 @@ theorem rOf_congr {s s' : NState} (g : RGh) (hp : toPState s' = toPState s)
 
 theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s' : NState}
     (hp : toPState s' = toPState s) (ha : s'.logst.applied = s.logst.applied)
-    (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s) :
+    (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
+    (hg : s'.gh.ns = s.gh.ns := by rfl) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
+  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
   cases md with
   | static =>
-    simp only [ownStepGhost, ghostRest]; rw [hp]
+    simp only [ownStepGhost, ghostRest, ghostRestM]; rw [hp, hn]
   | dyn dec c0 h0 g =>
-    simp only [ownStepGhost, ghostRest]
+    simp only [ownStepGhost, ghostRest, ghostRestM]
     have hr := rOf_congr g hp ha hs hpci
-    rw [hp, hr]
+    rw [hp, hr, hn]
 
 /-- What the mode keeps beyond `ownRaftGhost` survives a change of the code state that keeps
 what it reads (2026-10-14, stage B7 part 2): the log, its boundary, the commit index, the term,
@@ -372,13 +454,18 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hb : (toPState s').base = (toPState s).base) (hl : (toPState s').log = (toPState s).log)
     (hc : (toPState s').commit = (toPState s).commit) (ht : (toPState s').term = (toPState s).term)
     (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
-    (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s) :
+    (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
+    (hg : s'.gh.ns = s.gh.ns := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
+  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
   cases md with
-  | static => simp only [ghostRest]; exact .rfl
+  | static => simp only [ghostRest, ghostRestM]; rw [hn]
   | dyn dec c0 h0 g =>
-    simp only [ghostRest]
-    iintro ⟨%H, #Hfr, #Hc⟩
+    simp only [ghostRest, ghostRestM]
+    rw [hn]
+    iintro ⟨%Hnl, %H, #Hfr, #Hc⟩
+    isplitr
+    · ipureintro; exact Hnl
     obtain ⟨HD, hc', HI⟩ := H
     have hfull : (rOf s' g).full = (rOf s g).full := by
       simp only [RState.full, rOf.proj_fp, rOf.proj_p]; rw [hl]
@@ -426,19 +513,19 @@ theorem snapCfg_ids {sv : SnapshotM} {scfg : CSLists} {id : w64} (h : scfg.Has i
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOk`);
 dynamically `ownRaftGhostR_stepR` at the snapshot's prefix `fp0`, the one the message shows
 (`isMessage_snap_prefix`), whose fold the `ConfState` denotes (`GMode.SnapOk`). -/
-theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM)
+theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM)
     (Hms : m.Type' = MsgSnap) (sv : SnapshotM) (scfg : CSLists) (s : NState) (recv : List Msg) (s' : NState)
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
     (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
-      md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
-        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
+        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c' id s' := by
   cases md with
   | static =>
-    simp only [ghostRest, GMode.isDyn, GMode.SnapOk]
+    simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
     iintro #Hrc - Hrecv Hcr Hlc %Hso Hg %HC
     imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
       Hrecv Hcr Hlc Hg
@@ -455,7 +542,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
       · simp only [snapCfg, csCfgM]; exact Hso.1
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
-    simp only [ghostRest, GMode.isDyn, GMode.SnapOk]
+    simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
     iintro #Hrc #Hm Hrecv Hcr Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it
@@ -490,6 +577,32 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     isplitr
     · ipureintro; exact ⟨HD, hg', HI'⟩
     iintro %hcand; iapply Hc'; exact hcand
+
+/-- `ghost_stepCDSM` with (D21 M3) `NsLink` kept. -/
+theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m : MessageM)
+    (Hms : m.Type' = MsgSnap) (sv : SnapshotM) (scfg : CSLists) (s : NState) (recv : List Msg) (s' : NState)
+    (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
+    (B : Int) (HB : B < 2 ^ 64)
+    (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
+    (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh.ns = s.gh.ns) :
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
+      md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
+  iintro #Hrc #Hm Hrecv Hcr Hlc #Hso Hg Hrest
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hnl, Hrest⟩
+  imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hid Hc' $$ Hrc Hm Hrecv
+    Hcr Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
+  imodintro
+  iexists md'
+  iframe Hg
+  isplitr
+  · ipureintro; exact Hout
+  iunfold ghostRest
+  iframe Hrest
+  ipureintro
+  unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
 
 end ghost
 

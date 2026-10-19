@@ -36,7 +36,7 @@ theorem NewDemux.wp_proof (wp_newDemux : newDemux.spec (GF := GF) (hG := hG))
   wp_start as ⟨#Hctx, #Hh, #Hwgp, Hslot⟩
   wp_auto
   wp_apply wp_newDemux C h ri $$ [$Hpkg $Hh] as %d %γd %γn ⟨#Hd, Hw, Hhs, #Hlb, Hrhs⟩
-  have h2 := actualMaxReaders_ge_2
+  have h2 := sync.actualMaxReaders_ge_2
   have e1 : Int.toNat sync.rwmutex.actualMaxReaders - 1 =
       (Int.toNat sync.rwmutex.actualMaxReaders - 2) + 1 := by omega
   have e2 : Int.toNat sync.rwmutex.actualMaxReaders =

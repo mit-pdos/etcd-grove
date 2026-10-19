@@ -105,6 +105,16 @@ axiom opaqueInitsOk :
         recommendedMaxRequestBytesString.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 /-- `hasLeader = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
 axiom hasLeader_init :
     {{ (True : IProp GF) }} (App (Val hasLeader.init) (Val #()))
@@ -331,6 +341,9 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk fdLimit.init (by mem_tac))
   wp_apply (opaqueInitsOk monitorVersionInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk recommendedMaxRequestBytesString.init (by mem_tac))
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  wp_apply (initFuncsOk init.«1» (by mem_tac))
+  wp_apply (initFuncsOk init.«2» (by mem_tac))
   ipersist HhasLeader
   ipersist HisLeader
   ipersist HproposalsCommitted
