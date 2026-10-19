@@ -482,10 +482,17 @@ def raftOwn (l : Loc) (v : raft) : IProp GF :=
     "H_step" ∷ l.[raft, go!"step"] ↦ v.step' ∗
     "#H_logger" ∷ l.[raft, go!"logger"] ↦□ v.logger' ∗
     "H_pendingReadIndexMessages" ∷ l.[raft, go!"pendingReadIndexMessages"] ↦ v.pendingReadIndexMessages' ∗
-    "H_traceLogger" ∷ l.[raft, go!"traceLogger"] ↦ v.traceLogger')
+    "H_traceLogger" ∷ l.[raft, go!"traceLogger"] ↦ v.traceLogger' ∗
+    -- (2026-10-19, witness support) the witness queue and the witnesses asked for a vote:
+    -- in a cluster without a witness never written but by `reset`'s `witnessVoteAsked = nil`
+    -- (`notes/raft-witness.md`, W1), so both stay nil
+    "H_witnessMsgs" ∷ l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs' ∗
+    "H_witnessVoteAsked" ∷ l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked' ∗
+    "%H_wnil" ∷ ⌜v.witnessMsgs' = slice.nil ∧ v.witnessVoteAsked' = map.nil⌝)
 
 
-theorem raftOwn_of_pts (l : Loc) (v : raft) :
+theorem raftOwn_of_pts (l : Loc) (v : raft)
+    (Hw : v.witnessMsgs' = slice.nil ∧ v.witnessVoteAsked' = map.nil) :
     ⊢ (l ↦ v : IProp GF) ==∗ raftOwn l v := by
   iintro Hl
   rw [typedPointsto_unseal_eq l v]
@@ -500,6 +507,7 @@ theorem raftOwn_of_pts (l : Loc) (v : raft) :
   simp only [named]
   iframe
   try iframe #
+  ipureintro; exact Hw
 
 theorem raftOwn_id (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"id"] ↦□ v.id' := by
@@ -512,6 +520,11 @@ theorem raftOwn_sdr (l : Loc) (v : raft) :
 theorem raftOwn_logger (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"logger"] ↦□ v.logger' := by
   iintro H; unfold raftOwn; iNamed H; iexact H_logger
+
+/-- The witness queue and asked set are nil (2026-10-19, witness support, W1). -/
+theorem raftOwn_wnil (l : Loc) (v : raft) :
+    raftOwn (GF := GF) l v ⊢ ⌜v.witnessMsgs' = slice.nil ∧ v.witnessVoteAsked' = map.nil⌝ := by
+  iintro H; unfold raftOwn; iNamed H; ipureintro; exact H_wnil
 
 set_option hygiene false in
 /-- Take field `f` out of `raftOwn` and put back any value: a load or a store. -/
@@ -529,7 +542,30 @@ local macro "raftOwn_access " f:ident : tactic =>
                 H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize H_readOnly
                 H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
                 H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding
-                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
+                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger
+                H_witnessMsgs H_witnessVoteAsked
+             try (ipureintro; simp_all)))
+
+/-- (2026-10-19) The witness fields: loads, and the stores of `nil` (`reset`, `acceptReady`). -/
+theorem raftOwn_access_load_witnessMsgs (l : Loc) (v : raft) :
+    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs') (l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs')
+      (raftOwn l v) (raftOwn l v) := by
+  raftOwn_access H_witnessMsgs
+
+theorem raftOwn_access_store_witnessMsgs_nil (l : Loc) (v : raft) :
+    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessMsgs"] ↦ v.witnessMsgs') (l.[raft, go!"witnessMsgs"] ↦ slice.nil)
+      (raftOwn l v) (raftOwn l { v with witnessMsgs' := slice.nil }) := by
+  raftOwn_access H_witnessMsgs
+
+theorem raftOwn_access_load_witnessVoteAsked (l : Loc) (v : raft) :
+    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked') (l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked')
+      (raftOwn l v) (raftOwn l v) := by
+  raftOwn_access H_witnessVoteAsked
+
+theorem raftOwn_access_store_witnessVoteAsked_nil (l : Loc) (v : raft) :
+    AccessStrict (PROP := IProp GF) (l.[raft, go!"witnessVoteAsked"] ↦ v.witnessVoteAsked') (l.[raft, go!"witnessVoteAsked"] ↦ map.nil)
+      (raftOwn l v) (raftOwn l { v with witnessVoteAsked' := map.nil }) := by
+  raftOwn_access H_witnessVoteAsked
 
 theorem raftOwn_access_load_Term (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"Term"] ↦ v.Term') (l.[raft, go!"Term"] ↦ v.Term')
@@ -1517,7 +1553,9 @@ local macro "split_field_proof " f:ident : tactic =>
                 H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize H_readOnly
                 H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
                 H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding
-                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
+                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger
+                H_witnessMsgs H_witnessVoteAsked
+             try (ipureintro; simp_all)))
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1582,6 +1620,7 @@ private theorem raft_split_view (l : Loc) (rv : raft) :
   simp only [named]
   iframe
   try iframe #
+  try (ipureintro; simp_all)
 
 /-- The three read-index fields (2026-10-12): `ownRaftPhysC_misc`. -/
 private theorem raft_split_misc (l : Loc) (rv : raft) :
@@ -1602,6 +1641,7 @@ private theorem raft_split_misc (l : Loc) (rv : raft) :
   simp only [named]
   iframe
   try iframe #
+  try (ipureintro; simp_all)
 
 private theorem raft_split_readOnly (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
@@ -1625,6 +1665,7 @@ private theorem raft_split_raftLog_trk (l : Loc) (rv : raft) :
   simp only [named]
   iframe
   try iframe #
+  try (ipureintro; simp_all)
 
 /-- Two fields at once, `trk` and `readOnly`: for `ownRaftPhysC_readOnly_trk`
 (2026-10-13). -/
@@ -1642,6 +1683,7 @@ private theorem raft_split_trk_readOnly (l : Loc) (rv : raft) :
   simp only [named]
   iframe
   try iframe #
+  try (ipureintro; simp_all)
 
 -- The (fixed) set of voters.
 variable (cfg : GSet w64)

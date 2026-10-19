@@ -85,8 +85,8 @@ theorem quorum.JointConfig.IDs.spec_trackerC
   iapply HΦ
   unfold CfgM.voters
   iframe Htrk Hidm
-  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-    $$ Hvotes Hprs Hprogs Hcfg
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
 end spec
 

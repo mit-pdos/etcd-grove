@@ -67,8 +67,8 @@ theorem tracker.ProgressTracker.IsSingleton.spec_trackerC
   ihave Hcfg := Hcback $$ Hv0 Hv1
   iapply HΦ
   iframe Htrk
-  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
-    $$ Hvotes Hprs Hprogs Hcfg
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
 end spec
 
