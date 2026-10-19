@@ -37,6 +37,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
        etc/gen-link.py --linkv > Proof/github_com/mit_pdos/etcd_grove/examples/linkv/Link.lean
+       etc/gen-link.py --linkv3 > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -267,11 +268,21 @@ LEAN_FIRST = {
                 "github_com.anishathalye.porcupine",
                 "github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions",
                 "The linearizability instance's proofs (`examples/linkv`)", [""]),
+    # the linearizability instance over a three-member cluster (examples/linkv3, D20, D21): its
+    # `startMember` (putget3's, over the server's, `@`) and `Main` (over v3rpc's, the client's
+    # and linkv's `Check`, `@`)
+    "--linkv3": ("link-lean-first-linkv3.txt",
+                 "github_com.mit_pdos.etcd_grove.examples.linkv3 "
+                 "github_com.mit_pdos.etcd_grove.examples.linkv "
+                 "github_com.mit_pdos.etcd_grove.examples.lintest "
+                 "github_com.anishathalye.porcupine",
+                 "github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptions",
+                 "The three-member linearizability instance's proofs (`examples/linkv3`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -287,7 +298,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv"}
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
