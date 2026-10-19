@@ -35,14 +35,13 @@ right, `pos := n - n/2` instead of `n - (n/2 + 1)`: the largest index acknowledg
 `quorum - 1 = n/2` voters (what `ProgressTracker.OneLessThanQuorumInReplicationSet` hands the
 leader, which then sends that entry to the witness, whose acknowledgement would make a quorum).
 
-**Premise `|s| ≠ 1`: at one voter it panics.** `n = 1` gives `pos = 1` on a one-slot slice:
-`srt[1]` is out of range (`TestOneLessThanQuorumSingleVoter`, `notes/pr-verify/raft-168.md`).
-`quorum - 1 = 0` voters "acknowledge" every index; the function has no answer for it. The other
-premises are `CommittedIndex`'s. -/
+At one voter it returns 0: `quorum - 1 = 0` voters "acknowledge" every index, and the function
+reports none (until the fork's fix it read `srt[1]` of a one-slot slice and panicked,
+`TestOneLessThanQuorumSingleVoter`, `notes/pr-verify/raft-168.md`). The other premises are
+`CommittedIndex`'s. -/
 abbrev quorum.MajorityConfig.OneLessThanQuorum.spec : Prop :=
   ∀ (s : GSet w64) (cref mref : Loc) (l : GoInterface) (P : IProp GF)
     (acked : w64 → Option w64),
-  GMap.size s ≠ 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       ⌜(GMap.size s : Int) ≤ 2 ^ 62⌝ ∗
       cref ↦ mref ∗
@@ -57,7 +56,9 @@ abbrev quorum.MajorityConfig.OneLessThanQuorum.spec : Prop :=
        ∃ (ids : GMap w64 Unit), ⌜domSet ids = s⌝ ∗ mref ↦$ ids) ∗
       P ∗
       ⌜s = ∅ → N = W64 (2 ^ 64 - 1)⌝ ∗
-      ⌜s ≠ ∅ → IsCountIndex s (fun v => (acked v).getD (W64 0)) (GMap.size s / 2) N⌝ }}
+      ⌜GMap.size s = 1 → N = W64 0⌝ ∗
+      ⌜s ≠ ∅ → GMap.size s ≠ 1 →
+        IsCountIndex s (fun v => (acked v).getD (W64 0)) (GMap.size s / 2) N⌝ }}
 
 end spec
 

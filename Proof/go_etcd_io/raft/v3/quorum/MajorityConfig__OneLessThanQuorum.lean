@@ -134,7 +134,7 @@ them, reversed, and `i = n - 1 - J`); `slices.Sort`; the read at `pos = n - (n/2
 theorem quorum.MajorityConfig.OneLessThanQuorum.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     quorum.MajorityConfig.OneLessThanQuorum.spec (GF := GF) (hG := hG) := by
-  intro cs cref mref l Pres acked Hn1
+  intro cs cref mref l Pres acked
   wp_start as ⟨%Hsz, Hc, Hm, #Hl, HP⟩
   wp_auto
   wp_method_call
@@ -149,7 +149,7 @@ theorem quorum.MajorityConfig.OneLessThanQuorum.wp_proof
     isplitr
     · ileft; ipureintro; exact ⟨rfl, rfl⟩
     ipureintro
-    exact ⟨fun _ => rfl, fun h => absurd rfl h⟩
+    exact ⟨fun _ => rfl, fun h => by rw [GMap.map_size_empty] at h; omega, fun h => absurd rfl h⟩
   wp_apply wp_map_len (t := quorum.MajorityConfig.ty) $$ Hids as Hids
   -- `wp_join` below would substitute `cs := domSet ids` anyway; do it now
   subst Hids
@@ -167,13 +167,25 @@ theorem quorum.MajorityConfig.OneLessThanQuorum.wp_proof
       iframe Hids
       ipureintro; rfl
     ipureintro
-    exact ⟨fun _ => rfl, fun h => absurd Hemp h⟩
+    exact ⟨fun _ => rfl, fun h => by rw [GMap.size_dom, Hz] at h; omega, fun h => absurd Hemp h⟩
   have Hpos : 0 < GMap.size ids := by
     rcases Nat.eq_zero_or_pos (GMap.size ids) with h | h
     · exact absurd ((GMap.dom_empty_iff_L ids).2 (GMap.map_size_empty_inv _ h)) Hemp
     · exact h
   have Hsz62 : (GMap.size ids : Int) ≤ 2 ^ 62 := by rw [← GMap.size_dom]; exact Hsz
   have Hsz' : (GMap.size ids : Int) < 2 ^ 63 := by omega
+  rw [decide_eq_false (by word)]
+  wp_auto
+  -- one voter: quorum - 1 is none, `return 0`
+  by_cases Hn1 : GMap.size ids = 1
+  · rw [Hn1]
+    wp_auto
+    iapply HΦ
+    iframe Hc HP
+    isplitl [Hids]
+    · iright; iexists ids; iframe Hids; ipureintro; rfl
+    ipureintro
+    exact ⟨fun h => absurd h Hemp, fun _ => rfl, fun _ h => absurd (by rw [GMap.size_dom]; exact Hn1) h⟩
   rw [decide_eq_false (by word)]
   wp_auto
   iNamed Hl
@@ -325,7 +337,7 @@ theorem quorum.MajorityConfig.OneLessThanQuorum.wp_proof
   have Hys_len : ys.length = GMap.size ids := by
     rw [Hperm'.length_eq, List.length_map, Hklen]
   -- `pos := n - n/2`: in range because `n ≥ 2` (`n = 1` is the premise's panic)
-  have Hn2 : 2 ≤ GMap.size ids := by rw [GMap.size_dom] at Hn1; omega
+  have Hn2 : 2 ≤ GMap.size ids := by omega
   have Hposw : sint.Z (W64 (GMap.size ids) - BitVec.sdiv (W64 (GMap.size ids)) (W64 2)) =
       ((GMap.size ids - GMap.size ids / 2 : Nat) : Int) := by
     word
@@ -344,7 +356,7 @@ theorem quorum.MajorityConfig.OneLessThanQuorum.wp_proof
   isplitl [Hids]
   · iright; iexists ids; iframe Hids; ipureintro; rfl
   ipureintro
-  refine ⟨fun h => absurd h Hemp, fun _ => ?_⟩
+  refine ⟨fun h => absurd h Hemp, fun h => absurd (by rw [← GMap.size_dom]; exact h) Hn1, fun _ _ => ?_⟩
   rw [← GMap.size_dom] at Hy Hpos Hklen Hn2
   exact sorted_count_index (domSet ids) keys _ ys y _ Hknodup Hks Hklen (by omega) (by omega)
     Hperm' Hsorted Hy

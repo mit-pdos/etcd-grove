@@ -36,7 +36,7 @@ theorem raftpb.Entry.GetTerm.wp_proof : raftpb.Entry.GetTerm.spec (GF := GF) (hG
       iapply HΦ
       iunfold entPts
       iframe
-      iexists uf, sub
+      iexists uf
       isplitr
       · ipureintro; exact Hnn
       iframe cT cI cY Hd cS Hpb
@@ -45,7 +45,7 @@ theorem raftpb.Entry.GetTerm.wp_proof : raftpb.Entry.GetTerm.spec (GF := GF) (hG
       · iapply HΦ
         iunfold entPts
         iframe
-        iexists uf, sub
+        iexists uf
         isplitr
         · ipureintro; exact Hnn
         iframe cT cI cY Hd cS Hpb

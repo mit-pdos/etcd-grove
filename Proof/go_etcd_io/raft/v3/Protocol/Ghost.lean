@@ -131,13 +131,13 @@ instance entryID_countable [FfiSyntax] : Pos.Countable entryID :=
       subst h1 h2; rfl)
 
 instance raftpbEntry_countable [FfiSyntax] : Pos.Countable EntryM :=
-  .ofInjective (fun e => Pos.Countable.encode (e.Term', e.Index', e.Type', e.Data'))
+  .ofInjective (fun e => Pos.Countable.encode (e.Term', e.Index', e.Type', e.Data', e.Subterm'))
     (by
-      rintro ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h
+      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4⟩ := h
-      subst h1 h2 h3 h4; rfl)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h
+      subst h1 h2 h3 h4 h5; rfl)
 
 /-- A BI `∀` over the proofs of a proposition is timeless (iris-lean's `forall_timeless`
 is for `α : Type`; Rocq's `forall_timeless` covers `∀ _ : P, Q`). -/
@@ -195,6 +195,8 @@ structure BootEntry where
   index : w64
   type : w32
   data : List w8
+  /-- the subterm (2026-10-19, witness support) -/
+  sub : w64
 
 structure RaftNames where
   /-- The voter set this ghost state is about. It lives in `γ` rather than being a
@@ -417,9 +419,9 @@ earlier term), `rqRecOk_confirm` (a read's confirming quorum and its doom quorum
 `CfgAt.overlap` by the adjacent/far case split (`fold_adjacent` for the adjacent case). -/
 
 /-- The mode's dynamic configurations, at the ambient `FfiSyntax` instance. -/
-def BootEntry.toEntry [FfiSyntax] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data⟩
+def BootEntry.toEntry [FfiSyntax] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data, b.sub⟩
 
-def BootEntry.ofEntry [FfiSyntax] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data'⟩
+def BootEntry.ofEntry [FfiSyntax] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data', e.Subterm'⟩
 
 theorem BootEntry.toEntry_ofEntry [FfiSyntax] (e : EntryM) : (BootEntry.ofEntry e).toEntry = e := rfl
 

@@ -1,6 +1,7 @@
 /- `MemoryStorage.Compact` (`storage.go:254`), proved 2026-10-12 (Lean-first). -/
 module
 
+public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetSubterm
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
@@ -26,7 +27,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem MemoryStorage.Compact.wp_proof
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
-    (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG)) :
+    (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (wp_GetSubterm : raftpb.Entry.GetSubterm.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) := by
   intro ms γs σt x ci ecomp Hpre
   wp_start as ⟨Htok, #Hfw, #Herr⟩
@@ -170,20 +172,53 @@ theorem MemoryStorage.Compact.wp_proof
   · iframe Hls1; ipureintro; exact Hlk
   wp_apply wp_GetTerm.1 lk DFrac.discard e $$ [Hek] with -
   · iframe Hek
-  -- the fresh dummy entry at `ci`, frozen
+  -- the fresh dummy entry at `ci`, of `e`'s subterm (2026-10-19, witness support): made with
+  -- none, stored, given a non-zero subterm, then frozen
   imod cellRO_alloc $$ «$v0» with #cI
   imod cellRO_alloc $$ «$v1» with #cT
-  let d' : EntryM := EntryM.mk e.Term' e.Index' (zero_val raftpb.EntryType) []
-  imod entOwn_of_struct «$r0_ptr» (raftpb.Entry.mk zeroValDef «$v1_ptr» «$v0_ptr» null slice.nil slice.nil 0) d' ⊤ rfl $$ [«$r0»] with Hd'
+  let d' : EntryM := EntryM.mk e.Term' e.Index' (zero_val raftpb.EntryType) [] e.Subterm'
+  imod entOwn_of_struct «$r0_ptr» (raftpb.Entry.mk zeroValDef «$v1_ptr» «$v0_ptr» null slice.nil null slice.nil 0)
+    (EntryM.mk e.Term' e.Index' (zero_val raftpb.EntryType) [] (zero_val w64)) ⊤ rfl $$ [«$r0»] with Hd0
   · iframe «$r0» cT cI
     isplitl []; · iapply cellRO_null
-    iapply ownSlice_nil
-  imod entOwn_freeze $$ Hd' with #Hd'
+    isplitl []; · iapply ownSlice_nil
+    iapply cellRO_null
   ihave %Hsllen := ownSlice_len $$ Hsl
   simp only [List.length_replicate] at Hsllen
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_store_slice_index sl (sint.Z (W64 0)) _ «$r0_ptr» $$ [Hsl] with Hsl
   · iframe Hsl; ipureintro; simp only [List.length_replicate]; constructor <;> word
+  rw [ite_eq_left ⟨by word, by word⟩]
+  wp_apply wp_load_slice_index es1 (sint.Z (ci - σp.prev.index')) ls1 DFrac.discard lk (by word) $$ [Hls1] with -
+  · iframe Hls1; ipureintro; exact Hlk
+  wp_apply wp_GetSubterm.1 lk DFrac.discard e $$ [Hek] with -
+  · iframe Hek
+  wp_join iprop("Hd'" ∷ entOwn «$r0_ptr» d' ∗ "Hsl" ∷ sl ↦* (List.replicate 1 null).set 0 «$r0_ptr» ∗
+      "st" ∷ st_ptr ↦ e.Subterm' ∗ "ents" ∷ ents_ptr ↦ sl)
+    with [Hd0 Hsl st ents]
+  · -- zero: the dummy has subterm `0 = e.Subterm'`
+    iframe Hsl st ents
+    have : e.Subterm' = zero_val w64 := by rw [Hif]; rfl
+    simp only [d', this]
+    iexact Hd0
+  · -- a non-zero subterm: `ents[0].Subterm = new(st)`, a fresh cell holding it
+    imod cellRO_alloc $$ «$r0» with #cS'
+    rw [ite_eq_left ⟨by word, by word⟩]
+    wp_apply wp_load_slice_index sl (sint.Z (W64 0)) _ (DFrac.own 1) _ (by word) $$ [Hsl] with Hsl
+    · iframe Hsl; ipureintro; rw [show (sint.Z (W64 0)).toNat = 0 by word]; rfl
+    iunfold entOwn at Hd0
+    iunfold entPts at Hd0
+    iNamed Hd0
+    wp_auto
+    wp_join_done
+    iframe Hsl st ents
+    iunfold entOwn
+    iunfold entPts
+    iexists pt, pi, pty, ds, uf, _
+    isplitr; · ipureintro; exact Hnn
+    iframe HT cT HI cI HY cY HD Hd HS cS' Hpb
+  iNamed 1
+  imod entOwn_freeze $$ Hd' with #Hd'
   wp_auto
   ihave %Hwf1 := ownSlice_wf $$ Hls1
   -- `ms.ents[i+1:]`, the entries after `ci`

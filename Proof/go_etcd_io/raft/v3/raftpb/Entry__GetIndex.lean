@@ -37,7 +37,7 @@ theorem raftpb.Entry.GetIndex.wp_proof :
       iapply HΦ
       iunfold entPts
       iframe
-      iexists uf, sub
+      iexists uf
       isplitr
       · ipureintro; exact Hnn
       iframe cT cI cY Hd cS Hpb
@@ -46,7 +46,7 @@ theorem raftpb.Entry.GetIndex.wp_proof :
       · iapply HΦ
         iunfold entPts
         iframe
-        iexists uf, sub
+        iexists uf
         isplitr
         · ipureintro; exact Hnn
         iframe cT cI cY Hd cS Hpb

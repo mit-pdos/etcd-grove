@@ -205,13 +205,13 @@ instance pbMsg_persistent (T : Type) (l : Loc) (uf : List w8) :
 
 /-- A `*pb.Entry` at `l` holding `e`, its fields at `dq` (see the file header). -/
 def entPts (l : Loc) (dq : DFrac) (e : EntryM) : IProp GF :=
-  iprop(∃ (pt pi pty : Loc) (ds : GoSlice) (uf : List w8) (ps : Loc) (sub : w64),
+  iprop(∃ (pt pi pty : Loc) (ds : GoSlice) (uf : List w8) (ps : Loc),
     "%Hnn" ∷ ⌜l ≠ null⌝ ∗
     "HT" ∷ l.[raftpb.Entry, go!"Term"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt e.Term' ∗
     "HI" ∷ l.[raftpb.Entry, go!"Index"] ↦{dq} pi ∗ "#cI" ∷ cellRO pi e.Index' ∗
     "HY" ∷ l.[raftpb.Entry, go!"Type"] ↦{dq} pty ∗ "#cY" ∷ cellRO pty e.Type' ∗
     "HD" ∷ l.[raftpb.Entry, go!"Data"] ↦{dq} ds ∗ "#Hd" ∷ ds ↦*□ e.Data' ∗
-    "HS" ∷ l.[raftpb.Entry, go!"Subterm"] ↦{dq} ps ∗ "#cS" ∷ cellRO ps sub ∗
+    "HS" ∷ l.[raftpb.Entry, go!"Subterm"] ↦{dq} ps ∗ "#cS" ∷ cellRO ps e.Subterm' ∗
     "#Hpb" ∷ pbMsg raftpb.Entry l uf)
 
 /-- A log entry: read-only for good (D2). -/
@@ -471,13 +471,16 @@ theorem entPts_agree (l : Loc) (dq1 dq2 : DFrac) (e1 e2 : EntryM) :
   icombine HI1 HI2 gives %HI
   icombine HY1 HY2 gives %HY
   icombine HD1 HD2 gives %HD
-  subst HT HI HY HD
+  icombine HS1 HS2 gives %HS
+  subst HT HI HY HD HS
   ihave %Hd := ownSlice_agree (GF := GF) ds DFrac.discard DFrac.discard e1.Data' e2.Data' $$ Hd1 Hd2
   ihave %Ht := cellRO_agree (GF := GF) pt e1.Term' e2.Term' $$ [cT1 cT2]
   · isplitl [] <;> iassumption
   ihave %Hi := cellRO_agree (GF := GF) pi e1.Index' e2.Index' $$ [cI1 cI2]
   · isplitl [] <;> iassumption
   ihave %Hy := cellRO_agree (GF := GF) pty e1.Type' e2.Type' $$ [cY1 cY2]
+  · isplitl [] <;> iassumption
+  ihave %Hs := cellRO_agree (GF := GF) ps e1.Subterm' e2.Subterm' $$ [cS1 cS2]
   · isplitl [] <;> iassumption
   ipureintro
   cases e1; cases e2
@@ -495,7 +498,7 @@ theorem entOwn_freeze (l : Loc) (e : EntryM) : entOwn (GF := GF) l e ⊢ |==> en
   imodintro
   simp only [entRO]
   iunfold entPts
-  iexists pt, pi, pty, ds, uf, ps, sub
+  iexists pt, pi, pty, ds, uf, ps
   isplitr
   · ipureintro; exact Hnn
   iframe HT cT HI cI HY cY HD Hd HS cS Hpb
@@ -506,9 +509,9 @@ holding `e`. -/
 theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
     (Hu : v.unknownFields' = slice.nil) :
     (l ↦ v ∗ cellRO v.Term' e.Term' ∗ cellRO v.Index' e.Index' ∗ cellRO v.Type' e.Type' ∗
-      v.Data' ↦*□ e.Data' ∗ (∃ sub : w64, cellRO v.Subterm' sub) : IProp GF) ⊢
+      v.Data' ↦*□ e.Data' ∗ cellRO v.Subterm' e.Subterm' : IProp GF) ⊢
       |={E}=> entOwn l e := by
-  iintro ⟨Hl, #cT, #cI, #cY, #Hd, ⟨%sub, #cS⟩⟩
+  iintro ⟨Hl, #cT, #cI, #cY, #Hd, #cS⟩
   ihave %Hnn := typedPointsto_not_null $$ Hl
   icases typedPointsto_split _ _ _ $$ Hl with Hl
   simp only [TypedPointsto.typedPointstoDef]
@@ -521,7 +524,7 @@ theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
   imodintro
   simp only [entOwn]
   iunfold entPts
-  iexists v.Term', v.Index', v.Type', v.Data', [], v.Subterm', sub
+  iexists v.Term', v.Index', v.Type', v.Data', [], v.Subterm'
   isplitr
   · ipureintro; exact Hnn
   iframe

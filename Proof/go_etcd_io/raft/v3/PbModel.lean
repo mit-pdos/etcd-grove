@@ -50,16 +50,19 @@ namespace EtcdGrove
 open go_etcd_io.raft.v3
 
 /-- A log entry as the model sees it: what `GetTerm()`, `GetIndex()`, `GetType()`,
-`GetData()` of a `*pb.Entry` return (a nil field reads as zero). -/
+`GetData()`, `GetSubterm()` of a `*pb.Entry` return (a nil field reads as zero). The subterm
+(2026-10-19, witness support, `notes/raft-witness.md`) is the leader's subterm when it
+appended the entry; `0` in a cluster without a witness. -/
 structure EntryM [FfiSyntax] where
   mk ::
   Term' : w64
   Index' : w64
   Type' : raftpb.EntryType
   Data' : List w8
+  Subterm' : w64
 
 instance EntryM.zero_val [FfiSyntax] : ZeroVal EntryM :=
-  ⟨EntryM.mk zeroValDef zeroValDef zeroValDef []⟩
+  ⟨EntryM.mk zeroValDef zeroValDef zeroValDef [] zeroValDef⟩
 
 /-- A message's scalar fields as the model sees them: what `GetType()`, `GetTo()`, ...,
 `GetRejectHint()` of a `*pb.Message` return. -/

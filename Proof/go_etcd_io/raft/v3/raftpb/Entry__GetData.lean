@@ -34,7 +34,7 @@ theorem raftpb.Entry.GetData.wp_proof :
       iframe Hd
       iunfold entPts
       iframe
-      iexists uf, sub
+      iexists uf
       isplitr
       · ipureintro; exact Hnn
       iframe cT cI cY Hd cS Hpb

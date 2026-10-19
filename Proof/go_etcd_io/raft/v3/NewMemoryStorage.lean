@@ -43,7 +43,8 @@ theorem NewMemoryStorage.wp_proof
     isplitl []; · iapply cellRO_null
     isplitl []; · iapply cellRO_null
     isplitl []; · iapply cellRO_null
-    iapply ownSlice_nil
+    isplitl []; · iapply ownSlice_nil
+    iapply cellRO_null
   imod entOwn_freeze $$ He0 with #He0
   wp_auto
   iStructNamed «$r0»

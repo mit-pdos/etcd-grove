@@ -180,11 +180,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
          KeyedElement (some (KeyField go!"Index")) (ElementExpression go.uint64.PointerType #«$v1_ptr»)])] = 1 := rfl
     simp only [Hsz]
     -- the fresh dummy entry, at the snapshot's id, frozen
-    imod entOwn_of_struct l0 (raftpb.Entry.mk zeroValDef «$v0_ptr» «$v1_ptr» null slice.nil slice.nil 0) (EntryM.mk sv.Metadata'.Term' sv.Metadata'.Index'
-        (zero_val raftpb.EntryType) []) ⊤ rfl $$ [Hl0] with He0
+    imod entOwn_of_struct l0 (raftpb.Entry.mk zeroValDef «$v0_ptr» «$v1_ptr» null slice.nil null slice.nil 0) (EntryM.mk sv.Metadata'.Term' sv.Metadata'.Index'
+        (zero_val raftpb.EntryType) [] (W64 0)) ⊤ rfl $$ [Hl0] with He0
     · iframe Hl0 cT cI
       isplitl []; · iapply cellRO_null
-      iapply ownSlice_nil
+      isplitl []; · iapply ownSlice_nil
+      iapply cellRO_null
     imod entOwn_freeze $$ He0 with #He0
     imod ownSlice_persist $$ Hsl with #Hsl
     wp_auto
