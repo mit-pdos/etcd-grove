@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, register, putget, porcupine or lintest;
+  --project    only this project (raft, etcd, kv, putget, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -339,20 +339,26 @@ PROJECTS = [
         ],
     ),
     Project(
-        name="register",
-        # An example application on raft's Node: a replicated string register. A Go
-        # module of this repository, whose go.mod requires go.etcd.io/raft/v3 and replaces
-        # it by the revision pinned above (`github.com/upamanyus/etcd/v3`, the fork's
-        # pseudo-version under a /v3 path, since its go.mod declares go.etcd.io/raft/v3;
-        # keep the two in step).
+        name="kv",
+        # An example application on raft's Node: a replicated string-to-string key-value
+        # store (Put, Get, Append; until 2026-10-19 the replicated string register
+        # `examples/register`), with its randomized linearizability test over the lintest
+        # driver and porcupine (check.go). A Go module of this repository, whose go.mod requires
+        # go.etcd.io/raft/v3 and replaces it by the revision pinned above
+        # (`github.com/upamanyus/etcd/v3`, the fork's pseudo-version under a /v3 path, since
+        # its go.mod declares go.etcd.io/raft/v3; keep the two in step), and lintest and
+        # porcupine by this repository's copies.
         repo=None,
         rev=None,
-        local=os.path.join("examples", "register"),
-        # (raft v3.7, stage R6b: the register reaches protobuf-go's `proto`, which the raft
-        # tree translates into the root, `Code.google_golang_org.protobuf.proto`)
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org="],
+        local=os.path.join("examples", "kv"),
+        # (raft v3.7, stage R6b: the store reaches protobuf-go's `proto`, which the raft
+        # tree translates into the root, `Code.google_golang_org.protobuf.proto`; lintest is
+        # the lintest project's translation, porcupine the porcupine project's)
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine="],
+        # the store; not its command (cmd/kvcheck), which only runs it
         packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kv")],
     ),
     Project(
         name="putget",

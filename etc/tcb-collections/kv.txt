@@ -1,0 +1,64 @@
+# The register example (examples/kv): every linked result of
+# Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean and the results of its
+# Results.lean (over raft's linked results).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/kv.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/kv.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/kv.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kv/(Link|Results)\.lean$
+#
+# Until 2026-10-10 no axiom or `sorry` of this repository (the results rested only on
+# Perennial's axiomatized standard-library types). Since 2026-10-11 the cluster driver
+# (`kv_Main`, through raft's `RestartNode`) rests on raft's `reflect.DeepEqual` axiom.
+# Since 2026-10-12 the closed theorem `kv_cluster_safe` (adequacy, with package
+# initialization proved) also rests on the 9 `sorry`s below: package initializers that run
+# opaque (untranslated) variable initializers (notes/STATUS.md, "Adequacy of the register's
+# driver"). Since 2026-10-13 (reconfiguration stage D) also on gogoproto's two `Unmarshal`
+# trust-boundary axioms: raft's leader decodes a proposal's conf-change entries
+# (`stepLeader`'s loop), which every `Step` reaches. Written by `--check --update` after a
+# full build.
+# Since 2026-10-15 (the merge with `lean`, Perennial `a54e1999f`) also on etcd-grove's
+# `fmt.Errorf` axiom and `raftpb.ConfChangeType.String.wp_proof`: `confchange.Changer.apply`'s
+# error formats a `ConfChangeType`, which Perennial's `fmt.wp_Errorf` no longer admits
+# (notes/STATUS.md, "Merge: `worktree-raft-rest` into `lean`").
+# Since 2026-10-16 (raft v3.7, stage R6b) the register rests on raft v3.7's trust base
+# (etc/tcb-collections/raft.txt: protobuf-go's nine `proto.*` axioms, `DescribeConfChange`;
+# gogoproto's and `reflect.DeepEqual` are gone), on protobuf-go `proto`'s initializer (a
+# `sorry`, as raft's Init.lean says); none of the register's own (the `InitialState` premise of
+# raft's `RestartNode` takes the conf state at any `AutoLeave`, and `deliver` steps the wire's
+# copy of a message, `Ready` handing a response out at half; notes/STATUS.md, "stage R6").
+# Since 2026-10-16 (stage R7c) also on `context.ErrDone` (raft's node API names the context's
+# error; the register passes `Background()`, where the case is vacuous).
+axiom DescribeConfChange.wp_proof
+axiom Perennial.go_etcd_io.raft.v3.raftpb.initFuncsOk
+axiom Perennial.go_etcd_io.raft.v3.raftpb.opaqueInitsOk
+axiom Perennial.google_golang_org.protobuf.internal.impl.opaqueInitsOk
+axiom Perennial.google_golang_org.protobuf.proto.initFuncsOk
+axiom Perennial.google_golang_org.protobuf.proto.opaqueInitsOk
+axiom Perennial.google_golang_org.protobuf.reflect.protoreflect.opaqueInitsOk
+axiom Perennial.os.Stderr_init
+axiom Perennial.os.initFuncsOk
+axiom Perennial.os.opaqueInitsOk
+axiom Perennial.strconv.opaqueInitsOk
+axiom context.ErrAny.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom initLb_of_spec
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+sorry Perennial.crypto.rand.initialize'.wp_proof
+sorry Perennial.errors.wp_errorType_init
+sorry Perennial.log.initialize'.wp_proof
+sorry Perennial.math.big.initialize'.wp_proof
+sorry Perennial.math.initialize'.wp_proof
+sorry Perennial.time.initialize'.wp_proof
