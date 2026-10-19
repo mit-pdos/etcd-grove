@@ -1,7 +1,8 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-18
 links:
+candidate: issues/upstream/raft-joint-empty-transition-panic/
 ---
 
 # raft: an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, then panics every node that applies it
@@ -199,7 +200,8 @@ links:
   ("removed all voters", `confchange/confchange.go:171`). That one is the application's to
   avoid (etcd's server validates membership changes before proposing them), but nothing in
   raft's documentation says that a committed conf change must be valid for the
-  configuration it applies to.
+  configuration it applies to. Recorded on its own: `raft-remove-last-voter-panic.md`
+  (2026-10-18).
 - **Possible fixes**: in `stepLeader`, `wantsLeaveJoint := cc.AsV2().LeaveJoint()` (refusing
   any other empty change), or run the `Changer` on the leader's configuration and refuse the
   entry on an error; or return the error from `applyConfChange` (its `TODO(tbg)`).

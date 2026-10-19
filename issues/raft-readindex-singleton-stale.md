@@ -1,15 +1,20 @@
 ---
-upstream: none
-checked: 2026-10-16
+upstream: reported
+checked: 2026-10-19
 links:
+  - etcd-io/raft#533 issue open: this bug, reported 2026-10-19
   - etcd-io/raft#392 issue closed: related, not this bug (the user's: ReadIndex retries with a reused rctx; not the IsSingleton shortcut)
   - etcd-io/raft#397 pr closed: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
   - etcd-io/raft#398 pr closed: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would remove the removed-leader half of the scenario, not the commit-index half)
+candidate: issues/upstream/raft-readindex-singleton-stale/
 ---
 
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change
 
+- **Upstream, split in two** (2026-10-18): this candidate reports execution 1 (a new single-voter leader before its
+  first commit in its term); execution 2 (a removed leader) is
+  [raft-readindex-removed-leader](raft-readindex-removed-leader.md), with its own candidate and fix branch.
 - **Status**: fixed in a fork commit, verified at `raft.Step` (2026-10-14, stage F): `0560cb7` (etcd-io/raft
   `40f8be7` plus the fix of `raft-conf-lag-model/readindex-singleton-fix.patch` and regression
   tests `readindex_singleton_test.go`, which fail without it), saved as

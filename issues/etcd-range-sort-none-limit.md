@@ -1,7 +1,8 @@
 ---
-upstream: none
-checked: 2026-10-16
+upstream: reported
+checked: 2026-10-19
 links:
+  - etcd-io/etcd#22612 issue open: this bug, reported 2026-10-19
   - etcd-io/etcd#21326 pr merged: related (the same limit/sort logic, KEY/ASCEND); not this bug
   - etcd-io/etcd#6672 pr merged: related (2016: NONE with a non-key target sorts ascending); where the bug starts
 candidate: issues/upstream/etcd-range-sort-none-limit/
@@ -106,7 +107,7 @@ The same answer as with `ASCEND`, which is how the server reads `NONE` with a no
 
 ## The fix
 
-Branch `range-sort-none-limit` (one commit, 7362d4129, with the tests). A new `rangeSortOrder(r)` returns the order in which the results are sorted (`r.SortOrder`, with `NONE` read as `ASCEND` for a non-key target), and both `rangeLimit` and `sortRangeResults` use it, so the limit is dropped exactly when the results are re-sorted. `IsDefaultOrdering` is unchanged: `checkRangeStreamRequest` (`server/etcdserver/api/v3rpc/key.go:169-180`) and `tests/common/kv_test.go`'s `rangeStreamSupports` also call it, and changing it would make `RangeStream` reject requests it now accepts. After the fix both tests pass, `etcdctl get a d --sort-by=VERSION --limit=1` returns `c`, and the existing tests pass unchanged (`go test ./etcdserver/txn/ ./etcdserver/api/v3rpc/`; `go test ./integration/clientv3/ -run 'Range|Get|Sort'`; `go test -tags integration ./common/ -run 'TestKVGet$|TestKVGetStream'`; `go test ./e2e/ -run TestCtlV3Get`, which covers `--sort-by`).
+Branch `range-sort-none-limit` (one commit, 7362d4129, with the tests; superseded by the candidate's branch `fix/etcd-range-sort-none-limit`, `issues/upstream/etcd-range-sort-none-limit/meta.md`). A new `rangeSortOrder(r)` returns the order in which the results are sorted (`r.SortOrder`, with `NONE` read as `ASCEND` for a non-key target), and both `rangeLimit` and `sortRangeResults` use it, so the limit is dropped exactly when the results are re-sorted. `IsDefaultOrdering` is unchanged: `checkRangeStreamRequest` (`server/etcdserver/api/v3rpc/key.go:169-180`) and `tests/common/kv_test.go`'s `rangeStreamSupports` also call it, and changing it would make `RangeStream` reject requests it now accepts. After the fix both tests pass, `etcdctl get a d --sort-by=VERSION --limit=1` returns `c`, and the existing tests pass unchanged (`go test ./etcdserver/txn/ ./etcdserver/api/v3rpc/`; `go test ./integration/clientv3/ -run 'Range|Get|Sort'`; `go test -tags integration ./common/ -run 'TestKVGet$|TestKVGetStream'`; `go test ./e2e/ -run TestCtlV3Get`, which covers `--sort-by`).
 
 The commit is one commit off `main` (f061acd09), as the other fix branches are.
 
