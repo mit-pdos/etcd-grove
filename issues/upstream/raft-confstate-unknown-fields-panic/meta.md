@@ -13,11 +13,7 @@ node's own storage, never from a client. The panic needs a mixed-version cluster
   `raftpb/confstate.go:48`)
 - **Branch**: `fix/raft-confstate-unknown-fields-panic` in `~/etcd-fixes/raft-confstate-unknown-fields-panic`, three
   commits (rebuilt 2026-10-18): b079b42 adds the test, which fails there; 71ca492 is the fix; 98c66a9 adds the
-  changelog entry. Not pushed: the fork's branch
-  (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-confstate-unknown-fields-panic`, the branch the links in
-  `issue.md` name) still has the earlier single commit c6921dd (test and fix together) until the user approves
-  `git -C ~/etcd-fixes/raft-confstate-unknown-fields-panic push --force-with-lease=fix/raft-confstate-unknown-fields-panic:c6921dd origin fix/raft-confstate-unknown-fields-panic`.
-  After the push, lines 2757-2776 of `raft_test.go` are the test (the link in `issue.md`); check on GitHub.
+  changelog entry. Force-pushed 2026-10-19 to `upamanyus/etcd-raft` (replacing c6921dd56); the issue's test link (`#L2757-L2776`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft, revised to the skill's standard (2026-10-18)
 - **Upstream issue**: —

@@ -5,11 +5,7 @@
   are now dropped instead of kept in `pending` until the stream closes)
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-watch-id-reuse-stale-events` in `~/etcd-fixes/etcd-watch-id-reuse-stale-events`, two commits:
-  7a311ab5c adds the test, which fails there; 97aa6191d is the fix. Not pushed: the fork
-  (`https://github.com/upamanyus/etcd/tree/fix/etcd-watch-id-reuse-stale-events`, the branch the links in
-  `issue.md` name) still has the old single commit 29b6544ed (off b25719d10) until the user approves
-  `git -C ~/etcd-fixes/etcd-watch-id-reuse-stale-events push --force-with-lease=fix/etcd-watch-id-reuse-stale-events:29b6544ed origin fix/etcd-watch-id-reuse-stale-events`.
-  After the push, lines 492-549 of `tests/integration/clientv3/watch/v3_watch_test.go` are the test (check on GitHub).
+  7a311ab5c adds the test, which fails there; 97aa6191d is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 29b6544ed); the issue's test link (`#L492-L549`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18); `watch.go` and the watch tests
   unchanged since b25719d10, the previous base.
 - **State**: draft (revised 2026-10-18 to the current skill: split into tests and fix commits, deterministic cancel

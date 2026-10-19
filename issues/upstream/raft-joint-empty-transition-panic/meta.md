@@ -15,11 +15,7 @@ messages, which is trusted) can trigger it.
 - **Target**: etcd-io/raft, `main` (raftpb on protobuf-go v2; v3.7.0 has the same `stepLeader` check)
 - **Branch**: `fix/raft-joint-empty-transition-panic` in `~/etcd-fixes/raft-joint-empty-transition-panic`, three
   commits (rebuilt 2026-10-18): 9659828 adds the test, which fails there; e3f1575 is the fix; 4ea35f1 adds the
-  changelog entry. Not pushed yet: the fork's branch still holds the earlier single commit 9e1429d (test and fix
-  together, pushed 2026-10-18), so the links in `issue.md` (lines 344-382 of `rawnode_test.go`, the test) need, once
-  the user approves,
-  `git -C ~/etcd-fixes/raft-joint-empty-transition-panic push --force-with-lease=fix/raft-joint-empty-transition-panic:9e1429d865d6c2b56ff47f59616b2063caa9f389 origin fix/raft-joint-empty-transition-panic`,
-  then a check of the line range on GitHub.
+  changelog entry. Force-pushed 2026-10-19 to `upamanyus/etcd-raft` (replacing 9e1429d86); the issue's test link (`#L344-L382`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft, revised to the skill's 2026-10-18 standard (2026-10-18)
 - **Upstream issue**: —

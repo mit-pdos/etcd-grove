@@ -13,12 +13,7 @@ before (#22082, #19597).
 - **Finding**: `issues/mutex-lock-recreated.md`
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/mutex-lock-recreated` in `~/etcd-fixes/mutex-lock-recreated`, two commits, rebuilt 2026-10-18:
-  b28d26713 adds the test, which fails there; 34adb1693 is the fix. Not pushed: the fork
-  (`https://github.com/upamanyus/etcd/tree/fix/mutex-lock-recreated`, the branch the links in `issue.md` name) still
-  has the earlier single commit e8c9187e5 (off b25719d10) until the user approves the force-push:
-  `git -C ~/etcd-fixes/mutex-lock-recreated push --force-with-lease=fix/mutex-lock-recreated:e8c9187e542fe28d04b2f42c8f97c0e310126df8 origin fix/mutex-lock-recreated`.
-  After the push, check that lines 64-115 of `tests/integration/clientv3/concurrency/mutex_test.go` on GitHub are
-  the test (doc comment to closing brace), as `issue.md` links them. The fork's older draft branch
+  b28d26713 adds the test, which fails there; 34adb1693 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing e8c9187e5); the issue's test link (`#L64-L115`) checked on GitHub: the test, doc comment to closing brace. The fork's older draft branch
   `mutex-lock-recreated` (113b0b324, the keep-waiting fix) is left as it was.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18); `client/v3/concurrency/mutex.go`
   and the test's package unchanged since b25719d10 and f061acd09, where the finding was made

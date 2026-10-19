@@ -5,11 +5,7 @@
 - **Branch**: `fix/election-campaign-key-check` in `~/etcd-fixes/election-campaign-key-check`, rebuilt 2026-10-18 on the
   base below as two commits: 91d51234f (`client/v3: test Election.Campaign whose key is deleted while it waits`, the
   tests, which fail there) and a9699489e (`client/v3: fail Election.Campaign when its key was deleted while waiting`,
-  the fix). Not pushed: the fork's `upamanyus/etcd:fix/election-campaign-key-check` still has the old single commit
-  fd83e7256 (off b25719d10) until the user approves the force-push
-  `git -C ~/etcd-fixes/election-campaign-key-check push --force-with-lease=fix/election-campaign-key-check:fd83e7256 origin fix/election-campaign-key-check`.
-  The issue's link (lines 107-139 of `tests/integration/clientv3/concurrency/election_test.go`, the test's doc
-  comment to its closing brace) holds only after that push; check it on GitHub then. The fork's older draft branch
+  the fix). Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing fd83e7256); the issue's test link (`#L107-L139`) checked on GitHub: the test, doc comment to closing brace. The fork's older draft branch
   `election-campaign-key-check` (bb50d33b8) is left as it was.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18); `client/v3/concurrency` and the
   changed tests are the same as at b25719d10, the previous base, and `Election.Campaign` is unchanged in substance

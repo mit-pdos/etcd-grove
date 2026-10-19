@@ -14,11 +14,7 @@ through etcd's API").
 - **Branch**: `fix/etcd-backend-read-buffer-cache-stale-after-commit` in `~/etcd-fixes/etcd-backend-read-buffer-cache-stale-after-commit`, two commits:
   d426dcdb9 (`storage/backend: test ConcurrentReadTx after a commit`) adds the test, which fails there; 1714a913c
   (`storage/backend: invalidate the ConcurrentReadTx cache on commit`) is the fix. Rebuilt 2026-10-18 on the new
-  base, not pushed: the fork `upamanyus/etcd` still has the old single commit 29baf8d7e (off b25719d10, pushed
-  2026-10-18) until the user approves
-  `git -C ~/etcd-fixes/etcd-backend-read-buffer-cache-stale-after-commit push --force-with-lease=fix/etcd-backend-read-buffer-cache-stale-after-commit:29baf8d7e origin fix/etcd-backend-read-buffer-cache-stale-after-commit`.
-  The issue's link (`backend_test.go#L443-L469`, the test from its doc comment to its closing brace) is to the new
-  branch; check it on GitHub after the push.
+  base, Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 29baf8d7e); the issue's test link (`#L443-L469`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; `server/storage/backend` is
   unchanged since the previous base b25719d10)
 - **State**: draft, revised to the 2026-10-18 standard of the upstream-report skill

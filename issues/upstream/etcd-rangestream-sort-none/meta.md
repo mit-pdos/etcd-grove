@@ -3,12 +3,7 @@
 - **Finding**: `issues/etcd-rangestream-sort-none.md`
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.7` (RangeStream is new in 3.7)
 - **Branch**: `fix/etcd-rangestream-sort-none` in `~/etcd-fixes/etcd-rangestream-sort-none`, two commits:
-  a8c642742 adds the tests, which fail there; 638081c75 is the fix. Not pushed: the fork
-  (`https://github.com/upamanyus/etcd/tree/fix/etcd-rangestream-sort-none`, the branch the links in `issue.md` name)
-  still has the earlier single commit 5f0401a75 (off b25719d10) until the user approves a force-push:
-  `git -C ~/etcd-fixes/etcd-rangestream-sort-none push --force-with-lease=fix/etcd-rangestream-sort-none:5f0401a759f09f0c0e8c2994dc91972a37f674a7 origin fix/etcd-rangestream-sort-none`.
-  After the push, check that lines 432-471 of `tests/integration/clientv3/kv_test.go` are the test (doc comment to
-  closing brace), as `issue.md` links them.
+  a8c642742 adds the tests, which fail there; 638081c75 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 5f0401a75); the issue's test link (`#L432-L471`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; the code involved is unchanged
   since b25719d10, the earlier base)
 - **State**: draft, revised to the 2026-10-18 standard (2026-10-18)

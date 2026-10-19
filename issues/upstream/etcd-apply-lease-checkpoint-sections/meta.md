@@ -4,12 +4,7 @@
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.6`, `release-3.5` (same code there, not run)
 - **Branch**: `fix/etcd-apply-lease-checkpoint-sections` in `~/etcd-fixes/etcd-apply-lease-checkpoint-sections`, two commits:
   9dc872522 (`apply: test that lease checkpoints are committed with their index`) adds the test, which fails there;
-  60d7c705e (`lease: persist all checkpoints of a request in one backend transaction`) is the fix. Not pushed: the
-  fork's `fix/etcd-apply-lease-checkpoint-sections` still has the old single commit a246d135a (off b25719d10) until
-  the user approves a force-push:
-  `git -C ~/etcd-fixes/etcd-apply-lease-checkpoint-sections push --force-with-lease=fix/etcd-apply-lease-checkpoint-sections:a246d135a origin fix/etcd-apply-lease-checkpoint-sections`.
-  After the push, check that lines 34-100 of `server/etcdserver/apply/backend_test.go` on GitHub are the test (the
-  issue links them).
+  60d7c705e (`lease: persist all checkpoints of a request in one backend transaction`) is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing a246d135a); the issue's test link (`#L34-L100`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18); the code the fix touches is
   unchanged since b25719d10.
 - **State**: draft, rebuilt to the skill's standard (2026-10-18). Replaces the fork's older drafts

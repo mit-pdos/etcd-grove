@@ -13,12 +13,7 @@ uses v1 conf changes only, so there the outcome is a wrong configuration on one 
 - **Branch**: `fix/raft-snapshot-during-apply-stale-confchange` in `~/etcd-fixes/raft-snapshot-during-apply-stale-confchange`,
   three commits: ca5cc04 adds the test, which fails there; 5b24f1e is the fix (`raft.go`, 17 lines added); da0e9bf
   adds the changelog entry. Rebuilt 2026-10-18 with a new fix (deferring the snapshot; it replaces 5acb532, which
-  ignored it, and 7982f54, the same changelog commit on top of it), **not pushed**: the fork still has the earlier
-  single commit c65d182 (test and the old fix together, pushed 2026-10-18). The links in `issue.md`
-  (`rawnode_test.go#L718-L764`, the test from its doc comment to its closing brace; the tests commit is unchanged)
-  are right only after a force-push the user approves:
-  `git -C ~/etcd-fixes/raft-snapshot-during-apply-stale-confchange push --force-with-lease=fix/raft-snapshot-during-apply-stale-confchange:c65d182b85525f63906e442bcb5d2eae42c6f07b origin fix/raft-snapshot-during-apply-stale-confchange`;
-  then check the line link on GitHub.
+  ignored it, and 7982f54, the same changelog commit on top of it), Force-pushed 2026-10-19 to `upamanyus/etcd-raft` (replacing c65d182b8); the issue's test link (`#L718-L764`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
 - **State**: draft (2026-10-18)
 - **Upstream issue**: —

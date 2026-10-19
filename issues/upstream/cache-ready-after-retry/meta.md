@@ -4,12 +4,7 @@
 - **Target**: etcd-io/etcd, `main` (the `cache` module, `go.etcd.io/etcd/cache/v3`)
 - **Branch**: `fix/cache-ready-after-retry` in `~/etcd-fixes/cache-ready-after-retry`, two commits: 4c9743e0e
   (`cache: test readiness after a compaction resync`) adds the test, which fails there; 27352098d (`cache: initialize
-  the demux before registering the store watcher`) is the fix. Rebuilt 2026-10-18 on the new base; **not pushed**:
-  the fork's `fix/cache-ready-after-retry` still has the old single commit fcfb43c88 (off b25719d10, with the earlier
-  test `TestCacheReadyAfterWatchRetry`), so the links in `issue.md` resolve only after a force-push the user approves:
-  `git -C ~/etcd-fixes/cache-ready-after-retry push --force-with-lease=fix/cache-ready-after-retry:fcfb43c889937a4227eb56d87329ca25873a966c origin fix/cache-ready-after-retry`.
-  Then check on GitHub that `cache/cache_test.go#L509-L544` is the test, doc comment to closing brace. The fork's
-  older draft branch `cache-ready-after-retry` (64313a1f8) is left as it was.
+  the demux before registering the store watcher`) is the fix. Rebuilt 2026-10-18 on the new base; Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing fcfb43c88); the issue's test link (`#L509-L544`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18). `cache/` is unchanged since the
   previous base b25719d10 (`git diff b25719d10 22cc5d9ac -- cache/` is empty), so the permalinks' lines are the same.
 - **State**: draft (revised 2026-10-18 to the current skill)

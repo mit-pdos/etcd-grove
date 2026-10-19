@@ -3,11 +3,7 @@
 - **Finding**: `issues/etcd-range-sort-none-limit.md`
 - **Target**: etcd-io/etcd, `main`; backport to `release-3.6`, `release-3.5`
 - **Branch**: `fix/etcd-range-sort-none-limit` in `~/etcd-fixes/etcd-range-sort-none-limit`, two commits (2026-10-18):
-  1f10b22ed adds the test, which fails there; 6cb3f6108 is the fix. Not pushed: the fork still has the earlier
-  single commit 972c22ce2 (off ea8b59433, test in a new `range_test.go`), so the links in `issue.md` (the test at
-  `txn_test.go#L279-L310`) resolve only after a force-push the user approves:
-  `git -C ~/etcd-fixes/etcd-range-sort-none-limit push --force-with-lease=fix/etcd-range-sort-none-limit:972c22ce2 origin fix/etcd-range-sort-none-limit`;
-  then check the `#L279-L310` link on GitHub.
+  1f10b22ed adds the test, which fails there; 6cb3f6108 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 972c22ce2); the issue's test link (`#L279-L310`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; `range.go` unchanged since
   ea8b59433, the base of the first version)
 - **State**: draft, rebuilt to the 2026-10-18 standard (two commits, `etcdserver:` prefix, test in `txn_test.go`)
