@@ -11112,3 +11112,132 @@ linkv's `Apply`. Its requirements: the client's `Put` takes an ordinary (not per
 fired at most once, at the server's apply, returning its result on success (on error, fired once
 or not at all, decided by linkv's prophecy at the commit); writes run with no retries (plan (β),
 `withMax(0)`); reads unchanged; `putget_safe` needs only `□AU ⊢ AU`.
+
+## D21 M6: D20 (b) designed; stopped on the no-retry configuration (D21i) and gRPC's at-most-once request (D21j) (2026-10-19)
+
+Stage M6 of D21 (D20 (b)). This entry is a design pass with no Lean change. Plan (β), writes run
+with no retries, was confirmed by the user (2026-10-19). Two choices that D20/D21 leave open stop
+the stage. Each changes a spec's meaning or the trust base: **D21i** and **D21j** below, asked of
+the user. The rest is settled here, in three sub-stages that can start once both are answered.
+
+### Why raft's protocol must change (checked)
+
+The server cannot get at-most-once firing by itself. `kvInv` holds the KV state as the model of
+the *whole* committed log (`kvStateOf (kvModel γk L)`), and Go's apply does not deduplicate:
+`applyEntryNormal` applies every entry, whatever its id. So a second committed entry with a
+request's data changes `etcdKV` a second time, and only the client's update can do that. A
+persistent wrapper around an ordinary update is stuck at a second firing unless the second firing
+can be refuted. Refuting it needs a raft fact: a deposited proposal `d` occupies at most one
+position of the committed log. In Go this holds (D20, "Can Go apply a forwarded Put twice?": no).
+In the model it does not, because `isMessage` of a `MsgProp` is persistent, so a leader may step
+it twice.
+
+### M6a. Raft: a one-shot ticket per proposal (no trust-base change)
+
+- `prop_deposit` (`Facts.lean:687`) also returns `propTok γ d`, which is exclusive. Its witness
+  `propIdx γ d i` is persistent and agrees (`propIdx d i ∗ propIdx d i' ⊢ ⌜i = i'⌝`). Both come
+  from one ghost cell per deposit, named in the proposal's slot.
+- `entDataIs γ e (some d)` gains `propIdx γ d e.Index'`, so it is now a fact about *stamped*
+  entries. A proposal's pre-stamp entries get their own predicate, today's `entDataIs` content
+  (deposited, normal, non-empty). `isMessage .propose`, `propP` and `fwdP` use it. The one place a
+  pre-stamp entry becomes a log entry is the leader's append (`Step.propose`; `entDataIs_stamp` at
+  `Ghost.lean:958` is the conversion today). There the ghost step consumes each normal entry's
+  ticket and mints `propIdx` at the stamped index.
+- **`propAu`, `prop_collect` and the commit invariant keep their statements.** The persistent
+  raft-level update is still fired at every committed occurrence. Each occurrence now hands the
+  update `entDataIs γ e (some d)`, and with it `propIdx γ d e.Index'`. That is all the server
+  needs to refute a second occurrence.
+- The ticket travels with the `MsgProp` as the read credit travels with a `MsgReadIndex` (M1).
+  The per-message one-shot resource `rdCred γ (if ReadIndex then 1 else 0)` (`readyData`, `netP`,
+  the outbox invariants: about 127 occurrences in about 25 raft files) generalizes to `msgCred γ
+  st`: the read credit, plus for a `MsgProp` the tickets of its normal entries. It takes these
+  paths:
+  - `node.Propose`/`RawNode.Propose`: the ticket is in `propP`.
+  - `stepLeader`: appended, the ticket is consumed. `ErrProposalDropped` (no progress, the
+    uncommitted-size limit, a transfer, which is off in the mode): the ticket is dropped.
+  - `stepFollower`: forwarded, the ticket goes into the outbox with the message. No leader: dropped.
+  - `stepCandidate`: dropped.
+  - `fwdP`: it takes the ticket.
+  - The register example threads it through `deliver`, which already delivers each message once.
+- Large, and raft-heavy. It follows M1's pattern.
+
+### M6b. The server (no trust-base change)
+
+- `srvNet`'s payload (M2: "Where D20 (b) plugs in"): `once st := ReadIndex ∨ Prop` and `O st :=
+  msgCred`. This is an instance, not an axiom. **The at-most-once delivery is already stated:**
+  `Transport.Start`'s promise for a `once` message (D21b, M2's `NetPayload`). `Process`'s proof
+  passes `O st` to `fwdP`.
+- `reqPropOk`'s write case takes an ordinary `kvOpAu1 γk op Q`. A caller with the persistent form
+  uses `kvOpAu_one : kvOpAu ⊢ kvOpAu1`. At the proposal, the proposer allocates a per-request cell,
+  an invariant `inv (AU1 ∨ fired)`. Here `fired` is `srvRLogLb γ (L0 ++ [e])` and `propIdx d i`
+  of the first firing, plus `Q σ` or the proposer's token. The raft-level persistent update that
+  `kv_prop_au` (`KVLemmas.lean:198`) builds opens the cell:
+  - Unfired: it fires `AU1` and stores `Q σ`.
+  - Fired: the lower bound gives `|L1| ≥ i`, while `propIdx` agreement gives
+    `|L1| + 1 = i`. That is a contradiction.
+- The result `Q σ` is no longer persistent. The wait registry and `Qr` keep their persistent
+  shape and carry "fired at `σ`, in cell `c`". The proposer's token takes `Q σ` out of the cell.
+  It reaches the client in the reply's `Φ`, which is already one-shot on both sides of gRPC
+  (`grpcHandlerOk`, `grpcInvokerOk`).
+- Request ids (M4) and the wait registry: an id is claimed once by its member's generator. The
+  request's bytes contain the id, so a deposit (`propFresh d`), and with it a ticket, is per
+  request. `processInternalRaftRequestOnce` proposes once. Neither the claims nor the registry
+  takes part in at-most-once firing. The ticket does that, and the registry only carries the
+  result.
+- Medium-large. Files: `InvRequest`, `KVLemmas`, `InvBuild`, `InvNet`, the proposer, `v3rpc`'s
+  `Put`.
+
+### M6c. gRPC and the client (D21i, D21j)
+
+- `kv.Put` reaches `ClientConn.Invoke` through the retry interceptor. Its contract
+  (`etcdInterceptorOk`, `InvKVConn.lean:752`) and the attempt contract (`grpcInvokerOk`, which
+  `grpc.ClientConn.Invoke` promises) take the request's precondition as `□ ▷ Spec m Φ`. An
+  ordinary update must cross both.
+- `client_put_end_to_end` takes the ordinary update. It gives `Q σ` on success, and on an error
+  nothing: the update fired once or not at all, and linkv's update, built over its prophecy,
+  decides which. `client_Put_own`/putget pass `□ AU` through `□ AU ⊢ AU` (or a disjunct, D21i).
+- The update still fires at raft's commit of the entry (the ghost commit). This is inside the
+  call, and it is where the KV state changes. The apply thread only reads it.
+
+### D21i. How plan (β) is realized (asked of the user)
+
+`withMax(0)` is unexported, and `kv.Put` takes `OpOption`s, not call options, so a program cannot
+pass it. The unary interceptor is built with `withMax(MaxUnaryRetries)` (`client.go:247-270`:
+`0` means the default, `100`). With `max = 1` the loop makes exactly one attempt
+(`retry_interceptor.go:54`; no backoff at attempt `0`). So:
+- *(A) `clientv3.Config{MaxUnaryRetries: 1}`*, with no fork change. The client's proofs carry
+  `max ≤ 1` from the configuration to `kvObjAt`. The interceptor's contract takes
+  `□ ▷ Spec m Φ ∨ (▷ Spec m Φ ∗ ⌜max ≤ 1⌝)`, and so do `Put`'s specs: one spec, whose update
+  premise is "persistent, or ordinary with the one-attempt configuration". putget keeps its Go
+  program and passes `□ AU` (the left disjunct). linkv's `Main` sets `MaxUnaryRetries: 1`.
+  *(A′)*: the ordinary update only, with every program configured for one attempt. putget.go and
+  putget3 change and are re-translated.
+- *(B) A fork change*: the interceptor never retries a non-repeatable call. There is no premise,
+  but etcd's behavior diverges further from upstream (no retry of a write that was never sent).
+- *Recommendation:* **(A)**.
+
+### D21j. gRPC's unary `Invoke` delivers a request at most once (asked of the user)
+
+`grpcInvokerOk`'s request precondition goes from `□ ▷ Spec m Φ` to `▷ Spec m Φ`: an attempt runs
+the served handler at most once. This restates what the axiom `grpc.ClientConn.Invoke` promises,
+through the definition; there is no new axiom. The server side (`grpcHandlerOk`, `grpc.serve`)
+already hands each run an owned `Spec m Φ`.
+- True of grpc-go: an attempt is one HTTP/2 stream, and the request is written once. A
+  transparent retry happens only for a stream the server never handed to the application
+  (`REFUSED_STREAM`, a `GOAWAY` past it). etcd's client configures no retry policy and no hedging.
+  D20 audited this ("gRPC's unary `Invoke` runs a handler at most once").
+- The kind is D21b's (a restated transport contract with an at-most-once delivery promise), but
+  at a different boundary, so it is asked rather than assumed. There is no alternative: an
+  ordinary update cannot otherwise cross gRPC.
+- *Recommendation:* accept.
+
+### Trust base (estimate for M6)
+
+No axiom added or removed. Restated: `grpc.ClientConn.Invoke`'s promise (D21j), through
+`grpcInvokerOk`. Unchanged: `Transport.Start` (its `once` is M2's). New premise: none under
+D21i (A); D21i (A′) adds the configuration to `clientCfgOk`'s users.
+
+*Stopped (2026-10-19).* Asked of the user: D21i (recommendation (A)) and D21j (recommendation:
+accept). Next: M6a (raft), then M6b, then M6c. M6a does not depend on either choice and could start
+at once. It changes raft's specs (`Propose` takes the ticket, the server's call of it follows) but
+not the trust base or any client-facing spec.
