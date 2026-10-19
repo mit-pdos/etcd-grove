@@ -110,7 +110,7 @@ theorem ownRaftPhys_lead (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   · iexact Hf_Term
   iintro Hl Ht
   ihave H := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Ht Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_witnessMsgs Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
     %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ H
 

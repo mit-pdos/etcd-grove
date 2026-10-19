@@ -1579,13 +1579,14 @@ def bootPState (bootLog : List EntryM) : PState :=
 /-- The bootstrap log of the peers `ps`, as `Bootstrap` builds it: one entry per peer, entry `k`
 an `EntryConfChange` (type `1`) at term `1` and index `k + 1`, whose bytes decode (`ccDecodeV1`)
 to `AddNode ps[k]` and are admitted by the cluster's policy `ccOk` (`RaftNames.reCCOk`, so that
-`entDataIs e none` holds of it). -/
+`entDataIs e none` holds of it), and (2026-10-19, raft#168's `Entry.Subterm`) at subterm `0`:
+`Bootstrap` leaves the field unset. -/
 def BootLogOk (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) : Prop :=
   bootLog.length = ps.length ∧ (bootLog.length : Int) < 2 ^ 61 ∧
   ∀ (k : Nat) (e : EntryM), bootLog[k]? = some e →
     e.Term' = W64 1 ∧ uint.Z e.Index' = (k : Int) + 1 ∧ e.Type' = W32 1 ∧
     (∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
-    ccOk (W32 1) e.Data'
+    ccOk (W32 1) e.Data' ∧ e.Subterm' = W64 0
 
 theorem bootPState_eq (bootLog : List EntryM) : bootPState bootLog = initPStateAt (W64 1) bootLog :=
   rfl
@@ -1606,7 +1607,7 @@ theorem BootLogOk.wf {ccOk : w32 → List w8 → Prop} {ps : List w64} {bootLog 
   refine ⟨Ht, Hi, by rw [Hty]; exact W32_ne 1 0 (by omega) (by omega) (by omega) (by omega) (by omega),
     ⟨fun _ => ⟨m, Hm⟩, fun h => absurd (Hty.symm.trans h)
       (W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega))⟩, ?_⟩
-  rw [Hty]; exact Hok
+  rw [Hty]; exact Hok.1
 
 /-- `allocClient` for a cluster starting at the bootstrap log: the client's half of the committed
 log and its commit fact are at `bootLog`. -/

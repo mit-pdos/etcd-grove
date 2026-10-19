@@ -29,6 +29,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 -- (2026-10-19, D21 M3) past the default budget with the no-snapshot facts of `ownRaftPhys`
 set_option maxHeartbeats 400000 in
+/-- `(*ConfChangeType).Enum` (`cct.Enum()` on the local variable, 2026-10-19: raft#168 chooses
+the type in a variable): the value method on `*l`. -/
+private theorem ConfChangeType.wp_ptr_Enum_of
+    (wp_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) (l : Loc)
+    (x : raftpb.ConfChangeType) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (l ↦ x : IProp GF) }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.ConfChangeType.ty @!! go!"Enum")) (Val #()))
+    {{ (p : Loc), RET #p; l ↦ x ∗ p ↦ x }} := by
+  wp_start as Hl
+  wp_auto
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_Enum x
+  iintro %p Hp
+  iapply HΦ
+  iframe
+
+set_option maxHeartbeats 800000 in
 theorem RawNode.Bootstrap.wp_proof
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG))
@@ -37,7 +54,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  intro γ rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
+  intro γ rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
   wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
@@ -149,9 +166,12 @@ theorem RawNode.Bootstrap.wp_proof
       ⟨_, List.getElem?_eq_getElem (by rw [← Hctxlen]; exact Hlt)⟩
     ihave #Hpctx := BigSepL2.bigSepL2_lookup (Φ := fun _ (p : Peer) ctx => (p.Context' ↦*□ ctx : IProp GF))
       Hpn Hcn $$ Hctx
-    rw [show raftpb.ConfChangeAddNode = #((W32 0 : raftpb.ConfChangeType)) from rfl]
+    -- (2026-10-19, witness support) `if peer.IsWitness`: no peer is (`R10`), so `AddNode`
+    rw [R10 p (List.mem_of_getElem? Hpn)]
+    try rw [show raftpb.ConfChangeAddNode = #((W32 0 : raftpb.ConfChangeType)) from rfl]
+    try wp_auto
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-    wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
+    wp_apply ConfChangeType.wp_ptr_Enum_of wp_ConfChangeType_Enum $$ [$cct] as %pty ⟨cct, Hpty⟩
     imod cellRO_alloc $$ Hpty with #cTy
     imod cellRO_alloc $$ «$v1» with #cN
     imod ownCCV1_of_struct «$r0_ptr» (⟨zero_val _, pty, «$v1_ptr», p.Context', null, slice.nil, 0⟩ : raftpb.ConfChange)
@@ -163,7 +183,7 @@ theorem RawNode.Bootstrap.wp_proof
       ⟨_, List.getElem?_eq_getElem (by rw [HbLen, Hpslen]; exact Hlt)⟩
     have Hpsn : ps[sint.nat n]? = some p.ID' := by
       rw [R1, List.getElem?_map, Hpn]; rfl
-    obtain ⟨HeT, HeI, HeY, -, -⟩ := HbEnt _ _ Hen
+    obtain ⟨HeT, HeI, HeY, -, -, HeS⟩ := HbEnt _ _ Hen
     have Hpure : ps[sint.nat n]? = some (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).nodeId ∧
         ctxs[sint.nat n]? = some (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).context ∧
         bootLog[sint.nat n]? = some e ∧ (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).type = W32 0 ∧
@@ -185,8 +205,9 @@ theorem RawNode.Bootstrap.wp_proof
         e ⊤ rfl $$ [«$r0»] with He
     · have HeI' : e.Index' = n + W64 1 := by word
       iframe «$r0» Hd
-      rw [HeT, HeY, HeI']
+      rw [HeT, HeY, HeI', HeS]
       iframe cT cY cI
+      iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
     imod entOwn_freeze $$ He with #He
     -- `ents[i] = &pb.Entry{...}`
     ihave %Hentsl := ownSlice_len $$ Hents
@@ -346,10 +367,12 @@ theorem RawNode.Bootstrap.wp_proof
     wp_apply wp_load_slice_index peers (sint.Z k) _ dq p Hk1 $$ [Hpeers] as Hpeers
     · iframe; ipureintro; exact Hpk
     try wp_auto
-    -- `(&pb.ConfChange{NodeId: new(peer.ID), Type: AddNode.Enum()}).AsV2()`
-    rw [show raftpb.ConfChangeAddNode = #((W32 0 : raftpb.ConfChangeType)) from rfl]
+    -- `(&pb.ConfChange{NodeId: new(peer.ID), Type: AddNode.Enum()}).AsV2()`; no peer is a witness
+    rw [R10 p (List.mem_of_getElem? Hpk)]
+    try rw [show raftpb.ConfChangeAddNode = #((W32 0 : raftpb.ConfChangeType)) from rfl]
+    try wp_auto
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-    wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
+    wp_apply ConfChangeType.wp_ptr_Enum_of wp_ConfChangeType_Enum $$ [$cct] as %pty ⟨cct, Hpty⟩
     imod cellRO_alloc $$ Hpty with #cTy
     imod cellRO_alloc $$ «$v0» with #cN
     wp_alloc cc as Hcc

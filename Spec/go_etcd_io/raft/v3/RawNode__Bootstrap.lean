@@ -59,6 +59,9 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk γ.reCCOk ps bootLog →
+  -- (2026-10-19, witness support) no peer is a witness: these specs are of witness-free
+  -- configurations (raft#168 bootstraps a witness peer with an `AddWitness` change)
+  (∀ p ∈ pv, p.IsWitness' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
       rawNodeFresh rn id si ∅ sdr pre s ∗
