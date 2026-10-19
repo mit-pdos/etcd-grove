@@ -297,6 +297,9 @@ root = os.path.normpath(os.path.join(here, ".."))
 # `<last two components>_<fn>`)
 # (`prefix`: the module root of a spec outside `Spec/`, a part's; none now)
 where, prefix, ambiguous = {}, {}, set()
+# every package's spec of a bare `<fn>` (module path, root prefix): an ambiguous bare name in a
+# mode's list is the one of the mode's own packages (below)
+candidates = {}
 for mroot in (mode[4] if cache else [""]):
     spec_dir = os.path.join(root, mroot, "Spec")
     for dp, _, fs in os.walk(spec_dir):
@@ -304,6 +307,8 @@ for mroot in (mode[4] if cache else [""]):
             if f.endswith(".lean"):
                 rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
                 *pkg, stem = rel.split(os.sep)
+                candidates.setdefault(stem, []).append(
+                    (".".join(pkg + [stem]), mroot + "." if mroot else ""))
                 qual = pkg[-1] + "_" + stem
                 if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
                     # the same Go function in a later root (a part's, as the server's
@@ -331,6 +336,15 @@ for mroot in (mode[4] if cache else [""]):
                 where[stem], prefix[stem] = where[qual], prefix[qual]
 for name in ambiguous:
     del where[name]
+# An ambiguous bare `<fn>` in a mode's list (the apply package's `Apply`, which linkv's `Apply`
+# shares) is the function of the mode's own packages (`LEAN_FIRST`'s opens) if exactly one
+# candidate is in one of them: the qualified names stay the only ones elsewhere.
+own_pkgs = set((mode[1] if cache else "").split())
+for name in ambiguous:
+    own = [c for c in candidates.get(name, [])
+           if ".".join(c[0].split(".")[:-1]) in own_pkgs]
+    if len({c[0] for c in own}) == 1:
+        where[name], prefix[name] = own[-1]
 
 
 def spec_file(fn):
