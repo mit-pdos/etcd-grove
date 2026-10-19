@@ -422,3 +422,15 @@ They replace the four `sorry`d `wp_initialize'` of `os`, `strconv`, `raftpb` and
 | `google_golang_org.protobuf.proto.opaqueInitsOk` | ok | `wireTypes` (a map literal, `proto/decode.go`), `errRecursionDepth`, `errDecode`, `errUnknown` (`errors.New`/`protoimpl.X.NewError` values, `proto/decode.go`, `proto/proto.go`): no panic. |
 | `go_etcd_io.raft.v3.raftpb.opaqueInitsOk` | ok | The generated descriptors of `raft.pb.go:1174-1209`: `file_raft_proto_enumTypes = make([]protoimpl.EnumInfo, 4)`, `_msgTypes = make([]protoimpl.MessageInfo, 9)`, `_goTypes` and `_depIdxs` (slice literals): no panic. The package's `func init()` (registration) is not translated, so the model does not run it. |
 
+
+### Reached by the closed theorem (item 9, stage 3, 2026-10-18)
+
+`putget_safe` (the adequacy example's closed theorem) runs every package initializer of `putget`'s
+closure, so it reaches the generated `Init.lean` files' trust-boundary axioms: 157 baseline entries
+newly reached, none added (`opaqueInitsOk` of each package with untranslated variable initializers,
+the `errorsNewVarsInit` axioms, the `<X>_init` axioms of metrics, error and metadata variables), and
+six `sorry`s of Perennial's own initializer proofs. The `<X>_init` rows above (D19j, D19l (iii),
+the client lease, raft's initialization) are audited; the rest are not yet, row by row (a follow-up:
+each `opaqueInitsOk` says the package's untranslated initializers run without panicking, each
+`<X>_init` what one variable's initializer stores). D19r restated no axiom (its (A), (B), (F) are
+premises: `rnStopOkStarted`, `bootstrapContract`).
