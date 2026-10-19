@@ -154,7 +154,7 @@ theorem raftNode.start.wp_proof
       icases Htok with ⟨%sent, %cums, Hdrv, Hprod, Hauth, %Hcums⟩
       imod rn_ready_recv E γ L' rd $$ Henv Hfits Hrsb Hdrv HP with ⟨%ce, %es, Hdata, Hbusy⟩
       iunfold rnReadyData at Hdata
-      icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, #Hmsok,
+      icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, Hmsok,
         #Hss, #Hhs, ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
@@ -347,7 +347,7 @@ theorem raftNode.start.wp_proof
       -- the batch's committed log and indices, from `E.C` (`rnEnvOk`)
       ihave #Henv' := Henv
       iunfold rnEnvOk at Henv'
-      icases Henv' with ⟨-, -, -, -, -, #HCback, -⟩
+      icases Henv' with ⟨-, -, -, -, -, -, #HCback, -⟩
       ihave #HCl := HCback $$ %(L' ++ ce) HC
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
@@ -396,10 +396,17 @@ theorem raftNode.start.wp_proof
         iintro Hprod
         wp_auto
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
-        wp_join with [rh rd r islead]
+        -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
+        wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗
+            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgOk E m))
+          with [rh rd r islead Hmsok] as ⟨rh, rd, r, islead, Hmsok⟩
+        -- the cases that reach the join with nothing sent close by framing (`ileft` once the
+        -- bundles went to the transport)
+        all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
         · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
           wp_apply HSend $$ [$Hout $Houtok]
           wp_join_done
+          all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
         -- `if !raft.IsEmptySnap(raftSnap)`: the snapshot is nil
         wp_apply wp_IsEmptySnap $$ [$Hrpkg]
         -- `r.storage.Save(rd.HardState, rd.Entries)`, `lg.Fatal` on an error
@@ -479,6 +486,8 @@ theorem raftNode.start.wp_proof
         · -- a follower: `msgs := r.processMessages(rd.Messages)`, `notifyc <- `, then (on a conf
           -- change) a second `notifyc` send or `<-r.stopped`, `r.transport.Send(msgs)`
           wp_auto
+          icases Hmsok with (%Hlead | Hmsok)
+          · cases Hlead
           wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
           wp_apply wp_bag_send γnc nc () (fun _ => iprop(True)) $$ [$Hncb]
           cases cc

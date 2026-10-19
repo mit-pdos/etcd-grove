@@ -108,7 +108,11 @@ private theorem resetInv_prvalsOk (id : w64) (s : NState) (term : w64) (pvs : GM
   simp only [resetTo0] at Hl Hv ⊢
   obtain ⟨H1, H2⟩ := H.2 v p Hv
   by_cases HD : v ∈ D
-  · exact (H1 HD).prOk Hnw
+  · refine (H1 HD).prOkN Hnw (fun hns => ?_)
+    obtain ⟨q, hq⟩ : ∃ q, s.prvals !! v = some q := by
+      have : v ∈ domSet pvs := (GMap.elem_of_dom _ _).2 ⟨p, Hv⟩
+      rw [H.1] at this; exact (GMap.elem_of_dom _ _).1 this
+    exact Hok.logLast_pos Hl hns hq
   · exact Hok.lookup Hl (H2 HD)
 
 end helpers
@@ -253,13 +257,22 @@ theorem raft.reset.wp_proof
           Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ rfl $$ Hpv Hifl
     -- the fresh value is within the log: `Next = lastIndex + 1`, `Match = 0` (whatever its window)
     have Hli' : li = logLast s.logst := logLast_unsigned _ _ Hli0
-    have Hfresh : ∀ I, PrOk s.logst (progressOf
+    -- (D21 M3) in the no-snapshot mode a leader's last index is at least `1`: the peer `i` it
+    -- tracked had `Next ≥ 2`
+    have HliP : s.role = .leader → s.gh.ns = true → 1 ≤ uint.Z (logLast s.logst) := by
+      intro hl hns
+      obtain ⟨q, hq⟩ : ∃ q, s.prvals !! i = some q := by
+        have : i ∈ domSet pvs0 := (GMap.elem_of_dom _ _).2 ⟨p, Hpvi⟩
+        rw [Hinv0.1] at this; exact (GMap.elem_of_dom _ _).1 this
+      exact Hok0.logLast_pos hl hns hq
+    have Hfresh : ∀ I, s.role = .leader → PrOkN s.gh.ns s.logst (progressOf
           { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
             PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
             Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe I) :=
-      fun I => PrOk.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl
+      fun I hl => PrOkN.of_reset_vals Hnw (by simp only [progressOf]; rw [Hli']) (.inl rfl) rfl rfl
+        (HliP hl)
     ihave Hphys := HI $$ Htrkf [Htrk]
-      %(PrvalsOk.insert (pvs := <[i := p]> pvs0) Hok1 (fun _ => Hfresh _))
+      %(PrvalsOk.insert (pvs := <[i := p]> pvs0) Hok1 (fun hl => Hfresh _ hl))
     · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Htrk
       rfl
     -- the bound of what is now written, for the node's own second write
@@ -294,13 +307,16 @@ theorem raft.reset.wp_proof
       have Hli2' : li2 = logLast s.logst := logLast_unsigned _ _ Hli1
       have Hp2 := Hpv2
       rw [GMap.lookup_insert_eq] at Hp2
-      have Hown : ∀ I, PrOk s.logst (progressOf { pv2 with Match' := li2 } p2.state I) :=
-        fun I => PrOk.of_reset_vals Hnw
+      have Hown : ∀ I, s.role = .leader →
+          PrOkN s.gh.ns s.logst (progressOf { pv2 with Match' := li2 } p2.state I) :=
+        fun I hl => PrOkN.of_reset_vals Hnw
           (by simp only [progressOf]; rw [Habs2.2.2.2.1, ← Option.some.inj Hp2]
               simp only [progressOf]; rw [Hli'])
           (.inr (by simp only [progressOf]; exact Hli2'))
           (by simp only [progressOf]; rw [Habs2.2.2.2.2.2.1, ← Option.some.inj Hp2]; rfl)
-      ihave Hphys := HI $$ Htrkf [Htrk] %(PrvalsOk.insert Hok2 (fun _ => Hown _))
+          (by simp only [progressOf]; rw [← Option.some.inj Hp2]; rfl)
+          (HliP hl)
+      ihave Hphys := HI $$ Htrkf [Htrk] %(PrvalsOk.insert Hok2 (fun hl => Hown _ hl))
       · iapply ownTrackerC_cast _ _ _ _ ?_ $$ Htrk
         rfl
       icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩

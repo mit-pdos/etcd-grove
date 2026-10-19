@@ -35,6 +35,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvNodeStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 
 @[expose] public section
 
@@ -69,41 +70,67 @@ def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
 /-- The bootstrap log as the server's entries. -/
 def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryModel.ofM
 
-/-- **A message raft hands the server is no `MsgSnap`** (D19p, 2026-10-18): the server is a
-one-member cluster, raft's tracked bound its one node, and a snapshot goes from one node of the
-bound to another (`isMessage`), so raft sends none. -/
+/-- **A message raft hands the server is no `MsgSnap`** (D19p, 2026-10-18; since D21 M3,
+2026-10-19, of any cluster in the no-snapshot mode, `RaftNames.reNoSnap`, which `isRaftMsg` says;
+until then of a one-member cluster, raft's tracked bound its one node). -/
 def srvMsgNoSnap (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝)
 
+/-- **A message raft hands the server, with what its receiver needs** (2026-10-19, D21 stage
+M1): read-only, a message raft sent (`isRaftMsg`, its protocol abstraction), at a term the
+budget `bud` reached (`termLB`), with its read credit, one for a `MsgReadIndex` (`rdCred`):
+what a peer's `node.Step` takes of a network message (`netP`) but the receiver's own facts
+(`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. -/
+def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (m : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
+    rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0))
+
+/-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
+payload, `NetPayload`): persistently, the protocol facts and the term bound (`isRaftMsg`, whose
+`SentMsgOk` clause gives the receiver's `NetMsgOk`, and `termLB`); once, the read credit of a
+`MsgReadIndex`, delivered at most once; any other message may be duplicated, its credit `0` anew.
+D20 (b) adds a forwarded `MsgProp`'s proposal ticket here (`once` and `O`). -/
+def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
+  P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
+  O st := rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0)
+  once st := st.msg.Type' = MsgReadIndex
+  P_pers st := by infer_instance
+  dup st h := by
+    simp only [h, if_false]
+    exact rdCred_zero_upd γ
+
+/-- A message raft hands the server, with its bundle, is one the network takes (`netBundle`). -/
+theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
+    srvMsgNet (GF := GF) γ bud m ⊢ netBundle (srvNet γ bud) m := by
+  iintro H
+  iunfold srvMsgNet at H
+  icases H with ⟨%st, #Hm, #Hr, #Ht, Hc⟩
+  iunfold netBundle
+  iexists st
+  simp only [srvNet]
+  iframe Hm Hc
+  imodintro
+  iframe Hr Ht
+
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
-contract, `rafthttp.Transport`, asking nothing of them), a tick's resource raft's tick credit of
-the budget `bud`, the read names `ρ.rd`, raft's read registrations. -/
+contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
+M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
+registrations. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, srvMsgNoSnap, iprop(True), ρ.rd, srvRQ ρ.rd.raft⟩
+  ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud m ∗ srvMsgNoSnap m), iprop(True),
+    ρ.rd, srvRQ ρ.rd.raft⟩
 
-/-- **A one-member cluster's raft sends no snapshot** (D19p): with raft's tracked bound one
-node, a `MsgSnap`'s sender and receiver (two nodes of the bound, `isMessage`) would be the same. -/
-theorem isRaftMsg_not_snap (γ : RaftNames) (k : w64)
-    (hT : γ.reTracked = some (GMap.listToSet [k])) (st : MsgSt) :
+/-- **A cluster in the no-snapshot mode sends no snapshot** (D21 M3, 2026-10-19; `isRaftMsg`'s
+clause, from raft's invariant `LogNsOk`). Until then (D19p) of a one-member cluster: with raft's
+tracked bound one node, a `MsgSnap`'s sender and receiver would be the same. -/
+theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
     isRaftMsg (GF := GF) γ st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
   iintro Hr
   iunfold isRaftMsg at Hr
-  icases Hr with ⟨%a, %Habs, #Hl⟩
-  rcases Habs with ⟨hn, -⟩ | ⟨ty, hty, hne, -⟩ | ⟨sv, hty, -, rfl⟩
-  · ipureintro; intro h; rw [h, mtypeOf_MsgSnap] at hn; cases hn
-  · ipureintro; intro h; rw [h, mtypeOf_MsgSnap] at hty; cases hty; exact hne rfl
-  · simp only [Option.toList_some]
-    icases (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl with #Hm
-    unfold isMessage absSnap absSnapFrom
-    icases Hm with ⟨-, -, -, -, %Hd⟩
-    ipureintro
-    intro _
-    obtain ⟨Hne, Hin⟩ := Hd
-    obtain ⟨h1, h2⟩ := Hin _ hT
-    rw [GMap.elem_of_list_to_set, List.mem_singleton] at h1 h2
-    exact Hne (h2.trans h1.symm)
+  icases Hr with ⟨%H, -⟩
+  ipureintro; exact H hns
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
@@ -126,11 +153,11 @@ theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     rnMsgOk (srvEr ρ E ai₀ c₀ x₀ bud) m ∗ (∃ to : w64, msgAt m to MsgSnap) ⊢ (False : IProp GF) := by
   iintro ⟨H1, H2⟩
   iunfold rnMsgOk at H1
-  icases H1 with ⟨%to0, %ty0, -, #HM⟩
+  simp only [srvEr]
+  icases H1 with ⟨%to0, %ty0, -, ⟨-, HM⟩⟩
   icases H2 with ⟨%to, H2⟩
   iunfold msgAt at H2
   icases H2 with ⟨%st', #Hst', %Hst'⟩
-  simp only [srvEr]
   iunfold srvMsgNoSnap at HM
   icases HM with ⟨%st, #Hst, %Hns⟩
   ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']
@@ -259,7 +286,10 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
+    -- (2026-10-19, D21 M3) the receipts' bound at most the value `start` sets (`5000`, etcd's
+    -- default, for `0`) plus one: `NewServer.spec`'s run bound
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜receiptBound GF ≤ uint.Z (if n = W64 0 then W64 5000 else n) + 1⌝) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗

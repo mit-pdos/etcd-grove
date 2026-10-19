@@ -37,7 +37,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `raft.wp_store_stateC` at the value the Go code stores. -/
 private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Hcfg : id ∈ c.voters) (Hpr : ∀ v p, s.prvals !! v = some p → PrOk s.logst p) :
+    (Hcfg : id ∈ c.voters) (Hpr : ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p) :
     {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
@@ -53,6 +53,9 @@ theorem raft.becomeLeader.wp_proof
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s Hrole Hnz
   wp_start as Hphys
+  -- (2026-10-19, D21 M3) in the no-snapshot mode the log is not empty (it holds the bootstrap
+  -- log, committed), so `reset`'s `Next = lastIndex + 1` is at least `2` (`PrLo`)
+  icases ownRaftPhysC_ns_last c r id s $$ Hphys with ⟨%Hli1, Hphys⟩
   -- the node is a voter (`ownRaftPhysC`'s `Hvoter`: it is not a follower), so tracked
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hv, Hphys⟩
   have Hcfg : id ∈ c.voters := Hv Hrole
@@ -82,7 +85,7 @@ theorem raft.becomeLeader.wp_proof
   wp_apply wp_store_state_leader c r id
       { resetTo { s with stepfn := functions stepLeader [] } s.term with
           prvals := pvs, ticking := true, lead := id }
-      Hcfg (fun v p hv => (Hrp v p hv).prOk Hnw) $$ Hphys as Hphys
+      Hcfg (fun v p hv => (Hrp v p hv).prOkN Hnw Hli1) $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhysCV c c.voters r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
@@ -111,7 +114,13 @@ theorem raft.becomeLeader.wp_proof
     exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩
   ihave Htrk := Hprback $$ %_ Hpr %rfl
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
-    %(PrvalsOk.insert (pvs := s1.prvals) Hok1 (fun Hl => (Hok1.lookup Hl Hpv0).becomeReplicate Hnw1))
+    %(PrvalsOk.insert (pvs := s1.prvals) Hok1 (fun Hl => (Hok1.lookup Hl Hpv0).becomeReplicate Hnw1
+      (fun hns => by
+        -- (D21 M3) the node's own `Match` is `reset`'s, its last index, at least `1`
+        have Hp0 : pvs !! id = some p0 := by rw [← hs1] at Hpv0; exact Hpv0
+        obtain ⟨-, hm, -, -⟩ := Hrp id p0 Hp0
+        rw [hm, if_pos rfl]
+        exact Hli1 (by rw [← hs1] at hns; exact hns))))
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩

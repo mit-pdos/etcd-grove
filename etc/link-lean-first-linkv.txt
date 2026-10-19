@@ -1,0 +1,20 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/linkv/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --linkv`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `linkv`. Not listed: the standard library's and goose's functions with Perennial specs
+# (`primitive.RandomUint64`, which `Gen`'s proof uses directly).
+#
+# the porcupine model (examples/linkv/linkv.go: Model and its helpers)
+entryLess:
+entriesEqual:
+configEqual: entriesEqual
+lookup:
+set:
+insertSorted: entryLess
+removeAt:
+addConfig: configEqual
+closure: addConfig set removeAt
+step: lookup set insertSorted
+linkv_Model: step addConfig closure configEqual
+# the generator
+Gen:

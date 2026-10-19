@@ -42,6 +42,7 @@ public import Code.go_etcd_io.etcd.pkg.v3.schedule
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 public import Code.go_etcd_io.etcd.pkg.v3.wait
 public import Code.go_etcd_io.etcd.server.v3.auth
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
@@ -2088,6 +2089,121 @@ noncomputable def EtcdServer.Cluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))))))
+
+/-- Process takes a raft message and applies it to the server's raft state
+    machine, respecting any timeout of the given context.
+
+    go: server.go:699:22 -/
+noncomputable def EtcdServer.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "ctx"
+  (Lam "m"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"Step"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))) (Val #()))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Size []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats.ty) go!"RecvAppendReq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError.ty) go.error))) (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusForbidden))
+  (Let "$a1" (Val #(go!"cannot process message to mismatch member"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.NewHTTPError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"rejected Raft message to mismatch member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"mismatch-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"IsIDRemoved"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError.ty) go.error))) (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val _root_.Perennial.net.http.StatusForbidden))
+  (Let "$a1" (Val #(go!"cannot process message from removed member"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.NewHTTPError []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"rejected Raft message from removed member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"removed-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go!"String"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))))
+
+/-- go: server.go:723:22 -/
+noncomputable def EtcdServer.IsIDRemoved.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"IsIDRemoved"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))))))))
+
+/-- go: server.go:725:22 -/
+noncomputable def EtcdServer.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0"))))))))))
+
+/-- ReportSnapshot reports snapshot sent status to the raft state machine,
+    and clears the used snapshot from the snapshot store.
+
+    go: server.go:729:22 -/
+noncomputable def EtcdServer.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "id"
+  (Lam "status"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "status" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty))) (Var "status"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty))) (Var "status"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1")))))))))))))
 
 /-- go: server.go:751:22 -/
 noncomputable def EtcdServer.run.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -5459,7 +5575,7 @@ noncomputable def EtcdServer.requireAuthInfo.impl [FfiSyntax] [GoGlobalContext] 
   (Val #())))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.errors, pkg_id.fmt, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.errors, pkg_id.fmt, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -5467,6 +5583,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5676,6 +5793,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.auth.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6412,6 +6531,12 @@ class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReadIndex"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
   Ready_unfold : MethodUnfold raftNodeConfig.ty go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Ready"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
+  ReportSnapshot_unfold : MethodUnfold raftNodeConfig.ty go!"ReportSnapshot" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
+  ReportUnreachable_unfold : MethodUnfold raftNodeConfig.ty go!"ReportUnreachable" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
+  Step_unfold : MethodUnfold raftNodeConfig.ty go!"Step" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Step"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
   Stop_unfold : MethodUnfold raftNodeConfig.ty go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Stop"))) (App (Val (GoInstruction (StructFieldGet raftNodeConfig.ty go!"Node"))) (Var "$r"))))
   Tick_unfold : MethodUnfold raftNodeConfig.ty go!"Tick" (LamV "$r"
@@ -6424,6 +6549,12 @@ class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReadIndex"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
   ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Ready"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
+  ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReportSnapshot" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
+  ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"ReportUnreachable" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportUnreachable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
+  ptr_Step_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Step" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Step"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
   ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef raftNodeConfig.ty go!"Node"))) (Var "$r")))))
   ptr_Tick_unfold : MethodUnfold (go.GoType.PointerType raftNodeConfig.ty) go!"Tick" (LamV "$r"
@@ -6449,12 +6580,18 @@ attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.Propose_unfold
   raftNodeConfig.TypeAssumptions.ReadIndex_unfold
   raftNodeConfig.TypeAssumptions.Ready_unfold
+  raftNodeConfig.TypeAssumptions.ReportSnapshot_unfold
+  raftNodeConfig.TypeAssumptions.ReportUnreachable_unfold
+  raftNodeConfig.TypeAssumptions.Step_unfold
   raftNodeConfig.TypeAssumptions.Stop_unfold
   raftNodeConfig.TypeAssumptions.Tick_unfold
   raftNodeConfig.TypeAssumptions.ptr_Advance_unfold
   raftNodeConfig.TypeAssumptions.ptr_Propose_unfold
   raftNodeConfig.TypeAssumptions.ptr_ReadIndex_unfold
   raftNodeConfig.TypeAssumptions.ptr_Ready_unfold
+  raftNodeConfig.TypeAssumptions.ptr_ReportSnapshot_unfold
+  raftNodeConfig.TypeAssumptions.ptr_ReportUnreachable_unfold
+  raftNodeConfig.TypeAssumptions.ptr_Step_unfold
   raftNodeConfig.TypeAssumptions.ptr_Stop_unfold
   raftNodeConfig.TypeAssumptions.ptr_Tick_unfold
 
@@ -6531,6 +6668,12 @@ class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ReadIndex"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   Ready_unfold : MethodUnfold raftNode.ty go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Ready"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ReportSnapshot_unfold : MethodUnfold raftNode.ty go!"ReportSnapshot" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ReportUnreachable_unfold : MethodUnfold raftNode.ty go!"ReportUnreachable" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  Step_unfold : MethodUnfold raftNode.ty go!"Step" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Step"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   Stop_unfold : MethodUnfold raftNode.ty go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve raftNodeConfig.ty go!"Stop"))) (App (Val (GoInstruction (StructFieldGet raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   Tick_unfold : MethodUnfold raftNode.ty go!"Tick" (LamV "$r"
@@ -6544,6 +6687,12 @@ class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   ptr_ReadState_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReadState" raftNode.ReadState.impl
   ptr_Ready_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Ready" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Ready"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"ReportUnreachable" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"ReportUnreachable"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
+  ptr_Step_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Step" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Step"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Stop" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNodeConfig.ty) go!"Stop"))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"raftNodeConfig"))) (Var "$r"))))
   ptr_Tick_unfold : MethodUnfold (go.GoType.PointerType raftNode.ty) go!"Tick" (LamV "$r"
@@ -6585,6 +6734,9 @@ attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.Propose_unfold
   raftNode.TypeAssumptions.ReadIndex_unfold
   raftNode.TypeAssumptions.Ready_unfold
+  raftNode.TypeAssumptions.ReportSnapshot_unfold
+  raftNode.TypeAssumptions.ReportUnreachable_unfold
+  raftNode.TypeAssumptions.Step_unfold
   raftNode.TypeAssumptions.Stop_unfold
   raftNode.TypeAssumptions.Tick_unfold
   raftNode.TypeAssumptions.ptr_Advance_unfold
@@ -6592,6 +6744,9 @@ attribute [instance] raftNode.TypeAssumptions.type_repr
   raftNode.TypeAssumptions.ptr_ReadIndex_unfold
   raftNode.TypeAssumptions.ptr_ReadState_unfold
   raftNode.TypeAssumptions.ptr_Ready_unfold
+  raftNode.TypeAssumptions.ptr_ReportSnapshot_unfold
+  raftNode.TypeAssumptions.ptr_ReportUnreachable_unfold
+  raftNode.TypeAssumptions.ptr_Step_unfold
   raftNode.TypeAssumptions.ptr_Stop_unfold
   raftNode.TypeAssumptions.ptr_Tick_unfold
   raftNode.TypeAssumptions.ptr_advanceTicks_unfold
@@ -6869,6 +7024,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_FirstCommitInTermNotify_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"FirstCommitInTermNotify" EtcdServer.FirstCommitInTermNotify.impl
   ptr_ForceSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ForceSnapshot" EtcdServer.ForceSnapshot.impl
   ptr_GoAttach_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"GoAttach" EtcdServer.GoAttach.impl
+  ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsIDRemoved" EtcdServer.IsIDRemoved.impl
   ptr_KV_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"KV" EtcdServer.KV.impl
   ptr_Lead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Lead" EtcdServer.Lead.impl
   ptr_Leader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Leader" EtcdServer.Leader.impl
@@ -6880,8 +7036,11 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_MemberID_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MemberID" EtcdServer.MemberID.impl
   ptr_NewUberApplier_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"NewUberApplier" EtcdServer.NewUberApplier.impl
   ptr_NextRequestID_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"NextRequestID" EtcdServer.NextRequestID.impl
+  ptr_Process_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Process" EtcdServer.Process.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Put" EtcdServer.Put.impl
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Range" EtcdServer.Range.impl
+  ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportSnapshot" EtcdServer.ReportSnapshot.impl
+  ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportUnreachable" EtcdServer.ReportUnreachable.impl
   ptr_RequestTimeout_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RequestTimeout" EtcdServer.RequestTimeout.impl
   ptr_Start_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Start" EtcdServer.Start.impl
   ptr_Stopping_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Stopping" EtcdServer.Stopping.impl
@@ -7027,6 +7186,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_FirstCommitInTermNotify_unfold
   EtcdServer.TypeAssumptions.ptr_ForceSnapshot_unfold
   EtcdServer.TypeAssumptions.ptr_GoAttach_unfold
+  EtcdServer.TypeAssumptions.ptr_IsIDRemoved_unfold
   EtcdServer.TypeAssumptions.ptr_KV_unfold
   EtcdServer.TypeAssumptions.ptr_Lead_unfold
   EtcdServer.TypeAssumptions.ptr_Leader_unfold
@@ -7038,8 +7198,11 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_MemberID_unfold
   EtcdServer.TypeAssumptions.ptr_NewUberApplier_unfold
   EtcdServer.TypeAssumptions.ptr_NextRequestID_unfold
+  EtcdServer.TypeAssumptions.ptr_Process_unfold
   EtcdServer.TypeAssumptions.ptr_Put_unfold
   EtcdServer.TypeAssumptions.ptr_Range_unfold
+  EtcdServer.TypeAssumptions.ptr_ReportSnapshot_unfold
+  EtcdServer.TypeAssumptions.ptr_ReportUnreachable_unfold
   EtcdServer.TypeAssumptions.ptr_RequestTimeout_unfold
   EtcdServer.TypeAssumptions.ptr_Start_unfold
   EtcdServer.TypeAssumptions.ptr_Stopping_unfold
@@ -7491,6 +7654,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
   import_wait_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.Assumptions
   import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
+  import_httptypes_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Assumptions
   import_v2stats_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions
   import_v3alarm_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions
   import_v3compactor_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions
@@ -7591,6 +7755,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.import_traceutil_Assumption
   Assumptions.import_wait_Assumption
   Assumptions.import_auth_Assumption
+  Assumptions.import_httptypes_Assumption
   Assumptions.import_v2stats_Assumption
   Assumptions.import_v3alarm_Assumption
   Assumptions.import_v3compactor_Assumption

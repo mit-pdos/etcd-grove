@@ -221,8 +221,12 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       ⌜m.src ≠ W64 0⌝)
   | .appResp =>
       -- an acceptance: the acknowledgement, and (2026-10-16, stage R8a, D11) its index within
-      -- the term's leader's log, for the leader's `MaybeUpdate` (`ownRaftGhost_ackIn_le`)
-      if m.reject then iprop(True)
+      -- the term's leader's log, for the leader's `MaybeUpdate` (`ownRaftGhost_ackIn_le`).
+      -- (2026-10-19, D21 M3) A rejection, in a cluster with a non-empty bootstrap log: of an
+      -- index past it, with a hint in `[1, index]` (`ownLogGhost_reject_ok`), for the leader's
+      -- `MaybeDecrTo` to keep `Next ≥ 2` in the no-snapshot mode
+      if m.reject then iprop(⌜γ.reBoot ≠ [] → (γ.reBoot.length : Int) < uint.Z m.index ∧
+        1 ≤ uint.Z m.rejecthint ∧ uint.Z m.rejecthint ≤ uint.Z m.index⌝)
       else iprop(isAcked γ m.src m.term m.index ∗ ackIn γ m.term m.index)
   | .heartbeat =>
       iprop(isLeader γ m.src m.term ∗
@@ -284,6 +288,17 @@ theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :
   intro Hty Hrej
   unfold isMessage; rw [Hty]; simp only [Hrej, Bool.false_eq_true, ↓reduceIte]
   iintro ⟨-, #H⟩; iexact H
+
+/-- (2026-10-19, D21 M3) A rejecting `MsgAppResp`, in a cluster with a non-empty bootstrap log,
+rejects an index past it, with a hint in `[1, index]`. -/
+theorem isMessage_appResp_rej_inv (γ : RaftNames) (m : Msg) :
+    m.ty = .appResp → m.reject = true →
+    ⊢ isMessage (GF := GF) γ m -∗
+      ⌜γ.reBoot ≠ [] → (γ.reBoot.length : Int) < uint.Z m.index ∧ 1 ≤ uint.Z m.rejecthint ∧
+        uint.Z m.rejecthint ≤ uint.Z m.index⌝ := by
+  intro Hty Hrej
+  unfold isMessage; rw [Hty]; simp only [Hrej, ↓reduceIte]
+  iintro H; iexact H
 
 /-- The message types that carry nothing. -/
 def MsgFree (ty : MsgType) : Bool :=

@@ -98,7 +98,8 @@ theorem node.ReadIndex.wp_proof
       · exfalso; simp [MsgTransferLeader] at h
       · exfalso; simp [MsgPreVote] at h
     isplitr
-    · ipureintro; intro h; exfalso; simp [MsgPreVote] at h
+    · ipureintro
+      exact ⟨fun h => by exfalso; simp [MsgPreVote] at h, fun h => by exfalso; simp [MsgTransferLeader] at h⟩
     isplitr
     · imodintro
       iintro %ty %Hty

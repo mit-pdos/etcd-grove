@@ -3,6 +3,7 @@ upstream: reported
 checked: 2026-10-19
 links:
   - etcd-io/raft#534 issue open: this bug, reported 2026-10-19
+  - etcd-io/raft#536 pr open: the fix, opened 2026-10-19 (conflicts with #535, the sibling's fix)
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would avoid it)
 candidate: issues/upstream/raft-readindex-removed-leader/
 ---

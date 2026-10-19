@@ -26,27 +26,41 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`t.Start()`** on a transport `t` the caller owns whole (`NewServer`'s literal), its logger
-and stats set: an error, or the transport live (`transportLive t`: `AddRemote`/`AddPeer` take it),
-which the caller gives up for `transportStarted t` (`Send`, `Stop`, `ActiveSince`).
+and stats set, for member `tv.ID` of the network `γn` (D21 M2, 2026-10-19): given the member's slot
+(`netSlot`), its `Raft` (`tv.Raft`: `netRaftOk`, the calls the transport makes into it) and
+`netProcSlots` copies of the resource `R` those calls borrow, an error, or the transport live
+(`transportLive γn t`: `AddRemote`/`AddPeer` take it), which the caller gives up for
+`transportStarted γn t` (`Send`, `Stop`, `ActiveSince`).
 
-Why it is true of the Go code (`transport.go` at the etcd pin): `Start` makes the two round
-trippers from the TLS info (an error returned, e.g. an unreadable certificate), the two maps and
-the two probers, and defaults the dial retry frequency; it starts no goroutine. Afterwards the
-transport's maps are guarded by its `mu` (`AddRemote`, `AddPeer`, `Send`, `Stop`, `ActiveSince`
-take it), so the caller's ownership goes into the transport; the peers' goroutines started later
-call into `t.Raft` (`Process`, `ReportUnreachable`, `ReportSnapshot`, `IsIDRemoved`), the named
-premise `transportEffectsOk`. `Send` after `Stop` finds no peer and returns; `AddPeer` after
-`Stop` panics, hence the exclusive `transportLive`, given up for `Stop`. -/
+What the axiom asserts of the Go code (`transport.go`, `peer.go`, `stream.go`, `pipeline.go`,
+`http.go` at the etcd pin), besides `Start`'s own steps (the two round trippers from the TLS info,
+an error returned e.g. for an unreadable certificate; the two maps and probers; no goroutine):
+* the transport's goroutines and handlers call `tv.Raft` only as `netRaftOk` admits: `Process`
+  with a fresh copy (unmarshalled: `netRecv`) of a message some member's started transport was
+  given by `Send` for `tv.ID` (`Send` routes by `To` to the peer added for it, which posts to that
+  peer's URLs, served by the transport holding `To`'s slot: `AddPeer`'s directory premise), with
+  that message's bundle; each sent message possibly lost (writers drop on error or a full buffer,
+  reporting `ReportUnreachable`), never retried, so delivered at most once if `once`; the reports
+  and `IsIDRemoved` at any time; at most `netProcSlots` calls at once, each borrowing an `R`
+  (physically: each is a goroutine with its own stack);
+* nothing is sent on `ErrorC`: rafthttp reports only `errMemberRemoved` there, on a `403`, which no
+  member answers -- none is removed (static membership) and no message reaches the wrong member
+  (`issues/etcd-rafthttp-misaddressed-403-member-removed.md`, excluded by the directory).
+`Send` after `Stop` finds no peer and returns; `AddPeer` after `Stop` panics, hence the exclusive
+`transportLive`, given up for `Stop`. -/
 abbrev rafthttp.Transport.Start.spec : Prop :=
-  ∀ (t : Loc) (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport),
+  ∀ (t : Loc) (tv : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport)
+    (γn : NetNames GF) (R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜transportEffectsOk⌝ ∗ t ↦ tv ∗
-      ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null⌝ }}
+      t ↦ tv ∗
+      ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null⌝ ∗
+      netSlot γn tv.ID' ∗ □ netRaftOk γn tv.ID' R tv.Raft' ∗
+      [∗list] _x ∈ List.replicate netProcSlots (), R }}
     (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Start")) (Val #()))
   {{ (err : GoInterface), RET #err;
       ⌜err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗ transportLive t ∗ (transportLive t -∗ transportStarted t) }}
+      ⌜err = GoInterface.nil⌝ ∗ transportLive γn t ∗ (transportLive γn t -∗ transportStarted γn t) }}
 
 end spec
 

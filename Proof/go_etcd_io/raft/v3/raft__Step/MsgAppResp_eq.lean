@@ -48,8 +48,13 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Hlrd : s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0)
     -- (2026-10-16, stage R8a, D11) at a leader an accepted acknowledgement of its term is within
     -- its log: `Step` has it from the message's ghost witness (`ackIn`)
-    (Hack : s.role = .leader → m.Term' = s.term → m.Reject' = false →
-      uint.Z m.Index' ≤ uint.Z (logLast s.logst)) :
+    (Hack : s.role = .leader → m.Term' = s.term →
+      (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
+      -- (2026-10-19, D21 M3) a rejection in the no-snapshot mode (`stepLeader.spec`'s premise)
+      (m.Reject' = true → s.gh.ns = true →
+        2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+        (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+          uint.Z t0 ≤ 1))) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -157,7 +162,8 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun _ => Hlrd Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ hr => Hack Hrole Hteq hr)
+        (fun _ => Hack Hrole Hteq)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm

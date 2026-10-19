@@ -6,9 +6,9 @@
   1f10b22ed adds the test, which fails there; 6cb3f6108 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 972c22ce2); the issue's test link (`#L279-L310`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; `range.go` unchanged since
   ea8b59433, the base of the first version)
-- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **State**: filed (the issue and the PR, 2026-10-19)
 - **Upstream issue**: [etcd-io/etcd#22612](https://github.com/etcd-io/etcd/issues/22612), filed 2026-10-19
-- **PR**: —
+- **PR**: [etcd-io/etcd#22616](https://github.com/etcd-io/etcd/pull/22616), opened 2026-10-19 from this branch at 6cb3f6108; its body is `pr.md`
 
 Commit messages (drafts for the user to rewrite):
 
@@ -72,6 +72,17 @@ current standard:
 Maintainer review by hand: `rangeLimit` has one caller (`executeRange`); `IsDefaultOrdering` is unchanged, so its
 other callers (`checkRangeStreamRequest`, `tests/common/kv_test.go`) behave as before. No comment or doc claims the
 old behavior. No new bug found.
+
+## The other PR (2026-10-19)
+
+etcd-io/etcd#22615 (ShivanshhhG, opened 2026-10-19 an hour before #22616, one commit 017cb18c3) fixes #22612 the
+other way: `IsDefaultOrdering` becomes `sortTarget == KEY && (sortOrder == NONE || sortOrder == ASCEND)`, with a
+test `TestRangeSortLimit` in `txn_test.go` (the name of this branch's test). For `executeRange` the two fixes agree:
+`sortRangeResults` already turns `NONE` into `ASCEND` for a non-key target before asking `IsDefaultOrdering`, so
+its answer there is unchanged. Unlike this branch, it changes `IsDefaultOrdering`'s other callers:
+`checkRangeStreamRequest` (`server/etcdserver/api/v3rpc/key.go:173`) then rejects `RangeStream` with a non-key
+target and `NONE`, which fixes `issues/etcd-rangestream-sort-none.md` too (its PR does not say so), and
+`tests/common/kv_test.go`'s `rangeStreamSupports` mirrors it. Read from its diff, not run.
 
 ## If a reviewer asks
 

@@ -144,7 +144,8 @@ instance srvRunBuilt_persistent (s : Loc) (v : RunFields) : Persistent (srvRunBu
   unfold srvRunBuilt; infer_instance
 
 /-- **`isServerApplyAll`'s raft field** (persistent): the raft wrapper's `msgSnapC`, which never
-delivers (D19p, 2026-10-18: a one-member cluster's raft sends no `MsgSnap`). -/
+delivers (D19p, 2026-10-18: raft sends no `MsgSnap`; since D21 M3 in its no-snapshot mode,
+until then of a one-member cluster). -/
 def srvApplyAllBuilt (s : Loc) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
@@ -241,7 +242,10 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
     "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
     "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
+    -- (2026-10-19, D21 M3) the receipts' bound at most the value `start` sets (`5000`, etcd's
+    -- default, for `0`) plus one: `NewServer.spec`'s run bound
+    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗
+      ⌜receiptBound GF ≤ uint.Z (if n = W64 0 then W64 5000 else n) + 1⌝) ∗
     "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
     "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
     -- the ghost state `start` hands on

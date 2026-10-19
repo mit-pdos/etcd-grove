@@ -36,10 +36,14 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs hok
-  wp_start as ⟨#Hsa, Hss, #Hfl, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
+  intro s E γw γ ci b γr ep st ai at' cs a t x ms γs γp hok hcap
+  wp_start as ⟨#Hsa, #HWP, #HWA, Hss, #Hfl, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   iunfold isServerApplyAll at Hsa
-  icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -⟩
+  icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, %scu, #Hscu, %Hrbs⟩
+  -- (D21 M3) the applied index below the receipts' bound, so at most `SnapshotCatchUpEntries`
+  imod srvWTPool_bound E.γ γp ai $$ HWP HWA with %Hrb
+  have Hcmp : (if uint.Z scu < uint.Z ai then uint.Z ai - uint.Z scu else 1) ≤ γs.cap := by
+    split <;> omega
   iunfold srvSnapState at Hss
   icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, %σ, Htok, %Hσ⟩
   (try wp_auto)
@@ -84,7 +88,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     iunfold srvSnapState at Hss
     icases Hss with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, %σ', Htok, %Hσ'⟩
     (try wp_auto)
-    wp_apply hC s ai ms γs σ' Hσ'.1 Hσ'.2 Hai1 $$ [Hlr Htok] as ⟨Hlr, %σ'', Htok, %Hσ''⟩
+    wp_apply hC s ai ms γs σ' scu Hσ'.1 Hσ'.2 Hai1 Hcmp $$ [Hlr Htok] as ⟨Hlr, %σ'', Htok, %Hσ''⟩
     · iframe #; iframe Hlr Htok
     (try wp_auto)
     iapply HΦ

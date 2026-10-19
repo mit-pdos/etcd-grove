@@ -23,6 +23,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
 public import GeneratedProof.go_etcd_io.etcd.server.v3.auth
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.snap

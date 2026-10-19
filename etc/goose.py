@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, kv, putget, porcupine or lintest;
+  --project    only this project (raft, etcd, kv, putget, putget3, linkv, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -103,13 +103,15 @@ PROJECTS = [
         name="raft",
         # The raft etcd links (go.etcd.io/raft/v3 v3.7.0 in etcd's go.mod: etcd-io/raft
         # b867cf13, protobuf-go v2 raftpb: messages, entries, snapshots are pointers with
-        # getters) plus the single-voter read-index fix rebased onto it
-        # (issues/raft-readindex-singleton-stale.md): branch raft37-goose-lean of the etcd
-        # fork. (The raft proof was ported to it in a parallel tree, the module root Raft37,
+        # getters) plus two fixes rebased onto it: the single-voter read-index shortcut
+        # (issues/raft-readindex-singleton-stale.md) and the probe-to-replicate shortcut taken
+        # only when `pr.Next == pr.Match+1` (issues/raft-stale-term-appresp-index-zero-ack.md;
+        # D21 M3): branch raft37-goose-lean-a1 of the etcd fork (raft37-goose-lean, 509271dac,
+        # plus the second fix). (The raft proof was ported to it in a parallel tree, the module root Raft37,
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="509271dac8a49e670fd434444fa26eacdb1aa7b7",
+        rev="c8217eb91ae5948182c1035ff0464b1e54b8f1d0",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],
@@ -194,6 +196,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp",
             "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
+            # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor",
             # names only: what the apply package names (api.UpdateCapability,
@@ -374,6 +378,36 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
+    ),
+    Project(
+        name="linkv",
+        # The lintest driver instantiated with etcd (D20): one member started in-process, as
+        # in putget, and lintest.Run's clients doing Put and Get through one client, checked
+        # by porcupine against a key-value model. A Go module of this repository, with
+        # putget's replaces (keep them in step); its imports are the etcd, lintest and
+        # porcupine projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "linkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
+    ),
+    Project(
+        name="putget3",
+        # putget with three members (D21 stage M5): three members started in-process, each
+        # serving its raft handler on its own peer listener, a client's Put and Get through the
+        # first. A Go module of this repository, with putget's replaces (keep them in step); its
+        # imports are the etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "putget3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget3")],
     ),
     Project(
         name="porcupine",

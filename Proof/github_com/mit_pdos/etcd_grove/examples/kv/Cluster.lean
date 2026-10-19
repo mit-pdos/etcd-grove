@@ -162,7 +162,7 @@ theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) 
     cases Hty'
   iintro Hm
   unfold isRaftMsg
-  icases Hm with ⟨%a, %Habs, #Hl⟩
+  icases Hm with ⟨-, -, %a, %Habs, #Hl⟩
   unfold msgAbs at Habs
   rcases Habs with ⟨Hn, -⟩ | ⟨ty, Hty, -, rfl⟩ | ⟨sv, Hsn, -, -⟩
   · rw [Hty0] at Hn; cases Hn
@@ -277,8 +277,12 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     isplitr
     · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto
     isplitr
-    · ipureintro; intro h; exfalso
-      exact deliverable_not_prevote st Hd h
+    · ipureintro
+      refine ⟨fun h => (deliverable_not_prevote st Hd h).elim, fun h => ?_⟩
+      exfalso
+      rcases deliverable_mtype st Hd with h' | ⟨ty, h', -⟩
+      · rw [h] at h'; simp [MsgTransferLeader, MsgTimeoutNow] at h'
+      · rw [h] at h'; cases h'
     iframe Hmsg Hlb Hcr Htc
 
 end defs

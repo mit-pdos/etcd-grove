@@ -35,10 +35,11 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
   replacing the earlier combined fix 77ab0c9 (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`,
   the branch the links in `issue.md` name; its lines 2154-2188 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
-- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **State**: filed (the issue and the PR, 2026-10-19)
 - **Upstream issue**: [etcd-io/raft#533](https://github.com/etcd-io/raft/issues/533), filed 2026-10-19 (the issues do not mention each other; only the PRs do, in their conflict note)
-- **PR**: — (then replace `pull/TODO` in the changelog commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
-  `#<other PR>` in `pr.md`)
+- **PR**: [etcd-io/raft#535](https://github.com/etcd-io/raft/pull/535), opened 2026-10-19 from this branch at 3d0bd8a;
+  its body is `pr.md` without the conflict note (#536, opened after it, names #535 in its own). Still to do: the changelog commit 3d0bd8a's `CHANGELOG/CHANGELOG-3.8.md` entry links `pull/TODO`;
+  a new commit on the branch (not a force-push) should make it `pull/535`
 
 etcd-io/raft has no issue template: the issue uses etcd's bug-report sections, with "Raft version" for etcd's
 version and configuration sections.

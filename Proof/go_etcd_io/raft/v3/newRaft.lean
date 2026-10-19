@@ -210,6 +210,8 @@ theorem newRaft.wp_proof
   ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave Hob := outboxRel_nil (GF := GF)
   imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
+  -- (D21 M3) not in the no-snapshot mode (set later, by the node's construction)
+  ihave #Hns0 := NsCap.off (GF := GF) s0.logst.storage
   -- the struct, left open at its tracker (`ownRaftPhys_intro_trk`, 2026-10-16, stage R8b: the
   -- empty tracker's own maps may be what `switchToConfig` installs, so they cannot also seal the
   -- struct first); `switchToConfig` installs the configuration and seals it
@@ -218,8 +220,10 @@ theorem newRaft.wp_proof
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
-    (fun h => absurd rfl h)
-    $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob with ⟨Htrkf, Hback⟩
+    (fun h => absurd rfl h) (LogNsOk.off rfl)
+    -- (2026-10-19, D21 M2r) leader transfer off (the default), the queues empty
+    (XfOk.nil (fun _ => rfl) (fun h => absurd h (by simp only [s0]; decide)))
+    $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 with ⟨Htrkf, Hback⟩
   wp_apply (raft.switchToConfig.spec_nonleader_open wp_raft_switchToConfig) _ _ _ s0 tv0 cfgv prsm prs
     (by simp only [s0]) Hprs' Hmi $$ [$Htrkf $Hback $Hvotes $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2⟩

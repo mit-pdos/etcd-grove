@@ -18,8 +18,8 @@ bootstrap log, one conf change adding the member, id `0`, under the server's con
 **The Iris premises** (`premises`, persistent; since D19r was carried out, 2026-10-18, each a
 triple of a function the program calls, D19a's second kind):
 * `bootstrap`'s contract (`bootstrapContract`, D13b), at every storage registry and raft names of
-  this one-member cluster (configuration `{id}`, tracked `{id}`, the bootstrap log, the policy
-  `ccOk`, static), for a configuration with the scalar fields `Main` sets (`cfgOk`) and its URLs
+  this one-member cluster (configuration `{id}`, raft's no-snapshot mode, the bootstrap log, the
+  policy `ccOk`, static), for a configuration with the scalar fields `Main` sets (`cfgOk`) and its URLs
   (`urlsOk`), which the contract reads read-only (`bootCfgRO`), with the registry's authority;
 * the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s): `rnLoggerZapOk`,
   `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`, `rnTickerOk` at every raft
@@ -84,6 +84,10 @@ def urlsOk (U : BootURLs) : Prop :=
   U.peer = [peerURL] ∧ U.client = [clientURL] ∧
     (∃ sl : GoSlice, U.initMap = GMap.insert go!"putget" sl ∅) ∧ U.initURLs go!"putget" = [peerURL]
 
+/-- **The peer-URL directory of `Main`'s cluster** (D21 M2, 2026-10-19): its one member's peer
+URL, `http://127.0.0.1:23800` (the members' records `bootstrap` makes name it). -/
+def putgetDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23800"]
+
 end pure
 
 section defs
@@ -113,8 +117,8 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
     (□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
         (γ : RaftNames),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧
-        γ.reCCOk = ccOk id ∧ γ.reBoot = bootLog ∧ γ.reTracked = some (GMap.listToSet [id])⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N) ∗
+        γ.reCCOk = ccOk id ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true⌝ -∗
+      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N putgetDir) ∗
     -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗

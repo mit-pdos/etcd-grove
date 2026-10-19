@@ -373,7 +373,7 @@ theorem node.run.wp_proof
       icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
         (by simp only; omega)
-        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb Hflw
+        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb.1 Hflw Hpvb.2
         $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hmsg Hcred Hlc1
       ihave Hrest := headRest_term γ nv rs ac rc' rdv' t tb $$ Hrest Hlbtb

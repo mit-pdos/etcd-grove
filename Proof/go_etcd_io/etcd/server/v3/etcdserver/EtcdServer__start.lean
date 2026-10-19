@@ -95,7 +95,7 @@ theorem EtcdServer.start.wp_proof
     (hRSt : raftNode.ReadState.spec (GF := GF) (hG := hG))
     (hRI : raftNode.ReadIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.start.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb
+  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
   wp_start as Hb
   iNamed Hb
   irename Hcancel => Hcancel0
@@ -116,7 +116,7 @@ theorem EtcdServer.start.wp_proof
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgn
   icases Hsc with ⟨%sc0, Hsc⟩
-  icases Hscu with ⟨%scu0, Hscu⟩
+  icases Hscu with ⟨%scu0, Hscu, %Hscu0⟩
   wp_auto
   -- the snapshot defaults
   wp_join iprop(∃ n : w64, srvSnapCountAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hsc s lg]
@@ -125,14 +125,25 @@ theorem EtcdServer.start.wp_proof
     wp_apply hZU as %f2 -
     start_info
     wp_join_done
-  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg) with [Hscu s lg]
-    as ⟨%scu1, Hscu, s, lg⟩
+  wp_join iprop(∃ n : w64, srvSnapCatchUpAddr s ↦ n ∗ s_ptr ↦ s ∗ lg_ptr ↦ fv.lg ∗
+      ⌜receiptBound GF ≤ uint.Z n + 1⌝) with [Hscu s lg]
+    as ⟨%scu1, Hscu, s, lg, %Hscu1⟩
   · wp_apply hZU as %f1 -
     wp_apply hZU as %f2 -
     start_info
     simp only [DefaultSnapshotCatchUpEntries]
     wp_auto
     wp_join_done
+    iexists _
+    iframe
+    ipureintro
+    simpa using Hscu0
+  · iexists _
+    iframe
+    ipureintro
+    split at Hscu0
+    · simp_all
+    · exact Hscu0
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
@@ -367,9 +378,11 @@ theorem EtcdServer.start.wp_proof
     icases Hsab with ⟨%msc, #Hmsc, #Hmscb⟩
     iexists _, msc, sc1
     iframe #
-    iunfold stopChan
-    iexists γsg
-    iexact HsgU
+    isplitr
+    · iunfold stopChan
+      iexists γsg
+      iexact HsgU
+    ipureintro; exact Hscu1
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
   icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
@@ -403,7 +416,7 @@ theorem EtcdServer.start.wp_proof
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
-  imod srvWTPool_alloc E.γ N ⊤ Hrb $$ HWB with #HWB
+  imod srvWTPool_alloc E.γ N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   wp_apply wp_fork $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
@@ -411,8 +424,11 @@ theorem EtcdServer.start.wp_proof
     · iunfold isServerRun
       iframe
       iframe #
-      ipureintro
-      exact HEr
+      isplitr
+      · ipureintro; exact HEr
+      iexists γp
+      iframe HWB
+      rw [Hai0]; iexact HWA0
     ipureintro; exact isPanic_intoVal ()
   -- the views
   icases Hreqb with ⟨%vq, #Hvq⟩
@@ -477,9 +493,11 @@ theorem EtcdServer.start.wp_proof
   · rw [← HEr.2]
     iapply isReadRaft_of_raftNode hRSt hRI Er γn (srvRAddr s) $$ [$Hpkg $Hrn]
   icases replicate_take1 _ _ (by have := sync.actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
+  ihave #HWBx : iprop(∃ γp, srvWTPool (GF := GF) E.γ γp) $$ []
+  · iexists γp; iexact HWB
   iapply HΦ
   iexists γw
-  iframe Hreq Hrd HWB
+  iframe Hreq Hrd HWBx
   iunfold srvStarted
   iframe Hwg2 Hwgs HNR
   isplitr

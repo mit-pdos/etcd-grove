@@ -17,10 +17,11 @@ decides how to file, as for the sibling.
   to `upamanyus/etcd-raft` (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader`, the branch the links in
   `issue.md` name; its lines 2227-2260 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
-- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **State**: filed (the issue and the PR, 2026-10-19)
 - **Upstream issue**: [etcd-io/raft#534](https://github.com/etcd-io/raft/issues/534), filed 2026-10-19 (the issues do not mention each other; only the PRs do, in their conflict note)
-- **PR**: — (then replace `pull/TODO` in the changelog commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
-  `#<other PR>` in `pr.md`)
+- **PR**: [etcd-io/raft#536](https://github.com/etcd-io/raft/pull/536), opened 2026-10-19 from this branch at 30d3548;
+  its body is `pr.md`. Still to do: the changelog commit 30d3548's `CHANGELOG/CHANGELOG-3.8.md` entry links `pull/TODO`;
+  a new commit on the branch (not a force-push) should make it `pull/536`
 
 etcd-io/raft has no issue template: the issue uses etcd's bug-report sections, with "Raft version" for etcd's
 version and configuration sections.

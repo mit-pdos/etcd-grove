@@ -43,7 +43,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM) :
+    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
+    -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
+    (Hnsf : s.gh.ns = false) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -68,7 +70,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        -- (2026-10-19, D21 M3) the no-snapshot mode kept
+        "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hgt
   wp_start as H
   iNamed H
@@ -106,7 +110,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid⟩)
+      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid, Hnsf⟩)
     $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -117,7 +121,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %interface.nil %s1 %c1
   iframe Hphys
   ipureintro
-  refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
+  refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
+    by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0]⟩
   · exact ⟨rfl, rfl⟩
   refine ⟨[absSnap m sv scfg] ++ [absSnap m sv scfg], ?_, ?_⟩
   · intro m' Hm'

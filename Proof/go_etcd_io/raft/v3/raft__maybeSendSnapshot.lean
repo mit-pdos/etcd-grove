@@ -98,7 +98,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s to pr Hto Hprto
+  intro c r id s to pr Hto Hprto Hns
   wp_start as H
   iNamed H
   -- `isInitialized_access` hands the globals out; the `raftLog.snapshot` call below
@@ -190,9 +190,12 @@ theorem raft.maybeSendSnapshot.wp_proof
     icases ownRaftPhysC_pr_upd c r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨%Hok, %Hnw, Hpr, Hback⟩
     wp_apply wp_Progress_BecomeSnapshot $$ [$Hpr] as Hpr
     ihave Hphys := Hback $$ %(progressBecomeSnapshot pp sv.Metadata'.Index') Hpr %rfl
-      %(fun Hl => (Hok Hl).becomeSnapshot Hnw (by
-          obtain ⟨⟨-, -, Hcle⟩, -⟩ := Hcmb
-          rw [Hnw.logLast_Z]; omega))
+      %(fun Hl => by
+          have H := Hok Hl
+          rw [Hns] at H ⊢
+          exact H.becomeSnapshot Hnw (by
+            obtain ⟨⟨-, -, Hcle⟩, -⟩ := Hcmb
+            rw [Hnw.logLast_Z]; omega))
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
     -- `&pb.Message{To: new(to), Type: pb.MsgSnap.Enum(), Snapshot: snapshot}`: the message owns
@@ -227,7 +230,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       iapply BigSepL2.bigSepL2_nil.2; itrivial
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
-      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto⟩)))
+      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto, Hns⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) $$ [$Hphys $Hm] as Hphys
@@ -244,7 +247,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       subst Hm'
       -- (D19p) to `to`, a peer of the progress map
       refine ⟨?_, fun h => absurd h (by simp [absSnapFrom]),
-        fun _ => GMap.elem_of_dom_2 s.progress to pr Hprto⟩
+        fun _ => GMap.elem_of_dom_2 s.progress to pr Hprto, fun _ => Hns⟩
       right
       exact ⟨rfl, rfl, rfl, Hto, Hnz, Hsle, Hsterm⟩
     · exact prvalsMatch_insert_same _ _ pp _ Hpl rfl

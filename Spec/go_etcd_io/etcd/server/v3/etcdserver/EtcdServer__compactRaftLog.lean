@@ -34,13 +34,19 @@ storage's floor at least `snapi` (raised by raft at the `Advance` that `raftAdva
 `Compact.spec`'s premises; `ErrCompacted` (already compacted) is returned on. `1 ≤ snapi`: the
 snapshot trigger fires only past index `0`. The boundary stays at most `snapi`. (It also reads
 `s.inflightSnapshots`, an atomic `sendMergedSnap` adds to, and `s.Cfg.SnapshotCatchUpEntries`,
-never written after the server's construction.) -/
+never written after the server's construction.)
+
+(2026-10-19, D21 M3) `SnapshotCatchUpEntries` is `scu` (read-only), and the compaction index is at
+most the storage's cap (`MemStorNames.cap`, `Compact.spec`'s premise since D21 M3): `compacti` as
+the body computes it, `snapi - scu` past `scu`, else `1`. -/
 abbrev EtcdServer.compactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (σ : StorState),
+  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (σ : StorState) (scu : w64),
   uint.Z σ.prev.index' ≤ uint.Z snapi → uint.Z snapi ≤ uint.Z σ.ss.index' → 1 ≤ uint.Z snapi →
+  (if uint.Z scu < uint.Z snapi then uint.Z snapi - uint.Z scu else 1) ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
       rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapTok ms γs σ ∗
-      memFloorAtLeast ms γs (uint.Z snapi) }}
+      memFloorAtLeast ms γs (uint.Z snapi) ∗
+      srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"compactRaftLog")) (Val #snapi))
   {{ RET #(); srvLgReader s ∗ ∃ σ' : StorState, memSnapTok ms γs σ' ∗
       ⌜uint.Z σ'.prev.index' ≤ uint.Z snapi ∧ σ'.ss = σ.ss⌝ }}

@@ -47,7 +47,8 @@ theorem raft.handleHeartbeat.wp_proof
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
   wp_apply wp_raftLog_commitTo _ _ _ Hcommit $$ [$Hlog] as Hlog
-  ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+  ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
+    (hcm := plogCommitTo_ge _ _))
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   try wp_auto
   icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩

@@ -105,7 +105,7 @@ theorem MemoryStorage.Compact.wp_proof
       iunfold memCutInv
       iexists S
       iframe Hcb Hbd Hcfl Hsq Hsrel
-      ipureintro; exact Hcok
+      ipureintro; exact ⟨Hcok, Hccap⟩
     iapply HΦ
     ileft
     isplitr
@@ -113,7 +113,7 @@ theorem MemoryStorage.Compact.wp_proof
     unfold memSnapTok
     iframe # ∗
   have Hgt : uint.Z σt.prev.index' < uint.Z ci := by rw [HprevF] at Hif; omega
-  obtain ⟨Hle0, Hsle⟩ := Hpre Hgt
+  obtain ⟨Hle0, Hsle, Hcap⟩ := Hpre Hgt
   have Hle : uint.Z ci ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by omega
   -- the entry at `ci` is numbered `ci`: the contents keep their entries numbered by position
   have Hidx : ∀ e, σp.ents[(uint.Z ci - uint.Z σp.prev.index' - 1).toNat]? = some e →
@@ -265,7 +265,7 @@ theorem MemoryStorage.Compact.wp_proof
     · iright
       iapply memFlLb_le γs x ci Hle0 $$ Hflx
     ipureintro
-    refine ⟨Hcok', ?_⟩
+    refine ⟨⟨Hcok', ?_⟩, Hcap⟩
     simp only
     rw [HS1]; exact Hsle
   iapply HΦ

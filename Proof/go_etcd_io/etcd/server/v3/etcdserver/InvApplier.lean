@@ -648,43 +648,112 @@ left, with `receiptBound GF ≤ a + n + 1`. The apply loop takes one token per e
 receipt of a Go step of that entry's iteration (`srvWTPool_take`): `a + 1 < receiptBound GF`, so
 a token is left. Until D19b the apply thread was handed `txn.storeWTs` per batch by `run`, under
 the lifetime premise `srvLifeBound` (D14g: every committed log has at most `N` entries), a
-statement over raft's ghost state, refutable as a hypothesis of a closed theorem (D19a). -/
-def srvWTPool (γ : mvcc.StoreNames) : IProp GF :=
-  inv srvWTN iprop(∃ a n : Nat, ⧗ a ∗ txn.storeWTs γ n ∗ ⌜receiptBound GF ≤ a + n + 1⌝)
+statement over raft's ghost state, refutable as a hypothesis of a closed theorem (D19a).
+(2026-10-19, D21 M3) The count of tokens taken, `a`, is also a monotone counter `γp`, whose lower
+bounds (`srvWTAt`) the apply thread keeps at its applied index: one token per applied entry, so
+the applied index stays below `receiptBound GF` (`srvWTPool_bound`), the bound D21 M0 puts under
+`SnapshotCatchUpEntries`. -/
+def srvWTPool (γ : mvcc.StoreNames) (γp : GName) : IProp GF :=
+  inv srvWTN iprop(∃ a n : Nat, ⧗ a ∗ txn.storeWTs γ n ∗ monoNatAuthOwn γp 1 a ∗
+    ⌜receiptBound GF ≤ a + n + 1⌝)
 
-instance srvWTPool_persistent (γ : mvcc.StoreNames) : Persistent (srvWTPool (GF := GF) γ) := by
+instance srvWTPool_persistent (γ : mvcc.StoreNames) (γp : GName) :
+    Persistent (srvWTPool (GF := GF) γ γp) := by
   unfold srvWTPool; infer_instance
 
-/-- The budget from `N` write tokens, under `receiptBound GF ≤ N + 1`. -/
+/-- (2026-10-19, D21 M3) **At least `v` write tokens taken** (persistent): the apply thread's, at
+its applied index. -/
+def srvWTAt (γp : GName) (v : w64) : IProp GF := monoNatLbOwn γp (uint.nat v)
+
+instance srvWTAt_persistent (γp : GName) (v : w64) : Persistent (srvWTAt (GF := GF) γp v) := by
+  unfold srvWTAt; infer_instance
+
+/-- The budget from `N` write tokens, under `receiptBound GF ≤ N + 1`, its counter at `0`. -/
 theorem srvWTPool_alloc (γ : mvcc.StoreNames) (N : Nat) (E : CoPset)
     (h : receiptBound GF ≤ N + 1) :
-    txn.storeWTs (GF := GF) γ N ⊢ |={E}=> srvWTPool γ := by
+    txn.storeWTs (GF := GF) γ N ⊢ |={E}=> ∃ γp, srvWTPool γ γp ∗ srvWTAt γp (W64 0) := by
   iintro HW
   imod receipt_zero (GF := GF) with H0
-  unfold srvWTPool
-  iapply inv_alloc srvWTN E
-  inext
-  iexists 0, N
-  iframe
-  ipureintro; omega
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γp, Ha, #Hlb⟩
+  iexists γp
+  isplitl
+  · unfold srvWTPool
+    iapply inv_alloc srvWTN E
+    inext
+    iexists 0, N
+    iframe
+    ipureintro; omega
+  · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]; iexact Hlb
 
 /-- **One write token** off the budget, for a fresh time receipt. -/
-theorem srvWTPool_take (γ : mvcc.StoreNames) :
-    ⊢ srvWTPool (GF := GF) γ -∗ ⧗ 1 ={⊤}=∗ mvcc.storeWT γ := by
+theorem srvWTPool_take (γ : mvcc.StoreNames) (γp : GName) :
+    ⊢ srvWTPool (GF := GF) γ γp -∗ ⧗ 1 ={⊤}=∗ mvcc.storeWT γ := by
   iintro #Hp Hr
   unfold srvWTPool
-  iinv Hp with ⟨%a, %n, >Ha, >Hn, >%Hb⟩ Hclose
+  iinv Hp with ⟨%a, %n, >Ha, >Hn, >Hc, >%Hb⟩ Hclose
   icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
   · iframe
   obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
   icases txn.storeWTs_split γ n' $$ Hn with ⟨Ht, Hn⟩
-  imod Hclose $$ [Ha Hn] with -
+  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, -⟩
+  imod Hclose $$ [Ha Hn Hc] with -
   · inext
     iexists a + 1, n'
     iframe
     ipureintro; omega
   imodintro
   iexact Ht
+
+/-- (2026-10-19, D21 M3) **One write token for the entry at `v + 1`**: as `srvWTPool_take`, from
+the apply thread's lower bound at `v` to one at `v + 1`. -/
+theorem srvWTPool_take_at (γ : mvcc.StoreNames) (γp : GName) (v : w64)
+    (hv : uint.Z v + 1 < 2 ^ 64) :
+    ⊢ srvWTPool (GF := GF) γ γp -∗ ⧗ 1 -∗ srvWTAt γp v ={⊤}=∗
+      mvcc.storeWT γ ∗ srvWTAt γp (v + W64 1) := by
+  iintro #Hp Hr #Hv
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %n, >Ha, >Hn, >Hc, >%Hb⟩ Hclose
+  unfold srvWTAt
+  icases monoNatLbOwn_valid γp 1 a (uint.nat v) $$ Hc Hv with %Hva
+  replace Hva := Hva.2
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  icases txn.storeWTs_split γ n' $$ Hn with ⟨Ht, Hn⟩
+  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
+  imod Hclose $$ [Ha Hn Hc] with -
+  · inext
+    iexists a + 1, n'
+    iframe
+    ipureintro; omega
+  imodintro
+  iframe Ht
+  iapply monoNatLbOwn_le (uint.nat (v + W64 1)) (by
+    have h1 := uint_nat_eq (v + W64 1)
+    have h2 := uint_nat_eq v
+    have : uint.Z (v + W64 1) = uint.Z v + 1 := by word
+    omega) $$ Hlb
+
+/-- (2026-10-19, D21 M3) **The applied index is below the receipts' bound**: at most the tokens
+taken, each with its receipt. -/
+theorem srvWTPool_bound (γ : mvcc.StoreNames) (γp : GName) (v : w64) :
+    ⊢ srvWTPool (GF := GF) γ γp -∗ srvWTAt γp v ={⊤}=∗ ⌜uint.Z v < receiptBound GF⌝ := by
+  iintro #Hp #Hv
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %n, >Ha, >Hn, >Hc, >%Hb⟩ Hclose
+  unfold srvWTAt
+  icases monoNatLbOwn_valid γp 1 a (uint.nat v) $$ Hc Hv with %Hva
+  replace Hva := Hva.2
+  ihave %Hlt := receipt_lt a $$ Ha
+  imod Hclose $$ [Ha Hn Hc] with -
+  · inext
+    iexists a, n
+    iframe
+    ipureintro; omega
+  imodintro
+  ipureintro
+  have := uint_nat_eq v
+  omega
 
 end defs_lc
 

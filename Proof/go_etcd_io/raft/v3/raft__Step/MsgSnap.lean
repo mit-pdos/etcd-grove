@@ -54,7 +54,9 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM) :
+    (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
+    -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
+    (Hnsf : s.gh.ns = false) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -84,22 +86,24 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        -- (2026-10-19, D21 M3) the no-snapshot mode kept
+        "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
+  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid Hcfg
       Hwf Hscope Hsn Hscl Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_start_folded as ⟨Hphys, Hm⟩
       iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys $Hm]
       inext
-      iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr⟩
+      iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hng⟩
       iapply HΦ $$ %err %s' %c
       iframe Hphys
       ipureintro
-      exact ⟨Or.inl rfl, Hwf', Href, Herr⟩
+      exact ⟨Or.inl rfl, Hwf', Href, Herr, Hng⟩
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
+      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid Hcfg
         Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes
 
 end StepProof

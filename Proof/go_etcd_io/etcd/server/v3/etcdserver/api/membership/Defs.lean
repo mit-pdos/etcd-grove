@@ -52,6 +52,8 @@ abbrev membership.rcLocalIDAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"localID" c
 abbrev membership.rcVersionChangedAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"versionChanged" c
+abbrev membership.rcRemovedAddr (c : Loc) : Loc :=
+  structFieldRef membership.RaftCluster go!"removed" c
 
 end addrs
 
@@ -103,12 +105,17 @@ instance membership.rcLocalIn_persistent (c : Loc) (ms : GMap w64 Loc) :
     Persistent (membership.rcLocalIn (GF := GF) c ms) := by
   unfold membership.rcLocalIn; infer_instance
 
-/-- What `c`'s mutex guards (of it, what `Members` and `IsLocalMemberLearner` read): the members
-map, its members owned, the local member among them (`rcLocalIn`: `membership.localKept`). -/
+/-- What `c`'s mutex guards (of it, what `Members`, `IsLocalMemberLearner` and `IsIDRemoved`
+read): the members map, its members owned, the local member among them (`rcLocalIn`:
+`membership.localKept`); and (D21 M2, 2026-10-19) the removed members' map, empty: a static
+cluster booted once removes none (`removed`'s writers, `RemoveMember` and `UnsafeLoad` from
+`Recover` -- a restart or an applied snapshot -- are outside the run; `NewClusterFromURLsMap`
+makes it empty). -/
 def membership.rcLockInv (c : Loc) : IProp GF :=
   iprop(∃ (mp : Loc) (ms : GMap w64 Loc), membership.rcMembersAddr c ↦ mp ∗ mp ↦$ ms ∗
     ⌜GMap.size ms ≤ 2 ^ 62⌝ ∗ ([∗map] _k ↦ m ∈ ms, membership.ownMember m) ∗
-    membership.rcLocalIn c ms)
+    membership.rcLocalIn c ms ∗
+    ∃ rp : Loc, membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ (∅ : GMap w64 Bool))
 
 /-- **The cluster `c`** (persistent): its mutex, guarding `rcLockInv c`. -/
 def membership.isRaftCluster (c : Loc) : IProp GF :=

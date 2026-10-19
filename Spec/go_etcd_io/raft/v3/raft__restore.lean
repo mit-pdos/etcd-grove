@@ -83,6 +83,8 @@ abbrev raft.restore.spec : Prop :=
   cl = sv.Metadata'.ConfState'.lists →
   cl.Has id →
   SnapScope sv cl →
+  -- (2026-10-19, D21 M3) outside the no-snapshot mode, where no snapshot is sent
+  s.gh.ns = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv }}

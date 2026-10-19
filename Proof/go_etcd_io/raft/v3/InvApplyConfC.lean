@@ -166,7 +166,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     iframe Hinfl
     ipureintro
     obtain ⟨_, h2, h3, h4, h5, h6, h7, h8⟩ := (progressAbs_Some _ _ _).1 Habs
-    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8⟩, .inl ⟨p, Hp, rfl, rfl, rfl⟩⟩ <;>
+    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8⟩, .inl ⟨p, Hp, rfl, rfl, rfl, rfl⟩⟩ <;>
       (rw [h1]; assumption)
   · intro k pv Hf
     unfold newPrQC
@@ -177,7 +177,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     · simp only [progressOf]; iexact Hinfl
     ipureintro
     obtain ⟨Hm, Hn, -, Hst, Hps, -, -⟩ := Hf
-    exact ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inr ⟨Hm, Hn, Hps⟩⟩
+    exact ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inr ⟨Hm, Hn, Hps, rfl⟩⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   obtain ⟨Hgd, Hgf, -, -⟩ := Hgood

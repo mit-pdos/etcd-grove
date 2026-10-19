@@ -133,5 +133,15 @@ func TestLeaderIndexZeroAckSendsSnapshot(t *testing.T) {
   probe was not at 0) expects `Next = 4` and one `MsgApp` from index 0. With fix (1), raft's whole
   suite passes except that case, which gets `Next = 3` and no message (checked on a copy of the
   pinned tree). A fix therefore has to argue that this case's expectation is wrong.
+- **Fixed in the fork**: fix (1), commit `c8217eb91ae5948182c1035ff0464b1e54b8f1d0` on branch
+  `raft37-goose-lean-a1` of `upamanyus/etcd` (on `509271dac`; D21c′ (A1)), with
+  `TestLeaderAppResp`'s fourth case updated (`Next = 3`, no message) and the two tests above as
+  regression tests (the second as `TestLeaderIndexZeroAckSendsNoSnapshot`, asserting the peer
+  stays `StateProbe`, `Match = 0`, `Next = 4`, with no `MsgSnap`). raft's whole suite (`go test
+  ./...`, go1.27.1) passes; without the `raft.go` change, `TestLeaderAppResp` and
+  `TestLeaderIndexZeroAckSendsNoSnapshot` fail. Goose translates it (only `stepLeader`'s
+  condition changes, plus line numbers in later doc comments). Patch:
+  `raft-stale-term-appresp-index-zero-ack.fix.patch`. Not yet pinned in `etc/goose.py` (D21 M3,
+  phase 2).
 - **Found**: 2026-10-19, in D21's stage M0, while checking by hand that a leader of a static
   etcd cluster never sends `MsgSnap`. Reproduced with the tests above.

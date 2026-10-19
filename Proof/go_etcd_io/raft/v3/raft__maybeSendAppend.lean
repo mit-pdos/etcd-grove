@@ -99,12 +99,22 @@ local macro "msa_fetch" : tactic => `(tactic| (
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
     · try wp_auto
+      -- (D21 M3) not in the no-snapshot mode: there `Next ≥ 2` and the storage is never compacted
+      -- past `1`
+      cases Hns : s.gh.ns
+      case true =>
+        iexfalso
+        have H2 := (Hpok0.2 Hns).1
+        iunfold NsCap at Hnscap
+        ihave #Hcap := Hnscap $$ %rfl
+        icases storPast_cap _ _ _ $$ Hcut_e Hcap with %H
+        ipureintro; omega
       ihave #Hcompact : (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨
           storPast (GF := GF) s.logst.storage 1) $$ []
       · iright
         iapply storPast_mono _ (uint.Z p.next) 1 (by have := (word.unsigned_range s.logst.prev.index').1; omega)
         iexact Hcut_e
-      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk $$ [Hphys]
+      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
@@ -119,15 +129,15 @@ local macro "msa_fetch" : tactic => `(tactic| (
 are a prefix of the log from `Next` on (`Hpre`), so `Next + |ents| ≤ lastIndex + 1`
 (`plogFrom_prefix_bound`). -/
 private theorem sentEntries_ok (s : NState) (p : Progress) (sl_e : GoSlice) (es_e : List EntryM)
-    (psz : w64) (Hok : s.role = .leader → PrOk s.logst p) (Hnw : LogNoWrap s.logst)
+    (psz : w64) (Hok : s.role = .leader → PrOkN s.gh.ns s.logst p) (Hnw : LogNoWrap s.logst)
     (Hlen : es_e.length = sint.nat sl_e.len ∧ 0 ≤ sint.Z sl_e.len)
     (Hlo : uint.Z s.logst.prev.index' + 1 ≤ uint.Z p.next)
     (Hpre : es_e <+: plogFrom (toPState s).base (toPState s).log p.next) :
-    s.role = .leader → PrOk s.logst (progressSentEntries p sl_e.len psz) := by
+    s.role = .leader → PrOkN s.gh.ns s.logst (progressSentEntries p sl_e.len psz) := by
   intro Hl
   have Hp := Hok Hl
   have Hlz := Hnw.logLast_Z
-  have Hn2 := Hp.2.1
+  have Hn2 := Hp.1.2.1
   have Hb := plogFrom_prefix_bound s.logst.prev (s.logst.sents ++ s.logst.uents) es_e p.next Hpre
     Hlo (by unfold plogLastIndexZ; rw [List.length_append]; push_cast; omega)
   unfold plogLastIndexZ at Hb
@@ -219,7 +229,7 @@ local macro "msa_send" : tactic => `(tactic| (
   · intro m Hm
     simp only [List.mem_singleton] at Hm
     subst Hm
-    refine ⟨?_, fun _ => Hlvc.1, fun h => nomatch h⟩
+    refine ⟨?_, fun _ => Hlvc.1, (fun h => nomatch h), (fun h => nomatch h)⟩
     left
     have Hn1 : p.next - W64 1 + W64 1 = p.next := by word
     refine ⟨rfl, rfl, rfl, Hto, Hterm_at, ?_, Hpkgin, by rw [Hn1]; exact Hpkgpre, ?_⟩
@@ -306,6 +316,10 @@ theorem raft.maybeSendAppend.wp_proof
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom, Hlk]; exact ⟨_, rfl⟩
   wp_auto
   ihave Hphys := Hback $$ %tv Htrkf Htrk
+  -- (D21 M3) the no-snapshot mode's facts and the peer's bound, for the two snapshot fallbacks
+  icases ownRaftPhysC_ns c r id s $$ Hphys with ⟨%Hnsl, #Hnscap, Hphys⟩
+  icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
+  have Hpok0 := Hok0.lookup Hlead Hpvs
   wp_apply wp_map_lookup1 $$ Hprs as -
   rw [Hlk]
   dsimp only [Option.getD_some]
@@ -352,6 +366,25 @@ theorem raft.maybeSendAppend.wp_proof
     -- `maybeSendSnapshot`'s premise, under which the storage's snapshot is non-empty.
     icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok, -, Hphys⟩
     have Hpok := Hok.lookup Hlead Hpvs
+    -- (D21 M3) not in the no-snapshot mode: there `Next ≥ 2`, the log's boundary is at most `1`
+    -- and the storage is never compacted past `1`, so `term(Next - 1)` does not fail
+    cases Hns : s.gh.ns
+    case true =>
+      iexfalso
+      have H2 := (Hpok.2 Hns).1
+      have Hp1 := (Hnsl Hns).2
+      obtain ⟨h1, h2, -, -⟩ := Hpok.1
+      have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
+      icases Hcut with (%Hc | #Hc)
+      · ipureintro
+        rcases Hc with Hc | Hnot
+        · cases Hc
+        apply Hnot
+        constructor <;> word
+      · iunfold NsCap at Hnscap
+        ihave #Hcap := Hnscap $$ %rfl
+        icases storPast_cap _ _ _ $$ Hc Hcap with %H
+        ipureintro; word
     -- (D19i part 1) or the application compacted past it (`storPast`)
     ihave #Hcompact : (⌜uint.Z s.logst.prev.index' ≠ 0⌝ ∨
         storPast (GF := GF) s.logst.storage 1) $$ []
@@ -360,7 +393,7 @@ theorem raft.maybeSendAppend.wp_proof
         ipureintro
         rcases Hc with Hc | Hnot
         · cases Hc
-        obtain ⟨h1, h2, -, -⟩ := Hpok
+        obtain ⟨h1, h2, -, -⟩ := Hpok.1
         have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
         intro Hz
         apply Hnot
@@ -369,7 +402,7 @@ theorem raft.maybeSendAppend.wp_proof
         iapply storPast_one
         iexact Hc
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk $$ [$Hphys $Hcompact]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe

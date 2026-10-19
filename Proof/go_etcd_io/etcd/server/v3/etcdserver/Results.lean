@@ -263,7 +263,8 @@ default configuration) since 2026-10-17. -/
 theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
   letI : MemStorReg GF := ⟨reg⟩
   raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
-    node.wp_Tick node.wp_ReadIndex node.wp_Propose node.wp_ApplyConfChange
+    node.wp_Tick node.wp_ReadIndex node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot
+    node.wp_Propose node.wp_ApplyConfChange
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
@@ -1091,7 +1092,7 @@ on `isServerBuilt` alone (and each call's own resources). -/
 theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
-    (Hrb : receiptBound GF ≤ N + 1) :
+    (Hrb : receiptBound GF ≤ N + 1) (Hai0 : ai₀ = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
@@ -1101,7 +1102,7 @@ theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
-  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb) $$ [Hb]
+  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0) $$ [Hb]
   · iframe Hpkg Hb
   inext
   iintro ⟨%γw, #Hreq, #Hrd, Hst, -⟩

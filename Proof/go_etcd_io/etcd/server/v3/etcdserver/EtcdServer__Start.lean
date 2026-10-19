@@ -59,11 +59,11 @@ theorem EtcdServer.Start.wp_proof
     (hCH : EtcdServer.monitorCompactHash.spec (GF := GF) (hG := hG))
     (hDG : EtcdServer.monitorDowngrade.spec (GF := GF) (hG := hG)) :
     EtcdServer.Start.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb
+  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
   wp_start as ⟨Hb, Htok, Hlg, Hlgm, Hsv, #Hoff, Hlgd⟩
   wp_auto
-  wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb $$ [Hb]
-    as ⟨%γw, #Hreq, #Hrd, Hst, #Hwp⟩
+  wp_apply hStart s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0 $$ [Hb]
+    as ⟨%γw, #Hreq, #Hrd, Hst, %γp, #Hwp⟩
   · iframe #; iframe Hb
   iunfold srvStarted at Hst
   iNamed Hst
@@ -137,7 +137,7 @@ theorem EtcdServer.Start.wp_proof
   wp_apply hGA s _ (srvSVRes s E.γ) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg Hsv
     iintro !> %Φ' HL HΦ'
-    wp_apply hMSV s E { wait := γw, rd := ρ.rd } $$ [HL]
+    wp_apply hMSV s E { wait := γw, rd := ρ.rd } γp $$ [HL]
     · iframe #; iframe HL
     iapply HΦ'
     try itrivial

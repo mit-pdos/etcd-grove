@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart).
 
 The server's specs speak of etcd's `KVState` (`etcdserver/KVModelDefs.lean`: the key-values at
 the latest revision) and of an operation's step on it, `kvOpStep`; the porcupine model
-(`Model.lean`) of stores `GoString → Option GoString`. `absKV σ` is the store of `σ`: every
+(`KVModel.lean`) of stores `GoString → Option GoString`. `absKV σ` is the store of `σ`: every
 key's value (`mvcc.findKey`). On a state sorted by key (every log's is, `mvcc.stateAfter_sorted`):
 
 - the put the client sends for `cli.Put(ctx, k, v)` (`putOp k v`, `client/v3/Results.lean`'s
@@ -20,7 +20,7 @@ key's value (`mvcc.findKey`). On a state sorted by key (every log's is, `mvcc.st
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.KVModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 

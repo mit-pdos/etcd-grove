@@ -30,17 +30,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 Why it is true of the Go code (`transport.go` at the etcd pin): `AddPeer` takes the transport's lock;
 it panics if the transport stopped (`transportLive` excludes it), returns for a known peer;
 `types.NewURLs(us)` succeeds (`peerURLsOk`: otherwise `Logger.Panic`); `LeaderStats.Follower`
-(the stats set at `Start`), `startPeer` starts the peer's goroutines (`transportEffectsOk`), the
+(the stats set at `Start`), `startPeer` starts the peer's goroutines (their calls into the server: `Start`'s axiom), the
 probers add it; it logs and returns. It only reads `us` (the parsed `types.URLs` are
-fresh), so the caller's share comes back. -/
+fresh), so the caller's share comes back. (D21 M2, 2026-10-19) The URLs are member `id`'s in the
+network's directory (`γn.dir id`): what makes `Send`'s messages for `id` reach the transport holding
+`id`'s slot (D21b's deployment fact; until then the opaque `transportEffectsOk`). -/
 abbrev rafthttp.Transport.AddPeer.spec : Prop :=
-  ∀ (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString),
+  ∀ (γn : NetNames GF) (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      ⌜transportEffectsOk⌝ ∗ transportLive t ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss⌝ }}
+      transportLive γn t ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss ∧ γn.dir id = ss⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
       (Val #us))
-  {{ RET #(); transportLive t ∗ us ↦*{dq} ss }}
+  {{ RET #(); transportLive γn t ∗ us ↦*{dq} ss }}
 
 end spec
 

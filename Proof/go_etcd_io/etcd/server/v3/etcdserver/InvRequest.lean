@@ -562,48 +562,88 @@ instance srv_idFresh_timeless (γi : IdNames) (id : w64) : Timeless (idFresh (GF
   exact mask_ndot_ne' nroot "raft_commit" "server_rdfresh" (by decide) p
     (nclose_subseteq raftN "reg" p hp)
 
-/-- **The read contexts' mint** (persistent; 2026-10-16, stage R7b): the authority of raft's
-fresh read-context tokens (`rdFresh`, `srvRdFresh`), minted for the contexts `beBytes id` of
-the request ids `U` the read loop took from its generator `γi` (their `idFresh` tokens kept, so
-an id is minted once: `U` has no duplicates), with raft's read credits not yet spent: one per
-id, out of raft's budget of `2 ^ 64 - 2` (`rdCredInv`), which the generator's own budget (fewer
-than `2 ^ 48` ids, `idGen`) keeps from running out (`srvRdFresh_mint`). So raft's read credit
-comes with the request id: the read loop's one `ReadIndex` per id (`sendReadIndex`) is paid by
-the id budget the server already assumes (`idCred`), and no premise on the number of
-linearizable reads is added at the gRPC layer. -/
+/-- The namespace of the cluster's read contexts' map (D21e (A), stage M4). -/
+def srvRdCtxN : Namespace := nroot .@ "server_rdctx"
+
+@[simp] theorem srvRdCtxN_rdFreshN : (↑srvRdCtxN : CoPset) ⊆ ⊤ \ ↑srvRdFreshN :=
+  mask_ndot_ne' nroot "server_rdctx" "server_rdfresh" (by decide)
+
+/-- Opening raft's registry half with the read contexts' open. -/
+@[simp] theorem raftRegN_rdCtxN : (↑raftRegN : CoPset) ⊆ ⊤ \ ↑srvRdCtxN := by
+  intro p hp
+  exact mask_ndot_ne' nroot "raft_commit" "server_rdctx" (by decide) p
+    (nclose_subseteq raftN "reg" p hp)
+
+/-- **The cluster's read contexts** (persistent; stage M4, 2026-10-19): the authority of raft's
+fresh read-context tokens (`rdFresh`, `srvRdFresh`), minted for the contexts `beBytes id` of the
+request ids `U` the members' read loops took from their generators, each id's element of the
+cluster's issued map kept unclaimed (`idUnclaimed`, exclusive across members: so an id is minted
+once, `U` has no duplicates, D21e (A)). Allocated once for the cluster (`srvRdCtxInv_alloc`):
+raft's registry of reads is the cluster's. (Until M4 inside the member's mint, with the ids'
+whole `idFresh`.) -/
+def srvRdCtxInv (γ : ServerRaftNames) (issued : GName) : IProp GF :=
+  inv srvRdCtxN iprop(∃ U : List w64, ghostMapAuth γ.raft.reRdFresh 1 (ctxMap U) ∗ ⌜U.Nodup⌝ ∗
+    [∗list] id ∈ U, id ↪[issued] (none : Option (List w8 × GName)))
+
+instance srvRdCtxInv_persistent (γ : ServerRaftNames) (issued : GName) :
+    Persistent (srvRdCtxInv (GF := GF) γ issued) := by
+  unfold srvRdCtxInv; infer_instance
+
+/-- **The read contexts' mint** (persistent; 2026-10-16, stage R7b; split at stage M4,
+2026-10-19): the member's read credits not yet spent, out of its share of raft's budget (`2 ^ 48`
+of `2 ^ 64 - 2`, `rdCredInv`), one per request id `U` its read loop took from its generator `γi`
+(their wait slots kept, so an id is counted once), which the generator's own budget (fewer than
+`2 ^ 48` ids, `idGen`) keeps from running out (`srvRdFresh_mint`); and the cluster's read contexts
+(`srvRdCtxInv`). So raft's read credit comes with the request id: the read loop's one `ReadIndex`
+per id (`sendReadIndex`) is paid by the id budget the server already assumes (`idCred`), and no
+premise on the number of linearizable reads is added at the gRPC layer. (Until M4 the member held
+raft's whole budget and the contexts' authority.) -/
 def srvRdFreshInv (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
-  inv srvRdFreshN iprop(∃ U : List w64, ghostMapAuth γ.raft.reRdFresh 1 (ctxMap U) ∗
-    rdCred γ.raft (2 ^ 64 - 2 - U.length) ∗ ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idFresh γi id)
+  iprop(inv srvRdFreshN iprop(∃ U : List w64,
+    rdCred γ.raft (2 ^ 48 - U.length) ∗ ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idSlot γi id) ∗
+    srvRdCtxInv γ γi.issued)
 
 instance srvRdFreshInv_persistent (γ : ServerRaftNames) (γi : IdNames) :
     Persistent (srvRdFreshInv (GF := GF) γ γi) := by
   unfold srvRdFreshInv; infer_instance
 
-/-- **The mint's allocation**: from raft's authority of the fresh read-context tokens and its
-whole read budget (`ownRaftGhost_alloc_gen`'s `allocClient` and `rdCred γ (2 ^ 64 - 2)`). -/
-theorem srvRdFreshInv_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
-    ⊢ ghostMapAuth γ.raft.reRdFresh 1 (∅ : GMap (List w8) Unit) -∗
-      rdCred γ.raft (2 ^ 64 - 2) ={E}=∗ srvRdFreshInv (GF := GF) γ γi := by
-  iintro Ha Hc
-  unfold srvRdFreshInv
-  imod inv_alloc srvRdFreshN E iprop(∃ U : List w64, ghostMapAuth γ.raft.reRdFresh 1 (ctxMap U) ∗
-      rdCred γ.raft (2 ^ 64 - 2 - U.length) ∗ ⌜U.Nodup⌝ ∗ [∗list] id ∈ U, idFresh γi id)
-      $$ [Ha Hc] with #Hi
-  · inext
-    iexists []
-    rw [ctxMap_nil]
-    simp only [List.length_nil, Nat.sub_zero]
-    iframe Ha Hc
-    isplitr
-    · ipureintro; exact List.nodup_nil
-    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
-    itrivial
-  imodintro
-  iexact Hi
+/-- **The cluster's read contexts, allocated** (stage M4): from raft's authority of the fresh
+read-context tokens (`allocClientBoot`'s continuation output). -/
+theorem srvRdCtxInv_alloc (γ : ServerRaftNames) (issued : GName) (E : CoPset) :
+    ⊢ ghostMapAuth γ.raft.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
+      srvRdCtxInv (GF := GF) γ issued := by
+  iintro Ha
+  unfold srvRdCtxInv
+  iapply inv_alloc srvRdCtxN E
+  inext
+  iexists []
+  rw [ctxMap_nil]
+  iframe Ha
+  isplitr
+  · ipureintro; exact List.nodup_nil
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+  itrivial
 
-/-- The unclaimed ids of a list are issued ids of the generator's map `I`. -/
-theorem idFresh_issued (γi : IdNames) (S : GMap w64 Unit) (U : List w64) :
-    ⊢ ghostMapAuth γi.slot 1 S -∗ ([∗list] id ∈ U, idFresh (GF := GF) γi id) -∗
+/-- **The mint's allocation**: from the member's share of raft's read budget (`2 ^ 48` credits) and
+the cluster's read contexts. -/
+theorem srvRdFreshInv_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
+    ⊢ srvRdCtxInv γ γi.issued -∗ rdCred γ.raft (2 ^ 48) ={E}=∗ srvRdFreshInv (GF := GF) γ γi := by
+  iintro #Hctx Hc
+  unfold srvRdFreshInv
+  iframe Hctx
+  iapply inv_alloc srvRdFreshN E
+  inext
+  iexists []
+  simp only [List.length_nil, Nat.sub_zero]
+  iframe Hc
+  isplitr
+  · ipureintro; exact List.nodup_nil
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+  itrivial
+
+/-- The slots of a list are issued ids of the generator's map `S`. -/
+theorem idSlots_issued (γi : IdNames) (S : GMap w64 Unit) (U : List w64) :
+    ⊢ ghostMapAuth γi.slot 1 S -∗ ([∗list] id ∈ U, idSlot (GF := GF) γi id) -∗
       ⌜∀ id ∈ U, S !! id = some ()⌝ := by
   induction U with
   | nil =>
@@ -613,9 +653,7 @@ theorem idFresh_issued (γi : IdNames) (S : GMap w64 Unit) (U : List w64) :
     simp at h
   | cons id U ih =>
     iintro Ha Hus
-    icases BigSepL.bigSepL_cons.1 $$ Hus with ⟨Hf, Hus⟩
-    iunfold idFresh at Hf
-    icases Hf with ⟨-, Hu⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hus with ⟨Hu, Hus⟩
     iunfold idSlot at Hu
     ihave %Hl := ghost_map_lookup $$ Ha Hu
     ihave %Hrest := ih $$ Ha Hus
@@ -625,10 +663,11 @@ theorem idFresh_issued (γi : IdNames) (S : GMap w64 Unit) (U : List w64) :
     · exact Hl
     · exact Hrest x hx
 
-/-- **An id mints its context's token and a read credit**: the id is fresh (its slot is
-exclusive, so it is not among the minted ids), so its context is not in the map (`beBytes` is
-injective); and the minted ids are issued ids of the generator, fewer than `2 ^ 48` (its
-invariant's time receipts under the bound `idCred`, D19b), so a credit of raft's budget is left. -/
+/-- **An id mints its context's token and a read credit**: the id is fresh (its element of the
+cluster's issued map is exclusive, so it is not among the cluster's minted ids), so its context is
+not in the map (`beBytes` is injective); and the member's minted ids are issued ids of its
+generator (their slots), fewer than `2 ^ 48` (its invariant's time receipts under the bound
+`idCred`, D19b), so a credit of the member's share is left. -/
 theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
     (Φ : w64 → List w8 → GName → IProp GF) (id : w64) :
     ⊢ idGen γi g Φ -∗ idCred γi 1 -∗ srvRdFreshInv (GF := GF) γ γi -∗ idFresh γi id ={⊤}=∗
@@ -637,50 +676,70 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   iunfold idCred at Hb
   icases Hb with %Hb
   iunfold srvRdFreshInv at Hinv
-  iinv Hinv with ⟨%U, >Ha, >Hc, >%Hnd, >Hus⟩ Hclose
+  icases Hinv with ⟨#Hinv, #Hctx⟩
+  iunfold idFresh at Hf
+  icases Hf with ⟨Hun, Hsl, -⟩
+  iinv Hinv with ⟨%U, >Hc, >%Hnd, >Hus⟩ Hclose
   -- `id ∉ U`: its slot is exclusive
   by_cases hin : id ∈ U
   · iexfalso
-    icases BigSepL.bigSepL_mem_acc (Φ := fun id => idFresh (GF := GF) γi id) hin $$ Hus
-      with ⟨Hf', -⟩
-    iunfold idFresh at Hf Hf'
-    icases Hf with ⟨-, Hs⟩
-    icases Hf' with ⟨-, Hs'⟩
-    iunfold idSlot at Hs Hs'
-    ihave %Hne := ghostMapElem_ne γi.slot id id (DFrac.own 1) () () $$ Hs Hs'
+    icases BigSepL.bigSepL_mem_acc (Φ := fun id => idSlot (GF := GF) γi id) hin $$ Hus
+      with ⟨Hs', -⟩
+    iunfold idSlot at Hsl Hs'
+    ihave %Hne := ghostMapElem_ne γi.slot id id (DFrac.own 1) () () $$ Hsl Hs'
     exact absurd rfl Hne
   -- the bound: the minted ids are issued ids
   iunfold idGen at Hg
-  icases Hg with ⟨%pfx, %s0, %Hgn, #Hpfx, %Hs0, #Hgi⟩
-  iinv Hgi with ⟨%k, %I, %S, >Hsuf, >Hcred, >HI, >HS, >%HIS, Hfacts⟩ Hclose2
+  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hgi, -⟩
+  iinv Hgi with ⟨%k, %L, %S, >Hsuf, >Hcred, >Hcnt, >HS, >%HIS⟩ Hclose2
   imod receipt_snapshot k $$ Hcred with ⟨Hcred, #Hpk⟩
   ihave %Hkb := preceipt_lt k $$ Hpk
   have Hk : k ≤ 2 ^ 48 - 1 := by omega
-  ihave %Hiss := idFresh_issued γi S U $$ HS Hus
-  have Hlen : U.length ≤ k := idIssued_length_le pfx s0 k U Hnd
+  ihave %Hiss := idSlots_issued γi S U $$ HS Hus
+  have Hlen : U.length ≤ k := idIssued_length_le γi.pfx s0 k U Hnd
     (fun id' hid' => (HIS id').2.1 (by rw [Hiss id' hid']; rfl))
-  imod Hclose2 $$ [Hsuf Hcred HI HS Hfacts] with -
+  imod Hclose2 $$ [Hsuf Hcred Hcnt HS] with -
   · inext
-    iexists k, I, S
-    iframe Hsuf Hcred HI HS Hfacts
+    iexists k, L, S
+    iframe Hsuf Hcred Hcnt HS
     ipureintro
     exact HIS
-  -- the token and the credit
-  imod ghost_map_insert (beBytes id) () (ctxMap_lookup_none U id hin) $$ Ha with ⟨Ha, Hfr⟩
-  ihave Hc' : iprop(rdCred γ.raft ((2 ^ 64 - 2 - (U.length + 1)) + 1)) $$ [Hc]
-  · rw [show (2 ^ 64 - 2 - (U.length + 1)) + 1 = 2 ^ 64 - 2 - U.length by omega]
+  -- the token, in the cluster's read contexts
+  iunfold srvRdCtxInv at Hctx
+  iinv Hctx with ⟨%V, >Ha, >%HVnd, >HVs⟩ Hclose3
+  by_cases hinV : id ∈ V
+  · iexfalso
+    icases BigSepL.bigSepL_mem_acc
+      (Φ := fun id => (id ↪[γi.issued] (none : Option (List w8 × GName)) : IProp GF)) hinV $$ HVs
+      with ⟨Hv', -⟩
+    iunfold idUnclaimed at Hun
+    ihave %Hne := ghostMapElem_ne γi.issued id id (DFrac.own 1) _ _ $$ Hun Hv'
+    exact absurd rfl Hne
+  imod ghost_map_insert (beBytes id) () (ctxMap_lookup_none V id hinV) $$ Ha with ⟨Ha, Hfr⟩
+  imod Hclose3 $$ [Ha HVs Hun] with -
+  · inext
+    iexists (id :: V)
+    rw [ctxMap_cons]
+    iframe Ha
+    isplitr
+    · ipureintro; exact List.nodup_cons.2 ⟨hinV, HVnd⟩
+    iapply BigSepL.bigSepL_cons.2
+    iunfold idUnclaimed at Hun
+    iframe Hun HVs
+  -- the credit
+  ihave Hc' : iprop(rdCred γ.raft ((2 ^ 48 - (U.length + 1)) + 1)) $$ [Hc]
+  · rw [show (2 ^ 48 - (U.length + 1)) + 1 = 2 ^ 48 - U.length by omega]
     iexact Hc
   icases (rdCred_split γ.raft _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
-  imod Hclose $$ [Ha Hc Hus Hf] with -
+  imod Hclose $$ [Hc Hus Hsl] with -
   · inext
     iexists (id :: U)
-    rw [ctxMap_cons]
     simp only [List.length_cons]
-    iframe Ha Hc
+    iframe Hc
     isplitr
     · ipureintro; exact List.nodup_cons.2 ⟨hin, Hnd⟩
     iapply BigSepL.bigSepL_cons.2
-    iframe Hf Hus
+    iframe Hsl Hus
   imodintro
   unfold srvRdFresh srvRdCred rdFresh
   iframe Hfr Hc1
@@ -708,6 +767,8 @@ theorem srvCtxDeposited_minted (γ : ServerRaftNames) (γi : IdNames) (c : List 
   icases Hrq with ⟨%γq, #Hel, -⟩
   ihave #Hri := raftCommitInv_reg γ.raft $$ Hci
   iunfold srvRdFreshInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iunfold srvRdCtxInv at Hinv
   iinv Hinv with ⟨%U, >Ha, Hrest⟩ Hclose
   unfold raftRegInv regsOwn
   iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
@@ -1727,11 +1788,13 @@ def resultΨ (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc
 
 /-- **The server's registration condition**: the expectation of a registered id is
 `resultΨ E ρ rq F` for the request `rq` its data decode to, the id claimed for those data with a
-ghost name recording the floor `F` (the vertical slice's unit V2). -/
+ghost name recording the floor `F` (the vertical slice's unit V2); and (D21e (A), stage M4) the id
+is of the member's prefix (its generator issued it), so an entry of another member's id has no
+waiter here. -/
 def reqWaitR (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
     (Ψ : GoInterface → IProp GF) : IProp GF :=
   iprop(∃ (d : List w8) (rq : apply.IRRModel) (γf : GName) (F : mvcc.Log), idClaim ρ.ids id d γf ∗
-    floorAt γf F ∗ ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E ρ rq F⌝)
+    floorAt γf F ∗ ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E ρ rq F ∧ idPfx id = ρ.ids.pfx⌝)
 
 instance reqWaitR_persistent (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
     (Ψ : GoInterface → IProp GF) : Persistent (reqWaitR ρ E id Ψ) := by

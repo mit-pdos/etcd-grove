@@ -18,7 +18,7 @@ FFI (the proofs are generic over the FFI) and a ghost-state bundle `putgetGF`, f
 
 **Its hypotheses** (D19a; `notes/decisions.md`, D19r):
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
-  bootstrap log Go computes), `transportEffectsOk`, `ckptEffectsOk`, `authRecordsFit`,
+  bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
   `apply.backendUnderQuota`, `mvcc.backendNoCompaction`, `namesUnclaimed`/`addrsUnclaimed` (D19d),
   and the execution's length (`n + 2 ≤ 2 ^ 31`: the thread bound and, with `N = n + 1`, the
   time-receipt bounds; `n + 7 ≤ backend.wbInit`: the backend's write-back budget `bootstrap`'s
@@ -125,7 +125,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
-    (Htr : transportEffectsOk) (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
@@ -189,7 +189,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := putget.wp_Main (GF := putgetGF) n id bootLog Hbf HEof0 HCc0 (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Htr Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #
   ipureintro

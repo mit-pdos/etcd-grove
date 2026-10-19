@@ -180,7 +180,7 @@ theorem stepFollower.wp_proof
       simp [FollowerStepResultC, MsgSnap, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
         MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp]
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
-    obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsnap Hty
+    obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hcfg, Hfid, Hns⟩ := Hsnap Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgSnap, MsgProp]]
     simp only [Hty, MsgSnap]
@@ -189,7 +189,7 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
-        Hrole Hvotes Hsn Hscfg Hcfg Hscope Hfid $$ [$Hphys $Hm]
+        Hrole Hvotes Hsn Hscfg Hcfg Hscope Hfid Hns $$ [$Hphys $Hm]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe
@@ -375,7 +375,7 @@ theorem stepFollower.wp_proof
   · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
     -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
     obtain ⟨Htl, -⟩ := Hrest (Or.inl Hty)
-    obtain ⟨Hterm0, Hents0, Hctx0⟩ := Htl Hty
+    obtain ⟨Hterm0, Hents0, Hctx0, Hxo⟩ := Htl Hty
     subst Hents0 Hctx0
     simp only [Hty, MsgTransferLeader]
     wp_auto
@@ -405,7 +405,7 @@ theorem stepFollower.wp_proof
       imod msgIn_to_msgOwn $$ Hm with Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs []
           (Or.inr (Or.inr (Or.inr Hty)))
-          (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl⟩))))
+          (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl, Hxo⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
         $$ [$Hphys $Hm] as Hphys
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys

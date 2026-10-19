@@ -119,8 +119,10 @@ theorem RawNode.readyWithoutAccept.wp_proof
   | cons _ _ => simp at Hlen0
   | nil =>
   -- ghost facts, read before anything moves
+  icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
+  icases ghostRest_nsLink γ _ cf id s $$ Hrest with ⟨%Hnl, Hrest⟩
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
   icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
@@ -389,7 +391,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
       Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
     ipureintro
-    refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, ?_⟩
+    refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]
     have := List.length_filter_le (fun q => !isSelfQ id q) ms2
     simp only [nonself]
@@ -441,7 +443,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hrdhard := HHP
   icases HHP with ⟨%hrd, #HHP⟩
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
-  · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub $$ Hout
+  · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
+      (fun h => (Hxf.2 (Hnl.1.trans h)).2.2) $$ Hout
   iapply HΦ $$ %(readyVal sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd
   simp only [named]
@@ -460,7 +463,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
       ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
-      trivial, Hrdc⟩
+      trivial, Hrdc, Hnsout⟩
   isplitr
   · iexact Hce
   isplitr

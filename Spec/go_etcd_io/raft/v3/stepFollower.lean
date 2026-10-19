@@ -257,14 +257,18 @@ abbrev stepFollower.spec : Prop :=
   -- wrap and `r.step` agrees with the role (`hup`'s premises)
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
      (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
-        ents = [] ∧ cl = []) ∧
+        ents = [] ∧ cl = [] ∧
+        -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`)
+        s.gh.xf = false) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s ∧
        -- (D19i part 1) the floor at most `applied` (`hup`'s)
        uint.Z s.logst.fl ≤ uint.Z s.logst.applied)) →
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id) →
+     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id ∧
+     -- (2026-10-19, D21 M3) outside the no-snapshot mode
+     s.gh.ns = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a

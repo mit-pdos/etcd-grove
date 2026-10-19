@@ -66,6 +66,54 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- **The wrapper's fields that never change, read-only** (D21 M2, 2026-10-19): every field of
+the struct at `a` but `transport` (set after the transport starts) and `latestTickTs` (`tickMu`'s
+resource). Split off the struct early (`rnFixed_split`) so that the node's field is readable
+(`EtcdServer.Process`) before the transport, which calls `Process`, is installed. -/
+def rnFixed (a : Loc) (rv : raftNode) : IProp GF :=
+  iprop("#lgR" ∷ rnLgAddr a ↦□ rv.lg' ∗ "#tickMuR" ∷ rnTickMuAddr a ↦□ rv.tickMu' ∗
+    "#lgC" ∷ structFieldRef raftNodeConfig go!"lg" (rnCfgAddr a) ↦□ rv.raftNodeConfig'.lg' ∗
+    "#isIDRemovedC" ∷ rnIsIDRemovedAddr a ↦□ rv.raftNodeConfig'.isIDRemoved' ∗
+    "#NodeC" ∷ rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
+    "#raftStorageC" ∷ rnRaftStorageAddr a ↦□ rv.raftNodeConfig'.raftStorage' ∗
+    "#storageC" ∷ rnStorageAddr a ↦□ rv.raftNodeConfig'.storage' ∗
+    "#heartbeatC" ∷ rnHeartbeatAddr a ↦□ rv.raftNodeConfig'.heartbeat' ∗
+    "#msgSnapCR" ∷ rnMsgSnapCAddr a ↦□ rv.msgSnapC' ∗ "#applycR" ∷ rnApplycAddr a ↦□ rv.applyc' ∗
+    "#readStateCR" ∷ rnReadStateCAddr a ↦□ rv.readStateC' ∗ "#tickerR" ∷ rnTickerAddr a ↦□ rv.ticker' ∗
+    "#tdR" ∷ rnTdAddr a ↦□ rv.td' ∗ "#stoppedR" ∷ rnStoppedAddr a ↦□ rv.stopped' ∗
+    "#doneR" ∷ rnDoneAddr a ↦□ rv.done')
+
+instance rnFixed_persistent (a : Loc) (rv : raftNode) : Persistent (rnFixed (GF := GF) a rv) := by
+  unfold rnFixed; infer_instance
+
+/-- The struct at `a`, split: its fixed fields read-only, `transport` and `latestTickTs` owned. -/
+theorem rnFixed_split (a : Loc) (rv : raftNode) :
+    a ↦ rv ⊢ |={⊤}=> rnFixed (GF := GF) a rv ∗
+      rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' := by
+  iintro Ha
+  iStructNamedSuffix Ha "R"
+  iStructNamedSuffix raftNodeConfigR "C"
+  ipersist lgR
+  ipersist tickMuR
+  ipersist lgC
+  ipersist isIDRemovedC
+  ipersist NodeC
+  ipersist raftStorageC
+  ipersist storageC
+  ipersist heartbeatC
+  ipersist msgSnapCR
+  ipersist applycR
+  ipersist readStateCR
+  ipersist tickerR
+  ipersist tdR
+  ipersist stoppedR
+  ipersist doneR
+  imodintro
+  iframe transportC latestTickTsR
+  iunfold rnFixed
+  simp only [named]
+  iframe #
+
 /-- **Installing the wrapper** (see the file header): the struct value `rv` at `a` (the server's
 `r` field, after the copy and the transport set), its fresh `tickMu`, the components' predicates
 and what the node and the server provide give `isRaftNode E γ a` and the right to close `done`.
@@ -80,38 +128,24 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       isRNWal rv.raftNodeConfig'.storage' ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
-      a ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
+      rnFixed a rv ∗ rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗
+      rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done iprop(True) .Pending ⊢
       |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Htri, #Hparts,
-    Ha, Hmu, Hdtok⟩
+    #Hfix, transportC, latestTickTsR, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
-  iStructNamedSuffix Ha "R"
-  iStructNamedSuffix raftNodeConfigR "C"
+  iunfold rnFixed at Hfix
+  iNamed Hfix
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
-  ipersist lgR
-  ipersist tickMuR
-  ipersist lgC
-  ipersist isIDRemovedC
-  ipersist NodeC
-  ipersist raftStorageC
-  ipersist storageC
-  ipersist heartbeatC
   ipersist transportC
-  ipersist msgSnapCR
-  ipersist applycR
-  ipersist readStateCR
-  ipersist tickerR
-  ipersist tdR
-  ipersist stoppedR
-  ipersist doneR
   imodintro
   isplitr
   · iunfold isRaftNode
@@ -206,6 +240,8 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     γ.reBoot = bootLog → BootLogOk γ.reCCOk ps bootLog →
     -- the server's names: the raft names, the start log empty, the policy
     E.γr.raft.raft = γ → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 → srvCCPolicy E.γr.raft →
+    -- (2026-10-19, D21 M3) in raft's no-snapshot mode, the storage at the cap `1`
+    (γ.reNoSnap = true → γs.cap ≤ 1) →
     letI : MemStorReg GF := ⟨reg⟩
     {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         -- the receiver, the config and its logger
@@ -255,17 +291,21 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
             γw.γs = γs ∧ γw.reg = reg ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
-            rv.raftNodeConfig'.transport' = GoInterface.nil⌝ ∗
+            rv.raftNodeConfig'.transport' = GoInterface.nil ∧
+            rv.raftNodeConfig'.Node' = rnNodeIface γw⌝ ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
+          -- (D21 M2, 2026-10-19) the node's inbound methods (`Process`'s), from the start
+          rnStepIfc γw (rnNodeIface γw) ∗
           -- `isServerBuilt`'s rows but `isRaftNode`
           rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ srvRaftLogInv E.γr.raft ∗
           -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
           -- wrapper's names and the committed index's invariant of the server `s` (allocated
           -- after the call: `NewServer` evaluates `newRaftNode` inside the server's literal)
+          -- (D21 M2) the struct at `a` split (`rnFixed_split`), its transport field set to `tr`
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
-            a ↦ { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } -∗
+            rnFixed a rv -∗ rnTransportAddr a ↦ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
             -- the node's field, and its `Propose` (the request path's `raftPropose`); the
@@ -288,6 +328,11 @@ theorem raftNode_of_StartNode (reg : GName)
     (wp_Advance : letI : MemStorReg GF := ⟨reg⟩; node.Advance.spec (GF := GF) (hG := hG))
     (wp_Tick : letI : MemStorReg GF := ⟨reg⟩; node.Tick.spec (GF := GF) (hG := hG))
     (wp_ReadIndex : letI : MemStorReg GF := ⟨reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG))
+    (wp_Step : letI : MemStorReg GF := ⟨reg⟩; node.Step.spec (GF := GF) (hG := hG))
+    (wp_ReportUnreachable : letI : MemStorReg GF := ⟨reg⟩;
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (wp_ReportSnapshot : letI : MemStorReg GF := ⟨reg⟩;
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
     (wp_Propose : letI : MemStorReg GF := ⟨reg⟩; node.Propose.spec (GF := GF) (hG := hG))
     (wp_ApplyConfChange : letI : MemStorReg GF := ⟨reg⟩;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
@@ -295,9 +340,13 @@ theorem raftNode_of_StartNode (reg : GName)
   letI : MemStorReg GF := ⟨reg⟩
   intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
-    HbootOk HEγ HEpre HEai Hpol
+    HbootOk HEγ HEpre HEai Hpol Hcap
   iintro %Φ Hpre HΦ
   iNamed Hpre
+  ihave #Hnscap : NsCap (GF := GF) γ.reNoSnap (memStorIface bv.storage') $$ []
+  · iunfold NsCap
+    iintro !> %h
+    iapply memStorCap_intro bv.storage' γs 1 (Hcap h) $$ Hreg
   wp_apply (wp_bnr E γ bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
     Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
     Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost Htok]
@@ -340,10 +389,14 @@ theorem raftNode_of_StartNode (reg : GName)
   · ipureintro
     refine ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
       by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hwid, Hwpre, Hwms, Hwγs, rfl,
-      Hrvlg, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+      Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    simp only [rnNodeIface, Hwnl]
   iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers Htok
+  isplitr
+  · iapply rnStepIfc_of_isNode γw wp_Step wp_ReportUnreachable wp_ReportSnapshot
+    iframe Hpkg Hisnode
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi Ha #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hfix Htrf Hlts #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []
   · iapply rnReadStateBridge_of_raft E γw $$ Henv' Hlinv
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
@@ -354,10 +407,14 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
   · iapply raftPropose_of_isNode E γw wp_Propose wp_ApplyConfChange
     iframe Hpkg Henv' Hisnode Hlinv
+  ihave #Hfix' : rnFixed a
+      { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
+  · simp only [rnFixed]
+    iexact Hfix
   imod (isRaftNode_of_rnParts E γw a
     { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } })
-    $$ [Ha Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
-  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Ha Hmu' Hdtok
+    $$ [Htrf Hlts Hmu' Hdtok] with ⟨#Hrn, Hdone, #Hnodef, #Htrf⟩
+  · iframe Hpkg Henv' Hfits' Hrsb Hreg' Hfix' Htrf Hlts Hmu' Hdtok
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi
     isplitr

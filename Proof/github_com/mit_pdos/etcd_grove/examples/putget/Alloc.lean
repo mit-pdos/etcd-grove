@@ -1,16 +1,19 @@
 /-
-**The ghost state `Main` allocates before `NewServer`** (item 9, stage 2, 2026-10-18). Lean-first
-(no Rocq counterpart).
+**The ghost state `Main` allocates before `NewServer`** (item 9, stage 2, 2026-10-18; the
+cluster's and the member's apart, stage M4 of D21, 2026-10-19). Lean-first (no Rocq counterpart).
 
 `putget_alloc`: for the one-member cluster `{id}` and its bootstrap log (`BootFacts`), at the
 leases-off workload `putgetWorkload` (D19q), everything `NewServer.spec` takes of the ghost state:
-raft's cluster ghost state for a new cluster with the server's continuation
-(`srvRaftBoot_alloc`: the read names, the KV invariant at the bootstrap log, raft's commit
-invariant, the committed bootstrap log, this node's ghost state, raft's read credits), the term
-budget (`budget_alloc_boot`), and the names chosen before the call (`newServerNames_alloc`: the id
-generator's, the store's index names, its certificate map, the revisions' map), with the request
-names `ρ` and the stand-in apply environment `E₀` carrying them; and the client's `etcdKV` at the
-bootstrap log's model, for the client's invariant (`putGetInv_alloc_log`).
+the member's names chosen before the call (`newServerNames_alloc`: the store's index names, its
+certificate map, the revisions' map), with the stand-in apply environment `E₀` carrying them and
+the claimers' facts at the member's prefix the server's (`srvFloorFact E₀`); the cluster's
+resources (`srvClusterBoot_alloc`: raft's commit invariant, the committed bootstrap log, the
+nodes' ghost states, the KV invariant at the bootstrap log, the claims with the reserved id `0`,
+the proposals' mint, the read contexts, each member's share; its pure premise, the members' ids'
+16 low bits distinct and not `0`, is `BootFacts`' `idLow` for one member), the term budget
+(`budget_alloc_boot`), and the member's names and share (`srvMemberBoot_alloc`: the request names
+`ρ`, its read names' fresh rows, its slots); and the client's `etcdKV` at the bootstrap log's
+model, for the client's invariant (`putGetInv_alloc_log`).
 -/
 module
 
@@ -48,38 +51,43 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
 /-- **What `NewServer` takes of the ghost state, for `Main`'s cluster** (see the file header). -/
 theorem putget_alloc (id : w64) (bootLog : List EntryM) (Hbf : BootFacts id bootLog)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
-    ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF),
+    ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+        (Φs : w64 → w64 → List w8 → GName → IProp GF),
       ⌜γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk id ∧
-        γ.reBoot = bootLog ∧ γ.reTracked = some (GMap.listToSet [id]) ∧ ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
+        γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
         ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
-        ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = putgetWorkload⌝ ∗
+        ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = putgetWorkload ∧
+        ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
       ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗ raftCommitInv γ ∗
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
-      ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
-      ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ∗ rdCred γ (2 ^ 64 - 2) ∗
-      idNamesFresh ρ.ids ∗ mvcc.idxFresh E₀.γ.idx ∗
+      idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
+      srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+      idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗
+      mvcc.idxFresh E₀.γ.idx ∗
       ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
       etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) := by
   istart
-  imod newServerNames_alloc (GF := GF) with ⟨%ids, %idx, %cok, %rev, Hids, Hidx, Hcok, Hrev⟩
+  imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
   have Hin : id ∈ GMap.listToSet [id] := by
     rw [GMap.elem_of_list_to_set]; exact List.mem_singleton_self id
   have Hid0 : id ≠ W64 0 := by
     intro h; apply Hbf.idLow; rw [h]; decide
-  imod (srvRaftBoot_alloc (GF := GF) ⊤ (GMap.listToSet [id]) (GMap.listToSet [id]) (ccOk id)
-      [id] bootLog ids cok putgetWorkload
+  let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (env₀ idx cok rev)
+  imod (srvClusterBoot_alloc (GF := GF) (GMap.listToSet [id]) (GMap.listToSet [id]) (ccOk id)
+      [id] bootLog putgetWorkload Φs
       (fun h => GMap.not_elem_of_empty id (h ▸ Hin))
       (by rw [GMap.elem_of_list_to_set]; simpa using Hid0.symm)
-      rfl Hbf.boot (fun ty d h => h))
-    with ⟨%γ, %Hγ, #Hcinv, #Hcomm, Hghosts, Hout, HrdC, -⟩
+      rfl Hbf.boot (fun ty d h => h) (by simp) (by simpa using Hbf.idLow))
+    with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
+      #Hpm, #Hrc, Hms⟩
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, HrdC⟩, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
-  iunfold srvBootOut at Hout
-  icases Hout with ⟨%γr, %Hr, #Hkv, Hetcd, Hnk, Hf, Hrf⟩
-  obtain ⟨hraft, hc0, hch, hlog, hcok, hids, hwl⟩ := Hr
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr⟩ := Hγ
-  subst hids hcok
+  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp
+    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk⟩
+  obtain ⟨hraft, hst, hc0', hch', hlog', hwl', hcok, hiss', hcnt, hpfx⟩ := Hρ
   -- this node's ghost state, out of the map over the cluster `{id}`
   ihave Hghost : ownRaftGhost γ id (bootPState bootLog) $$ [Hghosts]
   · rw [show toMap (GMap.listToSet [id]) = GMap.insert id () (∅ : GMap w64 Unit) from rfl]
@@ -88,16 +96,26 @@ theorem putget_alloc (id : w64) (bootLog : List EntryM) (Hbf : BootFacts id boot
       (m := (∅ : GMap w64 Unit)) (i := id) (x := ()) (GMap.lookup_empty id)).1 $$ Hghosts
     iexact H1
   imodintro
-  iexists γ, bud, ⟨γr.kv.cok, γr⟩, env₀ idx γr.kv.cok rev
+  iexists γ, bud, ρ, env₀ idx cok rev, Φs
   simp only [env₀]
-  iframe Hghost Hcomm Hcinv Hbinv Hlb Hf Hrf HrdC Hids Hidx Hcok Hrev Hnk Hkv Hetcd
-  ipureintro
-  refine ⟨hcfg, hdyn, hcc, hboot, htr, hraft, ?_, hc0, hch, hlog, trivial, hwl⟩
-  intro ty d h
-  simp only [hraft] at h ⊢
-  rw [hcc] at h
-  rw [hcfg]
-  exact h
+  rw [hiss', hcnt, hraft, hiss]
+  rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', hiss])]
+  rw [etcdKV_congr ρ.rd.kv γk hst,
+    show kvModel ρ.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
+      unfold kvModel; rw [hc0', hch', hlog']]
+  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hetcd
+  isplitr
+  · ipureintro
+    refine ⟨hcfg, hdyn, hcc, hboot, htr, rfl, ?_, by rw [hc0', hc0], by rw [hch', hch],
+      by rw [hlog', hlog], hcok, by rw [hwl', hwl], hpfx, rfl⟩
+    intro ty d h
+    simp only at h ⊢
+    rw [hcc] at h
+    rw [hcfg]
+    exact h
+  iunfold idNoZero
+  rw [hiss', hiss]
+  iexact H0
 
 end alloc
 

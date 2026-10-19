@@ -52,9 +52,10 @@ voters `V` (which it tracks, and no learner); its log empty, nothing applied (`a
 the `Config` says (`pre`; until 2026-10-17 off), `StepDownOnRemoval` as the `Config` says (`sdr`). The `RawNode`'s own fields as `ownRawNode`
 keeps them: `asyncStorageWrites` unset, `prevSoftSt` and `prevHardSt` read-only, `stepsOnAdvance`
 empty. `RestartNode` closes it (`ownRawNode`, with the ghost state); `Bootstrap` installs the
-peers first. -/
+peers first. (2026-10-19, D21 M2r) Leader transfer `xf` (`NGhost.xf`): off as `newRaft` builds
+it (`true`, the default), on after `rawNodeFresh_xf_off` (`RestartNode`'s). -/
 def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
-    (pre : Bool) (s : NState) : IProp GF :=
+    (pre : Bool) (s : NState) (xf : Bool := true) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
     "Hrn" ∷ rawNodeOwn rn rnv ∗
     "Hphys" ∷ ownRaftPhys V rnv.raft' id s ∗
@@ -70,7 +71,7 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si⌝ ∗
-    "%Hgh" ∷ ⌜s.gh = {}⌝ ∗
+    "%Hgh" ∷ ⌜s.gh = { xf := xf }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
     "%Hdom" ∷ ⌜domSet s.progress = V⌝)
@@ -99,6 +100,25 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
   exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom⟩
+
+/-- (2026-10-19, D21 M2r) Leader transfer turned on in a fresh node (a ghost step,
+`ownRaftPhys_xf_off`): `RestartNode`'s, out of the no-snapshot mode. -/
+theorem rawNodeFresh_xf_off (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+    (pre : Bool) (s : NState) :
+    rawNodeFresh (GF := GF) rn id si V sdr pre s ⊢
+      ∃ s', rawNodeFresh rn id si V sdr pre s' false := by
+  iintro H
+  iunfold rawNodeFresh at H
+  icases H with ⟨%rnv, %sv, %hprev, H⟩
+  iNamed H
+  ihave Hphys := ownRaftPhys_xf_off V rnv.raft' id s (by rw [Hgh]) $$ Hphys
+  iexists { s with gh := { s.gh with xf := false } }
+  iunfold rawNodeFresh
+  iexists rnv, sv, hprev
+  simp only [named]
+  iframe Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap
+  ipureintro
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, by show { s.gh with xf := false } = _; rw [Hgh], Hpvoff, Hsdr, Hdom⟩
 
 /-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`. -/
 def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=

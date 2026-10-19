@@ -40,7 +40,7 @@ theorem RawNode.TransferLeader.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     RawNode.TransferLeader.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs transferee
+  intro γ rn id rs transferee Hns
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -58,13 +58,15 @@ theorem RawNode.TransferLeader.wp_proof
   ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
+  -- (2026-10-19, D21 M2r) leader transfer on: the node's mode is the cluster's
+  icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 13, From' := transferee } : MessageM) [] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgTransferLeader]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne), fun _ => ⟨rfl, rfl, fun h => absurd rfl h⟩⟩ : RestMsgOk s _ [] []) Hwf
-    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
+    (⟨fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne), fun _ => ⟨rfl, rfl, fun h => absurd rfl h, Hnl.2.trans Hns⟩⟩ : RestMsgOk s _ [] []) Hwf
+    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
     $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 13 : w32) ≠ MsgProp := by simp [MsgProp]

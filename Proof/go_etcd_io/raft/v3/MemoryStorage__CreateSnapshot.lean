@@ -134,7 +134,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       iunfold memCutInv
       iexists S
       iframe Hcb Hbd Hcfl Hsq Hsrel
-      ipureintro; exact Hcok
+      ipureintro; exact ⟨Hcok, Hccap⟩
     iapply HΦ
     iframe Hcs
     ileft
@@ -279,6 +279,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       iframe Hcb Hbd Hcfl Hsq
       isplitr
       · ipureintro; exact ⟨Hcok.1, Hlo0⟩
+      isplitr
+      · ipureintro; exact Hccap
       iright
       isplitr
       · ipureintro
@@ -359,6 +361,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       iframe Hcb Hbd Hcfl Hsq
       isplitr
       · ipureintro; exact ⟨Hcok.1, Hlo0⟩
+      isplitr
+      · ipureintro; exact Hccap
       iright
       isplitr
       · ipureintro

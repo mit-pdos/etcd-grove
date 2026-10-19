@@ -33,11 +33,15 @@ stored entry is, `entRO`), `ms.snapshot = EnsureSnapshot(nil)` a fresh zero snap
 owns, and no hard state (`hardState` is `nil`, the zero record).
 
 D17d (2026-10-18): also the application's snapshot token (`memSnapTok`, at the empty snapshot),
-which `ApplySnapshot`, `CreateSnapshot`, `InitialState` and the application's `Snapshot` take. -/
+which `ApplySnapshot`, `CreateSnapshot`, `InitialState` and the application's `Snapshot` take.
+
+(2026-10-19, D21 M3) At a cap the caller chooses (`MemStorNames.cap`), at least the empty storage's
+boundary `0`: no compaction or applied snapshot passes it. -/
 abbrev NewMemoryStorage.spec : Prop :=
+  ∀ (cap : Int), uint.Z (memStorEmpty : StorState).prev.index' ≤ cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions NewMemoryStorage [])) (Val #()))
-  {{ (ms : Loc) (γs : MemStorNames), RET #ms; ownMemoryStorage ms γs memStorEmpty ∗
+  {{ (ms : Loc) (γs : MemStorNames), RET #ms; ⌜γs.cap = cap⌝ ∗ ownMemoryStorage ms γs memStorEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memSnapTok ms γs memStorEmpty }}
 

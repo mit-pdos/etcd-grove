@@ -222,7 +222,7 @@ theorem KV.run.wp_proof
             DynCCPreOp dec (ds ++ ce) ca' cfg' (ccV2Of (.v1 m))
               (ds ++ ce.take (sint.nat k)).length en c1 := by
           intro dec c0' h0' h1' hm'
-          obtain ⟨⟨h0, h1, hm⟩, -, Hs0, Hs1, Hal⟩ := Hcc
+          obtain ⟨⟨h0, h1, hm⟩, -, Hs0, Hs1, Hal, -⟩ := Hcc
           rw [hm] at hm'
           cases hm'
           refine ⟨Hrc.1, Hlen, Hpos, .inl Hty1, Hrc.2.1, ?_, ?_, Hal⟩

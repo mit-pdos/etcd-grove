@@ -361,7 +361,18 @@ abbrev stepLeader.spec : Prop :=
   -- (2026-10-16, stage R8a, D11) an accepted `MsgAppResp` acknowledges an index within the
   -- leader's log, so `MaybeUpdate` keeps the leader's progress bound (`PrvalsOk`): `Step` has it
   -- from the message's ghost witness (`ackIn`, `ownRaftGhost_ackIn_le`)
-  (m.Type' = MsgAppResp → m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) →
+  -- (2026-10-19, D21 M3) and in the no-snapshot mode a rejecting `MsgAppResp` rejects an index
+  -- past `1` with a hint in `[1, Index]` (`isMessage`'s clause, the bootstrap log being in every
+  -- log), and the leader's term at index `1` is at most `1` (the bootstrap log's): `MaybeDecrTo`
+  -- keeps `Next ≥ 2` (`PrLo`)
+  (m.Type' = MsgAppResp →
+    (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
+    (m.Reject' = true → s.gh.ns = true →
+      2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
+      (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
+        uint.Z t0 ≤ 1))) →
+  -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on (`NGhost.xf`)
+  (m.Type' = MsgTransferLeader → s.gh.xf = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a

@@ -60,6 +60,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     · icases Hn with (%Hn | #Hn)
       · ipureintro; left; exact Hn
       · iunfold memStorCut at Hn
+        icases Hn with ⟨#Hn, -⟩
         icases monoNatLbOwn_valid _ _ _ _ $$ Hbd Hn with %H
         obtain ⟨-, H⟩ := H
         have := (word.unsigned_range c.index').1
@@ -123,7 +124,7 @@ theorem MemoryStorage.Snapshot.wp_proof
       iunfold memCutInv
       iexists S
       iframe Hcb Hbd Hcfl Hsq Hsrel
-      ipureintro; exact Hcok
+      ipureintro; exact ⟨Hcok, Hccap⟩
     iapply HΦ
     isplitl [Hview Hok]
     · unfold ownMemoryStorage memSnapShare

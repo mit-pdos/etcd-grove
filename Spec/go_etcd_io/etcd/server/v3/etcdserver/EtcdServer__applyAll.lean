@@ -46,9 +46,11 @@ abbrev EtcdServer.applyAll.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (mst : Loc) (γs : MemStorNames),
+    (mst : Loc) (γs : MemStorNames) (γp : GName),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
+  -- (2026-10-19, D21 M3) the storage's cap at least `1` (`snapshotIfNeededAndCompactRaftLog`'s)
+  1 ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
@@ -59,7 +61,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ ∗
+      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ γp ∗ srvWTAt γp ai ∗
       kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
@@ -68,6 +70,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
+        srvWTAt γp ai' ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x') ∗

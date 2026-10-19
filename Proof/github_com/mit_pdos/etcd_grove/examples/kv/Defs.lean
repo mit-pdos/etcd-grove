@@ -108,17 +108,17 @@ class KVStor (GF : BundledGFunctors) where
   kvStorName : GName
 
 abbrev MemStorRec :=
-  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
+  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
 
 def memStorRec (ms : Loc) (γs : MemStorNames) : MemStorRec :=
-  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd)
+  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
 
 theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     memStorRec ms1 γs1 = memStorRec ms2 γs2 → ms1 = ms2 ∧ γs1 = γs2 := by
   intro h
   cases γs1; cases γs2
   simp only [memStorRec, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
 def kvStorN : Namespace := nroot.@"kv_storage"
@@ -182,6 +182,10 @@ instance kvStorageModel : StorageModel GF where
   storCut_persistent := fun st n => by unfold kvStorCut; infer_instance
   storFloor := kvStorFloor
   storFloor_persistent := fun st x => by unfold kvStorFloor; infer_instance
+  -- (2026-10-19, D21 M3) the store states no cap
+  storCap := fun _ _ => iprop(False)
+  storCap_persistent := fun _ _ => by infer_instance
+  storCut_cap := fun _ _ _ => by iintro ⟨-, %H⟩; exact H.elim
 
 /-- The registry: each registered storage keeps half of its `MemoryStorage` field here
 (so that a storage is registered once: a new one has the whole field). -/
@@ -408,6 +412,8 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = kvStorIface st⌝ ∗
+    -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (`KVCC`): leader transfer on
+    "%Hns" ∷ ⌜γp.node.raft.reNoSnap = false⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ rkvInv γr)
 
@@ -495,7 +501,10 @@ def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
   (∃ h0 h1, γn.mode = .dyn (ccDecOf op) c0 h0 h1) ∧
   (∀ ty bs, γn.raft.reCCOk ty bs →
     ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
-  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false
+  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
+  -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (a cluster without a bootstrap log), in
+  -- which leader transfer is on (`node.TransferLeadership`'s premise)
+  γn.raft.reNoSnap = false
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

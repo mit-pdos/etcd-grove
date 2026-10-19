@@ -29,8 +29,8 @@ names from its pointer through a **registry**, a ghost map from the pointer to t
 application before the run: `ghost_map_alloc_empty`). The registry's authority is the
 application's, not an invariant's: registering a storage (`memStorReg_register`) needs its
 pointer absent from the map, which the application knows of the map it holds (nothing
-physical of a `MemoryStorage` is left over for an invariant to keep, as the register's registry
-keeps half of its own struct's field; `Proof/github_com/mit_pdos/etcd_grove/examples/register/
+physical of a `MemoryStorage` is left over for an invariant to keep, as the key-value store's registry
+keeps half of its own struct's field; `Proof/github_com/mit_pdos/etcd_grove/examples/kv/
 Defs.lean`). A wrong registration is harmless: `ownStorage` then cannot be established for
 that storage (its real names disagree).
 
@@ -183,15 +183,15 @@ class MemStorReg (GF : BundledGFunctors) where
 
 /-- A storage's names, as the registry records them. -/
 abbrev MemStorNamesRec :=
-  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
+  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd)
+  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2 := by
   cases γs1; cases γs2
   simp only [MemStorNames.tuple, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 section model
@@ -214,6 +214,7 @@ instance memStorReg_persistent (ms : Loc) (γs : MemStorNames) :
     Persistent (memStorReg (GF := GF) ms γs) := by
   unfold memStorReg; infer_instance
 
+omit package_sem in
 theorem memStorReg_agree (ms : Loc) (γs1 γs2 : MemStorNames) :
     ⊢ memStorReg (GF := GF) ms γs1 -∗ memStorReg ms γs2 -∗ ⌜γs1 = γs2⌝ := by
   unfold memStorReg
@@ -237,6 +238,7 @@ def memStorIface (ms : Loc) : Storage :=
   interface.mkOk (go.GoType.PointerType MemoryStorage.ty) #ms
 
 include sem in
+omit package_sem in
 theorem memStorIface_inj (ms1 ms2 : Loc) : memStorIface ms1 = memStorIface ms2 → ms1 = ms2 := by
   intro h
   simp only [memStorIface, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
@@ -270,6 +272,24 @@ def memStorFloorI (st : Storage) (x : w64) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
     memFloorTok ms γs x)
 
+/-- (2026-10-19, D21 M3) The storage's cap is at most `k`: the `MemoryStorage`'s, of its names. -/
+def memStorCapI (st : Storage) (k : Int) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    ⌜γs.cap ≤ k⌝)
+
+omit package_sem in
+theorem memStorCut_capI (st : Storage) (n k : Int) :
+    memStorCutI (GF := GF) st n ∗ memStorCapI st k ⊢ ⌜n ≤ k⌝ := by
+  unfold memStorCutI memStorCapI
+  iintro ⟨⟨%ms, %γs, %Hst, #Hreg, Hc⟩, ⟨%ms', %γs', %Hst', #Hreg', %Hk⟩⟩
+  rw [Hst] at Hst'
+  have := memStorIface_inj (GF := GF) _ _ Hst'
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  icases memStorCut_cap γs n $$ Hc with %Hn
+  ipureintro; omega
+
 /-- The storage model of an application whose `Storage`s are bare `MemoryStorage`s. -/
 instance memStorageModel : StorageModel GF where
   ownStorage := memOwnStorage
@@ -279,6 +299,21 @@ instance memStorageModel : StorageModel GF where
   storCut_persistent := fun st n => by unfold memStorCutI; infer_instance
   storFloor := memStorFloorI
   storFloor_persistent := fun st x => by unfold memStorFloorI; infer_instance
+  storCap := memStorCapI
+  storCap_persistent := fun st k => by unfold memStorCapI; infer_instance
+  storCut_cap := memStorCut_capI
+
+omit package_sem in
+/-- (2026-10-19, D21 M3) A registered `MemoryStorage` at a cap at most `k` is capped at `k`. -/
+theorem memStorCap_intro (ms : Loc) (γs : MemStorNames) (k : Int) (h : γs.cap ≤ k) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ storCap (memStorIface ms) k := by
+  iintro #Hreg
+  ihave H : memStorCapI (GF := GF) (memStorIface ms) k $$ []
+  · unfold memStorCapI
+    iexists ms, γs
+    iframe Hreg
+    ipureintro; exact ⟨rfl, h⟩
+  iexact H
 
 theorem memStorCut_at (ms : Loc) (γs : MemStorNames) (n : Int) :
     ⊢ memStorReg (GF := GF) ms γs -∗ storCut (memStorIface ms) n -∗ memStorCut γs n := by

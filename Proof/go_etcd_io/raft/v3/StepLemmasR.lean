@@ -127,6 +127,7 @@ inductive StepCF : PState → List Msg → PState → Prop where
       s.role ≠ .leader →
       uint.Z s.commit ≤ uint.Z m.index →
       ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
+      RejHintOk s.base s.log m.index m.logterm hint →
       StepCF s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
@@ -399,9 +400,9 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.appStale m r h1 h2 h3 h4 h5 h6)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
-  | appReject m s hint hintterm h1 h2 h3 h4 h5 h6 h7 =>
+  | appReject m s hint hintterm h1 h2 h3 h4 h5 h6 h7 h8 =>
     intro r hp _ hz; subst hp
-    exact StepR.pci_keep (.appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7)
+    exact StepR.pci_keep (.appReject m r hint hintterm h1 h2 h3 h4 h5 h6 h7 h8)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
   | heartbeat m s h1 h2 h3 h4 h5 h6 =>
     intro r hp _ hz; subst hp

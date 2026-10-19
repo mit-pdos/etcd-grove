@@ -221,8 +221,15 @@ class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
   floor law (`Hfloor`) hands it out. -/
   storFloor : Storage → w64 → IProp GF
   storFloor_persistent : ∀ st x, Persistent (storFloor st x)
+  /-- `storCap st k` (2026-10-19, D21 M3): the storage's true compaction boundary never passes `k`
+  (persistent), so no `storCut st n` fact is above it (`storCut_cap`). An application that never
+  compacts past `k` gives it (a `MemoryStorage` made with that cap, `MemStorNames.cap`); with it
+  and `k ≤ 1` a leader in the no-snapshot mode never falls back to a snapshot (`NGhost.ns`). -/
+  storCap : Storage → Int → IProp GF
+  storCap_persistent : ∀ st k, Persistent (storCap st k)
+  storCut_cap : ∀ st n k, storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
 
-export StorageModel (ownStorage appendTok appendedTok storCut storFloor)
+export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap)
 
 instance storCut_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
     (n : Int) : Persistent (storCut (GF := GF) st n) :=
@@ -231,6 +238,10 @@ instance storCut_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st 
 instance storFloor_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
     (x : w64) : Persistent (storFloor (GF := GF) st x) :=
   StorageModel.storFloor_persistent st x
+
+instance storCap_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+    (k : Int) : Persistent (storCap (GF := GF) st k) :=
+  StorageModel.storCap_persistent st k
 
 section termAt
 variable [FfiSyntax]
@@ -512,6 +523,14 @@ def storPast (st : Storage) (m : Int) : IProp GF :=
 
 instance storPast_pers (st : Storage) (m : Int) : Persistent (storPast (GF := GF) st m) := by
   unfold storPast; infer_instance
+
+/-- (2026-10-19, D21 M3) A storage compacted past `m` and never past `k`: `m ≤ k`. -/
+theorem storPast_cap (st : Storage) (m k : Int) :
+    ⊢ storPast (GF := GF) st m -∗ storCap st k -∗ ⌜m ≤ k⌝ := by
+  unfold storPast
+  iintro ⟨%n, %Hn, #Hc⟩ #Hk
+  icases StorageModel.storCut_cap st n k $$ [$Hc $Hk] with %H
+  ipureintro; omega
 
 theorem storPast_mono (st : Storage) (m m' : Int) (h : m' ≤ m) :
     storPast (GF := GF) st m ⊢ storPast st m' := by
