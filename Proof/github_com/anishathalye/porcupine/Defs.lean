@@ -8,23 +8,33 @@ Lean-first (no Rocq counterpart).
 A `porcupine.Model` is a struct of closures. Its specification (`ModelSpec`) is a sequential
 model `M` (`Theory.SeqModel`) over abstract states `σ`, whose operations are the
 `(input, output)` pairs of interface values, with what a Go state value represents
-(`rep v s`, persistent: the checker keeps a state in its stack and its cache and passes it to
-several steps) and what an operation's input and output own (`ioOk i o`, persistent: the
-model's `Step` may read memory they point to, e.g. etcd's requests and responses).
+(`rep v s`, not necessarily persistent: the model's closures may write to a state value, as
+etcd's robustness model sorts its states in place in `Equal`,
+`issues/etcd-robustness-model-equal-mutates.md`; each closure is given the `rep`s it reads and
+gives them back, of the same abstract states) and what an operation's input and output own
+(`ioOk i o`, persistent: the model's `Step` may read memory they point to, e.g. etcd's requests
+and responses). The checker keeps a state value in several places (its stack, its cache): it
+shares each one in a non-atomic invariant (`Shared.lean`), not the model.
+
+A new state value's `rep` is separate from the old's (`S.rep v s ∗ stepPost …` in `Step`'s
+postcondition): what one owns, the other does not (memory they share must be read-only in both,
+or in neither), so no freshness premise is needed.
 
 `isModel S m` is what a caller of the `Check*` functions gives (etcd's robustness model has this
 shape: `Init`, `StepContext`, `Equal`; no `Partition`, no `Hash`):
 
 - `Partition` is `nil` (porcupine then checks the whole history as one partition);
 - `Init` returns a value representing `M.init`;
-- `StepContext` is not `nil` and steps as `M` does, whatever the context; or it is `nil`, and
-  `Step` is not `nil` and steps as `M` does;
+- `StepContext` is not `nil` and steps as `M` does, or answers `false` once its context is
+  done (etcd's robustness model returns `(false, nil)` whenever `ctx.Err() != nil`, checked
+  before and after the step); or it is `nil`, and `Step` is not `nil` and steps as `M` does;
 - `Equal` is not `nil`, and returns `true` only on values of the same abstract state (it may
   return `false` on equal states: the cache then only misses);
 - `Hash` is `nil` or returns anything (the cache is sound for any hash).
 
-`isModelFilled S m` is the model after `fillDefault`: `StepContext` steps as `M` does, and
-`Equal`, `Hash` as above.
+`isModelFilled S m` is the model after `fillDefault`: `StepContext` as above (steps as `M` does,
+or answers `false` on a done context), and `Equal`, `Hash` as above. A wrong `false` only makes
+`checkSingle` answer `false` with its context done, which its spec allows.
 
 ## A history
 
@@ -67,14 +77,10 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 structure ModelSpec (GF : BundledGFunctors) (σ : Type) where
   M : SeqModel σ OpV
   rep : GoInterface → σ → IProp GF
-  rep_pers : ∀ v s, Persistent (rep v s)
   ioOk : GoInterface → GoInterface → IProp GF
   ioOk_pers : ∀ i o, Persistent (ioOk i o)
 
 variable {σ : Type}
-
-instance ModelSpec.rep_persistent (S : ModelSpec GF σ) (v : GoInterface) (s : σ) :
-    Persistent (S.rep v s) := S.rep_pers v s
 
 instance ModelSpec.ioOk_persistent (S : ModelSpec GF σ) (i o : GoInterface) :
     Persistent (S.ioOk i o) := S.ioOk_pers i o
@@ -86,77 +92,49 @@ def stepPost (S : ModelSpec GF σ) (s : σ) (io : OpV) (v' : GoInterface) : IPro
   | some s' => S.rep v' s'
   | none => iprop(True)
 
-instance stepPost_persistent (S : ModelSpec GF σ) (s : σ) (io : OpV) (v' : GoInterface) :
-    Persistent (stepPost S s io v') := by
-  unfold stepPost; split <;> infer_instance
-
 /-- `Init()` returns a value of the model's initial state. -/
 def initSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
   iprop({{ True }}
     (App (Val #f) (Val #()))
   {{ (v : GoInterface), RET #v; S.rep v S.M.init }})
 
-/-- `Step(state, input, output)` steps as the model does. -/
+/-- `Step(state, input, output)` steps as the model does, and gives the state value back. -/
 def stepSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
   iprop(∀ (v : GoInterface) (s : σ) (i o : GoInterface),
     {{ S.rep v s ∗ S.ioOk i o }}
       (App (App (App (Val #f) (Val #v)) (Val #i)) (Val #o))
     {{ (ok : Bool) (v' : GoInterface), RET (PairV #ok #v');
-        ⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S s (i, o) v' }})
+        S.rep v s ∗ ⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S s (i, o) v' }})
 
-/-- `StepContext(ctx, state, input, output)` steps as the model does, for any context. -/
-def stepCtxSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
-  iprop(∀ (c v : GoInterface) (s : σ) (i o : GoInterface),
-    {{ S.rep v s ∗ S.ioOk i o }}
-      (App (App (App (App (Val #f) (Val #c)) (Val #v)) (Val #i)) (Val #o))
-    {{ (ok : Bool) (v' : GoInterface), RET (PairV #ok #v');
-        ⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S s (i, o) v' }})
-
-/-- `Equal(a, b)` returns `true` only on values of one state. -/
+/-- `Equal(a, b)` returns `true` only on values of one state, and gives both values back (of
+the same states: it may write to them, as etcd's robustness model sorts its states). -/
 def equalSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
   iprop(∀ (v w : GoInterface) (s t : σ),
     {{ S.rep v s ∗ S.rep w t }}
       (App (App (Val #f) (Val #v)) (Val #w))
-    {{ (b : Bool), RET #b; ⌜b = true → s = t⌝ }})
+    {{ (b : Bool), RET #b; S.rep v s ∗ S.rep w t ∗ ⌜b = true → s = t⌝ }})
 
-/-- `Hash(state)` returns some hash. -/
+/-- `Hash(state)` returns some hash, and gives the state value back. -/
 def hashSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
   iprop(∀ (v : GoInterface) (s : σ),
     {{ S.rep v s }}
       (App (Val #f) (Val #v))
-    {{ (x : w64), RET #x; True }})
+    {{ (x : w64), RET #x; S.rep v s }})
 
 /-- `Equal` and `Hash`, as the checker uses them. -/
 def isEqHash (S : ModelSpec GF σ) (m : Model) : IProp GF :=
   iprop(⌜m.Equal' ≠ func.nil⌝ ∗ equalSpec S m.Equal' ∗ (⌜m.Hash' = func.nil⌝ ∨ hashSpec S m.Hash'))
 
-/-- A caller's model (see the file header). -/
-def isModel (S : ModelSpec GF σ) (m : Model) : IProp GF :=
-  iprop(⌜m.Partition' = func.nil⌝ ∗ initSpec S m.Init' ∗
-    ((⌜m.StepContext' ≠ func.nil⌝ ∗ stepCtxSpec S m.StepContext') ∨
-      (⌜m.StepContext' = func.nil ∧ m.Step' ≠ func.nil⌝ ∗ stepSpec S m.Step')) ∗
-    isEqHash S m)
-
-/-- The model after `fillDefault` (see the file header). -/
-def isModelFilled (S : ModelSpec GF σ) (m : Model) : IProp GF :=
-  iprop(initSpec S m.Init' ∗ stepCtxSpec S m.StepContext' ∗ isEqHash S m)
-
 instance initSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
     Persistent (initSpec S f) := by unfold initSpec; infer_instance
 instance stepSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
     Persistent (stepSpec S f) := by unfold stepSpec; infer_instance
-instance stepCtxSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
-    Persistent (stepCtxSpec S f) := by unfold stepCtxSpec; infer_instance
 instance equalSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
     Persistent (equalSpec S f) := by unfold equalSpec; infer_instance
 instance hashSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
     Persistent (hashSpec S f) := by unfold hashSpec; infer_instance
 instance isEqHash_persistent (S : ModelSpec GF σ) (m : Model) :
     Persistent (isEqHash S m) := by unfold isEqHash; infer_instance
-instance isModel_persistent (S : ModelSpec GF σ) (m : Model) :
-    Persistent (isModel S m) := by unfold isModel; infer_instance
-instance isModelFilled_persistent (S : ModelSpec GF σ) (m : Model) :
-    Persistent (isModelFilled S m) := by unfold isModelFilled; infer_instance
 
 /-- `Partition(history)` returns the one partition `[history]` (`noPartition`, what
 `fillDefault` stores for a `nil` `Partition`). -/
@@ -191,6 +169,51 @@ def longestOwn (longest : GoSlice) (n : Nat) : IProp GF :=
       ∃ (sl : GoSlice) (xs : List w64), p ↦□ sl ∗ sl ↦*{DFrac.discard} xs)
 
 end defs
+
+/-! The model's specs that mention its context (`stepCtxSpec`), stated at
+`HeapGS HasLC.hasLC GF` as Perennial's `context.isContext` is. -/
+section defs_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
+variable {σ : Type}
+
+/-- `StepContext(ctx, state, input, output)`, on a context `ctx` (`isContext c cs`), steps as
+the model does, or refuses the operation once the context is done (`□ cs.PDone`, what
+`isContext`'s `Err()` gives for a non-`nil` error): etcd's robustness model returns
+`(false, nil)` whenever `ctx.Err() != nil`. It gives the state value back in both cases. -/
+def stepCtxSpec (S : ModelSpec GF σ) (f : GoFunc) : IProp GF :=
+  iprop(∀ (c : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (v : GoInterface) (s : σ)
+      (i o : GoInterface),
+    {{ context.isContext c cs ∗ S.rep v s ∗ S.ioOk i o }}
+      (App (App (App (App (Val #f) (Val #(GoInterface.ok c))) (Val #v)) (Val #i)) (Val #o))
+    {{ (ok : Bool) (v' : GoInterface), RET (PairV #ok #v');
+        S.rep v s ∗
+        ((⌜ok = (S.M.step s (i, o)).isSome⌝ ∗ stepPost S s (i, o) v') ∨
+          (⌜ok = false⌝ ∗ □ cs.PDone)) }})
+
+instance stepCtxSpec_persistent (S : ModelSpec GF σ) (f : GoFunc) :
+    Persistent (stepCtxSpec S f) := by unfold stepCtxSpec; infer_instance
+
+/-- A caller's model (see the file header). -/
+def isModel (S : ModelSpec GF σ) (m : Model) : IProp GF :=
+  iprop(⌜m.Partition' = func.nil⌝ ∗ initSpec S m.Init' ∗
+    ((⌜m.StepContext' ≠ func.nil⌝ ∗ stepCtxSpec S m.StepContext') ∨
+      (⌜m.StepContext' = func.nil ∧ m.Step' ≠ func.nil⌝ ∗ stepSpec S m.Step')) ∗
+    isEqHash S m)
+
+/-- The model after `fillDefault` (see the file header). -/
+def isModelFilled (S : ModelSpec GF σ) (m : Model) : IProp GF :=
+  iprop(initSpec S m.Init' ∗ stepCtxSpec S m.StepContext' ∗ isEqHash S m)
+
+instance isModel_persistent (S : ModelSpec GF σ) (m : Model) :
+    Persistent (isModel S m) := by unfold isModel; infer_instance
+instance isModelFilled_persistent (S : ModelSpec GF σ) (m : Model) :
+    Persistent (isModelFilled S m) := by unfold isModelFilled; infer_instance
+
+end defs_hasLC
 
 /-! ## Histories and entries -/
 

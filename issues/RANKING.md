@@ -172,7 +172,10 @@ fork carries #21987).
   [etcd-client-dialoptions-unary-interceptor](etcd-client-dialoptions-unary-interceptor.md)
   (a cheap switch to `WithChainUnaryInterceptor` would likely be accepted),
   [etcd-featuregate-enabled-panic-undocumented](etcd-featuregate-enabled-panic-undocumented.md)
-  (the `FeatureGate` interface omits the panic its implementation documents; a one-line doc fix).
+  (the `FeatureGate` interface omits the panic its implementation documents; a one-line doc fix),
+  [etcd-robustness-model-equal-mutates](etcd-robustness-model-equal-mutates.md) (test code: the
+  robustness model's `Equal` sorts its arguments, against porcupine's contract; harmless, a cheap
+  fix).
 - **Absurd configurations or sizes**: [etcd-compactor-periodic-tiny-retention](etcd-compactor-periodic-tiny-retention.md),
   [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md),
   [etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md) (a cheap fix

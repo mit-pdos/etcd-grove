@@ -29,6 +29,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions]
+variable [NaInvG GF]
 
 end links
 
@@ -40,6 +41,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions]
+variable [NaInvG GF]
 
 theorem wp_CounterClock :
     EtcdGrove.lintest.CounterClock.spec (GF := GF) (hG := hG) :=

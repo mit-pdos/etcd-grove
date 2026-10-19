@@ -136,7 +136,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.
 def counterS : ModelSpec GF w64 where
   M := counterM
   rep v s := iprop(⌜v = boxI s⌝)
-  rep_pers _ _ := by infer_instance
   ioOk i o := iprop(⌜(∃ b : Bool, i = boxB b) ∧ ∃ x : w64, o = boxI x⌝)
   ioOk_pers _ _ := by infer_instance
 

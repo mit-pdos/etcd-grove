@@ -26,7 +26,7 @@ variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 theorem cacheKey.wp_proof (wp_hash : bitset.hash.spec (GF := GF) (hG := hG)) :
     cacheKey.spec (GF := GF) (hG := hG) := fun σ S m lin ws dq st t => by
-  wp_start as ⟨#Heh, Hlin, #Hst⟩
+  wp_start as ⟨#Heh, Hlin, Hst⟩
   wp_auto
   wp_method_call
   wp_call
@@ -40,7 +40,7 @@ theorem cacheKey.wp_proof (wp_hash : bitset.hash.spec (GF := GF) (hG := hG)) :
   · wp_if_destruct
     · wp_end
     · unfold hashSpec
-      wp_apply Hh $$ %st %t [$Hst] as %x -
+      wp_apply Hh $$ %st %t [$Hst] as %x Hst
       wp_end
 
 end proof

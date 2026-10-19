@@ -10,6 +10,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter__Apply
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.New
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
@@ -30,6 +31,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+variable [NaInvG GF]
 
 end links
 
@@ -41,6 +43,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+variable [NaInvG GF]
 
 theorem counter.wp_Model :
     EtcdGrove.lintest.counter.Model.spec (GF := GF) (hG := hG) :=
@@ -57,6 +60,10 @@ theorem counter.Counter.wp_Apply :
 theorem counter.wp_Check :
     EtcdGrove.lintest.counter.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lintest.counter.Check.wp_proof wp_Run counter.wp_Model counter.wp_New counter.Counter.wp_Apply
+
+theorem counter.wp_Main :
+    EtcdGrove.lintest.counter.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lintest.counter.Main.wp_proof wp_CounterClock counter.wp_Check
 
 end links_hasLC
 
