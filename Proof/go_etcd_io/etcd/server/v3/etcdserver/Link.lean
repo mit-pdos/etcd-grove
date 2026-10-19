@@ -127,6 +127,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Revision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
@@ -638,13 +639,17 @@ theorem auth.authStore.wp_AuthInfoFromTLS :
     auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
   auth.authStore.AuthInfoFromTLS.wp_proof
 
+theorem auth.authStore.wp_lockedReadTx :
+    auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.lockedReadTx.wp_proof
+
 theorem auth.wp_hasRootRole :
     auth.hasRootRole.spec (GF := GF) (hG := hG) :=
   auth.hasRootRole.wp_proof
 
 theorem auth.authStore.wp_IsAdminPermitted :
     auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsAdminPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.wp_hasRootRole
+  auth.authStore.IsAdminPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_lockedReadTx auth.wp_hasRootRole
 
 theorem zap.wp_ByteString :
     zap.ByteString.spec (GF := GF) (hG := hG) :=
@@ -668,7 +673,7 @@ theorem auth.authStore.wp_isRangeOpPermitted :
 
 theorem auth.authStore.wp_isOpPermitted :
     auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) :=
-  auth.authStore.isOpPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision zap.wp_Uint64 zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error auth.wp_hasRootRole auth.authStore.wp_isRangeOpPermitted
+  auth.authStore.isOpPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision zap.wp_Uint64 zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error auth.wp_hasRootRole auth.authStore.wp_lockedReadTx auth.authStore.wp_isRangeOpPermitted
 
 theorem auth.authStore.wp_IsDeleteRangePermitted :
     auth.authStore.IsDeleteRangePermitted.spec (GF := GF) (hG := hG) :=

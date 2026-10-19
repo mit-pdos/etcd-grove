@@ -12,7 +12,7 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   (`isWatchableStore`), the progress interval's field (owned: `NewWatchServer` writes it), a
   reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
   the auth store (`E.RD`) and the store (`mvcc.storeReader`), which `NewServer`'s proof dropped
-  until D19g.
+  until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
 * `replicate_takeN`, `replicate_sepL`: splitting and pairing replicated resources.
 -/
 module
@@ -128,7 +128,8 @@ def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate K (), mvcc.storeReader E.s E.γ))
+    ([∗list] _x ∈ List.replicate K (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
 
 end defs
 

@@ -178,7 +178,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold memberUp at Hup₁
   icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
@@ -260,8 +260,9 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started s₁ E ρ₁.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p s₁ C.A cid mid C.n $$ Hkvs
   rw [HC.1]

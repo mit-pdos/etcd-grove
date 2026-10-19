@@ -11928,3 +11928,28 @@ For the proof (S-b): from the batch's recorded term `= T`, the node's log is lea
 commit within `T`'s commit facts, also for a node that stepped down at its term: check how the
 step-down rule ("`CheckQuorum` on: one model rule for a leader's step-down at its term") keeps the
 leader's records. The (A″) redesign is not needed.
+
+## D22g and D22k carried out: the quota over the current backend, the auth store's backend under a lock (2026-10-19)
+
+The etcd pin moves to the fork's `d52eec43e` (`goose-lean`: `8f793b820`, the gRPC quota;
+`d52eec43e`, the auth store's move before the old backend's close), both with their regression
+tests; `authStore.lockedReadTx` translated (`auth.toml`).
+- **The quota** (`v3rpc/InvQuota.lean`): `quotaAlarmerAt qa s` holds the server, the name, the
+  logger and `QuotaBackendBytes` read-only and `⌜backendUnderQuota⌝`; `check` builds its quota per
+  call (`newBackendQuota(s, name)`, reading `s.Backend()` under `bemu`) and spends and returns only
+  `quotaRd s` (an `lgMu` and a `bemu` reader slot). What the old contract carried for the alarm
+  (`isServerReq`, the id credit, the `leadTimeMu` slot, `E.RD`) is gone: the NOSPACE branch is
+  not reached. The constructors no longer call `newBackendQuota`/`MemberID`. Request slots
+  (`etcdGrpcSlot`, `etcdLeaseSlot`) carry `quotaRd s`; `srvServeBuilt` gains `K` `bemu` slots
+  (`NewServer` gives 64). `backendUnderQuota` moved from the check's caller into `quotaAlarmerAt`,
+  still a premise of the constructors. `v3rpc.Server`'s spec still passes one `bemu` slot nothing
+  needs (left to limit the ripple).
+- **The auth store** (`auth/InvAuth.lean`): `be` is no longer read-only; `authInv` holds
+  `isRWMutexGuard as.beMu (beP st R)` (the field and its `authBackendOk`), as `enabledMu` and
+  `rangePermCacheMu`; `authRd` gains a `beMu` reader slot; `lockedReadTx` (spec and proof) returns
+  the locked read transaction with its `UnsafeGetUser`/`RUnlock` contracts, used by
+  `isOpPermitted` and `IsAdminPermitted`. `beP` keeps one `R` for every backend `Recover`
+  installs: S-j/S-k revisit it when `R` is tied to a backend's reader slot.
+- `applySnapshot` needed no change (its proof is of the empty snapshot). Trust base unchanged (525
+  axioms, 2 sorries); the request-path collections (`cache-client`, `client`, `lease-served`,
+  `slice`) now list the existing `storage.NewBackendQuota` axiom (the quota built per request).

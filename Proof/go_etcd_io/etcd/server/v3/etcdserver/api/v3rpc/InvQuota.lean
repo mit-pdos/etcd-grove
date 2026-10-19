@@ -2,13 +2,20 @@
 **The quota wrapper of the KV service and the server's unary interceptors** (`v3rpc/quota.go`,
 `v3rpc/interceptor.go`, unit P3b): `NewQuotaKVServer(s)`
 wraps the KV service (`NewKVServer(s)`) in a `*quotaKVServer`, whose `Put` (and `Txn`) first
-checks the backend's quota (`quotaAlarmer.check`: the quota's `Available`; if not, it raises the
-NOSPACE alarm through `s.Alarm` and answers `ErrGRPCNoSpace`), and whose other methods are the
-embedded service's (promoted). Lean-first (no Rocq counterpart).
+checks the backend's quota (`quotaAlarmer.check`: `newBackendQuota(s, name).Available`, a quota of
+the backend current at the check; if not, it raises the NOSPACE alarm through `s.Alarm` and
+answers `ErrGRPCNoSpace`), and whose other methods are the embedded service's (promoted).
+Lean-first (no Rocq counterpart).
 
-* `quotaAlarmerAt qa s` (persistent): the `*quotaAlarmer` `qa`, read-only: its quota (a
-  `storage.Quota`, `apply.isQuota`: `storage` is names-only, `NewBackendQuota` the trust
-  boundary), its alarmer the server `s`, its member id.
+* `quotaAlarmerAt qa s` (persistent): the `*quotaAlarmer` `qa`, read-only: its server `s` and
+  its quota's name (since the fork's 8f793b820, D22g (A),
+  `issues/etcd-quota-stale-backend-after-snapshot.md`: until then the quota itself, built over
+  the backend current at construction, which a snapshot's install replaces and closes), the
+  server's fields `newBackendQuota` reads (`s.lg`, `s.Cfg.QuotaBackendBytes`), and the workload
+  premise under which every quota answers `Available` (`apply.backendUnderQuota`, which the
+  constructors take).
+* `quotaRd s` (not persistent): what a check spends and gets back: the reader slots of `s.lgMu`
+  and `s.bemu` (`newBackendQuota`'s `s.Logger()` and `s.Backend()`).
 * `quotaKVServerAt q kv s` (persistent): the `*quotaKVServer` `q`, read-only: its embedded
   `KVServer` the value `kv`, its alarmer `quotaAlarmerAt`.
 * `QuotaKVServerIsKVServer`: `*quotaKVServer` implements `pb.KVServer` (a method-set fact, which
@@ -55,15 +62,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **The `*quotaAlarmer` `qa`** (persistent; see the file header). -/
 def v3rpc.quotaAlarmerAt (qa s : Loc) : IProp GF :=
-  iprop(∃ (q : GoInterface) (id : w64),
-    structFieldRef v3rpc.quotaAlarmer go!"q" qa ↦□ q ∗ apply.isQuota q ∗
-    structFieldRef v3rpc.quotaAlarmer go!"a" qa ↦□
-      (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface) ∗
-    structFieldRef v3rpc.quotaAlarmer go!"id" qa ↦□ id)
+  iprop(∃ (name : GoString) (lg : Loc) (qb : w64),
+    structFieldRef v3rpc.quotaAlarmer go!"s" qa ↦□ s ∗
+    structFieldRef v3rpc.quotaAlarmer go!"name" qa ↦□ name ∗
+    srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb ∗
+    ⌜apply.backendUnderQuota⌝)
 
 instance v3rpc.quotaAlarmerAt_persistent (qa s : Loc) :
     Persistent (v3rpc.quotaAlarmerAt (GF := GF) qa s) := by
   unfold v3rpc.quotaAlarmerAt; infer_instance
+
+/-- **What a quota check spends and gets back** (see the file header). -/
+def v3rpc.quotaRd (s : Loc) : IProp GF :=
+  iprop(srvLgReader s ∗ srvBemuReader s)
 
 /-- **The `*quotaKVServer` `q`** over the service `kv` and the server `s` (persistent; see the
 file header). -/

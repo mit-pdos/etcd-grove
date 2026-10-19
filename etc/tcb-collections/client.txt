@@ -90,6 +90,7 @@ axiom resolver.New.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof

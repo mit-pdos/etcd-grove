@@ -87,8 +87,8 @@ prometheus_CounterVec__WithLabelValues:
 logUnaryRequestStats:
 isRPCSupportedForLearner:
 newBackendQuota: EtcdServer__Logger EtcdServer__Backend storage_NewBackendQuota
-NewQuotaKVServer: NewKVServer newBackendQuota EtcdServer__MemberID
-quotaAlarmer__check:
+NewQuotaKVServer: NewKVServer
+quotaAlarmer__check: newBackendQuota
 quotaKVServer__Put: quotaAlarmer__check
 quotaKVServer__Txn: quotaAlarmer__check
 newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
@@ -199,7 +199,7 @@ RegisterAuthServer: grpc_Server__RegisterService
 RegisterMaintenanceServer: grpc_Server__RegisterService
 NewMaintenanceServer:
 NewLeaseServer: newHeader zap_NewNop
-NewQuotaLeaseServer: NewLeaseServer newBackendQuota EtcdServer__MemberID
+NewQuotaLeaseServer: NewLeaseServer
 # The client lease's stage (c), its workload-free half (2026-10-18): lease.go's unary handlers over
 # the server's lease methods, whose triples are the contract `raftLessor s E S` (InvLease.lean, a
 # precondition, as `raftKV`), the quota wrapper's `LeaseGrant` (its `LeaseRevoke` is promoted:

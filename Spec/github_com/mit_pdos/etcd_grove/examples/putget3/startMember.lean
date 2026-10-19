@@ -59,7 +59,8 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) : IProp
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ))
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s))
 
 /-- See the file header. -/
 abbrev startMember.spec : Prop :=

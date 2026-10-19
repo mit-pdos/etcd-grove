@@ -158,7 +158,7 @@ theorem startMember.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩

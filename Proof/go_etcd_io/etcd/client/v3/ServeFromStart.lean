@@ -13,9 +13,11 @@
   The rest of `watch.go`'s package variables (`watchVars`) comes from `isPkgInit v3rpc` (D19j,
   2026-10-18: until then the premise `watchVars`). (`membership.localKept`, the local member stays in the cluster, was
   a third until 2026-10-18: now the cluster's own fact, `localKept_of_isRaftCluster`.)
-* `etcdGrpcSlots_of_started`: `N` of `etcd_kv_started`'s slots (`etcdGrpcSlot`) from `2 N` reader
-  slots each of `leadTimeMu`, `lgMu` and the auth store and `N` of the store (`srvServeBuilt`'s)
-  and `N` of the read loop's (`Start`'s).
+* `etcdGrpcSlots_of_started`: `N` of `etcd_kv_started`'s slots (`etcdGrpcSlot`) from `3 N` reader
+  slots each of `leadTimeMu`, `lgMu` and the auth store, `N` of the store and of `bemu`
+  (`srvServeBuilt`'s) and `N` of the read loop's (`Start`'s): per slot, the handlers' one each of
+  `leadTimeMu`, `lgMu`, the store, the read loop and the auth store, the quota check's of `lgMu`
+  and `bemu` (`v3rpc.quotaRd`, D22g (A)) and the log interceptor's of `lgMu`.
 
 `etcd_kv_started` and `etcd_watch_served_chain` are unchanged: these lemmas give their premises.
 -/
@@ -121,33 +123,39 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
 
 /-- **`N` of `etcd_kv_started`'s slots** (see the file header). -/
 theorem etcdGrpcSlots_of_started (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (N : Nat) :
-    ∀ K S M : Nat, 2 * N ≤ K → N ≤ S → N ≤ M →
+    ∀ K S M B : Nat, 3 * N ≤ K → N ≤ S → N ≤ M → N ≤ B →
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader (GF := GF) s) ∗
         ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
         ([∗list] _x ∈ List.replicate K (), E.RD) ∗
         ([∗list] _x ∈ List.replicate S (), mvcc.storeReader E.s E.γ) ∗
-        ([∗list] _x ∈ List.replicate M (), srvReadReader s γr) ⊢
+        ([∗list] _x ∈ List.replicate M (), srvReadReader s γr) ∗
+        ([∗list] _x ∈ List.replicate B (), srvBemuReader s) ⊢
       [∗list] _x ∈ List.replicate N (), etcdGrpcSlot s E γr := by
   induction N with
   | zero =>
-    intro K S M _ _ _
+    intro K S M B _ _ _ _
     iintro -
     rw [List.replicate_zero]
     iapply BigSepL.bigSepL_nil.2
     itrivial
   | succ n ih =>
-    intro K S M hK hS hM
-    iintro ⟨Hlt, Hlg, Hrd, Hst, Hrr⟩
-    icases replicate_take2 _ _ (by omega) $$ Hlt with ⟨Hlt1, Hlt2, Hlt⟩
+    intro K S M B hK hS hM hB
+    iintro ⟨Hlt, Hlg, Hrd, Hst, Hrr, Hbm⟩
+    icases replicate_take1 _ _ (by omega) $$ Hlt with ⟨Hlt1, Hlt⟩
     icases replicate_take2 _ _ (by omega) $$ Hlg with ⟨Hlg1, Hlg2, Hlg⟩
-    icases replicate_take2 _ _ (by omega) $$ Hrd with ⟨Hrd1, Hrd2, Hrd⟩
+    icases replicate_take1 _ _ (by omega) $$ Hlg with ⟨Hlg3, Hlg⟩
+    icases replicate_take1 _ _ (by omega) $$ Hrd with ⟨Hrd1, Hrd⟩
     icases replicate_take1 _ _ (by omega) $$ Hst with ⟨Hst1, Hst⟩
     icases replicate_take1 _ _ (by omega) $$ Hrr with ⟨Hrr1, Hrr⟩
+    icases replicate_take1 _ _ (by omega) $$ Hbm with ⟨Hbm1, Hbm⟩
+    icases replicate_takeN _ (K - 3) _ (by omega) $$ Hlt with ⟨Hlt, -⟩
+    icases replicate_takeN _ (K - 3) _ (by omega) $$ Hrd with ⟨Hrd, -⟩
+    icases replicate_takeN _ (K - 3) _ (by omega) $$ Hlg with ⟨Hlg, -⟩
     rw [List.replicate_succ]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hlt1 Hlt2 Hlg1 Hlg2 Hrd1 Hrd2 Hst1 Hrr1]
-    · unfold etcdGrpcSlot etcdRunSlot etcdIcRs
-      isplitl [Hlt1 Hst1 Hlg1 Hrr1 Hrd1 Hlt2 Hrd2]
+    isplitl [Hlt1 Hlg1 Hlg2 Hlg3 Hrd1 Hst1 Hrr1 Hbm1]
+    · unfold etcdGrpcSlot etcdRunSlot etcdIcRs v3rpc.quotaRd
+      isplitl [Hlt1 Hst1 Hlg1 Hrr1 Hrd1 Hlg3 Hbm1]
       · iframe
       iapply BigSepL.bigSepL_cons.2
       iframe Hlg2
@@ -159,8 +167,8 @@ theorem etcdGrpcSlots_of_started (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       · itrivial
       iapply BigSepL.bigSepL_nil.2
       itrivial
-    · iapply (ih (K - 2) (S - 1) (M - 1) (by omega) (by omega) (by omega))
-      iframe Hlt Hlg Hrd Hst Hrr
+    · iapply (ih (K - 3) (S - 1) (M - 1) (B - 1) (by omega) (by omega) (by omega) (by omega))
+      iframe Hlt Hlg Hrd Hst Hrr Hbm
 
 end start
 

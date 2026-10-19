@@ -202,7 +202,7 @@ theorem Main.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
@@ -251,8 +251,9 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]

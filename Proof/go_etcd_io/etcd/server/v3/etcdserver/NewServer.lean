@@ -870,6 +870,8 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, Hbmslots⟩
   -- (D19g (b)) `v3rpc.Server`'s reader slot of `bemu`
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, Hbmslots⟩
+  -- (D22g (A)) the quota checks' reader slots of `bemu`, for request goroutines
+  icases replicate_takeN _ 64 _ (by omega) $$ Hbmslots with ⟨Hbms, Hbmslots⟩
   -- (D19i part 2) the storage version monitor's
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨HbmSV, -⟩
   -- the raft node, its transport installed
@@ -956,7 +958,7 @@ theorem NewServer.wp_proof
   ipersist MaxConcurrentStreamsS
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
-      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs]
+      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
   · unfold srvServeBuilt srvServeFacts srvServeCfg srvBemuReader srvLeadTimeReader
     isplitr
     · isplitr
@@ -964,7 +966,7 @@ theorem NewServer.wp_proof
         iframe #
         ipureintro; rfl
       · iframe #
-    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs
+    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
   -- (D19i part 2) the storage version monitor's read token, with an open share
   icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨HwrSV, Hwrds⟩
   iunfold mvcc.watchReader at HwrSV

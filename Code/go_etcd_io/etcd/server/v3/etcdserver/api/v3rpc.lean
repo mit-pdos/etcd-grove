@@ -2428,7 +2428,7 @@ noncomputable def NewClusterServer.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- check whether request satisfies the quota. If there is not enough space,
     ignore request and raise the free space alarm.
 
-    go: quota.go:40:25 -/
+    go: quota.go:38:25 -/
 noncomputable def quotaAlarmer.check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "qa"
   (Lam "ctx"
@@ -2438,7 +2438,7 @@ noncomputable def quotaAlarmer.check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "r" (App (Val (GoInstruction (GoAlloc go.any))) (Var "r"))
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))) (Val #()))
   (Let "$v1" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest_ACTIVATE)
   (Let "$v2" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType_NOSPACE)
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MemberID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Action")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest_AlarmAction.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Alarm")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty (Var "$v2")))]))))))
@@ -2450,17 +2450,19 @@ noncomputable def quotaAlarmer.check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)))) (Var "req"))
-  (App (App (App (Val (GoInstruction (MethodResolve Alarmer.ty go!"Alarm"))) (App (Val (GoInstruction (GoLoad Alarmer.ty))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"a"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Alarm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))
   (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "r"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty go!"Available"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"q"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty go!"Available"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))
+  (App (App (App (Val (GoInstruction (FuncResolve newBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Var "$a0")))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: quota.go:53:6 -/
+/-- go: quota.go:52:6 -/
 noncomputable def NewQuotaKVServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -2468,15 +2470,12 @@ noncomputable def NewQuotaKVServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType quotaKVServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (GoAlloc quotaKVServer.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve NewKVServer []))) (Val #())) (Var "$a0")))
-  (Let "$v1" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (Val #(go!"kv"))
-  (App (App (App (Val (GoInstruction (FuncResolve newBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral quotaAlarmer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2")))])))))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v1" (Val #(go!"kv"))
+  (App (Val (GoInstruction (CompositeLiteral quotaAlarmer.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
   (App (Val (GoInstruction (CompositeLiteral quotaKVServer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty (Var "$v0"))), (KeyedElement none (ElementExpression quotaAlarmer.ty (Var "$v1")))]))))))))))
 
-/-- go: quota.go:60:25 -/
+/-- go: quota.go:59:25 -/
 noncomputable def quotaKVServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -2506,7 +2505,7 @@ noncomputable def quotaKVServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: quota.go:67:25 -/
+/-- go: quota.go:66:25 -/
 noncomputable def quotaKVServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -2536,7 +2535,7 @@ noncomputable def quotaKVServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: quota.go:79:28 -/
+/-- go: quota.go:78:28 -/
 noncomputable def quotaLeaseServer.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
@@ -2566,7 +2565,7 @@ noncomputable def quotaLeaseServer.LeaseGrant.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
-/-- go: quota.go:86:6 -/
+/-- go: quota.go:85:6 -/
 noncomputable def NewQuotaLeaseServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -2574,15 +2573,12 @@ noncomputable def NewQuotaLeaseServer.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.PointerType quotaLeaseServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty))) (App (Val (GoInstruction (GoAlloc quotaLeaseServer.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve NewLeaseServer []))) (Val #())) (Var "$a0")))
-  (Let "$v1" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (Val #(go!"lease"))
-  (App (App (App (Val (GoInstruction (FuncResolve newBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral quotaAlarmer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2")))])))))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v1" (Val #(go!"lease"))
+  (App (Val (GoInstruction (CompositeLiteral quotaAlarmer.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1")))]))))
   (App (Val (GoInstruction (CompositeLiteral quotaLeaseServer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.ty (Var "$v0"))), (KeyedElement none (ElementExpression quotaAlarmer.ty (Var "$v1")))]))))))))))
 
-/-- go: quota.go:93:6 -/
+/-- go: quota.go:92:6 -/
 noncomputable def newBackendQuota.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "name"
@@ -5028,17 +5024,15 @@ attribute [instance] ClusterServer.TypeAssumptions.type_repr
 
 structure quotaAlarmer [FfiSyntax] where
   mk ::
-  q' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota
-  a' : Alarmer
-  id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+  s' : Loc
+  name' : GoString
 
 instance quotaAlarmer.zero_val [FfiSyntax] : ZeroVal quotaAlarmer :=
-  ⟨quotaAlarmer.mk zeroValDef zeroValDef zeroValDef⟩
+  ⟨quotaAlarmer.mk zeroValDef zeroValDef⟩
 
 @[reducible] def quotaAlarmer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"q" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty),
-(go.field_decl.FieldDecl go!"a" Alarmer.ty),
-(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
+  [(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)),
+(go.field_decl.FieldDecl go!"name" go.string)]
 
 @[irreducible] def quotaAlarmer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   quotaAlarmer.fieldsUnsealed
@@ -5053,22 +5047,18 @@ instance equals_unfold_quotaAlarmer [FfiSyntax] [GoGlobalContext] :
 class quotaAlarmer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaAlarmer.underlying quotaAlarmer
   underlying : go.UnderlyingDirectedEq quotaAlarmer.ty quotaAlarmer.underlying
-  get_q : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"q") #x (Val #(x.q'))
-  set_q : ∀ (x : quotaAlarmer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : quotaAlarmer)))
-  get_a : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"a") #x (Val #(x.a'))
-  set_a : ∀ (x : quotaAlarmer) (y : Alarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : quotaAlarmer)))
-  get_id : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"id") #x (Val #(x.id'))
-  set_id : ∀ (x : quotaAlarmer) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : quotaAlarmer)))
+  get_s : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"s") #x (Val #(x.s'))
+  set_s : ∀ (x : quotaAlarmer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"s") (PairV #x #y) (Val #(({ x with s' := y } : quotaAlarmer)))
+  get_name : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"name") #x (Val #(x.name'))
+  set_name : ∀ (x : quotaAlarmer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : quotaAlarmer)))
   ptr_check_unfold : MethodUnfold (go.GoType.PointerType quotaAlarmer.ty) go!"check" quotaAlarmer.check.impl
 
 attribute [instance] quotaAlarmer.TypeAssumptions.type_repr
   quotaAlarmer.TypeAssumptions.underlying
-  quotaAlarmer.TypeAssumptions.get_q
-  quotaAlarmer.TypeAssumptions.set_q
-  quotaAlarmer.TypeAssumptions.get_a
-  quotaAlarmer.TypeAssumptions.set_a
-  quotaAlarmer.TypeAssumptions.get_id
-  quotaAlarmer.TypeAssumptions.set_id
+  quotaAlarmer.TypeAssumptions.get_s
+  quotaAlarmer.TypeAssumptions.set_s
+  quotaAlarmer.TypeAssumptions.get_name
+  quotaAlarmer.TypeAssumptions.set_name
   quotaAlarmer.TypeAssumptions.ptr_check_unfold
 
 structure quotaKVServer [FfiSyntax] where

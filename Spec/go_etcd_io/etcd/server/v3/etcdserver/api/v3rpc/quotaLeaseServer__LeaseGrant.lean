@@ -29,22 +29,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`q.LeaseGrant(ctx, r)`** on a `*quotaLeaseServer` over a service `ls` whose `LeaseGrant`
-meets `Spec` with the resource `S` (`grpcHandlerOk`), for the server `s` (its request-path view and
-id budget, for the alarm): the quota check, then `ls.LeaseGrant(ctx, r)`: `S`, the reader slot of
-`leadTimeMu` and the auth store's reader resource `E.RD` come back, and on success the response is
-`ls.LeaseGrant`'s (at some `m'` with `Φ m'`); as `quotaKVServer.Put`. -/
+meets `Spec` with the resource `S` (`grpcHandlerOk`), for the server `s`: the quota check, then
+`ls.LeaseGrant(ctx, r)`: `S` and the check's reader slots (`quotaRd`) come back, and on success the
+response is `ls.LeaseGrant`'s (at some `m'` with `Φ m'`); as `quotaKVServer.Put`. -/
 abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
-    (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
+    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       v3rpc.quotaLeaseServerAt q ls s ∗ grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ∗
-      isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗ S ∗ srvLeadTimeReader s ∗ E.RD ∗
+      S ∗ v3rpc.quotaRd s ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ srvLeadTimeReader s ∗ E.RD ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }}
 
 end spec
