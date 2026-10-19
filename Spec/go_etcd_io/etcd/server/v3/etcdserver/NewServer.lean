@@ -43,9 +43,14 @@
   below `MemoryStorage.Append`'s `2 ^ 61` (until then the premise `rnLogFits`, an Iris statement
   on every `Ready`).
 * `NodeStartSpec`'s trust-boundary premises (the raft wrapper's contracts; `rnTickerOk` at the
-  server's raft environment `srvEr`), the configuration's logger and feature gate (a
+  server's raft environment `srvEr`; `Stop` of a started node, `rnStopOkStarted`, D19r (A):
+  until then of every location, false of Go), the configuration's logger and feature gate (a
   `*featuregate.featureGate`, for `addFeatureGateMetrics`'s type assertion), the packages' init
-  facts `start` needs.
+  facts `start` needs (`context`'s `closedchan`; since D19r (C), (D) the raft status's mutex and
+  `pkg/wait`'s `closec` come from `etcdserver`'s and `pkg/wait`'s facts).
+* (D19r (B), (F), 2026-10-18) what `bootstrap` takes: the configuration's URLs read-only
+  (`bootCfgRO cfg U`) and the storage registry's authority, empty (`memStorRegAuth ∅`), which the
+  caller allocates; `bootstrap`'s new `MemoryStorage` joins it.
 
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
@@ -89,7 +94,8 @@ variable [MemStorReg GF]
 
 /-- **`NewServer(cfg)`** (see the file header). -/
 abbrev NewServer.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (bud : BudgetNames)
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : RaftNames)
+    (bud : BudgetNames)
     (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
   -- conf-change policy; the KV's start values, its certificate map the store's
@@ -122,7 +128,10 @@ abbrev NewServer.spec : Prop :=
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      "#Hboot" ∷ bootstrapContract cfg γ id bootLog N ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id bootLog N ∗
+      -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
+      -- storage registry's authority, empty (the caller allocates it)
+      "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's ghost state (as `NodeStartSpec`'s) and `allocClientBoot`'s outputs
       "Hghost" ∷ ownRaftGhost γ id (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
       "#Hcinv" ∷ raftCommitInv γ ∗
@@ -146,11 +155,11 @@ abbrev NewServer.spec : Prop :=
       "%Hnocmp" ∷ ⌜mvcc.backendNoCompaction⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗ "#Hrs" ∷ rnRaftStatusOk ∗
+      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗
       "#Hns" ∷ rnNewStorageOk ∗
-      "#Hstop" ∷ (∀ n : Loc, rnStopOk n) ∗
+      "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
-      "#Hcci" ∷ context.isClosedchanInit ∗ "#Hwci" ∷ waitClosecInit }}
+      "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
       ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨

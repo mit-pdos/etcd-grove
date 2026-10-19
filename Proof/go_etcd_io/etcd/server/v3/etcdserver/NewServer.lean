@@ -241,16 +241,29 @@ theorem NewServer.wp_proof
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr Hbnd
+  intro cfg U γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr Hbnd
     Hrb HrbN Hboot Hmid Hfgp
   wp_start
   iNamed Hpre
+  -- (D19r (C)) the raft status's mutex, from the package's facts
+  ihave #Hrs : rnRaftStatusOk (GF := GF) $$ []
+  · ihave Hsi0 : (srvInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hpkg
+    iunfold srvInit at Hsi0
+    icases Hsi0 with ⟨⟨-, -, -, -, -, -, -, #HRS⟩, -⟩
+    iunfold rnRaftStatusOk
+    iexact HRS
+  -- (D19r (D)) `closec` closed, from `pkg/wait`'s facts
+  ihave #Hwci : waitClosecInit (GF := GF) $$ []
+  · iapply waitClosecInit_of_pkg
+    iPkgInit
   wp_apply wp_with_defer as %defer defer
   ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hboot' := Hboot
   iunfold bootstrapContract at Hboot'
-  wp_apply Hboot' as %b %err Hb
+  wp_apply Hboot' $$ [Hrauth] as %b %err Hb
+  · iframe; iframe #
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
   · -- `bootstrap` failed
     cases err with
@@ -352,7 +365,7 @@ theorem NewServer.wp_proof
   ihave Hsi : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   iunfold srvInit at Hsi
-  icases Hsi with ⟨⟨-, -, -, -, -, ⟨%gvf, #Hgvf, %Hgvfl⟩, ⟨%gvi, #Hgvi, %Hgvil⟩⟩, -⟩
+  icases Hsi with ⟨⟨-, -, -, -, -, ⟨%gvf, #Hgvf, %Hgvfl⟩, ⟨%gvi, #Hgvi, %Hgvil⟩, -⟩, -⟩
   (try wp_auto)
   wp_apply h16 $$ []
   · iframe #; ipureintro; exact Hfgp

@@ -279,8 +279,10 @@ other untranslated initializers run.''',
 )
 
 SPECIAL['go_etcd_io.etcd.pkg.v3.wait'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates `closec`, initializes its imports and runs
-its translated `init()` (`wait_time.go`: `closec = make(chan struct{}); close(closec)`).''',
+    doc='''Its fact (`closecClosed`, `etcdserver/apply/Base.lean`; D19r (D), 2026-10-18: `True` until
+then): `closec` holds a channel closed for good, an invariant keeping it `Closed []`. Its
+initializer allocates `closec`, initializes its imports and runs its translated `init()`
+(`wait_time.go`: `closec = make(chan struct{}); close(closec)`).''',
     alloc_types={'closec': 'GoChan'},
     before={'$end': [
         'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩',
@@ -288,6 +290,12 @@ its translated `init()` (`wait_time.go`: `closec = make(chan struct{}); close(cl
         'iintro -', 'unfold closeAu', 'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
         'iintro Hmask', 'inext', 'iexists .Idle', 'iframe Hch', 'dsimp only', 'iintro Hch',
         'imod Hmask with -', 'imodintro', 'wp_auto']},
+    finish=['ipersist Hclosec',
+            'imod (inv_alloc _root_.Perennial.context.closedchanN ⊤ (ownChan γ Unit (.Closed []))) $$ [Hch] with #Hinv',
+            '· inext; iexact Hch',
+            'ihave #Hfact : (closecClosed : IProp GF) $$ []',
+            '· unfold closecClosed; iexists ch, γ; iframe #',
+            'imodintro', 'iframe Hown', 'is_pkg_init_finish'],
 )
 
 CV3 = 'go_etcd_io.etcd.cache.v3'
@@ -725,9 +733,14 @@ trust-boundary axioms `<X>_init`; the vectors with their label names), and from 
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
-package's initializer.""",
+package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
+guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
+reads `raftStatus` under the mutex).""",
     custom=_srv_custom,
+    alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc'},
     finish=([f'ipersist H{x}' for x in _srv_custom] +
+            ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
+             '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
                              '{Hd:go_etcd_io.etcd.server.v3.etcdserver.errors}', t)
                  for (x, m, t) in _SRV_ERRS], []) +

@@ -159,9 +159,11 @@ theorem isReadServer_of_server
     · iframe #
     iapply HΦ
     iexists Q
+    iframe HQ
     iunfold waitBcast at Hch
+    iunfold bcastOrClosed
     iunfold bcastChan
-    iframe Hch HQ
+    iexact Hch
   -- `NextRequestID()`: the id mints its context's token and a read credit
   isplitr
   · iintro !> %Φ !> #Hcred HΦ

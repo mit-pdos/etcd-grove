@@ -149,6 +149,8 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "%Hone" ∷ ⌜γ.reTracked = some (GMap.listToSet [id])⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
+    -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
+    "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple (∅ : GMap Loc MemStorNamesRec)) ∗
     "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
     "Hstor" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
     "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
@@ -216,17 +218,42 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
       {{ RET #(); True }}))
 
+/-- **The configuration's URLs, as `bootstrap` reads them** (D19r (F), 2026-10-18): the peer and
+client URL slices and the initial cluster's map (member name to its peer URLs' slice), with their
+contents. -/
+structure BootURLs [FfiSyntax] where
+  peer : List _root_.Perennial.net.url.URL
+  client : List _root_.Perennial.net.url.URL
+  initMap : GMap GoString GoSlice
+  initURLs : GoString → List _root_.Perennial.net.url.URL
+
+/-- **The configuration's URLs, read-only** (persistent; D19r (F)): what `bootstrap` reads of the
+configuration beyond its scalar fields (`VerifyBootstrap`, `NewClusterFromURLsMap`, the member's
+id from its peer URLs and the cluster token). -/
+def bootCfgRO (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : IProp GF :=
+  iprop(cfg.PeerURLs' ↦*□ U.peer ∗ cfg.ClientURLs' ↦*□ U.client ∗
+    cfg.InitialPeerURLsMap' ↦$□ U.initMap ∗ [∗map] k ↦ sl ∈ U.initMap, sl ↦*□ U.initURLs k)
+
+instance bootCfgRO_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (U : BootURLs) : Persistent (bootCfgRO (GF := GF) cfg U) := by
+  unfold bootCfgRO; infer_instance
+
 /-- **`bootstrap`'s contract** (D13b: a premise of `NewServer.spec`, see the file header): on the
-configuration `cfg`, an error, or the record with `bootOk` (at the write-back budget `N + 7`). -/
-def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames)
-    (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val (@! bootstrap)) (Val #cfg))
+configuration `cfg` with its URLs `U` read-only (D19r (F): the member id `id` and the bootstrap
+log are what Go computes from them) and the storage registry's authority, empty (D19r (B): the
+new `MemoryStorage` joins it; until then the contract gave its registration with no authority,
+which no update can), an error, or the record with `bootOk` (at the write-back budget
+`N + 7`). -/
+def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
+    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
+  iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
+      (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) :
-    Persistent (bootstrapContract (GF := GF) cfg γ id bootLog N) := by
+    (U : BootURLs) (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) :
+    Persistent (bootstrapContract (GF := GF) cfg U γ id bootLog N) := by
   unfold bootstrapContract; infer_instance
 
 end defs

@@ -21,12 +21,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `wait.NewTimeList()`, for a predicate `P` of deadlines monotone downward that holds of `0`
-(the last trigger's deadline is `0`), and `closec` closed (`waitClosecInit`, the package's
-initialization): a `*timeList` meeting `isTimeList`. -/
+(the last trigger's deadline is `0`): a `*timeList` meeting `isTimeList` (`closec` closed,
+`waitClosecInit`, from the package's fact since D19r (D), 2026-10-18; a premise until then). -/
 abbrev wait.NewTimeList.spec : Prop :=
   ∀ (P : w64 → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ □ P (W64 0) ∗ waitMono P ∗
-      waitClosecInit }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ □ P (W64 0) ∗ waitMono P }}
     (App (Val (@! wait.NewTimeList)) (Val #()))
   {{ (tl : Loc), RET #tl; isTimeList tl P }}
 

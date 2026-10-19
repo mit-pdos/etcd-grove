@@ -349,7 +349,10 @@ abbrev srvRaftInit : IProp GF :=
     -- serverFeatureEnabled)` and `serverID.With(…)`): two fixed gauge vectors
     (∃ gv : Loc, globalAddr serverFeatureEnabled ↦□ gv ∗
       ⌜EtcdGrove.prometheus.vecLabels gv [go!"name", go!"stage"]⌝) ∗
-    (∃ gv : Loc, globalAddr serverID ↦□ gv ∗ ⌜EtcdGrove.prometheus.vecLabels gv [go!"server_id"]⌝))
+    (∃ gv : Loc, globalAddr serverID ↦□ gv ∗ ⌜EtcdGrove.prometheus.vecLabels gv [go!"server_id"]⌝) ∗
+    -- (D19r (C), 2026-10-18) the raft status's mutex over its function (`raft.go`; the raft
+    -- wrapper's `rnRaftStatusOk`), allocated and initialized by the package's initializer
+    sync.isMutex (globalAddr raftStatusMu) iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f))
 
 instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
   unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance

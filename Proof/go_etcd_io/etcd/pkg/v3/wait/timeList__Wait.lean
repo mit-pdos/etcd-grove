@@ -41,7 +41,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
   · -- already triggered: `closec`
     ihave #Hcl' := Hcl
     iunfold waitClosecInit at Hcl'
-    icases Hcl' with ⟨%cc, %γc, #Hcc, #Hccb⟩
+    icases Hcl' with ⟨%cc, %γc, #Hcc, #Hcci, #Hccv⟩
     wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hlast HM Hchs]
     · inext; iunfold timeListR; iexists last, M; iframe; iframe #
@@ -49,7 +49,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     iapply HΦ
     iexists iprop(True)
     isplitr
-    · iunfold waitBcast; iexists γc; iexact Hccb
+    · iunfold waitBcast; iright; iexists γc; iframe #; iintro !>; itrivial
     iintro !> -
     iunfold waitMono at Hmono
     iapply Hmono $$ %last %d %Hif Hlastp
@@ -72,7 +72,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     iapply HΦ
     iexists P d
     isplitr
-    · iunfold waitBcast; iexists γch; iexact Hbu
+    · iunfold waitBcast; ileft; iexists γch; iexact Hbu
     iintro !> H
     iexact H
   | some ch =>
@@ -92,7 +92,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
     iapply HΦ
     iexists P d
     isplitr
-    · iunfold waitBcast; iexists γ; iexact Hbu
+    · iunfold waitBcast; ileft; iexists γ; iexact Hbu
     iintro !> H
     iexact H
 

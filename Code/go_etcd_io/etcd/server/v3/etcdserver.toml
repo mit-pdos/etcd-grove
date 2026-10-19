@@ -58,6 +58,10 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   # 2026-10-16): `newRaftNode` and the new cluster's `bootstrappedRaft.newRaftNode` over raft's
   # `StartNode`, with the type `bootstrappedRaft`
   "newRaftNode", "bootstrappedRaft.newRaftNode", "bootstrappedRaft",
+  # the raft status's package variables (raft.go; D19r (C), 2026-10-18): the mutex and the
+  # function it guards, allocated by the package's initializer, which makes the mutex's
+  # invariant part of the package's fact
+  "raftStatusMu", "raftStatus",
   # the server's construction (server.go; the server-construction unit N1, 2026-10-16, D13):
   # `NewServer` over `bootstrap`'s result (names-only, a contract), with the bootstrapped record
   # types, the alarm store's restore, the uber-applier's construction and the access controller

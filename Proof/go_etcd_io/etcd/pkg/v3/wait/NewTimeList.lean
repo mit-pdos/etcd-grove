@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
 theorem wait.NewTimeList.wp_proof : wait.NewTimeList.spec (GF := GF) (hG := hG) := by
   intro P
-  wp_start as ⟨#HP0, #Hmono, #Hcl⟩
+  wp_start as ⟨#HP0, #Hmono⟩
+  ihave #Hcl := waitClosecInit_of_pkg $$ Hpkg
   (try wp_auto)
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %mref Hm
   wp_alloc tl as Htl

@@ -79,6 +79,17 @@ abbrev rnMemStorReg (γ : RNNames) : IProp GF :=
 abbrev rnNodeIface (γ : RNNames) : GoInterface :=
   interface.mkOk (go.GoType.PointerType node.ty) #γ.nl
 
+/-- **`Stop` returns, of every node raft started** (persistent; D19r (A), 2026-10-18): `rnStopOk`
+at the `*node` of every `rnIsNode` (a node `StartNode` returned, its `run` loop running), not at
+every location (`∀ n, rnStopOk n`, until then, was false of Go: `Stop` on `nil` faults). True of
+Go: `(*node).Stop` sends on `n.stop`, which the running loop receives, or finds `n.done` closed,
+and then waits for `n.done`; it panics on no path. -/
+def rnStopOkStarted : IProp GF :=
+  iprop(□ ∀ γ : RNNames, rnIsNode γ -∗ rnStopOk γ.nl)
+
+instance rnStopOkStarted_persistent : Persistent (rnStopOkStarted (GF := GF)) := by
+  unfold rnStopOkStarted; infer_instance
+
 /-! ## The errors -/
 
 /-- **A done context's error is one the gRPC layer can take**: raft's `ctxErr` carries the value

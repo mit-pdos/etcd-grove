@@ -116,6 +116,52 @@ idiom, any receiver's view). -/
 def bcastChan (ch : Loc) (Q : IProp GF) : IProp GF :=
   iprop(∃ γ : ChanNames, ownBroadcastChan ch γ Q .Unknown)
 
+/-- **A channel closed (never sent on) whose close tells `Q`, or closed already** (persistent;
+D19r (D), 2026-10-18): `bcastChan`, or a channel an invariant keeps closed with `□ Q` known
+(`ApplyWait`'s answer when the deadline was already triggered: `pkg/wait`'s `closec`). -/
+def bcastOrClosed (ch : Loc) (Q : IProp GF) : IProp GF :=
+  iprop(bcastChan ch Q ∨
+    (∃ γ : ChanNames, isChan ch γ Unit ∗
+      inv _root_.Perennial.context.closedchanN (ownChan γ Unit (.Closed [])) ∗ □ Q))
+
+instance bcastOrClosed_persistent (ch : Loc) (Q : IProp GF) :
+    Persistent (bcastOrClosed (GF := GF) ch Q) := by
+  unfold bcastOrClosed bcastChan; infer_instance
+
+/-- **A receive from `bcastOrClosed`** returns, with `□ Q`. -/
+theorem bcastOrClosed_receive (ch : Loc) (Q : IProp GF) :
+    bcastOrClosed ch Q ⊢ ∃ γ : ChanNames, isChan ch γ Unit ∗
+      □ (∀ Φ : Unit → Bool → IProp GF, (□ Q -∗ Φ () false) -∗ recvAu γ Unit Φ) := by
+  iintro #H
+  iunfold bcastOrClosed at H
+  icases H with (#Hb | ⟨%γ, #Hc, #Hi, #HQ⟩)
+  · iunfold bcastChan at Hb
+    icases Hb with ⟨%γ, #Hb⟩
+    iexists γ
+    isplitr
+    · iapply ownBroadcastChan_is_chan $$ Hb
+    iintro !> %Φ HΦ
+    iapply broadcast_chan_receive _ _ _ _ _ $$ Hb
+    iintro ⟨#HQ', -⟩
+    iapply HΦ $$ HQ'
+  · iexists γ
+    iframe Hc
+    iintro !> %Φ HΦ
+    ihave HΦ' := HΦ $$ HQ
+    unfold recvAu
+    iinv Hi with Hst Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    iexists .Closed []
+    iframe Hst
+    dsimp only
+    iintro Hch
+    imod Hmask with -
+    imod Hclose $$ Hch with -
+    imodintro
+    iexact HΦ'
+
 /-- **The notifier `nc` with need `γn`** (persistent; a waiter's view): its channel, closed with
 `notified`. -/
 def notifierIs (nc : Loc) (γn : NeedNames) (γr : ReadNames) : IProp GF :=
@@ -211,7 +257,7 @@ def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IPro
     □ ({{ True }} (App (Val #(methods si.ty go!"AppliedIndex" si.v)) (Val #()))
       {{ (i : w64), RET #i; appliedAtLeast γr i }}) ∗
     □ (∀ d : w64, {{ True }} (App (Val #(methods si.ty go!"ApplyWait" si.v)) (Val #d))
-      {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastChan ch Q ∗ □ (Q -∗ appliedAtLeast γr d) }}) ∗
+      {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastOrClosed ch Q ∗ □ (Q -∗ appliedAtLeast γr d) }}) ∗
     □ ({{ NR }} (App (Val #(methods si.ty go!"NextRequestID" si.v)) (Val #()))
       {{ (id : w64), RET #id; srvRdFresh γr.raft (beBytes id) ∗ srvRdCred γr.raft }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"RequestTimeout" si.v)) (Val #()))

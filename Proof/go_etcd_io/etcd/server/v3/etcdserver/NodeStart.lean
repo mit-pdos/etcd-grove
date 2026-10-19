@@ -31,7 +31,7 @@ its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok
   `E.γr.raft = ⟨γ, [], 0⟩` and the conf-change policy `srvCCPolicy` (the server's choice at the
   allocation), premises of the call;
 * premises: `rnLogFits` (pure since D19b stage 5: the receipt bound past the bootstrap log, so
-  raft's `Ready`s fit the `MemoryStorage`; D10 until then), `rnStopOk`
+  raft's `Ready`s fit the `MemoryStorage`; D10 until then), `rnStopOkStarted` (D19r (A): `Stop` returns, of a started node)
   (`Stop` returns), `rnTickerOk`/`isRNTicker` (Perennial models no ticker), the `InitialState`
   closure in `StartNode.spec`'s `□` shape (a `MemoryStorage`'s `InitialState` consumes
   `memStorMeta`, which is not persistent: `MemoryStorage.InitialState.spec` cannot be the `□`
@@ -245,7 +245,7 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
         "#Hfits" ∷ (∀ γw : RNNames,
           ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
             γw.node.mode = RNMode.static ∧ γw.reg = reg⌝ -∗ rnLogFits γw) ∗
-        "#Hstop" ∷ (∀ n : Loc, rnStopOk n) }}
+        "#Hstop" ∷ rnStopOkStarted }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
@@ -349,7 +349,8 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
   · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex
     iframe Hpkg Henv' Hisnode Hlinv Hcommi Hreg'
-    iapply Hstop
+    iunfold rnStopOkStarted at Hstop
+    iapply Hstop $$ Hisnode
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
   · iapply raftPropose_of_isNode E γw wp_Propose wp_ApplyConfChange
     iframe Hpkg Henv' Hisnode Hlinv

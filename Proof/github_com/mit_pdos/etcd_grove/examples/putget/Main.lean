@@ -84,11 +84,19 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro MSR CS N id bootLog Hbf Htb Hrb48 HrbN Htr Hck Haf Hbuq Hnoc Hms hAs
+  intro CS N id bootLog Hbf HEof HCc Htb Hrb48 HrbN Htr Hck Haf Hbuq Hnoc Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hrs, #Hwci, #Hcci,
-    #Heof, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts (the named Props)
+  ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
+  · unfold EofFromIoInit at HEof
+    iapply HEof
+    iPkgInit
+  ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
+  · unfold ClosedchanFromContextInit at HCc
+    iapply HCc
+    iPkgInit
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -122,23 +130,44 @@ theorem Main.wp_proof
   (try wp_auto)
   wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
   (try wp_auto)
+  -- the storage registry (D19r (B)), `bootstrap`'s to join
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%γreg, Hreg⟩
+  letI : MemStorReg GF := ⟨γreg⟩
+  -- the configuration's URLs, read-only from here on (D19r (F))
+  imod ownSlice_persist _ _ _ $$ Hpeer with #Hpeer
+  imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
+  imod ownMap_persist _ _ _ $$ Hpm with #Hpm
   -- the ghost state `NewServer` takes (`putget_alloc`)
   imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Hal, Hghost, #Hcomm,
     #Hcinv, #Hbinv, #Hlb, Hfresh, HrdFresh, HrdCred, Hids, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl⟩ := Hal
   have hblen : γ.reBoot.length ≤ 2 ^ 60 := by
     rw [hboot, Hbf.boot.1]; simp
-  wp_apply (wp_NewServer _ γ bud id bootLog ρ E₀ N hraft hpol hc0 hch hlog hcok
+  wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"putget"
+      (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
+      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N hraft hpol hc0 hch hlog hcok
       (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN hblen
       Hbf.idLow ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost Hfresh HrdFresh HrdCred Hids Hidx Hcok Hrev Hnk] as %srv %err Hres
+    $$ [Hghost Hfresh HrdFresh HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
   · iframe
     iframe #
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, hcfg, hdyn, hcc, hboot, htr⟩
-      unfold cfgOk; simp
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      · unfold cfgOk; simp
+      · exact ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
+    isplitr
+    · iunfold bootCfgRO
+      isplitr; · iExactEq Hpeer; rfl
+      isplitr; · iExactEq Hcurls; rfl
+      isplitr; · iExactEq Hpm; rfl
+      iapply (BigSepM.bigSepM_insert (GMap.lookup_empty _)).2
+      isplitr
+      · iExactEq Hpeer; rfl
+      iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitl [Hreg]
+    · iunfold memStorRegAuth; iexact Hreg
     isplitr; · ipureintro; exact Htr
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf

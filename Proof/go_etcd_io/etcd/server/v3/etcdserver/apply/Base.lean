@@ -38,6 +38,8 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.sync
+public import Perennial.Proof.context.Base
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
 public import Perennial.Proof.time
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
@@ -296,8 +298,19 @@ end go_etcd_io.etcd.pkg.v3.pbutil
 -- package has no variable the code reads)
 namespace go_etcd_io.etcd.pkg.v3.wait
 
+/-- **`closec` holds a closed channel** (D19r (D), 2026-10-18; `True` until then): the package's
+`init()` (`wait_time.go`) makes `closec` and closes it; Go never writes `closec` again nor sends
+on it, so an invariant keeps its channel `Closed []` (as Perennial's `context.isClosedchanInit`,
+under the same namespace: no later credits needed, unlike the broadcast idiom's form). -/
+def closecClosed : IProp GF :=
+  iprop(∃ (ch : Loc) (γ : ChanNames), globalAddr closec ↦□ ch ∗ isChan ch γ Unit ∗
+    inv _root_.Perennial.context.closedchanN (ownChan γ Unit (.Closed [])))
+
+instance closecClosed_persistent : Persistent (closecClosed (GF := GF)) := by
+  unfold closecClosed; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init closecClosed
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait :=
   build_get_is_pkg_init_wf
 

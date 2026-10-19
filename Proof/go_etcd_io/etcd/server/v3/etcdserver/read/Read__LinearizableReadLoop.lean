@@ -198,9 +198,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     wp_if_destruct
     · wp_apply HAW $$ %ci as %awc ⟨%Qaw, #Hawc, #Hawq⟩
       wp_apply HStopping as %stc2 #Hstc2
-      iunfold bcastChan at Hawc
+      icases bcastOrClosed_receive _ _ $$ Hawc with ⟨%γaw, #Hawch, #Hawr⟩
       iunfold stopChan at Hstc2
-      icases Hawc with ⟨%γaw, #Hawc⟩
       icases Hstc2 with ⟨%γst2, #Hstc2⟩
       wp_apply_core chan.wp_select_blocking
       iapply BigAndL.bigAndL_cons.2
@@ -210,9 +209,9 @@ theorem read.Read.LinearizableReadLoop.wp_proof
         isplitr
         · ipureintro; rfl
         isplitr
-        · iapply ownBroadcastChan_is_chan $$ Hawc
-        iapply broadcast_chan_receive _ _ _ _ _ $$ Hawc
-        iintro ⟨#HQaw, -⟩
+        · iexact Hawch
+        iapply Hawr
+        iintro #HQaw
         ihave #Hai' := Hawq $$ HQaw
         have Hle' : uint.Z ci ≤ uint.Z ci := Int.le_refl _
         loop_tail

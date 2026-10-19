@@ -2,8 +2,10 @@
 Package initialization of `go_etcd_io.etcd.pkg.v3.wait`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates `closec`, initializes its imports and runs
-its translated `init()` (`wait_time.go`: `closec = make(chan struct{}); close(closec)`).
+Its fact (`closecClosed`, `etcdserver/apply/Base.lean`; D19r (D), 2026-10-18: `True` until
+then): `closec` holds a channel closed for good, an invariant keeping it `Closed []`. Its
+initializer allocates `closec`, initializes its imports and runs its translated `init()`
+(`wait_time.go`: `closec = make(chan struct{}); close(closec)`).
 -/
 module
 
@@ -48,6 +50,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoChan) closec _ as Hclosec
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
@@ -69,6 +72,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imod Hmask with -
   imodintro
   wp_auto
+  ipersist Hclosec
+  imod (inv_alloc _root_.Perennial.context.closedchanN ⊤ (ownChan γ Unit (.Closed []))) $$ [Hch] with #Hinv
+  · inext; iexact Hch
+  ihave #Hfact : (closecClosed : IProp GF) $$ []
+  · unfold closecClosed; iexists ch, γ; iframe #
+  imodintro
   iframe Hown
   is_pkg_init_finish
 

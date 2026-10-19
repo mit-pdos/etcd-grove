@@ -7,7 +7,9 @@ trust-boundary axioms `<X>_init`; the vectors with their label names), and from 
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
 errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
-package's initializer.
+package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
+guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
+reads `raftStatus` under the mutex).
 -/
 module
 
@@ -192,6 +194,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoFunc) raftStatus _ as HraftStatus
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) raftStatusMu _ as HraftStatusMu
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd51⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -338,6 +342,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HserverFeatureEnabled
   ipersist HserverID
   ipersist HrequestDurationSec
+  imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM
+  · inext
+    iexists _
+    iframe HraftStatus
   ihave HeiTMR : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd20
   icases HeiTMR with ⟨-, #HevTMR, -⟩

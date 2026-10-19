@@ -12,11 +12,11 @@ counterpart); the request path's unit 4b (2026-10-13).
 * `Trigger(d)` takes `□ P d` and closes the channels of every deadline at most `d`.
 
 **The package's `closec`** (`waitClosecInit`): the global `closec` holds a channel closed by the
-package's `init`, never sent on (a broadcast channel with no content). Kept out of the package's
-facts (`isPkgInit`, `True`), as Perennial's `context.isClosedchanInit`: it is ghost state, and the
-broadcast idiom needs later credits (`HeapGS HasLC.hasLC`), which the package facts' instances
-(at any `HasLC`) do not have; a premise of `NewTimeList`, established by the package's
-initialization (`init` closes `closec`, Go never writes it afterwards).
+package's `init`, never sent on, an invariant keeping it `Closed []` (as Perennial's
+`context.isClosedchanInit`). Since D19r (D), 2026-10-18, the package's fact (`closecClosed`),
+proved by its initializer (`init` closes `closec`, Go never writes it afterwards); until then a
+broadcast channel, which needs later credits the package facts' instances do not have, so a
+premise of `NewTimeList`.
 
 **The `*timeList`** (`isTimeList tl P`): the mutex `tl.l` over `tl.lastTriggerDeadline` and the map
 `tl.m` (the field written once, by `NewTimeList`), with `□ P` of the last trigger's deadline and, per
@@ -66,21 +66,36 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **A channel closed (never sent on) whose close tells `Q`** (persistent; Perennial's broadcast
-idiom, a receiver's view; the read loop's `bcastChan`). -/
+/-- **A channel closed (never sent on) whose close tells `Q`** (persistent; a receiver's view):
+Perennial's broadcast idiom (the read loop's `bcastChan`), or (D19r (D), 2026-10-18) a channel an
+invariant keeps closed with `□ Q` already known (the package's `closec`; as Perennial's
+`context.isContextDone`'s second case). -/
 def waitBcast (ch : Loc) (Q : IProp GF) : IProp GF :=
-  iprop(∃ γ : ChanNames, ownBroadcastChan ch γ Q .Unknown)
+  iprop((∃ γ : ChanNames, ownBroadcastChan ch γ Q .Unknown) ∨
+    (∃ γ : ChanNames, isChan ch γ Unit ∗
+      inv _root_.Perennial.context.closedchanN (ownChan γ Unit (.Closed [])) ∗ □ Q))
 
 instance waitBcast_persistent (ch : Loc) (Q : IProp GF) : Persistent (waitBcast ch Q) := by
   unfold waitBcast; infer_instance
 
-/-- **`closec` is closed** (persistent; see the file header). -/
+/-- **`closec` is closed** (persistent; see the file header): the package's fact (D19r (D),
+2026-10-18; until then a broadcast channel, kept out of the fact, a premise of `NewTimeList`). -/
 def waitClosecInit : IProp GF :=
-  iprop(∃ (ch : Loc) (γ : ChanNames), globalAddr wait.closec ↦□ ch ∗
-    ownBroadcastChan ch γ iprop(True) .Unknown)
+  iprop(∃ (ch : Loc) (γ : ChanNames), globalAddr wait.closec ↦□ ch ∗ isChan ch γ Unit ∗
+    inv _root_.Perennial.context.closedchanN (ownChan γ Unit (.Closed [])))
 
 instance waitClosecInit_persistent : Persistent (waitClosecInit (GF := GF)) := by
   unfold waitClosecInit; infer_instance
+
+/-- `closec` is closed, from the package's fact. -/
+theorem waitClosecInit_of_pkg :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ⊢ waitClosecInit := by
+  iintro #Hp
+  ihave Hf : (go_etcd_io.etcd.pkg.v3.wait.closecClosed : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  iunfold go_etcd_io.etcd.pkg.v3.wait.closecClosed at Hf
+  iunfold waitClosecInit
+  iexact Hf
 
 /-- **`P` is monotone downward** (persistent). -/
 def waitMono (P : w64 → IProp GF) : IProp GF :=

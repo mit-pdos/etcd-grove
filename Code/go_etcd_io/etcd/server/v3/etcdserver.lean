@@ -5530,6 +5530,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val recommendedMaxRequestBytesString.init) (Val #())))))
   (App (Val doExecute)
@@ -5675,7 +5677,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc raftStatusMu _root_.Perennial.sync.Mutex.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc raftStatus (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty])))) (Val #()))))))))
 
 structure serverVersionAdapter [FfiSyntax] where
   mk ::
