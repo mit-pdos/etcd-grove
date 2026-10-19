@@ -10149,7 +10149,7 @@ firing of a write, through a one-shot delivery token per `MsgProp` in raft's env
 after it and is built on the multi-member model, not on the one-member one. The watch session carries out (b),
 after the multi-member unit (the user, 2026-10-19).
 
-## Multi-member generalization: scope and staging (D21, 2026-10-19 · proposed)
+## Multi-member generalization: scope and staging (D21, 2026-10-19 · (A) adopted for D21a–f)
 
 A design pass only (no Lean change); the next unit after `putget_safe`, before D20 (b) (the user,
 2026-10-19). The question: what removing the one-member restriction takes, so that
@@ -10478,3 +10478,5 @@ M2 (and M4, whose claims it touches). Stage M6.
 
 *Asked of the user:* D21a-f (recommendations: (A) each, (C) of D21a proposed to Perennial
 separately), and whether M3 (the run bound) is an acceptable first step before T-S.
+
+**D21 adopted (the user, 2026-10-19):** (A) for all of D21a–f. Stages M0, M1 and M4 start in parallel.
