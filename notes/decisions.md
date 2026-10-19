@@ -10148,3 +10148,333 @@ server's proofs (D19p's "one-member restriction": `bootOk`'s `reTracked = some {
 firing of a write, through a one-shot delivery token per `MsgProp` in raft's environment model) comes
 after it and is built on the multi-member model, not on the one-member one. The watch session carries out (b),
 after the multi-member unit (the user, 2026-10-19).
+
+## Multi-member generalization: scope and staging (D21, 2026-10-19 · proposed)
+
+A design pass only (no Lean change); the next unit after `putget_safe`, before D20 (b) (the user,
+2026-10-19). The question: what removing the one-member restriction takes, so that
+`NewServer.spec` and everything under it, and a closed theorem of `putget_safe`'s shape, hold for
+an N-member cluster, the other members modelled through raft's protocol and the transport's trust
+assumption. Go citations are at the pins (etcd fork `8a24be2a3`, read with `git -C /shared/etcd
+show 8a24be2a3:<path>`; raft `509271d`, `.lake/go-src/raft`). Note: `.lake/go-src/etcd` is *not*
+at the etcd pin (it is at `0df483bee6`; `server.go` after line 990 is off by 10, and `raft.go`'s
+`raftAdvancedC` is sent once there, closed at the pin).
+
+### What is already general
+
+Less depends on one member than the restriction's footprint suggests:
+- **raft's protocol** is N-node and network-agnostic: allocation gives `ownRaftGhost` for any id set
+  (`ownRaftGhost_alloc_boot`, `Protocol/Facts.lean:1595`), `isMessage` is persistent, so loss,
+  duplication and reordering are free (`ghost_stepCD`, `Step.drain`); the safety results are over
+  any two nodes (`Protocol/ResultsDyn.lean`).
+- **raft's code**: `node.Step` is proved for peers' messages (`stepP = netP ∨ fwdP`,
+  `InvNode.lean:394-515`): every type but `MsgSnap` (`netStepTypes`, `InvRawnode.lean:482`), a
+  forwarded `MsgProp` owned (`fwdP`); the read index for any number of voters (`readAck`'s
+  `QuorumAcked`, `node__ReadIndex.lean:15`); `raft.Step`'s `MsgSnap` branch (restore) proved, but
+  not reachable from `RawNode`/`node` (stage S, `notes/STATUS.md`, "Snapshots at the public API").
+  Precedent for a cluster: the register example's three in-process replicas over `deliver`
+  (`examples/register/Cluster.lean`, `deliver.lean`: the wire's copy of a message, owned, so the
+  half-owned responses of D8 are no obstacle).
+- **The server**: `bootOk` takes any peer list `ps` (non-empty, `Nodup`, `id ∈ ps`, `γ.reCfg =
+  listToSet ps`) but for `"%Hone"`; `NewServer`'s `AddRemote`/`AddPeer` loops are proved for any
+  list (`NewServer.lean:657-700`); `srvCCPolicy`/`ccApplyOk` admit the N bootstrap `AddNode`s
+  (each an `AddNode` of an existing member with its JSON context, id `0`); `run`'s
+  `updateLeadership` and `applyEntryNormal`'s `Promote` prove both the leader and the follower
+  branch; the read loop and the proposal path allow every error (`ErrLeaderChanged`, `ErrTimeout*`,
+  `ErrProposalDropped`: `applyErrIs`, `BaseApply.lean:244-305`) and assume neither leadership nor
+  that a proposal commits.
+
+### Inventory: where one member is used
+
+Paths under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless said otherwise.
+
+1. **`bootOk`'s `"%Hone"`** (`InvBoot.lean:147-149`, `γ.reTracked = some {id}`). Buys: raft sends
+   no `MsgSnap` (`isRaftMsg_not_snap`, `InvBuild.lean:86-104`: the `.snap` clause's `src ≠ dst`,
+   both in the bound). Used by `rnEnvOk_of_cluster` (`BuildGap.lean:119-144`, `E.M :=
+   srvMsgNoSnap`), `NewServer.lean:843`, putget's `premises`/`Alloc` (`putget/Defs.lean:116`,
+   `Alloc.lean:53`). Multi-member: a different reason no `MsgSnap` is sent (D21c (A)), or the
+   snapshot path (D21c (B)).
+2. **`srvMsgNoSnap` / `srvMsgSnapC_false`** (`InvBuild.lean:72-136`), `srvApplyAllBuilt`/
+   `isServerApplyAll` (`InvStart.lean:146-151`, `InvApplyAll.lean:66-75`): `applyAll`'s `msgSnapC`
+   receive dead (`EtcdServer__applyAll.lean:168-200`), so `createMergedSnapshotMessage` and
+   `sendMergedSnap` were removed (D19p). Multi-member: the same lemma from D21c (A)'s fact, or true
+   specs of both (D21c (B)): `snapshot_merge.go:32-80` (commits the KV, a backend snapshot streamed
+   by a goroutine that panics on a failed close, `ep.confState` cloned, `m.Snapshot` overwritten
+   with `ep.appliedi`), `server.go:1854-1892` (`inflightSnapshots`, `transport.SendSnapshot`, a
+   `GoAttach` goroutine; `compactRaftLog` skips while a snapshot is in flight, `server.go:2150`).
+3. **The server's message predicate drops what a receiver needs.** `rnEnvOk`
+   (`InvRaftNode.lean:236-246`) turns a `Ready`'s message into `E.M m` from `msgOwn □ ∗ isRaftMsg
+   ∗ termLB`, and `rn_ready_recv` (`InvRaftNode.lean:476-524`) drops the `rdCred` raft's
+   `readyData` gives with each `MsgReadIndex` (`InvNode.lean:531-546`); `srvEr` keeps only
+   `srvMsgNoSnap`. Multi-member: `E.M` keeps `isRaftMsg`, `termLB` and the read credit, what
+   `node.Step`'s `netP` takes at the receiver. A `MsgTimeoutNow` needs a tick credit
+   (`netP`), which `Ready` does not give (the register has a transfer budget); the server never
+   transfers leadership in the runs covered (`MoveLeader` uncalled, `TryTransferLeadershipOnShutdown`
+   only on `Stop`, dead since D19m), so raft sends no `MsgTimeoutNow` (only on a `MsgTransferLeader`,
+   `raft.go` `stepLeader`) -- a raft-side fact to state, or the register's budget.
+4. **No inbound path.** `EtcdServer.Process`, `IsIDRemoved`, `ReportUnreachable`,
+   `ReportSnapshot` (`server.go:699-731`) are not translated, specified or linked; the server's
+   node interface has no `Step` (`isRaftNodeIfc`, `InvRaftNode.lean:358-380`). They hide in the
+   opaque `transportEffectsOk` (`InvBoot.lean:91-105`), premise of the three `rafthttp` axioms
+   (`Transport.Start`/`AddPeer`/`AddRemote`), of `NewServer.spec` (`Spec/.../NewServer.lean:152`)
+   and of putget's `Main`/`putget_safe`. With peers this premise is **not tenable as an opaque
+   Prop**: an inbound `Process` calls `node.Step`, which changes the raft node the verified server
+   owns, and needs `stepP`'s resources (`isMessage`, `termLB`, credits) that only the senders'
+   `Ready`s produce. Multi-member: the transport's contract carries messages from `Send` to
+   `Process` (D21b). Go: `Process` rejects a removed sender and a mismatched `To` with `403`
+   (`server.go:701-716`), counts `MsgApp`, calls `s.r.Step`; stream readers route `MsgProp` to
+   `propc`, others to `recvc`, dropping when full (`rafthttp/stream.go:525-557`, `peer.go:174-205`);
+   the pipeline handler calls `Process` and panics the connection on a non-HTTP error
+   (`http.go:148-169`); the snapshot handler saves the db file, then `Process(MsgSnap)`
+   (`http.go:279-330`).
+5. **`transportEffectsOk`'s `errMemberRemoved` reading** (D19m: "no well-behaved member says that
+   of a member never removed; a one-member cluster has no peer"; `errorc` a bag with predicate
+   `False`, `InvRun.lean:317-327`). With peers this is **false as stated**: a `403` for a
+   misaddressed message (`To ≠` the receiver) is read as `errMemberRemoved` too
+   (`rafthttp/util.go` `checkPostResponse`; `pipeline.go:165-171`, `snapshot_sender.go:110-114`;
+   the pipeline handler does not check `X-Raft-To`, the stream handler does), and `run` stops on
+   it (`server.go:844-847`). Filed: `issues/etcd-rafthttp-misaddressed-403-member-removed.md`.
+   Multi-member, static membership: true under a deployment fact (every peer URL is served by the
+   member it names), which an in-process cluster's delivery axiom states (D21b); or a fork fix.
+6. **The conf-change policy** `srvCCPolicy` (`InvRequest.lean:296-298`: v1, id `0`, `ccBootOk`),
+   `srvNoopEntry` (`:398-400`), `ccApplyOk` (`:276`), putget's `ccOk id` (`putget/Defs.lean:62`,
+   at `{id}`), the axiom `EtcdServer.applyConfChange` (`removed = false`), `apply`'s `shouldStop =
+   false` (`Spec/.../EtcdServer__apply.lean:51`), `run` never returning (D19m: `Cleanup`,
+   `stopWithDelay` removed), `membership.localKept` (`api/membership/Defs.lean:120-141`), raft's
+   static mode at the server (`rnEnvOk`'s `RNMode.static`; `CCShrink` only, `NodeBridge.lean:312`).
+   These are **static-membership** restrictions, not one-member ones: they hold for N bootstrap
+   members as they are (`ccOk` generalizes to `ccOk ps`). Runtime membership changes (D21d (B)):
+   a dynamic-mode server (raft's `Bootstrap`/`StartNode` are static-only, `S/StartNode.lean:23`;
+   dynamic mode has only `RestartNode` on empty storage and needs `StepDownOnRemoval`, pre-vote off,
+   explicit leave-joint), the policy beyond id `0` (a user conf change's id is claimed by its
+   proposer, `configure`, `server.go:1759-1796`), `applyConfChange` for every type
+   (`server.go:2012-2085`: `RemoveNode` of self returns `removed`, `transport.RemovePeer`/
+   `UpdatePeer`, `cluster.PromoteMember`), the membership package's writers (`AddMember`,
+   `RemoveMember`, `UpdateRaftAttributes`, `PromoteMember`, `ValidateConfigurationChange`: not
+   translated), and a stopping server (D19m (B), the "server open" token) for the removal path.
+7. **Cluster-wide resources owned by one server.** `srvBootOut`/`srvRaftBoot_alloc`
+   (`NewServerAlloc.lean:190-205`) give one `kvInv` (`InvRequest.lean:1055`, holding raft's unique
+   `srvRLog`), one client `etcdKV`, the whole read budget `rdCred γ (2^64-2)` and `reRdFresh`'s
+   authority (`srvRdFreshInv`, `:574`), and `kvWork` (`:1039`)/`entryWaitOk` (`:1757`) ask an
+   `entryClaim` under *this server's* generator for every committed entry. With N members every
+   member's apply thread applies every entry, and other members propose too (each member's
+   `publishV3` `ClusterMemberAttrSet`, the leader's cluster version: `server.go:1803-1852`,
+   `2216-2236`), so the KV invariant and the claims are the cluster's, the read budget and fresh
+   tokens split per member. Request ids are unique across members only if the members' ids differ
+   in their low 16 bits (`issues/etcd-request-id-member-prefix.md`, `idutil/id.go:56-71`).
+8. **The read index's singleton shortcut** (`issues/raft-readindex-singleton-stale.md`, the fork's
+   fix): only matters for one voter; the multi-voter path (`readAck`, heartbeats) is already proved.
+   Nothing to do, but the read loop's 500ms resend and its `leaderChanged` branch, dead in practice
+   today, become live (proved already).
+9. **raft's `RawNode`/`node` take no `MsgSnap`; `Ready.Snapshot = null`** (`netStepTypes`;
+   `readyData`'s `rd.Snapshot = null`, `InvNode.lean:544`; `applySnapshot.spec` only for `nil`,
+   `Spec/.../EtcdServer__applySnapshot.lean:26-35`; `srvSnapState` only at `0`). Multi-member with
+   snapshots: raft's stage S (S1 certificate on the message, S2 `MsgSnap` at `RawNode.Step`, S3 a
+   pending snapshot through `Ready`/`Advance`, partly unverified code), and the server's receive:
+   `applySnapshot` (`server.go:1011-1159`: `OpenSnapshotBackend`, `consistIndex.SetBackend`,
+   `lessor.Recover`, `kv.Restore` of a backend with data -- D19l (v)'s option (C) --, the backend
+   swap with the old one closed in a goroutine, `restoreAlarms`, `authStore.Recover`,
+   `cluster.Recover`, `transport.RemoveAllPeers`/`AddPeer`; no waiter triggered for entries the
+   snapshot covers).
+10. **Names-only goroutines whose N > 1 branch differs**: `adjustTicks` (axiom "returns";
+   `server.go:467-527`: with peers it polls `ActivePeers()` up to 5s, then advances
+   `ElectionTicks-2` ticks; still true as stated), `bootstrap`'s `isMemberBootstrapped`
+   (`cluster_util.go:41-55`, a network call to the peers' `/members`; inside `bootstrapContract`, a
+   hypothesis triple, still true: it returns on errors), `monitorClusterVersions` (leader-only,
+   HTTP to members; axiom "returns" under `srvMonitorPermit`), the lessor's checkpointer
+   (`ckptEffectsOk`, leader-only, lease feature off in putget).
+11. **putget**: `urlsOk` (one-entry `InitialPeerURLsMap`, `putget/Defs.lean:84-86`), `ccOk id`,
+   `BootFacts` (`BootLogOk (ccOk id) [id] bootLog`), `premises`' `reCfg = reTracked = {id}`, the
+   allocation for `{id}`, and `clientCfgOk` (one endpoint).
+
+Also found (Go, liveness only, not filed): a `MsgSnap` dropped because `msgSnapC` is full
+(`raft.go:374-384`; 16 slots) or sent to a missing peer (`transport.go:409-418`) gets no
+`ReportSnapshot(Failure)`, so the leader keeps that follower in `StateSnapshot` until it loses
+leadership; `configure` blocks on `<-resp.raftAdvanceC` with no select (`server.go:1780`), which
+hangs a conf-change caller if the raft loop exits on `r.stopped` between handing out the apply and
+closing the channel. Neither affects safety, which is what the specs state.
+
+### Decisions
+
+**D21a. The closed theorem's shape.** Perennial's Lean port has no distributed adequacy (only
+`grove_ffi_single_node_adequacy`, "distributed adequacy theorems would need a distributed-language
+semantics", `GroveFfi/Adequacy.lean:1-7`).
+- *(A) N servers in one Go program* (`examples/putget3`: `Main` starts three `etcdserver`s on
+  loopback ports, as putget starts one, and runs the client against one of them), through
+  `goose_adequacy_start` as `putget_safe` and the register's closed theorem (three in-process
+  replicas). The per-member specs are what they would be in any composition; only the closed
+  theorem composes them.
+- *(B) One server per program, the peers an environment*: the network as an invariant of messages
+  some well-behaved peer sent. The peers' ghost steps must then happen somewhere: an axiom that
+  the network delivers only `isMessage` messages is not a statement about this program, nor a
+  premise of D19a's kinds; the theorem would be vacuous or need peers' ghost states owned by an
+  environment that nothing runs.
+- *(C) Distributed adequacy in Perennial* (Grove's Rocq `dist_adequacy`): N programs, one per
+  node, with a network semantics; proposed to Perennial on its own (CLAUDE.md, "Changes to
+  Perennial"), then (A)'s per-member specs carry over.
+- *Recommendation:* (A) now, specs stated per member so that (C) reuses them; (C) proposed
+  separately.
+
+**D21b. The transport.** `rafthttp` stays names-only (translating it means net/http, streams,
+pipelines: far larger than the server).
+- *(A) A trusted network contract*, replacing the opaque `transportEffectsOk`: a cluster-level
+  ghost network (per destination, the messages sent to it: each carrying what `node.Step`'s `netP`
+  takes, a forwarded `MsgProp` one-shot and owned, others persistent with their credit one-shot);
+  `isRNTransport`'s `Send` puts each `rnMsgOk` message in (a new axiom, `Transport.Send`); the
+  restated `Start`/`AddPeer` axioms take the receiving server's `Process` triple (the `Raft`
+  interface value the transport calls, as `deliver` calls `Node.Step`) and promise only calls of
+  it with a fresh owned copy of a message of the network for that server (unmarshalled from the
+  wire: the register's wire copy), `ReportUnreachable`/`ReportSnapshot` at any time, and nothing on
+  `errorc` (true for correctly addressed peers in a static cluster: the issue above; the
+  in-process program's URLs are its own listeners). `EtcdServer.Process` translated and proved
+  (`IsIDRemoved` false of every member -- static -- , the `To` check, `node.Step`), as
+  `ReportUnreachable`/`ReportSnapshot` (raft's are proved, `Link.lean:1614-1634`).
+- *(B) Verify `rafthttp`* over Perennial's network model: very large; later, if ever.
+- *(C) Keep `transportEffectsOk` opaque*: unsound with peers (inventory 4).
+- *Recommendation:* (A).
+
+**D21c. Snapshots (`MsgSnap`).**
+- *(A) Excluded by a run bound, with a raft-side reason.* etcd compacts raft's log at
+  `appliedi - SnapshotCatchUpEntries` (default 5000), else at `1` (`compactRaftLog`,
+  `server.go:2142-2170`; after every 100-entry memory snapshot, `shouldSnapshotToMemory`); the
+  apply thread applies at most `N` entries (D19b's receipt bound, `receiptBound GF ≤ N + 1`). With
+  `N + |bootLog| ≤ SnapshotCatchUpEntries` the leader's storage keeps every index `≥ 1` (its dummy
+  at `1`), and raft sends a `MsgSnap` only when `term(pr.Next - 1)` or `entries(pr.Next)` is
+  compacted (`maybeSendAppend`, `raft.go:618-648`), i.e. only for `pr.Next = 1`. A raft invariant
+  of the leader's tracker -- `pr.Next ≥ 2` for every peer, since every log holds the committed
+  bootstrap prefix (term 1), so no `MsgApp` at `prevIndex ≥ 1` is rejected below it and `Match ≥
+  1` in `StateReplicate` (`MaybeDecrTo`, `BecomeProbe`, `tracker/progress.go:130-145, 236-249`) --
+  plus a storage fact (first index `≤ 2`, from the server's compaction bound through D19i's
+  floor) gives "no `MsgSnap`", replacing `"%Hone"` in `srvMsgNoSnap`. A new pure premise of the
+  closed theorem (the run bound against the configuration's `SnapshotCatchUpEntries`, of D19a's
+  kind, as `N` itself). Cost: medium-large on raft's side (the tracker invariant through every
+  `raft.Step` branch that touches progress, and message clauses for `MsgAppResp`'s reject index
+  and hint); the first step is a pen-and-paper check that the invariant holds (findConflictByTerm
+  over a compacted index, `pr.Match` after a reject, the probe after `MsgUnreachable`).
+- *(B) The snapshot path*: raft's stage S (S1-S3) and the server's sender and receiver (inventory
+  2, 9), the `rafthttp` snapshot stream in D21b's contract (the db file a backend snapshot of the
+  sender's at the snapshot index), `kv.Restore`/`lessor.Recover`/`authStore.Recover`/
+  `cluster.Recover` of a backend with data. Very large; lifts the run bound.
+- *(C) A premise "no `MsgSnap`"* on the run: not of D19a's kinds (as D19o (C)).
+- *Recommendation:* (A) for the first N-member closed theorem; (B) as its own track (T-S below),
+  which D19p's priority list names ("a real `MsgSnap` path").
+
+**D21d. Membership.**
+- *(A) Static*: the N bootstrap members, no runtime conf change. Every item of inventory 6 stays
+  as it is, generalized from `{id}` to `ps`.
+- *(B) Runtime changes* (add, remove, promote, update; learners): inventory 6's list, dynamic mode
+  at the server, a stopping server for self-removal.
+- *Recommendation:* (A); (B) as track T-M, after T-S (a member added late needs the log from
+  index 1, or a snapshot).
+
+**D21e. Request ids across members** (`kvWork`'s claims, the wait registry).
+- *(A) One claims map for the cluster*, keyed by the full id, each member's generator claiming
+  under its prefix, with a pure premise on the member ids (their low 16 bits distinct and nonzero:
+  `BootFacts`, decidable for putget3's computed ids).
+- *(B) A fork fix* making ids unique across members (the issue's suggestion), then no premise.
+- *(C) Per-member claims*, a foreign id ignored by the wait registry: false of Go when prefixes
+  collide.
+- *Recommendation:* (A); (B) only if the issue is fixed upstream.
+
+**D21f. Clients, watches and leases with several members** (from the session that owns those
+proofs; each checked against the code):
+- watch: one server per stream (`watchConnFacts`/`isClientWatcher V w`, `client/v3/InvWatch.lean:
+  291, 611`: `V.R` at one address, `V.R.γ.st = V.R.E.γ`); `noRetryableStreamErr` (`:170`) excludes
+  `run`'s reconnection and resume (`issues/etcd-watch-resume-closing-substream.md`); the cache's
+  `etcdReached`/`etcdRead`/`startRead` (`cache/v3/InvEtcd.lean:76,103`;
+  `mvcc/InvWatchStore.lean:632`) are stated over the committed log while a member's stream serves
+  its own applied store (a follower lags); progress (`RequestProgress`) is member-local;
+  `v3rpc.runsNoRequireLeader` (`v3rpc/InvStreamInterceptor.lean:76`) excludes `monitorLeader`'s
+  cancellation of require-leader streams, live once leadership can be lost;
+- leases: leader-driven (expiry, revoke, checkpoints, `Promote`/`Demote`); D14h/D19n's guard is
+  one-member in spirit; a follower's `LeaseKeepAlive`/`LeaseRenew` forward to the leader over HTTP
+  (`v3_server.go:488-572`, names-only), hidden by `leaseKAStreamOk` (`client/v3/InvLessor.lean:
+  140`); lease ids come from the same generator (D21e);
+- client: `clientCfgOk` (`client/v3/InvClientNew.lean:165`) is one endpoint; balancing and the
+  retry interceptor's not-sent retry may change the member.
+- *(A) Pin them*: the client on one endpoint (`clientCfgOk` unchanged), watches on that member,
+  leases off (`putgetWorkload`'s `noGrant`), `runsNoRequireLeader` kept as the deployment premise
+  it is. Member-local facts stay true, since the client talks to one member whose apply thread
+  follows the committed log (its `etcdKV` reads at a read-index point are the cluster's).
+- *(B) Multi-endpoint now*: balancing, member-local vs cluster facts for watches and the cache,
+  the lease forwarding path.
+- *Recommendation:* (A) for this unit; (B) as track T-C.
+
+### Stages (static membership, snapshots excluded: D21a-f (A))
+
+Each small enough for one agent; dependencies in brackets.
+
+- **M0. Pen-and-paper check of D21c (A)** [none]: the tracker invariant `pr.Next ≥ 2` and the
+  storage's first index against raft v3.7's code (`findConflictByTerm` on a compacted term,
+  `MaybeDecrTo`, `BecomeProbe` from each state, `becomeLeader`'s reset, `MsgUnreachable`,
+  `MsgSnapStatus`); and "no `MsgTimeoutNow` without a `MsgTransferLeader`". Output: a note, or a
+  stop for (B). No Lean.
+- **M1. The sender's message bundle** [none]: `rnEnvOk`/`rn_ready_recv` keep `isRaftMsg`, `termLB`
+  and the `MsgReadIndex` read credit in `E.M`; `srvEr`'s `E.M` becomes `srvMsgNet ∗ srvMsgNoSnap`
+  (the latter still from `"%Hone"` until M3); the transport contract's `Send` premise unchanged.
+  Server files only (`InvRaftNode`, `InvBuild`, `BuildGap`, `raftNode__start`). Small.
+- **M2. The network contract and `Process`** [M1]: D21b (A): the ghost network, `Transport.Send`
+  (new axiom), `Start`/`AddPeer`/`AddRemote` restated with the delivery promise, `Process`/
+  `ReportUnreachable`/`ReportSnapshot` translated (`etcdserver.toml`) and proved, `IsIDRemoved`
+  of a static cluster (the membership package's removed set empty: a `bootstrap` contract clause,
+  `rnClusterOk`), `isRaftNodeIfc` gains `Step` (raft's `node.Step`), `transportEffectsOk` reduced
+  to what it still covers (or gone). Medium-large; the register's `deliver` as template.
+- **M3. No `MsgSnap` without compaction** [M0]: the raft invariant and message clauses (raft
+  files: `raft.go`'s progress branches, `InvRaftPhys`, the protocol's `appResp` clause), the
+  storage's first-index bound from the server's compaction (`compactRaftLog`, `snapshot`, D19i's
+  floor), `srvMsgNoSnap` from them; `"%Hone"` removed from `bootOk`, `NewServer.spec` taking the
+  run bound. Medium-large; raft-heavy.
+- **M4. The cluster's resources split** [none]: D21e (A); `kvInv`/`etcdKV` allocated once for the
+  cluster (`srvRaftBoot_alloc` over `ps`), each member's `NewServer.spec` taking its share (its
+  generator's claims under its prefix, its slice of `rdCred` and of `reRdFresh`, its node's
+  `ownRaftGhost`), `kvWork`/`entryWaitOk` over the cluster's claims. Server files (`InvRequest`,
+  `NewServerAlloc`, `NewServer`). Medium.
+- **M5. putget3 and its closed theorem** [M2, M3, M4]: the Go program (three members, the fork
+  pinned as putget's), its translation, `Main`'s proof, `putget3_safe` through
+  `goose_adequacy_start` with the new pure premises (D21c's run bound, D21e's prefixes, the peer
+  URLs). Medium.
+- **M6. D20 (b): at-most-once `MsgProp`** [M2; its raft half after M1]: see below.
+
+Parallelism: M0, M1 and M4 at once (disjoint: M0 no files, M1 the raft wrapper's files, M4 the
+KV/allocation files); M2 after M1, alongside M3 (raft-side) and M4; M5 last. Collections:
+`etc/tcb-collections/server.txt` tracks M1-M4; add one for putget3 in M5.
+
+**Trust base (estimate).** Added: `rafthttp.Transport.Send` (1); `Start`/`AddPeer`/`AddRemote`
+restated (0 net); possibly `membership.RaftCluster.IsIDRemoved` (1, unless its contract comes
+from `bootstrap`'s premise). Removed: none in M1-M5 (`createMergedSnapshotMessage`/
+`sendMergedSnap` stay out under D21c (A)). The opaque premise `transportEffectsOk` shrinks to the
+transport's delivery axioms (a premise fewer of the closed theorem if it goes entirely). New pure
+premises of the closed theorem: the run bound against `SnapshotCatchUpEntries`, the members' id
+prefixes distinct, (as now) `N`. Track T-S adds about eight trust-boundary axioms
+(`SendSnapshot`, `OpenSnapshotBackend`, the three `Recover`s, `RemoveAllPeers`, the backend
+snapshot's stream, `kv.Restore` with data unless proved) and restores `createMergedSnapshotMessage`/
+`sendMergedSnap` as true specs (proved or 2 axioms); track T-M about seven (the membership writers
+unless translated, `RemovePeer`/`UpdatePeer`) and restores `Cleanup`/`stopWithDelay` as true specs.
+
+### Where D20 (b) fits
+
+Today a proposal's update is persistent and fires at every committed occurrence (`propAu`,
+`Protocol/GhostState.lean:937-945`; `prop_collect`, `Facts.lean:754-762`); the per-proposal
+ticket (`propTok`, `firstOcc`) was removed at stage R. In one member, nothing duplicates a
+proposal; with peers a forwarded `MsgProp` crosses the network, which may duplicate in the
+protocol's model (persistent `isMessage`). So (b) is: the network contract (M2) delivers a
+forwarded `MsgProp` at most once (`fwdP` already takes it owned; the ghost network's entry for it
+one-shot -- true of `rafthttp`, which writes each message once on a stream or pipeline and never
+retries); raft's leader appends a `MsgProp`'s entries once; a deposit's ticket comes back, so the
+first committed occurrence fires the update and a later one (none, by the above, but the protocol
+need not know) fires nothing; the server's write specs then fire an ordinary update at most once.
+Raft's protocol half (the ticket) can start after M1, in parallel with M2; the server half after
+M2 (and M4, whose claims it touches). Stage M6.
+
+### Later tracks
+
+- **T-S, the snapshot path** (D21c (B)): raft's stage S, the server's sender (true specs of
+  `createMergedSnapshotMessage`, `sendMergedSnap`), the transport's snapshot stream, the receiver's
+  `applySnapshot`; lifts M3's run bound.
+- **T-M, membership changes** (D21d (B)): after T-S.
+- **T-C, clients, watches and leases across members** (D21f (B)): the client's balancing, watches
+  and the cache over member-local applied stores, resume, require-leader streams, the lease path
+  with leader forwarding; independent of T-S/T-M, after M5.
+
+*Asked of the user:* D21a-f (recommendations: (A) each, (C) of D21a proposed to Perennial
+separately), and whether M3 (the run bound) is an acceptable first step before T-S.
