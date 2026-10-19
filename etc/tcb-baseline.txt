@@ -520,11 +520,5 @@ axiom zap.Stringer.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Perennial.crypto.rand.initialize'.wp_proof
-sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_into_val_typed
 sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto
-sorry Perennial.log.initialize'.wp_proof
-sorry Perennial.math.big.initialize'.wp_proof
-sorry Perennial.math.initialize'.wp_proof
-sorry Perennial.time.initialize'.wp_proof

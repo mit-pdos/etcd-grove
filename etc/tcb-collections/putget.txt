@@ -2,7 +2,11 @@
 # Proof/github_com/mit_pdos/etcd_grove/examples/putget/Results.lean: `putget_Main` (stage 2,
 # 2026-10-18; over the server's, v3rpc's and the client's linked results and four trust-boundary
 # axioms) and the closed theorem `putget_safe`/`putget_adequate` (stage 3, after D19r), which also
-# rest on the package initializers' axioms and six `sorry`s of Perennial's initializer proofs.
+# rest on the package initializers' axioms (until 2026-10-19 also on six `sorry`s of Perennial's
+# initializer proofs, done at the pin `5fab1f144`). `#print axioms putget_safe` lists 3308: Lean's
+# 3, the 463 below, 2837 generated declarations of untranslated types and values (2627 here, 210
+# in Perennial) and Perennial's 5 trusted specs (`errors.As`, `time.Now`, `time.NewTimer`,
+# `Timer.Reset`, `Timer.Stop`).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/putget.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/putget.txt --check    against the lines below
@@ -474,9 +478,3 @@ axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Perennial.crypto.rand.initialize'.wp_proof
-sorry Perennial.errors.wp_errorType_init
-sorry Perennial.log.initialize'.wp_proof
-sorry Perennial.math.big.initialize'.wp_proof
-sorry Perennial.math.initialize'.wp_proof
-sorry Perennial.time.initialize'.wp_proof
