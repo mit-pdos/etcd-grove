@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
 
 @[expose] public section
 
@@ -51,6 +52,7 @@ theorem wp_stepLeader_checkQuorum
     (wp_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
+    (wp_maybeStartNewSubterm : raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgCheckQuorum) :
@@ -88,7 +90,12 @@ theorem wp_stepLeader_checkQuorum
       iframe Hphys r
       ipureintro
       exact .inr ⟨pvs, rfl⟩
-    · wp_auto
+    · -- (2026-10-19, witness support) `r.maybeStartNewSubterm(false, false)`: no excluded voter
+      -- to swap in, nothing changes
+      wp_auto
+      wp_apply wp_maybeStartNewSubterm c r id s false (fun h => by cases h) $$ [$Hphys] as Hphys
+      try simp only [Bool.false_eq_true, ↓reduceIte]
+      try wp_auto
       wp_join_done
       iexists s
       iframe Hphys r

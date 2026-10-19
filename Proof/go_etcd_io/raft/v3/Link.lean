@@ -179,6 +179,7 @@ public import Proof.go_etcd_io.raft.v3.raft__becomeLeader
 public import Proof.go_etcd_io.raft.v3.raft__becomePreCandidate
 public import Proof.go_etcd_io.raft.v3.raft__campaign
 public import Proof.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
+public import Proof.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
 public import Proof.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Proof.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Proof.go_etcd_io.raft.v3.raft__handleSnapshot
@@ -1037,6 +1038,10 @@ theorem raft.wp_pollAndReportDiff [StorageModel GF] :
     raft.pollAndReportDiff.spec (GF := GF) (hG := hG) :=
   raft.pollAndReportDiff.wp_proof tracker.ProgressTracker.wp_RecordVote tracker.ProgressTracker.wp_TallyVotesWithDifference
 
+theorem raft.wp_getWitnessVoteRequestReadiness [StorageModel GF] :
+    raft.getWitnessVoteRequestReadiness.spec (GF := GF) (hG := hG) :=
+  raft.getWitnessVoteRequestReadiness.wp_proof
+
 theorem wp_traceBecomeLeader [StorageModel GF] :
     traceBecomeLeader.spec (GF := GF) (hG := hG) :=
   traceBecomeLeader.wp_proof
@@ -1163,7 +1168,7 @@ theorem raftpb.Message.wp_GetReject :
 
 theorem wp_stepCandidate [StorageModel GF] :
     stepCandidate.spec (GF := GF) (hG := hG) :=
-  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
+  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_getWitnessVoteRequestReadiness raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
 
 theorem wp_stepFollower [StorageModel GF] :
     stepFollower.spec (GF := GF) (hG := hG) :=

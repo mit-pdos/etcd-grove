@@ -82,7 +82,8 @@ theorem stepLeader.wp_proof
     (wp_ProgressTracker_QuorumActive :
       tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG))
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
-    (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
+    (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
+    (wp_raft_maybeStartNewSubterm : raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s ml m ents sn ctx rs k0 Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack Hxft
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc⟩ HΦ
@@ -156,7 +157,8 @@ theorem stepLeader.wp_proof
     iexact Hinit
   · -- (2026-10-17) `MsgCheckQuorum`
     iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
-      wp_raft_becomeFollower wp_GetType r id s ml m ents ctx sn rs _ _ _ Hty $$ [Hphys Hm] HΦ'
+      wp_raft_becomeFollower wp_GetType wp_raft_maybeStartNewSubterm r id s ml m ents ctx sn rs _ _ _ Hty
+      $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
   · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
