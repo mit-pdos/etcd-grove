@@ -20,7 +20,9 @@ passes porcupine the return time the clock read, so a model that only lets a fai
 effect within its call would reject a correct history (a failed put, then a get that does not see
 it, then a get that does). This model puts the late effect in the state instead: a failed put
 leaves the put **pending** (`Cfg.pend`), and a pending put may take effect at any later time, at
-most once (`Silent`: the server applies the proposal it got once, part (b)), or never.
+most once (`Silent`: the server applies the proposal it got once, part (b)), or never. The
+pending puts are a multiset: `Silent.perm` reorders them (the Go model keeps them sorted, a
+failed put here is consed; `ModelLemmas.lean` relates the two up to order).
 
 ## Why a set of configurations (`KVSet`)
 
@@ -89,10 +91,13 @@ structure Cfg (K V : Type) where
   kv : Store K V
   pend : List (K × V)
 
-/-- A pending put takes effect (once: it leaves the pending list). -/
+/-- A pending put takes effect (once: it leaves the pending list); or the pending list is
+reordered (`perm`: it is a multiset, which the Go model keeps sorted, `insertSorted`, while
+`CStep.putErr` conses; the order is not observable). -/
 inductive Silent : Cfg K V → Cfg K V → Prop where
   | apply (c : Cfg K V) (k : K) (v : V) (h : (k, v) ∈ c.pend) :
       Silent c ⟨c.kv.set k v, c.pend.erase (k, v)⟩
+  | perm (c : Cfg K V) (p : List (K × V)) (h : p.Perm c.pend) : Silent c ⟨c.kv, p⟩
 
 /-- Any number of pending puts take effect. -/
 inductive Reach : Cfg K V → Cfg K V → Prop where
@@ -173,9 +178,17 @@ theorem KVSet.Closed.reach {S : KVSet K V} (hS : S.Closed) {c c' : Cfg K V} (hc 
 theorem kvInit_closed : (kvInit : KVSet K V).Closed := by
   intro c c' hc h
   subst hc
-  cases h with
-  | refl => rfl
-  | step hs _ => cases hs with | apply _ _ hm => cases hm
+  suffices H : ∀ a b : Cfg K V, Reach a b → a = ⟨fun _ => none, []⟩ → b = ⟨fun _ => none, []⟩ from
+    H _ _ h rfl
+  intro a b h
+  induction h with
+  | refl => exact id
+  | step hs _ ih =>
+    intro ha
+    subst ha
+    cases hs with
+    | apply _ _ hm => cases hm
+    | perm p hp => exact ih (by simp only at hp; rw [List.Perm.eq_nil hp])
 
 theorem post_closed (S : KVSet K V) (i : KVIn K V) (o : KVOut V) : (post S i o).Closed := by
   rintro c c' ⟨c₀, c₂, c₁, h0, hr0, hs, hr1⟩ h
