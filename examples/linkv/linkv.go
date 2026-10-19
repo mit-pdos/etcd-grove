@@ -295,8 +295,10 @@ func Main(clients int, ops int) porcupine.CheckResult {
 		NewCluster:             true,
 		TickMs:                 100,
 		ElectionTicks:          10,
+		// etcd's default snapshot count; the catch-up entries past the theorem's step bound (as
+		// examples/putget's: NewServer's run bound, receiptBound <= SnapshotCatchUpEntries + 1)
 		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: etcdserver.DefaultSnapshotCatchUpEntries,
+		SnapshotCatchUpEntries: 1 << 48,
 		MaxTxnOps:              128,
 		MaxRequestBytes:        1536 * 1024,
 		Logger:                 lg,

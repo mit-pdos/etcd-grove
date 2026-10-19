@@ -893,7 +893,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v7" (Val #(W64 100))
   (Let "$v8" (Val #(W64 10))
   (Let "$v9" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.DefaultSnapshotCount))
-  (Let "$v10" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.DefaultSnapshotCatchUpEntries)
+  (Let "$v10" (Val #(W64 281474976710656))
   (Let "$v11" (Val #(W64 128))
   (Let "$v12" (Val #(W64 1572864))
   (Let "$v13" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
