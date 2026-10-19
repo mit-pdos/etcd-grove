@@ -90,13 +90,14 @@ it (`ownConfigC`): its `Progress` values are some `pvs` whose learner flags are 
 private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)
     (prs : GMap w64 Loc) (Hinv : CfgInv (cfgStateC c))
     (Hdom : domSet prs = domSet (cfgStateC c).prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62)
-    (P : w64 → Progress → Prop) (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner) :
+    (P : w64 → Progress → Prop)
+    (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner ∧ p.witness = false) :
     ⊢ ownCfgCC (GF := GF) cfgv (DFrac.own 1) c -∗ prsm ↦$□ prs -∗
       ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜P k p⌝) -∗
       ∃ pvs, ownConfigC c cfgv prsm prs pvs := by
   iintro Hc #Hprsm Hprogs
   ihave Hprogs : ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress (GF := GF) pr p ∗
-      ⌜(cfgStateC c).prs !! k = some p.learner⌝) $$ [Hprogs]
+      ⌜(cfgStateC c).prs !! k = some p.learner ∧ p.witness = false⌝) $$ [Hprogs]
   · iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
     intro k pr _
     iintro ⟨%p, Hp, %Hpk⟩
@@ -105,7 +106,7 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
     ipureintro; exact HP k p Hpk
   icases bigSepM_exist_sepM2 prs
     (fun k pr (p : Progress) => iprop(ownProgress (GF := GF) pr p ∗
-      ⌜(cfgStateC c).prs !! k = some p.learner⌝))
+      ⌜(cfgStateC c).prs !! k = some p.learner ∧ p.witness = false⌝))
     $$ Hprogs with ⟨%pvs, Hprogs⟩
   ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
   icases BigSepM2.bigSepM2_sep_eqv.1 $$ Hprogs with ⟨Hprogs, Hfl⟩
@@ -118,7 +119,7 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
     | some p =>
       obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
         ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
-      exact (Hfl k pr p hpr hp).symm
+      exact (Hfl k pr p hpr hp).1.symm
     | none =>
       cases hc : (cfgStateC c).prs !! k with
       | none => rfl
@@ -134,7 +135,13 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
   unfold ownConfigC
   iframe Hc Hprsm Hprogs
   ipureintro
-  refine ⟨?_, ?_, ?_, Hsz⟩
+  refine ⟨?_, ?_, ?_, Hsz, ?Hw⟩
+  case Hw =>
+    -- no witness (2026-10-19)
+    intro k p hp
+    obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
+      ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
+    exact (Hfl k pr p hpr hp).2
   · rw [Htf]; exact Hinv
   · rw [Hdom]
     apply GMap.set_eq; intro k
@@ -311,8 +318,8 @@ theorem raft.restore.wp_proof
   ihave Hcs : csPts pc DFrac.discard sv.Metadata'.ConfState' true $$ []
   · iexact Hcf
   iunfold csPts at Hcs
-  icases Hcs with ⟨%csv, %csl, %cso, %csn, %cpa, %Hcnn, HcV, Hcv, HcL, Hcl', HcO, Hco, HcN, Hcn,
-    HcA, #ccA, %Hcal, #Hcpb⟩
+  icases Hcs with ⟨%csv, %csl, %cso, %csn, %cpa, %cpw, %cpwo, %Hcnn, HcV, Hcv, HcL, Hcl', HcO, Hco,
+    HcN, Hcn, HcA, #ccA, %Hcal, HcW, #ccW, HcWO, #ccWO, #Hcpb⟩
   wp_auto
   wp_apply wp_slice_literal
   isplitr
@@ -495,8 +502,8 @@ theorem raft.restore.wp_proof
         (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
     icases ownTrackerC_maxinflight $$ Htrk with ⟨%Hmi, -⟩
     wp_auto
-    wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes0, Hprs0⟩
-    obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
+    wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, #Hep0, Hv0, Hvotes0, Hprs0⟩
+    obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al, Htv0wit⟩ := Htv0
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
     -- `confchange.Restore`: the empty tracker, the snapshot's `ConfState`, which it answers
     -- exactly (`restoreM_wf`)
@@ -509,7 +516,8 @@ theorem raft.restore.wp_proof
     have Hinv := restoreM_cfgInv Hrm
     ihave HcB := csPts_weaken $$ Hcf
     wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } pc sv.Metadata'.ConfState'
-        _ v0 _ Hrm Hmi0 Htv0arr Htv0l Htv0ln Htv0al
+        _ v0 _ Hrm Hmi0 (fun h => Hwf.2.1 (W64 0) (.inl h) rfl)
+        (fun h => Hwf.2.1 (W64 0) (.inr (.inl h)) rfl) Htv0wit Htv0arr Htv0l Htv0ln Htv0al
         $$ [$HcB $Hv0 $Hprs0]
       as %cfgv %prsm %prs ⟨HcB, Hv0, -, Hres⟩
     -- a voter, so an op ran: the fresh maps (2026-10-16, stage R8b)
@@ -521,7 +529,8 @@ theorem raft.restore.wp_proof
       restore_prs_size sv.Metadata'.ConfState'.lists Hvnd Hlnd Hond Hsz prs sv.Metadata'.ConfState'.AutoLeave' Hprs
     ihave Hprogs : ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress (GF := GF) pr p ∗
         ⌜(cfgStateC (csCfgM sv.Metadata'.ConfState'.lists.outgoing sv.Metadata'.ConfState'.lists.voters sv.Metadata'.ConfState'.lists.learners sv.Metadata'.ConfState'.lists.learnersNext
-          sv.Metadata'.ConfState'.AutoLeave')).prs !! k = some p.learner⌝) $$ [Hprogs]
+          sv.Metadata'.ConfState'.AutoLeave')).prs !! k = some p.learner ∧ p.witness = false⌝)
+        $$ [Hprogs]
     · iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
       intro k pr _
       iintro ⟨%p, Hp, %Hpk⟩
@@ -535,7 +544,8 @@ theorem raft.restore.wp_proof
     icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h) $$ Hcfg Hprsm Hprogs
       with ⟨%pvs, Hnew⟩
     -- the struct, re-sealed over the empty configuration
-    ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
+    ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 Htv0wit
+      $$ Hv0 Hvotes0 Hprs0 Hep0
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
       %(LogGhOk.of_snap (by simp [logRestore]) Hns)
@@ -546,12 +556,12 @@ theorem raft.restore.wp_proof
     wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
     icases ownRaftPhysCV_reconfig _ (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
         (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
-    icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
+    icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1, #Hep1⟩
     wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
-      $$ [$Htrkf $Hback2 $Hvotes $Hnew]
+      $$ [$Htrkf $Hback2 $Hvotes $Hep1 $Hnew]
       as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw⟩
     · ipureintro; exact Hmi1
     obtain ⟨Hxs2, Hos2, Hls2, Hlns2⟩ := Hcs2

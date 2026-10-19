@@ -248,10 +248,10 @@ of the value's `IsLearner`. -/
 theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
     (P : w64 → Bool → Prop)
     (Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome)
-    (HP : ∀ k pv, pvs !! k = some pv → P k pv.IsLearner') :
+    (HP : ∀ k pv, pvs !! k = some pv → P k pv.IsLearner') (Hnw : NoWit pvs) :
     ([∗map] _k ↦ pr;pv ∈ prs;pvs, (pr ↦ pv : IProp GF)) ∗
       ([∗map] _k ↦ pv ∈ pvs, progR2 (GF := GF) pv) ⊢
-      [∗map] k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner⌝ := by
+      [∗map] k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner ∧ pp.witness = false⌝ := by
   iintro ⟨Hpt, HR⟩
   ihave HR := (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) (_ : Loc) => (emp : IProp GF))
     (Φ2 := fun (_ : w64) pv => progR2 (GF := GF) pv)
@@ -263,7 +263,7 @@ theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
     · iexact HR
   ihave H := BigSepM2.bigSepM2_sep_eqv.2 $$ [$Hpt $HR]
   ihave H : ([∗map] k ↦ pr;pv ∈ prs;pvs,
-      ((∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner⌝) ∗ emp : IProp GF)) $$ [H]
+      ((∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner ∧ pp.witness = false⌝) ∗ emp : IProp GF)) $$ [H]
   · iapply (BigSepM2.bigSepM2_mono (fun {k pr pv} _ hpv => ?_)) $$ H
     iintro ⟨Hp, -, HR⟩
     unfold progR2
@@ -274,11 +274,12 @@ theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
       · iapply ownProgress_intro _ _ pp $$ Hp Hinfl
         ipureintro; exact Habs
       · ipureintro
+        refine ⟨?_, ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.symm.trans (Hnw k pv hpv)⟩
         rw [← ((progressAbs_Some _ _ _).1 Habs).1]
         exact HP k pv hpv
     · iempintro
   icases (BigSepM2.bigSepM2_sepM (Φ1 := fun k pr =>
-      iprop(∃ pp, ownProgress (GF := GF) pr pp ∗ ⌜P k pp.learner⌝))
+      iprop(∃ pp, ownProgress (GF := GF) pr pp ∗ ⌜P k pp.learner ∧ pp.witness = false⌝))
     (Φ2 := fun (_ : w64) (_ : tracker.Progress) => (emp : IProp GF)) (m1 := prs) (m2 := pvs)
     Hdom).1 $$ H with ⟨H, -⟩
   iexact H
@@ -411,12 +412,13 @@ theorem wp_restore_ej_op (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
 theorem ownCCSt_post (cfg : tracker.Config) (prsm : Loc) (s' : CCState) :
     ownCCSt (GF := GF) cfg prsm s' ⊢ ∃ prs : GMap w64 Loc,
       ownCfgCC cfg (DFrac.own 1) s'.cfg ∗ prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
-      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜s'.prs !! k = some p.learner⌝) := by
+      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
+        ⌜s'.prs !! k = some p.learner ∧ p.witness = false⌝) := by
   unfold ownCCSt
-  iintro ⟨%prs, %pvs, Hc, Hprsm, Hpt, HR, %Hfl, -⟩
+  iintro ⟨%prs, %pvs, Hc, Hprsm, Hpt, HR, %Hfl, %Hnw⟩
   ihave %Hdom := BigSepM2.bigSepM2_lookup_iff $$ Hpt
   have Hdom' : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom
-  ihave Hprogs := progs_of_values prs pvs (fun k b => s'.prs !! k = some b) Hdom' ?_
+  ihave Hprogs := progs_of_values prs pvs (fun k b => s'.prs !! k = some b) Hdom' ?_ Hnw
     $$ [$Hpt $HR]
   · intro k pv hpv
     have h' := flagsOf_lookup pvs k pv hpv

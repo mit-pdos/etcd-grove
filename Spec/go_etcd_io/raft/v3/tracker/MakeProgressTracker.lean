@@ -38,7 +38,10 @@ abbrev tracker.MakeProgressTracker.spec : Prop :=
         tv.Config'.Voters'.arr = [v0, map.nil] ∧
         tv.Config'.Learners' = map.nil ∧
         tv.Config'.LearnersNext' = map.nil ∧
-        tv.Config'.AutoLeave' = false⌝ ∗
+        tv.Config'.AutoLeave' = false ∧
+        -- (2026-10-19, witness support) no witness, and a witness-free epoch of subterm 0
+        tv.Config'.Witnesses'.arr = [W64 0, W64 0]⌝ ∗
+      ownEpochNW tv.Epoch' ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       tv.Votes' ↦$ (∅ : GMap w64 Bool) ∗
       tv.Progress' ↦$ (∅ : GMap w64 Loc) }}

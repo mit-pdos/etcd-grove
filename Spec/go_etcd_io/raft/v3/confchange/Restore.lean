@@ -81,7 +81,8 @@ abbrev confchange.Restore.spec : Prop :=
        (⌜restoreSimpleOps c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' ≠ []⌝ ∗
         ownCfgCC cfgv (DFrac.own 1) s'.cfg ∗
         prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
-        ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜s'.prs !! k = some p.learner⌝))) }}
+        ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
+          ⌜s'.prs !! k = some p.learner ∧ p.witness = false⌝))) }}
 
 /-- `Restore` runs an op exactly when the conf state has a voter or an outgoing voter (2026-10-16,
 stage R8b): with a voter, `restoreInCC` (not joint) holds its `AddNode`, `restoreOutCC` (joint)
@@ -229,7 +230,7 @@ abbrev confchange.Restore.specS : Prop :=
       vref ↦$ vm ∗ ⌜domSet vm = GMap.listToSet c.Voters'⌝ ∗
       prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet c.Voters' ∪ GMap.listToSet c.Learners'⌝ ∗
       ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
-        ⌜p.learner = decide (k ∉ GMap.listToSet c.Voters')⌝) }}
+        ⌜p.learner = decide (k ∉ GMap.listToSet c.Voters') ∧ p.witness = false⌝) }}
 
 /-- The non-joint statement from the general one: with no outgoing voter and no staged learner
 the model's answer is the voters and the learners (`simpleFold_restoreIn`). -/
@@ -274,6 +275,8 @@ theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (
   iexists p
   iframe Hp
   ipureintro
+  obtain ⟨Hpl, Hpw⟩ := Hpl
+  refine ⟨?_, Hpw⟩
   simp only [cfgState] at Hpl
   rw [cfgFlags_lookup] at Hpl
   by_cases hv : k ∈ GMap.listToSet c.Voters'

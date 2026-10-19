@@ -23,14 +23,25 @@ theorem tracker.MakeProgressTracker.wp_proof :
     tracker.MakeProgressTracker.spec (GF := GF) (hG := hG) := by
   intro mi mb
   wp_start as _
+  -- the epoch is made read-only after the call (an update at the end)
+  iapply wp_fupd
   wp_auto
   wp_apply wp_map_make1 as %v0 Hv0
   wp_apply wp_map_make1 as %vm Hvm
   wp_apply wp_map_make1 as %pm Hpm
+  -- the epoch, read-only from now on, witness-free (2026-10-19)
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ «$v5» with #He
+  imodintro
   iapply HΦ
   iframe
+  isplitr
+  · ipureintro
+    simp [sint.nat]
+  iunfold ownEpochNW
+  iexists _
+  iframe He
   ipureintro
-  simp [sint.nat]
+  exact ⟨rfl, zero_val _, zero_val _, rfl, rfl, rfl, rfl, rfl⟩
 
 end proof
 
