@@ -377,6 +377,24 @@ theorem ownTrackerC_nowit (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
   iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
     $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
+/-- No tracked id is `0` (2026-10-19, witness support: `NoWitP`, over the progress map's domain,
+the configuration's ids). -/
+theorem ownTrackerC_no0 (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTrackerC (GF := GF) c tv t ⊢ ⌜W64 0 ∉ c.ids⌝ ∗ ownTrackerC c tv t := by
+  iintro Hown
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
+  isplitr
+  · ipureintro
+    intro h
+    rw [← Hdom, GMap.elem_of_dom', GMap.mem_iff] at h
+    have h2 : (t.peers !! W64 0).isSome = true := (Hiff (W64 0)).1 h
+    rw [NoWitP.no0 Hnw] at h2
+    cases h2
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
+
 /-- The tracker's epoch, witness-free (2026-10-19, witness support). -/
 theorem ownTrackerC_epoch (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ownTrackerC (GF := GF) c tv t ⊢ ownEpochNW tv.Epoch' ∗ ownTrackerC c tv t := by
@@ -513,7 +531,8 @@ theorem ownTrackerC_lookup (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) (
   rw [Hins]
   iapply ownTrackerC_intro c tv t.votes t.prs _
     (by rw [trkFlags_insert_same _ _ _ _ Hv Hl.1]; exact Hinv) Hdom (Hflags.insert Hv Hl.1) Hsize
-    HmaxInfl (NoWitP.insert Hnw (Hl.2.trans (Hnw i p Hv))) $$ Hvotes Hprs Hprogs Hcfg Hepoch
+    HmaxInfl (NoWitP.insert Hnw (Hl.2.trans (Hnw i p Hv).1) (Hnw i p Hv).2)
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
 /-- The `Progress` records are indexed by the same peers as the map (`ownTracker_prvals_dom`). -/
 theorem ownTrackerC_prvals_dom (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :

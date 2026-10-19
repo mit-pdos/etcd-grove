@@ -562,6 +562,148 @@ theorem CCGood.flags {c : CfgM} {f : GMap w64 Bool} (h : CCGood ⟨c, f⟩) :
       | none => rfl
       | some _ => rw [h3] at hk; exact absurd rfl hk
 
+/-! ### No node `0`, no witness (2026-10-19, witness support)
+
+raft#168 takes `0` for "no witness" (`Witnesses = [0, 0]`), so a witness-free tracker tracks no
+`0` (`NoWitP`). A change keeps it: `apply` skips a change of node `0`, and the rest only drops
+ids. And a change `ccApplyM` accepts adds no witness: `AddWitness` (type `4`) is
+"unexpected conf type" to `applyOne`, which is what `Changer.Simple` and `Changer.EnterJoint`
+take on a witness-free tracker. -/
+
+theorem applyOne_no0 {cc : ConfChangeSingleM} {s s' : CCState} (h : applyOne cc s = some s')
+    (h0 : s.prs !! W64 0 = none) : s'.prs !! W64 0 = none := by
+  unfold applyOne at h
+  by_cases hn : cc.NodeId' = W64 0
+  · rw [ite_eq_left hn] at h; cases h; exact h0
+  rw [ite_eq_right hn] at h
+  have hn' : cc.NodeId' ≠ W64 0 := hn
+  have e0 : W64 0 = 0#64 := rfl
+  rw [e0] at hn' h0
+  split at h
+  · cases h
+    unfold makeVoterM initProgressM
+    split <;> simp [hn', h0]
+  split at h
+  · cases h
+    unfold makeLearnerM initProgressM
+    split
+    · simp [hn', h0]
+    · exact h0
+    · split <;> simp [hn', h0]
+  split at h
+  · cases h
+    unfold removeM
+    split
+    · simp only; split
+      · exact h0
+      · simp [h0]
+    · exact h0
+  split at h
+  · cases h; exact h0
+  · cases h
+
+theorem applyAll_no0 {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyAll ccs s = some s') (h0 : s.prs !! W64 0 = none) : s'.prs !! W64 0 = none := by
+  induction ccs generalizing s with
+  | nil => simp only [applyAll] at h; cases h; exact h0
+  | cons cc ccs ih =>
+    simp only [applyAll] at h
+    cases h1 : applyOne cc s with
+    | none => rw [h1] at h; cases h
+    | some s1 => rw [h1] at h; exact ih h (applyOne_no0 h1 h0)
+
+theorem applyM_no0 {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyM ccs s = some s') (h0 : s.prs !! W64 0 = none) : s'.prs !! W64 0 = none := by
+  unfold applyM at h
+  cases h1 : applyAll ccs s with
+  | none => rw [h1] at h; cases h
+  | some s1 =>
+    rw [h1] at h
+    simp only [Option.bind_some] at h
+    split at h
+    · cases h
+    · cases h; exact applyAll_no0 h1 h0
+
+theorem checkedM_no0 {s s' : CCState} (h : checkedM s = some s')
+    (h0 : s.prs !! W64 0 = none) : s'.prs !! W64 0 = none := by
+  obtain ⟨rfl, -⟩ := checkedM_some h; exact h0
+
+theorem ccApplyM_no0 {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSingleM}
+    {s s' : CCState} (h : ccApplyM t ccs s = some s') (h0 : s.prs !! W64 0 = none) :
+    s'.prs !! W64 0 = none := by
+  unfold ccApplyM at h
+  split at h
+  · unfold leaveJointM at h
+    split at h
+    · cases h
+    split at h
+    · cases h
+    refine checkedM_no0 h ?_
+    simp only [leaveJointState, GMap.lookup_filter, GMap.lookup_union, GMap.lookup_fmap, h0]
+    rfl
+  · split at h
+    · unfold enterJointM at h
+      split at h; · cases h
+      split at h; · cases h
+      split at h; · cases h
+      split at h
+      · cases h
+      · rename_i hs; have h1 := applyM_no0 hs h0; exact checkedM_no0 h h1
+    · unfold simpleM at h
+      split at h; · cases h
+      split at h; · cases h
+      split at h
+      · cases h
+      · rename_i hs
+        split at h
+        · cases h
+        · have h1 := applyM_no0 hs h0; exact checkedM_no0 h h1
+    · cases h
+
+/-- A change `applyOne` accepts adds no witness. -/
+theorem applyAll_noWit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyAll ccs s = some s') : ∀ c ∈ ccs, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4 := by
+  induction ccs generalizing s with
+  | nil => intro c hc; cases hc
+  | cons cc ccs ih =>
+    simp only [applyAll] at h
+    cases h1 : applyOne cc s with
+    | none => rw [h1] at h; cases h
+    | some s1 =>
+      rw [h1] at h
+      intro c hc hn ht
+      rcases List.mem_cons.1 hc with rfl | hc
+      · unfold applyOne at h1
+        rw [if_neg hn, ht] at h1
+        simp at h1
+      · exact ih h c hc hn ht
+
+theorem applyM_noWit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyM ccs s = some s') : ∀ c ∈ ccs, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4 := by
+  unfold applyM at h
+  cases h1 : applyAll ccs s with
+  | none => rw [h1] at h; cases h
+  | some s1 => exact applyAll_noWit h1
+
+theorem simpleM_noWit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : simpleM ccs s = some s') : ∀ c ∈ ccs, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4 := by
+  unfold simpleM at h
+  split at h; · cases h
+  split at h; · cases h
+  split at h
+  · cases h
+  · rename_i hs; exact applyM_noWit hs
+
+theorem enterJointM_noWit {al : Bool} {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : enterJointM al ccs s = some s') : ∀ c ∈ ccs, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4 := by
+  unfold enterJointM at h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  split at h
+  · cases h
+  · rename_i hs; exact applyM_noWit hs
+
 end model
 
 end EtcdGrove

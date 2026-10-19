@@ -65,7 +65,7 @@ theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     isplitr
     · ipureintro
       exact ⟨((progressAbs_Some _ _ _).1 Habs).1,
-        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw k p hp)⟩
+        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw k p hp).1⟩
     isplitr
     · iempintro
     unfold progRAt
@@ -151,7 +151,8 @@ configuration `switchToConfig` takes (`ownConfigC s'.cfg`), each new `Match` the
 theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     (chg : confchange.Changer)
     (base : GMap w64 tracker.Progress) (peers : GMap w64 Progress) (cfgv : tracker.Config)
-    (trk : Loc) (Hsz : (GMap.size s'.cfg.ids : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers) :
+    (trk : Loc) (Hsz : (GMap.size s'.cfg.ids : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers)
+    (H0 : W64 0 ∉ s'.cfg.ids) :
     ownCfgCC (GF := GF) cfgv (DFrac.own 1) s'.cfg ∗
       ownPrsW chg base trk s'.prs ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
@@ -173,7 +174,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     ipureintro
     obtain ⟨_, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
     refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, ?_⟩, .inl ⟨p, Hp, rfl, rfl, rfl, rfl⟩,
-      Hnw k p Hp⟩ <;>
+      (Hnw k p Hp).1⟩ <;>
       (rw [h1]; assumption)
   · intro k pv Hf
     unfold newPrQC
@@ -270,7 +271,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     · rw [Htf]; exact Hinv
     · rw [← GMap.size_dom, Hpdom]; exact Hsz
     · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp]; rfl))
-      exact (Hmk k pr p hpr hp).2.2
+      exact ⟨(Hmk k pr p hpr hp).2.2, ne0_of_dom (by rw [Hpdom]; exact H0) hpr⟩
   · ipureintro
     refine ⟨fun k p' hp' => ?_, fun k p' hp' => ?_, Hpdom⟩
     · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))

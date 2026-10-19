@@ -464,19 +464,35 @@ def EpochNW (ev : tracker.Epoch) : Prop :=
     r0.Witness' = W64 0 ∧ r0.Excluded' = W64 0 ∧ r1.Witness' = W64 0 ∧ r1.Excluded' = W64 0
 
 /-- No peer is the witness (2026-10-19, witness support): the tracker of a witness-free
-configuration. -/
+configuration. No peer's `Progress` is a witness's, and no peer is `0`: raft#168 reads
+`Witnesses[i] == id` with `0` for "no witness", so a peer `0` would be taken for the witness
+(`LeaveJoint` keeps an outgoing voter `0`). raft never tracks `0` (`confchange` skips a change
+of node `0`, `newRaft` and `RawNode.Bootstrap` take ids other than `0`, a snapshot's
+`ConfState` has none, `CSWf`); this records it. -/
 def NoWitP (peers : GMap w64 Progress) : Prop :=
-  ∀ k p, peers !! k = some p → p.witness = false
+  ∀ k p, peers !! k = some p → p.witness = false ∧ k ≠ W64 0
 
 theorem NoWitP.insert {peers : GMap w64 Progress} {i : w64} {p : Progress}
-    (H : NoWitP peers) (Hp : p.witness = false) : NoWitP (<[i := p]> peers) := by
+    (H : NoWitP peers) (Hp : p.witness = false) (Hi : i ≠ W64 0) :
+    NoWitP (<[i := p]> peers) := by
   intro k q hq
   by_cases hk : i = k
-  · subst hk; rw [GMap.lookup_insert_eq] at hq; cases hq; exact Hp
+  · subst hk; rw [GMap.lookup_insert_eq] at hq; cases hq; exact ⟨Hp, Hi⟩
   · rw [GMap.lookup_insert_ne _ _ hk] at hq; exact H k q hq
 
 theorem NoWitP.empty : NoWitP (∅ : GMap w64 Progress) := by
   intro k q hq; simp at hq
+
+/-- A key of a map whose domain lacks `0` is not `0`. -/
+theorem ne0_of_dom {V : Type} {m : GMap w64 V} {k : w64} {v : V} (H0 : W64 0 ∉ domSet m)
+    (h : m !! k = some v) : k ≠ W64 0 := by
+  rintro rfl; apply H0; rw [GMap.elem_of_dom', GMap.mem_iff, h]; rfl
+
+/-- No peer is `0`. -/
+theorem NoWitP.no0 {peers : GMap w64 Progress} (H : NoWitP peers) : peers !! W64 0 = none := by
+  cases h : peers !! W64 0 with
+  | none => rfl
+  | some p => exact absurd rfl (H _ p h).2
 
 /-- The tracker's epoch, witness-free (2026-10-19): an `Epoch` nobody writes in place
 (`ResetReplicationSet` and `ChangeReplicationSet` allocate a new one), hence persistent. -/
@@ -960,7 +976,7 @@ theorem ownTracker_lookup (tv : tracker.ProgressTracker) (t : Trk) (i : w64) (pr
   iapply ownTracker_intro cfg tv t.votes t.prs _ voters_ref voters learners learnersNext
     Hprs_dom Hvoters_arr Hautoleave Hvoters_dom
     ⟨Hno_learners.1, Hno_learners.2.1, Hno_learners.2.2.insert Hv Hl.1⟩ Hcfg_size HmaxInfl
-    ⟨Hwit.1, NoWitP.insert Hwit.2 (Hl.2.trans (Hwit.2 i p Hv))⟩
+    ⟨Hwit.1, NoWitP.insert Hwit.2 (Hl.2.trans (Hwit.2 i p Hv).1) (Hwit.2 i p Hv).2⟩
     $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext Hepoch
 
 /-- The same, given back at the record it was borrowed at. -/
@@ -1212,7 +1228,8 @@ theorem ownConfig_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
     (Hcfgwit : cfgv.Witnesses'.arr = [W64 0, W64 0])
     (Hvm : domSet vm = cfg)
     (Hprs : domSet prs = cfg)
-    (Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62) :
+    (Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62)
+    (H0 : W64 0 ∉ domSet prs) :
     ⊢ (vref ↦$ vm : IProp GF) -∗ prsm ↦$□ prs -∗
       ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = false ∧ p.witness = false⌝) -∗
       ownConfig cfg cfgv prsm prs := by
@@ -1234,7 +1251,7 @@ theorem ownConfig_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
   · intro k p Hp
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
       ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [Hp]; rfl))
-    exact (Hfl k pr p hpr Hp).2
+    exact ⟨(Hfl k pr p hpr Hp).2, ne0_of_dom H0 hpr⟩
 
 /-- What `confchange.Restore` builds for a non-joint `ConfState` with learners `lrn`
 (2026-10-13), as an `ownConfig`. -/
@@ -1247,7 +1264,8 @@ theorem ownConfig_restore (cfg lrn : GSet w64) (cfgv : tracker.Config) (prsm : L
     (Hvm : domSet vm = cfg)
     (Hprs : domSet prs = cfg ∪ lrn)
     (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
-    (Hcsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62) :
+    (Hcsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62)
+    (H0 : W64 0 ∉ domSet prs) :
     ⊢ (vref ↦$ vm : IProp GF) -∗ ownIdsetC cfgv.Learners' (DFrac.own 1) lrn -∗ prsm ↦$□ prs -∗
       ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = !decide (k ∈ cfg) ∧ p.witness = false⌝) -∗
       ownConfig cfg cfgv prsm prs := by
@@ -1273,7 +1291,7 @@ theorem ownConfig_restore (cfg lrn : GSet w64) (cfgv : tracker.Config) (prsm : L
     ⟨?_, rfl, ?_⟩, by rw [← GMap.size_dom, Hprs]; exact Hcsz⟩
   · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
       ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
-    exact (Hfl k pr p hpr hp).2
+    exact ⟨(Hfl k pr p hpr hp).2, ne0_of_dom H0 hpr⟩
   · apply GMap.set_eq; intro k
     rw [Hdl, Hprs, GMap.elem_of_difference, GMap.elem_of_union]
     constructor

@@ -54,6 +54,10 @@ theorem raft.applyConfChange.wp_proof
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
       (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) $$ Hphys
     with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
+  -- (2026-10-19, witness support) no peer is the witness, none is `0`
+  icases ownTrackerC_nowit $$ Htrk with ⟨%Hnw, Htrk⟩
+  icases ownTrackerC_no0 $$ Htrk with ⟨%H0, Htrk⟩
+  icases ownTrackerC_epoch $$ Htrk with ⟨#Hepoch, Htrk⟩
   icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals⟩ $$ Htrk
     with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hg⟩
   obtain ⟨Hgood, -, -, -⟩ := Hg
@@ -62,6 +66,17 @@ theorem raft.applyConfChange.wp_proof
   have Hgood' : CCGood (cfgStateC c) := by
     have h := Hgood
     unfold cfgStateC; rw [← Hgood.flags]; exact h
+  -- the new configuration tracks no `0` either (`ccApplyM_no0`)
+  have H0' : W64 0 ∉ c'.cfg.ids := by
+    have h0c : (cfgStateC c).prs !! W64 0 = none := by
+      cases e : (cfgStateC c).prs !! W64 0 with
+      | none => rfl
+      | some _ =>
+        exfalso; apply H0
+        exact (Hgood'.1 (W64 0)).1 (by rw [GMap.mem_iff, e]; rfl)
+    intro h
+    rw [← (ccApplyM_good Hgood' _ _ Happ0).1, GMap.mem_iff, ccApplyM_no0 Happ0 h0c] at h
+    cases h
   have Happ := Happ0
   unfold ccApplyM at Happ
   wp_auto
@@ -81,6 +96,7 @@ theorem raft.applyConfChange.wp_proof
     wp_auto
     wp_apply wp_Changer_LeaveJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
         (DFrac.own 1) (DFrac.own 1) DFrac.discard (DFrac.own 1)
+        (fun h => H0 ((GMap.elem_of_subseteq _ _).1 (outgoing_sub_ids c) _ h))
       $$ [$Htc $changer]
       as %cfgv %trk %err ⟨-, -, Hres⟩
     rw [Hst, Happ]
@@ -88,7 +104,7 @@ theorem raft.applyConfChange.wp_proof
     icases Hres with ⟨%Herr, Hc, Hw⟩
     subst Herr
     imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
-        s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
+        s.prvals cfgv trk Hsz Hnw H0' $$ [$Hc $Hw $HR]
       with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
     wp_auto
     -- `r.switchToConfig(cfg, trk)`
@@ -110,7 +126,7 @@ theorem raft.applyConfChange.wp_proof
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
           exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-      $$ [$Htrkf $Hback' $Hvotes $Hnew]
+      $$ [$Htrkf $Hback' $Hvotes $Hepoch $Hnew]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact Hmi
     try wp_auto
@@ -138,6 +154,7 @@ theorem raft.applyConfChange.wp_proof
         wp_auto
         wp_apply wp_Changer_Simple _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
             chs ls ccm.changes (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+            (simpleM_noWit Happ)
           $$ [$Hch $Htc $changer]
           as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
         · iexact Hccs
@@ -152,7 +169,7 @@ theorem raft.applyConfChange.wp_proof
         icases Hres with ⟨%Herr, Hc, Hw⟩
         subst Herr
         imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
-            s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
+            s.prvals cfgv trk Hsz Hnw H0' $$ [$Hc $Hw $HR]
           with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
@@ -174,7 +191,7 @@ theorem raft.applyConfChange.wp_proof
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          $$ [$Htrkf $Hback' $Hvotes $Hnew]
+          $$ [$Htrkf $Hback' $Hvotes $Hepoch $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
         try wp_auto
@@ -189,6 +206,7 @@ theorem raft.applyConfChange.wp_proof
         wp_auto
         wp_apply wp_Changer_EnterJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs al
             chs ls ccm.changes (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+            (enterJointM_noWit Happ)
           $$ [$Hch $Htc $changer]
           as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
         · iexact Hccs
@@ -203,7 +221,7 @@ theorem raft.applyConfChange.wp_proof
         icases Hres with ⟨%Herr, Hc, Hw⟩
         subst Herr
         imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
-            s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
+            s.prvals cfgv trk Hsz Hnw H0' $$ [$Hc $Hw $HR]
           with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
@@ -225,7 +243,7 @@ theorem raft.applyConfChange.wp_proof
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
               exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
-          $$ [$Htrkf $Hback' $Hvotes $Hnew]
+          $$ [$Htrkf $Hback' $Hvotes $Hepoch $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
         try wp_auto

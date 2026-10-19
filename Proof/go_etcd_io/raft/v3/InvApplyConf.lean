@@ -89,7 +89,7 @@ theorem ownTracker_toCC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk
     isplitr
     · ipureintro
       exact ⟨((progressAbs_Some _ _ _).1 Habs).1.trans (Hfl k p hp),
-        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hwit.2 k p hp)⟩
+        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hwit.2 k p hp).1⟩
     isplitr
     · iempintro
     unfold progRAt
@@ -172,7 +172,8 @@ progress map `switchToConfig` takes (`ownConfigV`, the progress map made read-on
 theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
     (chg : confchange.Changer)
     (base : GMap w64 tracker.Progress) (peers : GMap w64 Progress) (cfgv : tracker.Config)
-    (trk : Loc) (Hsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers) :
+    (trk : Loc) (Hsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers)
+    (H0 : W64 0 ∉ cfg ∪ lrn) :
     ownCfgCC (GF := GF) cfgv (DFrac.own 1) (cfgM cfg lrn) ∗
       ownPrsW chg base trk (cfgFlags cfg lrn) ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
@@ -200,7 +201,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     ipureintro
     obtain ⟨_, h2, h3, h4, h5, h6, h7, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
     refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, ?_⟩, .inr ⟨p, Hp, rfl⟩,
-      Hnw k p Hp⟩ <;>
+      (Hnw k p Hp).1⟩ <;>
       (rw [h1]; assumption)
   · -- a fresh one
     intro k pv Hf
@@ -281,7 +282,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     ipureintro
     refine ⟨Harr, Hln, Hal, ⟨Hwit, fun k p hp => ?_⟩, domSet_gset cfg, ?_, ⟨?_, rfl, ?_⟩, ?_⟩
     · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp]; rfl))
-      exact (Hmk k pr p hpr hp).2.2
+      exact ⟨(Hmk k pr p hpr hp).2.2, ne0_of_dom (by rw [Hpdom]; exact H0) hpr⟩
     · rw [Hpdom]; exact GMap.union_subseteq_l _ _
     · apply GMap.set_eq; intro k
       rw [domSet_gset, Hpdom, GMap.elem_of_difference, GMap.elem_of_union]

@@ -69,7 +69,7 @@ theorem raft.promotable.wp_proof
       rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
     -- (2026-10-19, witness support) not the witness (`NoWitP`)
     have Hw : pv.IsWitness' = false :=
-      ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw id p Hpv)
+      ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw id p Hpv).1
     have Htr : id ∈ c.ids := by
       rw [← Hdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
     by_cases Hin : id ∈ c.voters
