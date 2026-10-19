@@ -134,7 +134,7 @@ theorem mvcc.newWatchableStore.wp_proof
     ipureintro; exact mvcc.wsInit_ok
   haveI := mvcc.watchStoreInv_fractional hsplit «$r0_ptr» γ
   imod sync.init_RWMutex (mvcc.watchStoreInv «$r0_ptr» γ) (mvcc.wsMuAddr «$r0_ptr») $$ Hbody mu with Hmus
-  icases guard_of_slots _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   -- the channels
   imod start_bag (V := Unit) (fun _ => iprop(True)) _ vc γv trivial $$ Hvc Hvown with #Hvcb
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γstc stc $$ Hstc Hstown with Hstop

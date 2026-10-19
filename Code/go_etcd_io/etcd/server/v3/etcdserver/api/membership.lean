@@ -209,6 +209,9 @@ noncomputable def newMember [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def setIsLearnerMetric [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.setIsLearnerMetric"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.init.0"
+
 noncomputable def MustParseMemberIDFromKey [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.MustParseMemberIDFromKey"
 
@@ -418,8 +421,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val storeRemovedMembersPrefix.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val storeRemovedMembersPrefix.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val StoreMembersPrefix.init) (Val #()))))))
   (App (Val doExecute)

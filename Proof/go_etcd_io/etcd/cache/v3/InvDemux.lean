@@ -46,8 +46,9 @@ public import Perennial.Golang.Theory.Map
 public import Spec.go_etcd_io.etcd.cache.v3.watcher__enqueueResponse
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.SavedProp
-public import Proof.Lib.Heap
-public import Proof.Lib.Sync
+public import Perennial.Ghost.GhostVar
+public import Perennial.IrisLib.BI
+public import Perennial.Proof.sync.RWMutexGuard
 
 @[expose] public section
 
@@ -1881,7 +1882,7 @@ theorem slots_take_all (γd : DemuxNames) (regs : GMap Loc RegInfo) :
     icases Hs with (Hr | ⟨Hb, -⟩)
     · iframe
     · ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hw Hb
-      exact absurd Hv.1 (qp_one_add_not_le _)
+      exact absurd Hv.1 (Qp_one_add_not_le _)
 
 /-- Put every registration's resources back in the slots. -/
 theorem slots_put_all (γd : DemuxNames) (regs : GMap Loc RegInfo) :
@@ -1915,7 +1916,7 @@ theorem demux_lock_acquire (d : Loc) (γd : DemuxNames) (cap : Nat) :
   unfold demuxSlots
   icases Hs with (Hw1 | ⟨%regs', Hregs', Hsl⟩)
   · ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hwtok Hw1
-    exact absurd Hv.1 (qp_one_add_not_le _)
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   ihave %Heq := ghostMapAuth_agree _ _ _ _ _ $$ Hregs Hregs'
   subst Heq
   icases slots_take_all γd regs $$ [Hwtok Hsl] with ⟨Hwtok, Hres⟩
@@ -1965,7 +1966,7 @@ theorem demux_lock_release (d : Loc) (γd : DemuxNames) (cap : Nat) (c : DemuxCo
     iframe #
     ipureintro; exact ⟨Hinv, Hok, Hstart⟩
   · ihave %Hv := ghostMapAuth_valid_2 _ _ _ _ _ $$ Hregs Hregs'
-    exact absurd Hv.1 (qp_one_add_not_le _)
+    exact absurd Hv.1 (Qp_one_add_not_le _)
 
 /-- Under a read lock (`P rfrac`), `w`'s registrant borrows its slot. -/
 theorem demux_slot_borrow (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ : WatcherNames)
@@ -1990,7 +1991,7 @@ theorem demux_slot_borrow (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ
   unfold demuxSlots
   icases Hs with (Hw1 | ⟨%regs', Hregs', Hsl⟩)
   · ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hw1 Hwt1
-    exact absurd Hv.1 (qp_one_add_not_le _)
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   ihave %Hlk := ghost_map_lookup $$ Hregs' Hel1
   icases (BigSepM.bigSepM_delete (Φ := fun w ri => slotRes (hG := hG) C γd w ri) (m := regs') Hlk).1
     $$ Hsl with ⟨Hslot, Hsl⟩
@@ -2027,7 +2028,7 @@ theorem demux_slot_return (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc) (γ
   unfold demuxSlots
   icases Hs with (Hw1 | ⟨%regs', Hregs', Hsl⟩)
   · ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hw1 Hwt1
-    exact absurd Hv.1 (qp_one_add_not_le _)
+    exact absurd Hv.1 (Qp_one_add_not_le _)
   ihave %Hlk := ghost_map_lookup $$ Hregs' Hel1
   icases (BigSepM.bigSepM_delete (Φ := fun w ri => slotRes (hG := hG) C γd w ri) (m := regs') Hlk).1
     $$ Hsl with ⟨Hslot, Hsl⟩

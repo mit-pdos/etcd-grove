@@ -1002,6 +1002,9 @@ noncomputable def getChainStreamer [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newConnectivityStateManager [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newConnectivityStateManager"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.0"
+
 noncomputable def copyAddresses [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.copyAddresses"
 
@@ -1034,6 +1037,9 @@ noncomputable def newCodecV0Bridge [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def newCodecV1Bridge [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCodecV1Bridge"
+
+noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.1"
 
 noncomputable def newDisableGlobalDialOptions [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newDisableGlobalDialOptions"
@@ -1206,6 +1212,9 @@ noncomputable def newCCResolverWrapper [FfiSyntax] [GoGlobalContext] : GoString 
 noncomputable def addressesToEndpoints [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.addressesToEndpoints"
 
+noncomputable def init.«2» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.2"
+
 noncomputable def NewGZIPCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewGZIPCompressor"
 
@@ -1322,6 +1331,9 @@ noncomputable def toRPCErr [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def setCallInfoCodec [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.setCallInfoCodec"
+
+noncomputable def init.«3» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.3"
 
 noncomputable def newFuncServerOption [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newFuncServerOption"
@@ -1488,6 +1500,9 @@ noncomputable def validateSendCompressor [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def newHandlerQuota [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newHandlerQuota"
 
+noncomputable def init.«4» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.4"
+
 noncomputable def parseServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.parseServiceConfig"
 
@@ -1505,6 +1520,9 @@ noncomputable def getMaxSize [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def newInt [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newInt"
+
+noncomputable def init.«5» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.init.5"
 
 noncomputable def equalServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.equalServiceConfig"
@@ -1596,8 +1614,26 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«5» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«4» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«3» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)

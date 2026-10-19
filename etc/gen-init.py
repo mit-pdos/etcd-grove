@@ -6,11 +6,14 @@ Each file proves `<pkg>.wp_initialize'`: running the package's Goose `initialize
 execution order (the `GlobalAlloc`s of the translated variables, the imports' `initialize'`, the
 variables' initializers); an untranslated initializer (`X.init`, an axiom of the translation)
 gets a trust-boundary axiom of the file: `opaqueInitsOk` (it runs), `errorsNewVarsInit` (it is
-`errors.New(msg)`) or `<X>_init` (what a fact reads of it). The packages are the import closure
+`errors.New(msg)`) or `<X>_init` (what a fact reads of it); then its `func init()`s, `init.<k>` (as
+gc names them): a translated one is stepped into, an untranslated one (no `FuncUnfold`) gets the
+trust-boundary axiom `initFuncsOk` (it returns). The packages are the import closure
 of `ROOTS`, but Perennial's (with a `Link`), raft's (`Proof/go_etcd_io/raft/v3/Init.lean`), the
 B-tree's (`initialize.lean`) and `NOT_YET`; a package whose fact is not `True` or whose
 initializer runs translated code needs an entry in `SPECIAL` (the per-package doc, axioms, the
-hand-written steps `before` an item, and the `finish`).
+hand-written steps `before` an item, `$inits` (before the `init` functions) and `$end`, and the
+`finish`).
 
 Each theorem is proved in a form that keeps what is initialized (decision D19e,
 `Proof/runtime/PkgInit.lean`): `wp_initialize'_lb` (from `ownInitLb g σ0`, for every `σ0`) or,
@@ -376,8 +379,8 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
     before={'defaultWaitForReady': [
         'wp_apply wp_slice_literal (l := [W8 0])', 'isplitr', '· ipureintro; rfl',
         'iintro %snp ⟨Hsnp, -⟩', 'try wp_auto'],
-        '$end': ['wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩',
-                 'wp_apply EtcdGrove.time.Unix.wp_proof as %zt -']},
+        '$inits': ['wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩',
+                   'wp_apply EtcdGrove.time.Unix.wp_proof as %zt -']},
     finish=['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions'] + FIN_PRE[:6] + [
             'imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #'],
 )
@@ -500,8 +503,9 @@ _P['pre'] = ['/-- A small 64-bit literal\'s value as a signed natural (the descr
              '  simp [sint.nat, BitVec.toInt]; omega', '']
 _PB_SL = ['KVm', 'KVs', 'Wm', 'Ws', 'Lm', 'Ls', 'Cm', 'Cs', 'Mm', 'Ms', 'Am', 'As']
 _PB_DESCS = ['KV', 'Watch', 'Lease', 'Cluster', 'Maintenance', 'Auth']
-_P['finish'] = ([f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %p{t} ⟨S{t}, -⟩; try wp_auto'
-                 for t in _PB_SL] + ['try wp_auto'] + [f'ipersist S{t}' for t in _PB_SL] +
+_P['before'] = {'$inits': [f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %p{t} ⟨S{t}, -⟩; try wp_auto'
+                            for t in _PB_SL] + ['try wp_auto']}
+_P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'ipersist H{d}_ServiceDesc' for d in _PB_DESCS] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
                 ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name'] +
@@ -596,8 +600,8 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
     before={'restoreChunkKeys': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$end': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}'
-                     for t in ['WNE', 'EWR', 'WDI']]},
+            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}'
+                       for t in ['WNE', 'EWR', 'WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
@@ -792,7 +796,7 @@ names) and the four
 `watchSendLoop*` histograms (untranslated: the trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, and `progressReportIntervalMu`, initialized here, guarding
 `progressReportInterval` (`10 * time.Minute`: `intervalP`).""",
-    imports=['Proof.Lib.Sync'],
+    imports=['Perennial.Proof.sync.RWMutexGuard'],
     alloc_types={'progressReportIntervalMu': '_root_.Perennial.sync.RWMutex',
                  'progressReportInterval': 'w64', 'metricsServerCached': 'Loc',
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
@@ -876,7 +880,7 @@ names) and the four
              '  iframe HprogressReportInterval',
              '  ipureintro',
              '  first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word',
-             'ihave ⟨-, #HIG⟩ := EtcdGrove.guard_of_slots _ _ $$ HIS'] +
+             'ihave ⟨-, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),
@@ -933,13 +937,13 @@ and raft's, leaf errors by the premise `EtcdGrove.ErrorStringLeaf`), and `contex
     vars=['[EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]', '[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
-    before={'$end': [
+    before={'$inits': [
         'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %o1 %Ho1', 'try wp_auto',
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ Ho1 (by decide) as %c1 ⟨#C1, %N1⟩',
         'try wp_auto',
         'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %o2 %Ho2', 'try wp_auto',
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ Ho2 (by decide) as %c2 ⟨#C2, %N2⟩',
-        'try wp_auto',
+        'try wp_auto'], '$end': [
         'iunfold EtcdGrove.read.readRegPerm at HR',
         'icases HR with ⟨HR1, HR2⟩',
         'wp_apply wp_slice_literal (l := [GoInterface.ok c1])', 'isplitr', '· ipureintro; rfl',
@@ -1058,15 +1062,19 @@ def exec_order(p):
     j = t.find("\n\n", i)
     body = t[i:j]
     items = []
-    for m in re.finditer(r"\(Val _root_\.Perennial\.(\S+)\.initialize'\)|\(Val ([^\s()]+)\.init\)|go\.GlobalAlloc (\S+) |GlobalVarAddr (\S+)\)", body):
+    for m in re.finditer(r"\(Val _root_\.Perennial\.(\S+)\.initialize'\)|\(Val ([^\s()]+)\.init\)|go\.GlobalAlloc (\S+) |GlobalVarAddr (\S+)\)|FuncResolve (init\.«\d+») \[\]", body):
         if m.group(1):
             items.append(('import', m.group(1)))
         elif m.group(2):
             items.append(('opaque', m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))
-        else:
+        elif m.group(4):
             items.append(('store', m.group(4)))
+        else:
+            # a `func init()`, `init.<k>` (as gc names them): translated if it has a body
+            kind = 'initfn' if f'noncomputable def {m.group(5)}.impl ' in t else 'opaqueinitfn'
+            items.append((kind, m.group(5)))
     items.reverse()
     return items
 
@@ -1084,6 +1092,7 @@ def gen(p, cfg=None):
     pk = pkginfo_imports(p)
     items = exec_order(p)
     opq = [x for (kind, x) in items if kind == 'opaque' and x not in newvars and x not in custom]
+    opqf = [x for (kind, x) in items if kind == 'opaqueinitfn']
     imps = [x for (kind, x) in items if kind == 'import']
     assert sorted(imps) == sorted(pk), (p, imps, pk)
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg.get('imports', [])
@@ -1097,10 +1106,19 @@ def gen(p, cfg=None):
     A('')
     if 'doc' in cfg:
         A(cfg['doc'])
+    elif opq and opqf:
+        A('Its fact is `True`. Its initializer initializes its imports, runs the untranslated')
+        A('initializers of its variables (`X.init`, axioms of the translation), which the')
+        A('trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated')
+        A('`init` functions, which the trust-boundary axiom `initFuncsOk` says return.')
     elif opq:
         A('Its fact is `True`. Its initializer initializes its imports and runs the untranslated')
         A('initializers of its variables (`X.init`, axioms of the translation), which the')
         A('trust-boundary axiom `opaqueInitsOk` says run without panicking.')
+    elif opqf:
+        A('Its fact is `True`. Its initializer initializes its imports and runs its untranslated')
+        A('`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no')
+        A('initialized variable).')
     else:
         A('Its fact is `True`. Its initializer initializes its imports (it has no initialized')
         A('variable).')
@@ -1126,7 +1144,7 @@ def gen(p, cfg=None):
     A('')
     A('open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode')
     A('')
-    if opq or newvars or custom:
+    if opq or opqf or newvars or custom:
         A('section opaqueInits')
         A(f'namespace {p}')
         A('variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]')
@@ -1142,6 +1160,17 @@ def gen(p, cfg=None):
             A('axiom opaqueInitsOk :')
             A('    ∀ v ∈ ([' + ',\n        '.join(f'{x}.init' for x in opq) + '] : List val),')
             A('    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}')
+            A('')
+        if opqf:
+            A(f'/-- **The trust boundary: `{p}`\'s untranslated `init` functions return.** Goose')
+            A('names a package\'s `func init()`s `init.<k>`, as gc does, and translates them names-only')
+            A('here, so the model does not unfold them (`@! init.<k>`: the semantics\' `functions`, which')
+            A('the package\'s `Assumptions` do not constrain for them). Go runs them at program start, and')
+            A('etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of')
+            A('other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/')
+            A('axiom initFuncsOk :')
+            A('    ∀ f ∈ ([' + ', '.join(opqf) + '] : List GoString),')
+            A('    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}')
             A('')
         if newvars:
             A(f'/-- **The trust boundary: `{p}`\'s variables initialized by `errors.New`.** Each')
@@ -1226,6 +1255,10 @@ def gen(p, cfg=None):
         return re.sub(r'\{Hd:([\w.]+)\}', lambda m: f'Hd{pk.index(m.group(1)) + 1}', l)
     before = dict(cfg.get('before', {}))
     for kind, x in items:
+        if kind in ('initfn', 'opaqueinitfn'):
+            # the `init` functions run after every variable initializer: `$inits`' steps first
+            for l in before.pop('$inits', []):
+                A('  ' + hdsub(l))
         if kind == 'opaque' and x in before:
             for l in before.pop(x):
                 A('  ' + hdsub(l))
@@ -1247,12 +1280,19 @@ def gen(p, cfg=None):
             A(f'  wp_apply {x}_init as {custom[x]["pat"].replace("@", x)}')
         elif kind == 'opaque':
             A(f'  wp_apply (opaqueInitsOk {x}.init (by mem_tac))')
+        elif kind == 'opaqueinitfn':
+            A(f'  wp_apply (initFuncsOk {x} (by mem_tac))')
+        elif kind == 'initfn':
+            A(f'  -- the translated {x}')
+            A('  wp_func_call')
+            A('  wp_call')
+            A('  try wp_auto')
         elif kind == 'alloc':
             A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x}')
         else:
             A(f'  -- translated initializer of {x}')
-    for l in before.pop('$end', []):
-        A('  ' + l)
+    for l in before.pop('$inits', []) + before.pop('$end', []):
+        A('  ' + hdsub(l))
     assert not before, before
     for l in cfg.get('finish', ['iframe Hown', 'is_pkg_init_finish']):
         A('  ' + hdsub(l))

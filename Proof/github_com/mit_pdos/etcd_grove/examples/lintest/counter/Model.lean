@@ -2,7 +2,8 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `Model`: the three closures meet `initSpec`, `stepSpec` and `equalSpec` of
-`counterS`; the other fields are `nil`. `Step`'s `state.(int64)`, `input.(bool)` and
+`counterS`; the other fields are `nil`. (Its `rep` is pure, so the closures give it back
+trivially.) `Step`'s `state.(int64)`, `input.(bool)` and
 `output.(int64)` go through by `rep` and `ioOk` (a boxed `int64`, `bool` and `int64`), and its
 verdict is `counterM.step`'s: the output is compared with the next state `counterNext s input`,
 which `Step` returns.
@@ -67,6 +68,8 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
       wp_auto
       iapply HΦ'
       isplitr
+      · ipureintro; rfl
+      isplitr
       · ipureintro
         rw [counterM_step_box, counterNext_boxB]
         simp only [Bool.false_eq_true, ite_false]
@@ -77,6 +80,8 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     | true =>
       wp_auto
       iapply HΦ'
+      isplitr
+      · ipureintro; rfl
       isplitr
       · ipureintro
         rw [counterM_step_box, counterNext_boxB]
@@ -97,6 +102,10 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     subst Hv Hw
     wp_auto
     iapply HΦ'
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
     ipureintro
     intro h
     exact of_decide_eq_true h

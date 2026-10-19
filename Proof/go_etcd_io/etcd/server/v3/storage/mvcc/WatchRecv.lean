@@ -22,7 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SyncModel
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 
@@ -639,7 +639,7 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     iunfold respsIs at Hvs'
     icases Hvs' with ⟨%Hvl, -⟩
     have hd : sent.drop received.length = [] := List.drop_eq_nil_of_le (by simp at Hvl; omega)
-    have hrs : sent = received := (prefix_drop_nil Hpre hd).symm
+    have hrs : sent = received := (Hpre.eq_of_length_le (List.drop_eq_nil_iff.1 hd)).symm
     icases mvcc.sentAuth_lb_valid _ γc sent L l0 $$ [$Hsentl $Hl0] with ⟨Hsentl, %Hlb⟩
     icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hsnap⟩
     imod Hmask with -

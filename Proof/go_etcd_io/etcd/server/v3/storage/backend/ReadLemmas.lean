@@ -9,7 +9,10 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RangeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BksLemmas
-public import Proof.Lib.Heap
+public import Perennial.Golang.Theory.Map
+public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 
@@ -1022,7 +1025,7 @@ theorem single_sorted (es : List Ent) (kb : GoString) (h : entsSorted es) :
     · rw [List.dropWhile_cons, _root_.decide_eq_true hlt]
       simp only [ite_true]
       rw [ih ht]
-      have : ¬ a.1 = kb := fun he => goStringLt_irrefl _ (he ▸ hlt)
+      have : ¬ a.1 = kb := fun he => go.goStringLt_irrefl _ (he ▸ hlt)
       simp only [this, ite_false, Option.or_none]
     · rw [List.dropWhile_cons, _root_.decide_eq_false hlt]
       simp only [Bool.false_eq_true, ite_false]
@@ -1032,8 +1035,8 @@ theorem single_sorted (es : List Ent) (kb : GoString) (h : entsSorted es) :
         have := hall e he
         rw [hek] at this
         rcases strLt_total hlt with h1 | h1
-        · rw [h1] at this; exact goStringLt_irrefl _ this
-        · exact goStringLt_asymm h1 this
+        · rw [h1] at this; exact go.goStringLt_irrefl _ this
+        · exact go.goStringLt_asymm h1 this
       rw [hnone, Option.none_or]
       by_cases hk : a.1 = kb
       · simp only [hk, ite_true]

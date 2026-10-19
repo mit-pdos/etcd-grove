@@ -1,13 +1,13 @@
 name = "etcdGrove"
 defaultTargets = ["EtcdGrove"]
 
-# The Perennial framework (branch `lean` of mit-pdos/perennial), including the Goose
-# translator that produced `Code/` and `GeneratedProof/` (checked by
-# `etc/goose.py --check`).
+# The Perennial framework, including the Goose translator that produced `Code/` and
+# `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
+# mit-pdos/perennial (notes/STATUS.md, "Perennial: the pin follows `lean`").
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "a54e1999fac64cac1b6f3d6533626fc39b359ff8"
+rev = "5fab1f144bba884209b4a0314afde143d3c6119d"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's

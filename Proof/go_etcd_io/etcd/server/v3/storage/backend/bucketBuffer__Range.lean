@@ -43,7 +43,7 @@ theorem backend.rangePred_mono (es : List Ent) (key : GoString) (hs : entsSorted
   apply hfi
   have hlt : strLt es[i.toNat].1 es[j.toNat].1 :=
     List.pairwise_iff_getElem.mp hs _ _ hil hjl (by omega)
-  exact goStringLt_trans hlt hj'
+  exact go.goStringLt_trans hlt hj'
 
 theorem backend.slicesAre_length (ss : List GoSlice) (bs : List GoString) :
     slicesAre (GF := GF) ss bs ⊢ ⌜ss.length = bs.length⌝ := by

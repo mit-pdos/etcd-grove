@@ -271,7 +271,12 @@ EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
-em = "variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else ""
+# The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
+# in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
+# Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter"}
+em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
+      + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))

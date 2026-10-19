@@ -95,7 +95,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
   · iPkgInit
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
-  icases guard_of_slots _ _ $$ Hslots with ⟨-, #Hmug⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
   ipersist lgR
   ipersist tickMuR
   ipersist lgC

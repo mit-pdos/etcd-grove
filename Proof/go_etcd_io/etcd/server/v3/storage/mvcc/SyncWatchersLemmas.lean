@@ -11,7 +11,7 @@ every loop state (`WsOk.sync_step`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 

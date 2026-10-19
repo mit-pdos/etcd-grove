@@ -57,7 +57,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvRetry
 public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 

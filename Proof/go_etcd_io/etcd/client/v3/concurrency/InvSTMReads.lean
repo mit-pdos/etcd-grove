@@ -60,7 +60,7 @@ theorem filter_key_kvAt (s : List EtcdKv) (hs : (s.map EtcdKv.key).Pairwise go.G
       intro w hw hwk
       have := hs.1 w.key (List.mem_map_of_mem hw)
       rw [hx, show w.key = k by simpa using hwk] at this
-      exact goStringLt_irrefl _ this
+      exact go.goStringLt_irrefl _ this
     · rw [List.filter_cons_of_neg (by simpa using hx), List.find?_cons_of_neg (by simpa using hx)]
       exact ih hs.2
 

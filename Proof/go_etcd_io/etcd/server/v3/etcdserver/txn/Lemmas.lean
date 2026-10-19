@@ -90,7 +90,7 @@ theorem findKey_of_mem_sorted : ∀ {s : List EtcdKv}, s.Pairwise etcdKvLess →
     · simp
     · have hlt : etcdKvLess w v := hs.1 v hv
       have hne : w.key ≠ v.key := fun h => by
-        unfold etcdKvLess at hlt; rw [h] at hlt; exact goStringLt_irrefl _ hlt
+        unfold etcdKvLess at hlt; rw [h] at hlt; exact go.goStringLt_irrefl _ hlt
       simp only [hne, ↓reduceIte]
       exact findKey_of_mem_sorted hs.2 hv
 
@@ -120,7 +120,7 @@ theorem filter_key_eq (k : GoString) : ∀ {s : List EtcdKv}, s.Pairwise etcdKvL
       have hlt : etcdKvLess w v := hs.1 v hv
       unfold etcdKvLess at hlt
       rw [hw, of_decide_eq_true hvk] at hlt
-      exact goStringLt_irrefl _ hlt
+      exact go.goStringLt_irrefl _ hlt
     · simp only [hw, decide_false, Bool.false_eq_true, ↓reduceIte]
       exact filter_key_eq k hs.2
 
@@ -205,16 +205,16 @@ theorem forall2_filterMap_keys {α : Type} (R : α → EtcdKv → Prop) (f : GoS
           · exfalso
             have htw : go.GoStringLt t w.key := hT.1 _ h
             rcases List.mem_cons.1 hvmem with hv | hv
-            · subst hv; rw [hvk] at htw; exact goStringLt_irrefl _ htw
+            · subst hv; rw [hvk] at htw; exact go.goStringLt_irrefl _ htw
             · have hwv : go.GoStringLt w.key v.key := hS'.1 v hv
               rw [hvk] at hwv
-              exact goStringLt_irrefl _ (goStringLt_trans htw hwv)
+              exact go.goStringLt_irrefl _ (go.goStringLt_trans htw hwv)
         have hwv : w = v := by
           rw [findKey_cons, hwk] at hf
           simpa using hf
         subst hwv
         have hlt : ∀ key ∈ T, w.key ≠ key := fun key hk h => by
-          have := hT.1 key hk; rw [← h, hwk] at this; exact goStringLt_irrefl _ this
+          have := hT.1 key hk; rw [← h, hwk] at this; exact go.goStringLt_irrefl _ this
         refine List.Forall₂.cons hR ?_
         apply forall2_filterMap_keys R f T S' hT.2 hS'.2
         · intro key hk hnone
@@ -228,7 +228,7 @@ theorem forall2_filterMap_keys {α : Type} (R : α → EtcdKv → Prop) (f : GoS
           · exfalso
             have hwv' : go.GoStringLt w.key v'.key := hS'.1 v' hv'
             rw [h, ← hwk] at hwv'
-            exact goStringLt_irrefl _ hwv'
+            exact go.goStringLt_irrefl _ hwv'
           · exact h
 
 /-! ## The index answers the state -/

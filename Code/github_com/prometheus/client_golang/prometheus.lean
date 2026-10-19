@@ -878,6 +878,9 @@ noncomputable def NewPidFileFn [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def canCollectProcess [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.canCollectProcess"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/prometheus/client_golang/prometheus.init.0"
+
 noncomputable def NewRegistry [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_golang/prometheus.NewRegistry"
 
@@ -1046,8 +1049,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val V2.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val V2.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val labelsPool.init) (Val #()))))))
   (App (Val doExecute)

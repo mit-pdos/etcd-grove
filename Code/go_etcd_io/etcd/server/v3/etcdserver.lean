@@ -514,17 +514,26 @@ noncomputable def newCorruptionChecker [FfiSyntax] [GoGlobalContext] : GoString 
 noncomputable def HashByRev [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.HashByRev"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.init.0"
+
 noncomputable def EnableAllRuntimeMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.EnableAllRuntimeMetrics"
 
 noncomputable def monitorFileDescriptor [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.monitorFileDescriptor"
 
+noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.init.1"
+
 noncomputable def newRaftNode [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.newRaftNode"
 
 noncomputable def updateCommittedIndex [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.updateCommittedIndex"
+
+noncomputable def init.«2» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver.init.2"
 
 noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewServer"
@@ -5532,8 +5541,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val recommendedMaxRequestBytesString.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val recommendedMaxRequestBytesString.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val monitorVersionInterval.init) (Val #()))))))
   (App (Val doExecute)

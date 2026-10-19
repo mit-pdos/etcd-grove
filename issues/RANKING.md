@@ -55,8 +55,9 @@ before any public issue.
    reaches it when a client retries a `Lock`).
 5. **[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)**: a progress
    notification can reach a new watch before its catch-up events, so clients that trust progress
-   (Kubernetes' watch cache, etcd's `cache`) skip events. Racy reproduction (within 47 to 373
-   trials); fixed in our fork; upstream not yet searched. Fix: moderate.
+   (Kubernetes' watch cache, etcd's `cache`) skip events. Deterministic integration test on the
+   fork branch (20 of 20 at 22cc5d9ac); fixed in our fork; searched upstream: not reported
+   (related: #15220, fixed by #15237); candidate drafted. Fix: small (a bounded drain).
 
 ## Second tier: real, narrower or partly known
 
@@ -171,7 +172,10 @@ fork carries #21987).
   [etcd-client-dialoptions-unary-interceptor](etcd-client-dialoptions-unary-interceptor.md)
   (a cheap switch to `WithChainUnaryInterceptor` would likely be accepted),
   [etcd-featuregate-enabled-panic-undocumented](etcd-featuregate-enabled-panic-undocumented.md)
-  (the `FeatureGate` interface omits the panic its implementation documents; a one-line doc fix).
+  (the `FeatureGate` interface omits the panic its implementation documents; a one-line doc fix),
+  [etcd-robustness-model-equal-mutates](etcd-robustness-model-equal-mutates.md) (test code: the
+  robustness model's `Equal` sorts its arguments, against porcupine's contract; harmless, a cheap
+  fix).
 - **Absurd configurations or sizes**: [etcd-compactor-periodic-tiny-retention](etcd-compactor-periodic-tiny-retention.md),
   [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md),
   [etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md) (a cheap fix
@@ -186,10 +190,22 @@ fork carries #21987).
   reproduced), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
   reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
-  (Go, not etcd).
+  (Go, not etcd; a golang/go issue drafted, not filed).
 - **Metrics**: [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md),
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
   merges, little impact).
+
+## bbolt (etcd's storage; none reachable through etcd as configured)
+
+etcd's backend exits on any `Commit` error (`batchTx.commit`: `lg.Fatal("failed to commit
+tx")`), bounds requests at 1.5 MiB by default and uses the default page size, so none of these
+reaches etcd. For bbolt's own maintainers the order would be:
+[bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
+(MVCC broken after an I/O error, for any user that keeps the `DB` after a failed `Commit`;
+reproduced, small fix), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
+(values `Put` accepts make data unreadable; reproduced; the 256 MB variant, etcd-io/bbolt#931,
+was fixed), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
+[bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
 
 ## How to bring them
 

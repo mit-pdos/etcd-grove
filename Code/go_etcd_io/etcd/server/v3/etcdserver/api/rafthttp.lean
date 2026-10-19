@@ -427,6 +427,9 @@ noncomputable def checkClusterCompatibilityFromHeader [FfiSyntax] [GoGlobalConte
 noncomputable def newCloseNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newCloseNotifier"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.init.0"
+
 noncomputable def newMsgAppV2Encoder [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newMsgAppV2Encoder"
 
@@ -568,8 +571,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val errMemberNotFound.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val errMemberNotFound.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val errMemberRemoved.init) (Val #()))))))
   (App (Val doExecute)

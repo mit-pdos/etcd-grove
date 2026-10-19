@@ -299,6 +299,9 @@ noncomputable def newBatchTxBuffered [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewHooks [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.NewHooks"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/backend.init.0"
+
 noncomputable def newBucketBuffer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBucketBuffer"
 
@@ -3091,8 +3094,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val isDefragActive.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val isDefragActive.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val snapshotTransferSec.init) (Val #()))))))
   (App (Val doExecute)

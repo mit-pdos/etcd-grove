@@ -313,6 +313,9 @@ noncomputable def unsafeGetUser [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def unsafeGetAllUsers [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetAllUsers"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.init.0"
+
 noncomputable def DefaultIgnores [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.DefaultIgnores"
 
@@ -787,8 +790,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val schemaChanges.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val schemaChanges.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val emptyStorageVersion.init) (Val #()))))))
   (App (Val doExecute)

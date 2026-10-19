@@ -58,3 +58,12 @@ func Check(clock lintest.Clock, clients int, ops int, timeout time.Duration) por
 	gen := func(id int) any { return id%2 == 0 }
 	return lintest.Run(Model(), c.Apply, gen, clock, clients, ops, timeout)
 }
+
+// Main runs 4 clients of 10 operations each of a counter under a mutex, traced with a
+// counter clock, checks the trace with porcupine (no timeout), and panics unless porcupine
+// answers Ok.
+func Main() {
+	if r := Check(lintest.CounterClock(), 4, 10, 0); r != porcupine.Ok {
+		panic("porcupine rejected a linearizable counter's trace")
+	}
+}

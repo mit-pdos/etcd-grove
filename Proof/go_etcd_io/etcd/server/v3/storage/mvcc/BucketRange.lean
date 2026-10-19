@@ -37,7 +37,7 @@ theorem goStringLe_trans {a b c : GoString} (h1 : go.GoStringLe a b) (h2 : go.Go
   · exact h2
   · rcases h2 with rfl | h2
     · exact Or.inr h1
-    · exact Or.inr (goStringLt_trans h1 h2)
+    · exact Or.inr (go.goStringLt_trans h1 h2)
 
 theorem goStringLe_total (a b : GoString) : go.GoStringLe a b ∨ go.GoStringLe b a := by
   unfold go.GoStringLe
@@ -45,7 +45,7 @@ theorem goStringLe_total (a b : GoString) : go.GoStringLe a b ∨ go.GoStringLe 
   · exact Or.inl (Or.inr h1)
   · by_cases h2 : go.GoStringLt b a
     · exact Or.inr (Or.inr h2)
-    · exact Or.inl (Or.inl (goStringLt_eq_of_not_lt h1 h2))
+    · exact Or.inl (Or.inl (go.goStringLt_eq_of_not_lt h1 h2))
 
 theorem goStringLe_antisymm {a b : GoString} (h1 : go.GoStringLe a b) (h2 : go.GoStringLe b a) :
     a = b := by
@@ -54,7 +54,7 @@ theorem goStringLe_antisymm {a b : GoString} (h1 : go.GoStringLe a b) (h2 : go.G
   · exact h1
   · rcases h2 with h2 | h2
     · exact h2.symm
-    · exact absurd h2 (goStringLt_asymm h1)
+    · exact absurd h2 (go.goStringLt_asymm h1)
 
 /-- **`bucketRange` is characterized** by its keys strictly increasing and its members: the
 entries of `m` with a key in `[klo, khi)`. -/
@@ -94,7 +94,7 @@ theorem bucketRange_eq_iff (m : GMap GoString GoString) (klo khi : GoString)
   · rintro rfl; exact ⟨hltS, hmemS⟩
   · rintro ⟨hl, hlm⟩
     have hndl : (l.map Prod.fst).Nodup :=
-      hl.imp (fun {a b} (h : go.GoStringLt a b) (hab : a = b) => goStringLt_irrefl a (hab ▸ h))
+      hl.imp (fun {a b} (h : go.GoStringLt a b) (hab : a = b) => go.goStringLt_irrefl a (hab ▸ h))
     have hp : List.Perm (bucketRange m klo khi) l := by
       rw [List.perm_ext_iff_of_nodup (List.Pairwise.of_map Prod.fst (fun a b (h : a.1 ≠ b.1) hab => h (by rw [hab])) hndS) (List.Pairwise.of_map Prod.fst (fun a b (h : a.1 ≠ b.1) hab => h (by rw [hab])) hndl)]
       rintro ⟨k, v⟩

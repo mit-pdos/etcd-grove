@@ -47,7 +47,8 @@ public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostMap
+public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.HashDefs
 
 @[expose] public section
@@ -1214,7 +1215,7 @@ instance bucketView_fractional (γ : StoreNames) (m : Bucket) :
       have hc := (ghostVar_fractional (GF := GF) d.γB.cvw ()).fractional q1.half q2.half
       simp only
       unfold bkView backend.bView
-      rw [qp_half_add]
+      rw [Qp_half_add]
       constructor
       · iintro ⟨%vd, ⟨Hv, Hc⟩, %Hk⟩
         icases (hv vd).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -1803,7 +1804,7 @@ for a watchable store's (the outer quarter is `s.mu`'s), a half otherwise. -/
 def revQ (γ : StoreNames) (q : Qp) : Qp := if γ.watchQ then q.half.half else q.half
 
 theorem revQ_add (γ : StoreNames) (q1 q2 : Qp) : revQ γ (q1 + q2) = revQ γ q1 + revQ γ q2 := by
-  unfold revQ; split <;> simp [qp_half_add]
+  unfold revQ; split <;> simp [Qp_half_add]
 
 /-- What a commit of `pend` after `ilog` takes of the outer quarter: nothing for no change, nor
 for a store without watchers. -/
@@ -1892,7 +1893,7 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
     unfold revMuInv
-    rw [revQ_add, qp_half_add, qp_half_add]
+    rw [revQ_add, Qp_half_add, Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
       icases H with ⟨%log, %ntok, %c, H⟩
@@ -1973,7 +1974,7 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
     unfold muInv muInvAt
-    rw [qp_half_add, qp_half_add]
+    rw [Qp_half_add, Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
       icases H with ⟨%c, H⟩

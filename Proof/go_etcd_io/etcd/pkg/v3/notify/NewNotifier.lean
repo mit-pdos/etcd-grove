@@ -38,7 +38,7 @@ theorem notify.NewNotifier.wp_proof : notify.NewNotifier.spec (GF := GF) (hG := 
   imod sync.init_RWMutex (notifyLockInv n γ) (notifyMuAddr n) $$ [channel Hcur Hpend] mu with Hslots
   · inext; iunfold notifyLockInv; iexists NotifyCur.mk ch γch γi; simp only [named]; iframe
     iexact Hint
-  icases guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
   wp_auto
   iapply HΦ
   isplitr

@@ -128,6 +128,9 @@ noncomputable def Clone [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def CloneOf [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.CloneOf"
 
+noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/protobuf/proto.init.0"
+
 noncomputable def MessageName [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.MessageName"
 
@@ -189,8 +192,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val wireTypes.init) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
+  (App (Val doExecute)
+  (App (Val wireTypes.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val errRecursionDepth.init) (Val #()))))))
   (App (Val doExecute)

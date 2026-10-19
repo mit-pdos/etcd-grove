@@ -82,6 +82,16 @@ axiom opaqueInitsOk :
         «_».init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.storage.mvcc`'s untranslated `init` functions return.** Goose
+names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
+here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
+the package's `Assumptions` do not constrain for them). Go runs them at program start, and
+etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
+other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
+axiom initFuncsOk :
+    ∀ f ∈ ([init.«0»] : List GoString),
+    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
 /-- `rangeCounter = prometheus.NewCounter(...)` (`metrics.go`): a `Counter`: `Inc` returns, and `Add` of a non-negative value. -/
 axiom rangeCounter_init :
     {{ (True : IProp GF) }} (App (Val rangeCounter.init) (Val #()))
@@ -287,6 +297,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply _root_.Perennial.context.wp_New_errorString as %xWNE #MWNE
   wp_apply _root_.Perennial.context.wp_New_errorString as %xEWR #MEWR
   wp_apply _root_.Perennial.context.wp_New_errorString as %xWDI #MWDI
+  wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrRevisionNotFound
   ipersist HErrCompacted
   ipersist HErrFutureRev

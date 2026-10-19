@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `cacheKey(model, linearized, state)` (checker.go): some hash of the bitset and the state (the
-cache is sound for any hash, so nothing is said of it).
+cache is sound for any hash, so nothing is said of it). The state value is the candidate, owned
+(not yet shared, `Shared.lean`); `Hash` gives it back.
 -/
 module
 
@@ -31,7 +32,7 @@ abbrev cacheKey.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ isEqHash S m ∗ lin ↦*{dq} ws ∗ S.rep st t }}
     (App (App (App (Val (@! github_com.anishathalye.porcupine.cacheKey)) (Val #m)) (Val #lin))
       (Val #st))
-  {{ (h : w64), RET #h; lin ↦*{dq} ws }}
+  {{ (h : w64), RET #h; lin ↦*{dq} ws ∗ S.rep st t }}
 
 end spec
 

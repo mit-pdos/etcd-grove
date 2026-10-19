@@ -6659,10 +6659,36 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   configurations each on the stack or without completion) with no termination argument
   (partial correctness).
 - **The model is specified by its closures** (`ModelSpec`: a deterministic `SeqModel` over
-  `(input, output)` interface values, a persistent `rep` of states, a persistent `ioOk` of an
+  `(input, output)` interface values, a `rep` of states, a persistent `ioOk` of an
   operation's input and output): what porcupine calls is exactly `Init`, `Step`/`StepContext`,
   `Equal`, `Hash`. `Equal` need only be sound (true ⇒ same state), `Hash` nothing: the cache is
   sound for any hash. *Rejected:* a pure model with the closures as a trusted translation.
+- **`StepContext` may refuse on a done context** (2026-10-19): etcd's robustness model returns
+  `(false, nil)` once `ctx.Err() != nil` (`nonDeterministicState.apply`), even for a step the
+  model allows, so `stepCtxSpec` takes the context (`isContext c cs`) and allows the answer
+  `false` with `□ cs.PDone` beside the model's. Never a wrong `true`: the checker would push and
+  cache a state that represents nothing. `checkSingle`'s loop carries `⌜Inv⌝ ∨ □ cs.PDone`
+  beside `searchInv` (whose pure part keeps only the model-free `FramesPos`): its spec already
+  allows `false` with the context done, so no caller's spec changes.
+- **`rep` is not necessarily persistent** (2026-10-19, decided with the user): etcd's robustness
+  model sorts its states in place in `Equal` (`issues/etcd-robustness-model-equal-mutates.md`),
+  so each closure spec takes the `rep`s it reads and gives them back, of the same abstract
+  states, and `checkSingle`, which keeps a state value in its stack, its cache and its current
+  state, shares each in a non-atomic invariant of a pool it allocates (`Shared.lean`; one
+  namespace, since it never opens two at once: `StepContext` opens the current state's, `Equal`
+  one cached entry's against the candidate, which is owned). *Rejected:* a persistent `rep`
+  (read-only: excludes etcd's model); a freshness premise on `Step`'s result (the separation of
+  the old and new `rep`s says it).
+- **`[NaInvG GF]` is assumed** (2026-10-19): the non-atomic invariants' camera is iris-lean's
+  `NaInvG GF`, and Perennial's ghost state is the one universal camera `allG`
+  (`Perennial/Ghost/All.lean`), which does not provide it. So every porcupine and lintest result
+  takes `[NaInvG GF]` (`etc/gen-link.py` emits `variable [NaInvG GF]` in the `--porcupine`,
+  `--lintest` and `--lintest-counter` modes, as it emits `EtcdModel` in `EM_MODES`): nothing in
+  this repository provides it at a `HeapGS`, so these results are conditional on it. The right
+  fix is in Perennial: `allG` should provide it (a code for the camera in `allG`'s syntax, or
+  `na_inv` rebuilt over `allG`), when the assumption goes. A closed theorem picks a concrete
+  bundle with a slot for `NaInvF` (`counterGF`, `lintest/counter/Adequacy.lean`), so it assumes
+  no instance.
 - **Cancellation as a token**: `checkSingle` returns `true`, or the history is not linearizable,
   or its context's Done proposition holds; `checkParallel` picks that proposition to be "this
   thread called `cancel`", minted from a token it holds until then, so a `false` result before it
@@ -9637,7 +9663,11 @@ with nothing past it). The modules are split by what they import, so that each s
 import graph: `Iris` needs only Perennial's ghost state (the raft protocol's `Ghost.lean` imports
 it without the heap), `GoString` only `Perennial.Golang.Defn.String`, `List` nothing.
 
-*Temporary, per fact.* `Proof/Lib/` is a holding place, not a library of this repository: each
+*Carried out (2026-10-19).* Every fact moved to Perennial (`lean`, `8d53c9e0d`) or was deleted (unused, or a one-liner from Lean core), and
+`Proof/Lib/` is gone (STATUS.md, "Proof/Lib: the package-independent facts"). A new fact of this
+kind goes to Perennial directly, on a branch off its `lean`, not into a holding place here.
+
+*Temporary, per fact.* `Proof/Lib/` was a holding place, not a library of this repository: each
 fact is one Perennial (or Lean core) is missing, and a candidate for an independent Perennial
 proposal under "Changes to Perennial" in CLAUDE.md (designed and reviewed on its own, not shaped
 by a proof here). A fact goes from `Proof/Lib/` when its Perennial counterpart lands, its users

@@ -86,7 +86,7 @@ Lean notes:
 * `Pos.Countable` instances for `entryID`, `EntryM` and `Aev` (Rocq derives
   `Countable` for them; the ghost maps and the mono list store them) are added here.
 * `ite_persistent`/`ite_timeless` (no Rocq counterpart: Rocq's `case_decide; apply _`
-  inside the instance proofs; in `Proof/Lib/Iris.lean`) and `forall_prop_timeless`
+  inside the instance proofs; Perennial's, `IrisLib/BI.lean`) and `forall_prop_timeless`
   (iris-lean's `forall_timeless` quantifies over a `Type`, not a proof of a `Prop`) are
   helper instances.
 -/
@@ -100,7 +100,8 @@ public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.Token
 public import Perennial.GooseLang.Countable
 public import Perennial.GooseLang.Receipts
-public import Proof.Lib.Iris
+public import Perennial.Ghost.GhostVar
+public import Perennial.IrisLib.BI
 
 @[expose] public section
 

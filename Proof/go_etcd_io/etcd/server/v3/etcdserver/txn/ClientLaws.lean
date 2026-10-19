@@ -142,7 +142,7 @@ theorem mem_underPfx {pfx : GoString} {s : List EtcdKv} {v : EtcdKv} :
   unfold underPfx; rw [List.mem_filter, decide_eq_true_iff]
 
 theorem etcdKv_key_eq_of_incomp {a b : EtcdKv} (h1 : ¬ etcdKvLess a b) (h2 : ¬ etcdKvLess b a) :
-    a.key = b.key := goStringLt_eq_of_not_lt h1 h2
+    a.key = b.key := go.goStringLt_eq_of_not_lt h1 h2
 
 theorem pfx_respEquiv (pfx : GoString) :
     RespEquiv etcdKvLess (fun v : EtcdKv => decide (pfx <+: v.key)) := by
@@ -164,7 +164,7 @@ theorem filter_key_ne_eq_btDelete (x : EtcdKv) :
   | w :: ws, hs => by
     rw [List.pairwise_cons] at hs
     by_cases h1 : etcdKvLess w x
-    · have hne : w.key ≠ x.key := fun e => goStringLt_irrefl _ (by unfold etcdKvLess at h1; rw [e] at h1; exact h1)
+    · have hne : w.key ≠ x.key := fun e => go.goStringLt_irrefl _ (by unfold etcdKvLess at h1; rw [e] at h1; exact h1)
       simp only [List.filter_cons, hne, decide_false, Bool.not_false, ↓reduceIte, btDelete, h1,
         filter_key_ne_eq_btDelete x ws hs.2]
     · by_cases h2 : etcdKvLess x w
@@ -173,8 +173,8 @@ theorem filter_key_ne_eq_btDelete (x : EtcdKv) :
           have hxy : etcdKvLess x y := by
             rcases List.mem_cons.1 hy with rfl | hy
             · exact h2
-            · exact goStringLt_trans h2 (hs.1 y hy)
-          unfold etcdKvLess at hxy; rw [e] at hxy; exact goStringLt_irrefl _ hxy
+            · exact go.goStringLt_trans h2 (hs.1 y hy)
+          unfold etcdKvLess at hxy; rw [e] at hxy; exact go.goStringLt_irrefl _ hxy
         rw [List.filter_eq_self.2 (fun y hy => by simp [hall y hy])]
         simp only [btDelete, h1, h2, ↓reduceIte]
       · have he := etcdKv_key_eq_of_incomp h1 h2
@@ -182,7 +182,7 @@ theorem filter_key_ne_eq_btDelete (x : EtcdKv) :
         have hall : ∀ y ∈ ws, y.key ≠ x.key := by
           intro y hy e
           have := hs.1 y hy
-          unfold etcdKvLess at this; rw [e, ← he] at this; exact goStringLt_irrefl _ this
+          unfold etcdKvLess at this; rw [e, ← he] at this; exact go.goStringLt_irrefl _ this
         rw [List.filter_eq_self.2 (fun y hy => by simp [hall y hy])]
         simp only [btDelete, h1, h2, ↓reduceIte]
 

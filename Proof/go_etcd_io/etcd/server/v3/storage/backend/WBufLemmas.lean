@@ -9,7 +9,7 @@ Lemmas on a writable buckets map (`ownBks`), for the write buffer's proofs
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
-public import Proof.Lib.List
+public import Perennial.Std.ListBasics
 
 @[expose] public section
 

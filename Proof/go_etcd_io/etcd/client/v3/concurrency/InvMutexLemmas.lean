@@ -71,11 +71,11 @@ theorem filter_key_single (s : List EtcdKv) (hs : (s.map EtcdKv.key).Pairwise go
     · rw [List.filter_cons_of_pos ((hp v).2 hk), List.filter_eq_nil_iff.2]
       intro w hw hpw
       have := hs.1 w.key (List.mem_map_of_mem hw)
-      rw [hk, (hp w).1 hpw] at this; exact goStringLt_irrefl _ this
+      rw [hk, (hp w).1 hpw] at this; exact go.goStringLt_irrefl _ this
     · have hx : ¬ p x = true := by
         intro hpx
         have := hs.1 v.key (List.mem_map_of_mem hv')
-        rw [hk, (hp x).1 hpx] at this; exact goStringLt_irrefl _ this
+        rw [hk, (hp x).1 hpx] at this; exact go.goStringLt_irrefl _ this
       rw [List.filter_cons_of_neg hx]
       exact ih hs.2 hv'
 

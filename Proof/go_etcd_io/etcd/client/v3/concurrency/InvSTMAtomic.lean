@@ -50,13 +50,13 @@ theorem kvAt_btInsert (nv : EtcdKv) :
       rw [kvAt_cons, kvAt_btInsert nv ws hs.2 k, kvAt_cons]
       by_cases hwk : w.key = k
       · have : nv.key ≠ k := by
-          intro h; unfold etcdKvLess at hwv; rw [hwk, h] at hwv; exact goStringLt_irrefl _ hwv
+          intro h; unfold etcdKvLess at hwv; rw [hwk, h] at hwv; exact go.goStringLt_irrefl _ hwv
         simp [hwk, this]
       · simp [hwk]
     · split
       · rw [kvAt_cons, kvAt_cons]
       · rename_i hwv hvw
-        have heq : w.key = nv.key := goStringLt_eq_of_not_lt hwv hvw
+        have heq : w.key = nv.key := go.goStringLt_eq_of_not_lt hwv hvw
         rw [kvAt_cons, kvAt_cons]
         by_cases hk : nv.key = k
         · simp [hk]
