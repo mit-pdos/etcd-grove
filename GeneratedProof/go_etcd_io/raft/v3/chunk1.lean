@@ -112,6 +112,7 @@ instance Ready_typed_pointsto :
     "CommittedEntries" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"CommittedEntries" l) v.CommittedEntries' dq ∗
     "Messages" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"Messages" l) v.Messages' dq ∗
     "MustSync" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"MustSync" l) v.MustSync' dq ∗
+    "WitnessMessages" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"WitnessMessages" l) v.WitnessMessages' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -249,6 +250,22 @@ instance Ready_access_store_MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (M
  by
   solve_pointsto_access_struct
 
+instance Ready_access_load_WitnessMessages (l : Loc) (v : go_etcd_io.raft.v3.Ready) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"WitnessMessages" l) v.WitnessMessages' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"WitnessMessages" l) v.WitnessMessages' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Ready_access_store_WitnessMessages (l : Loc) (v : go_etcd_io.raft.v3.Ready) (WitnessMessages' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"WitnessMessages" l) v.WitnessMessages' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Ready go!"WitnessMessages" l) WitnessMessages' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WitnessMessages' := WitnessMessages' } : go_etcd_io.raft.v3.Ready) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 end def_
 end Ready
 
@@ -265,6 +282,7 @@ instance Peer_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "ID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"ID" l) v.ID' dq ∗
     "Context" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) v.Context' dq ∗
+    "IsWitness" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"IsWitness" l) v.IsWitness' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -303,6 +321,22 @@ instance Peer_access_store_Context (l : Loc) (v : go_etcd_io.raft.v3.Peer) (Cont
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) v.Context' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"Context" l) Context' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Context' := Context' } : go_etcd_io.raft.v3.Peer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Peer_access_load_IsWitness (l : Loc) (v : go_etcd_io.raft.v3.Peer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"IsWitness" l) v.IsWitness' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"IsWitness" l) v.IsWitness' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Peer_access_store_IsWitness (l : Loc) (v : go_etcd_io.raft.v3.Peer) (IsWitness' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"IsWitness" l) v.IsWitness' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.Peer go!"IsWitness" l) IsWitness' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsWitness' := IsWitness' } : go_etcd_io.raft.v3.Peer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -615,6 +649,199 @@ instance lockedRand_access_store_mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand
 
 end def_
 end lockedRand
+
+namespace WitnessMessage
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+
+instance WitnessMessage_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.WitnessMessage where
+  typedPointstoDef l v dq := iprop(
+    "Type'" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) v.Type' dq ∗
+    "From" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"From" l) v.From' dq ∗
+    "To" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"To" l) v.To' dq ∗
+    "Term" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Term" l) v.Term' dq ∗
+    "LastLogTerm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogTerm" l) v.LastLogTerm' dq ∗
+    "LastLogSubterm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogSubterm" l) v.LastLogSubterm' dq ∗
+    "LastLogIndex" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogIndex" l) v.LastLogIndex' dq ∗
+    "ReplicationSet" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"ReplicationSet" l) v.ReplicationSet' dq ∗
+    "Votes" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Votes" l) v.Votes' dq ∗
+    "Context" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Context" l) v.Context' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance WitnessMessage_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.WitnessMessage go_etcd_io.raft.v3.WitnessMessage.underlying := by
+  solve_into_val_typed_struct
+
+instance WitnessMessage_access_load_Type (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) v.Type' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (Type' : go_etcd_io.raft.v3.raftpb.MessageType) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) Type' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_From (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"From" l) v.From' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"From" l) v.From' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_From (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (From' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"From" l) v.From' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"From" l) From' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with From' := From' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_To (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"To" l) v.To' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"To" l) v.To' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_To (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (To' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"To" l) v.To' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"To" l) To' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with To' := To' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_Term (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Term" l) v.Term' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Term" l) v.Term' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_Term (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (Term' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Term" l) v.Term' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Term" l) Term' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := Term' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_LastLogTerm (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogTerm" l) v.LastLogTerm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogTerm" l) v.LastLogTerm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_LastLogTerm (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (LastLogTerm' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogTerm" l) v.LastLogTerm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogTerm" l) LastLogTerm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastLogTerm' := LastLogTerm' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_LastLogSubterm (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogSubterm" l) v.LastLogSubterm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogSubterm" l) v.LastLogSubterm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_LastLogSubterm (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (LastLogSubterm' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogSubterm" l) v.LastLogSubterm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogSubterm" l) LastLogSubterm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastLogSubterm' := LastLogSubterm' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_LastLogIndex (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogIndex" l) v.LastLogIndex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogIndex" l) v.LastLogIndex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_LastLogIndex (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (LastLogIndex' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogIndex" l) v.LastLogIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"LastLogIndex" l) LastLogIndex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastLogIndex' := LastLogIndex' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_ReplicationSet (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"ReplicationSet" l) v.ReplicationSet' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"ReplicationSet" l) v.ReplicationSet' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_ReplicationSet (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (ReplicationSet' : (GoArray GoSlice 2)) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"ReplicationSet" l) v.ReplicationSet' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"ReplicationSet" l) ReplicationSet' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReplicationSet' := ReplicationSet' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_Votes (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Votes" l) v.Votes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Votes" l) v.Votes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_Votes (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (Votes' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Votes" l) v.Votes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Votes" l) Votes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Votes' := Votes' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_load_Context (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Context" l) v.Context' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Context" l) v.Context' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessMessage_access_store_Context (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (Context' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Context" l) v.Context' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Context" l) Context' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Context' := Context' } : go_etcd_io.raft.v3.WitnessMessage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end WitnessMessage
 
 namespace RawNode
 section def_

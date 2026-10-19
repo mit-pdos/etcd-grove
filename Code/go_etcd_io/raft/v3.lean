@@ -120,6 +120,11 @@ def Config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Config.ty
 
+def WitnessMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.WitnessMessage" [])
+
+attribute [irreducible] WitnessMessage.ty
+
 def raft.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3.raft" [])
 
@@ -214,6 +219,31 @@ def entryPayloadSize.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3.entryPayloadSize" [])
 
 attribute [irreducible] entryPayloadSize.ty
+
+def WitnessStorage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.WitnessStorage" [])
+
+attribute [irreducible] WitnessStorage.ty
+
+def WitnessState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.WitnessState" [])
+
+attribute [irreducible] WitnessState.ty
+
+def WitnessConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.WitnessConfig" [])
+
+attribute [irreducible] WitnessConfig.ty
+
+def Witness.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.Witness" [])
+
+attribute [irreducible] Witness.ty
+
+def witness.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"go.etcd.io/raft/v3.witness" [])
+
+attribute [irreducible] witness.ty
 
 @[reducible] noncomputable def calldepth [FfiSyntax] [GoGlobalContext] : val :=
   #(2 : Int)
@@ -328,6 +358,9 @@ noncomputable def isLocalMsg [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def isResponseMsg [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.isResponseMsg"
+
+noncomputable def ErrWitnessStateModified [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.ErrWitnessStateModified"
 
 noncomputable def newLog [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.newLog"
@@ -509,6 +542,9 @@ noncomputable def DescribeMessage [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def describeMessageWithIndent [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.describeMessageWithIndent"
 
+noncomputable def DescribeWitnessMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.DescribeWitnessMessage"
+
 noncomputable def describeTarget [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.describeTarget"
 
@@ -538,6 +574,9 @@ noncomputable def assertConfStatesEquivalent [FfiSyntax] [GoGlobalContext] : GoS
 
 noncomputable def extend [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3.extend"
+
+noncomputable def NewWitness [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3.NewWitness"
 
 /-- Bootstrap initializes the RawNode for first use by appending configuration
     changes for the supplied peers. This method returns an error if the Storage
@@ -588,11 +627,20 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "cct" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) go!"AsV2"))) (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"ID"))) (Var "peer"))))
-  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) go!"Enum"))) (Var "cct")) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"NodeId")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) (Var "$v1")))])))))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"applyConfChange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"IsWitness"))) (Var "peer")))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddWitness)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "cct") (Var "$r0")))))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "cct") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
@@ -610,7 +658,9 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)) (Val #()))
+  (Let "cct" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) go!"Enum"))) (Var "cct")) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"ID"))) (Var "peer"))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"Context"))) (Var "peer")))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2")))]))))))
@@ -645,6 +695,13 @@ noncomputable def RawNode.Bootstrap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "data") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty)))) (Pair (Var "cc") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Peer.ty go!"IsWitness"))) (Var "peer")))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddWitness)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "cct") (Var "$r0")))))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "cct") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
@@ -1295,7 +1352,50 @@ noncomputable def raftLog.firstIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:311:19 -/
+/-- subterm returns the term and subterm of the entry at index i, and false if
+    the entry is not in the log (compacted, or past the last index): the subterm
+    of an entry behind a snapshot is not known.
+
+    go: log.go:314:19 -/
+noncomputable def raftLog.subterm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "i"
+  (App (Val exceptionDo)
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raftLog.ty)))) (Var "l"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "i"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (Val #(W64 1))))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedInt entryEncodingSize.ty))) (Val noLimit))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"slice"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "ents" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Val #()))) (Val #true)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (App (Val doReturn)
+  (Pair (Pair (Val #(W64 0)) (Val #(W64 0))) (Val #false)))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "ents") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"firstIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #())))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l"))) (Val #()))))))
+  (App (Val doReturn)
+  (Pair (Pair (Val #(W64 0)) (Val #(W64 0))) (Val #false)))
+  (App (Val doExecute)
+  (Val #())))))))))
+
+/-- go: log.go:325:19 -/
 noncomputable def raftLog.lastIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1343,7 +1443,7 @@ noncomputable def raftLog.lastIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:322:19 -/
+/-- go: log.go:336:19 -/
 noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "tocommit"
@@ -1370,7 +1470,7 @@ noncomputable def raftLog.commitTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:332:19 -/
+/-- go: log.go:346:19 -/
 noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1414,7 +1514,7 @@ noncomputable def raftLog.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: log.go:347:19 -/
+/-- go: log.go:361:19 -/
 noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1451,7 +1551,7 @@ noncomputable def raftLog.acceptApplying.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))))))))))))
 
-/-- go: log.go:367:19 -/
+/-- go: log.go:381:19 -/
 noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1465,7 +1565,7 @@ noncomputable def raftLog.stableTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad entryID.ty))) (Var "id"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType unstable.ty) go!"stableTo"))) (App (Val (GoInstruction (StructFieldRef raftLog.ty go!"unstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Var "l")))) (Var "$a0"))))))))))
 
-/-- go: log.go:369:19 -/
+/-- go: log.go:383:19 -/
 noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1484,7 +1584,7 @@ noncomputable def raftLog.stableSnapTo.impl [FfiSyntax] [GoGlobalContext] : val 
     to be marked as being in-progress, to avoid returning them with future calls
     to Ready().
 
-    go: log.go:375:19 -/
+    go: log.go:389:19 -/
 noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1498,7 +1598,7 @@ noncomputable def raftLog.acceptUnstable.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- lastEntryID returns the ID of the last entry in the log.
 
-    go: log.go:378:19 -/
+    go: log.go:392:19 -/
 noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1538,7 +1638,7 @@ noncomputable def raftLog.lastEntryID.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))))
 
-/-- go: log.go:387:19 -/
+/-- go: log.go:401:19 -/
 noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1607,7 +1707,7 @@ noncomputable def raftLog.term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0"))))))))))))))))))
 
-/-- go: log.go:415:19 -/
+/-- go: log.go:429:19 -/
 noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "i"
@@ -1633,7 +1733,7 @@ noncomputable def raftLog.entries.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- allEntries returns all entries in the log.
 
-    go: log.go:423:19 -/
+    go: log.go:437:19 -/
 noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam BAnon
@@ -1678,7 +1778,7 @@ noncomputable def raftLog.allEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
     whichever log has the larger lastIndex is more up-to-date. If the logs are
     the same, the given log is up-to-date.
 
-    go: log.go:442:19 -/
+    go: log.go:456:19 -/
 noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "their"
@@ -1693,7 +1793,7 @@ noncomputable def raftLog.isUpToDate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "our") (Var "$r0"))))))))))))
 
-/-- go: log.go:447:19 -/
+/-- go: log.go:461:19 -/
 noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
@@ -1723,7 +1823,7 @@ noncomputable def raftLog.matchTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))))))))))
 
-/-- go: log.go:455:19 -/
+/-- go: log.go:469:19 -/
 noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "at"
@@ -1744,7 +1844,7 @@ noncomputable def raftLog.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: log.go:466:19 -/
+/-- go: log.go:480:19 -/
 noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "s"
@@ -1781,7 +1881,7 @@ noncomputable def raftLog.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the callback returns an error, scan terminates and returns this error
     immediately. This can be used to stop the scan early ("break" the loop).
 
-    go: log.go:482:19 -/
+    go: log.go:496:19 -/
 noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1849,7 +1949,7 @@ noncomputable def raftLog.scan.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- slice returns a slice of log entries from lo through hi-1, inclusive.
 
-    go: log.go:499:19 -/
+    go: log.go:513:19 -/
 noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -1986,7 +2086,7 @@ noncomputable def raftLog.slice.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- l.firstIndex <= lo <= hi <= l.firstIndex + len(l.entries)
 
-    go: log.go:551:19 -/
+    go: log.go:565:19 -/
 noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "lo"
@@ -2036,7 +2136,7 @@ noncomputable def raftLog.mustCheckOutOfBounds.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: log.go:567:19 -/
+/-- go: log.go:581:19 -/
 noncomputable def raftLog.zeroTermOnOutOfBounds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "t"
@@ -2896,7 +2996,7 @@ noncomputable def SoftState.equal.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef SoftState.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SoftState.ty)))) (Var "a")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef SoftState.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SoftState.ty)))) (Var "b")))))) (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef SoftState.ty go!"RaftState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SoftState.ty)))) (Var "a")))) (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef SoftState.ty go!"RaftState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SoftState.ty)))) (Var "b")))))) (Val #false))))))))
 
-/-- go: node.go:117:6 -/
+/-- go: node.go:122:6 -/
 noncomputable def isHardStateEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -2908,7 +3008,7 @@ noncomputable def isHardStateEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- IsEmptyHardState returns true if the given HardState is empty.
 
-    go: node.go:122:6 -/
+    go: node.go:127:6 -/
 noncomputable def IsEmptyHardState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "st"
   (App (Val exceptionDo)
@@ -2920,7 +3020,7 @@ noncomputable def IsEmptyHardState.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- IsEmptySnap returns true if the given Snapshot is empty.
 
-    go: node.go:127:6 -/
+    go: node.go:132:6 -/
 noncomputable def IsEmptySnap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "sp"
   (App (Val exceptionDo)
@@ -2928,7 +3028,7 @@ noncomputable def IsEmptySnap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty) go!"GetIndex"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty) go!"GetMetadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "sp"))) (Val #()))) (Val #())) (Val #(W64 0))))))))
 
-/-- go: node.go:250:6 -/
+/-- go: node.go:256:6 -/
 noncomputable def setupNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "peers"
@@ -2992,7 +3092,7 @@ noncomputable def setupNode.impl [FfiSyntax] [GoGlobalContext] : val :=
 
     Peers must not be zero length; call RestartNode in that case.
 
-    go: node.go:271:6 -/
+    go: node.go:277:6 -/
 noncomputable def StartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "peers"
@@ -3019,7 +3119,7 @@ noncomputable def StartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the caller has an existing state machine, pass in the last log index that
     has been applied to it; otherwise use zero.
 
-    go: node.go:281:6 -/
+    go: node.go:287:6 -/
 noncomputable def RestartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -3059,7 +3159,7 @@ noncomputable def RestartNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType RawNode.ty)))) (Pair (Var "rn") (Var "$r0")))))))))))))))
 
-/-- go: node.go:312:6 -/
+/-- go: node.go:318:6 -/
 noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (App (Val exceptionDo)
@@ -3078,7 +3178,7 @@ noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v10" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))
   (App (Val (GoInstruction (CompositeLiteral node.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"propc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv msgWithResult.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"recvc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"confc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty)) (Var "$v2"))), (KeyedElement (some (KeyField go!"confstatec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)) (Var "$v3"))), (KeyedElement (some (KeyField go!"readyc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv Ready.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"advancec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v5"))), (KeyedElement (some (KeyField go!"tickc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v6"))), (KeyedElement (some (KeyField go!"done")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v7"))), (KeyedElement (some (KeyField go!"stop")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v8"))), (KeyedElement (some (KeyField go!"status")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.ChannelType go.ChanDir.sendrecv Status.ty)) (Var "$v9"))), (KeyedElement (some (KeyField go!"rn")) (ElementExpression (go.GoType.PointerType RawNode.ty) (Var "$v10")))])))))))))))))))))
 
-/-- go: node.go:331:16 -/
+/-- go: node.go:337:16 -/
 noncomputable def node.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3099,7 +3199,7 @@ noncomputable def node.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))])))))))))))
 
-/-- go: node.go:343:16 -/
+/-- go: node.go:349:16 -/
 noncomputable def node.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3379,7 +3479,7 @@ noncomputable def node.run.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Tick increments the internal logical clock for this Node. Election timeouts
     and heartbeat timeouts are in units of ticks.
 
-    go: node.go:458:16 -/
+    go: node.go:464:16 -/
 noncomputable def node.Tick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3401,7 +3501,7 @@ noncomputable def node.Tick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))]))))))))))
 
-/-- go: node.go:467:16 -/
+/-- go: node.go:473:16 -/
 noncomputable def node.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3414,7 +3514,7 @@ noncomputable def node.Campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))))
 
-/-- go: node.go:471:16 -/
+/-- go: node.go:477:16 -/
 noncomputable def node.Propose.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3431,7 +3531,7 @@ noncomputable def node.Propose.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v1")))])))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"stepWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))))))
 
-/-- go: node.go:475:16 -/
+/-- go: node.go:481:16 -/
 noncomputable def node.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3460,7 +3560,7 @@ noncomputable def node.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: node.go:488:6 -/
+/-- go: node.go:494:6 -/
 noncomputable def confChangeToMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -3498,7 +3598,7 @@ noncomputable def confChangeToMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "typ") (Var "$r0"))))))))))))))))))
 
-/-- go: node.go:496:16 -/
+/-- go: node.go:502:16 -/
 noncomputable def node.ProposeConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3532,7 +3632,7 @@ noncomputable def node.ProposeConfChange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "msg") (Var "$r0")))))))))))))))))))
 
-/-- go: node.go:504:16 -/
+/-- go: node.go:510:16 -/
 noncomputable def node.step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3547,7 +3647,7 @@ noncomputable def node.step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a2" (Val #false)
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"stepWithWaitOption"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
 
-/-- go: node.go:508:16 -/
+/-- go: node.go:514:16 -/
 noncomputable def node.stepWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3565,7 +3665,7 @@ noncomputable def node.stepWait.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Step advances the state machine using msgs. The ctx.Err() will be returned,
     if any.
 
-    go: node.go:514:16 -/
+    go: node.go:520:16 -/
 noncomputable def node.stepWithWaitOption.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3650,7 +3750,7 @@ noncomputable def node.stepWithWaitOption.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: node.go:553:16 -/
+/-- go: node.go:559:16 -/
 noncomputable def node.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3659,7 +3759,7 @@ noncomputable def node.Ready.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv Ready.ty) (go.GoType.ChannelType go.ChanDir.recvonly Ready.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv Ready.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"readyc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))))))))
 
-/-- go: node.go:555:16 -/
+/-- go: node.go:561:16 -/
 noncomputable def node.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3677,7 +3777,7 @@ noncomputable def node.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))]))))))))))
 
-/-- go: node.go:562:16 -/
+/-- go: node.go:568:16 -/
 noncomputable def node.ApplyConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "cc"
@@ -3710,7 +3810,7 @@ noncomputable def node.ApplyConfChange.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))]))))))))))))
 
-/-- go: node.go:575:16 -/
+/-- go: node.go:581:16 -/
 noncomputable def node.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -3730,7 +3830,7 @@ noncomputable def node.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv Status.ty)))) (Pair (Var "c") (Var "$r0")))))))))))
 
-/-- go: node.go:585:16 -/
+/-- go: node.go:591:16 -/
 noncomputable def node.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "id"
@@ -3751,7 +3851,7 @@ noncomputable def node.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #()))))])))))))))))
 
-/-- go: node.go:592:16 -/
+/-- go: node.go:598:16 -/
 noncomputable def node.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "id"
@@ -3780,7 +3880,7 @@ noncomputable def node.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "rej") (Var "$r0")))))))))))))))
 
-/-- go: node.go:601:16 -/
+/-- go: node.go:607:16 -/
 noncomputable def node.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3810,7 +3910,7 @@ noncomputable def node.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))]))))))))))))))))
 
-/-- go: node.go:610:16 -/
+/-- go: node.go:616:16 -/
 noncomputable def node.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3823,7 +3923,7 @@ noncomputable def node.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))))
 
-/-- go: node.go:614:16 -/
+/-- go: node.go:620:16 -/
 noncomputable def node.ReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -3971,7 +4071,7 @@ noncomputable def Config.validate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.go:439:6 -/
+/-- go: raft.go:457:6 -/
 noncomputable def newRaft.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -4153,7 +4253,7 @@ noncomputable def newRaft.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
 
-/-- go: raft.go:500:16 -/
+/-- go: raft.go:518:16 -/
 noncomputable def raft.hasLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4162,7 +4262,7 @@ noncomputable def raft.hasLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val None')))))))))
 
-/-- go: raft.go:502:16 -/
+/-- go: raft.go:520:16 -/
 noncomputable def raft.softState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4173,7 +4273,7 @@ noncomputable def raft.softState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (App (Val (GoInstruction (CompositeLiteral SoftState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Lead")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"RaftState")) (ElementExpression StateType.ty (Var "$v1")))])))))))))
 
-/-- go: raft.go:504:16 -/
+/-- go: raft.go:522:16 -/
 noncomputable def raft.hardState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4188,7 +4288,7 @@ noncomputable def raft.hardState.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- send schedules persisting state to a stable storage and AFTER that
     sending the message (as part of next Ready message processing).
 
-    go: raft.go:514:16 -/
+    go: raft.go:532:16 -/
 noncomputable def raft.send.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -4267,7 +4367,7 @@ noncomputable def raft.send.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- sendAppend sends an append RPC with new entries (if any) and the
     current commit index to the given peer.
 
-    go: raft.go:605:16 -/
+    go: raft.go:623:16 -/
 noncomputable def raft.sendAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -4292,7 +4392,7 @@ noncomputable def raft.sendAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
     struct contains all the state necessary for deciding whether to send a
     message.
 
-    go: raft.go:618:16 -/
+    go: raft.go:636:16 -/
 noncomputable def raft.maybeSendAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -4387,7 +4487,7 @@ noncomputable def raft.maybeSendAppend.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "prevTerm") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "prevIndex") (Var "$r0")))))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"IsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #()))
+  (If (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty) go!"IsPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Val #())) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))))
   (App (Val doReturn)
   (Val #false))
   (App (Val doExecute)
@@ -4398,7 +4498,7 @@ noncomputable def raft.maybeSendAppend.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- maybeSendSnapshot fetches a snapshot from Storage, and sends it to the given
     node. Returns true iff the snapshot message has been emitted successfully.
 
-    go: raft.go:666:16 -/
+    go: raft.go:684:16 -/
 noncomputable def raft.maybeSendSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -4504,9 +4604,250 @@ noncomputable def raft.maybeSendSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val doExecute)
   (Val #())))))))))))
 
+/-- go: raft.go:711:16 -/
+noncomputable def raft.sendHeartbeatToWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "id"
+  (Lam "ctx"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "ctx"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WitnessMessage.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ctx"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (Let "$v3" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat)
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (App (Val (GoInstruction (CompositeLiteral WitnessMessage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression go.uint64 (Var "$v4")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType WitnessMessage.ty)))) (LiteralValue [(KeyedElement none (ElementExpression WitnessMessage.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType WitnessMessage.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType WitnessMessage.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0")))))))))))))
+
+/-- go: raft.go:721:16 -/
+noncomputable def raft.getWitnessVoteRequestReadiness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "votesToWin"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "votesToWin" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 2 go.int)))) (Var "votesToWin"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.int)))) (Pair (Var "votesToWin") (Val #(W64 0)))))
+  (Let "v1" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.int)))) (Pair (Var "votesToWin") (Val #(W64 1)))))
+  (Let "v2" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 0)))))
+  (Let "w1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 1)))))
+  (Let "w2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 go.bool)))) (LiteralValue []))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "w")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w1")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w2")))))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v1")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v2")) (Val #(W64 1)))) (Val #false)) (Val #true) (If (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v1")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v2")) (Val #(W64 1)))) (Val #false)))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "w"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w1"))) (Var "$r0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w2")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v2")) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "w"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w2"))) (Var "$r0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w1")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v1")) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "w"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w1"))) (Var "$r0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (Var "w") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w1")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w2")) (Val #(W64 0)))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 go.bool)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w2") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w1") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v1")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v2")) (Val #(W64 1)))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 go.bool)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "v2") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "v1") (Var "$r0"))))))))))))
+
+/-- go: raft.go:750:16 -/
+noncomputable def raft.sendRequestVoteToWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "ctx"
+  (Lam "witnessID"
+  (Lam "voteType"
+  (Lam "term"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "term"))
+  (Let "voteType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "voteType"))
+  (Let "witnessID" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "witnessID"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastEntryID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
+  (Let "last" (App (Val (GoInstruction (GoAlloc entryID.ty))) (App (Val (GoInstruction (GoZeroVal entryID.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "last")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "subterm" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Votes"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "votes" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint64 go.bool)]))) (Val #())) (Val #()))
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WitnessMessage.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ctx"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "voteType"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "last")))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "subterm"))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"index"))) (Var "last")))
+  (Let "$v8" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "v"))
+  (App (Val (GoInstruction (CompositeLiteral WitnessMessage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"LastLogTerm")) (ElementExpression go.uint64 (Var "$v5"))), (KeyedElement (some (KeyField go!"LastLogSubterm")) (ElementExpression go.uint64 (Var "$v6"))), (KeyedElement (some (KeyField go!"LastLogIndex")) (ElementExpression go.uint64 (Var "$v7"))), (KeyedElement (some (KeyField go!"Votes")) (ElementExpression (go.GoType.MapType go.uint64 go.bool) (Var "$v8")))])))))))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType WitnessMessage.ty)))) (LiteralValue [(KeyedElement none (ElementExpression WitnessMessage.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType WitnessMessage.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x [logterm: %d, logsubterm: %d] sent %s request to witness %x at term %d. Message term: %d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef entryID.ty go!"term"))) (Var "last"))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "subterm")))
+  (Let "$sl3" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "voteType")))
+  (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID")))
+  (Let "$sl5" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl6" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl4"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl5"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl6")))])))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType WitnessMessage.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (map.forRange go.uint64 go.bool)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "v"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (Var "v") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (Var "votes") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Val #(W64 0))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "subterm") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "subterm") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "last") (Var "$r0")))))))))))))))))))
+
+/-- sendAppendToWitness sends the witness the entry at index, of the leader's
+    term and current subterm, with the current replication set.
+
+    go: raft.go:782:16 -/
+noncomputable def raft.sendAppendToWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "witnessID"
+  (Lam "index"
+  (Lam "subterm"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "subterm" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "subterm"))
+  (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))
+  (Let "witnessID" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "witnessID"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "epoch" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID"))
+  (Let "$v2" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp)
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "subterm"))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (Let "$v7" (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty) go!"GetNonWitnessVoterSlice"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Var "epoch"))) (Val #(W64 0))))) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty) go!"GetNonWitnessVoterSlice"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Var "epoch"))) (Val #(W64 1))))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 2 (go.GoType.SliceType go.uint64))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral WitnessMessage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"From")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"LastLogTerm")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"LastLogSubterm")) (ElementExpression go.uint64 (Var "$v5"))), (KeyedElement (some (KeyField go!"LastLogIndex")) (ElementExpression go.uint64 (Var "$v6"))), (KeyedElement (some (KeyField go!"ReplicationSet")) (ElementExpression (go.GoType.ArrayType 2 (go.GoType.SliceType go.uint64)) (Var "$v7")))]))))))))))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (App (Val (GoInstruction (GoZeroVal WitnessMessage.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WitnessMessage.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "msg"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType WitnessMessage.ty)))) (LiteralValue [(KeyedElement none (ElementExpression WitnessMessage.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType WitnessMessage.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x [logterm: %d, logsubterm: %d] sent %s request to witness %x at term %d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "subterm")))
+  (Let "$sl3" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (go.GoType.InterfaceType [])))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp))
+  (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID")))
+  (Let "$sl5" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl4"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl5")))]))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType WitnessMessage.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore WitnessMessage.ty))) (Pair (Var "msg") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Pair (Var "epoch") (Var "$r0")))))))))))))))))
+
 /-- sendHeartbeat sends a heartbeat RPC to the given peer.
 
-    go: raft.go:694:16 -/
+    go: raft.go:801:16 -/
 noncomputable def raft.sendHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -4545,7 +4886,7 @@ noncomputable def raft.sendHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- bcastAppend sends RPC, with entries to all peers that are not up-to-date
     according to the progress recorded in r.trk.
 
-    go: raft.go:714:16 -/
+    go: raft.go:821:16 -/
 noncomputable def raft.bcastAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4575,7 +4916,7 @@ noncomputable def raft.bcastAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- bcastHeartbeat sends RPC, without entries to all the peers.
 
-    go: raft.go:724:16 -/
+    go: raft.go:831:16 -/
 noncomputable def raft.bcastHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4588,7 +4929,7 @@ noncomputable def raft.bcastHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readOnly.ty) go!"heartbeatCtx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readOnly.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"readOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"bcastHeartbeatWithCtx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")))))))))
 
-/-- go: raft.go:728:16 -/
+/-- go: raft.go:835:16 -/
 noncomputable def raft.bcastHeartbeatWithCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ctx"
@@ -4600,25 +4941,31 @@ noncomputable def raft.bcastHeartbeatWithCtx.impl [FfiSyntax] [GoGlobalContext] 
   (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Lam "id"
-  (Lam BAnon
+  (Lam "pr"
   (App (Val exceptionDo)
+  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ctx"))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"sendHeartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"sendHeartbeatToWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ctx"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"sendHeartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #()))))))))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"Visit"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Var "$a0"))))))))))
 
-/-- go: raft.go:737:16 -/
+/-- go: raft.go:848:16 -/
 noncomputable def raft.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "index"
@@ -4690,7 +5037,7 @@ noncomputable def raft.appliedTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "oldApplied") (Var "$r0")))))))))))))))
 
-/-- go: raft.go:766:16 -/
+/-- go: raft.go:877:16 -/
 noncomputable def raft.appliedSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snap"
@@ -4718,7 +5065,7 @@ noncomputable def raft.appliedSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
     index changed (in which case the caller should call r.bcastAppend). This can
     only be called in StateLeader.
 
-    go: raft.go:775:16 -/
+    go: raft.go:886:16 -/
 noncomputable def raft.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4726,11 +5073,62 @@ noncomputable def raft.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$defer"
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"OneLessThanQuorumInReplicationSet"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
+  (Let "idxMap" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"Committed"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral entryID.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"term")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"index")) (ElementExpression go.uint64 (Var "$v1")))]))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"maybeCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0"))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Var "idxMap"))
+  (Let "wci" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Val #())))
+  (Let "w" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (map.forRange go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "wci"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "st" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "t")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "st")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "wci"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "st"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"sendAppendToWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "st") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "t") (Var "$r0")))))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Var "wci")) (Val #(W64 0)))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty))) (Pair (Var "wci") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Pair (Var "idxMap") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
   (Let "$f" (App (Val (GoInstruction (FuncResolve traceCommit []))) (Val #()))
@@ -4739,7 +5137,7 @@ noncomputable def raft.maybeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Var "$a0"))
   (App (Var "$oldf") (Val #()))))))))))))))))
 
-/-- go: raft.go:781:16 -/
+/-- go: raft.go:905:16 -/
 noncomputable def raft.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "term"
@@ -4751,6 +5149,8 @@ noncomputable def raft.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val None')
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 go.bool)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4787,7 +5187,8 @@ noncomputable def raft.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"MaxInflightBytes"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.tracker.NewInflights []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Match")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Next")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Inflights")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Inflights.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v3")))]))))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Match")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Next")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Inflights")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Inflights.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"IsWitness")) (ElementExpression go.bool (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
@@ -4809,6 +5210,8 @@ noncomputable def raft.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessVoteAsked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
@@ -4821,7 +5224,7 @@ noncomputable def raft.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: raft.go:812:16 -/
+/-- go: raft.go:939:16 -/
 noncomputable def raft.appendEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "es"
@@ -4831,6 +5234,9 @@ noncomputable def raft.appendEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "es" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es"))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
   (Let "li" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "epoch" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "es"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))))
@@ -4881,8 +5287,16 @@ noncomputable def raft.appendEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "li")) (Val #(W64 1)))) (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Var "epoch")))) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Var "epoch")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "cloned")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "cloned")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$r0")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "cloned")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "cloned")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "cloned")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -4892,11 +5306,13 @@ noncomputable def raft.appendEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "cloned") (Var "$r0")))))))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (Pair (Var "epoch") (Var "$r0")))))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "li") (Var "$r0")))))))))))))
 
 /-- tickElection is run by followers and candidates after r.electionTimeout.
 
-    go: raft.go:850:16 -/
+    go: raft.go:984:16 -/
 noncomputable def raft.tickElection.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -4934,7 +5350,7 @@ noncomputable def raft.tickElection.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- tickHeartbeat is run by leaders to send a MsgBeat after r.heartbeatTimeout.
 
-    go: raft.go:862:16 -/
+    go: raft.go:996:16 -/
 noncomputable def raft.tickHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5012,7 +5428,7 @@ noncomputable def raft.tickHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"heartbeatElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"heartbeatElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #(W64 1)))))))))))))
 
-/-- go: raft.go:891:16 -/
+/-- go: raft.go:1025:16 -/
 noncomputable def raft.becomeFollower.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "term"
@@ -5055,7 +5471,7 @@ noncomputable def raft.becomeFollower.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore stepFunc.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))))))))
 
-/-- go: raft.go:902:16 -/
+/-- go: raft.go:1036:16 -/
 noncomputable def raft.becomeCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5102,7 +5518,7 @@ noncomputable def raft.becomeCandidate.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: raft.go:917:16 -/
+/-- go: raft.go:1051:16 -/
 noncomputable def raft.becomePreCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5144,7 +5560,7 @@ noncomputable def raft.becomePreCandidate.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: raft.go:933:16 -/
+/-- go: raft.go:1067:16 -/
 noncomputable def raft.becomeLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5172,10 +5588,6 @@ noncomputable def raft.becomeLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"lastIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Let "$v0" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Data")) (ElementExpression go.untypedNil (Var "$v0")))]))))
-  (Let "emptyEnt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x became leader at term %d"))
@@ -5183,17 +5595,10 @@ noncomputable def raft.becomeLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "emptyEnt"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"appendEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"empty entry was dropped")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panic"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "emptyEnt") (Var "$r0")))))))))
+  (Let "$a0" (Val #true)
+  (Let "$a1" (Val #false)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"maybeStartNewSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (App (Val (GoInstruction (FuncResolve traceBecomeLeader []))) (Val #())) (Var "$a0")))))))
@@ -5223,7 +5628,7 @@ noncomputable def raft.becomeLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: raft.go:973:16 -/
+/-- go: raft.go:1104:16 -/
 noncomputable def raft.hup.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "t"
@@ -5281,7 +5686,7 @@ noncomputable def raft.hup.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: raft.go:995:16 -/
+/-- go: raft.go:1126:16 -/
 noncomputable def raft.hasUnappliedConfChanges.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5361,7 +5766,7 @@ noncomputable def raft.hasUnappliedConfChanges.impl [FfiSyntax] [GoGlobalContext
 /-- campaign transitions the raft instance to candidate state. This must only be
     called after verifying that this is a legitimate transition.
 
-    go: raft.go:1025:16 -/
+    go: raft.go:1156:16 -/
 noncomputable def raft.campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "t"
@@ -5382,6 +5787,7 @@ noncomputable def raft.campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (slice.forRange go.uint64)) (Var "$range"))
   (Lam "$key"
   (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5418,6 +5824,10 @@ noncomputable def raft.campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryID.ty))) (Pair (Var "last") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 0))))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 1)))))))))
+  (App (Val doContinue) (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doContinue) (Val #()))))
@@ -5492,13 +5902,14 @@ noncomputable def raft.campaign.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: raft.go:1075:16 -/
-noncomputable def raft.poll.impl [FfiSyntax] [GoGlobalContext] : val :=
+/-- go: raft.go:1214:16 -/
+noncomputable def raft.pollAndReportDiff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"
   (Lam "t"
   (Lam "v"
   (App (Val exceptionDo)
+  (Let "votesToWin" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 2 go.int)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 2 go.int)))) (Val #())))
   (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Val #())))
   (Let "rejected" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "granted" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -5508,12 +5919,13 @@ noncomputable def raft.poll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"TallyVotes"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
-  (Let "$ret0" (Fst (Fst (Var "__p")))
-  (Let "$ret1" (Snd (Fst (Var "__p")))
-  (Let "$ret2" (Snd (Var "__p"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"TallyVotesWithDifference"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
+  (Let "$ret0" (Fst (Fst (Fst (Var "__p"))))
+  (Let "$ret1" (Snd (Fst (Fst (Var "__p"))))
+  (Let "$ret2" (Snd (Fst (Var "__p")))
+  (Let "$ret3" (Snd (Var "__p"))
   (App (Val doReturn)
-  (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2")))))))))
+  (Pair (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2")) (Var "$ret3"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "v"))
@@ -5534,14 +5946,14 @@ noncomputable def raft.poll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3")))]))))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))))))))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))))))))))))))))
 
 /-- Step advances the state machine using the given message.
 
     Callers must treat m as immutable after passing it to Step. Mutating it
     concurrently can lead to unexpected behavior.
 
-    go: raft.go:1089:16 -/
+    go: raft.go:1228:16 -/
 noncomputable def raft.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -5836,7 +6248,7 @@ noncomputable def raft.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: raft.go:1275:6 -/
+/-- go: raft.go:1414:6 -/
 noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6090,6 +6502,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgTransferLeader)))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (Let "leadTransferee" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6172,6 +6585,17 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "lastLeadTransferee") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "leadTransferee") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x is witness. Ignored transferring leadership"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Debugf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -6239,7 +6663,9 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Warningf"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
-  (Val #()))))
+  (Let "$a0" (Val #false)
+  (Let "$a1" (Val #false)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"maybeStartNewSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgProp)))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6440,7 +6866,7 @@ noncomputable def stepLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- stepCandidate is shared by StateCandidate and StatePreCandidate; the difference is
     whether they respond to MsgVoteResp or MsgPreVoteResp.
 
-    go: raft.go:1670:6 -/
+    go: raft.go:1816:6 -/
 noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6494,16 +6920,20 @@ noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (Let "$a2" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetReject"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"poll"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Fst (Var "__p")))
-  (Let "$ret1" (Snd (Fst (Var "__p")))
-  (Let "$ret2" (Snd (Var "__p"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"pollAndReportDiff"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Fst (Fst (Var "__p"))))
+  (Let "$ret1" (Snd (Fst (Fst (Var "__p"))))
+  (Let "$ret2" (Snd (Fst (Var "__p")))
+  (Let "$ret3" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "$r2" (Var "$ret2")
+  (Let "$r3" (Var "$ret3")
+  (Let "rv" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 2 go.int)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 2 go.int)))) (Val #())))
   (Let "res" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Val #())))
   (Let "rj" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Let "gr" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6524,8 +6954,75 @@ noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (Let "$a1" (Val None')
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"becomeFollower"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.quorum.VotePending)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ArrayType 2 go.int)))) (Var "rv"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"getWitnessVoteRequestReadiness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")))
+  (Let "witnessReadyToVote" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 go.bool)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "witnessReadyToVote"))
+  (Let "ready" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "witnessID" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (map.forRange go.uint64 go.bool)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ready")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (map.lookup1 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessVoteAsked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "myVoteType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Val #())))
+  (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Val #())))))))
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "myVoteType"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
+  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"sendRequestVoteToWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val StatePreCandidate))))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #(W64 1))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "term") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "myVoteType") (Var "$r0"))))))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgVote)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "term") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "myVoteType") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessVoteAsked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "witnessID"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.uint64 go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessVoteAsked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 go.bool)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.uint64 go.bool)))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessVoteAsked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "witnessID") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ready") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 go.bool)))) (Pair (Var "witnessReadyToVote") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 0))))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 1))))) (Val #(W64 0)))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x has received %d %s votes and %d vote rejections. It needs %d votes to win"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.int (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.int))) (Var "gr")))
+  (Let "$sl2" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
+  (Let "$sl3" (App (Val (GoInstruction (Convert go.int (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.int))) (Var "rj")))
+  (Let "$sl4" (App (Val (GoInstruction (Convert (go.GoType.ArrayType 2 go.int) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.ArrayType 2 go.int)))) (Var "rv")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl4")))])))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x has received %d %s votes and %d vote rejections"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
@@ -6533,13 +7030,15 @@ noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$sl2" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))
   (Let "$sl3" (App (Val (GoInstruction (Convert go.int (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.int))) (Var "rj")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3")))]))))))
-  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 2 go.int)))) (Pair (Var "rv") (Var "$r3")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Pair (Var "res") (Var "$r2")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "rj") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "gr") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "gr") (Var "$r0"))))))))))))))))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgTimeoutNow)))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"%x [term %d state %v] ignored MsgTimeoutNow from %x"))
@@ -6559,7 +7058,7 @@ noncomputable def stepCandidate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "myVoteRespType") (Var "$r0")))))))))))))
 
-/-- go: raft.go:1715:6 -/
+/-- go: raft.go:1887:6 -/
 noncomputable def stepFollower.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6748,7 +7247,7 @@ noncomputable def stepFollower.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- logSliceFromMsgApp extracts the appended logSlice from a MsgApp message.
 
-    go: raft.go:1779:6 -/
+    go: raft.go:1951:6 -/
 noncomputable def logSliceFromMsgApp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
@@ -6761,7 +7260,7 @@ noncomputable def logSliceFromMsgApp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetEntries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral logSlice.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"term")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"prev")) (ElementExpression entryID.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v2")))])))))))))
 
-/-- go: raft.go:1788:16 -/
+/-- go: raft.go:1960:16 -/
 noncomputable def raft.handleAppendEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6866,7 +7365,7 @@ noncomputable def raft.handleAppendEntries.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore logSlice.ty))) (Pair (Var "a") (Var "$r0")))))))))))))
 
-/-- go: raft.go:1832:16 -/
+/-- go: raft.go:2004:16 -/
 noncomputable def raft.handleHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6887,7 +7386,7 @@ noncomputable def raft.handleHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetCommit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"commitTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")))))))))))
 
-/-- go: raft.go:1837:16 -/
+/-- go: raft.go:2009:16 -/
 noncomputable def raft.handleSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -6954,7 +7453,7 @@ noncomputable def raft.handleSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
     configuration of state machine. If this method returns false, the snapshot was
     ignored, either because it was obsolete or because of an error.
 
-    go: raft.go:1857:16 -/
+    go: raft.go:2029:16 -/
 noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "s"
@@ -7159,7 +7658,7 @@ noncomputable def raft.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- promotable indicates whether state machine can be promoted to leader,
     which is true when its own id is in progress list.
 
-    go: raft.go:1943:16 -/
+    go: raft.go:2115:16 -/
 noncomputable def raft.promotable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7169,11 +7668,11 @@ noncomputable def raft.promotable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"hasNextOrInProgressSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))) (Val #false)))))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"hasNextOrInProgressSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #()))) (Val #false)))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))
 
-/-- go: raft.go:1948:16 -/
+/-- go: raft.go:2120:16 -/
 noncomputable def raft.applyConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cc"
@@ -7265,7 +7764,7 @@ noncomputable def raft.applyConfChange.impl [FfiSyntax] [GoGlobalContext] : val 
 
     The inputs usually result from restoring a ConfState or applying a ConfChange.
 
-    go: raft.go:1976:16 -/
+    go: raft.go:2148:16 -/
 noncomputable def raft.switchToConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cfg"
@@ -7278,6 +7777,7 @@ noncomputable def raft.switchToConfig.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Var "cfg"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"ConfState"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
@@ -7372,6 +7872,13 @@ noncomputable def raft.switchToConfig.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$sl1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1"))))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val StateLeader))) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 0))))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Val #(W64 1))))) (Val #(W64 0)))))) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty) go!"HasWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #()))) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (Val #false)
+  (Let "$a1" (Val #true)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"maybeStartNewSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Progress"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -7381,7 +7888,7 @@ noncomputable def raft.switchToConfig.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))
   (App (App (App (Val (GoInstruction (FuncResolve traceConfChangeEvent []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))))
 
-/-- go: raft.go:2034:16 -/
+/-- go: raft.go:2214:16 -/
 noncomputable def raft.loadState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "state"
@@ -7419,7 +7926,7 @@ noncomputable def raft.loadState.impl [FfiSyntax] [GoGlobalContext] : val :=
     than or equal to the randomized election timeout in
     [electiontimeout, 2 * electiontimeout - 1].
 
-    go: raft.go:2046:16 -/
+    go: raft.go:2226:16 -/
 noncomputable def raft.pastElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7428,7 +7935,7 @@ noncomputable def raft.pastElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"electionElapsed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"randomizedElectionTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))))))))
 
-/-- go: raft.go:2050:16 -/
+/-- go: raft.go:2230:16 -/
 noncomputable def raft.resetRandomizedElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7442,7 +7949,7 @@ noncomputable def raft.resetRandomizedElectionTimeout.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"randomizedElectionTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$r0"))))))))))
 
-/-- go: raft.go:2054:16 -/
+/-- go: raft.go:2234:16 -/
 noncomputable def raft.sendTimeoutNow.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -7458,7 +7965,7 @@ noncomputable def raft.sendTimeoutNow.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v1")))])))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))))))))
 
-/-- go: raft.go:2058:16 -/
+/-- go: raft.go:2238:16 -/
 noncomputable def raft.abortLeaderTransfer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7473,7 +7980,7 @@ noncomputable def raft.abortLeaderTransfer.impl [FfiSyntax] [GoGlobalContext] : 
 
 /-- committedEntryInCurrentTerm return true if the peer has committed an entry in its term.
 
-    go: raft.go:2063:16 -/
+    go: raft.go:2243:16 -/
 noncomputable def raft.committedEntryInCurrentTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -7491,7 +7998,7 @@ noncomputable def raft.committedEntryInCurrentTerm.impl [FfiSyntax] [GoGlobalCon
 /-- responseToReadIndexReq constructs a response for `req`. If `req` comes from the peer
     itself, a blank value will be returned.
 
-    go: raft.go:2071:16 -/
+    go: raft.go:2251:16 -/
 noncomputable def raft.responseToReadIndexReq.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "req"
@@ -7531,7 +8038,7 @@ noncomputable def raft.responseToReadIndexReq.impl [FfiSyntax] [GoGlobalContext]
     Empty payloads are never refused. This is used both for appending an empty
     entry at a new leader's term, as well as leaving a joint configuration.
 
-    go: raft.go:2095:16 -/
+    go: raft.go:2275:16 -/
 noncomputable def raft.increaseUncommittedSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ents"
@@ -7559,7 +8066,7 @@ noncomputable def raft.increaseUncommittedSize.impl [FfiSyntax] [GoGlobalContext
 /-- reduceUncommittedSize accounts for the newly committed entries by decreasing
     the uncommitted entry size limit.
 
-    go: raft.go:2113:16 -/
+    go: raft.go:2293:16 -/
 noncomputable def raft.reduceUncommittedSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "s"
@@ -7576,7 +8083,72 @@ noncomputable def raft.reduceUncommittedSize.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore entryPayloadSize.ty))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"uncommittedSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (App (Val (GoInstruction (GoOp GoSub entryPayloadSize.ty))) (Pair (App (Val (GoInstruction (GoLoad entryPayloadSize.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"uncommittedSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (App (Val (GoInstruction (GoLoad entryPayloadSize.ty))) (Var "s"))))))))))))))
 
-/-- go: raft.go:2124:6 -/
+/-- go: raft.go:2304:16 -/
+noncomputable def raft.maybeStartNewSubterm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "newTerm"
+  (Lam "confChange"
+  (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType raft.ty)))) (Var "r"))
+  (Let "confChange" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "confChange"))
+  (Let "newTerm" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "newTerm"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (Let "$v0" (Val UntypedNil)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Data")) (ElementExpression go.untypedNil (Var "$v0")))]))))
+  (Let "emptyEnt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #true))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty) go!"HasWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #()))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x starts new subterm. Term: %d, Subterm: %d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "emptyEnt"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raft.ty) go!"appendEntry"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"empty entry was dropped")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Panic"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "emptyEnt") (Var "$r0")))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "newTerm")) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (Var "confChange")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty) go!"HasWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #()))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x resets replication set to %s, %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty) go!"String"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #(W64 0))))) (Val #())))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty) go!"String"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #(W64 1))))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "newTerm"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"ResetReplicationSet"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Var "$a0")))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty) go!"ChangeReplicationSet"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))) (Val #()))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"%x changes replication set to %s, %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty) go!"String"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #(W64 0))))) (Val #())))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty) go!"String"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.tracker.ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"trk"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r")))))) (Val #(W64 1))))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve Logger.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad Logger.ty))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doReturn)
+  (Val #false))))))))))))
+
+/-- go: raft.go:2330:6 -/
 noncomputable def releasePendingReadIndexMessages.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
@@ -7627,7 +8199,7 @@ noncomputable def releasePendingReadIndexMessages.impl [FfiSyntax] [GoGlobalCont
   (App (Val doExecute)
   (Val #()))))))))
 
-/-- go: raft.go:2143:6 -/
+/-- go: raft.go:2349:6 -/
 noncomputable def sendMsgReadIndexResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7929,7 +8501,8 @@ noncomputable def RawNode.readyWithoutAccept.impl [FfiSyntax] [GoGlobalContext] 
   (Let "$v1" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RawNode.ty) go!"applyUnstableEntries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"nextCommittedEnts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))) (Var "$a0")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
-  (App (Val (GoInstruction (CompositeLiteral Ready.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"CommittedEntries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"Messages")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Var "$v2")))])))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WitnessMessage.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (App (Val (GoInstruction (CompositeLiteral Ready.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Entries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v0"))), (KeyedElement (some (KeyField go!"CommittedEntries")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"Messages")) (ElementExpression (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)) (Var "$v2"))), (KeyedElement (some (KeyField go!"WitnessMessages")) (ElementExpression (go.GoType.SliceType WitnessMessage.ty) (Var "$v3")))]))))))
   (Let "rd" (App (Val (GoInstruction (GoAlloc Ready.ty))) (App (Val (GoInstruction (GoZeroVal Ready.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8055,7 +8628,7 @@ noncomputable def RawNode.readyWithoutAccept.impl [FfiSyntax] [GoGlobalContext] 
 /-- MustSync returns true if the hard state and count of Raft entries indicate
     that a synchronous write to persistent storage is required.
 
-    go: rawnode.go:191:6 -/
+    go: rawnode.go:192:6 -/
 noncomputable def MustSync.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "st"
   (Lam "prevst"
@@ -8067,7 +8640,7 @@ noncomputable def MustSync.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "entsnum")) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "prevst"))) (Val #())))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "st"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "prevst"))) (Val #()))))))))))))))
 
-/-- go: rawnode.go:200:6 -/
+/-- go: rawnode.go:201:6 -/
 noncomputable def needStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8081,7 +8654,7 @@ noncomputable def needStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (FuncResolve IsEmptySnap []))) (Val #())) (Var "$a0"))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgsAfterAppend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))))))))
 
-/-- go: rawnode.go:210:6 -/
+/-- go: rawnode.go:211:6 -/
 noncomputable def needStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8098,7 +8671,7 @@ noncomputable def needStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : 
     that should be delivered after the rest of the message is processed. Used
     with AsyncStorageWrites.
 
-    go: rawnode.go:223:6 -/
+    go: rawnode.go:224:6 -/
 noncomputable def newStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8169,7 +8742,7 @@ noncomputable def newStorageAppendMsg.impl [FfiSyntax] [GoGlobalContext] : val :
     (along with those in all prior Ready structs) have been saved to stable
     storage.
 
-    go: rawnode.go:266:6 -/
+    go: rawnode.go:267:6 -/
 noncomputable def newStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8212,7 +8785,7 @@ noncomputable def newStorageAppendRespMsg.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$r0"))))))))))))
 
-/-- go: rawnode.go:365:6 -/
+/-- go: rawnode.go:366:6 -/
 noncomputable def needStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rd"
   (App (Val exceptionDo)
@@ -8221,7 +8794,7 @@ noncomputable def needStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef Ready.ty go!"CommittedEntries"))) (Var "rd")))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))))
 
-/-- go: rawnode.go:366:6 -/
+/-- go: rawnode.go:367:6 -/
 noncomputable def needStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rd"
   (App (Val exceptionDo)
@@ -8235,7 +8808,7 @@ noncomputable def needStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : v
     also carries a response that should be delivered after the rest of the
     message is processed. Used with AsyncStorageWrites.
 
-    go: rawnode.go:372:6 -/
+    go: rawnode.go:373:6 -/
 noncomputable def newStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rd"
@@ -8263,7 +8836,7 @@ noncomputable def newStorageApplyMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
     after the committed entries in the current Ready (along with those in all
     prior Ready structs) have been applied to the local state machine.
 
-    go: rawnode.go:387:6 -/
+    go: rawnode.go:388:6 -/
 noncomputable def newStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ents"
@@ -8282,7 +8855,7 @@ noncomputable def newStorageApplyRespMsg.impl [FfiSyntax] [GoGlobalContext] : va
     ahead and handle a Ready. Nothing must alter the state of the RawNode between
     this call and the prior call to Ready().
 
-    go: rawnode.go:400:20 -/
+    go: rawnode.go:401:20 -/
 noncomputable def RawNode.acceptReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "rd"
@@ -8297,6 +8870,8 @@ noncomputable def RawNode.acceptReady.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType WitnessMessage.ty)))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -8330,6 +8905,8 @@ noncomputable def RawNode.acceptReady.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftLog.ty) go!"acceptUnstable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"raftLog"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgsAfterAppend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType WitnessMessage.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"raft"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn"))))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef RawNode.ty go!"asyncStorageWrites"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawNode.ty)))) (Var "rn")))))
@@ -8426,7 +9003,7 @@ noncomputable def RawNode.acceptReady.impl [FfiSyntax] [GoGlobalContext] : val :
     they are known to be committed but before they have been written locally to
     stable storage.
 
-    go: rawnode.go:443:20 -/
+    go: rawnode.go:445:20 -/
 noncomputable def RawNode.applyUnstableEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8437,7 +9014,7 @@ noncomputable def RawNode.applyUnstableEntries.impl [FfiSyntax] [GoGlobalContext
 
 /-- HasReady called when RawNode user need to check if any Ready pending.
 
-    go: rawnode.go:448:20 -/
+    go: rawnode.go:450:20 -/
 noncomputable def RawNode.HasReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8466,9 +9043,10 @@ noncomputable def RawNode.HasReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #true))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"msgsAfterAppend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType WitnessMessage.ty)))) (App (Val (GoInstruction (StructFieldRef raft.ty go!"witnessMsgs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raft.ty)))) (Var "r"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType WitnessMessage.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
   (App (Val doReturn)
   (Val #true))
   (App (Val doExecute)
@@ -8511,7 +9089,7 @@ noncomputable def RawNode.HasReady.impl [FfiSyntax] [GoGlobalContext] : val :=
     NOTE: Advance must not be called when using AsyncStorageWrites. Response messages from
     the local append and apply threads take its place.
 
-    go: rawnode.go:477:20 -/
+    go: rawnode.go:479:20 -/
 noncomputable def RawNode.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8557,7 +9135,7 @@ noncomputable def RawNode.Advance.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Status returns the current status of the given group. This allocates, see
     BasicStatus and WithProgress for allocation-friendlier choices.
 
-    go: rawnode.go:493:20 -/
+    go: rawnode.go:495:20 -/
 noncomputable def RawNode.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8575,7 +9153,7 @@ noncomputable def RawNode.Status.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- BasicStatus returns a BasicStatus. Notably this does not contain the
     Progress map; see WithProgress for an allocation-free way to inspect it.
 
-    go: rawnode.go:500:20 -/
+    go: rawnode.go:502:20 -/
 noncomputable def RawNode.BasicStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8588,7 +9166,7 @@ noncomputable def RawNode.BasicStatus.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- WithProgress is a helper to introspect the Progress for this node and its
     peers.
 
-    go: rawnode.go:516:20 -/
+    go: rawnode.go:518:20 -/
 noncomputable def RawNode.WithProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "visitor"
@@ -8637,7 +9215,7 @@ noncomputable def RawNode.WithProgress.impl [FfiSyntax] [GoGlobalContext] : val 
 
 /-- ReportUnreachable reports the given node is not reachable for the last send.
 
-    go: rawnode.go:529:20 -/
+    go: rawnode.go:531:20 -/
 noncomputable def RawNode.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "id"
@@ -8656,7 +9234,7 @@ noncomputable def RawNode.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] :
 
 /-- ReportSnapshot reports the status of the sent snapshot.
 
-    go: rawnode.go:534:20 -/
+    go: rawnode.go:536:20 -/
 noncomputable def RawNode.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "id"
@@ -8683,7 +9261,7 @@ noncomputable def RawNode.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- TransferLeader tries to transfer leadership to the given transferee.
 
-    go: rawnode.go:541:20 -/
+    go: rawnode.go:543:20 -/
 noncomputable def RawNode.TransferLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "transferee"
@@ -8703,7 +9281,7 @@ noncomputable def RawNode.TransferLeader.impl [FfiSyntax] [GoGlobalContext] : va
 /-- ForgetLeader forgets a follower's current leader, changing it to None.
     See (Node).ForgetLeader for details.
 
-    go: rawnode.go:547:20 -/
+    go: rawnode.go:549:20 -/
 noncomputable def RawNode.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam BAnon
@@ -8719,7 +9297,7 @@ noncomputable def RawNode.ForgetLeader.impl [FfiSyntax] [GoGlobalContext] : val 
     index, any linearizable read requests issued before the read request can be
     processed safely. The read state will have the same rctx attached.
 
-    go: rawnode.go:555:20 -/
+    go: rawnode.go:557:20 -/
 noncomputable def RawNode.ReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rn"
   (Lam "rctx"
@@ -9621,6 +10199,7 @@ noncomputable def MemoryStorage.Compact.impl [FfiSyntax] [GoGlobalContext] : val
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef MemoryStorage.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MemoryStorage.ty)))) (Var "ms")))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))))))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Index")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
   (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef MemoryStorage.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MemoryStorage.ty)))) (Var "ms"))))
   (App (Val (GoInstruction (Slice (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))) (Val #())) (Var "$s")))))
@@ -9634,6 +10213,17 @@ noncomputable def MemoryStorage.Compact.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef MemoryStorage.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MemoryStorage.ty)))) (Var "ms"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "ents") (Var "$r0"))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (App (Val (GoInstruction (StructFieldRef MemoryStorage.ty go!"ents"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MemoryStorage.ty)))) (Var "ms")))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))))))) (Val #()))
+  (Let "st" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "st")) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "st")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "st") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents")) (Val #(W64 0)))) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -9669,7 +10259,7 @@ noncomputable def MemoryStorage.Compact.impl [FfiSyntax] [GoGlobalContext] : val
     TODO (xiangli): ensure the entries are continuous and
     entries[0].Index > ms.entries[0].Index
 
-    go: storage.go:293:26 -/
+    go: storage.go:296:26 -/
 noncomputable def MemoryStorage.Append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "entries"
@@ -9985,17 +10575,30 @@ noncomputable def DescribeConfState.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "state"
   (App (Val exceptionDo)
   (Let "state" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))
+  (Let "wit" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (Val #(go!"Voters:%v VotersOutgoing:%v Learners:%v LearnersNext:%v AutoLeave:%v"))
+  (Let "$a0" (Val #(go!"Voters:%v VotersOutgoing:%v Learners:%v LearnersNext:%v%s AutoLeave:%v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state")))))
   (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty go!"VotersOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state")))))
   (Let "$sl2" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty go!"Learners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state")))))
   (Let "$sl3" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.uint64) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty go!"LearnersNext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state")))))
-  (Let "$sl4" (App (Val (GoInstruction (Convert go.bool go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetAutoLeave"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))) (Val #())))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3"))), (KeyedElement none (ElementExpression go.any (Var "$sl4")))])))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "$sl4" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "wit")))
+  (Let "$sl5" (App (Val (GoInstruction (Convert go.bool go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetAutoLeave"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3"))), (KeyedElement none (ElementExpression go.any (Var "$sl4"))), (KeyedElement none (ElementExpression go.any (Var "$sl5")))]))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))) (Val #())) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitnessOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))) (Val #())) (Val #(W64 0)))))))
+  (Let "$r0" (Let "$a0" (Val #(go!" Witness:%v WitnessOutgoing:%v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))) (Val #())))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitnessOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "state"))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "wit") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))))
 
-/-- go: util.go:104:6 -/
+/-- go: util.go:110:6 -/
 noncomputable def DescribeSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "snap"
   (App (Val exceptionDo)
@@ -10014,7 +10617,7 @@ noncomputable def DescribeSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.SnapshotMetadata.ty)))) (Pair (Var "m") (Var "$r0"))))))))))
 
-/-- go: util.go:109:6 -/
+/-- go: util.go:115:6 -/
 noncomputable def DescribeReady.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "rd"
   (Lam "f"
@@ -10154,7 +10757,7 @@ noncomputable def DescribeReady.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- DescribeMessage returns a concise human-readable description of a
     Message for debugging.
 
-    go: util.go:152:6 -/
+    go: util.go:158:6 -/
 noncomputable def DescribeMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "f"
@@ -10167,7 +10770,7 @@ noncomputable def DescribeMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a2" (App (Val (GoInstruction (GoLoad EntryFormatter.ty))) (Var "f"))
   (App (App (App (App (Val (GoInstruction (FuncResolve describeMessageWithIndent []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
 
-/-- go: util.go:156:6 -/
+/-- go: util.go:162:6 -/
 noncomputable def describeMessageWithIndent.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "indent"
   (Lam "m"
@@ -10338,7 +10941,84 @@ noncomputable def describeMessageWithIndent.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3"))), (KeyedElement none (ElementExpression go.any (Var "$sl4"))), (KeyedElement none (ElementExpression go.any (Var "$sl5"))), (KeyedElement none (ElementExpression go.any (Var "$sl6")))])))))))))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))
 
-/-- go: util.go:193:6 -/
+/-- go: util.go:199:6 -/
+noncomputable def DescribeWitnessMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (Let "buf" (App (Val (GoInstruction (GoAlloc _root_.Perennial.bytes.Buffer.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.bytes.Buffer.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"String"))) (Var "buf")) (Val #())))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.ArrayType 2 (go.GoType.SliceType go.uint64))))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"ReplicationSet"))) (Var "m")))
+  (Let "rs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (array.forRange 2 (go.GoType.SliceType go.uint64))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "rs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!"]")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprint []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "rs"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange go.uint64)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve describeTarget []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"WriteString"))) (Var "buf")) (Var "$a0"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 0))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!", "))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) go!"WriteString"))) (Var "buf")) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "r") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
+  (Let "$a1" (Val #(go!" ReplicationSet[%d]:["))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "rs") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) _root_.Perennial.io.Writer.ty))) (Var "buf"))
+  (Let "$a1" (Val #(go!"%s->%s %v Term:%d Log:%d/%d/%d"))
+  (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m")))
+  (App (App (Val (GoInstruction (FuncResolve describeTarget []))) (Val #())) (Var "$a0"))))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"To"))) (Var "m")))
+  (App (App (Val (GoInstruction (FuncResolve describeTarget []))) (Val #())) (Var "$a0"))))
+  (Let "$sl2" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))))
+  (Let "$sl3" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))))
+  (Let "$sl4" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))))
+  (Let "$sl5" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogSubterm"))) (Var "m"))))
+  (Let "$sl6" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogIndex"))) (Var "m"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3"))), (KeyedElement none (ElementExpression go.any (Var "$sl4"))), (KeyedElement none (ElementExpression go.any (Var "$sl5"))), (KeyedElement none (ElementExpression go.any (Var "$sl6")))])))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
+
+/-- go: util.go:219:6 -/
 noncomputable def describeTarget.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "id"
   (App (Val exceptionDo)
@@ -10362,7 +11042,7 @@ noncomputable def describeTarget.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- DescribeEntry returns a concise human-readable description of an
     Entry for debugging.
 
-    go: util.go:208:6 -/
+    go: util.go:234:6 -/
 noncomputable def DescribeEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "f"
@@ -10465,7 +11145,7 @@ noncomputable def DescribeEntry.impl [FfiSyntax] [GoGlobalContext] : val :=
     a ConfChangeI. It avoids using the proto text format (which adds random extra
     spaces via detrand, producing unstable output across architectures/builds).
 
-    go: util.go:247:6 -/
+    go: util.go:273:6 -/
 noncomputable def DescribeConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cc"
   (App (Val exceptionDo)
@@ -10519,7 +11199,7 @@ noncomputable def DescribeConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- DescribeEntries calls DescribeEntry for each Entry, adding a newline to
     each.
 
-    go: util.go:262:6 -/
+    go: util.go:288:6 -/
 noncomputable def DescribeEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ents"
   (Lam "f"
@@ -10555,7 +11235,7 @@ noncomputable def DescribeEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "e") (Var "$value")))))))))))))))))
 
-/-- go: util.go:274:6 -/
+/-- go: util.go:300:6 -/
 noncomputable def entsSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ents"
   (App (Val exceptionDo)
@@ -10584,7 +11264,7 @@ noncomputable def entsSize.impl [FfiSyntax] [GoGlobalContext] : val :=
     if the input is non-empty, so, as an exception, if the size of the first
     entry exceeds maxSize, a non-empty slice with just this entry is returned.
 
-    go: util.go:286:6 -/
+    go: util.go:312:6 -/
 noncomputable def limitSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ents"
   (Lam "maxSize"
@@ -10631,7 +11311,7 @@ noncomputable def limitSize.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- payloadSize is the size of the payload of the provided entry.
 
-    go: util.go:307:6 -/
+    go: util.go:333:6 -/
 noncomputable def payloadSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "e"
   (App (Val exceptionDo)
@@ -10642,7 +11322,7 @@ noncomputable def payloadSize.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- payloadsSize is the size of the payloads of the provided entries.
 
-    go: util.go:312:6 -/
+    go: util.go:338:6 -/
 noncomputable def payloadsSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ents"
   (App (Val exceptionDo)
@@ -10666,7 +11346,7 @@ noncomputable def payloadsSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Pair (Var "e") (Var "$value")))))))))))))))
 
-/-- go: util.go:320:6 -/
+/-- go: util.go:346:6 -/
 noncomputable def assertConfStatesEquivalent.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "cs1"
@@ -10702,7 +11382,7 @@ noncomputable def assertConfStatesEquivalent.impl [FfiSyntax] [GoGlobalContext] 
     Use this instead of standard append in situations when this is the last
     append to dst, so there is no sense in allocating more than needed.
 
-    go: util.go:334:6 -/
+    go: util.go:360:6 -/
 noncomputable def extend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "dst"
   (Lam "vals"
@@ -10745,6 +11425,569 @@ noncomputable def extend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "need") (Var "$r0"))))))))))))
 
+/-- go: witness.go:42:6 -/
+noncomputable def NewWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cfg"
+  (App (Val exceptionDo)
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc WitnessConfig.ty))) (Var "cfg"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType witness.ty) Witness.ty))) (App (Val (GoInstruction (GoAlloc witness.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessConfig.ty go!"ID"))) (Var "cfg")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad WitnessStorage.ty))) (App (Val (GoInstruction (StructFieldRef WitnessConfig.ty go!"Storage"))) (Var "cfg")))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WitnessConfig.ty go!"PreVote"))) (Var "cfg")))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef WitnessConfig.ty go!"CheckQuorum"))) (Var "cfg")))
+  (App (Val (GoInstruction (CompositeLiteral witness.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"storage")) (ElementExpression WitnessStorage.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"preVote")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"checkQuorum")) (ElementExpression go.bool (Var "$v3")))]))))))))))))
+
+/-- go: witness.go:51:19 -/
+noncomputable def witness.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve WitnessStorage.ty go!"Close"))) (App (Val (GoInstruction (GoLoad WitnessStorage.ty))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))))))))
+
+/-- go: witness.go:55:19 -/
+noncomputable def witness.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"processNoUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve WitnessStorage.ty go!"GetWitnessState"))) (App (Val (GoInstruction (GoLoad WitnessStorage.ty))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "state" (App (Val (GoInstruction (GoAlloc WitnessState.ty))) (App (Val (GoInstruction (GoZeroVal WitnessState.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve WitnessState.ty go!"GetState"))) (App (Val (GoInstruction (GoLoad WitnessState.ty))) (Var "state"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"processNoUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"cloneState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Val #()))
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (App (App (Val (GoInstruction (MethodResolve WitnessState.ty go!"Update"))) (App (Val (GoInstruction (GoLoad WitnessState.ty))) (Var "state"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrWitnessStateModified))) (Val #())))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef witness.ty go!"lastError"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m")))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleHeartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleAppend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgVote))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #()))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"processMessageWithNewerTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Pair (Var "st") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (StructFieldRef witness.ty go!"lastError"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore WitnessState.ty))) (Pair (Var "state") (Var "$r0"))))))))))))))
+  (Lam BAnon
+  (Val #())))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m")))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgVote))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp))))))
+  (App (Val doExecute)
+  (Val #()))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))))))
+
+/-- go: witness.go:109:19 -/
+noncomputable def witness.isHealthy.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"lastError"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))))
+
+/-- go: witness.go:113:19 -/
+noncomputable def witness.processNoUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (Let "$r0" (Val #false)
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m")))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleHeartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp)))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleAppendNoUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"processMessageWithOlderTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (Val #true)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"isHealthy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Val #()))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat))) (Val #false))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)) (Val #true)))
+  (App (Val doExecute)
+  (Val #())))))))))
+
+/-- go: witness.go:138:19 -/
+noncomputable def witness.processMessageWithOlderTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")))))
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"checkQuorum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))) (Val #true) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"preVote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp)))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgAppResp)) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v3")))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVoteResp)) (Val #()))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.bool))) (Val #true))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Reject")) (ElementExpression (go.GoType.PointerType go.bool) (Var "$v3")))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+
+/-- go: witness.go:151:19 -/
+noncomputable def witness.processMessageWithNewerTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (Lam "st"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote)))))
+  (App (Val doExecute)
+  (Val #()))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnap)))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (Val None'))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))) (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (Val None'))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (Val None'))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))) (Var "$r0")))))))))))))))))
+
+/-- go: witness.go:167:19 -/
+noncomputable def witness.cloneState.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (Let "$v0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetCommit"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v0"))), (KeyedElement (some (KeyField go!"Vote")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"Commit")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2")))]))))))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))
+  (Let "$v4" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))
+  (Let "$v5" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.uint64)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))))
+  (Let "$v6" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.uint64)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSetOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"State")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"LastLogIndex")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"LastLogTerm")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2"))), (KeyedElement (some (KeyField go!"LastLogSubterm")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3"))), (KeyedElement (some (KeyField go!"Lead")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v4"))), (KeyedElement (some (KeyField go!"ReplicationSet")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v5"))), (KeyedElement (some (KeyField go!"ReplicationSetOutgoing")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v6")))]))))))))))
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSetOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSetOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Pair (Var "st") (Var "$r0")))))))))))
+
+/-- go: witness.go:187:19 -/
+noncomputable def witness.handleHeartbeat.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeatResp)) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Context"))) (Var "m")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3"))), (KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v4")))]))))))))))))))
+
+/-- go: witness.go:197:19 -/
+noncomputable def witness.handleAppendNoUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgAppResp)) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3")))])))))))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogSubterm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogIndex"))) (Var "m"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Var "$r0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogSubterm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))) (Val #false))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Var "$r0")))))
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
+
+/-- go: witness.go:219:19 -/
+noncomputable def witness.handleAppend.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (Lam "st"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleAppendNoUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogSubterm"))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogIndex"))) (Var "m"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 (go.GoType.SliceType go.uint64))))) (Pair (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"ReplicationSet"))) (Var "m")) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 (go.GoType.SliceType go.uint64))))) (Pair (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"ReplicationSet"))) (Var "m")) (Val #(W64 1)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgAppResp)) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))))
+  (Let "$v3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))
+  (Let "$v4" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2"))), (KeyedElement (some (KeyField go!"Term")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v3"))), (KeyedElement (some (KeyField go!"Index")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v4")))])))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSetOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"LastLogIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"LastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"LastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
+
+/-- go: witness.go:240:19 -/
+noncomputable def witness.handleVote.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "w"
+  (Lam "m"
+  (Lam "st"
+  (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType witness.ty)))) (Var "w"))
+  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc WitnessMessage.ty))) (Var "m"))
+  (Let "msgType" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) go!"Enum"))) (Var "msgType")) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (Let "$v2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"To")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1"))), (KeyedElement (some (KeyField go!"From")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v2")))]))))))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #()))) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetVote"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #()))) (Val #())) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())) (Val #(W64 0)))) (Val #false))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #()))) (Val #())))) (Val #false)))
+  (Let "canVote" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "reject" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "reject")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")))))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetReject"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #()))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Var "$r0")))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.bool)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty go!"Reject"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp"))) (Var "$r0"))))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgVote))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "reject"))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"From"))) (Var "m"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "canVote"))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogSubterm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())))) (Val #false))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "reject") (Var "$r0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogTerm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"LastLogSubterm"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetLastLogSubterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))) (Val #())))) (Val #false)))
+  (Let "$r0" (Val #(W64 0))
+  (Let "votesInSet" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "votesInSet")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Votes"))) (Var "m")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.MapType go.uint64 go.bool)]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "reject") (Var "$r0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Var "st"))))
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val (slice.forRange go.uint64)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Votes"))) (Var "m")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "votesInSet") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "votesInSet")) (Val #(W64 1)))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "x") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "votesInSet") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "reject") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "reject") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "canVote") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVote))))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgPreVoteResp)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "msgType") (Var "$r0")))))
+  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgVoteResp)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "msgType") (Var "$r0")))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3 where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.os, pkg_id.sync, pkg_id.context, pkg_id.bytes, pkg_id.crypto.rand, pkg_id.math, pkg_id.math.big, pkg_id.slices, pkg_id.strings, pkg_id.go_etcd_io.raft.v3.confchange, pkg_id.go_etcd_io.raft.v3.quorum, pkg_id.go_etcd_io.raft.v3.tracker, pkg_id.encoding.binary]
 
@@ -10752,6 +11995,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10860,8 +12104,13 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v6" (Val #true)
   (Let "$v7" (Val #true)
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 23 go.bool)))) (LiteralValue [(KeyedElement (some (KeyInteger 4)) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyInteger 6)) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyInteger 9)) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyInteger 10)) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyInteger 16)) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyInteger 18)) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyInteger 20)) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyInteger 22)) (ElementExpression go.bool (Var "$v7")))]))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"witness state was modified"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 23 go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr isResponseMsg))) (Val #())) (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrWitnessStateModified))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 23 go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr isResponseMsg))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 23 go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr isLocalMsg))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -10967,7 +12216,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc isLocalMsg (go.GoType.ArrayType 23 go.bool))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc isResponseMsg (go.GoType.ArrayType 23 go.bool))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc isResponseMsg (go.GoType.ArrayType 23 go.bool))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrWitnessStateModified go.error)) (Val #()))))))))
 
 abbrev Storage [FfiSyntax] : Type := GoInterface
 
@@ -11176,6 +12427,7 @@ class raftLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   ptr_snapshot_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"snapshot" raftLog.snapshot.impl
   ptr_stableSnapTo_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"stableSnapTo" raftLog.stableSnapTo.impl
   ptr_stableTo_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"stableTo" raftLog.stableTo.impl
+  ptr_subterm_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"subterm" raftLog.subterm.impl
   ptr_term_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"term" raftLog.term.impl
   ptr_zeroTermOnOutOfBounds_unfold : MethodUnfold (go.GoType.PointerType raftLog.ty) go!"zeroTermOnOutOfBounds" raftLog.zeroTermOnOutOfBounds.impl
 
@@ -11232,6 +12484,7 @@ attribute [instance] raftLog.TypeAssumptions.type_repr
   raftLog.TypeAssumptions.ptr_snapshot_unfold
   raftLog.TypeAssumptions.ptr_stableSnapTo_unfold
   raftLog.TypeAssumptions.ptr_stableTo_unfold
+  raftLog.TypeAssumptions.ptr_subterm_unfold
   raftLog.TypeAssumptions.ptr_term_unfold
   raftLog.TypeAssumptions.ptr_zeroTermOnOutOfBounds_unfold
 
@@ -11457,9 +12710,10 @@ structure Ready [FfiSyntax] where
   CommittedEntries' : GoSlice
   Messages' : GoSlice
   MustSync' : Bool
+  WitnessMessages' : GoSlice
 
 instance Ready.zero_val [FfiSyntax] : ZeroVal Ready :=
-  ⟨Ready.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Ready.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def Ready.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"SoftState" (go.GoType.PointerType SoftState.ty)),
@@ -11469,7 +12723,8 @@ instance Ready.zero_val [FfiSyntax] : ZeroVal Ready :=
 (go.field_decl.FieldDecl go!"Snapshot" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)),
 (go.field_decl.FieldDecl go!"CommittedEntries" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))),
 (go.field_decl.FieldDecl go!"Messages" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))),
-(go.field_decl.FieldDecl go!"MustSync" go.bool)]
+(go.field_decl.FieldDecl go!"MustSync" go.bool),
+(go.field_decl.FieldDecl go!"WitnessMessages" (go.GoType.SliceType WitnessMessage.ty))]
 
 @[irreducible] def Ready.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Ready.fieldsUnsealed
@@ -11500,6 +12755,8 @@ class Ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Messages : ∀ (x : Ready) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Ready.underlying go!"Messages") (PairV #x #y) (Val #(({ x with Messages' := y } : Ready)))
   get_MustSync : ∀ (x : Ready), go.IsGoStepPureDetTagged under (StructFieldGet Ready.underlying go!"MustSync") #x (Val #(x.MustSync'))
   set_MustSync : ∀ (x : Ready) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Ready.underlying go!"MustSync") (PairV #x #y) (Val #(({ x with MustSync' := y } : Ready)))
+  get_WitnessMessages : ∀ (x : Ready), go.IsGoStepPureDetTagged under (StructFieldGet Ready.underlying go!"WitnessMessages") #x (Val #(x.WitnessMessages'))
+  set_WitnessMessages : ∀ (x : Ready) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Ready.underlying go!"WitnessMessages") (PairV #x #y) (Val #(({ x with WitnessMessages' := y } : Ready)))
   Descriptor_unfold : MethodUnfold Ready.ty go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldGet Ready.ty go!"HardState"))) (Var "$r"))))
   GetCommit_unfold : MethodUnfold Ready.ty go!"GetCommit" (LamV "$r"
@@ -11555,6 +12812,8 @@ attribute [instance] Ready.TypeAssumptions.type_repr
   Ready.TypeAssumptions.set_Messages
   Ready.TypeAssumptions.get_MustSync
   Ready.TypeAssumptions.set_MustSync
+  Ready.TypeAssumptions.get_WitnessMessages
+  Ready.TypeAssumptions.set_WitnessMessages
   Ready.TypeAssumptions.Descriptor_unfold
   Ready.TypeAssumptions.GetCommit_unfold
   Ready.TypeAssumptions.GetTerm_unfold
@@ -11588,13 +12847,15 @@ structure Peer [FfiSyntax] where
   mk ::
   ID' : w64
   Context' : GoSlice
+  IsWitness' : Bool
 
 instance Peer.zero_val [FfiSyntax] : ZeroVal Peer :=
-  ⟨Peer.mk zeroValDef zeroValDef⟩
+  ⟨Peer.mk zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def Peer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ID" go.uint64),
-(go.field_decl.FieldDecl go!"Context" (go.GoType.SliceType go.byte))]
+(go.field_decl.FieldDecl go!"Context" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"IsWitness" go.bool)]
 
 @[irreducible] def Peer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   Peer.fieldsUnsealed
@@ -11613,6 +12874,8 @@ class Peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_ID : ∀ (x : Peer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : Peer)))
   get_Context : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : Peer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Peer)))
+  get_IsWitness : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"IsWitness") #x (Val #(x.IsWitness'))
+  set_IsWitness : ∀ (x : Peer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"IsWitness") (PairV #x #y) (Val #(({ x with IsWitness' := y } : Peer)))
 
 attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.underlying
@@ -11620,6 +12883,8 @@ attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.set_ID
   Peer.TypeAssumptions.get_Context
   Peer.TypeAssumptions.set_Context
+  Peer.TypeAssumptions.get_IsWitness
+  Peer.TypeAssumptions.set_IsWitness
 
 structure msgWithResult [FfiSyntax] where
   mk ::
@@ -11991,6 +13256,91 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_TraceLogger
   Config.TypeAssumptions.ptr_validate_unfold
 
+structure WitnessMessage [FfiSyntax] where
+  mk ::
+  Type' : _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType
+  From' : w64
+  To' : w64
+  Term' : w64
+  LastLogTerm' : w64
+  LastLogSubterm' : w64
+  LastLogIndex' : w64
+  ReplicationSet' : (GoArray GoSlice 2)
+  Votes' : GoMap
+  Context' : GoSlice
+
+instance WitnessMessage.zero_val [FfiSyntax] : ZeroVal WitnessMessage :=
+  ⟨WitnessMessage.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WitnessMessage.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Type" _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty),
+(go.field_decl.FieldDecl go!"From" go.uint64),
+(go.field_decl.FieldDecl go!"To" go.uint64),
+(go.field_decl.FieldDecl go!"Term" go.uint64),
+(go.field_decl.FieldDecl go!"LastLogTerm" go.uint64),
+(go.field_decl.FieldDecl go!"LastLogSubterm" go.uint64),
+(go.field_decl.FieldDecl go!"LastLogIndex" go.uint64),
+(go.field_decl.FieldDecl go!"ReplicationSet" (go.GoType.ArrayType 2 (go.GoType.SliceType go.uint64))),
+(go.field_decl.FieldDecl go!"Votes" (go.GoType.MapType go.uint64 go.bool)),
+(go.field_decl.FieldDecl go!"Context" (go.GoType.SliceType go.byte))]
+
+@[irreducible] def WitnessMessage.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WitnessMessage.fieldsUnsealed
+
+instance equals_unfold_WitnessMessage [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WitnessMessage.fields WitnessMessage.fieldsUnsealed :=
+  ⟨by unfold WitnessMessage.fields; rfl⟩
+
+@[reducible] def WitnessMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WitnessMessage.fields)
+
+class WitnessMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying WitnessMessage.underlying WitnessMessage
+  underlying : go.UnderlyingDirectedEq WitnessMessage.ty WitnessMessage.underlying
+  get_Type : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"Type") #x (Val #(x.Type'))
+  set_Type : ∀ (x : WitnessMessage) (y : _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : WitnessMessage)))
+  get_From : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"From") #x (Val #(x.From'))
+  set_From : ∀ (x : WitnessMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : WitnessMessage)))
+  get_To : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"To") #x (Val #(x.To'))
+  set_To : ∀ (x : WitnessMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : WitnessMessage)))
+  get_Term : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : WitnessMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : WitnessMessage)))
+  get_LastLogTerm : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"LastLogTerm") #x (Val #(x.LastLogTerm'))
+  set_LastLogTerm : ∀ (x : WitnessMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"LastLogTerm") (PairV #x #y) (Val #(({ x with LastLogTerm' := y } : WitnessMessage)))
+  get_LastLogSubterm : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"LastLogSubterm") #x (Val #(x.LastLogSubterm'))
+  set_LastLogSubterm : ∀ (x : WitnessMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"LastLogSubterm") (PairV #x #y) (Val #(({ x with LastLogSubterm' := y } : WitnessMessage)))
+  get_LastLogIndex : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"LastLogIndex") #x (Val #(x.LastLogIndex'))
+  set_LastLogIndex : ∀ (x : WitnessMessage) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"LastLogIndex") (PairV #x #y) (Val #(({ x with LastLogIndex' := y } : WitnessMessage)))
+  get_ReplicationSet : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"ReplicationSet") #x (Val #(x.ReplicationSet'))
+  set_ReplicationSet : ∀ (x : WitnessMessage) (y : (GoArray GoSlice 2)), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"ReplicationSet") (PairV #x #y) (Val #(({ x with ReplicationSet' := y } : WitnessMessage)))
+  get_Votes : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"Votes") #x (Val #(x.Votes'))
+  set_Votes : ∀ (x : WitnessMessage) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"Votes") (PairV #x #y) (Val #(({ x with Votes' := y } : WitnessMessage)))
+  get_Context : ∀ (x : WitnessMessage), go.IsGoStepPureDetTagged under (StructFieldGet WitnessMessage.underlying go!"Context") #x (Val #(x.Context'))
+  set_Context : ∀ (x : WitnessMessage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WitnessMessage.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : WitnessMessage)))
+
+attribute [instance] WitnessMessage.TypeAssumptions.type_repr
+  WitnessMessage.TypeAssumptions.underlying
+  WitnessMessage.TypeAssumptions.get_Type
+  WitnessMessage.TypeAssumptions.set_Type
+  WitnessMessage.TypeAssumptions.get_From
+  WitnessMessage.TypeAssumptions.set_From
+  WitnessMessage.TypeAssumptions.get_To
+  WitnessMessage.TypeAssumptions.set_To
+  WitnessMessage.TypeAssumptions.get_Term
+  WitnessMessage.TypeAssumptions.set_Term
+  WitnessMessage.TypeAssumptions.get_LastLogTerm
+  WitnessMessage.TypeAssumptions.set_LastLogTerm
+  WitnessMessage.TypeAssumptions.get_LastLogSubterm
+  WitnessMessage.TypeAssumptions.set_LastLogSubterm
+  WitnessMessage.TypeAssumptions.get_LastLogIndex
+  WitnessMessage.TypeAssumptions.set_LastLogIndex
+  WitnessMessage.TypeAssumptions.get_ReplicationSet
+  WitnessMessage.TypeAssumptions.set_ReplicationSet
+  WitnessMessage.TypeAssumptions.get_Votes
+  WitnessMessage.TypeAssumptions.set_Votes
+  WitnessMessage.TypeAssumptions.get_Context
+  WitnessMessage.TypeAssumptions.set_Context
+
 abbrev entryPayloadSize [FfiSyntax] : Type := w64
 
 @[reducible] def entryPayloadSize.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
@@ -12045,9 +13395,11 @@ structure raft [FfiSyntax] where
   logger' : Logger
   pendingReadIndexMessages' : GoSlice
   traceLogger' : TraceLogger
+  witnessMsgs' : GoSlice
+  witnessVoteAsked' : GoMap
 
 instance raft.zero_val [FfiSyntax] : ZeroVal raft :=
-  ⟨raft.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨raft.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def raft.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.uint64),
@@ -12081,7 +13433,9 @@ instance raft.zero_val [FfiSyntax] : ZeroVal raft :=
 (go.field_decl.FieldDecl go!"step" stepFunc.ty),
 (go.field_decl.FieldDecl go!"logger" Logger.ty),
 (go.field_decl.FieldDecl go!"pendingReadIndexMessages" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))),
-(go.field_decl.FieldDecl go!"traceLogger" TraceLogger.ty)]
+(go.field_decl.FieldDecl go!"traceLogger" TraceLogger.ty),
+(go.field_decl.FieldDecl go!"witnessMsgs" (go.GoType.SliceType WitnessMessage.ty)),
+(go.field_decl.FieldDecl go!"witnessVoteAsked" (go.GoType.MapType go.uint64 go.bool))]
 
 @[irreducible] def raft.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   raft.fieldsUnsealed
@@ -12160,6 +13514,10 @@ class raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_pendingReadIndexMessages : ∀ (x : raft) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet raft.underlying go!"pendingReadIndexMessages") (PairV #x #y) (Val #(({ x with pendingReadIndexMessages' := y } : raft)))
   get_traceLogger : ∀ (x : raft), go.IsGoStepPureDetTagged under (StructFieldGet raft.underlying go!"traceLogger") #x (Val #(x.traceLogger'))
   set_traceLogger : ∀ (x : raft) (y : TraceLogger), go.IsGoStepPureDetTagged under (StructFieldSet raft.underlying go!"traceLogger") (PairV #x #y) (Val #(({ x with traceLogger' := y } : raft)))
+  get_witnessMsgs : ∀ (x : raft), go.IsGoStepPureDetTagged under (StructFieldGet raft.underlying go!"witnessMsgs") #x (Val #(x.witnessMsgs'))
+  set_witnessMsgs : ∀ (x : raft) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet raft.underlying go!"witnessMsgs") (PairV #x #y) (Val #(({ x with witnessMsgs' := y } : raft)))
+  get_witnessVoteAsked : ∀ (x : raft), go.IsGoStepPureDetTagged under (StructFieldGet raft.underlying go!"witnessVoteAsked") #x (Val #(x.witnessVoteAsked'))
+  set_witnessVoteAsked : ∀ (x : raft) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet raft.underlying go!"witnessVoteAsked") (PairV #x #y) (Val #(({ x with witnessVoteAsked' := y } : raft)))
   ptr_Step_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"Step" raft.Step.impl
   ptr_abortLeaderTransfer_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"abortLeaderTransfer" raft.abortLeaderTransfer.impl
   ptr_appendEntry_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"appendEntry" raft.appendEntry.impl
@@ -12175,6 +13533,7 @@ class raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_becomePreCandidate_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"becomePreCandidate" raft.becomePreCandidate.impl
   ptr_campaign_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"campaign" raft.campaign.impl
   ptr_committedEntryInCurrentTerm_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"committedEntryInCurrentTerm" raft.committedEntryInCurrentTerm.impl
+  ptr_getWitnessVoteRequestReadiness_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"getWitnessVoteRequestReadiness" raft.getWitnessVoteRequestReadiness.impl
   ptr_handleAppendEntries_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"handleAppendEntries" raft.handleAppendEntries.impl
   ptr_handleHeartbeat_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"handleHeartbeat" raft.handleHeartbeat.impl
   ptr_handleSnapshot_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"handleSnapshot" raft.handleSnapshot.impl
@@ -12187,8 +13546,9 @@ class raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_maybeCommit_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"maybeCommit" raft.maybeCommit.impl
   ptr_maybeSendAppend_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"maybeSendAppend" raft.maybeSendAppend.impl
   ptr_maybeSendSnapshot_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"maybeSendSnapshot" raft.maybeSendSnapshot.impl
+  ptr_maybeStartNewSubterm_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"maybeStartNewSubterm" raft.maybeStartNewSubterm.impl
   ptr_pastElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"pastElectionTimeout" raft.pastElectionTimeout.impl
-  ptr_poll_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"poll" raft.poll.impl
+  ptr_pollAndReportDiff_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"pollAndReportDiff" raft.pollAndReportDiff.impl
   ptr_promotable_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"promotable" raft.promotable.impl
   ptr_reduceUncommittedSize_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"reduceUncommittedSize" raft.reduceUncommittedSize.impl
   ptr_reset_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"reset" raft.reset.impl
@@ -12197,7 +13557,10 @@ class raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_restore_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"restore" raft.restore.impl
   ptr_send_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"send" raft.send.impl
   ptr_sendAppend_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"sendAppend" raft.sendAppend.impl
+  ptr_sendAppendToWitness_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"sendAppendToWitness" raft.sendAppendToWitness.impl
   ptr_sendHeartbeat_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"sendHeartbeat" raft.sendHeartbeat.impl
+  ptr_sendHeartbeatToWitness_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"sendHeartbeatToWitness" raft.sendHeartbeatToWitness.impl
+  ptr_sendRequestVoteToWitness_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"sendRequestVoteToWitness" raft.sendRequestVoteToWitness.impl
   ptr_sendTimeoutNow_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"sendTimeoutNow" raft.sendTimeoutNow.impl
   ptr_softState_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"softState" raft.softState.impl
   ptr_switchToConfig_unfold : MethodUnfold (go.GoType.PointerType raft.ty) go!"switchToConfig" raft.switchToConfig.impl
@@ -12270,6 +13633,10 @@ attribute [instance] raft.TypeAssumptions.type_repr
   raft.TypeAssumptions.set_pendingReadIndexMessages
   raft.TypeAssumptions.get_traceLogger
   raft.TypeAssumptions.set_traceLogger
+  raft.TypeAssumptions.get_witnessMsgs
+  raft.TypeAssumptions.set_witnessMsgs
+  raft.TypeAssumptions.get_witnessVoteAsked
+  raft.TypeAssumptions.set_witnessVoteAsked
   raft.TypeAssumptions.ptr_Step_unfold
   raft.TypeAssumptions.ptr_abortLeaderTransfer_unfold
   raft.TypeAssumptions.ptr_appendEntry_unfold
@@ -12285,6 +13652,7 @@ attribute [instance] raft.TypeAssumptions.type_repr
   raft.TypeAssumptions.ptr_becomePreCandidate_unfold
   raft.TypeAssumptions.ptr_campaign_unfold
   raft.TypeAssumptions.ptr_committedEntryInCurrentTerm_unfold
+  raft.TypeAssumptions.ptr_getWitnessVoteRequestReadiness_unfold
   raft.TypeAssumptions.ptr_handleAppendEntries_unfold
   raft.TypeAssumptions.ptr_handleHeartbeat_unfold
   raft.TypeAssumptions.ptr_handleSnapshot_unfold
@@ -12297,8 +13665,9 @@ attribute [instance] raft.TypeAssumptions.type_repr
   raft.TypeAssumptions.ptr_maybeCommit_unfold
   raft.TypeAssumptions.ptr_maybeSendAppend_unfold
   raft.TypeAssumptions.ptr_maybeSendSnapshot_unfold
+  raft.TypeAssumptions.ptr_maybeStartNewSubterm_unfold
   raft.TypeAssumptions.ptr_pastElectionTimeout_unfold
-  raft.TypeAssumptions.ptr_poll_unfold
+  raft.TypeAssumptions.ptr_pollAndReportDiff_unfold
   raft.TypeAssumptions.ptr_promotable_unfold
   raft.TypeAssumptions.ptr_reduceUncommittedSize_unfold
   raft.TypeAssumptions.ptr_reset_unfold
@@ -12307,7 +13676,10 @@ attribute [instance] raft.TypeAssumptions.type_repr
   raft.TypeAssumptions.ptr_restore_unfold
   raft.TypeAssumptions.ptr_send_unfold
   raft.TypeAssumptions.ptr_sendAppend_unfold
+  raft.TypeAssumptions.ptr_sendAppendToWitness_unfold
   raft.TypeAssumptions.ptr_sendHeartbeat_unfold
+  raft.TypeAssumptions.ptr_sendHeartbeatToWitness_unfold
+  raft.TypeAssumptions.ptr_sendRequestVoteToWitness_unfold
   raft.TypeAssumptions.ptr_sendTimeoutNow_unfold
   raft.TypeAssumptions.ptr_softState_unfold
   raft.TypeAssumptions.ptr_switchToConfig_unfold
@@ -13042,6 +14414,168 @@ class EntryFormatter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
 
 attribute [instance] EntryFormatter.TypeAssumptions.underlying
 
+abbrev WitnessStorage [FfiSyntax] : Type := GoInterface
+
+@[reducible] def WitnessStorage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"GetWitnessState" (go.signature.Signature [] false [WitnessState.ty, go.error]))])
+
+class WitnessStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq WitnessStorage.ty WitnessStorage.underlying
+
+attribute [instance] WitnessStorage.TypeAssumptions.underlying
+
+abbrev WitnessState [FfiSyntax] : Type := GoInterface
+
+@[reducible] def WitnessState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetState" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)])), (go.InterfaceElem.MethodElem go!"Update" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)] false [go.error]))])
+
+class WitnessState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq WitnessState.ty WitnessState.underlying
+
+attribute [instance] WitnessState.TypeAssumptions.underlying
+
+structure WitnessConfig [FfiSyntax] where
+  mk ::
+  ID' : w64
+  Storage' : WitnessStorage
+  CheckQuorum' : Bool
+  PreVote' : Bool
+
+instance WitnessConfig.zero_val [FfiSyntax] : ZeroVal WitnessConfig :=
+  ⟨WitnessConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WitnessConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"ID" go.uint64),
+(go.field_decl.FieldDecl go!"Storage" WitnessStorage.ty),
+(go.field_decl.FieldDecl go!"CheckQuorum" go.bool),
+(go.field_decl.FieldDecl go!"PreVote" go.bool)]
+
+@[irreducible] def WitnessConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WitnessConfig.fieldsUnsealed
+
+instance equals_unfold_WitnessConfig [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WitnessConfig.fields WitnessConfig.fieldsUnsealed :=
+  ⟨by unfold WitnessConfig.fields; rfl⟩
+
+@[reducible] def WitnessConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WitnessConfig.fields)
+
+class WitnessConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying WitnessConfig.underlying WitnessConfig
+  underlying : go.UnderlyingDirectedEq WitnessConfig.ty WitnessConfig.underlying
+  get_ID : ∀ (x : WitnessConfig), go.IsGoStepPureDetTagged under (StructFieldGet WitnessConfig.underlying go!"ID") #x (Val #(x.ID'))
+  set_ID : ∀ (x : WitnessConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WitnessConfig.underlying go!"ID") (PairV #x #y) (Val #(({ x with ID' := y } : WitnessConfig)))
+  get_Storage : ∀ (x : WitnessConfig), go.IsGoStepPureDetTagged under (StructFieldGet WitnessConfig.underlying go!"Storage") #x (Val #(x.Storage'))
+  set_Storage : ∀ (x : WitnessConfig) (y : WitnessStorage), go.IsGoStepPureDetTagged under (StructFieldSet WitnessConfig.underlying go!"Storage") (PairV #x #y) (Val #(({ x with Storage' := y } : WitnessConfig)))
+  get_CheckQuorum : ∀ (x : WitnessConfig), go.IsGoStepPureDetTagged under (StructFieldGet WitnessConfig.underlying go!"CheckQuorum") #x (Val #(x.CheckQuorum'))
+  set_CheckQuorum : ∀ (x : WitnessConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WitnessConfig.underlying go!"CheckQuorum") (PairV #x #y) (Val #(({ x with CheckQuorum' := y } : WitnessConfig)))
+  get_PreVote : ∀ (x : WitnessConfig), go.IsGoStepPureDetTagged under (StructFieldGet WitnessConfig.underlying go!"PreVote") #x (Val #(x.PreVote'))
+  set_PreVote : ∀ (x : WitnessConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WitnessConfig.underlying go!"PreVote") (PairV #x #y) (Val #(({ x with PreVote' := y } : WitnessConfig)))
+
+attribute [instance] WitnessConfig.TypeAssumptions.type_repr
+  WitnessConfig.TypeAssumptions.underlying
+  WitnessConfig.TypeAssumptions.get_ID
+  WitnessConfig.TypeAssumptions.set_ID
+  WitnessConfig.TypeAssumptions.get_Storage
+  WitnessConfig.TypeAssumptions.set_Storage
+  WitnessConfig.TypeAssumptions.get_CheckQuorum
+  WitnessConfig.TypeAssumptions.set_CheckQuorum
+  WitnessConfig.TypeAssumptions.get_PreVote
+  WitnessConfig.TypeAssumptions.set_PreVote
+
+abbrev Witness [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Witness.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Process" (go.signature.Signature [WitnessMessage.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))])
+
+class Witness.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Witness.ty Witness.underlying
+
+attribute [instance] Witness.TypeAssumptions.underlying
+
+structure witness [FfiSyntax] where
+  mk ::
+  id' : w64
+  storage' : WitnessStorage
+  preVote' : Bool
+  checkQuorum' : Bool
+  state' : Loc
+  lastError' : GoError
+
+instance witness.zero_val [FfiSyntax] : ZeroVal witness :=
+  ⟨witness.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def witness.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"id" go.uint64),
+(go.field_decl.FieldDecl go!"storage" WitnessStorage.ty),
+(go.field_decl.FieldDecl go!"preVote" go.bool),
+(go.field_decl.FieldDecl go!"checkQuorum" go.bool),
+(go.field_decl.FieldDecl go!"state" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)),
+(go.field_decl.FieldDecl go!"lastError" go.error)]
+
+@[irreducible] def witness.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  witness.fieldsUnsealed
+
+instance equals_unfold_witness [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold witness.fields witness.fieldsUnsealed :=
+  ⟨by unfold witness.fields; rfl⟩
+
+@[reducible] def witness.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType witness.fields)
+
+class witness.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying witness.underlying witness
+  underlying : go.UnderlyingDirectedEq witness.ty witness.underlying
+  get_id : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"id") #x (Val #(x.id'))
+  set_id : ∀ (x : witness) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : witness)))
+  get_storage : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"storage") #x (Val #(x.storage'))
+  set_storage : ∀ (x : witness) (y : WitnessStorage), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : witness)))
+  get_preVote : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"preVote") #x (Val #(x.preVote'))
+  set_preVote : ∀ (x : witness) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"preVote") (PairV #x #y) (Val #(({ x with preVote' := y } : witness)))
+  get_checkQuorum : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"checkQuorum") #x (Val #(x.checkQuorum'))
+  set_checkQuorum : ∀ (x : witness) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"checkQuorum") (PairV #x #y) (Val #(({ x with checkQuorum' := y } : witness)))
+  get_state : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : witness) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : witness)))
+  get_lastError : ∀ (x : witness), go.IsGoStepPureDetTagged under (StructFieldGet witness.underlying go!"lastError") #x (Val #(x.lastError'))
+  set_lastError : ∀ (x : witness) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet witness.underlying go!"lastError") (PairV #x #y) (Val #(({ x with lastError' := y } : witness)))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"Close" witness.Close.impl
+  ptr_Process_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"Process" witness.Process.impl
+  ptr_cloneState_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"cloneState" witness.cloneState.impl
+  ptr_handleAppend_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"handleAppend" witness.handleAppend.impl
+  ptr_handleAppendNoUpdate_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"handleAppendNoUpdate" witness.handleAppendNoUpdate.impl
+  ptr_handleHeartbeat_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"handleHeartbeat" witness.handleHeartbeat.impl
+  ptr_handleVote_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"handleVote" witness.handleVote.impl
+  ptr_isHealthy_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"isHealthy" witness.isHealthy.impl
+  ptr_processMessageWithNewerTerm_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"processMessageWithNewerTerm" witness.processMessageWithNewerTerm.impl
+  ptr_processMessageWithOlderTerm_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"processMessageWithOlderTerm" witness.processMessageWithOlderTerm.impl
+  ptr_processNoUpdate_unfold : MethodUnfold (go.GoType.PointerType witness.ty) go!"processNoUpdate" witness.processNoUpdate.impl
+
+attribute [instance] witness.TypeAssumptions.type_repr
+  witness.TypeAssumptions.underlying
+  witness.TypeAssumptions.get_id
+  witness.TypeAssumptions.set_id
+  witness.TypeAssumptions.get_storage
+  witness.TypeAssumptions.set_storage
+  witness.TypeAssumptions.get_preVote
+  witness.TypeAssumptions.set_preVote
+  witness.TypeAssumptions.get_checkQuorum
+  witness.TypeAssumptions.set_checkQuorum
+  witness.TypeAssumptions.get_state
+  witness.TypeAssumptions.set_state
+  witness.TypeAssumptions.get_lastError
+  witness.TypeAssumptions.set_lastError
+  witness.TypeAssumptions.ptr_Close_unfold
+  witness.TypeAssumptions.ptr_Process_unfold
+  witness.TypeAssumptions.ptr_cloneState_unfold
+  witness.TypeAssumptions.ptr_handleAppend_unfold
+  witness.TypeAssumptions.ptr_handleAppendNoUpdate_unfold
+  witness.TypeAssumptions.ptr_handleHeartbeat_unfold
+  witness.TypeAssumptions.ptr_handleVote_unfold
+  witness.TypeAssumptions.ptr_isHealthy_unfold
+  witness.TypeAssumptions.ptr_processMessageWithNewerTerm_unfold
+  witness.TypeAssumptions.ptr_processMessageWithOlderTerm_unfold
+  witness.TypeAssumptions.ptr_processNoUpdate_unfold
+
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   raftLog_instance : raftLog.TypeAssumptions
   unstable_instance : unstable.TypeAssumptions
@@ -13059,6 +14593,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   CampaignType_instance : CampaignType.TypeAssumptions
   StateType_instance : StateType.TypeAssumptions
   Config_instance : Config.TypeAssumptions
+  WitnessMessage_instance : WitnessMessage.TypeAssumptions
   raft_instance : raft.TypeAssumptions
   stepFunc_instance : stepFunc.TypeAssumptions
   RawNode_instance : RawNode.TypeAssumptions
@@ -13078,6 +14613,11 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   EntryFormatter_instance : EntryFormatter.TypeAssumptions
   entryEncodingSize_instance : entryEncodingSize.TypeAssumptions
   entryPayloadSize_instance : entryPayloadSize.TypeAssumptions
+  WitnessStorage_instance : WitnessStorage.TypeAssumptions
+  WitnessState_instance : WitnessState.TypeAssumptions
+  WitnessConfig_instance : WitnessConfig.TypeAssumptions
+  Witness_instance : Witness.TypeAssumptions
+  witness_instance : witness.TypeAssumptions
   newLog_unfold : FuncUnfold newLog [] newLog.impl
   newLogWithSize_unfold : FuncUnfold newLogWithSize [] newLogWithSize.impl
   SetLogger_unfold : FuncUnfold SetLogger [] SetLogger.impl
@@ -13138,6 +14678,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   DescribeReady_unfold : FuncUnfold DescribeReady [] DescribeReady.impl
   DescribeMessage_unfold : FuncUnfold DescribeMessage [] DescribeMessage.impl
   describeMessageWithIndent_unfold : FuncUnfold describeMessageWithIndent [] describeMessageWithIndent.impl
+  DescribeWitnessMessage_unfold : FuncUnfold DescribeWitnessMessage [] DescribeWitnessMessage.impl
   describeTarget_unfold : FuncUnfold describeTarget [] describeTarget.impl
   DescribeEntry_unfold : FuncUnfold DescribeEntry [] DescribeEntry.impl
   DescribeConfChange_unfold : FuncUnfold DescribeConfChange [] DescribeConfChange.impl
@@ -13148,6 +14689,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payloadsSize_unfold : FuncUnfold payloadsSize [] payloadsSize.impl
   assertConfStatesEquivalent_unfold : FuncUnfold assertConfStatesEquivalent [] assertConfStatesEquivalent.impl
   extend_unfold : FuncUnfold extend [] extend.impl
+  NewWitness_unfold : FuncUnfold NewWitness [] NewWitness.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
@@ -13184,6 +14726,7 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.CampaignType_instance
   Assumptions.StateType_instance
   Assumptions.Config_instance
+  Assumptions.WitnessMessage_instance
   Assumptions.raft_instance
   Assumptions.stepFunc_instance
   Assumptions.RawNode_instance
@@ -13203,6 +14746,11 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.EntryFormatter_instance
   Assumptions.entryEncodingSize_instance
   Assumptions.entryPayloadSize_instance
+  Assumptions.WitnessStorage_instance
+  Assumptions.WitnessState_instance
+  Assumptions.WitnessConfig_instance
+  Assumptions.Witness_instance
+  Assumptions.witness_instance
   Assumptions.newLog_unfold
   Assumptions.newLogWithSize_unfold
   Assumptions.SetLogger_unfold
@@ -13263,6 +14811,7 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.DescribeReady_unfold
   Assumptions.DescribeMessage_unfold
   Assumptions.describeMessageWithIndent_unfold
+  Assumptions.DescribeWitnessMessage_unfold
   Assumptions.describeTarget_unfold
   Assumptions.DescribeEntry_unfold
   Assumptions.DescribeConfChange_unfold
@@ -13273,6 +14822,7 @@ attribute [instance] Assumptions.raftLog_instance
   Assumptions.payloadsSize_unfold
   Assumptions.assertConfStatesEquivalent_unfold
   Assumptions.extend_unfold
+  Assumptions.NewWitness_unfold
   Assumptions.import_errors_Assumption
   Assumptions.import_proto_Assumption
   Assumptions.import_raftpb_Assumption

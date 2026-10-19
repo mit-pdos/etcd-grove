@@ -115,6 +115,8 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (LiteralValue []))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (Var "cfg")) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "autoLeave"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -146,6 +148,8 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (Var "cfg")) (Val #(W64 1)))) (Var "$r0"))))))))
   (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
   (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -229,7 +233,7 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
 
     [1]: https://github.com/ongardie/dissertation/blob/master/online-trim.pdf
 
-    go: confchange.go:94:18 -/
+    go: confchange.go:95:18 -/
 noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -256,6 +260,8 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Var "cfg"))
@@ -268,6 +274,8 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"AutoLeave"))) (Var "cfg")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (Var "cfg")) (Val #(W64 1)))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg"))
   (App (App (Val (GoInstruction (FuncResolve outgoingPtr []))) (Val #())) (Var "$a0"))) (Var "$r0"))))))))
@@ -295,13 +303,18 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "isLearner" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isVoter"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLearner"))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (Var "cfg")) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))))
+  (Let "isWitness" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isVoter"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLearner"))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWitness"))) (Val #false))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (App (App (App (Val (GoInstruction (FuncResolve go.delete [_root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty]))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isWitness") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isLearner") (Var "$r1")))))))
   (App (Val doExecute)
@@ -370,7 +383,7 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
     zero, or if the configuration is in a joint state (i.e. if there is an
     outgoing configuration).
 
-    go: confchange.go:128:18 -/
+    go: confchange.go:131:18 -/
 noncomputable def Changer.Simple.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ccs"
@@ -473,7 +486,7 @@ noncomputable def Changer.Simple.impl [FfiSyntax] [GoGlobalContext] : val :=
     always made to the incoming majority config Voters[0]. Voters[1] is either
     empty or preserves the outgoing majority configuration while in a joint state.
 
-    go: confchange.go:150:18 -/
+    go: confchange.go:153:18 -/
 noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
@@ -504,19 +517,28 @@ noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val doExecute)
+  (Val #())))))
   (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "cc"))) (Val #()))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "$a2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "cc"))) (Val #()))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"makeVoter"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"makeVoter"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddLearnerNode)))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "$a2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "cc"))) (Val #()))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"makeLearner"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"makeLearner"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode)))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
@@ -526,11 +548,18 @@ noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeUpdateNode)))
   (App (Val doExecute)
   (Val #()))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddWitness)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
+  (Let "$a2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "cc"))) (Val #()))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"makeWitness"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
   (App (Val doReturn)
   (Let "$a0" (Val #(go!"unexpected conf type %d"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "cc"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) go!"GetNodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (Var "cc"))) (Val #())) (Val #(W64 0)))))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
@@ -543,7 +572,7 @@ noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- makeVoter adds or promotes the given ID to be a voter in the incoming
     majority config.
 
-    go: confchange.go:178:18 -/
+    go: confchange.go:189:18 -/
 noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
@@ -554,11 +583,9 @@ noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (Let "trk" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "cfg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
@@ -566,9 +593,12 @@ noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
+  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"LearnersNext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
@@ -579,20 +609,28 @@ noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve nilAwareDelete []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"cannot change witness to non-witness voter"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #()))))
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$a3" (Val #false)
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"initProgress"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))
+  (Let "$a4" (Val #false)
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"initProgress"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0"))))))))))))))))
 
 /-- makeLearner makes the given ID a learner or stages it to be a learner once
     an active joint configuration is exited.
@@ -608,7 +646,7 @@ noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
     be added to Learners the moment the outgoing config is removed by
     LeaveJoint().
 
-    go: confchange.go:204:18 -/
+    go: confchange.go:221:18 -/
 noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
@@ -619,17 +657,18 @@ noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (Let "trk" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "cfg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
   (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -646,16 +685,20 @@ noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (App (Val (GoInstruction (FuncResolve nilAwareAdd []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Learners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (App (App (App (Val (GoInstruction (FuncResolve nilAwareAdd []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$r0"))))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))) (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "onRight") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0")))))))))))
+  (Var "$r0"))))))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0")))))))
   (App (Val doExecute)
@@ -663,29 +706,98 @@ noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"remove"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"cannot change witness to non-witness learner"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr"))))
   (App (Val doReturn)
-  (Val #()))
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val UntypedNil)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #()))))
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
   (Let "$a3" (Val #true)
-  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"initProgress"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))
+  (Let "$a4" (Val #false)
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"initProgress"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0"))))))))))))))))
 
-/-- remove this peer as a voter or learner from the incoming config.
+/-- makeWitness adds the given ID to be a witness in the incoming
+    majority config.
 
-    go: confchange.go:231:18 -/
+    go: confchange.go:255:18 -/
+noncomputable def Changer.makeWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "cfg"
+  (Lam "trk"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc Changer.ty))) (Var "c"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (Let "trk" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
+  (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))) (Val #(W64 0)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.uint64)) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
+  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty go!"IsWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")))))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"cannot change non-witness voter/learner to witness"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Var "pr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (Let "$a3" (Val #false)
+  (Let "$a4" (Val #true)
+  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Changer.ty) go!"initProgress"))) (Var "c")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty)))) (Pair (Var "pr") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))) (Val #(W64 0))))) (Val #(W64 0)))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))))) (Val #false)))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"cannot have more than one witness in incoming"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))))))))))
+
+/-- remove this peer as a voter or learner or witness from the incoming config.
+
+    go: confchange.go:281:18 -/
 noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
@@ -699,6 +811,7 @@ noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -723,6 +836,12 @@ noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "onRight") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))) (Val #(W64 0))))))))
+  (Let "$r0" (Val #(W64 0))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))) (Val #(W64 0)))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"LearnersNext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
@@ -754,17 +873,19 @@ noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Var "$r0"))))))))))))))))))))
 
-/-- initProgress initializes a new progress for the given node or learner.
+/-- initProgress initializes a new progress for the given node or learner or witness.
 
-    go: confchange.go:247:18 -/
+    go: confchange.go:300:18 -/
 noncomputable def Changer.initProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
   (Lam "id"
   (Lam "isLearner"
+  (Lam "isWitness"
   (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc Changer.ty))) (Var "c"))
+  (Let "isWitness" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isWitness"))
   (Let "isLearner" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isLearner"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
   (Let "trk" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))
@@ -781,25 +902,33 @@ noncomputable def Changer.initProgress.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty go!"MaxInflightBytes"))) (App (Val (GoInstruction (StructFieldRef Changer.ty go!"Tracker"))) (Var "c"))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.raft.v3.tracker.NewInflights []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLearner"))
-  (Let "$v4" (Val #true)
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Match")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Next")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Inflights")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Inflights.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"RecentActive")) (ElementExpression go.bool (Var "$v4")))]))))))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWitness"))
+  (Let "$v5" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.tracker.Progress.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Match")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Next")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Inflights")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Inflights.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"IsLearner")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"IsWitness")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"RecentActive")) (ElementExpression go.bool (Var "$v5")))])))))))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressMap.ty))) (Var "trk"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isLearner")))
   (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isWitness"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))) (Val #(W64 0)))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg"))))
-  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0"))))
+  (App (App (Val (GoInstruction (FuncResolve incoming []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))) (Var "$r0")))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Learners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty)))) (Var "cfg")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
-  (App (App (App (Val (GoInstruction (FuncResolve nilAwareAdd []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve nilAwareAdd []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))))))))))))
 
 /-- checkInvariants makes sure that the config and progress are compatible with
     each other. This is used to check both what the Changer is initialized with,
     as well as what it returns.
 
-    go: confchange.go:276:6 -/
+    go: confchange.go:333:6 -/
 noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "trk"
@@ -810,8 +939,51 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Voters"))) (Var "cfg")))
+  (Let "voters" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Val #())))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (array.forRange 2 _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty go!"Witnesses"))) (Var "cfg")) (App (Val (GoInstruction (GoLoad go.int))) (Var "id")))))
+  (Let "w" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 0)))))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Var "voters"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (Let "$a0" (Val #(go!"%d is in Witnesses[%d] but not in Voters[%d]"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.any))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "id")))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "id")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "id") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (Var "voters") (Var "$value"))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Var "cfg"))
   (App (App (Val (GoInstruction (FuncResolve joint []))) (Val #())) (Var "$a0"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -985,7 +1157,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
     the purposes of the Changer) and returns those copies. It returns an error
     if checkInvariants does.
 
-    go: confchange.go:337:18 -/
+    go: confchange.go:403:18 -/
 noncomputable def Changer.checkAndCopy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1034,7 +1206,7 @@ noncomputable def Changer.checkAndCopy.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- checkAndReturn calls checkInvariants on the input and returns either the
     resulting error or the input.
 
-    go: confchange.go:351:6 -/
+    go: confchange.go:417:6 -/
 noncomputable def checkAndReturn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "trk"
@@ -1059,7 +1231,7 @@ noncomputable def checkAndReturn.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- err returns zero values and an error.
 
-    go: confchange.go:359:18 -/
+    go: confchange.go:425:18 -/
 noncomputable def Changer.err.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "err"
@@ -1071,7 +1243,7 @@ noncomputable def Changer.err.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- nilAwareAdd populates a map entry, creating the map if necessary.
 
-    go: confchange.go:364:6 -/
+    go: confchange.go:430:6 -/
 noncomputable def nilAwareAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "id"
@@ -1094,7 +1266,7 @@ noncomputable def nilAwareAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- nilAwareDelete deletes from a map, nil'ing the map itself if it is empty after.
 
-    go: confchange.go:372:6 -/
+    go: confchange.go:438:6 -/
 noncomputable def nilAwareDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "id"
@@ -1126,7 +1298,7 @@ noncomputable def nilAwareDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- symdiff returns the count of the symmetric difference between the sets of
     uint64s, i.e. len( (l - r) \union (r - l)).
 
-    go: confchange.go:384:6 -/
+    go: confchange.go:450:6 -/
 noncomputable def symdiff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "r"
@@ -1183,7 +1355,7 @@ noncomputable def symdiff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))))) (Pair (Var "pairs") (Var "$r0")))))))))))))
 
-/-- go: confchange.go:400:6 -/
+/-- go: confchange.go:466:6 -/
 noncomputable def joint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cfg"
   (App (Val exceptionDo)
@@ -1193,7 +1365,7 @@ noncomputable def joint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve outgoing []))) (Val #())) (Var "$a0")))
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))))
 
-/-- go: confchange.go:404:6 -/
+/-- go: confchange.go:470:6 -/
 noncomputable def incoming.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "voters"
   (App (Val exceptionDo)
@@ -1201,7 +1373,7 @@ noncomputable def incoming.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (Var "voters") (Val #(W64 0)))))))))
 
-/-- go: confchange.go:405:6 -/
+/-- go: confchange.go:471:6 -/
 noncomputable def outgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "voters"
   (App (Val exceptionDo)
@@ -1209,7 +1381,7 @@ noncomputable def outgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (Var "voters") (Val #(W64 1)))))))))
 
-/-- go: confchange.go:406:6 -/
+/-- go: confchange.go:472:6 -/
 noncomputable def outgoingPtr.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "voters"
   (App (Val exceptionDo)
@@ -1220,7 +1392,7 @@ noncomputable def outgoingPtr.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Describe prints the type and NodeId of the configuration changes as a
     space-delimited string.
 
-    go: confchange.go:410:6 -/
+    go: confchange.go:476:6 -/
 noncomputable def Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ccs"
   (App (Val exceptionDo)
@@ -1319,6 +1491,15 @@ noncomputable def toConfChangeSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))) (Val #())))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "in"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddWitness)) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "in") (Var "$r0")))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "in"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
@@ -1326,7 +1507,7 @@ noncomputable def toConfChangeSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "in") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "in") (Var "$r0"))))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
@@ -1357,6 +1538,15 @@ noncomputable def toConfChangeSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitnessOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))) (Val #())))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "out"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddWitness)) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty) go!"GetWitnessOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression (go.GoType.PointerType go.uint64) (Var "$v1")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "out") (Var "$r0")))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "out"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty go!"Enum"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)) (Val #()))
   (Let "$v1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
@@ -1364,13 +1554,13 @@ noncomputable def toConfChangeSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "out") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (Var "out") (Var "$r0"))))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$value"))))))))))))))))
 
-/-- go: restore.go:99:6 -/
+/-- go: restore.go:114:6 -/
 noncomputable def chain.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "chg"
   (Lam "ops"
@@ -1434,7 +1624,7 @@ noncomputable def chain.impl [FfiSyntax] [GoGlobalContext] : val :=
     this can just take LastIndex and MaxInflight directly instead and cook up
     the results from that alone.
 
-    go: restore.go:119:6 -/
+    go: restore.go:134:6 -/
 noncomputable def Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "chg"
   (Lam "cs"
@@ -1612,6 +1802,7 @@ class Changer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   initProgress_unfold : MethodUnfold Changer.ty go!"initProgress" Changer.initProgress.impl
   makeLearner_unfold : MethodUnfold Changer.ty go!"makeLearner" Changer.makeLearner.impl
   makeVoter_unfold : MethodUnfold Changer.ty go!"makeVoter" Changer.makeVoter.impl
+  makeWitness_unfold : MethodUnfold Changer.ty go!"makeWitness" Changer.makeWitness.impl
   remove_unfold : MethodUnfold Changer.ty go!"remove" Changer.remove.impl
   ptr_EnterJoint_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"EnterJoint" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"EnterJoint"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
@@ -1631,6 +1822,8 @@ class Changer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"makeLearner"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
   ptr_makeVoter_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"makeVoter" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"makeVoter"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
+  ptr_makeWitness_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"makeWitness" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Changer.ty go!"makeWitness"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
   ptr_remove_unfold : MethodUnfold (go.GoType.PointerType Changer.ty) go!"remove" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Changer.ty go!"remove"))) (App (Val (GoInstruction (GoLoad Changer.ty))) (Var "$r"))))
 
@@ -1649,6 +1842,7 @@ attribute [instance] Changer.TypeAssumptions.type_repr
   Changer.TypeAssumptions.initProgress_unfold
   Changer.TypeAssumptions.makeLearner_unfold
   Changer.TypeAssumptions.makeVoter_unfold
+  Changer.TypeAssumptions.makeWitness_unfold
   Changer.TypeAssumptions.remove_unfold
   Changer.TypeAssumptions.ptr_EnterJoint_unfold
   Changer.TypeAssumptions.ptr_LeaveJoint_unfold
@@ -1659,6 +1853,7 @@ attribute [instance] Changer.TypeAssumptions.type_repr
   Changer.TypeAssumptions.ptr_initProgress_unfold
   Changer.TypeAssumptions.ptr_makeLearner_unfold
   Changer.TypeAssumptions.ptr_makeVoter_unfold
+  Changer.TypeAssumptions.ptr_makeWitness_unfold
   Changer.TypeAssumptions.ptr_remove_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
