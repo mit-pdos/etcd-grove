@@ -11756,3 +11756,117 @@ round trip, `newBackend`'s premise); closing the old backend while its read tran
 *Asked of the user:* D22a-i (recommendations: (A) each; D22b (A) reverses the 2026-10-15
 preference for the local route, for the reason given; D22g (A) adds a fork commit), and whether
 S-r (D22e (A)) is wanted before the server stages finish.
+
+## D22 S-0 carried out: D22a (A) fails; a fork check instead, and the plan amended (2026-10-19)
+
+Stage S-0 of T-S, a pen-and-paper check (no Lean change); the full write-up, with file:line
+references at the pins, is `notes/snapshot-path-s0.md`. Two results change the plan: D22a (A)
+does not work, and a second Go bug of finding 1's class, `issues/etcd-auth-…` (below). The rest
+amends D22c, D22h and stages S-b, S-d, S-h, S-j.
+
+**D22a (A) fails.** The facts it drops from the `.snap` clause, the snapshot's last entry in the
+term-`T` leader's log (`leadPrefix`, `lpfull`) and `commitIn … m.index m.term`, are not only used
+to derive `isCommitted`. The receiver's restore and fast-forward (`Protocol/Refinement.lean:
+2803-3075`) take from them its new `commitIn` at its term (`commitJ`'s `t ≤ tm`,
+`Protocol/Ghost.lean:2556`), its reply's `ackIn`/`hist`, "no ack of this term above the snapshot"
+(`ackAgree_term`), the new log's `TermsLe`, and `hist_replace`. In finding 2's stale case these
+are *false* of the receiver's state, and a later campaign breaks `CampOk`, the measure of Leader
+Completeness's induction (`LeaderCompleteness.lean:287`). The leader-prefix half alone could be
+replaced by Leader Completeness, but only given `commitIn` at `m.term`, which is exactly what the
+stale merged message lacks. Also: a merged snapshot whose last term is `≤ m.Term` but whose
+prefix was committed at a later term (the Figure 8 shape) breaks the same invariants, so a check
+on `appliedt ≤ m.Term` is not enough. Finding 2's code reading is right (no safety bug, no panic),
+refined: the receiver cannot lead at any term `≤ T'`; a stale heartbeat's `commitTo` is a no-op
+(the old leader's committed index is below the snapshot's).
+
+**D22a, restated.**
+- *(D) A fork check (new).* In `applyAll`, before `createMergedSnapshotMessage`
+  (`server.go:1002-1009`), send the merged snapshot only when raft, read after the batch
+  (`s.r.Status()`), is leader at `m.Term`. Raft's log at that moment is a leader prefix of `T`
+  holding the applied prefix, with its commit index `≥ appliedi`, so **the existing `.snap` clause
+  holds of the merged message unchanged**: no receiving proof, `StepC.snap*` or Leader
+  Completeness changes. The plan's objections to (B) do not apply: the fact is historical (as for
+  a raft-made `MsgSnap` still in flight after its leader stepped down), and the Figure 8 shape
+  needs the sender at a later term, which the check excludes. It must read raft's term: etcd's
+  `s.isLeader()` passes after a re-election at `T2 > T`, and `s.Term()` is the last applied entry's
+  term. Dropping the message costs no liveness (a node no longer leader at `T` has dropped the
+  peer's progress). Cost: one fork commit; a spec of `node.Status`/`getStatus` (today
+  `node__run.lean:917` models `<-n.status` as never taken); a lemma lowering `commitIn` to a smaller
+  index; `prev.index ≤ appliedi` (compaction stays at or below the applied index).
+- *(A″) Without a Go change:* a redesign of the protocol invariants (`TermsLe`, `CampOk` as
+  "`CampOk` or doomed", `commitJ`'s bound, the ack invariants, LC's induction). Very large, and
+  still needs raft's term at the sender.
+- *Recommendation:* (D). Asked of the user (a second fork commit beside D22g (A)).
+
+**D22b** is unchanged in substance (the configuration certificate on the message), but
+`raftSnapCert` (`SnapConf.lean:147`) predates D19p and lacks the tracked-bound conjunct
+`GMode.SnapOk` now has: S-b adds it.
+
+**D22c, amended.** The determinism claim holds for the buckets restore reads, every write going
+through applied entries, with seven exceptions (`notes/snapshot-path-s0.md`, part 2, (3)):
+`meta/confState` leads the consistent index and can be overwritten on the receiver by its own stale
+copy (nothing reads it); the compaction job's timing (`finishedCompactRev`, the key bucket's
+physical content); `meta/storageVersion`, written by each member's monitor; the lease TTL clamp
+(`minLeaseTTL`) and `RemainingTTL` under a member-local flag; legacy plaintext passwords hashed at
+apply with a random salt; `UpdateAttributes` against the in-memory member list. None applies to
+putget's workload. So: `dbImage` speaks of the key view, the meta *index* (not its term: restore
+never reads it) and the compaction keys, and leaves confState and `storageVersion` free;
+`bkRestAt i` is per bucket, under a premise "the members agree on `ElectionTicks`, `TickMs`,
+`checkpointPersist`" or for workloads without leases and auth (then the lease and auth buckets are
+the boot state, `bkFresh`'s content). `NewAuthStore`'s `authRevision = 1` is part of the boot state.
+
+**D22h, restated.** `srvWTAt`'s only consumer is M3's cap (`srvWTPool_bound`): it and the counter go
+with the cap in S-l. `srvWTPool` survives the jump but not the backend swap (it holds the *old*
+backend's write-back tokens; the monitor shares it): it is re-allocated per backend. The revision
+and change-count bounds do not go through the pool: they come from the index writer's receipts
+(`idxSealed`, `soleWriter`, `storage/mvcc/InvIndex.lean:970-1001`), which a restored index does not
+have. The committed log's length does not bound the changes (a txn has up to `putMax` of them). *(A)
+restated:* one cluster-level `⧗ (logCh (kvModel A))` in `kvInv`, paid by whoever first applies a
+change (or the proposer); a restore takes from it the bound for the image's log and re-makes the
+index's and store's token authorities.
+
+**D22j (new). The merged snapshot's ConfState.** `ep.confState` starts as `MemoryStorage`'s empty
+ConfState and changes only on a validated conf change; validation reads the `members` bucket, which
+is not modelled, so the proofs cannot exclude it staying empty (today only `epCsOk`). *(A)*
+`epConfState`'s content `∈ {empty, the static config}`, the merged message carrying either, and
+raft's `restore` `!found` exit described as a protocol rule (reply `MsgAppResp{Index: committed}`,
+ghost as `ownRaftGhost_step_stale`) instead of the premise `scfg.Has id`; *(B)* model `members`
+enough to prove the boot entries validate. *Recommendation:* (A).
+
+**D22k (new). The auth store across the swap**
+(`issues/etcd-auth-snapshot-closed-backend-panic.md`): `applySnapshot` starts `go oldbe.Close()`
+(`server.go:1100`) before `authStore.Recover(newbe)` (`:1121`), and permission checks on gRPC
+goroutines read the auth store's backend without a lock: a closed backend's nil read transaction is
+dereferenced, a panic that kills the member (auth on, a follower installing a snapshot). Same class,
+narrower windows: `store.hash()` reads `s.b` without `s.mu`; the maintenance `Snapshot` RPC keeps
+`s.Backend()`'s result. Reproduced at the pin and on upstream `main` (the issue's integration test); the issue's
+`fix.patch` (`go oldbe.Close()` after `Recover` and `cluster.SetBackend`) passes it. *(A)* a fork
+fix (`Recover` before the old backend's close) as D22g (A); *(B)* the auth contract only with auth
+off (it is off in the runs). **(A) adopted** (the user, 2026-10-19).
+
+**Stages, amended.**
+- **S-b** under (D): the clause unchanged; `isMessage_snap_recontent` from a leader handout given by
+  `node.Status`'s spec (or an etcd-side record of raft's term and role per `Ready`); the
+  `commitIn`-lowering lemma; `raftSnapCert`'s tracked bound; `restore`'s `!found` exit (D22j (A)).
+  Medium, as planned; under (A″) very large.
+- **S-c:** `node.run`'s status branch live if (D) goes through `node.Status`. `SnapScope`'s
+  `Index < 2^61` for a merged `appliedi` is a premise S-h discharges (D22h's bound).
+- **S-d:** both `MsgStorageAppendResp` snapshot arms (the lower-term one, `raft.go:1170-1180`, as
+  well as the equal-term one, `:1194-1201`; `InvRawnode.lean:792` relaxed for both); a second
+  restore between `Ready` and `Advance` is reachable (`node.run` steps `recvc` while waiting on
+  `advancec`; not a Go bug): a pending snapshot while the application holds the first's handout.
+- **S-h:** first, `applyRes` and `applyAll`'s post keep `at' = lastTerm`, `uint.Z ciEff = max c₀ ai`
+  (today only `ciJ`), and `epConfState`'s content; `applyConfChange.spec`'s post gives the node's
+  `confstateS` on success, the old ConfState on a validation failure; `store.Commit` saves the
+  consistent index (the protocol's `commit_save_au`). Then the (D) check (`node.Status`).
+- **S-j:** `s.be` is held `↦□` since D19i part 2 (`NewServer.lean:863-866`,
+  `InvStorageVersion.lean:16-18,70`), so the swap is unprovable as the stage stands: back to half
+  in `bemuP`, half the apply thread's (its sole writer, which reads it without `bemu`); the
+  storage-version monitor's contract over the backend current under `bemu`; `E`,
+  `applyBackend γ ci b` and `srvWTPool E.γ` per backend epoch (a ghost variable naming the current
+  backend). Larger than planned.
+- **S-k:** D22k beside D22g.
+
+*The user (2026-10-19):* D22g (A) and D22k (A), fork fixes, adopted; D22a (D) under discussion; the
+rest of D22b-j at their recommendations. S-a (D22i (A)) goes ahead meanwhile: it depends on none of
+them.

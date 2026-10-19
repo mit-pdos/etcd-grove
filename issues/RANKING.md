@@ -106,6 +106,13 @@ before any public issue.
     compaction, defragmentation and disarming, until the member restarts. Default configuration,
     the documented NOSPACE recovery with one member down during it; reproduced by an integration
     test at the pin; fix a few lines (tested). Upstream not yet searched.
+13. **[etcd-auth-snapshot-closed-backend-panic](etcd-auth-snapshot-closed-backend-panic.md)**
+    (2026-10-19): with auth enabled, `applySnapshot` closes the old backend before
+    `authStore.Recover`, so a serializable read, watch, keep-alive, `Authenticate` or admin RPC
+    reaching a member as it installs a leader's snapshot panics it on a nil bolt read tx. One
+    member crashes and a restart recovers it. Reproduced end to end at the pin (7 of 10 runs) and
+    on `main` (3 of 3). The fix moves the close after the stores' recovery (tested, applies to
+    `main`). Searched upstream: not reported (the shutdown variant was #17223).
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
