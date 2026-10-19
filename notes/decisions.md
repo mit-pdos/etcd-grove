@@ -11106,3 +11106,9 @@ names-only `etcdhttp/types`), and `etc/gen-init.py` was rerun for the new packag
   cluster's lock (`RaftCluster.String`, `SetVersionChangedNotifier`) and `bootstrap`'s contract now
   keep the empty `removed` map, and `bootstrap`'s contract (a premise) names the URL directory.
   `EtcdServer.applyConfChange`'s docstring was updated (its `AddPeer` of a known peer returns).
+
+**M6 (D20 (b)) moves to this session (the user, 2026-10-19).** The watch session waits for it before
+linkv's `Apply`. Its requirements: the client's `Put` takes an ordinary (not persistent) update
+fired at most once, at the server's apply, returning its result on success (on error, fired once
+or not at all, decided by linkv's prophecy at the commit); writes run with no retries (plan (β),
+`withMax(0)`); reads unchanged; `putget_safe` needs only `□AU ⊢ AU`.
