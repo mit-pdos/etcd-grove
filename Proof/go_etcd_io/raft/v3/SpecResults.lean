@@ -132,20 +132,22 @@ def CSLists.Has (cl : CSLists) (id : w64) : Prop :=
 abbrev snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
   csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'
 
-/-- The three exits of `restore`; see the file header. -/
-def RestoreResult (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool) (s' : NState) :
-    Prop :=
+/-- The three exits of `restore`; see the file header. (D22 S-b, D22j, 2026-10-19: the first
+also when the node `id` is in none of the `ConfState`'s sets, the `!found` exit, until then a
+premise of the spec.) -/
+def RestoreResult (id : w64) (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool)
+    (s' : NState) : Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let sid := snapId sv
-  (uint.Z sid.index' ≤ uint.Z ls.committed ∧
+  ((uint.Z sid.index' ≤ uint.Z ls.committed ∨ ¬ cl.Has id) ∧
    b = false ∧ s' = s)
   ∨
-  (uint.Z ls.committed < uint.Z sid.index' ∧
+  (uint.Z ls.committed < uint.Z sid.index' ∧ cl.Has id ∧
    PlogMatches ls.prev es sid ∧ b = false ∧
    s' = { s with logst := { ls with committed := sid.index' } })
   ∨
-  (uint.Z ls.committed < uint.Z sid.index' ∧
+  (uint.Z ls.committed < uint.Z sid.index' ∧ cl.Has id ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧
    ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs,
                                logst := logRestore ls (snapTrip sv cl), isLearner := il })

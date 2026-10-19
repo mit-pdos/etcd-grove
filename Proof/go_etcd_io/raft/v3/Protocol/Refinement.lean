@@ -4713,7 +4713,7 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_snap_fastfwd γ id s m Hty Hfid Hterm Hrole Hlt Hmt $$ Hm Hown with Hown
     imodintro; iframe Hregs Hown
-  | snapStale m s Hty _ Hfid Hterm Hrole _ =>
+  | snapStale m s Hty _ Hfid Hterm Hrole =>
     iintro #Hrc Hregs Hrecv - - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_snap_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown

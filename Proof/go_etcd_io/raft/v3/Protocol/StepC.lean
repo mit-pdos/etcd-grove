@@ -590,7 +590,6 @@ inductive StepC : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      uint.Z m.index ≤ uint.Z s.commit →
       StepC s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])

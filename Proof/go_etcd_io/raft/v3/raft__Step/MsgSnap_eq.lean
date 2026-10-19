@@ -51,7 +51,6 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    scfg.Has id →
     NStateWf s →
     SnapScope sv scfg →
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
@@ -77,7 +76,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hteq Hnl Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hteq Hnl Hvotes
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -110,7 +109,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hsn, Hscl, Hscope, Hrole, Hvs, Hcfg, Hfid, Hnsf⟩)
+        (fun _ => ⟨Hsn, Hscl, Hscope, Hrole, Hvs, Hfid, Hnsf⟩)
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -125,7 +124,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl, by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0]⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
+    · exact stepCDS_handle_snap c c1 id s _ m sv scfg s1
         (adopt_follower s m.From' Hrole Hvs) rfl (by rw [Hrole]; decide) Hrole Hto Hteq Hfid Hhs
         Hc1
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
@@ -135,7 +134,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hsn, Hscl, Hscope, Hcfg, Hfid, Hnsf⟩)
+        (fun _ => ⟨Hsn, Hscl, Hscope, Hfid, Hnsf⟩)
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -151,7 +150,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
+    · exact stepCDS_handle_snap c c1 id s _ m sv scfg s1
         (adopt_candidate s m.From' pvs (by rw [Hrole]; decide))
         (by simp [becomeFollower, resetTo, resetTo0]) (by rw [Hrole]; decide)
         (by simp [becomeFollower]) Hto Hteq Hfid Hhs Hc1
@@ -165,7 +164,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hsn, Hscl, Hscope, Hcfg, Hfid, Hnsf⟩)
+        (fun _ => ⟨Hsn, Hscl, Hscope, Hfid, Hnsf⟩)
       $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -181,7 +180,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
+    · exact stepCDS_handle_snap c c1 id s _ m sv scfg s1
         (adopt_candidate s m.From' pvs (by rw [Hrole]; decide))
         (by simp [becomeFollower, resetTo, resetTo0]) (by rw [Hrole]; decide)
         (by simp [becomeFollower]) Hto Hteq Hfid Hhs Hc1
