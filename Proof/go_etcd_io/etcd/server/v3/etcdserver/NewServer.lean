@@ -242,7 +242,7 @@ theorem NewServer.wp_proof
     (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
   intro cfg U γ bud id bootLog ρ E₀ N Φs HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
-    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp
+    Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp
   wp_start
   iNamed Hpre
   -- (D19r (C)) the raft status's mutex, from the package's facts
@@ -321,7 +321,8 @@ theorem NewServer.wp_proof
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
     Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
-    (by simpa [srvEr] using Hpol)) $$ [Hbv Hc Hstor Hpeers Hghost Htok]
+    (by simpa [srvEr] using Hpol) (fun _ => by rw [Hnosnap.2]; exact Int.le_refl _))
+    $$ [Hbv Hc Hstor Hpeers Hghost Htok]
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers, Htok⟩
   · iframe Hbv Hc Hstor Hpeers Htok
     rw [Hrid]
@@ -835,8 +836,9 @@ theorem NewServer.wp_proof
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2 id
-      (by first | (rw [← hργ]; exact Hone) | (rw [hργ]; exact Hone) | exact Hone))
+      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2
+      (by first | (rw [← hργ]; exact Hnosnap.1) | (rw [hργ]; exact Hnosnap.1) | exact Hnosnap.1)
+      (by rw [Hrn8, Hnosnap.2]; exact Int.le_refl _))
     iframe Hkvinv Hrli
     iapply clusterWorkloadOk_of ρ E₀
     iframe Hkvinv Hrli HNZ0
@@ -1042,7 +1044,7 @@ theorem NewServer.wp_proof
   isplitl [SnapshotCountS]
   · iexists _; iexact SnapshotCountS
   isplitl [SnapshotCatchUpEntriesS]
-  · iexists _; iexact SnapshotCatchUpEntriesS
+  · iexists _; iframe SnapshotCatchUpEntriesS; ipureintro; exact HrbS
   isplitl [wg]
   · iexact wg
   isplitl [wgMu]

@@ -303,6 +303,12 @@ structure RaftNames where
   reTracked : Option (GSet w64)
   /-- A bound covers the voters and is the static mode's. -/
   reTracked_ok : ∀ T, reTracked = some T → reCfg ⊆ T ∧ reDyn = none
+  /-- The no-snapshot mode (2026-10-19, D21 stage M3): every node's raft struct is in it
+  (`NGhost.ns`, `NsLink`), so that no node sends a `MsgSnap` (`isRaftMsg`): its leaders' progress
+  stays at `Next ≥ 2` and its storage's first index at most `2`. Only for a cluster started from
+  a bootstrap log (`ownRaftGhost_alloc_boot`), whose log past it is the leaders'. -/
+  reNoSnap : Bool
+  reNoSnap_ok : reNoSnap = true → reBootRaw ≠ []
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -419,6 +425,13 @@ theorem BootEntry.map_toEntry_ofEntry [FfiSyntax] (L : List EntryM) :
 /-- The cluster's bootstrap log (2026-10-16, stage R8b, D12; `RaftNames.reBootRaw`). -/
 def RaftNames.reBoot [FfiSyntax] (γ : RaftNames) : List EntryM :=
   γ.reBootRaw.map BootEntry.toEntry
+
+/-- The no-snapshot mode is of a cluster with a bootstrap log (2026-10-19, D21 M3). -/
+theorem RaftNames.noSnap_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoSnap = true) :
+    γ.reBoot ≠ [] := by
+  unfold RaftNames.reBoot
+  intro he
+  exact γ.reNoSnap_ok h (List.map_eq_nil_iff.1 he)
 
 def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
   γ.reDyn.map fun f => f ext
@@ -1568,6 +1581,42 @@ theorem logRecs_boot_termAt (γ : RaftNames) (F : List EntryM) :
   obtain ⟨e, He⟩ : ∃ e, F[(uint.Z c - 0 - 1).toNat]? = some e :=
     ⟨_, List.getElem?_eq_getElem (by omega)⟩
   rw [He, (Hb _ e He (by omega)).1]
+
+/-- (2026-10-19, D21 M3) A record's term is at least `1` once the bootstrap log is non-empty: a
+boot entry's is `1`, a leader's at least `2` (`isLeader_boot`). -/
+theorem isEntryR_term_pos (γ : RaftNames) (e : EntryM) (pt : w64) :
+    ⊢ isEntryR (GF := GF) γ e pt -∗ ⌜γ.reBoot ≠ [] → 1 ≤ uint.Z e.Term'⌝ := by
+  unfold isEntryR
+  iintro (⟨%ldr, %_, %_, %_, %_, #Hl, -, -, -, -, -⟩ | ⟨%Hb, -⟩)
+  · icases isLeader_boot γ ldr e.Term' $$ Hl with %H
+    ipureintro; intro h; have := H h; omega
+  · ipureintro; intro _
+    obtain ⟨-, -, Ht, -⟩ := Hb
+    rw [Ht]; word
+
+/-- (D21 M3) The term at an index from `1` of a full log with records is at least `1`, once the
+bootstrap log is non-empty. -/
+theorem logRecs_termAt_pos (γ : RaftNames) (F : List EntryM) (j t : w64) :
+    plogTermAt base0 F j = some t → 1 ≤ uint.Z j →
+    ⊢ logRecs (GF := GF) γ base0 F -∗ ⌜γ.reBoot ≠ [] → 1 ≤ uint.Z t⌝ := by
+  intro Ht Hj
+  iintro #H
+  have Hr := plogTermAt_some_range _ _ _ _ Ht
+  unfold plogLastIndexZ at Hr; rw [base0_index] at Hr
+  have Hj0 : uint.Z j ≠ 0 := by omega
+  obtain ⟨e, He⟩ : ∃ e, F[(uint.Z j - 1).toNat]? = some e :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  have Het : e.Term' = t := by
+    unfold plogTermAt at Ht
+    rw [base0_index] at Ht
+    have := uint_Z_nonneg j
+    simp only [show ¬ (uint.Z j < 0) by omega, Hj0, ↓reduceIte] at Ht
+    rw [show (uint.Z j - 0 - 1).toNat = (uint.Z j - 1).toNat by omega, He] at Ht
+    simpa using Ht
+  have Hjr := (word.unsigned_range j).2
+  icases logRecs_lookup γ F _ e He (by omega) $$ H with ⟨%pt, -, #Hr⟩
+  icases isEntryR_term_pos γ e pt $$ Hr with %Hp
+  ipureintro; intro h; rw [← Het]; exact Hp h
 
 /-- A full log with records has the bootstrap log's first `n` entries, for `n` within both. -/
 theorem logRecs_boot_take (γ : RaftNames) (F : List EntryM) :

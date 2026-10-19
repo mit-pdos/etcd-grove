@@ -347,7 +347,7 @@ theorem raftNode.start.wp_proof
       -- the batch's committed log and indices, from `E.C` (`rnEnvOk`)
       ihave #Henv' := Henv
       iunfold rnEnvOk at Henv'
-      icases Henv' with ⟨-, -, -, -, -, #HCback, -⟩
+      icases Henv' with ⟨-, -, -, -, -, -, #HCback, -⟩
       ihave #HCl := HCback $$ %(L' ++ ce) HC
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))

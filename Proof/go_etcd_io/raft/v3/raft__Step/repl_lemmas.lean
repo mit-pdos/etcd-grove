@@ -83,7 +83,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
   simp only [Hb, Hl] at Hres
   rw [Hc] at Hres
   rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', -, rfl⟩ |
-      ⟨Hle, Hnm, hint, hintterm, rfl⟩
+      ⟨Hle, Hnm, hint, hintterm, Hrh, rfl⟩
   · -- stale
     refine stepCF_eq c id _ _ _ _
       (StepCF.appStale (absMsg .app m ents) ps rfl Hto Hfid Hterm Hnl Hlt) ?_
@@ -105,7 +105,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
     rfl
   · -- reject
     refine stepCF_eq c id _ _ _ _
-      (StepCF.appReject (absMsg .app m ents) ps hint hintterm rfl Hto Hfid Hterm Hnl Hle Hnm) ?_
+      (StepCF.appReject (absMsg .app m ents) ps hint hintterm rfl Hto Hfid Hterm Hnl Hle Hnm Hrh) ?_
     rw [toPState_sendMsgs', Ht]
     simp only [appResp, Htm, absMsg, absMsgFrom]
 
@@ -179,7 +179,7 @@ theorem nstateWf_handle_app (id : w64) (t : NState) (m : MessageM)
     NStateWf t → HandleAppResult id t m ents s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, rfl⟩ <;>
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, rfl⟩ | ⟨-, -, _, _, -, rfl⟩ <;>
     exact Hwf
 
 /-- `handleAppendEntries` keeps the term and `NetFrame`'s fields (2026-10-09). -/
@@ -188,7 +188,7 @@ theorem frame_handle_app (id : w64) (t : NState) (m : MessageM)
     HandleAppResult id t m ents s' → NetFrame t s' ∧ s'.term = t.term := by
   intro Hres
   unfold HandleAppResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, Hapl, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, Hapl, -, Hfr, rfl⟩ | ⟨-, -, _, _, -, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
   · obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := Hfr
     exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl, H7, by
@@ -201,7 +201,7 @@ theorem rframe_handle_app (id : w64) (t : NState) (m : MessageM)
     (ents : List EntryM) (s' : NState) (H : HandleAppResult id t m ents s') :
     RFrame t s' := by
   unfold HandleAppResult at H
-  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, -, rfl⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
   · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
   · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
@@ -213,7 +213,7 @@ theorem handle_app_role {id : w64} {t : NState} {m : MessageM} {ents : List Entr
   rcases Hres with ⟨-, rfl⟩ | ⟨-, _, _, _, -, -, -, -, -, -, rfl⟩ | H
   · rfl
   · rfl
-  · obtain ⟨-, -, _, _, rfl⟩ := H
+  · obtain ⟨-, -, _, _, -, rfl⟩ := H
     rfl
 
 /-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down

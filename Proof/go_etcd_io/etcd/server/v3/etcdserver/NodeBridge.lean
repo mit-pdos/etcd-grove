@@ -294,7 +294,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -⟩
+  icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -, -⟩
   obtain ⟨Hraft, -, -⟩ := Hn
   obtain ⟨Hstatic, -⟩ := Hmode
   iunfold raftPropose
@@ -386,7 +386,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, %HRQ⟩
+  icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, -, %HRQ⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
   obtain ⟨Hstatic, Hstor⟩ := Hmode
   iunfold isRaftNodeIfc

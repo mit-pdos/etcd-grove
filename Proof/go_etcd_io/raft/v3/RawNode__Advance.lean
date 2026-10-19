@@ -255,7 +255,7 @@ private theorem wp_step_pending
       (by not_self) (by not_self) (by not_self) (by not_self) (by not_self) (by not_self)
       (by not_self) (by not_self) (by not_self)
       (RestMsgOk.of_ne ⟨by not_self, by not_self, by not_self, by not_self, by not_self⟩) Hwf
-      (GMode.Pre.of_facts Hpf (by not_self) (by not_self))
+      (GMode.Pre.of_facts Hpf (by not_self) (by not_self)) (fun h => absurd h (by not_self))
       $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : m.Type' ≠ MsgProp := by not_self
       simp only [hP, ↓reduceIte, named]
@@ -324,7 +324,7 @@ private theorem wp_step_pending
       (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
-      (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
+      (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
       $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : (appendAckM id t e).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
@@ -372,7 +372,7 @@ private theorem wp_step_pending
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (fun _ => rfl) (by msg_ne) (fun _ h => by rw [Hal] at h; cases h) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
-      (Hpre ce _ rfl rfl)
+      (Hpre ce _ rfl rfl) (fun h => absurd h (by msg_ne))
       $$ [$Hinit $Hphys $Hghost $Hlc Hmin Hcr]
     · have hP : (applyAckM id).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]

@@ -56,7 +56,9 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        -- (2026-10-19, D21 M3) the no-snapshot mode kept
+        "%Hng" ∷ ⌜s'.gh.ns = s.gh.ns⌝ }} := by
   intro Hty Hto Hterm Hwf Hlt
   wp_start as H
   iNamed H
@@ -88,7 +90,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
-      StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl⟩
+      StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl, rfl⟩
 
 end StepProof
 

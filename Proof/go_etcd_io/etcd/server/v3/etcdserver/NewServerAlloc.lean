@@ -211,12 +211,13 @@ theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → Li
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reTracked = some cfg⌝ ∗
+          γ.reTracked = some cfg ∧ γ.reNoSnap = true⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
         srvBootOut ids W bootLog γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  iapply (ownRaftGhost_alloc_boot E cfg nodes ccOk ps bootLog (srvBootOut ids W bootLog)
+  -- (2026-10-19, D21 M3) in raft's no-snapshot mode
+  iapply (ownRaftGhost_alloc_boot E cfg nodes ccOk ps bootLog (srvBootOut ids W bootLog) true
     Hcne Hnz Hcfg hboot)
   iapply srvBootClient E cfg ccOk ps bootLog ids W hboot hpol
 
@@ -256,7 +257,7 @@ theorem srvClusterBoot_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 → 
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
     ⊢ |={⊤}=> ∃ (γ : RaftNames) (issued cnt : GName) (γk : KVNames),
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reTracked = some cfg ∧
+          γ.reNoSnap = true ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued ∧ γk.wl = W⌝ ∗
         raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗ rdCredInv γ ∗
@@ -285,7 +286,7 @@ theorem srvClusterBoot_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 → 
   iframe Hcinv Hcomm HrdI Hghosts Hkv Hetcd Hcl H0 Hpm Hrc
   isplitr
   · ipureintro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := Hγ
+    obtain ⟨h1, h2, h3, h4, -, h5⟩ := Hγ
     exact ⟨h1, h2, h3, h4, h5, hc0, hch, hlog, by rw [hids], hwl⟩
   iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
   iframe Hcr

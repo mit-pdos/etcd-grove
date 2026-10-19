@@ -181,7 +181,7 @@ theorem stepLeader.wp_proof
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
       wp_GetLogTerm r id s ml m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
-      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty) ents ctx sn rs _ _ _
+      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _
       $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit

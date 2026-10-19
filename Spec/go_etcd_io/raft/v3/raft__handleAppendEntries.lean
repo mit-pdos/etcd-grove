@@ -103,6 +103,8 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
   (uint.Z ls.committed ≤ uint.Z m.Index' ∧
    ¬ PlogMatches ls.prev es prev ∧
    ∃ (hint hintterm : w64),
+     -- (2026-10-19, D21 M3) `findConflictByTerm`'s hint (`RejHintOk`)
+     RejHintOk ls.prev es m.Index' m.LogTerm' hint ∧
      s' = sendMsgs s [appResp id s dst true m.Index' hintterm hint])
 
 end results

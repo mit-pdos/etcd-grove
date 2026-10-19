@@ -222,6 +222,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       r.p.role ≠ .leader →
       uint.Z r.p.commit ≤ uint.Z m.index →
       ¬ PlogMatches r.p.base r.p.log (entryID.mk m.logterm m.index) →
+      RejHintOk r.p.base r.p.log m.index m.logterm hint →
       StepR r [m] { r with
         p := psendMsgs (padoptLeader r.p m.src)
           [Msg.mk .appResp id m.src r.p.term true m.index hintterm (W64 0) hint []] }

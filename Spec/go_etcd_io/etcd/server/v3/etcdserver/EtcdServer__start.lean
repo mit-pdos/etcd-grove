@@ -35,13 +35,16 @@ abbrev EtcdServer.start.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   receiptBound GF ≤ N + 1 →
+  -- (2026-10-19, D21 M3) a new server: the apply thread from index `0` (each applied entry takes a
+  -- write token, which bounds the applied index, `srvWTPool_bound`)
+  ai₀ = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
       srvStarted s γr ρ Er.RQ ∗
       -- (D19i part 2) the write budget, shared with the storage version monitor
-      srvWTPool E.γ }}
+      ∃ γp : GName, srvWTPool E.γ γp }}
 
 end spec
 

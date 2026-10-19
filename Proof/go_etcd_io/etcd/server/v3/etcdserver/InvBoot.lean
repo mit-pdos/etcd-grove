@@ -144,9 +144,12 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
       cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
       BootLogOk γ.reCCOk ps bootLog⌝ ∗
-    -- (D19p, 2026-10-18) a one-member cluster: raft's tracked bound this node alone (what
-    -- `ownRaftGhost_alloc_boot` gives for the peers `[id]`), so raft sends no snapshot
-    "%Hone" ∷ ⌜γ.reTracked = some (GMap.listToSet [id])⌝ ∗
+    -- (D21 M3, 2026-10-19) raft's no-snapshot mode (`RaftNames.reNoSnap`, what
+    -- `ownRaftGhost_alloc_boot` gives the servers), so raft sends no snapshot, and the fresh
+    -- `MemoryStorage` at the cap `1` (`MemStorNames.cap`, `NewMemoryStorage`'s choice): never
+    -- compacted past index `1`, which the mode needs (`StartNode`'s `NsCap`). (D19p to D21 M3: a
+    -- one-member cluster, `"%Hone"`, raft's tracked bound this node alone.)
+    "%Hnosnap" ∷ ⌜γ.reNoSnap = true ∧ γs.cap = 1⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage

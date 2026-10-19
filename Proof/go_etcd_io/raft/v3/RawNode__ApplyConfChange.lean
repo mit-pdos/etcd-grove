@@ -98,7 +98,7 @@ theorem RawNode.ApplyConfChange.wp_proof
   have Hm := hm
   have Hap0 := Hap0 hm
   icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
-    ⟨Hphys, Hghost, %Htrk⟩
+    ⟨Hphys, Hghost, %Htrk, %Hnl⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   rcases o with m | m
@@ -115,12 +115,13 @@ theorem RawNode.ApplyConfChange.wp_proof
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
       obtain ⟨lrn', Hd', Hsz', Hn, Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
+      icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
-          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn
+          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hli2
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
-        (trackedOk_shrink Htrk Hlp Hdom')
+        (trackedOk_shrink Htrk Hlp Hdom') Hnl
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
@@ -160,9 +161,10 @@ theorem RawNode.ApplyConfChange.wp_proof
       obtain ⟨c', Happ, Hsz', Hin'⟩ := Hap _ HdL HszL
       have Happ' : ccApplyM (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2 (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) = some c' := Happ
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
+      icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto wp_raft_applyConfChange (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg))
           rnv.raft' id s v2 m.asV2 (DFrac.own 1) c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
-          (fun _ h => absurd Hin' h) (fun _ => Hin')
+          (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2
         $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)
@@ -199,12 +201,13 @@ theorem RawNode.ApplyConfChange.wp_proof
       icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
       icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
       obtain ⟨lrn', Hd', Hsz', Hn, Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
+      icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
-          id s p m dq lrn' Hd' Hsz' Hn
+          id s p m dq lrn' Hd' Hsz' Hn Hli2
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
-        (trackedOk_shrink Htrk Hlp Hdom')
+        (trackedOk_shrink Htrk Hlp Hdom') Hnl
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
@@ -244,9 +247,10 @@ theorem RawNode.ApplyConfChange.wp_proof
       obtain ⟨c', Happ, Hsz', Hin'⟩ := Hap _ HdL HszL
       have Happ' : ccApplyM (ccV2Of (.v2 m)).1 (ccV2Of (.v2 m)).2 (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) = some c' := Happ
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
+      icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto wp_raft_applyConfChange (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg))
           rnv.raft' id s p m dq c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
-          (fun _ h => absurd Hin' h) (fun _ => Hin')
+          (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2
         $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)

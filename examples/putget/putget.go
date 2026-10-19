@@ -47,9 +47,12 @@ func Main() {
 		// raft's clock (a positive tick: the raft node's ticker)
 		TickMs:        100,
 		ElectionTicks: 10,
-		// etcd's defaults for the snapshot and the request limits
+		// etcd's default snapshot count; the catch-up entries past the theorem's step bound
+		// (NewServer's run bound, D21 M3: receiptBound <= SnapshotCatchUpEntries + 1, so raft's
+		// log is compacted at index 1 only and its leader sends no snapshot), etcd's default
+		// request limits
 		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: etcdserver.DefaultSnapshotCatchUpEntries,
+		SnapshotCatchUpEntries: 1 << 48,
 		MaxTxnOps:              128,
 		MaxRequestBytes:        1536 * 1024,
 		// NewServer's premises: a logger, the compactor off (AutoCompactionRetention zero),

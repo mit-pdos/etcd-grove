@@ -501,6 +501,7 @@ inductive StepC : PState → List Msg → PState → Prop where
       s.role ≠ .leader →
       uint.Z s.commit ≤ uint.Z m.index →
       ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
+      RejHintOk s.base s.log m.index m.logterm hint →
       StepC s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])

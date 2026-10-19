@@ -254,7 +254,7 @@ theorem raft.restore.wp_proof
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope
+  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hns
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, Hidx61⟩ := Hscope
   wp_start as H
@@ -450,7 +450,8 @@ theorem raft.restore.wp_proof
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
-    ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
+      (hcm := plogCommitTo_ge _ _))
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     try wp_auto
     ihave Hcs : csOptA pc (DFrac.own 1) sv.Metadata'.ConfState' $$ []
@@ -486,7 +487,7 @@ theorem raft.restore.wp_proof
         (by simp only [snapId]; omega) $$ [$Hlog $HsA] as ⟨HsA, Hlog⟩
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]))
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
@@ -537,7 +538,7 @@ theorem raft.restore.wp_proof
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
-      %(LogGhOk.of_snap (by simp [logRestore]))
+      %(LogGhOk.of_snap (by simp [logRestore]) Hns)
       %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))
     generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole

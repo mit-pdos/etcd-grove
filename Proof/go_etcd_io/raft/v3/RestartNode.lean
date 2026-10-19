@@ -48,6 +48,20 @@ theorem RestartNode.wp_proof
       iunfold ownRaftGhostR at Hg
       icases Hg with ⟨Hg, -⟩
       iapply ownRaftGhost_inv_md $$ Hg
+  -- (2026-10-19, D21 M3) a fresh node with nothing committed: not in the no-snapshot mode
+  ihave %Hns0 : ⌜γ.reNoSnap = false⌝ $$ [Hghost]
+  · cases md with
+    | static =>
+      iunfold rnInit at Hghost
+      icases ownRaftGhost_noSnap_of_commit γ cv.ID' initPState rfl $$ Hghost with ⟨%H, -⟩
+      ipureintro; exact H
+    | dyn dec c0 h0 h1 =>
+      iunfold rnInit at Hghost
+      icases Hghost with ⟨-, Hg⟩
+      iunfold ownRaftGhostR at Hg
+      icases Hg with ⟨Hg, -⟩
+      icases ownRaftGhost_noSnap_of_commit γ cv.ID' _ rfl $$ Hg with ⟨%H, -⟩
+      ipureintro; exact H
   wp_auto
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
@@ -107,6 +121,7 @@ theorem RestartNode.wp_proof
           (uint_Z_nonneg _) (HrnflR _ rfl)
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
+          (by unfold NsLink; rw [Hgh, Hns0])
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -139,7 +154,7 @@ theorem RestartNode.wp_proof
         rw [Hro]
         iframe Hgr
         ipureintro
-        refine ⟨HD, ?_⟩
+        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]⟩
         rw [Hdiff]; rfl
       iapply ownRawNode_intro γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,

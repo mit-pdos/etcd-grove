@@ -45,7 +45,7 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand
+  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand Hli2
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
@@ -67,6 +67,12 @@ theorem raft.applyConfChange.wp_proof
   wp_auto
   wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   have Hli' : li = logLast s.logst := logLast_eq_of_Z _ _ Hli
+  have Hli2 : s.gh.ns = true → s.role = .leader → 2 ≤ uint.Z (logLast s.logst) := by
+    intro hns hl
+    have h := Hli2 hns hl
+    unfold plogLastIndexZ at h
+    rw [List.length_append] at h
+    rw [← Hli', Hli]; push_cast at h; omega
   wp_apply wp_ConfChangeV2_LeaveJoint cc dq ccm $$ [$Hcc] as Hcc
   by_cases Hlj : ccm.transition = W32 0 ∧ ccm.changes = []
   · -- `changer.LeaveJoint()`
@@ -103,7 +109,7 @@ theorem raft.applyConfChange.wp_proof
           · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
         (fun hl => by
           simp only at Hpk; rw [Hli'] at Hpk
-          exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
+          exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
       $$ [$Htrkf $Hback' $Hvotes $Hnew]
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact Hmi
@@ -167,7 +173,7 @@ theorem raft.applyConfChange.wp_proof
               · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
-              exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
+              exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
@@ -218,7 +224,7 @@ theorem raft.applyConfChange.wp_proof
               · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
             (fun hl => by
               simp only at Hpk; rw [Hli'] at Hpk
-              exact Hpk.prOk (fun v p hv => Hok0.lookup hl hv))
+              exact Hpk.prOkN (fun v p hv => Hok0.lookup hl hv) (fun hns => Hli2 hns hl))
           $$ [$Htrkf $Hback' $Hvotes $Hnew]
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi

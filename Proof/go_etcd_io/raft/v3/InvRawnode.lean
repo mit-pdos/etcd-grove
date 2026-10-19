@@ -888,7 +888,8 @@ protocol's messages (`msgAbs`: nothing, for a type the protocol does not describ
 legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; `msgAbs` is
 pure.) -/
 def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
-  iprop(∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessage γ x)
+  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
+    ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessage γ x)
 
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
@@ -1074,18 +1075,21 @@ theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List EntryM) (c 
   unfold RNState.vcfg
   cases hm : rs.mode with
   | static =>
-    simp only [RNMode.toG, ownStepGhost, ghostRest]
-    icases H with ⟨Hg, %HC⟩
+    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
+    icases H with ⟨Hg, %Hnl, %HC⟩
     iframe Hg
     ipureintro
-    exact ⟨⟨HC.1.1, HC.1.2.1⟩, HC⟩
+    exact ⟨⟨HC.1.1, HC.1.2.1⟩, Hnl, HC⟩
   | dyn dec c0 h0 _ =>
-    simp only [RNMode.toG, ownStepGhost, ghostRest]
-    icases H with ⟨Hg, %HC, Hr⟩
+    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
+    icases H with ⟨Hg, %Hnl, %HC, Hr⟩
     iframe Hg Hr
+    isplitr
+    · ipureintro
+      have hc := HC.2.1
+      exact ⟨by rw [← hc], by rw [← hc]⟩
     ipureintro
-    have hc := HC.2.1
-    refine ⟨⟨by rw [← hc], by rw [← hc]⟩, HC⟩
+    exact ⟨Hnl, HC⟩
 
 /-- A node's committed prefix, with records, is a prefix of the global committed log (persistent;
 read off the ghost state's log ghost). -/
@@ -1113,7 +1117,8 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   icases (entails_wand (persistent_entails_left (ownRaftGhost_cmt γ id (toPState s)))) $$ Hg
     with ⟨Hg, %fp', %Hf', #Hfr', #Hc⟩
   iunfold ghostRest at Hr
-  icases Hr with ⟨%HC, #Hfr, Hcamp⟩
+  iunfold ghostRestM at Hr
+  icases Hr with ⟨%Hnl, %HC, #Hfr, Hcamp⟩
   icases FullOk_unique γ (toPState s).base fp' g.fp Hf' HC.2.2.full $$ Hfr' Hfr with %He
   icases isCommitted_agree γ _ _ $$ HD Hc with %Hag
   isplitr
@@ -1140,6 +1145,9 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   iunfold ownStepGhost
   iframe Hg
   iunfold ghostRest
+  iunfold ghostRestM
+  isplitr
+  · ipureintro; exact Hnl
   isplitr
   · ipureintro; exact HC
   isplitr
@@ -1274,17 +1282,21 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s -∗
       ownRaftPhys γ.reCfg r id s ∗ ownRaftGhost γ id (toPState s) ∗
       -- (D19p, 2026-10-18) the tracker within the tracked bound
-      ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ := by
+      ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ ∗
+      -- (2026-10-19, D21 M3)
+      ⌜NsLink γ s⌝ := by
   iintro Hphys Hghost
   rw [Hm]
-  simp only [RNMode.toG, ownStepGhost, ghostRest, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %HC⟩
+  simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
+  icases Hghost with ⟨Hghost, %Hnl, %HC⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
-  ipureintro
-  exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
-    (by rw [Hlrn]; rfl) HC.2
+  isplitr
+  · ipureintro
+    exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
+      (by rw [Hlrn]; rfl) HC.2
+  ipureintro; exact Hnl
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -1299,7 +1311,9 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s)
     -- (D19p, 2026-10-18) the tracker within the ghost state's tracked bound
-    (Htrk : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id) :
+    (Htrk : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
+    -- (2026-10-19, D21 M3) the no-snapshot mode only with a bootstrap log
+    (Hnl : NsLink γ s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1315,8 +1329,10 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, []⟩)
       (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id s $$ [Hghost]
   · rw [Hm]
-    simp only [RNMode.toG, ownStepGhost, ghostRest, GMode.isDyn]
+    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
     iframe Hghost
+    isplitr
+    · ipureintro; exact Hnl
     ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
@@ -1362,6 +1378,46 @@ theorem ownStepGhost_boot_term (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
     exact fun _ => Hx.2 (Hb hP)
   · ipureintro; exact fun h => absurd h hP
 
+/-- (2026-10-19, D21 M3) In the cluster's no-snapshot mode the outbox holds no `MsgSnap`: the
+node's mode is the cluster's (`NsLink`) and its outbox has none in the mode (`LogNsOk`). -/
+theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w64} (r : Loc)
+    (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownStepGhost γ md c id s -∗
+      ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝ ∗ ownRaftPhysCV c V r id s ∗
+        ownStepGhost γ md c id s := by
+  iintro Hphys Hghost
+  icases ownRaftPhysC_ns c r id s $$ Hphys with ⟨%Hnsl, -, Hphys⟩
+  iunfold ownStepGhost at Hghost
+  icases Hghost with ⟨Hg, Hr⟩
+  icases ghostRest_nsLink γ md c id s $$ Hr with ⟨%Hnl, Hr⟩
+  iframe Hphys
+  isplitr
+  · ipureintro
+    intro h
+    exact (Hnsl (by rw [Hnl]; exact h)).2.2.2
+  iunfold ownStepGhost
+  iframe Hg Hr
+
+/-- (2026-10-19, D21 M3) A node with nothing committed is of a cluster with no bootstrap log
+(`ownLogGhost_boot`), so not in the no-snapshot mode: what `RestartNode`'s fresh node is. -/
+theorem ownRaftGhost_noSnap_of_commit (γ : RaftNames) (id : w64) (ps : PState) {md : Bool}
+    (Hc : uint.Z ps.commit = 0) :
+    ownRaftGhost (GF := GF) γ id ps md ⊢ ⌜γ.reNoSnap = false⌝ ∗ ownRaftGhost γ id ps md := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownRaftGhost at H
+  icases H with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_boot γ id ps kl $$ Hlg with ⟨%Hx, -⟩
+  ipureintro
+  cases h : γ.reNoSnap
+  · rfl
+  · exfalso
+    have Hne := RaftNames.noSnap_boot h
+    have := List.length_pos_iff.mpr Hne
+    have := Hx.1
+    omega
+
 /-- (2026-10-17) The term ceiling raised on the static-mode physical state (to close a node opened
 at a later term: `Bootstrap`'s, `RestartNode`'s). -/
 theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tc : w64)
@@ -1373,6 +1429,32 @@ theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) 
   ihave H := ownRaftPhysC_raise_tc (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s tc Hle $$ H
   iapply ownRaftPhysC_toS
   iexact H
+
+/-- (2026-10-19, D21 M3) The no-snapshot mode set to `b` on the static-mode physical state of a
+node out of the mode (`Bootstrap`'s, at the cluster's `RaftNames.reNoSnap`): into it, a
+non-leader with no pending snapshot, its log's boundary at most `1` and something committed, over
+a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). -/
+theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b : Bool)
+    (H0 : s.gh.ns = false)
+    (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
+      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap) :
+    ⊢ NsCap (GF := GF) b s.logst.storage -∗ ownRaftPhys cfg r id s -∗
+      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b } } := by
+  iintro #Hcap H
+  cases b with
+  | false =>
+    have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
+      rw [← H0]
+    rw [He]; iexact H
+  | true =>
+    obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
+    ihave H := ownRaftPhys_toC' $$ H
+    iunfold NsCap at Hcap
+    ihave #Hc1 := Hcap $$ %rfl
+    ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn Hp
+      Hc Ho $$ Hc1 H
+    iapply ownRaftPhysC_toS
+    iexact H
 
 /-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
 new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,

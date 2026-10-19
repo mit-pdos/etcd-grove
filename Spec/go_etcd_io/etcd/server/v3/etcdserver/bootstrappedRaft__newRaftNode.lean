@@ -94,6 +94,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- `memStorage_isStorage`, over the registry the composition holds)
       "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
       "Hsto" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
+      -- (2026-10-19, D21 M3) `StartNode.spec`'s: in raft's no-snapshot mode, the storage never
+      -- compacted past index `1`
+      "#Hnscap" ∷ NsCap γ.reNoSnap (memStorIface bv.storage') ∗
       -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
       "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗

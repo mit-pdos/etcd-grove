@@ -147,7 +147,14 @@ theorem Main.wp_proof
   wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"putget"
       (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
       fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs hraft hpol hc0 hch hlog hcok
-      (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN hblen
+      (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN
+      -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48` (`Main`'s)
+      (by
+        have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
+        have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
+        simp only [hne, if_false, h48]
+        omega)
+      hblen
       hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
     $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
   · iframe
@@ -201,7 +208,7 @@ theorem Main.wp_proof
     isplitr; · iExactEq Hmd; rfl
     iexists _
     iframe Hmf Hfgc
-  wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γn b (W64 0) (W64 0) (W64 0) bootKV N HrbN)
+  wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γn b (W64 0) (W64 0) (W64 0) bootKV N HrbN rfl)
     $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, -⟩
   · iframe; iframe #
   (try wp_auto)

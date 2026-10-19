@@ -10901,3 +10901,67 @@ The read budget splits `2 ^ 48` per member (fewer than `2 ^ 16` members, from th
 `etcdserver/` (`InvRequest`, `InvProposer`, `ProposerLemmas`, `BuildAlloc`, `NewServerAlloc`,
 `NewServer`, `EtcdServer__applyEntryNormal`, `EtcdServer__processInternalRaftRequestOnce`, the
 `NewServer` spec), putget's `Alloc` and `Main`.
+
+**D21 M3 carried out (2026-10-19):** stage M3 as amended by M0 and D21c′ (A1): the fork's fix
+pinned (`c8217eb9`), (N) proved in (A1)'s form, `"%Hone"` removed, the run bound
+`receiptBound ≤ SnapshotCatchUpEntries + 1` taken through the apply pool's count. The text left
+the following open; each choice is recorded here.
+- *Where (N) lives: a mode, not an unconditional invariant.* (N) holds only of a cluster started
+  from a bootstrap log whose storage is never compacted past index `1`, so it is conditional on a
+  flag of the raft struct's ghost state, `NGhost.ns` ("no-snapshot mode"), set once by `Bootstrap`
+  (`ownRaftPhys_set_ns`) and kept by every step. At a leader in the mode `PrLo` holds of every
+  peer (`Next ≥ 2`, replicate ⇒ `Match ≥ 1`, not `StateSnapshot`), in `PrvalsOk` beside D11's
+  `PrOk` (`Next ≤ lastIndex + 1`). The flag is the cluster's `RaftNames.reNoSnap` (`NsLink` in
+  `ghostRest`, both modes; `reNoSnap_ok`: only with a bootstrap log), chosen at the allocation
+  (`ownRaftGhost_alloc_boot`'s new argument). Outside the mode (the register, `RestartNode`, the
+  dynamic mode) nothing changes.
+- *The storage's first index: a cap on the `MemoryStorage`.* "First index `≤ 2`" is the storage's
+  boundary at most `1`. The `MemoryStorage` gets a ghost cap (`MemStorNames.cap`, chosen at
+  `NewMemoryStorage`, `2^64` for no cap): the boundary never passes it (`memCutInv`'s `Hccap`),
+  so `Compact` and `ApplySnapshot` take `index ≤ cap` as a premise; `StorageModel` gains
+  `storCap st k` (a persistent "never past `k`", `storCut_cap`), the register's `False`. Raft's
+  struct keeps `storCap storage 1` in the mode (`NsCap`), which makes `maybeSendAppend`'s
+  `ErrCompacted` branches dead (`storPast_cap`). The alternative, raft's `storFloor`/`storCut`
+  alone, gives no upper bound.
+- *The reject path.* As M0's "Corrected options" says, through a message clause: `isMessage` of a
+  rejecting `appResp` in a cluster with a bootstrap log has `|reBoot| < Index` and
+  `1 ≤ RejectHint ≤ Index`; the step relations (`Model.Step`, `StepC`, `StepR`, `StepCF`) take
+  `RejHintOk` at `appReject` (the hint from `findConflictByTerm`, whose spec now states the walk
+  stops at an index `≥ 1` when the log's term at `1` is at most the probe's term), and the leader
+  side reads its term at index `1` (`ownRaftGhost_term1`: the boot entries' term `1`). The
+  hint's term (`LogTerm`) is not needed: `findConflictByTerm` at the leader stops at `≥ 1` by the
+  same term-at-`1` fact.
+- *What raft promises a `Ready`'s messages.* `isRaftMsg` gains the clause `γ.reNoSnap = true →
+  Type ≠ MsgSnap`, from the outbox's no-snapshot fact (`LogNsOk`, kept by `send`: `SendOk`'s
+  `MsgSnap` clause takes `ns = false`, which `maybeSendSnapshot` has) through
+  `outboxRelP_isRaftMsg`; `ownRawNodeReady` keeps it (`Hnsout`). The server's `srvMsgNoSnap` is
+  then `isRaftMsg_not_snap` at `reNoSnap = true`.
+- *Two raft premises the mode adds.* `raft.Step` takes `m.Type' = MsgSnap → ns = false` (its
+  callers' messages are no `MsgSnap`: `NetMsgOk`, local types); `applyConfChange` takes "in the
+  mode a leader's last index is `≥ 2`" (a peer it starts tracking probes at `Next = lastIndex`),
+  which its callers get from the ghost state (`ownRaftGhost_leader_last`: the leader's campaign
+  log holds the bootstrap log and is a strict prefix of its log). `handleSnapshot`/`restore`/
+  `maybeSendSnapshot` take `ns = false` (dead in the mode).
+- *The server's compaction (trust base: `compactRaftLog`'s contract restated).* The contract now
+  names `SnapshotCatchUpEntries` (`scu`, read-only, which its body reads) and requires the
+  compaction index its body computes (`snapi - scu` past `scu`, else `1`) to be at most the
+  storage's cap: `Compact.spec`'s new premise, so the contract stays true of the code. The apply
+  thread discharges it at index `1 ≤ cap`: `srvWTPool` gains a monotone counter of the tokens
+  taken (`srvWTPool_take_at`, `srvWTPool_bound`), the apply thread keeps its lower bound at the
+  applied index (`srvWTAt`, through `apply`/`applyEntries`/`applyAll`/`run`'s `applyRes`), so
+  `ai < receiptBound ≤ scu + 1`. `isServerApplyAll` keeps `scu` with the bound; `NewServer.spec`
+  takes `receiptBound ≤ (SnapshotCatchUpEntries, 5000 for 0) + 1` (D21 M0's premise; `start`
+  sets the default); `start`/`Start` take `ai₀ = 0` (the counter starts at `0`);
+  `monitorStorageVersion`'s contract is over the counted pool (its statement's ghost name only).
+  The cap `1` is `bootOk`'s (`"%Hnosnap"`: `γ.reNoSnap = true ∧ γs.cap = 1`, in place of
+  `"%Hone"`), a premise of `NewServer.spec` through `bootstrap`'s contract (`NewMemoryStorage`'s
+  spec holds at every cap), and putget's `premises` give the contract at `γ.reNoSnap = true`
+  instead of the tracked bound.
+- *putget's configuration (a Go change).* With etcd's default `5000` the premise would limit
+  `putget_safe` to about 5000 steps; `putget.go` sets `SnapshotCatchUpEntries: 1 << 48` (M0's
+  recommendation for `putget3`, applied to putget), so the premise follows from
+  `receiptBound ≤ 2^48`, and `putget_safe`'s statement is unchanged.
+`reTracked` (D19p) stays in `RaftNames` and `isMessage`'s snapshot clause, unused by the server.
+Trust base: the axioms and `sorry`s are the same by name (486, 8); two axioms' statements
+changed (`compactRaftLog`, `monitorStorageVersion`), and `bootstrap`'s contract (a premise) says
+`γs.cap = 1` and the mode instead of `reTracked`.

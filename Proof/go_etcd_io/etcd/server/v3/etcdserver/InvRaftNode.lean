@@ -240,6 +240,8 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     ⌜E.γr.raft.raft = γ.node.raft ∧ E.γr.raft.pre = γ.pre ∧
       uint.Z E.γr.raft.ai0 = γ.pre.length⌝ ∗
     ⌜γ.node.mode = RNMode.static ∧ γ.node.stor = memStorIface γ.ms⌝ ∗
+    -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
+    ⌜1 ≤ γ.γs.cap⌝ ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
         termLB γ.node.bud st.msg.Term' ∗
         rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗ E.M m) ∗
@@ -291,7 +293,7 @@ theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (
       v.RequestCtx' ↦*□ st.RequestCtx' ⊢ srvReadStateOk E.γr.raft E.RQ v := by
   iintro ⟨#Henv, #Hinv, #Hst, %Hi, #Hctx⟩
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, -, -, -, -, %HRQ⟩
+  icases Henv with ⟨-, %Hn, -, -, -, -, -, %HRQ⟩
   obtain ⟨Hraft, -, -⟩ := Hn
   iunfold readStateOk at Hst
   icases Hst with ⟨%c, %Hc, #Hok⟩
@@ -492,7 +494,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   letI : MemStorReg GF := ⟨γ.reg⟩
   iintro #Henv #Hfits #Hbr Hdrv HP
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, %Hmode, #HM, #HC, -, -⟩
+  icases Henv with ⟨-, %Hn, %Hmode, -, #HM, #HC, -, -⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
   obtain ⟨-, Hstor⟩ := Hmode
   iunfold rnReadyP at HP

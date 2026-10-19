@@ -45,11 +45,14 @@ storage, so it no longer takes `ownMemoryStorage`: the application's token (the 
 least `x`, the storage holding entries up to it). Premise, for a `ci` above the boundary: `ci`
 within the floor and at or below the storage's snapshot (a compacted storage keeps a snapshot
 covering its boundary). The entry at `ci` is numbered `ci`: the storage keeps its entries numbered
-by their positions (`HistOk`), which raft's batches are (`PendOk`). -/
+by their positions (`HistOk`), which raft's batches are (`PendOk`). (2026-10-19, D21 M3) And within
+the storage's cap (`MemStorNames.cap`), which no compaction passes. -/
 abbrev MemoryStorage.Compact.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x ci : w64) (ecomp : GoInterface),
   (uint.Z σt.prev.index' < uint.Z ci →
-    uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index') →
+    uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index' ∧
+    -- (2026-10-19, D21 M3) and within the storage's cap
+    uint.Z ci ≤ γs.cap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htok" ∷ memSnapTok ms γs σt ∗
       "#Hfw" ∷ memFloorTok ms γs x ∗

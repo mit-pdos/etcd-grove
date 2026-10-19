@@ -144,9 +144,9 @@ theorem EtcdServer.apply.wp_proof
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
-  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A hne hfrom hok hEok
+  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp hne hfrom hok hEok
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
-    #HWP, Hfs, Hka, #Hkb⟩
+    #HWP, #HWA0, Hfs, Hka, #Hkb⟩
   ihave #Hsrv0 := Hsrv
   ihave #Pmem : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
@@ -201,12 +201,15 @@ theorem EtcdServer.apply.wp_proof
       "HKV" ∷ srvApplyKV s E ρ.wait xj ∗
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
+      -- (2026-10-19, D21 M3) the write tokens taken through `aw`
+      "#HWA" ∷ srvWTAt γp aw ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
       "%Hxs" ∷ ⌜entriesStep (ciEff γ st.k) (ms.take (sint.nat j)) x xj⌝ ∗
       "Hphi" ∷ (∀ (appliedt appliedi : w64) (shouldStop : Bool),
         srvFS s ∗ (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
           epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+          srvWTAt γp appliedi ∗
           (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
             appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x') ∗
           ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
@@ -229,6 +232,8 @@ theorem EtcdServer.apply.wp_proof
       List.append_nil]
     iframe
     iframe Hlog0
+    isplitr
+    · iexact HWA0
     ipureintro
     refine ⟨rfl, by word, ⟨Hpend, ?_, ?_⟩, fun m h => absurd h (by simp), by rw [Hf0m1]; simp, by simp⟩
     · rw [Hp0]; simp
@@ -326,7 +331,16 @@ theorem EtcdServer.apply.wp_proof
     inext
     iintro Hr -
     iapply wp_value'
-    imod srvWTPool_take E.γ $$ HWP Hr with Hwt
+    -- (2026-10-19, D21 M3) the token's count, past the entry's index
+    have hma : uint.Z m.index = uint.Z aw + 1 := by omega
+    imod srvWTPool_take_at E.γ γp aw (by have := hma; word) $$ HWP Hr HWA with ⟨Hwt, #HWA1⟩
+    ihave #HWA2 : srvWTAt γp m.index $$ []
+    · rw [show m.index = aw + W64 1 by
+        apply BitVec.eq_of_toNat_eq
+        have h2 : uint.Z m.index = uint.Z (aw + W64 1) := by rw [hma]; word
+        simp only [uint.Z] at h2
+        exact_mod_cast h2]
+      iexact HWA1
     (try wp_auto)
     -- the `Debug` log
     wp_apply hU64 as %fl2 -
@@ -437,6 +451,8 @@ theorem EtcdServer.apply.wp_proof
         iframe
         isplitr
         · iexact Hlog'
+        isplitr
+        · iexact HWA2
         ipureintro
         have hidx0 : m.index ≠ W64 0 := by
           intro h
@@ -542,6 +558,8 @@ theorem EtcdServer.apply.wp_proof
         iframe
         isplitr
         · iexact Hlog'
+        isplitr
+        · iexact HWA2
         ipureintro
         have hidx0 : m.index ≠ W64 0 := by
           intro h
@@ -644,6 +662,8 @@ theorem EtcdServer.apply.wp_proof
         iframe
         isplitr
         · iexact Hlog'
+        isplitr
+        · iexact HWA2
         ipureintro
         exact ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj x1 Hm_lookup Hxs hb1,
           by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by omega, by first | exact Hsb | simp⟩
@@ -679,6 +699,8 @@ theorem EtcdServer.apply.wp_proof
         iframe
         isplitr
         · iexact Hlog'
+        isplitr
+        · iexact HWA2
         ipureintro
         have hb1 := hconf (by rw [h1]; decide)
         exact ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj xj Hm_lookup Hxs hb1,
@@ -707,7 +729,7 @@ theorem EtcdServer.apply.wp_proof
     iframe Hfs
     iexists st', a', t', csl
     rw [hjn, List.take_of_length_le (Nat.le_refl _)] at Hxs
-    iframe Hst Hbe Happ Hcs Hlr Hgr Hao
+    iframe Hst Hbe Happ Hcs Hlr Hgr Hao HWA
     have htk' : ms.take (sint.nat j) = ms := by rw [hjn, List.take_of_length_le (Nat.le_refl _)]
     isplitl [HKV Hka]
     · iexists xj; iframe HKV Hlogf

@@ -45,6 +45,8 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   uint.Z sv.Metadata'.Index' < 2^61 →
   -- (D19i part 1) the snapshot covers the floor
   uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
+  -- (2026-10-19, D21 M3) and is within the storage's cap, the new boundary
+  uint.Z sv.Metadata'.Index' ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Htok" ∷ memSnapTok ms γs σt ∗

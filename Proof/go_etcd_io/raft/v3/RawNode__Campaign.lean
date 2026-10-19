@@ -69,7 +69,7 @@ theorem RawNode.Campaign.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
-    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
+    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
     $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
   · -- the message: no entries, no `Context`, no snapshot
     simp only [hP, ↓reduceIte, named]

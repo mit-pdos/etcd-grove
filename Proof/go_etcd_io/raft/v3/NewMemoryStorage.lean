@@ -26,6 +26,7 @@ allocated around them. -/
 theorem NewMemoryStorage.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG)) :
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
+  intro cap Hcap
   wp_start as #Hinit
   wp_apply wp_slice_literal_ex (V := Loc)
   wp_alloc l0 as Hl0
@@ -84,7 +85,7 @@ theorem NewMemoryStorage.wp_proof
     rw [List.mem_singleton] at hb
     subst hb
     refine ⟨by simp [memStorEmpty, EtcdGrove.stLast], rfl, fun k e h => by simp [memStorEmpty] at h⟩
-  imod sync.init_Mutex (memstorageInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd⟩) ⊤
+  imod sync.init_Mutex (memstorageInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap⟩) ⊤
     («$r0_ptr».[MemoryStorage, go!"Mutex"])
     $$ Mutex [Hd1 Hlk hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term
       cs_snapshot Hsl_cap Hcb1 Hbd Hsno] with #Hmu
@@ -124,6 +125,8 @@ theorem NewMemoryStorage.wp_proof
     · ileft; ipureintro; rfl
     isplitr
     · ipureintro; exact ⟨CutOk.self _, Int.le_refl _⟩
+    isplitr
+    · ipureintro; exact Hcap
     ileft; ipureintro; exact ⟨rfl, rfl, rfl⟩
   iapply wp_fupd
   wp_apply wp_EnsureSnapshot null none $$ [] as %sp ⟨Hsp, -⟩
@@ -135,7 +138,7 @@ theorem NewMemoryStorage.wp_proof
   ihave Hsw : ghostVar γsw ((1 : Qp).half + (1 : Qp).half) (0 : Nat) $$ [Hsw]
   · rw [Qp.half_add_half]; iexact Hsw
   icases ghostVar_split γsw _ _ _ $$ Hsw with ⟨Hsw1, Hsw2⟩
-  imod inv_alloc memSnapN ⊤ (memSnapInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd⟩)
+  imod inv_alloc memSnapN ⊤ (memSnapInv «$r0_ptr» ⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap⟩)
     $$ [Hsw1 Hsw2 snapshot Hsp Hsnh] with #Hsinv
   · inext
     iunfold memSnapInv
@@ -153,7 +156,9 @@ theorem NewMemoryStorage.wp_proof
     iframe snapshot Hsp
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   imodintro
-  iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd⟩ : MemStorNames)
+  iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap⟩ : MemStorNames)
+  isplitr
+  · ipureintro; rfl
   isplitr [HhardState cs_initialState Hak Hsna Hcb2]
   rotate_left
   isplitl [HhardState cs_initialState]

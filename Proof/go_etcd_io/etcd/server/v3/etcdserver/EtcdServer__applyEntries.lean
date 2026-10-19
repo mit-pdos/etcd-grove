@@ -73,8 +73,8 @@ theorem EtcdServer.applyEntries.wp_proof
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, Hfs, Hka, #Hkb⟩
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp Hms Hai1 Hok hEok
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hfs, Hka, #Hkb⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -91,6 +91,8 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe Hfs
     iexists st, ai, at0, a, t, cs
     iframe
+    isplitr
+    · iexact HWA
     isplitl [Hka]
     · isplitr
       · ipureintro; rfl
@@ -187,11 +189,11 @@ theorem EtcdServer.applyEntries.wp_proof
       iapply Hbc
       ipureintro; exact List.mem_of_mem_drop hm
     wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
-      (ai + 1) ep cs rac st a t x γr A hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka]
-      as %appt %appi %stop ⟨Hfs, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao,
+      (ai + 1) ep cs rac st a t x γr A γp hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr Hgr HKV Hao Hfs Hka]
+      as %appt %appi %stop ⟨Hfs, %st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, Hgr, Hao, #HWA',
         ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
-      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW Hfs Hbc' Hlog Hka Hkb'
+      iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka Hkb'
     obtain ⟨hli, -, hok2, hci2, hstop⟩ := Hpost
     -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
     subst hstop
@@ -211,6 +213,8 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe Hfs
     iexists st', appi, appt, a', at', csl
     iframe
+    isplitr
+    · iexact HWA'
     isplitl [Hka]
     · isplitr
       · ipureintro; rw [hun]; exact Hx'
@@ -230,6 +234,8 @@ theorem EtcdServer.applyEntries.wp_proof
     iframe Hfs
     iexists st, ai, at0, a, t, cs
     iframe
+    isplitr
+    · iexact HWA
     isplitl [Hka]
     · isplitr
       · ipureintro; rw [hun]; rfl

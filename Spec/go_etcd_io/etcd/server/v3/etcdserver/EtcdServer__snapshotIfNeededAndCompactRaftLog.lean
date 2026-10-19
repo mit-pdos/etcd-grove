@@ -25,14 +25,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.snapshotIfNeededAndCompactRaftLog(ep)`, by the apply thread: if a disk or in-memory
 snapshot is due, `snapshot` and `compactRaftLog` (contracts); the applied index, term and conf
 state, the KV and the backend are left as they are, the protocol's state keeps `loopOk` and
-`ciEff`. -/
+`ciEff`. (2026-10-19, D21 M3) The compaction stays at index `1`, within the storage's cap: the
+applied index is at most the write tokens taken (`srvWTAt`), below the receipts' bound
+(`srvWTPool_bound`), itself at most `SnapshotCatchUpEntries + 1` (`isServerApplyAll`). -/
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames),
+    (ms : Loc) (γs : MemStorNames) (γp : GName),
   loopOk γ st ai →
+  1 ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerApplyAll s γr ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      isServerApplyAll s γr ∗ srvWTPool E.γ γp ∗ srvWTAt γp ai ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       -- (D19i part 1) the storage's floor past the applied index (`raftAdvancedC`'s)
       memFloorAtLeast ms γs (uint.Z ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗

@@ -1091,7 +1091,7 @@ on `isServerBuilt` alone (and each call's own resources). -/
 theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
-    (Hrb : receiptBound GF ≤ N + 1) :
+    (Hrb : receiptBound GF ≤ N + 1) (Hai0 : ai₀ = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
@@ -1101,7 +1101,7 @@ theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
-  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb) $$ [Hb]
+  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0) $$ [Hb]
   · iframe Hpkg Hb
   inext
   iintro ⟨%γw, #Hreq, #Hrd, Hst, -⟩

@@ -127,7 +127,9 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
   ∨
   ((m.Type' = MsgSnap ∧
     m.Term' = W64 0 ∧
-    m.To' ≠ id)
+    m.To' ≠ id ∧
+    -- (2026-10-19, D21 M3) not in the no-snapshot mode
+    s.gh.ns = false)
    ∨
    (mtypeOf m.Type' = none ∧
     m.Term' = W64 0 ∧

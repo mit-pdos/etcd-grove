@@ -140,7 +140,7 @@ abbrev raft.switchToConfig.spec : Prop :=
   -- (2026-10-16, stage R8a, D11) at a leader the new `Progress` values are within its log (the
   -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a
   -- fresh one is at `max(lastIndex, 1)` (`applyConfChange`, `PrKept`)
-  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOk s.logst p) →
+  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
@@ -167,7 +167,7 @@ abbrev raft.switchToConfig.specS : Prop :=
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
   (s.role = .leader → id ∈ cfg ∧ MatchKept s.prvals pvs) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ cfg) →
-  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOk s.logst p) →
+  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗

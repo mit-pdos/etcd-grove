@@ -9,7 +9,8 @@ path's unit 4b (2026-10-13).
 **The server, as `applyAll` sees it** (`isServerApplyAll s γr`, persistent, beside the apply
 thread's `isServer`): the applied index's waiters (`applyWait`, a `WaitTime` for
 `appliedAtLeast γr`, `isWaitTime`), the raft wrapper's `msgSnapC` (a bag channel of messages,
-which never delivers since D19p, 2026-10-18: a one-member cluster's raft sends no `MsgSnap`; until
+which never delivers since D19p, 2026-10-18: raft sends no `MsgSnap` (since D21 M3 in its
+no-snapshot mode, until then of a one-member cluster); until
 then `applyAll` passed a received one to the merged-snapshot contract), the configuration's
 `SnapshotCount`.
 
@@ -69,11 +70,16 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     srvApplyWaitAddr s ↦□ wt ∗ isWaitTime wt (appliedAtLeast γr) ∗
     rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      -- (D19p, 2026-10-18) it never delivers: a one-member cluster's raft sends no `MsgSnap`
+      -- (D19p, 2026-10-18) it never delivers: raft sends no `MsgSnap` (D21 M3: in its
+      -- no-snapshot mode; until then of a one-member cluster)
       □ (∀ m : Loc, P m -∗ False)) ∗
     srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
     -- (D19i part 1) `s.stopping`, which `applyAll` selects on beside `raftAdvancedC`
-    (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg))
+    (∃ stg : Loc, srvStoppingAddr s ↦□ stg ∗ stopChan stg) ∗
+    -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads, past the
+    -- receipts' bound (`NewServer.spec`'s run bound): every compaction is at index `1`
+    (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu ∗
+      ⌜receiptBound GF ≤ uint.Z scu + 1⌝))
 
 instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by

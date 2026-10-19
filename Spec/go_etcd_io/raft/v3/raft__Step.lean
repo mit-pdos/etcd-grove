@@ -174,6 +174,13 @@ def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
   -- (D19i part 1) the floor, and `applied` does not move back
   s'.logst.fl = s.logst.fl ∧ uint.Z s.logst.applied ≤ uint.Z s'.logst.applied
 
+/-- (2026-10-19, D21 M3) A frame keeps the no-snapshot mode. -/
+theorem NetFrame.ns [FfiSyntax] {s s' : NState} (H : NetFrame s s') : s'.gh.ns = s.gh.ns := by
+  rw [H.2.2.2.2.2.2.2.1]
+
+theorem LocalFrame.ns [FfiSyntax] {s s' : NState} (H : LocalFrame s s') : s'.gh.ns = s.gh.ns := by
+  rw [H.2.2.2.2.2.2.2.2.1]
+
 theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
 
@@ -446,6 +453,9 @@ abbrev raft.Step.spec : Prop :=
   -- configuration index and the acknowledged index: `ApplyConfChange` before `Advance`), and a
   -- log short enough for a dropped proposal's `pendingConfIndex`; none in the static mode
   md.Pre m ents s →
+  -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode (`NGhost.ns`; `RawNode.Step` takes
+  -- none)
+  (m.Type' = MsgSnap → s.gh.ns = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗

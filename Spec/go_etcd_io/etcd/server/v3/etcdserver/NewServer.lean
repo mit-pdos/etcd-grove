@@ -124,6 +124,11 @@ abbrev NewServer.spec : Prop :=
   -- the id generator issues fewer than `2 ^ 48` ids; the apply thread takes at most `N` of the
   -- `N + 7` write tokens `bootstrap` gives (`start`'s `srvWTPool`)
   receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-10-19, D21 M3, D21 M0's run bound) at most `SnapshotCatchUpEntries + 1` (`5000`, etcd's
+  -- default, for `0`; `start`'s), so the apply thread, one write token per entry, compacts raft's
+  -- log at index `1` only (`compactRaftLog`), which raft's no-snapshot mode needs
+  receiptBound GF ≤ uint.Z (if cfg.SnapshotCatchUpEntries' = W64 0 then W64 5000
+    else cfg.SnapshotCatchUpEntries') + 1 →
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.reBoot.length ≤ 2 ^ 60 →

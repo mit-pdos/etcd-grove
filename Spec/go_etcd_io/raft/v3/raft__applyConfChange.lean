@@ -95,7 +95,7 @@ theorem applyCCOk_step {B : Int} (cfg : GSet w64) (hne : cfg ≠ ∅) (id : w64)
         rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
       exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
         (fun m hm h => by
-          have hd := (Hms m hm).2.2 h
+          have hd := (Hms m hm).2.2.1 h
           rw [Hp2] at hd
           rw [CfgM.voters_simple]
           show m.dst ∈ cfg ∪ (domSet prs \ cfg)
@@ -230,6 +230,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+
+/-- (2026-10-19, D21 M3) `applyConfChange` keeps the ghost fields (`NGhost`), the no-snapshot mode
+with them. -/
+theorem ApplyCCOkC.gh {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC c' id s s') :
+    s'.gh = s.gh := by
+  rcases applyCCOkC_step (B := 0) c' id s s' H with h | ⟨hl, hv, -⟩
+  · exact h.2.2.2.2.2.2.1
+  · obtain ⟨prs, pvs, -, -, Hsw⟩ := H
+    unfold SwitchOkC at Hsw
+    simp only [hl, hv, ↓reduceIte] at Hsw
+    obtain ⟨pvs', rfl⟩ := Hsw
+    simp [becomeFollower, resetTo, resetTo0]
+
 /-- `r.applyConfChange(cc)`: builds a `confchange.Changer` on the node's tracker and last
 index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an error),
 and installs the result (`switchToConfig`), returning the new `ConfState`.
@@ -268,6 +281,10 @@ abbrev raft.applyConfChange.spec : Prop :=
   (s.role = .leader → id ∉ c'.cfg.voters → s.sdr = true) →
   -- a candidate stays a voter (`switchToConfig`)
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
+  -- (2026-10-19, D21 M3) a leader in the no-snapshot mode has a log past index `1` (its own
+  -- entry after the bootstrap log), so a peer it starts tracking probes at `Next ≥ 2` (`PrLo`)
+  (s.gh.ns = true → s.role = .leader →
+    2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -289,6 +306,8 @@ abbrev raft.applyConfChange.specS : Prop :=
   (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
   ccApplyM ccm.transition ccm.changes (cfgState cfg (domSet s.progress \ cfg)) =
     some (cfgState cfg lrn') →
+  (s.gh.ns = true → s.role = .leader →
+    2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -307,7 +326,7 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hli2
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -318,7 +337,7 @@ theorem raft.applyConfChange.spec_simple
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
       (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
-      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide))
+      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) Hli2
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩

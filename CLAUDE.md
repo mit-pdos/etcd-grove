@@ -185,9 +185,11 @@ generated: never edit the `.lean` files by hand.
 
 - `{Code,GeneratedProof}/go_etcd_io/raft/`: raft v3.7.0 (etcd-io/raft `b867cf13`, the raft
   etcd's `go.mod` pins; protobuf-go v2 raftpb: messages, entries and snapshots are pointers
-  read through getters) plus one fix, the single-voter read-index shortcut
-  (`issues/raft-readindex-singleton-stale.md`): branch `raft37-goose-lean` of the fork
-  `upamanyus/etcd` (commit `509271dac`), project `raft` of `etc/goose.py`; the same packages
+  read through getters) plus two fixes, the single-voter read-index shortcut
+  (`issues/raft-readindex-singleton-stale.md`) and the probe-to-replicate shortcut only at
+  `pr.Next == pr.Match+1` (`issues/raft-stale-term-appresp-index-zero-ack.md`): branch
+  `raft37-goose-lean-a1` of the fork `upamanyus/etcd` (commit `c8217eb9`), project `raft` of
+  `etc/goose.py`; the same packages
   as before (`.`, `confchange`, `quorum`, `raftpb`, `tracker`), raftpb all but its protobuf
   plumbing (`ProtoReflect`, `Descriptor`, the file descriptor, ...); modules
   `Code.go_etcd_io.raft.v3`, .... (Until 2026-10-16 the verified raft was the fork's

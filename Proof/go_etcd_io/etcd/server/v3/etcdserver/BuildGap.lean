@@ -113,7 +113,7 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
 names `γw` over the server's raft names (raft's, the start log and index the server's), in the
 static mode over the `MemoryStorage`, with the budget `bud`: the tick's resource and the read
-registrations by `srvEr`'s definition, every message but a snapshot admitted (D19p: a one-member cluster), with
+registrations by `srvEr`'s definition, every message but a snapshot admitted (D21 M3: raft's no-snapshot mode; D19p: a one-member cluster), with
 its bundle (`srvMsgNet`, D21 stage M1), a committed log's `E.C` from the
 KV invariant's indices (a committed log is a prefix of the KV invariant's, `srvIdxOkW`, and its
 next index fits), the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. -/
@@ -123,8 +123,10 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static) (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
-    -- (D19p, 2026-10-18) a one-member cluster: raft's tracked bound one node
-    (k : w64) (htrk : ρ.raft.raft.reTracked = some (GMap.listToSet [k])) :
+    -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode
+    (hns : ρ.raft.raft.reNoSnap = true)
+    -- (D21 M3) the storage's cap at least `1`
+    (hcap : 1 ≤ γw.γs.cap) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
       rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
@@ -137,6 +139,8 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact ⟨hmode, hstor⟩
   isplitr
+  · ipureintro; exact hcap
+  isplitr
   · iintro !> %m %st ⟨#Hmo, #Hrm, #Htl, Hc⟩
     rw [hraft, hbud] at *
     isplitl [Hc]
@@ -147,7 +151,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
-    iapply isRaftMsg_not_snap ρ.raft.raft k htrk st $$ Hrm
+    iapply isRaftMsg_not_snap ρ.raft.raft hns st $$ Hrm
   isplitr
   · iintro !> %L #HL %Hfit
     iunfold clusterWorkloadOk at Hwl
