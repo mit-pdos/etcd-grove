@@ -28,8 +28,6 @@ Unit test: [`TestCacheReadyAfterCompactionResync`](https://github.com/upamanyus/
 
 ### Anything else we need to know?
 
-Closing the cache and creating a new one recovers.
-
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)

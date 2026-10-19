@@ -7,8 +7,11 @@
   the demux before registering the store watcher`) is the fix. Rebuilt 2026-10-18 on the new base; Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing fcfb43c88); the issue's test link (`#L509-L544`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18). `cache/` is unchanged since the
   previous base b25719d10 (`git diff b25719d10 22cc5d9ac -- cache/` is empty), so the permalinks' lines are the same.
-- **State**: draft (revised 2026-10-18 to the current skill)
-- **Upstream issue**: —
+- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **Upstream issue**: [etcd-io/etcd#22614](https://github.com/etcd-io/etcd/issues/22614), filed 2026-10-19 without the
+  "Closing the cache and creating a new one recovers." line (dropped from `issue.md` to match); its configuration
+  section still holds the template's placeholder (`# paste your configuration here`), not `issue.md`'s line, as do
+  the debug-information and log sections the draft omits
 - **PR**: —
 
 ## Duplicates checked (2026-10-16, re-checked 2026-10-18)

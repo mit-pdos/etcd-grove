@@ -1,7 +1,8 @@
 ---
-upstream: none
-checked: 2026-10-18
+upstream: reported
+checked: 2026-10-19
 links:
+  - etcd-io/etcd#22614 issue open: this bug, reported 2026-10-19
   - etcd-io/etcd#22408 pr open: related, not this bug (the same getWatchLoop retry path: back-off and GetTimeout are never read; still open, not in main 22cc5d9ac)
   - etcd-io/etcd#21536 issue closed: related, not this bug (the user's cache report: Get(WithRev) with revision gaps; fixed by #21540)
   - etcd-io/etcd#20691 pr closed: related (made the demux keep a min/max revision range, where Init's purge comes from; not checked further)
