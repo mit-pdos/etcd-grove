@@ -11900,3 +11900,31 @@ flags on (`bootOk` gains `"%Hnoxfer"`, the examples' boot premises and `startMem
 `γ.reNoXfer = false`). Two lemmas lost a hypothesis (`ownRaftPhysC_set_ns` no `xf = true`,
 `ownRaftPhys(C)_xf_off` no `ns = false`); `rawNodeFresh_xf_off` became `rawNodeFresh_set_xf b`.
 35 files; trust base unchanged (525 axioms, 2 sorries; every collection's `--check` passes).
+
+## D22a decided: the merged snapshot sent only at its message's term (2026-10-19 · the user)
+
+The user's refinement of (D): no leadership check, only the term. The raft goroutine
+(`raftNode.start`) keeps the latest `rd.HardState.Term` it has seen and passes it with each batch
+(a new `toApply` field); `applyAll`'s `msgSnapC` branch merges and sends a `MsgSnap` only when that
+term equals `m.GetTerm()`, and drops it otherwise (the check at `createMergedSnapshotMessage`'s
+call, where the batch is at hand). A fork commit beside D22g's and D22k's; the finding is
+`issues/etcd-merged-snapshot-stale-term.md`.
+
+Why the term suffices (no `StateLeader` check, no `node.Status`): the message was made by raft as
+leader of `T = m.Term`, and terms only grow, so a term still `T` after the batch means the node was
+at `T` throughout. At term `T` only the leader of `T` (the node itself) changes its log and commit
+index; after a check-quorum step-down at `T` (`raft.go:1283`) both are frozen until a higher term
+(no other leader of `T`, a follower ignores `MsgAppResp`, a pre-vote keeps the term). So every
+applied entry was committed as the node knew it while leader at `T`: in leader `T`'s log, with
+`commitIn` at `T`, which is the existing `.snap` clause. Both shapes (content of a later term; a
+prefix committed by a later leader) need the node to learn a later term's commit, hence a later
+term. The recorded term is a bound at least as new as the batch: a `Ready` whose committed entries
+advance the commit index carries a `HardState` at the term raft knew them committed; it can lag
+raft's current term, which only makes the check drop more. A spurious drop while leader at `T`
+cannot happen: becoming leader at `T` changed the term in some `Ready` no later than the one that
+made the message.
+
+For the proof (S-b): from the batch's recorded term `= T`, the node's log is leader `T`'s and its
+commit within `T`'s commit facts, also for a node that stepped down at its term: check how the
+step-down rule ("`CheckQuorum` on: one model rule for a leader's step-down at its term") keeps the
+leader's records. The (A″) redesign is not needed.

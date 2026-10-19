@@ -61,6 +61,7 @@ restate it under `reNoXfer` with `MsgSnap` and a term source of its own. Full bu
 
 Stage S-0 of T-S, by hand (`notes/snapshot-path-s0.md`; what it changes:
 `notes/decisions.md`, "D22 S-0 carried out"). No Lean change, trust base unchanged.
+- **D22a decided (the user):** the merged snapshot sent only when raft's term (recorded per batch from `rd.HardState`) equals `m.Term` (`notes/decisions.md`, "D22a decided"); a fork commit, `issues/etcd-merged-snapshot-stale-term.md`.
 - **D22a (A) fails.** The facts it drops from the `.snap` clause (the leader prefix at `m.term`,
   `commitIn` at `m.term`) give the receiver's `commitIn` at its term, its reply's acks, `TermsLe`;
   a stale merged snapshot (and a Figure 8 variant with `appliedt ≤ m.Term`) makes them false, and a
