@@ -10681,3 +10681,22 @@ stage's text in D21 is amended to say so.
 
 *M0 carried out (2026-10-19).* No Lean change. Output: this note, the amended M3 text, and
 `issues/raft-stale-term-appresp-index-zero-ack.md`. Stopped on (A1)/(A2) for the user.
+
+## D21 M1 carried out: the sender's message bundle (2026-10-19)
+
+Stage M1 of D21, as staged; no design choice beyond the text. The server's `E.M` keeps, for each
+message a `Ready` hands out, the message read-only, `isRaftMsg`, `termLB` and the read credit
+(`srvMsgNet`, `InvBuild.lean`), with `srvMsgNoSnap` beside it (from `"%Hone"` until M3); the transport
+contract's `Send` premise is unchanged in text (`[∗list] rnMsgOk E m`). One consequence the stage
+text did not spell out: since the read credit is one-shot, `rnMsgOk` and `E.M` are no longer
+persistent (`rnMsgOk E m := msgAt m to ty ∗ E.M m`; it was `□ E.M m`), so the wrapper's code
+threads them: `processMessages`'s loop owns the not-yet-read messages' bundles, and `start`'s
+leader send is a join that hands the bundles on to the follower's send. `msgSnapC`'s bag holds
+them owned, `srvMsgSnapC_false` unchanged in statement. Not carried (M2's, and M0's
+`MsgTimeoutNow` fact): `NetMsgOk` (the receiver's), a `MsgTimeoutNow`'s tick credit, a forwarded
+`MsgProp` owned (`fwdP`). Trust base unchanged.
+
+**D21c′ (the user, 2026-10-19): (A1).** Raft is fixed in the fork (the probe-to-replicate shortcut
+only when `pr.Next == pr.Match + 1`; `TestLeaderAppResp` case 4 updated); M3 proves `Next ≥ 2`,
+replicate ⇒ `Match ≥ 1` and `Next ≤ lastIndex + 1`, over the premise `receiptBound ≤
+SnapshotCatchUpEntries + 1` (`putget3` sets `SnapshotCatchUpEntries` large).
