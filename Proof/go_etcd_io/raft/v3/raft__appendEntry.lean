@@ -89,7 +89,7 @@ by one. -/
 private theorem stamp_step (tm li : w64) (ents : List EntryM) (n : Nat) (e : EntryM)
     (He : ents[n]? = some e) :
     ((ents.mapIdx (stamp tm li)).take n ++ ents.drop n).set n
-        { e with Term' := tm, Index' := li + W64 1 + W64 n }
+        { e with Term' := tm, Index' := li + W64 1 + W64 n, Subterm' := W64 0 }
       = (ents.mapIdx (stamp tm li)).take (n+1) ++ ents.drop (n+1) := by
   have Hlt : n < ents.length := by
     rcases (List.getElem?_eq_some_iff.1 He) with ⟨h, _⟩; exact h
@@ -161,6 +161,10 @@ theorem raft.appendEntry.wp_proof
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
   wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   ihave Hphys := Hlogback $$ Hlog
+  -- (2026-10-19, witness support) `epoch := r.trk.Epoch`, witness-free: its subterm is `0`
+  try wp_auto
+  wp_apply raft.wp_load_trk_EpochC c r id s $$ Hphys as %ep ⟨Hphys, #Hep⟩
+  icases ownEpochNW_fields ep $$ Hep with ⟨#Hsub, -, -, -, -⟩
   iunfold entsPts at Hes
   icases Hes with ⟨%lsE, Hes, #Hents⟩
   ihave %Hlen := ownSlice_len $$ Hes
@@ -252,6 +256,18 @@ theorem raft.appendEntry.wp_proof
     wp_pures
     wp_store
     ihave Hl' := HIback $$ %_ %_ HI cI
+    -- `epoch.Subterm` is `0`: `cloned[i].Subterm = nil`
+    wp_auto
+    simp only [Hbndc, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index cl (sint.Z n) _ _ l' Hn.1 $$ [Hcl] as Hcl
+    · iframe; ipureintro
+      rw [show (sint.Z n).toNat = lc.length by omega, List.append_assoc]
+      simp
+    icases entOwn_store_Subterm _ _ $$ Hl' with ⟨%pS, HS, HSback⟩
+    wp_pures
+    wp_store
+    ihave Hl' := HSback $$ %null %(zero_val w64) HS []
+    · iapply cellRO_null
     imod entOwn_freeze $$ Hl' with #Hl'
     wp_auto
     wp_for_post
@@ -263,10 +279,12 @@ theorem raft.appendEntry.wp_proof
     iframe
     have Htk : (ents.mapIdx (stamp s.term li)).take (sint.nat n + 1)
         = (ents.mapIdx (stamp s.term li)).take (sint.nat n) ++
-          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := e.Type', Data' := e.Data' }] := by
+          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := e.Type', Data' := e.Data',
+             Subterm' := zero_val w64 }] := by
       rw [List.take_add_one, List.getElem?_mapIdx, He]
       simp only [Option.map_some, Option.toList_some, stamp]
       rw [show (W64 (sint.nat n : Int) : w64) = n by word]
+      rfl
     rw [Htk]
     isplitr
     · iapply BigSepL2.bigSepL2_snoc.2

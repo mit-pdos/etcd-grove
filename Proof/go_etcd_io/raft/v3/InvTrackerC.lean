@@ -367,6 +367,16 @@ theorem ownTrackerC_pure (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
   iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
     $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
+/-- The tracker's epoch, witness-free (2026-10-19, witness support). -/
+theorem ownTrackerC_epoch (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTrackerC (GF := GF) c tv t ⊢ ownEpochNW tv.Epoch' ∗ ownTrackerC c tv t := by
+  iintro Hown
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  iframe Hepoch
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
+
 /-- The configuration's `AutoLeave` (2026-10-14, stage B7: `raft.appliedTo` reads it). -/
 theorem ownTrackerC_autoleave (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ownTrackerC (GF := GF) c tv t ⊢

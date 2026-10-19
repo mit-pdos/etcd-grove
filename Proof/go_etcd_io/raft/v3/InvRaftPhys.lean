@@ -1956,6 +1956,22 @@ theorem ownRaftPhysC_tracker (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with votes := votes' }
 
+/-- `r.trk.Epoch` (2026-10-19, witness support): a witness-free epoch (`ownEpochNW`). -/
+theorem raft.wp_load_trk_EpochC (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    {{ ownRaftPhysCV (GF := GF) c V r id s }}
+      (App (Val (GoInstruction (GoLoad (go.GoType.PointerType tracker.Epoch.ty))))
+        (Val #((r.[raft, go!"trk"]).[tracker.ProgressTracker, go!"Epoch"])))
+    {{ (e : Loc), RET #e; ownRaftPhysCV c V r id s ∗ ownEpochNW e }} := by
+  iintro %Φ H HΦ
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_epoch c tv _ $$ Htrk with ⟨#He, Htrk⟩
+  wp_apply wp_load_access _ tv.Epoch' _
+    (tracker.ProgressTracker.ProgressTracker_access_load_Epoch _ _ _) $$ Hf as Hf
+  ihave H := Hback $$ %tv %s.votes Hf Htrk
+  iapply HΦ
+  iframe He
+  iexact H
+
 /-- (D19p, 2026-10-18) The progress map tracks the configuration's voters and learners. -/
 theorem ownRaftPhysC_dom (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
