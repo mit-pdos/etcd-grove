@@ -19,6 +19,11 @@ links:
   restarting such a member with `--force-new-cluster` writes log terms that go down (below).
   Reproduced deterministically at raft level with the real raft code and an emulation of etcd's
   pipeline, and the etcd half with the real `raftNode` and `applyAll`; not end to end.
+  **Open question:** the "no wrong result" reading covers a gap of one term between the message
+  and its content (the message's term `T`, the content's `T + 1`, the only leader of `T` being the
+  sender). A gap of two or more terms (content of term `T + 2` or later under a message of term
+  `T`) is not analyzed; a raft-harness test or `issues/raft-conf-lag-model/model.py` extended with
+  the merged message would settle it. The fork's check excludes every gap.
 - **Where**: etcd fork pin `8a24be2a3` (`etc/goose.py`). Upstream `main` has the same
   `applyAll` (`server.go:978-998`, read, not run). raft fork `c8217eb9` (raft v3.7.0 has the
   same code; the raft test passes there too).
