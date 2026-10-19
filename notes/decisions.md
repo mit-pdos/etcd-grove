@@ -10423,7 +10423,13 @@ Each small enough for one agent; dependencies in brackets.
   files: `raft.go`'s progress branches, `InvRaftPhys`, the protocol's `appResp` clause), the
   storage's first-index bound from the server's compaction (`compactRaftLog`, `snapshot`, D19i's
   floor), `srvMsgNoSnap` from them; `"%Hone"` removed from `bootOk`, `NewServer.spec` taking the
-  run bound. Medium-large; raft-heavy.
+  run bound. Medium-large; raft-heavy. *Amended by M0 (2026-10-19, "D21 M0" below):* `pr.Next ≥ 2`
+  is false in raft v3.7 (`issues/raft-stale-term-appresp-index-zero-ack.md`). M3 waits for the
+  user's choice of a fork change, (A1) raft's fix or (A2) no compaction while `appliedi ≤
+  SnapshotCatchUpEntries`, and a re-translation. Its invariant is (N), `firstIndex ≤ Next ≤
+  lastIndex + 1`, in the form the choice gives. Its premise is `receiptBound GF ≤
+  SnapshotCatchUpEntries + 1`, through the apply pool's count (`ep.appliedi ≤` tokens taken).
+  `putget3` configures `SnapshotCatchUpEntries` at least as large as the theorem's step bound.
 - **M4. The cluster's resources split** [none]: D21e (A); `kvInv`/`etcdKV` allocated once for the
   cluster (`srvRaftBoot_alloc` over `ps`), each member's `NewServer.spec` taking its share (its
   generator's claims under its prefix, its slice of `rdCred` and of `reRdFresh`, its node's
@@ -10480,3 +10486,198 @@ M2 (and M4, whose claims it touches). Stage M6.
 separately), and whether M3 (the run bound) is an acceptable first step before T-S.
 
 **D21 adopted (the user, 2026-10-19):** (A) for all of D21a–f. Stages M0, M1 and M4 start in parallel.
+
+## D21 M0: the no-`MsgSnap` argument checked (2026-10-19)
+
+Stage M0 of D21: D21c (A) checked by hand against the code. No Lean changes. Citations: raft at
+the fork's `509271dac` (`.lake/go-src/raft`); etcd at `8a24be2a3` (`git -C /shared/etcd show
+8a24be2a3:server/etcdserver/<f>`).
+
+**Verdict: D21c (A) as written is false.** The tracker invariant "`pr.Next ≥ 2` for every peer"
+does not hold in raft v3.7. A leader can set a peer's `Next` to 1. Once its log is compacted at
+index 1, it then sends a `MsgSnap`. etcd compacts at index 1 after 101 applied entries, whatever
+`SnapshotCatchUpEntries` is. Reproduced with a Go test and filed:
+`issues/raft-stale-term-appresp-index-zero-ack.md`. The rest of the argument holds: the storage
+bound, the other progress transitions, the reject path and `MsgTimeoutNow`. Below are the exact
+conditions, the counterexample, two corrected options (each needs a change to the fork) and a
+recommendation. **Asked of the user.** M3 waits for the answer.
+
+### When raft sends a `MsgSnap`
+
+Only `maybeSendAppend` (`raft.go:618-661`) calls `maybeSendSnapshot` (`raft.go:666-690`), from
+two places:
+- `term(pr.Next - 1)` fails (`:623-629`). By `raftLog.term` (`log.go:387-413`), that happens iff
+  `Next - 1 + 1 < firstIndex` (`ErrCompacted`) or `Next - 1 > lastIndex` (`ErrUnavailable`), or if
+  storage loses the entry to a concurrent `Compact` between the check and `storage.Term`.
+- `entries(pr.Next)` fails (`:639-648`). By `log.go:415-420` and `mustCheckOutOfBounds`
+  (`:551-565`), that happens iff `firstIndex ≤ lastIndex` and `Next < firstIndex`.
+
+`maybeSendSnapshot` then returns without sending if `!pr.RecentActive` (`:667`). Otherwise it
+sends `MsgSnap` (`:686-689`), or panics if storage's snapshot is empty (`:680-681`). So the leader
+needs, for every peer whose append is not paused,
+
+> **(N)** `firstIndex_max ≤ pr.Next ≤ lastIndex + 1`
+
+where `firstIndex_max` is the largest first index its `MemoryStorage` ever has. A pending
+snapshot in `unstable` would also count (`log.go:300`), but none exists: no member ever sends a
+`MsgSnap`, so none receives one. This is an induction over the cluster's run, part of the same
+invariant.
+
+### The storage side: `firstIndex ≤ 2` under a run bound (holds)
+
+- Boot: a fresh `MemoryStorage` holds only the dummy at 0 (first index 1). `StartNode` →
+  `Bootstrap` (`bootstrap.go:32-80`) appends the `B = |peers|` `AddNode` entries at term 1,
+  indices `1..B`, and commits them. etcd's fresh path calls no `ApplySnapshot`
+  (`etcdserver/bootstrap.go:726-735` calls it only for a WAL snapshot). `ep.appliedi` starts at
+  the snapshot index, 0 (`server.go:804-807`).
+- Writers of the first index: `Compact` in `compactRaftLog` (`server.go:2142-2170`), called only
+  from `snapshotIfNeededAndCompactRaftLog` (`:1220-1228`), and `ApplySnapshot` for a received
+  snapshot (`etcdserver/raft.go:277`), which does not happen here. `CreateSnapshot` (`:2112`)
+  does not move the first index.
+- The trigger: the in-memory snapshot fires every `memorySnapshotCount = 100` applied entries
+  (`:116`, `:1235-1236`), whatever `SnapshotCount` is. `compactRaftLog` then calls
+  `Compact(compacti)` with `compacti = 1` when `appliedi ≤ SnapshotCatchUpEntries`, and
+  `compacti = appliedi - SnapshotCatchUpEntries` otherwise (`:2156-2160`). `Compact(1)` keeps
+  index 1 as the dummy (`storage.go:268-288`): the first index becomes 2, and a later `Compact(1)`
+  is `ErrCompacted`, returned silently.
+- So: **if every member's `ep.appliedi` stays at most `SnapshotCatchUpEntries`, every member's
+  first index is at most 2 throughout, and is 1 until its 101st applied entry.** The alternative
+  the task suggested, a run with fewer than `SnapshotCount` entries, does not avoid compaction,
+  because the in-memory snapshot ignores `SnapshotCount`. A bound below 101 entries would keep
+  the first index at 1, but as a receipt bound it is far too small for the theorem to say
+  anything. Restarts: D21 does not mention them. The argument assumes each member boots once
+  from an empty data directory, as `putget3` does (a Goose program has no crash). After a restart,
+  `ApplySnapshot` of a WAL snapshot sets the first index past 2.
+
+### The tracker side: `pr.Next ≥ 2` is false
+
+All writes to `Next` (`tracker/progress.go`; the protocol's callers in `raft.go`):
+- `reset` (`raft.go:781-805`, from `becomeLeader`, `:937-948`): `Next = lastIndex + 1 ≥ B + 1`.
+  Fine.
+- `SentEntries` (`progress.go:164-187`): `Next += |ents|`, where `ents` comes from
+  `entries(Next)`. This only increases `Next`, and keeps it at most `lastIndex + 1`.
+- `MaybeUpdate(n)` (`:205-213`): `Next = max(Next, n + 1)`. This only increases `Next`; the upper
+  bound below needs `n ≤ lastIndex`.
+- `BecomeReplicate` (`:146-149`) and `BecomeProbe` (`:130-143`, outside `StateSnapshot`):
+  `Next = Match + 1`. **This is 1 when `Match = 0`.**
+- `MaybeDecrTo` (`:226-253`): in `StateReplicate`, `Next = Match + 1`. In `StateProbe`,
+  `Next = max(min(rejected, hint + 1), Match + 1)`, applied only if `rejected = Next - 1`.
+- `BecomeSnapshot` (`:153-158`): only from `maybeSendSnapshot`, which never runs (induction).
+- Membership: `initProgress` (`confchange/confchange.go:263`, `Next = max(LastIndex, 1)`) runs
+  only for a new id. In a static cluster, re-applying the boot `AddNode`s finds every id present
+  (`makeVoter`, `:178-189`), so `Next` is untouched. `switchToConfig` (`raft.go:1971-2020`) only
+  sends.
+
+The counterexample is at `BecomeReplicate`, `raft.go:1519-1522`. In `stepLeader`, a non-rejecting
+`MsgAppResp` with `pr.Match == m.Index && pr.State == StateProbe` moves the peer to
+`StateReplicate`. A voter sends exactly such a response, `Index = 0` and not a reject, at its own
+term, to answer a `MsgApp` or `MsgHeartbeat` of a lower term when check-quorum or pre-vote is on
+(`raft.go:1133-1156`). etcd always enables check-quorum (`etcdserver/bootstrap.go:572`).
+
+The run: leader 1 of term 1 sends a `MsgApp` to node 2, which is delayed. Node 1 wins term 2 with
+node 2's vote. The stale `MsgApp` then reaches node 2, which answers `MsgAppResp{Term 2, Index 0}`.
+That answer reaches node 1 before node 2's answer to node 1's term-2 probe, while node 2's progress
+is still `StateProbe` with `Match = 0`. Node 1 sets `Next = 1`. The loop at `:1556-1561` calls
+`maybeSendAppend`; `term(0)` is `ErrCompacted` once the first index is 2; `RecentActive` was set
+by this response (`:1380`); so node 1 sends a `MsgSnap`. The issue's
+`TestLeaderIndexZeroAckSendsSnapshot` reproduces it: the leader's progress becomes
+`StateSnapshot match=0 next=4 pendingSnap=3` and it sends `MsgSnap` at index 3. Upstream's
+`TestLeaderAppResp` (`raft_test.go:2243-2248`) expects this transition, from a probe at
+`Next = 3`. In the protocol model the run needs only reordering and delay, which `isMessage`
+already allows.
+
+The rest of D21c's sketch holds, given that no `Index = 0` acknowledgement moves a peer to
+`StateReplicate` (fix (1) below):
+- **Replicate implies `Match ≥ 1`.** A peer enters `StateReplicate` either through
+  `MaybeUpdate(n)` returning true, which needs `n > Match ≥ 0`, or (with fix (1)) only when
+  `Next = Match + 1` already. `Match` never decreases within a term. So `BecomeProbe` from
+  `StateReplicate` (`MsgUnreachable`, `:1621-1626`; a rejection in `StateReplicate`,
+  `:1503-1507`) gives `Next = Match + 1 ≥ 2`. `MsgSnapStatus` returns at `:1604` outside
+  `StateSnapshot`, so a `ReportSnapshot` at any time is harmless.
+- **The reject path keeps `Next ≥ 2`.** Two facts about logs: every member's log has term 1 at
+  indices `1..B`, since those entries are committed at boot, so they are never truncated, and
+  `Compact(1)` keeps term 1 at index 1; and every entry at an index `≥ 1` has a term `≥ 1`.
+  A follower answers an `m.Index < committed_f` with an ack (`:1788-1790`, `committed_f ≥ B`).
+  For `m.Index ≤ B ≤ lastIndex_f`, both logs have term 1 at `m.Index`, so `maybeAppend` succeeds.
+  So it rejects only at `m.Index > B`, giving `rejected ≥ 2`. Its hint (`:1815-1820`) is
+  `findConflictByTerm(min(m.Index, lastIndex_f), m.LogTerm)` (`log.go:182-194`). With
+  `m.LogTerm ≥ 1`, the walk stops at an index `≥ B ≥ 1` (term 1 there) with a term `≥ 1`.
+  The leader's own walk (`:1406-1501`, `findConflictByTerm(hint, hintTerm)`) also stops at an
+  index `≥ min(hint, B) ≥ 1`, or returns `hint` if `hintTerm = 0`. So `nextProbeIdx ≥ 1` and
+  `min(rejected, nextProbeIdx + 1) ≥ 2`. (D21c's question "`findConflictByTerm` over a compacted
+  index": the term check at the first index minus 1, here at most 1, is never reached, because
+  the walk stops at `B` or above.)
+- **Upper bound `Next ≤ lastIndex + 1`** (a new clause, not in D21c, needed against
+  `ErrUnavailable`). It holds if every non-rejecting `MsgAppResp` of the leader's term has
+  `Index ≤ lastIndex_L`. An accept (`:1792-1793`) answers this leader's own `MsgApp` (one leader
+  per term), so `prev + |ents|` is at most the leader's last index then, and the leader never
+  truncates its own log. A commit ack (`:1789`) carries `committed_f`, which is at most
+  `lastIndex_L` by `leader_completeness` (`Protocol/LeaderCompleteness.lean`) with
+  `raft_dyn_committed_agree`. The stale-term answer carries 0. `handleSnapshot`'s answers never
+  occur.
+
+### `MsgTimeoutNow` (checked: holds)
+
+`sendTimeoutNow` (`raft.go:2049-2051`) is called only from `stepLeader`: at `:1565-1568`, when
+`m.From == r.leadTransferee`, and at `:1652-1654`. `leadTransferee` is set only at `:1652`, in the
+`MsgTransferLeader` case (`reset` and `abortLeaderTransfer`, `:2053`, clear it). A
+`MsgTransferLeader` comes only from `node.TransferLeadership` (`node.go:604`) or
+`RawNode.TransferLeader` (`rawnode.go:542`), or from a follower forwarding one it stepped
+(`raft.go:1734-1740`). etcd calls `TransferLeadership` only in `MoveLeader` (`server.go:1248-1265`).
+That is reached from `TryTransferLeadershipOnShutdown` (`:1286-1313`, on `Stop`) and from the
+Maintenance gRPC `MoveLeader` (`v3rpc/maintenance.go:307-312`). The putget client calls neither,
+and `Stop` is dead (D19m). So no `MsgTimeoutNow` is sent: a fact about the run, stated
+in M3 (or M2) at raft's `Step` as "no `MsgTransferLeader` is stepped".
+
+### Corrected options (D21c (A′); each changes the fork)
+
+- **(A1) Fix raft in the fork**, issue fix (1): at `raft.go:1519`, take the shortcut only when
+  `pr.Next == pr.Match + 1`. raft's suite passes except `TestLeaderAppResp`'s fourth case, which
+  pins the current behavior; the fork updates that case. M3 then proves (N) as
+  **`Next ≥ 2 ∧ (State = Replicate → Match ≥ 1) ∧ Next ≤ lastIndex + 1`** at the leader for every
+  peer, plus `State ≠ Snapshot`. The message clauses it needs: a reject of term `T` has
+  `Index > B`, `RejectHint ≥ 1`, and a `LogTerm` that is either 0 or the follower's term at the
+  hint; a non-reject has `Index ≤ lastIndex` of term `T`'s leader. The storage side shows first
+  index `≤ 2`. Cost: what D21c planned, plus the upper bound.
+- **(A2) Never compact in the fork's etcd while `snapi ≤ SnapshotCatchUpEntries`**: return before
+  `Compact` in `compactRaftLog` instead of compacting at 1. The first index then stays 1 under the
+  run bound. (N)'s lower half becomes `Next ≥ 1`, which follows from `Match < Next`
+  (`progress.go:37`). raft is unchanged, and `Next = 1` gives a `MsgApp` from index 0
+  (`term(0) = 0` from the dummy), not a `MsgSnap`. M3 needs only the upper bound and the storage
+  fact; the reject-path clauses go away. But the change has no purpose outside the proof: it
+  keeps one entry in memory, and the raft bug stays in the verified code.
+- **(B)** (D21c (B), T-S) stays as it was. **(C)**, a premise "no `MsgSnap`", stays rejected.
+- *Recommendation:* **(A1)**. It fixes a bug that is reproduced and filed, and the fork has so
+  far carried only such fixes (`issues/raft-readindex-singleton-stale.md`). The extra cost over
+  (A2), the reject clauses, is what D21c had already planned. (A2) is the fallback if the user
+  prefers not to change raft's behavior that upstream's test pins. Both need a re-translation
+  (`etc/goose.py`) before M3.
+
+### The premise the closed theorem needs
+
+Each member applies one write token per entry (`srvWTPool`, `InvApplier.lean:653`: `a` tokens
+taken, `a < receiptBound GF`). `appliedi` starts at 0, and each batch is contiguous and starts at
+`appliedi + 1` (etcd panics otherwise). With an apply-thread clause
+`ep.appliedi ≤ a` (new in M3), every member has `appliedi < receiptBound GF` throughout. So the
+pure premise is
+
+> **`receiptBound GF ≤ SnapshotCatchUpEntries + 1`**, the latter the configured value of every
+> member (all equal in `putget3`).
+
+The receipt clause on raft's log, D19b stage 5 design (P), would give the same bound in D21c's
+form, `receiptBound GF + B ≤ SnapshotCatchUpEntries + 1`. The apply pool already exists and does
+not involve `B`, so M3 should use it. With etcd's default (`DefaultSnapshotCatchUpEntries =
+5000`, `server.go:85`, the value `putget` uses), this premise limits the theorem to executions of
+at most 5001 receipts, likely too few to boot a server. So `putget3` should set
+`SnapshotCatchUpEntries` to at least the step bound the theorem already assumes
+(e.g. `1 << 40`, D19b's tightest). The premise then follows from the existing receipt
+bound, and the program, not a hypothesis, pays for it. `SnapshotCount` does not matter.
+
+### The M3 stage text, corrected
+
+M3 now depends on the choice between (A1) and (A2) (and the fork change plus re-translation). Its
+invariant is (N) in the chosen form, not `pr.Next ≥ 2` alone. Its premise is the one above. The
+stage's text in D21 is amended to say so.
+
+*M0 carried out (2026-10-19).* No Lean change. Output: this note, the amended M3 text, and
+`issues/raft-stale-term-appresp-index-zero-ack.md`. Stopped on (A1)/(A2) for the user.

@@ -109,6 +109,9 @@ open), [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) with
 [recipes-barrier-wait-closed-watch](recipes-barrier-wait-closed-watch.md) (one fix branch),
 [cache-stale-progress-compacts-newest-watch](cache-stale-progress-compacts-newest-watch.md),
 [raft-prevote-stale-grant](raft-prevote-stale-grant.md) (disruption, not safety),
+[raft-stale-term-appresp-index-zero-ack](raft-stale-term-appresp-index-zero-ack.md) (a needless
+log resend or snapshot to a caught-up follower after a delayed stale-term message; upstream's
+`TestLeaderAppResp` pins the behavior),
 [etcd-request-id-member-prefix](etcd-request-id-member-prefix.md) (needs two member ids equal in
 their low 16 bits),
 [etcd-lease-close-require-leader-ctx-misaligned](etcd-lease-close-require-leader-ctx-misaligned.md)
