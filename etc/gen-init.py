@@ -32,7 +32,7 @@ PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
 
 ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
-         'github_com.mit_pdos.etcd_grove.examples.putget']
+         'github_com.mit_pdos.etcd_grove.examples.putget', 'github_com.mit_pdos.etcd_grove.examples.linkv']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
