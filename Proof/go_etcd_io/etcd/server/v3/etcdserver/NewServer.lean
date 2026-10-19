@@ -983,6 +983,14 @@ theorem NewServer.wp_proof
     unfold mvcc.bkRTx
     iunfold mvcc.kbRT at HrtSV
     iexact HrtSV
+  -- (D21 M5) the server is member `id` of the network: `RaftHandler`'s premise
+  ihave #Hnm : srvNetMember γn s id $$ []
+  · iunfold srvNetMember
+    iframe Hprocok
+    iexists t
+    iframe Htrf
+    iunfold transportStarted
+    iframe Htrall Htrr
   imodintro
   iapply HΦ
   iright
@@ -992,7 +1000,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hgap Hserve HSV HMon
+  iframe Hgap Hserve HSV HMon Hnm
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   isplitr

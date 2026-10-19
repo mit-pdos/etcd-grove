@@ -6,6 +6,7 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.IsLearner.wp_proof
 axiom EtcdServer.IsMemberExist.wp_proof
+axiom EtcdServer.RaftHandler.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.compactRaftLog.wp_proof
@@ -401,6 +402,7 @@ axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.HashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom net.Listen.wp_proof
+axiom net.http.Serve.wp_proof
 axiom netAddrFree
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof

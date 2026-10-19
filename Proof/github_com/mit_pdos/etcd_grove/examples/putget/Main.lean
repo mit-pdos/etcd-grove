@@ -188,7 +188,7 @@ theorem Main.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, Hbuilt, Hgap,
-    Hserve, Hsv, Hmon⟩)
+    Hserve, Hsv, Hmon, -⟩)
   · -- `NewServer` failed: `Main` returns
     cases err with
     | nil => exact absurd rfl Herr

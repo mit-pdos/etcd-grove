@@ -77,6 +77,9 @@ lends `InitialState` and gives back, and `MemoryStorage.Snapshot`'s application 
 with `start`. The watch store
 (`srvWatchBuilt`, 2026-10-18): the server's `kv` the watchable store, with the watch-token pool
 allocated from `mvcc.New`'s tokens (`mvcc.watchTokPool_alloc`, under the time-receipt bound).
+(D21 M5, 2026-10-19) The server's membership in the network (`srvNetMember γn srv id`: what its
+inbound path reads and its transport, started in `γn`), which `RaftHandler`'s axiom takes to give
+the member's raft handler, for serving it on the member's peer URL.
 -/
 module
 
@@ -85,6 +88,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 
 @[expose] public section
 
@@ -194,12 +198,12 @@ abbrev NewServer.spec : Prop :=
       ⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-          (γn : RNNames) (b : GoInterface),
+          (γrn : RNNames) (b : GoInterface),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
-          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γn b (W64 0)
+          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
-          srvBuildGap srv γn (W64 0) (W64 0) ∗
+          srvBuildGap srv γrn (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
           -- watchable store, the progress interval's field, and the request slots
           srvServeBuilt srv E cfg 64 ∗
@@ -207,7 +211,10 @@ abbrev NewServer.spec : Prop :=
           srvSVRes srv E.γ ∗
           -- (audit B4a, D19m) the hash and downgrade monitors' configuration fields and
           -- `monitorDowngrade`'s `lgMu` reader slot
-          srvMonitorCfg srv cfg }}
+          srvMonitorCfg srv cfg ∗
+          -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
+          -- started there: what `RaftHandler`'s axiom takes, to serve the member's raft handler
+          srvNetMember γn srv id }}
 
 end spec
 

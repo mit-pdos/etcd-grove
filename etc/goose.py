@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, register, putget, porcupine or lintest;
+  --project    only this project (raft, etcd, register, putget, putget3, linkv, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -388,6 +388,20 @@ PROJECTS = [
                     "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
+    ),
+    Project(
+        name="putget3",
+        # putget with three members (D21 stage M5): three members started in-process, each
+        # serving its raft handler on its own peer listener, a client's Put and Get through the
+        # first. A Go module of this repository, with putget's replaces (keep them in step); its
+        # imports are the etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "putget3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget3")],
     ),
     Project(
         name="porcupine",

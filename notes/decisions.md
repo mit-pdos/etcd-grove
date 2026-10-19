@@ -11241,3 +11241,70 @@ D21i (A); D21i (A′) adds the configuration to `clientCfgOk`'s users.
 accept). Next: M6a (raft), then M6b, then M6c. M6a does not depend on either choice and could start
 at once. It changes raft's specs (`Propose` takes the ticket, the server's call of it follows) but
 not the trust base or any client-facing spec.
+
+## D21 M5 carried out: putget3 and `putget3_safe` (2026-10-19)
+
+Stage M5 of D21: `examples/putget3`, three members in one Go program (D21a (A)), and its closed
+theorem. The stage stopped once, because serving the raft handler over HTTP needs a trust-boundary
+statement. **D21k (the user, 2026-10-19): (A), two new axioms.** (1) `EtcdServer.RaftHandler`
+returns a handler `h` with a persistent `raftHandlerOf γn id h`; the etcdserver translation stays
+unchanged (`RaftHandler` stays names-only). (2) `http.Serve(l, h)` takes the listener at `a`,
+`raftHandlerOf γn id h` and `⌜"http://" ++ a ∈ γn.dir id⌝`, and its postcondition is `True`. These
+axioms are where D21b's deployment fact gets stated. That fact is: every peer URL of member `id` is
+served by the raft handler of the transport holding `id`'s slot. `Transport.Start`'s axiom needs it
+(`issues/etcd-rafthttp-misaddressed-403-member-removed.md`). Until M5 it was only argued in
+`Start`'s docstring.
+- **The program** (`examples/putget3/putget3.go`): putget's `Main` with a helper,
+  `startMember(name, peer, peerAddr, client, cluster, lg)`. The helper runs `NewServer` with putget's
+  configuration at the member's name and URLs, then `net.Listen(peerAddr)`, then
+  `go http.Serve(l, s.RaftHandler())`, then `s.Start()`. `Main` builds the three peer URL slices and
+  the initial cluster's map, calls `startMember` three times (members `putget3-1..3`, peer addresses
+  `127.0.0.1:2380{1,2,3}`), and then does putget's steps on the first member: client address
+  `127.0.0.1:23791`, one endpoint. `go test` passes. `TestMemberIDs` checks that the low 16 bits
+  of the three member ids are distinct and nonzero (`0x908a`, `0x4092`, `0xc2ae`). `TestPutGet3`
+  checks that the Put took effect and that the cluster has 3 members, so a quorum was reached over
+  the served handlers.
+- **The two axioms** (`Spec/.../etcdserver/EtcdServer__RaftHandler.lean`, `Spec/net/http/Serve.lean`).
+  Their terms are in `etcdserver/InvRaftHandler.lean`:
+  - `raftHandlerOf` is `□` of an `opaque` predicate. It is not an axiom, and only `RaftHandler`'s
+    axiom gives it.
+  - `RaftHandler`'s precondition is `srvNetMember γn s id`: `srvProcOk γn s id` (M2's inbound
+    facts, the member id among them), plus `s.r.transport ↦□ t` with `transportStarted γn t`.
+    `NewServer.spec`'s postcondition gains it (a stronger postcondition). Its inner `RNNames`
+    binder was renamed from `γn` to `γrn`, because `γn` shadowed the network. putget's `Main`
+    drops the new conjunct.
+- **Choices the D21 text left open** (none changes a spec's meaning beyond the two axioms):
+  - *One storage registry per member.* D19r (B)'s `memStorRegAuth ∅` would be "enough for one
+    server" if the registry were shared. Instead each `startMember` allocates a fresh registry,
+    `letI : MemStorReg GF := ⟨γreg⟩`. putget's premise already quantified `bootstrap`'s contract
+    over every registry. So `NewServer.spec` is unchanged and needs no registry invariant.
+  - *The thread token.* `Start` takes the caller's `threadTok` and returns it inside `srvGoRes`.
+    `Main` takes the token out of the first member's `srvGoRes` for the second member's
+    `startMember`, does the same for the third, and puts the first member's `srvGoRes` back
+    together for `v3rpc.Server`.
+  - *The pure facts* (`putget3.BootFacts id₁ id₂ id₃ bootLog`). The low 16 bits of the ids are
+    distinct and nonzero (D21e (A)). The bootstrap log is `BootLogOk (ccOk [id₁, id₂, id₃])
+    [id₁, id₂, id₃]`, with the peers in the order `bootstrap` sorts them. The ids Go computes
+    happen to be ascending in the members' order.
+  - *The URL directory* is `dir3 id₁ id₂ id₃`: each member's one peer URL. Each member's
+    `bootstrap` contract is a separate premise (`bootPremise`), at its own name and URLs, over the
+    initial cluster's map with the three keys (`urlsOk`).
+  - `startMember.spec`'s success postcondition is `memberUp`: `Start`'s postcondition plus the
+    serving resources `NewServer` left (putget's).
+  - `Main.wp_proof` runs with `maxHeartbeats 1000000`. The default timed out on the whole
+    declaration.
+- **Go module pins.** putget, putget3, linkv and register now replace `go.etcd.io/raft/v3` with
+  the fork's `c8217eb9` (D21c′ (A1)), the raft pin. It was `509271dac`. The Go tests pass, and the
+  translations are unchanged (`etc/goose.py --check`).
+- **The closed theorem** `putget3_adequate` (`putget3/Adequacy.lean`), restated as `putget3_safe`
+  (`Results.lean`), is putget's for this program. It goes through `goose_adequacy_start` with the
+  read package's two metric names and four addresses: the three peer addresses and the client
+  address. Its hypotheses are putget's kinds:
+  - the pure facts above;
+  - the triples `putget3.premises`: three `bootstrap` contracts, putget's raft wrapper contracts,
+    `rnStopOkStarted` and `runsNoRequireLeader`;
+  - the two marked Props.
+  The package table is generated (`etc/gen-init.py`'s `PROGRAMS`, and `putget3` in its `ROOTS`).
+- **Trust base: +2 axioms**, `EtcdServer.RaftHandler.wp_proof` and `net.http.Serve.wp_proof`
+  (`etc/tcb-baseline.txt` updated with `--check --update`). Nothing else was added. The new
+  collection `etc/tcb-collections/putget3.txt` is putget's plus these two.
