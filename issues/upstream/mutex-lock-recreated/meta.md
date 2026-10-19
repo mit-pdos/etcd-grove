@@ -17,9 +17,9 @@ before (#22082, #19597).
   `mutex-lock-recreated` (113b0b324, the keep-waiting fix) is left as it was.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18); `client/v3/concurrency/mutex.go`
   and the test's package unchanged since b25719d10 and f061acd09, where the finding was made
-- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **State**: filed (the issue and the PR, 2026-10-19)
 - **Upstream issue**: [etcd-io/etcd#22613](https://github.com/etcd-io/etcd/issues/22613), filed 2026-10-19
-- **PR**: —
+- **PR**: [etcd-io/etcd#22617](https://github.com/etcd-io/etcd/pull/22617), opened 2026-10-19 from this branch at 34adb1693; its body is `pr.md`
 
 Commit messages (drafts for the user to rewrite):
 

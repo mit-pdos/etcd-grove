@@ -3,6 +3,8 @@ upstream: reported
 checked: 2026-10-19
 links:
   - etcd-io/etcd#22612 issue open: this bug, reported 2026-10-19
+  - etcd-io/etcd#22616 pr open: the fix, opened 2026-10-19
+  - etcd-io/etcd#22615 pr open: a fix of this bug by someone else, opened 2026-10-19 an hour before #22616: makes IsDefaultOrdering false for a non-key target with NONE, which changes its other callers too (RangeStream then rejects these requests: etcd-rangestream-sort-none)
   - etcd-io/etcd#21326 pr merged: related (the same limit/sort logic, KEY/ASCEND); not this bug
   - etcd-io/etcd#6672 pr merged: related (2016: NONE with a non-key target sorts ascending); where the bug starts
 candidate: issues/upstream/etcd-range-sort-none-limit/

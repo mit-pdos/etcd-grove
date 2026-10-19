@@ -8,6 +8,10 @@
   since b25719d10, the earlier base)
 - **State**: draft, revised to the 2026-10-18 standard (2026-10-18)
 - **Upstream issue**: —
+- **Related PR**: etcd-io/etcd#22615 (2026-10-19, someone else's fix of etcd-io/etcd#22612, `etcd-range-sort-none-limit`)
+  makes `IsDefaultOrdering` false for a non-key target with `NONE`, so `checkRangeStreamRequest` rejects these
+  `RangeStream` requests, as this branch's fix does; it does not mention `RangeStream`. If it merges, this bug is
+  fixed and this candidate is not needed; if #22616 merges instead, it is not
 - **PR**: —
 
 Commit messages to rewrite (drafts): `v3rpc: test RangeStream sorted by create revision without an order` (no body);
