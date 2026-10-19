@@ -8,7 +8,8 @@ description: Turn a finding in issues/<slug>.md into an upstream-ready candidate
 From one finding, `issues/<slug>.md`, produce for the user to review:
 
 - a fix branch `fix/<slug>` in `~/etcd-fixes/<slug>`: signed-off commits off current upstream `main`, first the
-  tests (which fail at that commit), then the fix, then (in raft) the changelog entry;
+  tests (which fail at that commit), then the fix, then (in raft, for a change not to be backported) the changelog
+  entry;
 - `issues/upstream/<slug>/issue.md`, `pr.md` and `meta.md` (base commit, commands run and results, duplicates
   found, answers to likely reviewer questions, state).
 
@@ -30,10 +31,12 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 ## Upstream's rules
 
 - Commits, so that the tests can be seen to fail before the fix: first the tests only (`*_test.go`, subject
-  `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title). In raft, then the
-  changelog entry alone (`changelog: add entry for <what>`, no body, in `CHANGELOG/CHANGELOG-<next minor>.md` on
-  `main`, the link `pull/TODO` until the PR exists): raft keeps its changelogs on `main`, mostly in commits of their
-  own. In etcd, no changelog edit: its changelog is updated separately (few changelog commits touch code).
+  `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title). In raft, a bug fix
+  the maintainers will backport to stable releases gets no changelog entry (the etcd-io/raft#536 review,
+  2026-10-19): leave it out of bug fixes unless a reviewer asks. Otherwise the changelog entry comes last, alone
+  (`changelog: add entry for <what>`, no body, in `CHANGELOG/CHANGELOG-<next minor>.md` on `main`, the link
+  `pull/TODO` until the PR exists): raft keeps its changelogs on `main`, mostly in commits of their own. In etcd, no
+  changelog edit: its changelog is updated separately (few changelog commits touch code).
 - Messages are as short as upstream's: most etcd and raft commits have no body, and nine in ten at most three lines.
   The tests commit has no body; the fix commit says in one short sentence what changes, or what was wrong, in words
   rather than function names, without restating the diff. Subjects at most 72 characters; the prefix the package's
@@ -87,9 +90,10 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 7. **The fix**: in the layer where the defect is; the smallest change in the surrounding style; no refactoring.
    - Put a check where every path goes through it (a request postponed and later released does not come back
      through the function that postponed it).
-   - When a helper's name or doc comment promised more than it checks and a caller relied on it, fix the helper
-     (its doc saying what it guarantees, in the package's terms: "id on its own constitutes a quorum"), not the
-     caller with an ad-hoc expression; note an exported signature change in `meta.md`.
+   - Keep exported APIs: when a helper's name or doc comment promised more than it checks and a caller relied on
+     it, do not change the helper's signature; add a small helper for what the caller needs, its doc in the
+     package's terms, and check both at the caller (`IsVoter(r.id) && IsSingleton()`, as the etcd-io/raft#536 review
+     asked instead of `IsSingleton(id)`).
    - A comment only when it says why (an ordering that matters), never what the code does.
    - Try the simplest alternative first (reorder, one more condition); if it fails, run it and record why in
      `meta.md`, "If a reviewer asks", with the other alternatives and costs; do not research more for it.
@@ -162,8 +166,10 @@ The reader is an etcd maintainer with two minutes, who knows etcd and not this r
 
 Set the finding's front matter to `upstream: reported` with the issue and PR in `links`, and `meta.md`'s state to
 `filed` (`fixed` when merged; `etc/issues-status.py --refresh` updates states). Fill in the PR number in the raft
-changelog commit and the sibling's conflict note. After a PR is open, revise with new commits, not force-pushes;
-rerun step 8 and `check.py`.
+changelog commit and the sibling's conflict note. After a PR is open, revise with new commits, not force-pushes,
+unless a reviewer asks for a rebase: then rebuild the branch on `upstream/main` (keep the old head as a local
+`backup/<slug>-v1` branch), apply the review, and leave the force-push for the user to approve; update the
+issue's links to the branch's lines, which move (a commit permalink does not). Rerun step 8 and `check.py`.
 
 ## Improving this skill
 
