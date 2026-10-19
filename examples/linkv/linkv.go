@@ -305,9 +305,12 @@ func Main(clients int, ops int) porcupine.CheckResult {
 	}
 	go gs.Serve(l)
 
+	// One attempt per call (MaxUnaryRetries: 1): a Put is sent at most once, so the server applies
+	// it at most once (decision D21i).
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: []string{clientAddr},
-		Logger:    lg,
+		Endpoints:       []string{clientAddr},
+		Logger:          lg,
+		MaxUnaryRetries: 1,
 	})
 	if err != nil {
 		return porcupine.Unknown
