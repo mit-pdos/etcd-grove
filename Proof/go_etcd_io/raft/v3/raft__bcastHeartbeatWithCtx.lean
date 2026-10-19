@@ -121,6 +121,20 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
+      -- (2026-10-19, witness support) `pr.IsWitness`: no peer is the witness (`NoWitP`)
+      icases ownRaftPhysC_tracker c r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback1⟩
+      icases ownTrackerC_nowit c tv1 _ $$ Htrk with ⟨%Hnw, Htrk⟩
+      icases ownTrackerC_lookup c tv1 ⟨_, _, _⟩ i pr (by exact Hpri) $$ Htrk with ⟨%p1, %Hp1, Hpr, Hprback⟩
+      iNamed Hpr
+      wp_auto
+      have Hw : pv.IsWitness' = false :=
+        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw i p1 Hp1)
+      rw [Hw]
+      ihave Htrk := Hprback $$ %p1 [Hpv Hinfl] %(And.intro rfl rfl)
+      · iapply ownProgress_intro $$ Hpv Hinfl %Habs
+      simp only [GMap.insert_id _ _ _ Hp1]
+      ihave Hphys := Hback1 $$ %tv1 %_ Htrkf Htrk
+      wp_auto
       wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
         as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
       · iexact Hctx
