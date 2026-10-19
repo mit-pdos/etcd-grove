@@ -72,6 +72,8 @@ abbrev setupNode.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   γ.reBoot = bootLog →
   BootLogOk γ.reCCOk ps bootLog →
+  -- (2026-10-19, witness support) no peer is a witness (`RawNode.Bootstrap`)
+  (∀ p ∈ pv, p.IsWitness' = false) →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
