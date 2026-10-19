@@ -30,6 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+variable [NaInvG GF]
 
 end links
 
@@ -41,6 +42,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+variable [NaInvG GF]
 
 theorem counter.wp_Model :
     EtcdGrove.lintest.counter.Model.spec (GF := GF) (hG := hG) :=

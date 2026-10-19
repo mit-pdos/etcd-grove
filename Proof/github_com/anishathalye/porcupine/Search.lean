@@ -17,6 +17,9 @@ state of `Theory` (the frames `fs`, the state `s`, the cursor `p`, the cache):
 - the frames were lifted at calls of the list (`FramesPos`), and the cursor is in the list if
   it is not empty.
 
+The state values (the current one, the frames', the cache entries') are shared in the pool `p`
+(`shared`, `Shared.lean`), whose token `checkSingle` keeps beside the invariant.
+
 `Theory.Inv` is not part of it: `checkSingle`'s loop carries `⌜Inv …⌝ ∨ □ cs.PDone` beside it,
 since a `StepContext` on a done context may refuse an operation the model allows
 (`stepCtxSpec`).
@@ -141,46 +144,46 @@ end defs
 section heap
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [NaInvG GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 variable {σ : Type}
 
 /-- A bucket of the cache. -/
-def bucketOwn (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ)) (bk : GoSlice) :
+def bucketOwn (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cache : List ((Nat → Prop) × σ)) (bk : GoSlice) :
     IProp GF :=
   iprop(∃ ces : List cacheEntry, bk ↦*□ ces ∗ ownSliceCap cacheEntry bk (DFrac.own 1) ∗
-    [∗list] ce ∈ ces, cacheEntryOk S (cacheP n cache) ce)
+    [∗list] ce ∈ ces, cacheEntryOk S np (cacheP n cache) ce)
 
 /-- The cache: a map of buckets. -/
-def cacheOwn (S : ModelSpec GF σ) (n : Nat) (cm : Loc) (cache : List ((Nat → Prop) × σ)) :
+def cacheOwn (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cm : Loc) (cache : List ((Nat → Prop) × σ)) :
     IProp GF :=
-  iprop(∃ CM : GMap w64 GoSlice, cm ↦$ CM ∗ [∗map] _k ↦ bk ∈ CM, bucketOwn S n cache bk)
+  iprop(∃ CM : GMap w64 GoSlice, cm ↦$ CM ∗ [∗map] _k ↦ bk ∈ CM, bucketOwn S np n cache bk)
 
 /-- The stack: the frames, oldest first, with their calls' nodes and values of their states. -/
-def callsRep (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
+def callsRep (S : ModelSpec GF σ) (np : NaInvPoolName) (loc : Entry → Loc) (ces : List callsEntry)
     (fs : List (Frame σ)) : IProp GF :=
   iprop([∗list] ce; f ∈ ces; fs.reverse,
-    ⌜ce.entry' = loc ⟨false, f.id⟩⌝ ∗ S.rep ce.state' f.pre)
+    ⌜ce.entry' = loc ⟨false, f.id⟩⌝ ∗ shared S np ce.state' f.pre)
 
-instance callsRep_persistent (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
-    (fs : List (Frame σ)) : Persistent (callsRep S loc ces fs) := by
+instance callsRep_persistent (S : ModelSpec GF σ) (np : NaInvPoolName) (loc : Entry → Loc) (ces : List callsEntry)
+    (fs : List (Frame σ)) : Persistent (callsRep S np loc ces fs) := by
   unfold callsRep
   exact BigSepL2.bigSepL2_persistent (fun _ _ _ _ _ => inferInstance)
 
-theorem callsRep_length (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
-    (fs : List (Frame σ)) : callsRep S loc ces fs ⊢ ⌜ces.length = fs.length⌝ := by
+theorem callsRep_length (S : ModelSpec GF σ) (np : NaInvPoolName) (loc : Entry → Loc) (ces : List callsEntry)
+    (fs : List (Frame σ)) : callsRep S np loc ces fs ⊢ ⌜ces.length = fs.length⌝ := by
   unfold callsRep
   iintro H
   ihave %h := BigSepL2.bigSepL2_length $$ H
   ipureintro; simpa using h
 
 /-- The newest frame is the last entry of the stack. -/
-theorem callsRep_pop (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
+theorem callsRep_pop (S : ModelSpec GF σ) (np : NaInvPoolName) (loc : Entry → Loc) (ces : List callsEntry)
     (f : Frame σ) (fs : List (Frame σ)) :
-    callsRep S loc ces (f :: fs) ⊢ ∃ (ces' : List callsEntry) (ce : callsEntry),
-      ⌜ces = ces' ++ [ce] ∧ ce.entry' = loc ⟨false, f.id⟩⌝ ∗ S.rep ce.state' f.pre ∗
-      callsRep S loc ces' fs := by
+    callsRep S np loc ces (f :: fs) ⊢ ∃ (ces' : List callsEntry) (ce : callsEntry),
+      ⌜ces = ces' ++ [ce] ∧ ce.entry' = loc ⟨false, f.id⟩⌝ ∗ shared S np ce.state' f.pre ∗
+      callsRep S np loc ces' fs := by
   unfold callsRep
   simp only [List.reverse_cons]
   iintro H
@@ -199,44 +202,44 @@ theorem callsRep_pop (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List cal
   ipureintro; exact ⟨hces, he⟩
 
 /-- The `k`-th entry of the stack holds the call of the `k`-th oldest frame. -/
-theorem callsRep_get (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
+theorem callsRep_get (S : ModelSpec GF σ) (np : NaInvPoolName) (loc : Entry → Loc) (ces : List callsEntry)
     (fs : List (Frame σ)) {k : Nat} {ce : callsEntry} {f : Frame σ} (hce : ces[k]? = some ce)
     (hf : fs.reverse[k]? = some f) :
-    callsRep S loc ces fs ⊢ ⌜ce.entry' = loc ⟨false, f.id⟩⌝ := by
+    callsRep S np loc ces fs ⊢ ⌜ce.entry' = loc ⟨false, f.id⟩⌝ := by
   unfold callsRep
   iintro H
   icases BigSepL2.bigSepL2_lookup (Φ := fun _ ce f =>
-    iprop(⌜ce.entry' = loc ⟨false, f.id⟩⌝ ∗ S.rep ce.state' f.pre : IProp GF)) hce hf $$ H
+    iprop(⌜ce.entry' = loc ⟨false, f.id⟩⌝ ∗ shared S np ce.state' f.pre : IProp GF)) hce hf $$ H
     with ⟨%h, -⟩
   ipureintro; exact h
 
-theorem cacheEntryOk_cons (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ))
+theorem cacheEntryOk_cons (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cache : List ((Nat → Prop) × σ))
     (c : (Nat → Prop) × σ) (ce : cacheEntry) :
-    cacheEntryOk S (cacheP n cache) ce ⊢ cacheEntryOk (GF := GF) S (cacheP n (c :: cache)) ce := by
+    cacheEntryOk S np (cacheP n cache) ce ⊢ cacheEntryOk (GF := GF) S np (cacheP n (c :: cache)) ce := by
   unfold cacheEntryOk
   iintro ⟨%ws, %t, #H1, #H2, %H3⟩
   iexists ws, t
   iframe H1 H2
   ipureintro; exact cacheP_cons c H3
 
-theorem bucketOwn_cons (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ))
+theorem bucketOwn_cons (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cache : List ((Nat → Prop) × σ))
     (c : (Nat → Prop) × σ) (bk : GoSlice) :
-    bucketOwn S n cache bk ⊢ bucketOwn (GF := GF) S n (c :: cache) bk := by
+    bucketOwn S np n cache bk ⊢ bucketOwn (GF := GF) S np n (c :: cache) bk := by
   unfold bucketOwn
   iintro ⟨%ces, #Hbk, Hcap, #Hces⟩
   iexists ces
   iframe Hbk Hcap
   iapply BigSepL.bigSepL_mono ?_ $$ Hces
   intro k ce _
-  exact cacheEntryOk_cons S n cache c ce
+  exact cacheEntryOk_cons S np n cache c ce
 
 /-- A bucket's entries, read (the bucket of a key absent from the map is `nil`). -/
-theorem buckets_read (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ))
+theorem buckets_read (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cache : List ((Nat → Prop) × σ))
     (CM : GMap w64 GoSlice) (key : w64) :
-    ([∗map] _k ↦ bk ∈ CM, bucketOwn S n cache bk) ⊢
+    ([∗map] _k ↦ bk ∈ CM, bucketOwn S np n cache bk) ⊢
       (∃ ces : List cacheEntry, (CM !! key).getD slice.nil ↦*□ ces ∗
-        [∗list] ce ∈ ces, cacheEntryOk (GF := GF) S (cacheP n cache) ce) ∗
-      [∗map] _k ↦ bk ∈ CM, bucketOwn S n cache bk := by
+        [∗list] ce ∈ ces, cacheEntryOk (GF := GF) S np (cacheP n cache) ce) ∗
+      [∗map] _k ↦ bk ∈ CM, bucketOwn S np n cache bk := by
   cases hk : CM !! key with
   | none =>
     iintro H
@@ -248,7 +251,7 @@ theorem buckets_read (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Pro
     · iapply BigSepL.bigSepL_nil.2; iempintro
   | some bk =>
     iintro H
-    icases (BigSepM.bigSepM_lookup_acc (Φ := fun _ bk => bucketOwn (GF := GF) S n cache bk) hk).1
+    icases (BigSepM.bigSepM_lookup_acc (Φ := fun _ bk => bucketOwn (GF := GF) S np n cache bk) hk).1
       $$ H with ⟨Hb, Hback⟩
     unfold bucketOwn
     icases Hb with ⟨%ces, #Hbk, Hcap, #Hces⟩
@@ -261,11 +264,11 @@ theorem buckets_read (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Pro
       iframe Hbk Hcap Hces
 
 /-- A bucket taken out of the map, to put a new one at its key. -/
-theorem buckets_take (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ))
+theorem buckets_take (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cache : List ((Nat → Prop) × σ))
     (CM : GMap w64 GoSlice) (key : w64) :
-    ([∗map] _k ↦ bk ∈ CM, bucketOwn S n cache bk) ⊢
-      bucketOwn (GF := GF) S n cache ((CM !! key).getD slice.nil) ∗
-      ∀ bk', bucketOwn S n cache bk' -∗ [∗map] _k ↦ b ∈ <[key := bk']> CM, bucketOwn S n cache b := by
+    ([∗map] _k ↦ bk ∈ CM, bucketOwn S np n cache bk) ⊢
+      bucketOwn (GF := GF) S np n cache ((CM !! key).getD slice.nil) ∗
+      ∀ bk', bucketOwn S np n cache bk' -∗ [∗map] _k ↦ b ∈ <[key := bk']> CM, bucketOwn S np n cache b := by
   cases hk : CM !! key with
   | none =>
     iintro H
@@ -279,25 +282,25 @@ theorem buckets_take (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Pro
       · iapply ownSliceCap_nil
       · iapply BigSepL.bigSepL_nil.2; iempintro
     · iintro %bk' Hb
-      iapply (BigSepM.bigSepM_insert (Φ := fun _ bk => bucketOwn (GF := GF) S n cache bk) hk).2
+      iapply (BigSepM.bigSepM_insert (Φ := fun _ bk => bucketOwn (GF := GF) S np n cache bk) hk).2
       iframe
   | some bk =>
     iintro H
-    icases (BigSepM.bigSepM_delete (Φ := fun _ bk => bucketOwn (GF := GF) S n cache bk) hk).1
+    icases (BigSepM.bigSepM_delete (Φ := fun _ bk => bucketOwn (GF := GF) S np n cache bk) hk).1
       $$ H with ⟨Hb, H⟩
     simp only [Option.getD_some]
     iframe Hb
     iintro %bk' Hb
-    iapply (BigSepM.bigSepM_insert_delete (Φ := fun _ bk => bucketOwn (GF := GF) S n cache bk)).2
+    iapply (BigSepM.bigSepM_insert_delete (Φ := fun _ bk => bucketOwn (GF := GF) S np n cache bk)).2
     iframe
 
-theorem buckets_cons (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ))
+theorem buckets_cons (S : ModelSpec GF σ) (np : NaInvPoolName) (n : Nat) (cache : List ((Nat → Prop) × σ))
     (c : (Nat → Prop) × σ) (CM : GMap w64 GoSlice) :
-    ([∗map] _k ↦ bk ∈ CM, bucketOwn S n cache bk) ⊢
-      [∗map] _k ↦ bk ∈ CM, bucketOwn (GF := GF) S n (c :: cache) bk := by
+    ([∗map] _k ↦ bk ∈ CM, bucketOwn S np n cache bk) ⊢
+      [∗map] _k ↦ bk ∈ CM, bucketOwn (GF := GF) S np n (c :: cache) bk := by
   iapply BigSepM.bigSepM_mono
   intro k v _
-  exact bucketOwn_cons S n cache c v
+  exact bucketOwn_cons S np n cache c v
 
 theorem nulls_ok (n : Nat) :
     ⊢ ([∗list] p ∈ List.replicate n null, ⌜p = null⌝ ∨
@@ -350,18 +353,18 @@ theorem persist_or (l : Loc) (sl : GoSlice) (xs : List w64) :
 
 /-- The loop invariant of `checkSingle` (see the file header), at the abstract state
 `(fs, s, p, cache)`. -/
-def searchInv (S : ModelSpec GF σ) (h : List (Op OpV)) (aes : List Entry) (hd : Loc)
+def searchInv (S : ModelSpec GF σ) (np : NaInvPoolName) (h : List (Op OpV)) (aes : List Entry) (hd : Loc)
     (loc : Entry → Loc) (entry_ptr state_ptr lin_ptr cm calls_ptr : Loc)
     (fs : List (Frame σ)) (s : σ) (p : Nat) (cache : List ((Nat → Prop) × σ)) : IProp GF :=
   iprop(∃ (sv : GoInterface) (lsl : GoSlice) (ws : List w64) (csl : GoSlice)
       (ces : List callsEntry),
     "entry" ∷ entry_ptr ↦ curLoc loc (rem aes (ids fs)) p ∗
     "Hnodes" ∷ nodesOwn hd loc (valOf h) aes (ids fs) ∗
-    "state" ∷ state_ptr ↦ sv ∗ "#Hsv" ∷ S.rep sv s ∗
+    "state" ∷ state_ptr ↦ sv ∗ "#Hsv" ∷ shared S np sv s ∗
     "linearized" ∷ lin_ptr ↦ lsl ∗ "Hlin" ∷ lsl ↦* ws ∗
-    "Hcache" ∷ cacheOwn S h.length cm cache ∗
+    "Hcache" ∷ cacheOwn S np h.length cm cache ∗
     "calls" ∷ calls_ptr ↦ csl ∗ "Hcalls" ∷ csl ↦* ces ∗
-    "Hcap" ∷ ownSliceCap callsEntry csl (DFrac.own 1) ∗ "#Hces" ∷ callsRep S loc ces fs ∗
+    "Hcap" ∷ ownSliceCap callsEntry csl (DFrac.own 1) ∗ "#Hces" ∷ callsRep S np loc ces fs ∗
     "%Hws" ∷ ⌜ws.length = bsChunks h.length ∧ ∀ i, bsBit ws i = decide (i ∈ ids fs)⌝ ∗
     "%Hinv" ∷ ⌜FramesPos aes fs ∧
       (rem aes (ids fs) ≠ [] → p < (rem aes (ids fs)).length)⌝)

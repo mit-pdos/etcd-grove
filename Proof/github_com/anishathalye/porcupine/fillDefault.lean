@@ -7,7 +7,8 @@ a model that `Keep`s `m`'s `Init`, `Step`, `StepContext`, `Equal`, `Hash`"; `Equ
 `isModel`; `Step` `nil` stores a closure over `StepContext` in `Step` (no spec needed, `StepContext`
 keeps its own); `StepContext` `nil` stores `func(ctx, ...) { return model.Step(...) }`, which
 reads `Step` from the cell: the cell is persisted once stored (`ipersist`), and the closure's
-`stepCtxSpec` follows from `Step`'s `stepSpec` (its first alternative, whatever the context).
+`stepCtxSpec` follows from `Step`'s `stepSpec` (its first alternative, whatever the context;
+the state value's `rep` is passed through).
 -/
 module
 
@@ -161,8 +162,9 @@ theorem fillDefault.wp_proof
     wp_auto
     rw [hS4]
     iunfold stepSpec at Hst
-    wp_apply Hst $$ %v %st %i %o [$Hrep $Hio] as %ok %v' ⟨%Hok, Hpost⟩
+    wp_apply Hst $$ %v %st %i %o [$Hrep $Hio] as %ok %v' ⟨Hrep, %Hok, Hpost⟩
     iapply HΦ'
+    iframe Hrep
     ileft
     iframe
     ipureintro; exact Hok

@@ -5,6 +5,12 @@ search of `Theory` (`searchInv`, `Search.lean`; one `Theory` lemma per branch). 
 carries `⌜Inv …⌝ ∨ □ cs.PDone`: `StepContext` may answer `false` wrongly once the context is
 done (`stepCtxSpec`), after which the search is no longer the abstract one, and an exit on
 `len(calls) == 0` then answers `false` with the context done (which the spec allows).
+
+The state values are shared in a pool `np` of non-atomic invariants allocated at the start
+(`Shared.lean`), whose token the loop keeps: `Init`'s value is shared right after `Init`, a new
+state's when it is pushed (`StepContext` returns it owned, and `cacheKey`/`cacheContains` take
+it owned); `StepContext` on the current state opens its invariant with the later credit of a
+pure step before the call, and closes it after.
 -/
 module
 
@@ -20,6 +26,7 @@ public import Spec.github_com.anishathalye.porcupine.cacheContains
 public import Spec.github_com.anishathalye.porcupine.lift
 public import Spec.github_com.anishathalye.porcupine.unlift
 public import Proof.github_com.anishathalye.porcupine.Search
+public import Proof.github_com.anishathalye.porcupine.Shared
 
 @[expose] public section
 
@@ -34,7 +41,7 @@ open Iris Iris.BI Iris.ProofMode github_com.anishathalye.porcupine github_com.an
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NaInvG GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
@@ -89,7 +96,7 @@ local macro "longest_update" : tactic => `(tactic| (
           list_elem fs.reverse (sint.nat k') as f'
           wp_apply wp_load_slice_index csl (sint.Z k') ces (DFrac.own 1) ce' Hk1' $$ [Hcalls] as Hcalls
           · iframe; ipureintro; exact Hce'_lookup
-          ihave %Hcent' := callsRep_get S loc ces fs Hce'_lookup Hf'_lookup $$ Hces
+          ihave %Hcent' := callsRep_get S np loc ces fs Hce'_lookup Hf'_lookup $$ Hces
           have hfm' : f' ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf'_lookup)
           have hcm' : (⟨false, f'.id⟩ : Entry) ∈ es.map entryOf := framesPos_mem Hfp f' hfm'
           rw [Hcent']
@@ -201,8 +208,11 @@ theorem checkSingle.wp_proof
   ihave #Hm' := Hm
   iunfold isModelFilled at Hm'
   icases Hm' with ⟨#Hinit, #Hstep, #Heh⟩
+  -- the pool of the state values' invariants
+  imod (NonAtomicInvariant.alloc (GF := GF)) with ⟨%np, Htok⟩
   unfold initSpec
-  wp_apply Hinit as %sv0 #Hsv0
+  wp_apply Hinit as %sv0 Hsv0
+  imod shared_alloc S np ⊤ sv0 S.M.init $$ Hsv0 with #Hsv0
   -- the head
   irename «$a0» => Hhd
   obtain ⟨hd, hhd⟩ : ∃ hd, «$a0_ptr» = hd := ⟨_, rfl⟩
@@ -252,13 +262,16 @@ theorem checkSingle.wp_proof
   -- the loop invariant
   ihave HI : (∃ (fs : List (Frame σ)) (s : σ) (p : Nat) (cache : List ((Nat → Prop) × σ)),
       "#Hgood" ∷ (⌜Inv S.M h (es.map entryOf) fs s p cache⌝ ∨ □ cs.PDone) ∗
-      "Hs" ∷ searchInv S h (es.map entryOf) hd loc entry_ptr state_ptr linearized_ptr cm
+      "Htok" ∷ NonAtomicInvariant.own np ⊤ ∗
+      "Hs" ∷ searchInv S np h (es.map entryOf) hd loc entry_ptr state_ptr linearized_ptr cm
         calls_ptr fs s p cache ∗
       "Hlongest" ∷ longestOwn lgst h.length : IProp GF)
-      $$ [entry Hnodes state linearized Hlsl Hcm calls Hlgst]
+      $$ [entry Hnodes state linearized Hlsl Hcm calls Hlgst Htok]
   · iexists [], S.M.init, 0, []
     isplitl []
     · ileft; ipureintro; exact inv_init _ _ _
+    isplitl [Htok]
+    · iexact Htok
     unfold searchInv
     simp only [named]
     isplitr [Hlgst]
@@ -334,20 +347,23 @@ theorem checkSingle.wp_proof
       ihave HG := HG $$ He
       icases nodesG_read hnd (mem_slots_some hres) _ $$ HG with ⟨Hr, HG⟩
       simp only [slotLoc]
-      wp_auto
+      wp_auto_lc 1
       ihave HG := HG $$ Hr
       rw [hval1, hval2]
       ihave #Hioy := BigSepL.bigSepL_lookup (Φ := fun _ o => S.ioOk o.val.1 o.val.2) ho $$ Hio
       iunfold stepCtxSpec at Hstep
-      wp_apply Hstep $$ %c %cs %sv %s %o.val.1 %o.val.2 [$Hctx $Hsv $Hioy]
-        as %ok %nsv #Hres
+      -- open the current state's invariant for the call, close it after
+      imod shared_acc S np sv s $$ [$Hsv $Htok $Hlc1] with ⟨Hrep, Hclose⟩
+      wp_apply Hstep $$ %c %cs %sv %s %o.val.1 %o.val.2 [$Hctx $Hrep $Hioy]
+        as %ok %nsv ⟨Hrep, Hres⟩
+      imod Hclose $$ Hrep with Htok
       ctx_check
       have hpq1 : p + 1 < (rem (es.map entryOf) (ids fs)).length :=
         Nat.lt_of_le_of_lt hpq (List.getElem?_eq_some_iff.mp hq).1
       cases ok with
       | false =>
         -- the step refuses the operation (the model does, or the context is done): skip it
-        ihave #Hgood' : (⌜Inv S.M h (es.map entryOf) fs s (p + 1) cache⌝ ∨ □ cs.PDone : IProp GF) $$ []
+        ihave #Hgood' : (⌜Inv S.M h (es.map entryOf) fs s (p + 1) cache⌝ ∨ □ cs.PDone : IProp GF) $$ [Hres]
         · icases Hres with (⟨%Hok, -⟩ | ⟨-, #HPD⟩)
           · icases Hgood with (%Hinv | #HPD)
             · ileft; ipureintro
@@ -380,7 +396,7 @@ theorem checkSingle.wp_proof
         ipureintro
         exact ⟨⟨Hws1, Hws2⟩, Hfp, fun _ => hpq1⟩
       | true =>
-        icases Hres with (⟨%Hok, #Hpost⟩ | ⟨%Hc, -⟩)
+        icases Hres with (⟨%Hok, Hpost⟩ | ⟨%Hc, -⟩)
         rotate_left
         · cases Hc
         obtain ⟨t', hst⟩ : ∃ t', S.M.step s (o.val.1, o.val.2) = some t' :=
@@ -403,15 +419,16 @@ theorem checkSingle.wp_proof
         · iframe
         -- `key := cacheKey(model, linearized, newState)`, `bucket := cache[key]`
         wp_apply wp_cacheKey σ S m lsl (bsSet ws (W64 y)) (DFrac.own 1) nsv t' $$ [$Heh $Hlin $Hpost]
-          as %key Hlin
+          as %key ⟨Hlin, Hpost⟩
         iunfold cacheOwn at Hcache
         icases Hcache with ⟨%CM, Hcm, HB⟩
         wp_apply (wp_map_lookup1 (K := w64) (V := GoSlice)) $$ Hcm as Hcm
         rw [show zero_val GoSlice = slice.nil from rfl]
-        icases buckets_read S h.length cache CM key $$ HB with ⟨⟨%bces, #Hbk, #Hbces⟩, HB⟩
+        icases buckets_read S np h.length cache CM key $$ HB with ⟨⟨%bces, #Hbk, #Hbces⟩, HB⟩
         -- `cacheContains(model, bucket, linearized, newState)`
-        wp_apply wp_cacheContains σ S m (cacheP h.length cache) _ bces DFrac.discard lsl _ (DFrac.own 1)
-          nsv t' $$ [$Heh $Hbk $Hbces $Hlin $Hpost] as %hit ⟨-, Hlin, %Hhit⟩
+        wp_apply wp_cacheContains σ S m np (cacheP h.length cache) _ bces DFrac.discard lsl _
+          (DFrac.own 1) nsv t' $$ [$Heh $Hbk $Hbces $Hlin $Hpost $Htok]
+          as %hit ⟨-, Hlin, Hpost, Htok, %Hhit⟩
         have hyids : y ∉ ids fs := rem_get_not_mem he
         have hidsn : ∀ i ∈ ids fs, i < h.length := by
           intro i hi
@@ -431,6 +448,8 @@ theorem checkSingle.wp_proof
           wp_apply wp_clone lsl (bsSet ws (W64 y)) (DFrac.own 1) $$ [Hlin] as %lin2 ⟨Hlin, Hlin2⟩
           · iframe
           ipersist Hlin2
+          -- the new state, shared
+          imod shared_alloc S np ⊤ nsv t' $$ Hpost with #Hpost
           -- the new cache entry, and the cache with its configuration
           let cnew : (Nat → Prop) × σ := (fun i => i ∈ y :: ids fs, t')
           have hcnew : cacheP h.length (cnew :: cache) (bsSet ws (W64 y)) t' := by
@@ -443,8 +462,8 @@ theorem checkSingle.wp_proof
               · exact hy
               · exact hidsn i hi
             · exact fun h' => h'.2
-          ihave HB := buckets_cons S h.length cache cnew CM $$ HB
-          icases buckets_take S h.length (cnew :: cache) CM key $$ HB with ⟨Hbo, HBback⟩
+          ihave HB := buckets_cons S np h.length cache cnew CM $$ HB
+          icases buckets_take S np h.length (cnew :: cache) CM key $$ HB with ⟨Hbo, HBback⟩
           iunfold bucketOwn at Hbo
           icases Hbo with ⟨%bces2, #Hbk2, Hbcap, #Hbces2⟩
           wp_apply wp_slice_literal
@@ -575,7 +594,7 @@ theorem checkSingle.wp_proof
       simp only [↓reduceIte, _root_.decide_true, Bool.not_true]
       wp_auto
       ihave HG := HG $$ He
-      ihave %Hcl := callsRep_length S loc ces fs $$ Hces
+      ihave %Hcl := callsRep_length S np loc ces fs $$ Hces
       ihave %Hcsl := ownSlice_len $$ Hcalls
       obtain ⟨Hcsl1, Hcsl2⟩ := Hcsl
       wp_if_destruct
@@ -596,7 +615,7 @@ theorem checkSingle.wp_proof
           longest_ptr ↦ lgst ∗ calls_ptr ↦ csl)
         with [Hlongest Hcalls HG longest calls] as ⟨Hlongest, Hcalls, HG, longest, calls⟩
       · -- `computePartial`
-        ihave %Hcl := callsRep_length S loc ces fs $$ Hces
+        ihave %Hcl := callsRep_length S np loc ces fs $$ Hces
         ihave %Hcsl := ownSlice_len $$ Hcalls
         obtain ⟨Hcsl1, Hcsl2⟩ := Hcsl
         iunfold longestOwn at Hlongest
@@ -631,7 +650,7 @@ theorem checkSingle.wp_proof
           list_elem fs.reverse (sint.nat k) as f
           wp_apply wp_load_slice_index csl (sint.Z k) ces (DFrac.own 1) ce Hk1 $$ [Hcalls] as Hcalls
           · iframe; ipureintro; exact Hce_lookup
-          ihave %Hcent := callsRep_get S loc ces fs Hce_lookup Hf_lookup $$ Hces
+          ihave %Hcent := callsRep_get S np loc ces fs Hce_lookup Hf_lookup $$ Hces
           have hfm : f ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf_lookup)
           have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesPos_mem Hfp f hfm
           have hfid : f.id < h.length := (hok.2.1 _).mp hcm
@@ -695,7 +714,7 @@ theorem checkSingle.wp_proof
         intro h'; rw [h'] at Hcl; apply hlen0; simp at Hcl; rw [Hcl] at Hcsl1
         exact len_zero_of _ Hcsl1 Hcsl2
       obtain ⟨f, fs', rfl⟩ := List.exists_cons_of_ne_nil hfs
-      icases callsRep_pop S loc ces f fs' $$ Hces with ⟨%ces', %ce, %Hce, #Hcsv, #Hces'⟩
+      icases callsRep_pop S np loc ces f fs' $$ Hces with ⟨%ces', %ce, %Hce, #Hcsv, #Hces'⟩
       obtain ⟨rfl, Hcent⟩ := Hce
       have hcl' : ces'.length = fs'.length := by simpa using Hcl
       have hlen1 : sint.Z (csl.len - W64 1) = ces'.length := by
@@ -785,7 +804,7 @@ theorem checkSingle.wp_proof
     rw [hnull]
     simp only [_root_.decide_true, Bool.not_true, ↓reduceIte]
     wp_auto
-    ihave %Hcl := callsRep_length S loc ces fs $$ Hces
+    ihave %Hcl := callsRep_length S np loc ces fs $$ Hces
     ihave %Hcsl := ownSlice_len $$ Hcalls
     obtain ⟨Hcsl1, Hcsl2⟩ := Hcsl
     wp_apply wp_slice_make2 (V := w64) $$ [] as %sq ⟨Hsq, -⟩
@@ -812,7 +831,7 @@ theorem checkSingle.wp_proof
       list_elem fs.reverse (sint.nat k) as f
       wp_apply wp_load_slice_index csl (sint.Z k) ces (DFrac.own 1) ce Hk1 $$ [Hcalls] as Hcalls
       · iframe; ipureintro; exact Hce_lookup
-      ihave %Hcent := callsRep_get S loc ces fs Hce_lookup Hf_lookup $$ Hces
+      ihave %Hcent := callsRep_get S np loc ces fs Hce_lookup Hf_lookup $$ Hces
       have hfm : f ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf_lookup)
       have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesPos_mem Hfp f hfm
       rw [Hcent]
