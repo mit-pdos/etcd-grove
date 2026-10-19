@@ -10146,5 +10146,5 @@ With `putget_safe` closed (item 9), the next unit is the multi-member generaliza
 server's proofs (D19p's "one-member restriction": `bootOk`'s `reTracked = some {id}`, a real
 `MsgSnap` path, learners and membership changes, peers in `transportEffectsOk`). D20 (b) (at-most-once
 firing of a write, through a one-shot delivery token per `MsgProp` in raft's environment model) comes
-after it and is built on the multi-member model, not on the one-member one. Who carries out (b) is
-still open.
+after it and is built on the multi-member model, not on the one-member one. The watch session carries out (b),
+after the multi-member unit (the user, 2026-10-19).
