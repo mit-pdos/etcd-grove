@@ -103,7 +103,7 @@ theorem HupOkC.simple {cfg lrn : GSet w64} {id : w64} {s s' : NState}
   · have hs : s' = s := h.2.2.2.1 (by
       rw [CfgM.voters_simple, hne]; exact GMap.not_elem_of_empty _)
     rw [hs]; exact fun _ => .refl _
-  · exact fun B => step_of_stepC (CfgM.simple cfg lrn) id B hne rfl (h.2.1 B)
+  · exact fun B => step_of_stepC (CfgM.simple cfg lrn) id B hne rfl rfl (h.2.1 B)
 
 end hup_results
 

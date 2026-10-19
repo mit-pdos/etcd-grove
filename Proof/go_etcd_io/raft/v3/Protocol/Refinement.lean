@@ -2351,7 +2351,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
 /-- Freezing a batch of stamped entries into the leader's term log: their indices are
 past everything in it (`leadLogOwn`'s bound) and do not wrap. Each is frozen with the
 predecessor term `ptf k`. -/
-theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (EntryM × w64)) (T : w64)
+theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (EntryM × w64)) (T σ : w64)
     (L : Int) (ents : List EntryM) (ptf : Nat → w64) :
     0 ≤ L → L + (ents.length : Int) < 2 ^ 64 →
     (∀ i, (M !! i).isSome → uint.Z i ≤ L) →
@@ -2359,7 +2359,7 @@ theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (EntryM × w64)) (T 
       ∃ M' : GMap w64 (EntryM × w64),
         ghostMapAuth γt 1 M' ∗ ([∗map] i ↦ e ∈ M', i ↪[γt]□ e) ∗
         ⌜∀ i, (M' !! i).isSome → uint.Z i ≤ L + (ents.length : Int)⌝ ∗
-        [∗list] k ↦ e ∈ ents.mapIdx (stamp T (W64 L)),
+        [∗list] k ↦ e ∈ ents.mapIdx (stampS T σ (W64 L)),
           e.Index' ↪[γt]□ ((e, ptf k) : EntryM × w64) := by
   intro HL Hnw Hdom
   obtain ⟨r, rfl⟩ : ∃ r, ents = r.reverse := ⟨ents.reverse, by simp⟩
@@ -2378,18 +2378,18 @@ theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (EntryM × w64)) (T 
     simp only [List.length_append, List.length_singleton] at Hnw
     iintro Hauth #Hfr
     imod IH (by omega) $$ Hauth Hfr with ⟨%M', Hauth, #Hfr', %Hdom', #Hents⟩
-    have Hidx : uint.Z (stamp T (W64 L) ents.length x).Index' = L + 1 + ents.length := by
-      simp only [stamp]; exact stamp_index_eq L ents.length HL (by omega)
-    have Hfresh : M' !! (stamp T (W64 L) ents.length x).Index' = none := by
-      cases Hm : M' !! (stamp T (W64 L) ents.length x).Index' with
+    have Hidx : uint.Z (stampS T σ (W64 L) ents.length x).Index' = L + 1 + ents.length := by
+      simp only [stampS]; exact stamp_index_eq L ents.length HL (by omega)
+    have Hfresh : M' !! (stampS T σ (W64 L) ents.length x).Index' = none := by
+      cases Hm : M' !! (stampS T σ (W64 L) ents.length x).Index' with
       | none => rfl
       | some _ =>
         have := Hdom' _ (by rw [Hm]; rfl)
         omega
-    imod ghost_map_insert_persist _ ((stamp T (W64 L) ents.length x), ptf ents.length) Hfresh $$ Hauth
+    imod ghost_map_insert_persist _ ((stampS T σ (W64 L) ents.length x), ptf ents.length) Hfresh $$ Hauth
       with ⟨Hauth, #Hnew⟩
     imodintro
-    iexists M'.insert (stamp T (W64 L) ents.length x).Index' ((stamp T (W64 L) ents.length x), ptf ents.length)
+    iexists M'.insert (stampS T σ (W64 L) ents.length x).Index' ((stampS T σ (W64 L) ents.length x), ptf ents.length)
     iframe Hauth
     isplitr
     · iapply (BigSepM.bigSepM_insert (Φ := fun i e => iprop(i ↪[γt]□ e)) Hfresh).2
@@ -2400,7 +2400,7 @@ theorem term_log_insert_stamped (γt : GName) (M : GMap w64 (EntryM × w64)) (T 
     · ipureintro
       intro i Hi
       simp only [List.length_append, List.length_singleton]
-      by_cases Hie : i = (stamp T (W64 L) ents.length x).Index'
+      by_cases Hie : i = (stampS T σ (W64 L) ents.length x).Index'
       · rw [Hie, Hidx]; omega
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hie)] at Hi
         have := Hdom' i Hi; omega
@@ -2440,17 +2440,17 @@ private theorem entData_mapIdx_stampF (γ : RaftNames) (ents : List EntryM)
     iapply (BigSepL.bigSepL_cons (Φ := fun _ (e : EntryM) => entData (GF := GF) γ e)).2
     iframe He' Hes'
 
-private theorem entData_mapIdx_stamp (γ : RaftNames) (t L : w64) (ents : List EntryM) :
+private theorem entData_mapIdx_stamp (γ : RaftNames) (t σ L : w64) (ents : List EntryM) :
     ⊢ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) ==∗
-      [∗list] x ∈ ents.mapIdx (stamp t L), entData γ x :=
-  entData_mapIdx_stampF γ ents (stamp t L) (fun k e => ⟨t, L + W64 1 + W64 k, W64 0, rfl⟩)
+      [∗list] x ∈ ents.mapIdx (stampS t σ L), entData γ x :=
+  entData_mapIdx_stampF γ ents (stampS t σ L) (fun k e => ⟨t, L + W64 1 + W64 k, σ, rfl⟩)
 
 /-- `Step.propose`: the stamped entries go into the leader's term log
 (`term_log_insert_stamped`), which gives each its `isEntryR` (the first after the old
 last entry, the rest after each other); the self-acknowledgement is the node's own to
 allocate. (Rocq's `let s' := pappend s (imap …) in` is inlined.) -/
 theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
-    (ents : List EntryM) (n : Nat) :
+    (ents : List EntryM) (n : Nat) (σ : w64) :
     s.role = .leader →
     plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
     -- (2026-10-18, D19b stage 5) the new entries' indices are covered by the receipt `⧖ n`
@@ -2458,13 +2458,13 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     ⊢ ⧖ n -∗ ([∗list] e ∈ ents, propData (GF := GF) γ e) -∗ ([∗list] e ∈ ents, entTk γ e) -∗
       ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
-        (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
-          [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))]) md := by
+        (psendMsgs (pappend s (ents.mapIdx (stampS s.term σ (plastIndex s))))
+          [pselfAck id (pappend s (ents.mapIdx (stampS s.term σ (plastIndex s))))]) md := by
   intro Hrole Hnw Hrb
   rw [show plastIndex s = W64 (plogLastIndexZ s.base s.log) from rfl]
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hrb ⊢
   iintro #Hrcpt #Hed Htk Hown
-  imod entData_mapIdx_stamp γ s.term (W64 L) ents $$ Hed Htk with #Hnwd
+  imod entData_mapIdx_stamp γ s.term σ (W64 L) ents $$ Hed Htk with #Hnwd
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -2483,7 +2483,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   have HLF : plogLastIndexZ base0 (fp ++ s.log) = L := by rw [← HL]; exact full_last_index _ _ _ Hfp
   have Hpt0 : (plogLast s.base s.log).term' = s.term := by
     rw [← full_last s.base fp s.log Hfp]; exact HF0.2.2
-  imod term_log_insert_stamped γt M s.term L ents (fun _ => s.term) HL0 Hnw (by rw [← HL]; exact Hdom) $$ Htauth Htel with
+  imod term_log_insert_stamped γt M s.term σ L ents (fun _ => s.term) HL0 Hnw (by rw [← HL]; exact Hdom) $$ Htauth Htel with
     ⟨%M', Htauth, #Htel', %Hdom', #Hnew⟩
   ihave #Htl : isTermLog γ id s.term γt s.base l0 $$ []
   · unfold isTermLog
@@ -2491,7 +2491,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     isplitr
     · ipureintro; exact Htname
     · iapply BigSepM.bigSepM_lookup (Φ := fun t (x : TermRec) => iprop(t ↪[γm]□ x)) Hγt $$ Htfrags
-  have Hnwk : ∀ (k : Nat) (x : EntryM), (ents.mapIdx (stamp s.term (W64 L)))[k]? = some x →
+  have Hnwk : ∀ (k : Nat) (x : EntryM), (ents.mapIdx (stampS s.term σ (W64 L)))[k]? = some x →
       uint.Z x.Index' = L + 1 + k ∧ x.Term' = s.term := by
     intro k x Hk
     rw [List.getElem?_mapIdx] at Hk
@@ -2501,8 +2501,8 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       rw [Hy] at Hk; cases Hk
       have := (List.getElem?_eq_some_iff.mp Hy).1
       exact ⟨stamp_index_eq L k HL0 (by omega), rfl⟩
-  have Hlen : (ents.mapIdx (stamp s.term (W64 L))).length = ents.length := List.length_mapIdx
-  generalize Hnwdef : ents.mapIdx (stamp s.term (W64 L)) = nw at Hnwk Hlen ⊢
+  have Hlen : (ents.mapIdx (stampS s.term σ (W64 L))).length = ents.length := List.length_mapIdx
+  generalize Hnwdef : ents.mapIdx (stampS s.term σ (W64 L)) = nw at Hnwk Hlen ⊢
   have HlenL : uint.Z s.base.index' + (s.log.length : Int) = L := by rw [← HL]; rfl
   have HbZ := uint_Z_nonneg s.base.index'
   ihave #Hrecs' : logRecs γ s.base (s.log ++ nw) $$ []
@@ -4304,6 +4304,46 @@ theorem ownRaftGhost_step_sendFree (γ : RaftNames) (id : w64) (s : PState) (m :
   · lcm_mono
   · rd_mono
 
+/-- (2026-10-19, witness support) Sending one message to the witness (`sendWApp`, `askWitness`,
+`sendWPre`), given what it carries: no read credit, no proposal. -/
+theorem ownRaftGhost_step_sendW (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
+    (Hty : m.ty = .wapp ∨ m.ty = .wvote ∨ m.ty = .wprevote) :
+    ⊢ isMessage (GF := GF) γ m -∗ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗
+      rdCred γ (rdCount ([] : List Msg)) -∗
+      ownRaftGhost γ id s md ={⊤ \ ↑raftRegN}=∗ ownRaftGhost γ id (psendMsgs s [m]) md := by
+  have Hcnt : rdCount [m] = 0 := by
+    rw [rdCount_singleton]; rcases Hty with h | h | h <;> simp [h]
+  have Hpo : propsOf [m] = [] := by
+    rw [propsOf_cons]; rcases Hty with h | h | h <;> simp [h]
+  iintro #Hm _ - Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  imodintro
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
+  · ipureintro; exact Hhist
+  · rw [psendMsgs_outbox]
+    iapply outbox_snoc $$ Hout
+    iexact Hm
+  · iapply tally_eq γ id s (psendMsgs s _) rfl rfl $$ Htally
+  · iapply leaderWit_eq γ id s (psendMsgs s _) rfl rfl $$ Hlead
+  · iapply ownLogGhost_mono γ id s (psendMsgs s _) kl rfl rfl rfl (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · lcm_mono
+  · rd_mono
+
+/-- (2026-10-19) A node's ghost state does not read the subterm and the replication set's
+excluded voter (`PState.sub`, `PState.rsx`). -/
+theorem ownRaftGhost_sub_eq (γ : RaftNames) (id : w64) (s : PState) (a b : w64) :
+    ownRaftGhost (GF := GF) γ id { s with sub := a, rsx := b } md = ownRaftGhost γ id s md := by
+  with_unfolding_all rfl
+
+theorem ownRaftGhost_sub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ownRaftGhost γ id { s with sub := a, rsx := b } md := by
+  rw [ownRaftGhost_sub_eq (GF := GF) (md := md) γ id s a b]; iintro H; iexact H
+
 theorem ownRaftGhost_step_abandon (γ : RaftNames) (id : w64) (s : PState) (Hrole : s.role ≠ .leader) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤ \ ↑raftRegN}=∗ ownRaftGhost γ id (pbecomeFollower s s.term (W64 0)) md := by
@@ -4694,8 +4734,10 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     iunfold msgTks at Htk
     rw [if_pos Hty]
     ihave Htk' := entTk_propRepl γ _ _ Hents $$ Htk
-    imod ownRaftGhost_step_propose γ id s ents (B.toNat - γ.reBoot.length) Hrole (by omega)
-      (by omega) $$ Hrc Hed' Htk' Hown with Hown
+    have Hp := ownRaftGhost_step_propose (GF := GF) (md := md) γ id s ents
+      (B.toNat - γ.reBoot.length) (W64 0) Hrole (by omega) (by omega)
+    rw [stampS_zero_fun] at Hp
+    imod Hp $$ Hrc Hed' Htk' Hown with Hown
     imodintro; iframe Hregs Hown
   | propForward m s Hty _ _ =>
     iintro #Hrc Hregs Hrecv - Htk Hown
@@ -4722,6 +4764,44 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_takeReads γ id s)))
   | sendFree s m Hfree Hfrom =>
     exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_sendFree γ id s m Hfree Hfrom)))
+  | newSub s x Hrole _ _ Hsub Hnw =>
+    -- (2026-10-19, witness support) `propose` of the empty entry, at the next subterm
+    iintro #Hrc Hregs _ - - Hown
+    ihave Hown := ownRaftGhost_sub γ id s (s.sub + W64 1) x $$ Hown
+    have Hp := ownRaftGhost_step_propose (GF := GF) (md := md) γ id
+      { s with sub := s.sub + W64 1, rsx := x } [zero_val EntryM]
+      (B.toNat - γ.reBoot.length) (s.sub + W64 1) Hrole
+      (by simp only [List.length_singleton]; show plogLastIndexZ s.base s.log + 1 < 2 ^ 64; omega)
+      (by simp only [List.length_singleton]; show plogLastIndexZ s.base s.log + 1 ≤ _; omega)
+    simp only [List.mapIdx_cons, List.mapIdx_nil] at Hp
+    rw [show plastIndex { s with sub := s.sub + W64 1, rsx := x } = plastIndex s from rfl] at Hp
+    imod Hp $$ Hrc [] [] Hown with Hown
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ (e : EntryM) => propData (GF := GF) γ e)).2
+      iapply propData_zero
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ (e : EntryM) => entTk (GF := GF) γ e)).2
+      unfold entTk; simp only [show (zero_val EntryM).Data' = [] from rfl, ne_eq, not_true_eq_false,
+        and_false, ↓reduceIte]; iempintro
+    imodintro; iframe Hregs Hown
+  | sendWApp s i e vs _ _ _ _ _ _ _ _ =>
+    iintro #Hrc Hregs Hrecv Hcr - Hown
+    imod ownRaftGhost_step_sendW γ id s
+      (Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []) (Or.inl rfl)
+      $$ [] Hrecv Hcr Hown with Hown
+    · unfold isMessage; exact true_intro
+    imodintro; iframe Hregs Hown
+  | askWitness s vs _ _ _ _ =>
+    iintro #Hrc Hregs Hrecv Hcr - Hown
+    imod ownRaftGhost_step_sendW γ id s
+      (Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
+        (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []) (Or.inr (Or.inl rfl))
+      $$ [] Hrecv Hcr Hown with Hown
+    · unfold isMessage; exact true_intro
+    imodintro; iframe Hregs Hown
+  | sendWPre s m _ Hty _ =>
+    iintro #Hrc Hregs Hrecv Hcr - Hown
+    imod ownRaftGhost_step_sendW γ id s m (Or.inr (Or.inr Hty)) $$ [] Hrecv Hcr Hown with Hown
+    · unfold isMessage; rw [Hty]; exact true_intro
+    imodintro; iframe Hregs Hown
   | abandon s Hrole =>
     exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_abandon γ id s Hrole)))
   | zeroAck s dst =>

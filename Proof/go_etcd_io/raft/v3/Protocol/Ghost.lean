@@ -349,7 +349,7 @@ theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
 theorem CfgStatic.toStep [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64) (B : Int)
     (s : PState) (ms : List Msg) (s' : PState) :
     StepC (CfgM.simple γ.reCfg lrn) id B s ms s' → Step γ.reCfg id B s ms s' :=
-  step_of_stepC (CfgM.simple γ.reCfg lrn) id B γ.reCfg_ne rfl
+  step_of_stepC (CfgM.simple γ.reCfg lrn) id B γ.reCfg_ne rfl rfl
 
 /-- **The node `id` at the configuration `c` within the ghost state's tracked bound** (D19p,
 2026-10-18): what the node's static ghost state keeps (`ghostRest`), with `c` its tracker's
@@ -764,13 +764,13 @@ theorem isCampK_committed (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w6
 /-- A configuration is countable data (the winners table stores one per term). -/
 instance CfgM_countable : Pos.Countable CfgM :=
   .ofInjective (fun c => Pos.Countable.encode
-      (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave))
+      (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave, c.wit))
     (by
-      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
+      rintro ⟨_, _, _, _, _, _⟩ ⟨_, _, _, _, _, _⟩ h
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5⟩ := h
-      subst h1 h2 h3 h4 h5; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+      subst h1 h2 h3 h4 h5 h6; rfl)
 
 /-- A winners-table entry: `((winner, configuration), quorum)`. -/
 abbrev WinRec := (w64 × CfgM) × GSet w64

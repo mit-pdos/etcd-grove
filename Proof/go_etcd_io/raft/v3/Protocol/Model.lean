@@ -97,6 +97,13 @@ inductive MsgType where
   | vote | voteResp | app | appResp | heartbeat | heartbeatResp
   | propose | snap
   | preVote | preVoteResp | readIndex | readIndexResp
+  /-- (2026-10-19, witness support, `notes/raft-witness.md`) the messages to the witness, which
+  is not a raft node (the leader's and the candidate's `WitnessMessage`s, which the
+  application hands to the witness's storage object): `wapp` (`MsgApp`: the entry `(logterm,
+  index)` of subterm `Msg.sub`, with the replication set in `voters`), `wvote` (`MsgVote`: the
+  candidate's last entry and subterm, with the responders so far in `voters`), `wprevote`
+  (`MsgPreVote`, which carries nothing). -/
+  | wapp | wvote | wprevote
   deriving DecidableEq, Inhabited
 
 /-- Every field of a `MessageM` the protocol reads. `entries` is the list behind
@@ -142,6 +149,10 @@ changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
     (es : List EntryM) : Msg :=
   Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
+
+/-- The subterm a witness message carries (2026-10-19): its `Commit` field, which no witness
+message uses otherwise. -/
+@[reducible] def Msg.sub (m : Msg) : w64 := m.commit
 
 /-- A message with no payload: every replication field zero. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=
@@ -388,6 +399,12 @@ structure PState [FfiSyntax] where
   /-- the read-index state (2026-10-12): the `ReadState`s, a leader's read-only object
   (fresh for a non-leader) and the pending requests -/
   rd : RdState := {}
+  /-- (2026-10-19, witness support) a leader's current subterm (`trk.Epoch.Subterm`) -/
+  sub : w64 := W64 0
+  /-- (2026-10-19) the voter a leader's replication set excludes (`Epoch.ReplicationSet[0]
+  .Excluded`), `0` for the witness itself (the replication set of a new leader, and of every
+  leader without a witness) -/
+  rsx : w64 := W64 0
 
 /-! ### The client log (2026-10-10)
 
@@ -521,6 +538,24 @@ the leader's subterm, `0` in a cluster without a witness (`appendEntry` sets `Su
 epoch's, nil when `0`). -/
 def stamp (tm li : w64) (k : Nat) (e : EntryM) : EntryM :=
   { e with Term' := tm, Index' := li + W64 1 + W64 k, Subterm' := W64 0 }
+
+/-- `stamp` at the subterm `sb` (2026-10-19, witness support): `appendEntry` stamps the leader's
+term, the next index and its current subterm. `stamp` is it at subterm `0`. -/
+def stampS (tm sb li : w64) (k : Nat) (e : EntryM) : EntryM :=
+  { e with Term' := tm, Index' := li + W64 1 + W64 k, Subterm' := sb }
+
+theorem stampS_zero (tm li : w64) (k : Nat) (e : EntryM) :
+    stampS tm (W64 0) li k e = stamp tm li k e := rfl
+
+theorem stampS_zero_fun (tm li : w64) : stampS tm (W64 0) li = stamp tm li := rfl
+
+/-- The subterm of a log's last entry, `0` when the log is empty (its last entry is the base,
+a snapshot's, whose subterm is not kept): what a candidate reports to the witness
+(`sendRequestVoteToWitness`'s `raftLog.subterm(lastIndex)`). -/
+def plogLastSub (es : List EntryM) : w64 :=
+  match es.getLast? with
+  | some e => e.Subterm'
+  | none => W64 0
 
 /-- Index arithmetic for stamped entries. -/
 theorem plogLastIndexZ_nonneg (b : entryID) (es : List EntryM) :

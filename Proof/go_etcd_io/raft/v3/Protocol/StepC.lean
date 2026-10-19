@@ -52,6 +52,18 @@ structure CfgM where
   learners : GSet w64
   learnersNext : GSet w64
   autoLeave : Bool
+  /-- (2026-10-19, witness support) the incoming configuration's witness
+  (`tracker.Config.Witnesses[0]`), `0` for none -/
+  wit : w64 := W64 0
+
+/-- The voter a leader's replication set excludes (2026-10-19, witness support): `rsx`, or the
+witness when `rsx = 0` (`PState.rsx`). -/
+def exclOf [FfiSyntax] (c : CfgM) (s : PState) : w64 := if s.rsx = W64 0 then c.wit else s.rsx
+
+/-- The replication set's voters other than the witness: the incoming voters but the witness and
+the excluded one (`Epoch.ReplicationSet[0].NonWitnessVoters`, what the witness stores). -/
+def rsVoters [FfiSyntax] (c : CfgM) (s : PState) : GSet w64 :=
+  c.incoming \ ({[c.wit]} ∪ {[exclOf c s]})
 
 /-- The voters of either half: what `JointConfig.IDs` returns. -/
 def CfgM.voters (c : CfgM) : GSet w64 := c.incoming ∪ c.outgoing
@@ -653,6 +665,53 @@ inductive StepC : PState → List Msg → PState → Prop where
   | stepDown (s : PState) :
       s.role = .leader →
       StepC s [] (pbecomeFollower s s.term (W64 0))
+  /-- (2026-10-19, witness support) `maybeStartNewSubterm` at a leader of a configuration with a
+  witness: a new replication set (excluding `x`, `0` for the witness itself) starts the next
+  subterm, with an empty entry of it (`appendEntry`, and its self-acknowledgement). -/
+  | newSub (s : PState) (x : w64) :
+      s.role = .leader →
+      c.wit ≠ W64 0 →
+      (x = W64 0 ∨ (x ∈ c.incoming ∧ x ≠ c.wit)) →
+      uint.Z s.sub + 1 < 2 ^ 64 →
+      plogLastIndexZ s.base s.log + 1 ≤ B →
+      StepC s []
+        (psendMsgs (pappend { s with sub := s.sub + W64 1, rsx := x }
+            [stampS s.term (s.sub + W64 1) (plastIndex s) 0 (zero_val EntryM)])
+          [pselfAck id (pappend { s with sub := s.sub + W64 1, rsx := x }
+            [stampS s.term (s.sub + W64 1) (plastIndex s) 0 (zero_val EntryM)])])
+  /-- (2026-10-19) `maybeCommit`'s `sendAppendToWitness`: when the witness is in the replication
+  set, the entry `i` of the leader's term and current subterm that `quorum - 1` voters of the
+  replication set acknowledged (`OneLessThanQuorumInReplicationSet`) goes to the witness, with the
+  replication set's voters (`GetNonWitnessVoterSlice`, in any order). -/
+  | sendWApp (s : PState) (i : w64) (e : EntryM) (vs : List w64) :
+      s.role = .leader →
+      c.wit ≠ W64 0 →
+      exclOf c s ≠ c.wit →
+      plogEntryAt s.base s.log i = some e →
+      e.Term' = s.term →
+      e.Subterm' = s.sub →
+      size c.incoming / 2 ≤ size (ackedBy s i ∩ rsVoters c s) →
+      vs ≡ₚ elements (rsVoters c s) →
+      StepC s []
+        (psendMsgs s [Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []])
+  /-- (2026-10-19) `stepCandidate`'s `sendRequestVoteToWitness`: a candidate one vote short
+  (`votesToWin = 1`: `quorum - 1` granted votes of the configuration) asks the witness, with its
+  last entry, its subterm (`plogLastSub`) and every voter that has answered so far
+  (`trk.Votes`'s keys). -/
+  | askWitness (s : PState) (vs : List w64) :
+      s.role = .candidate →
+      c.wit ≠ W64 0 →
+      size (granted s.votes ∩ c.incoming) = size c.incoming / 2 →
+      vs ≡ₚ elements (domSet s.votes) →
+      StepC s []
+        (psendMsgs s [Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
+          (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []])
+  /-- (2026-10-19) a pre-candidate's pre-vote request to the witness: it carries nothing. -/
+  | sendWPre (s : PState) (m : Msg) :
+      c.wit ≠ W64 0 →
+      m.ty = .wprevote →
+      m.src = id →
+      StepC s [] (psendMsgs s [m])
 
 end model
 
@@ -661,10 +720,15 @@ variable [FfiSyntax]
 
 /-- `StepC` at a non-joint configuration is `Step` at its voters. -/
 theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
+    (hw : c.wit = W64 0)
     {s : PState} {ms : List Msg} {s' : PState} (h : StepC c id B s ms s') :
     Step c.incoming id B s ms s' := by
   have Hv := CfgM.voters_of_out ho
   induction h with
+  | newSub _ _ _ h2 => exact absurd hw h2
+  | sendWApp _ _ _ _ _ h2 => exact absurd hw h2
+  | askWitness _ _ _ h2 => exact absurd hw h2
+  | sendWPre _ _ h1 => exact absurd hw h1
   | refl s => exact .refl s
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
   | campaign s peers cl h1 h2 h3 h4 =>
