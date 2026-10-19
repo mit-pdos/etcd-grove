@@ -53,6 +53,7 @@ module
 
 public import Perennial.Spec.github_com.goose_lang.primitive.NewProph
 public import Perennial.Spec.github_com.goose_lang.primitive.ProphId__ResolveBool
+public import Perennial.Spec.github_com.goose_lang.primitive.ProphId__ResolveU64
 
 @[expose] public section
 
@@ -162,6 +163,42 @@ theorem wp_ptr_ResolveBool_typed
   wp_start as ⟨Hl, Hp⟩
   wp_auto
   wp_apply wp_ResolveBool_typed wp_ResolveBool p xs b $$ Hp as %xs' ⟨%Hxs, Hp⟩
+  iapply HΦ
+  iframe
+  ipureintro; exact Hxs
+
+/-- `p.ResolveU64(x)`: the next of the prophesied values is `x`. -/
+theorem wp_ResolveU64_typed
+    (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG))
+    (p : proph_id) (xs : List w64) (x : w64) :
+    {{ typedProph (GF := GF) w64 p xs }}
+      (App (Val (p @!! github_com.goose_lang.primitive.ProphId.ty @!! go!"ResolveU64")) (Val #x))
+    {{ (xs' : List w64), RET #(); ⌜xs = x :: xs'⌝ ∗ typedProph w64 p xs' }} := by
+  wp_start_folded as Hp
+  iunfold typedProph at Hp
+  icases Hp with ⟨%pvs, Hp, %Hdec⟩
+  wp_apply wp_ResolveU64 p pvs x $$ Hp as %pvs' ⟨%Hpvs, Hp⟩
+  iapply HΦ
+  isplitr
+  · ipureintro
+    exact typedProph_resolve go.intoVal_inj xs x pvs pvs' Hdec Hpvs
+  iunfold typedProph
+  iexists pvs'
+  iframe
+  ipureintro; trivial
+
+/-- `l.ResolveU64(x)` on a `*ProphId` `l` holding `p`: the next of the prophesied values is `x`. -/
+theorem wp_ptr_ResolveU64_typed
+    (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG))
+    (l : Loc) (dq : DFrac) (p : proph_id) (xs : List w64) (x : w64) :
+    {{ typedPointsto (GF := GF) l p dq ∗ typedProph w64 p xs }}
+      (App (Val (l @!! go.GoType.PointerType github_com.goose_lang.primitive.ProphId.ty @!!
+        go!"ResolveU64")) (Val #x))
+    {{ (xs' : List w64), RET #(); ⌜xs = x :: xs'⌝ ∗ typedPointsto l p dq ∗
+        typedProph w64 p xs' }} := by
+  wp_start as ⟨Hl, Hp⟩
+  wp_auto
+  wp_apply wp_ResolveU64_typed wp_ResolveU64 p xs x $$ Hp as %xs' ⟨%Hxs, Hp⟩
   iapply HΦ
   iframe
   ipureintro; exact Hxs

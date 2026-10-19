@@ -10,7 +10,10 @@
 // the client and resolves it with whether the call returned no error after the call returns, so
 // that the proof, at the call's linearization point inside the server (the apply of the put, the
 // read of the get), knows whether the client will return ok (the output is then the server's) or
-// an error. A prophecy has no effect when the program runs (primitive's functions are no-ops).
+// an error. A second prophecy is resolved with the revision a successful get's reply was read at
+// (its header's), so that the proof knows, at each state the server fires the get's read at, whether
+// it is the state the reply will come from. A prophecy has no effect when the program runs
+// (primitive's functions are no-ops).
 package linkv
 
 import (
@@ -235,12 +238,15 @@ func Gen(id int) any {
 	return Input{Key: k}
 }
 
-// Apply runs one operation through the client cli, resolving a prophecy with its outcome.
+// Apply runs one operation through the client cli, resolving a prophecy with its outcome and
+// another with the revision a successful get read at (0 otherwise).
 func Apply(cli *clientv3.Client, input any) any {
 	in := input.(Input)
 	p := primitive.NewProph()
+	rp := primitive.NewProph()
 	ctx := context.Background()
 	var out Output
+	var rev uint64
 	if in.Put {
 		if _, err := cli.Put(ctx, in.Key, in.Val); err != nil {
 			out = Output{Err: true}
@@ -249,11 +255,15 @@ func Apply(cli *clientv3.Client, input any) any {
 		resp, err := cli.Get(ctx, in.Key)
 		if err != nil {
 			out = Output{Err: true}
-		} else if len(resp.Kvs) > 0 {
-			out = Output{Found: true, Val: string(resp.Kvs[0].Value)}
+		} else {
+			rev = uint64(resp.Header.Revision)
+			if len(resp.Kvs) > 0 {
+				out = Output{Found: true, Val: string(resp.Kvs[0].Value)}
+			}
 		}
 	}
 	p.ResolveBool(!out.Err)
+	rp.ResolveU64(rev)
 	return out
 }
 

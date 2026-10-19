@@ -16,15 +16,15 @@ head before the client is called:
   contradicts the prophecy.
 - a get, prophecy error: commit now with `Err` (`get_err_commit`); `Get` without an update. A
   success return (stepped through the reply) contradicts the prophecy.
-- **a get, prophecy `ok`: `sorry`** (the only one). The client's `Get` spec takes a *persistent*
-  read update (`kvReadAu`), which the server fires at every committed log from the read index's
-  deposit on, and returns `□ Q` of the one log the reply was read at. `lintest`'s update is
-  one-shot and must commit at the state whose value the call returns; at a firing, a one-bit
-  prophecy cannot tell whether that firing's state is the reply's (writes may commit between
-  the deposit and the read). What would close it: a prophecy identifying the reply (e.g. a second
-  `ResolveU64` of the reply's header revision, which is the state's `rev`: a Go change to
-  `Apply`), or a `Get` spec firing an ordinary update once at the state the reply is read from.
-  See `notes/STATUS.md` (D20).
+- a get, prophecies `ok` and revision `R` (the second prophecy, `rp`, resolved with the reply's
+  header revision): a call invariant (`callInv`) holds `lintest`'s update with a later credit and
+  the commit bit `γc` at `none`; the client's read update is `get_ok_au`, persistent: at each
+  firing at a state of revision `R` it commits once (the bit goes to the store's value, read-only)
+  and later firings at `R` see the same store (the revisions' map in `linkvInv`). After the reply
+  (`client_Get_au`: `□ Q σ` at the state read, whose revision is the header's, `getReply_state`),
+  `ResolveU64` gives `R = m.hdr.revision`, so `Q σ` gives the bit at the reply's value, and
+  `Apply` takes the continuation (`callInv_take`, with its token and a second credit). A revision
+  that is not the reply's contradicts the resolution; an error return contradicts the first.
 
 The client's calls go through `New`'s `KV` field (`client_Put_once`, `client_Get_plain`, as
 `ClientPutGet.lean` does), the `kvOnce` of `clientKVOnce` matched with `isNewClient`'s `*kv`.
@@ -145,6 +145,82 @@ theorem client_Get_plain [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep :
   · iright
     ipureintro; exact Herr
 
+/-- **What a linearizable get's reply says** (`client.client_get_value`, with the log's bound):
+the client's read update fired at a state `σ` (`□ Q σ`) whose store's value of the key is the
+reply's, whose revision is the reply's header revision, and which is below `2 ^ 63`. -/
+theorem getReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (key : GoString)
+    (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM) :
+    client.rangeReplyOk E γr c F (client.getKeyOp key) cid mid Q m ⊢
+      ∃ σ : KVState, □ Q σ ∗ ⌜m.kvs.head?.map EtcdKv.value = absKV σ key ∧
+        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ := by
+  iintro #H
+  iunfold client.rangeReplyOk at H
+  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
+  have hs : (client.getKeyOp key).base.serializable = false := rfl
+  have hk : (client.getKeyOp key).key = key := rfl
+  simp only [hs, hk, Bool.false_eq_true, ↓reduceIte]
+  obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
+  have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision (client.getKeyOp key).base.rev)) =
+      mvcc.stateAfter l := by
+    have h1 : mvcc.rangeRev m.hdr.revision (client.getKeyOp key).base.rev = m.hdr.revision := by
+      simp [mvcc.rangeRev, txn.rangeOpOf]
+    rw [h1, hrev]
+    have h2 : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by
+      unfold sint.nat; word
+    rw [h2, mvcc.stateAt_last]
+  rw [hst] at hsel
+  iexists kvStateOf l
+  iframe HQ
+  ipureintro
+  refine ⟨client.getKey_value key l m.kvs m.more hsel, ?_, ?_⟩
+  · rw [hrev]
+    unfold kvStateOf
+    simp only
+    congr 1
+    omega
+  · unfold kvStateOf
+    simp only
+    omega
+
+/-- `cli.Get(ctx, key)` by `New`'s client, with a read update: `nil`, the reply and what it says
+(`getReply_state`); or an error. -/
+theorem client_Get_au [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString)
+    (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice) (F : mvcc.Log)
+    (Q : KVState → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+        isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr (W64 0) ∗
+        kvReadAu γr.kv Q ∗ mvcc.idxCert E.γ.idx F }}
+      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗ □ Q σ ∗
+          ⌜m.kvs.head?.map EtcdKv.value = absKV σ key ∧ m.hdr.revision = W64 (σ.rev : Int) ∧
+            σ.rev + 3 < 2 ^ 63⌝) ∨
+          ⌜err ≠ GoInterface.nil⌝ }} := by
+  iintro %Φ ⟨#Pc, #Hcl, #Hrpc, #Hctx, #Hce, #Hopts, #Hc, #Hau, #HF⟩ HΦ
+  iunfold isNewClient at Hcl
+  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (client.client_get_end_to_end api ep E γr (W64 0) cid mid ci cd key sl Q F) $$ []
+    as %resp %err Hout
+  · iframe #
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, -⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    ihave Hs := getReply_state E γr (W64 0) cid mid key F Q m $$ Hq
+    icases Hs with ⟨%σ, #HQ, %Hσ⟩
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact Hσ
+  · iright
+    ipureintro; exact Herr
+
 theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
   intro _ γ cl ep V E γr cid mid hAs
   iintro #Hpkg #Pcli #Hcl #Hone #Hput #Hrange #Hinv
@@ -154,8 +230,9 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
   obtain ⟨x, rfl, Hgen⟩ := Hin
   wp_func_call
   wp_call
-  wp_auto
+  wp_auto_lc 2
   wp_apply (wp_NewProph_typed (τ := Bool) github_com.goose_lang.primitive.wp_NewProph) as %p %xs Hp
+  wp_apply (wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph) as %rp %rs Hrp
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
@@ -176,9 +253,129 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
   cases hP : x.Put'
   · wp_pures
     by_cases Hok : xs.head? = some true
-    · -- the prophecy says `ok`: no linearization point from the client's `Get` spec (see the
-      -- file header and `notes/STATUS.md`, D20)
-      sorry
+    · -- the prophecies say `ok` at revision `R`: the read update commits at its first firing at
+      -- a state of revision `R` (`get_ok_au`), and `Apply` takes the continuation after the reply
+      imod dghostVar_alloc (GF := GF) (none : Option (Option GoString)) with ⟨%γc, Hγc⟩
+      imod dghostVar_alloc (GF := GF) () with ⟨%γt, Htok⟩
+      imod inv_alloc callN ⊤ (iprop(
+          (linU γ (boxIn x) Φ ∗ £ 1 ∗
+            dghostVar γc (DFrac.own 1) (none : Option (Option GoString))) ∨
+          (∃ (v : Option GoString) (L : List (GoString × GoString)),
+            dghostVar γc DFrac.discard (some v) ∗
+            ghostMapElem γ.r (uint.nat (rs.headD (W64 0))) DFrac.discard L ∗
+            ⌜v = absP L x.Key'⌝ ∗
+            ((linkvS.ioOk (boxIn x) (boxOut (getOut v)) -∗ Φ #(boxOut (getOut v))) ∨
+              dghostVar γt (DFrac.own 1) ())))) $$ [HAU Hlc1 Hγc] with #Hci
+      · inext
+        ileft
+        iframe Hlc1 Hγc
+        iunfold linU
+        iexact HAU
+      ihave #Hc : callInv γ γc γt x (rs.headD (W64 0)) Φ $$ []
+      · iunfold callInv; iexact Hci
+      ihave #Hau := get_ok_au γ γr.kv γc γt x hP (rs.headD (W64 0)) Φ $$ []
+      · iframe #
+      wp_auto
+      wp_apply (client_Get_au cl ep V E γr cid mid context.backgroundCtxVal cd x.Key' slice.nil []
+          (getQ γc x (rs.headD (W64 0)))) $$ [] as %resp %err Hout
+      · iframe #
+      icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hval, %Hrev, %Hbnd⟩ | %Herr)
+      · subst Herr
+        iunfold rangeRespMsg at Hm
+        icases Hm with ⟨%Hnn, %h, %sl, %ps, #Hh, #Hhf, #Hkvf, #Hsl, #Hkvs, #Hmore, #Hcount⟩
+        iunfold hdrFull at Hhf
+        icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
+        wp_auto
+        iunfold txn.kvsIs at Hkvs
+        icases Hkvs with ⟨%Hlen, #Hall⟩
+        ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
+        wp_if_destruct
+        · obtain ⟨p0, Hp0⟩ : ∃ p0, ps[0]? = some p0 := by
+            have : 0 < ps.length := by have := Hsll.1; word
+            exact ⟨ps[0], List.getElem?_eq_getElem this⟩
+          obtain ⟨kv0, Hkv0⟩ : ∃ kv0, m.kvs[0]? = some kv0 := by
+            have : 0 < m.kvs.length := by
+              rw [← Hlen]; exact List.length_pos_of_mem (List.mem_of_getElem? Hp0)
+            exact ⟨m.kvs[0], List.getElem?_eq_getElem this⟩
+          ihave #Hkv := Hall $$ %0 %p0 %kv0 %Hp0 %Hkv0
+          iunfold txn.kvIs at Hkv
+          icases Hkv with ⟨%kSl, %vSl, -, -, -, -, -, #HvF, #HvS, -⟩
+          have Hbnd0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by
+            have := Hsll.1
+            constructor <;> word
+          simp only [Hbnd0, _root_.and_self, ↓reduceIte]
+          wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ DFrac.discard p0 Hbnd0.1 $$ [Hsl] as -
+          · iframe Hsl; ipureintro; exact Hp0
+          wp_apply wp_bytes_to_string vSl kv0.value DFrac.discard $$ [HvS] as -
+          · iframe #
+          wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
+            p_ptr _ p xs _) $$ [p Hp] as %xs' ⟨%Hxs, -, -⟩
+          · iframe
+          by_cases HR : rs.headD (W64 0) = m.hdr.revision
+          rotate_left
+          · wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+              rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
+            · iframe
+            exact absurd (by rw [Hrs]; rfl) HR
+          have Hσr : σ.rev = uint.nat (rs.headD (W64 0)) := by rw [HR, Hrev]; word
+          iunfold getQ at HQ
+          ihave #Hv := HQ $$ %Hσr
+          iapply fupd_wp
+          imod (callInv_take γ γc γt x (rs.headD (W64 0)) Φ (absKV σ x.Key')) $$ [Htok Hlc2]
+            with HΦ
+          · iframe Hc Hv Htok Hlc2
+          imodintro
+          wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+            rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
+          · iframe
+          have Hg : getOut (absKV σ x.Key') = ⟨false, true, kv0.value⟩ := by
+            rw [← Hval]
+            cases hk : m.kvs with
+            | nil => simp [hk] at Hkv0
+            | cons a l => simp [hk] at Hkv0; subst Hkv0; rfl
+          rw [Hg]
+          iapply HΦ
+          simp only [linkvS]
+          ipureintro; exact ⟨x, _, rfl, rfl⟩
+        · wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
+            p_ptr _ p xs _) $$ [p Hp] as %xs' ⟨%Hxs, -, -⟩
+          · iframe
+          by_cases HR : rs.headD (W64 0) = m.hdr.revision
+          rotate_left
+          · wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+              rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
+            · iframe
+            exact absurd (by rw [Hrs]; rfl) HR
+          have Hσr : σ.rev = uint.nat (rs.headD (W64 0)) := by rw [HR, Hrev]; word
+          iunfold getQ at HQ
+          ihave #Hv := HQ $$ %Hσr
+          iapply fupd_wp
+          imod (callInv_take γ γc γt x (rs.headD (W64 0)) Φ (absKV σ x.Key')) $$ [Htok Hlc2]
+            with HΦ
+          · iframe Hc Hv Htok Hlc2
+          imodintro
+          wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+            rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
+          · iframe
+          have Hg : getOut (absKV σ x.Key') = okOut := by
+            rw [← Hval]
+            have : m.kvs = [] := by
+              apply List.eq_nil_of_length_eq_zero
+              rw [← Hlen]; have := Hsll.1; word
+            simp [this, getOut]
+          rw [zero_val_Output]
+          rw [Hg]
+          iapply HΦ
+          simp only [linkvS]
+          ipureintro; exact ⟨x, _, rfl, rfl⟩
+      · cases err with
+        | nil => exact absurd rfl Herr
+        | ok ei => ?_
+        wp_auto
+        wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
+          p_ptr _ p xs _) $$ [p Hp] as %xs' ⟨%Hxs, -, -⟩
+        · iframe
+        simp [Hxs] at Hok
     · -- the prophecy says error: commit now
       iapply fupd_wp
       imod (get_err_commit γ γr.kv x hP Φ) $$ [HAU] with HΦ
@@ -192,6 +389,8 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
       · subst Herr
         iunfold rangeRespMsg at Hm
         icases Hm with ⟨%Hnn, %h, %sl, %ps, #Hh, #Hhf, #Hkvf, #Hsl, #Hkvs, #Hmore, #Hcount⟩
+        iunfold hdrFull at Hhf
+        icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
         wp_auto
         iunfold txn.kvsIs at Hkvs
         icases Hkvs with ⟨%Hlen, #Hall⟩
@@ -230,6 +429,9 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
         wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
           p_ptr _ p xs _) $$ [p Hp] as %xs' ⟨%Hxs, p, Hp⟩
         · iframe
+        wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+          rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
+        · iframe
         iapply HΦ
         simp only [linkvS]
         ipureintro; exact ⟨x, errOut, rfl, rfl⟩
@@ -248,6 +450,9 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
         wp_auto
         wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
           p_ptr _ p xs _) $$ [p Hp] as %xs' ⟨%Hxs, p, Hp⟩
+        · iframe
+        wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+          rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
         · iframe
         rw [zero_val_Output]
         iapply HΦ
@@ -286,6 +491,9 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
         wp_auto
         wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
           p_ptr _ p xs _) $$ [p Hp] as %xs' ⟨%Hxs, p, Hp⟩
+        · iframe
+        wp_apply (wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64
+          rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
         · iframe
         iapply HΦ
         simp only [linkvS]
