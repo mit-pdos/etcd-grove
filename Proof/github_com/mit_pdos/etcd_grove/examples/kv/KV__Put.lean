@@ -27,11 +27,11 @@ variable [KVStor GF]
 
 theorem KV.Put.wp_proof (wp_do : kv.KV.do.spec (GF := GF) (hG := hG)) :
     KV.Put.spec (GF := GF) (hG := hG) := by
-  intro γr γp r val Ψ Hval
-  wp_start as ⟨#Hreg, Hcr, Hau⟩
+  intro γr γp r key val Ψ Hkey Hval
+  wp_start as ⟨#Hreg, Hau⟩
   wp_auto
-  have h : ∀ x, opNext (W8 1) val x = val := fun x => ite_eq_left rfl
-  wp_apply wp_do γr γp r (W8 1) val (fun _ => Ψ) Hval $$ [$Hreg $Hcr Hau] as %res HΨ
+  have h : ∀ x, kvNext (W8 1) key val x = kvUpd x key val := fun x => ite_eq_left rfl
+  wp_apply wp_do γr γp r (W8 1) key val (fun _ => Ψ) Hkey Hval $$ [$Hreg Hau] as %res HΨ
   · simp only [h]
     iexact Hau
   iapply HΦ $$ HΨ

@@ -10,6 +10,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.decode
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.LemmasOps
 public import Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
@@ -31,8 +32,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
 set_option hygiene false in
-/-- `apply` from `if replica == r.id` on (the waiter's removal and the handoff of `r.value`), after `if kind == opPut` with and without the store. -/
+/-- `apply` from `if replica == r.id` on (the waiter's removal, the lookup of the key's value
+`v := r.kv[key]` and its handoff), with the new map `Kn` (`HvalN`) in `HK`. -/
 local macro "apply_rest" : tactic => `(tactic| (
+    have HvK : (Kn !! key).getD [] = kvFold (firstOcc ods ++ [em.Data']) (dkey em.Data') := by
+      rw [kvFold_snoc, HvalN, show dkey em.Data' = key by simp [dkey, Hdec]]
     wp_if_destruct
     · -- this replica's operation: its waiter, if any
       wp_apply wp_map_lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string) mW W sq
@@ -40,19 +44,20 @@ local macro "apply_rest" : tactic => `(tactic| (
       cases HWs : W !! sq with
       | none =>
         simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
-        wp_auto
-        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hcred Hwaiters Hrds]
+        try wp_auto
+        wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
+        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hwaiters Hrds]
         · inext
           unfold lockInv
-          iexists ns, mW, W, c
+          iexists ns, mW, W
           iframe
-          ipureintro; exact ⟨Hc, HWdom⟩
-
+          ipureintro; exact HWdom
+        try wp_auto
         iapply HΦ
-        iapply Hfin $$ Hv HmA HA
+        iapply Hfin $$ %Kn %HvalN HmK HK HmA HA
       | some ch =>
         simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
-        wp_auto
+        try wp_auto
         wp_apply wp_mapDelete mW W sq go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string)
           $$ [$(frameH `HW)] as HW
         icases (BigSepM.bigSepM_delete (Φ := fun s ch => waiterOk (GF := GF) γr id s ch) HWs).1
@@ -68,18 +73,21 @@ local macro "apply_rest" : tactic => `(tactic| (
         · rw [← Hraft]; iexact Hdep
         · rw [Hif]; iexact Hmint
         subst Hd0
-        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hcred Hwaiters Hrds]
+        try wp_auto
+        wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
+        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hwaiters Hrds]
         · inext
           unfold lockInv
-          iexists ns, mW, GMap.delete sq W, c
+          iexists ns, mW, GMap.delete sq W
           iframe
           ipureintro
-          refine ⟨Hc, fun s ch' Hs => HWdom s ch' ?_⟩
+          refine fun s ch' Hs => HWdom s ch' ?_
           by_cases Hss : s = sq
           · subst Hss; rw [GMap.lookup_delete_eq] at Hs; cases Hs
           · rwa [GMap.lookup_delete_ne _ (Ne.symm Hss)] at Hs
+        try wp_auto
         wp_apply wp_handoff_send (t := go.string) γh ch (waitP γr em.Data') iprop(True) iprop(False)
-          (kvApply v em.Data') $$ [$(frameH `Hho) $(frameH `Hprod)]
+          ((Kn !! key).getD (zero_val (List w8))) $$ [$(frameH `Hho) $(frameH `Hprod)]
         · isplitl
           · unfold waitP
             iexists ap ++ [em], ods ++ [some em.Data'], ods.length
@@ -88,22 +96,24 @@ local macro "apply_rest" : tactic => `(tactic| (
             ipureintro
             refine ⟨by simp, ?_, ?_⟩
             · rw [List.take_left' rfl]; exact Hnew
-            · rw [List.take_left' rfl, kvFold_snoc, ← Hval]
+            · rw [List.take_left' rfl]; exact HvK
           · itrivial
         iintro -
-        wp_auto
+        try wp_auto
         iapply HΦ
-        iapply Hfin $$ Hv HmA HA
+        iapply Hfin $$ %Kn %HvalN HmK HK HmA HA
     · -- another replica's operation
-      wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hcred Hwaiters Hrds]
+      try wp_auto
+      wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
+      wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hwaiters Hrds]
       · inext
         unfold lockInv
-        iexists ns, mW, W, c
+        iexists ns, mW, W
         iframe
-        ipureintro; exact ⟨Hc, HWdom⟩
-
+        ipureintro; exact HWdom
+      try wp_auto
       iapply HΦ
-      iapply Hfin $$ Hv HmA HA
+      iapply Hfin $$ %Kn %HvalN HmK HK HmA HA
   ))
 
 theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
@@ -142,22 +152,22 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
       $$ Hods' with ⟨-, #Hem⟩
     iexact Hem
   -- what is kept when the entry changes nothing
-  ihave Hkeep : iprop(r.[RKV, go!"value"] ↦ v -∗ r.[RKV, go!"applied"] ↦ mA -∗
-      mA ↦$ A -∗ ⌜v = kvFold (occStep (firstOcc ods) o) ∧
+  ihave Hkeep : iprop(r.[RKV, go!"kv"] ↦ mK -∗ mK ↦$ K -∗ r.[RKV, go!"applied"] ↦ mA -∗
+      mA ↦$ A -∗ ⌜(∀ k, (K !! k).getD [] = kvFold (occStep (firstOcc ods) o) k) ∧
         AppliedOk A (occStep (firstOcc ods) o)⌝ -∗ runOwn γr r (ap ++ [em])) $$ []
-  · iintro Hv HmA HA %Hocc
+  · iintro HmK HK HmA HA %Hocc
     unfold runOwn
-    iexists v, mA, A, ods ++ [o]
+    iexists mK, K, mA, A, ods ++ [o]
     rw [← Hraft, firstOcc_snoc]
-    iframe Hv HmA HA Hce Hods'
+    iframe HmK HK HmA HA Hce Hods'
     ipureintro; exact Hocc
   wp_auto
   -- `e.GetType() != pb.EntryNormal`
   wp_apply wp_Entry_GetType.1 e DFrac.discard em $$ [$Hpbinit $He] as -
   cases o with
   | none =>
-    -- a leader's own entry (no bytes) or (2026-10-13) an entry of another type (a conf
-    -- change): no operation
+    -- a leader's own entry (no bytes) or an entry of another type (a conf change): no
+    -- operation
     iunfold entDataIs at Hem
     icases Hem with (%Hz | %Hty)
     rotate_left
@@ -165,12 +175,12 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
       wp_if_destruct
       · exact absurd Hif Hty.1
       · iapply HΦ
-        iapply Hkeep $$ Hv HmA HA
+        iapply Hkeep $$ HmK HK HmA HA
         ipureintro; exact ⟨Hval, HA⟩
     wp_if_destruct
     rotate_left
     · iapply HΦ
-      iapply Hkeep $$ Hv HmA HA
+      iapply Hkeep $$ HmK HK HmA HA
       ipureintro; exact ⟨Hval, HA⟩
     wp_apply wp_Entry_GetData.1 e DFrac.discard em $$ [$Hpbinit $He] as %ds ⟨#Hd, -⟩
     wp_apply wp_decode ds em.Data' DFrac.discard $$ [$Hd]
@@ -179,7 +189,7 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
     simp only [decodeRet, show decodeOp ([] : List w8) = none from rfl]
     wp_auto
     iapply HΦ
-    iapply Hkeep $$ Hv HmA HA
+    iapply Hkeep $$ HmK HK HmA HA
     ipureintro; exact ⟨Hval, HA⟩
   | some d =>
     ihave #Hem' := Hem
@@ -193,9 +203,9 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
     wp_apply wp_Entry_GetData.1 e DFrac.discard em $$ [$Hpbinit $He] as %ds ⟨#Hd, -⟩
     wp_apply wp_decode ds em.Data' DFrac.discard $$ [$Hd]
     iintro -
-    -- the value after `em.Data'`, if `em.Data'` is skipped
+    -- the store after `em.Data'`, if `em.Data'` is skipped
     have Hskip : decodeOp em.Data' = none ∨ em.Data' ∈ firstOcc ods →
-        v = kvFold (occStep (firstOcc ods) (some em.Data')) ∧
+        (∀ k, (K !! k).getD [] = kvFold (occStep (firstOcc ods) (some em.Data')) k) ∧
         AppliedOk A (occStep (firstOcc ods) (some em.Data')) := by
       intro Hs
       refine ⟨?_, appliedOk_skip A _ em.Data' HA Hs⟩
@@ -208,10 +218,10 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
       simp only [decodeRet, Hdec]
       wp_auto
       iapply HΦ
-      iapply Hkeep $$ Hv HmA HA
+      iapply Hkeep $$ HmK HK HmA HA
       ipureintro; exact Hskip (.inl Hdec)
     | some x =>
-      obtain ⟨rep, sq, k, val⟩ := x
+      obtain ⟨rep, sq, kd, key, val⟩ := x
       simp only [decodeRet, Hdec]
       wp_auto
       wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
@@ -224,42 +234,66 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
       rw [show (zero_val Bool) = false from rfl, appliedOk_lookup A _ em.Data' HA Hdsome]
       wp_if_destruct
       · -- applied before: unlock, skip
-        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hrds]
+        wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hwaiters Hrds]
         · inext
           unfold lockInv
-          iexists ns, mW, W, c
+          iexists ns, mW, W
           iframe
-          ipureintro; exact ⟨Hc, HWdom⟩
+          ipureintro; exact HWdom
         iapply HΦ
-        iapply Hkeep $$ Hv HmA HA
+        iapply Hkeep $$ HmK HK HmA HA
         ipureintro; exact Hskip (.inr Hif)
       have Hnew := Hif
       -- the first occurrence of `em.Data'`: the operation applied
       iclear Hkeep
-      ihave Hfin : iprop(r.[RKV, go!"value"] ↦ kvApply v em.Data' -∗
+      ihave Hfin : iprop(∀ Kn : GMap (List w8) (List w8),
+          ⌜∀ k, (Kn !! k).getD [] = kvApply (kvFold (firstOcc ods)) em.Data' k⌝ -∗
+          r.[RKV, go!"kv"] ↦ mK -∗ mK ↦$ Kn -∗
           r.[RKV, go!"applied"] ↦ mA -∗ mA ↦$ A.insert em.Data' true -∗
           runOwn γr r (ap ++ [em])) $$ []
-      · iintro Hv HmA HA'
+      · iintro %Kn %HvalN HmK HK HmA HA'
         unfold runOwn
-        iexists kvApply v em.Data', mA, A.insert em.Data' true, ods ++ [some em.Data']
-        rw [← Hraft, firstOcc_snoc, occStep_nmem _ em.Data' Hnew, kvFold_snoc, ← Hval]
-        iframe Hv HmA HA' Hce Hods'
-        ipureintro; exact ⟨rfl, appliedOk_insert A _ em.Data' HA Hnew Hdsome⟩
+        iexists mK, Kn, mA, A.insert em.Data' true, ods ++ [some em.Data']
+        rw [← Hraft, firstOcc_snoc, occStep_nmem _ em.Data' Hnew]
+        iframe HmK HK HmA HA' Hce Hods'
+        ipureintro
+        refine ⟨fun k => ?_, appliedOk_insert A _ em.Data' HA Hnew Hdsome⟩
+        rw [kvFold_snoc]; exact HvalN k
       wp_apply wp_Entry_GetData.1 e DFrac.discard em $$ [$Hpbinit $He] as %ds2 ⟨#Hd2, -⟩
       wp_apply wp_bytes_to_string ds2 em.Data' DFrac.discard $$ [$Hd2] as -
       wp_apply wp_mapInsert go.string mA A em.Data' true $$ [$HA] as HA
+      have HappE : kvApply (kvFold (firstOcc ods)) em.Data' =
+          kvNext kd key val (kvFold (firstOcc ods)) := by simp [kvApply, Hdec]
       wp_if_destruct
       · -- a `Put`
-        ihave Hv : r.[RKV, go!"value"] ↦ kvApply v em.Data' $$ [Hv]
-        · simp only [kvApply, Hdec]
-          rw [ite_eq_left (show W8 1 = opPutB from rfl)]
-          iexact Hv
+        wp_apply wp_mapInsert go.string mK K key val $$ [$HK] as HK
+        obtain ⟨Kn, HKn⟩ : ∃ Kn, Kn = <[key := val]> K := ⟨_, rfl⟩
+        rw [← HKn]
+        have HvalN : ∀ k, (Kn !! k).getD [] = kvApply (kvFold (firstOcc ods)) em.Data' k := by
+          rw [HappE, HKn, kvNext, ite_eq_left (show W8 1 = opPutB from rfl)]
+          exact kvMap_put K _ key val Hval
         apply_rest
-      · ihave Hv : r.[RKV, go!"value"] ↦ kvApply v em.Data' $$ [Hv]
-        · simp only [kvApply, Hdec]
-          rw [ite_eq_right (by unfold opPutB; exact Hif)]
-          iexact Hv
-        apply_rest
+      · have HnPut := Hif
+        wp_if_destruct
+        · -- an `Append`
+          wp_apply wp_map_lookup1 go.string go.string mK K key (DFrac.own 1) $$ [$HK] as HK
+          wp_apply wp_mapInsert go.string mK K key ((K !! key).getD (zero_val (List w8)) ++ val)
+            $$ [$HK] as HK
+          obtain ⟨Kn, HKn⟩ : ∃ Kn, Kn = <[key := (K !! key).getD (zero_val (List w8)) ++ val]> K :=
+            ⟨_, rfl⟩
+          rw [← HKn]
+          have HvalN : ∀ k, (Kn !! k).getD [] = kvApply (kvFold (firstOcc ods)) em.Data' k := by
+            rw [HappE, HKn, kvNext, ite_eq_right (show ¬ W8 4 = opPutB by decide),
+              ite_eq_left (show W8 4 = opAppendB from rfl)]
+            exact kvMap_append K _ key val Hval
+          apply_rest
+        · obtain ⟨Kn, HKn⟩ : ∃ Kn, Kn = K := ⟨_, rfl⟩
+          rw [← HKn]
+          have HvalN : ∀ k, (Kn !! k).getD [] = kvApply (kvFold (firstOcc ods)) em.Data' k := by
+            rw [HappE, HKn, kvNext, ite_eq_right (show ¬ kd = opPutB from HnPut),
+              ite_eq_right (show ¬ kd = opAppendB from Hif)]
+            exact Hval
+          apply_rest
 
 
 end proof
