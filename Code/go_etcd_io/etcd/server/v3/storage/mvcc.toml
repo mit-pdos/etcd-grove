@@ -40,6 +40,8 @@ translate = ["!*",
   "ErrCompacted", "ErrFutureRev", "NewStore", "store.Compact", "store.compactLockfree",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
   "store.compactBarrier",
+  # (etcd-io/etcd#22609, pr-verify: the whole-backend hash, `HashStorage.Hash`)
+  "store.hash", "hashStorage.Hash",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go

@@ -128,6 +128,11 @@ v3.7.4; a maintainer is discussing the fix's design) and
 v3.5→v3.7 migration writes `meta/storageVersion` three times in one session, and `StorageVersion()`
 reads the old value until the next commit, at most about 100 ms; reproduced at the fork pin, our
 fork carries #21987).
+[etcd-mvcc-hash-currentrev-unlocked](etcd-mvcc-hash-currentrev-unlocked.md) (fixed by the open
+etcd-io/etcd#22609, approved) and
+[etcd-mvcc-hash-restore-transient-rev](etcd-mvcc-hash-restore-transient-rev.md) (minor: the
+testing-only `Maintenance.Hash` RPC around a snapshot restore; a one-line move in the same
+function, best raised as a review comment on #22609; branch `pr-verify/etcd-22609`).
 
 ## Probably not worth their time now
 

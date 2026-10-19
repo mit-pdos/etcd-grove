@@ -40,6 +40,23 @@ def mvcc.hashStorageOk (h : Loc) : IProp GF :=
 instance mvcc.hashStorageOk_persistent (h : Loc) : Persistent (mvcc.hashStorageOk (GF := GF) h) := by
   unfold mvcc.hashStorageOk; infer_instance
 
+/-- **The store's backend hashes** (persistent; etcd-io/etcd#22609, branch
+`pr-verify/etcd-22609`): the store `s`'s backend `s.b` is an interface whose
+`Hash(schema.DefaultIgnores)` returns some hash and error. The trust boundary of `store.hash`, a
+premise of its spec: the backend's contract (`isKeyBackendG`) has no `Hash`, and the real
+backend's (`backend.Hash`, a CRC of the bbolt file under its read lock and a `View`, calling
+`ignores` on every key; an error, not a panic, once the backend is closed) is not translated.
+Only of `DefaultIgnores` (pure, total): `backend.Hash` calls its argument, so of an arbitrary
+function it need not return (the reviewer's point, 2026-10-19). -/
+def mvcc.storeHashOk (s : Loc) : IProp GF :=
+  iprop(∃ bi : GoInterfaceOk, structFieldRef store go!"b" s ↦□ GoInterface.ok bi ∗
+    □ {{ True }} (App (Val #(methods bi.ty go!"Hash" bi.v))
+        (Val #(functions go_etcd_io.etcd.server.v3.storage.schema.DefaultIgnores [])))
+      {{ (h : w32) (err : GoInterface), RET (PairV #h #err); True }})
+
+instance mvcc.storeHashOk_persistent (s : Loc) : Persistent (mvcc.storeHashOk (GF := GF) s) := by
+  unfold mvcc.storeHashOk; infer_instance
+
 end defs
 
 /-- **A hasher `newKVHasher` made** (opaque: `kvHasher` is an axiomatized type; see the file

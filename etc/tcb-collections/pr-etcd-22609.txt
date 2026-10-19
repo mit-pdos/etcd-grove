@@ -1,0 +1,15 @@
+# etcd-io/etcd#22609 (mvcc: fix data race between Hash and Restore), branch pr-verify/etcd-22609:
+# the whole-backend hash, `store.hash` and `hashStorage.Hash` (notes/pr-verify/etcd-22609.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/pr-etcd-22609.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots store__hash
+roots hashStorage__Hash
+axiom backend.optsAt
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom time.Duration.Seconds.wp_proof

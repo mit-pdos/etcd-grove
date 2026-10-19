@@ -320,7 +320,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- mvcc's
   ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd36
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NEWR, #NWDI, -⟩
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NEWR, #NWDI, -⟩
   ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR
   ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI
   -- `rpctypes`'

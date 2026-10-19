@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
 public import Proof.github_com.dustin.go_humanize.Bytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Hash
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less
@@ -104,9 +105,11 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompa
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__hash
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
+public import Proof.time.Duration__Seconds
 public import Proof.time.NewTicker
 public import Proof.time.Ticker__Reset
 public import Proof.time.Ticker__Stop
@@ -320,6 +323,10 @@ theorem mvcc.generation.wp_walk :
 theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
   go_humanize.Bytes.wp_proof
+
+theorem time.Duration.wp_Seconds :
+    time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  time.Duration.Seconds.wp_proof
 
 theorem mvcc.hashStorage.wp_Store :
     mvcc.hashStorage.Store.spec (GF := GF) (hG := hG) :=
@@ -567,6 +574,14 @@ theorem mvcc.wp_NewReadOnlyTxnWrite :
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
   mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
+
+theorem mvcc.store.wp_hash :
+    mvcc.store.hash.spec (GF := GF) (hG := hG) :=
+  mvcc.store.hash.wp_proof time.Duration.wp_Seconds
+
+theorem mvcc.hashStorage.wp_Hash :
+    mvcc.hashStorage.Hash.spec (GF := GF) (hG := hG) :=
+  mvcc.hashStorage.Hash.wp_proof mvcc.store.wp_hash
 
 theorem mvcc.wp_kvsToEvents :
     mvcc.kvsToEvents.spec (GF := GF) (hG := hG) :=

@@ -48,6 +48,20 @@ module system").
 
 
 
+## etcd-io/etcd#22609 verified: `store.hash` (2026-10-19, branch `pr-verify/etcd-22609`, not for `lean`)
+
+The PR (mvcc: `hash` races with `Restore`) translated from the fork branch
+`pr-etcd-22609-goose-lean` (`dd7ab1507`, unpushed: `etc/goose.py --check` fails on this branch
+by design). `store.hash` and `hashStorage.Hash` translated (`mvcc.toml`), specified and proved,
+no `sorry`; the spec's premise `mvcc.storeHashOk` (the backend's `Hash`, `HashDefs.lean`) and
+the axiom `hashSec_init` (`mvccInit` gains `hashSec`, `etc/gen-init.py`) are new. `Restore` stays
+out of scope (`isStore` keeps `s.b` read-only), so the `s.b` half of the PR is checked by
+reading the code. Report: `notes/pr-verify/etcd-22609.md`; issues
+`etcd-mvcc-hash-currentrev-unlocked` (fixed by the PR) and `etcd-mvcc-hash-restore-transient-rev`
+(left by it). Perennial: `MethodResolve` on a named non-pointer type (`time.Duration`'s
+`Seconds`) needs `go.NotInterface go.int64`, which has no instance; worked around by a local
+`haveI`, as raft's proofs do for `go.int32`.
+
 ## Perennial: the `lean-temp` branch (2026-10-19)
 
 The pin (`lakefile.toml`, `lake-manifest.json`) is Perennial `a54e1999f`, and for now this

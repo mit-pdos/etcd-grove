@@ -182,7 +182,8 @@ and compaction's (2026-10-13, unit 5a): the two `Meta` key names it reads and wr
 `"scheduledCompactRev"` and `"finishedCompactRev"`, read-only; `schema` is names-only for them,
 and its own facts are the consistent index's), and the compaction metrics (`metrics.go`: the
 histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs`, whose
-`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`); and
+`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`), and
+the whole-backend hash's histogram `hashSec` (etcd-io/etcd#22609, `store.hash`); and
 (item 8, 2026-10-17) `ErrCompacted` and `ErrFutureRev` as the `errors.New` errors they are, which
 the apply package's facts take from here; and (D19j, 2026-10-18) `ErrEmptyWatcherRange` and
 `ErrWatcherDuplicateID` as theirs, which `v3rpc`'s facts take from here. -/
@@ -219,6 +220,7 @@ abbrev mvccInit : IProp GF :=
     (∃ h : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
     (∃ c : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ h : GoInterfaceOk, globalAddr hashSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
     EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
     EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision" ∗
     EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗

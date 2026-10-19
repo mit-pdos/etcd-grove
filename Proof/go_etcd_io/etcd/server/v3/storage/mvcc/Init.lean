@@ -73,7 +73,6 @@ axiom opaqueInitsOk :
         dbTotalSizeInUse.init,
         reportDbOpenReadTxN.init,
         dbOpenReadTxN.init,
-        hashSec.init,
         hashRevSec.init,
         reportCurrentRev.init,
         currentRev.init,
@@ -156,6 +155,11 @@ axiom dbCompactionPauseMs_init :
 axiom dbCompactionTotalMs_init :
     {{ (True : IProp GF) }} (App (Val dbCompactionTotalMs.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦ GoInterface.ok m ∗ histSpec m }}
+
+/-- `hashSec = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/
+axiom hashSec_init :
+    {{ (True : IProp GF) }} (App (Val hashSec.init) (Val #()))
+    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr hashSec ↦ GoInterface.ok m ∗ histSpec m }}
 
 /-- `defaultCompactionBatchLimit = 1000` (`kvstore.go`). -/
 axiom defaultCompactionBatchLimit_init :
@@ -269,7 +273,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk dbTotalSizeInUse.init (by mem_tac))
   wp_apply (opaqueInitsOk reportDbOpenReadTxN.init (by mem_tac))
   wp_apply (opaqueInitsOk dbOpenReadTxN.init (by mem_tac))
-  wp_apply (opaqueInitsOk hashSec.init (by mem_tac))
+  wp_apply hashSec_init as ⟨%mhashSec, HhashSec, #S0hashSec⟩
   wp_apply (opaqueInitsOk hashRevSec.init (by mem_tac))
   wp_apply (opaqueInitsOk reportCurrentRev.init (by mem_tac))
   wp_apply (opaqueInitsOk currentRev.init (by mem_tac))
@@ -308,6 +312,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HindexCompactionPauseMs
   ipersist HdbCompactionPauseMs
   ipersist HdbCompactionTotalMs
+  ipersist HhashSec
   ipersist HdefaultCompactionBatchLimit
   ipersist HdefaultCompactionSleepInterval
   ipersist HchanBufLen

@@ -239,6 +239,13 @@ newKVHasher:
 kvHasher__WriteKeyValue:
 kvHasher__Hash:
 hashStorage__Store:
+# The whole-backend hash (`store.hash`, `hashStorage.Hash`: the `Maintenance.Hash` RPC's), as
+# etcd-io/etcd#22609 changes it (branch pr-verify/etcd-22609): `time.Duration.Seconds` (a float
+# division) is the trust boundary (Proof/time/Duration__Seconds.lean's axiom); the backend's
+# `Hash` is the spec's premise (`storeHashOk`, HashDefs.lean).
+time_Duration__Seconds:
+store__hash: time_Duration__Seconds
+hashStorage__Hash: store__hash
 keyIndex__doCompact: generation__walk
 keyIndex__compact: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__doCompact generation__isEmpty
 keyIndex__keep: keyIndex__isEmpty keyIndex__doCompact generation__isEmpty

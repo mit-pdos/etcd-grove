@@ -567,7 +567,7 @@ def _metric(x, kind, preds, file='metrics.go'):
 
 _MV_CNT = ['rangeCounter', 'putCounter', 'deleteCounter', 'txnCounter', 'dbCompactionKeysCounter']
 _MV_GAU = ['keysGauge', 'watchStreamGauge', 'watcherGauge', 'pendingEventsGauge', 'totalPutSizeGauge']
-_MV_HIS = ['indexCompactionPauseMs', 'dbCompactionPauseMs', 'dbCompactionTotalMs']
+_MV_HIS = ['indexCompactionPauseMs', 'dbCompactionPauseMs', 'dbCompactionTotalMs', 'hashSec']
 _mv_custom = {x: _metric(x, 'counter', ['counterSpec']) for x in _MV_CNT}
 _mv_custom.update({x: _metric(x, 'gauge', ['gaugeSpec']) for x in _MV_GAU})
 _mv_custom['slowWatcherGauge'] = _metric('slowWatcherGauge', 'gauge', ['gaugeSpec', 'gaugeSetSpec'])
@@ -705,7 +705,7 @@ errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
              '  iexact HLNF0',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd18',
-             'icases Hmi with ⟨' + '-, ' * 30 + '#NMC, #NMF, -, -, #CMC, #CMF⟩',
+             'icases Hmi with ⟨' + '-, ' * 31 + '#NMC, #NMF, -, -, #CMC, #CMF⟩',
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +
             _noSpaceApart() +
@@ -853,7 +853,7 @@ names) and the four
              '-- mvcc\'s',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd36',
-             'icases Hmi with ⟨' + '-, ' * 32 + '#NEWR, #NWDI, -⟩',
+             'icases Hmi with ⟨' + '-, ' * 33 + '#NEWR, #NWDI, -⟩',
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
              '-- `rpctypes`\'',

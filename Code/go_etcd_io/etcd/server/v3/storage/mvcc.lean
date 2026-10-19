@@ -610,6 +610,22 @@ noncomputable def NewHashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (Val (GoInstruction (CompositeLiteral hashStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"store")) (ElementExpression (go.GoType.PointerType store.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))))
 
+/-- go: hash.go:135:23 -/
+noncomputable def hashStorage.Hash.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "revision" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType hashStorage.ty)))) (Var "s"))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"hash"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef hashStorage.ty go!"store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType hashStorage.ty)))) (Var "s"))))) (Val #()))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))))
+
 /-- go: index.go:45:6 -/
 noncomputable def newTreeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
@@ -2380,7 +2396,66 @@ noncomputable def store.compactBarrier.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #()))))))))))))
 
-/-- go: kvstore.go:197:17 -/
+/-- go: kvstore.go:156:17 -/
+noncomputable def store.hash.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "revision" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType store.ty)))) (Var "s"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "start" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))
+  (Let "b" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.DefaultIgnores []))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Hash"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "b"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "h" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef store.ty go!"currentRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "h")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "revision"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Duration.ty go!"Seconds"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "start"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0")))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty go!"Observe"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (App (Val (GoInstruction (GlobalVarAddr hashSec))) (Val #())))) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"revMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "revision") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"revMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "h") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "b"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0"))))))))))))))
+
+/-- go: kvstore.go:207:17 -/
 noncomputable def store.updateCompactRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "rev"
@@ -2458,7 +2533,7 @@ noncomputable def store.updateCompactRev.impl [FfiSyntax] [GoGlobalContext] : va
 
 /-- checkPrevCompactionCompleted checks whether the previous scheduled compaction is completed.
 
-    go: kvstore.go:225:17 -/
+    go: kvstore.go:235:17 -/
 noncomputable def store.checkPrevCompactionCompleted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2511,7 +2586,7 @@ noncomputable def store.checkPrevCompactionCompleted.impl [FfiSyntax] [GoGlobalC
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))))
 
-/-- go: kvstore.go:234:17 -/
+/-- go: kvstore.go:244:17 -/
 noncomputable def store.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "trace"
@@ -2609,7 +2684,7 @@ noncomputable def store.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "ch") (Var "$r0"))))))))))))))))))
 
-/-- go: kvstore.go:262:17 -/
+/-- go: kvstore.go:272:17 -/
 noncomputable def store.compactLockfree.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "rev"
@@ -2654,7 +2729,7 @@ noncomputable def store.compactLockfree.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "prevCompactionCompleted") (Var "$r0"))))))))))))
 
-/-- go: kvstore.go:272:17 -/
+/-- go: kvstore.go:282:17 -/
 noncomputable def store.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "trace"
@@ -7520,6 +7595,7 @@ class hashStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_hashes : ∀ (x : hashStorage) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hashStorage.underlying go!"hashes") (PairV #x #y) (Val #(({ x with hashes' := y } : hashStorage)))
   get_lg : ∀ (x : hashStorage), go.IsGoStepPureDetTagged under (StructFieldGet hashStorage.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : hashStorage) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet hashStorage.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : hashStorage)))
+  ptr_Hash_unfold : MethodUnfold (go.GoType.PointerType hashStorage.ty) go!"Hash" hashStorage.Hash.impl
 
 attribute [instance] hashStorage.TypeAssumptions.type_repr
   hashStorage.TypeAssumptions.underlying
@@ -7531,6 +7607,7 @@ attribute [instance] hashStorage.TypeAssumptions.type_repr
   hashStorage.TypeAssumptions.set_hashes
   hashStorage.TypeAssumptions.get_lg
   hashStorage.TypeAssumptions.set_lg
+  hashStorage.TypeAssumptions.ptr_Hash_unfold
 
 abbrev index [FfiSyntax] : Type := GoInterface
 
@@ -8234,6 +8311,7 @@ class store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   ptr_compact_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"compact" store.compact.impl
   ptr_compactBarrier_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"compactBarrier" store.compactBarrier.impl
   ptr_compactLockfree_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"compactLockfree" store.compactLockfree.impl
+  ptr_hash_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"hash" store.hash.impl
   ptr_scheduleCompaction_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"scheduleCompaction" store.scheduleCompaction.impl
   ptr_updateCompactRev_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"updateCompactRev" store.updateCompactRev.impl
 
@@ -8284,6 +8362,7 @@ attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.ptr_compact_unfold
   store.TypeAssumptions.ptr_compactBarrier_unfold
   store.TypeAssumptions.ptr_compactLockfree_unfold
+  store.TypeAssumptions.ptr_hash_unfold
   store.TypeAssumptions.ptr_scheduleCompaction_unfold
   store.TypeAssumptions.ptr_updateCompactRev_unfold
 
