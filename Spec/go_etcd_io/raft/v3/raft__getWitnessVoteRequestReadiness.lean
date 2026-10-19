@@ -26,7 +26,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 past one vote to win the first `return nil`, else the second). `stepCandidate`'s
 `VotePending` arm then ranges over nothing. -/
 abbrev raft.getWitnessVoteRequestReadiness.spec : Prop :=
-  ∀ (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (d : GoArray w64 2),
+  ∀ (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (d : GoArray w64 2)
+    (v1 v2 : w64),
+  d.arr = [v1, v2] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"getWitnessVoteRequestReadiness"))
       (Val #d))

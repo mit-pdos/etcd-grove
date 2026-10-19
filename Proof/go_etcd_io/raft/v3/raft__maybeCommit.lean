@@ -76,18 +76,6 @@ private theorem isQuorumIndex_acked (c : GSet w64) (pvs : GMap w64 Progress) (N 
   have := GMap.subseteq_size Hsub
   omega
 
-/-- Ranging over a `nil` map does nothing, at any closure value (Perennial's
-`wp_map_nil_for_range` is stated at a `GoFunc`, which a `glv(λ: …)` closure does not
-unify with syntactically). -/
-private theorem wp_map_nil_for_range_val (body : GoFunc) (key_type elem_type : go.GoType) :
-    {{ (True : IProp GF) }}
-      (App (App (Val (map.forRange key_type elem_type)) (Val #map.nil)) (Val #body))
-    {{ RET executeVal; True }} := by
-  iintro %Φ - HΦ
-  wp_pures
-  iapply HΦ
-  ipureintro; trivial
-
 /-- The body, with its `defer`: `wp_with_defer` allocates the defer
 stack, the `traceCommit` closure is pushed onto it, and `return:`
 runs it (`traceCommit.spec`) before the function returns.

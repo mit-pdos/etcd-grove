@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.stepCandidate
 public import Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
+public import Spec.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
 public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
@@ -55,6 +56,8 @@ raft v3.7 (2026-10-15, stage R4): the message's fields are read by its getters (
 received message (`msgIn`, entries read-only) to their handlers. -/
 theorem stepCandidate.wp_proof
     (wp_raft_poll : raft.pollAndReportDiff.spec (GF := GF) (hG := hG))
+    (wp_raft_getWitnessVoteRequestReadiness :
+      raft.getWitnessVoteRequestReadiness.spec (GF := GF) (hG := hG))
     (wp_raft_becomeLeader : raft.becomeLeader.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
@@ -131,7 +134,14 @@ theorem stepCandidate.wp_proof
     wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_GetReject.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_raft_poll _ _ _ _ _ _ _ $$ [$Hphys]
-      as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
+      as %g %rj0 %res %d ⟨Hphys, %Hres, %Hwon, %Hlost, %Hd⟩
+    -- (2026-10-19, witness support) `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`:
+    -- no witness, the plain log line
+    try wp_auto
+    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+    try wp_auto
+    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+    try wp_auto
     -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
@@ -185,9 +195,13 @@ theorem stepCandidate.wp_proof
       simp only [Hnp, ↓reduceIte]
       refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, ?_⟩
       cases s; rfl
-    · -- `quorum.VotePending`: neither switch arm fires; keep waiting
+    · -- `quorum.VotePending`: neither switch arm fires; keep waiting. (2026-10-19, witness
+      -- support) No witness to ask: `getWitnessVoteRequestReadiness` is `nil`
       simp only [VotePending]
       wp_auto
+      wp_apply wp_raft_getWitnessVoteRequestReadiness c _ r id _ d _ _ Hd $$ [$Hphys] as Hphys
+      wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
+      wp_pures; (try wp_auto)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -346,7 +360,14 @@ theorem stepCandidate.wp_proof
       wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_GetReject.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_apply wp_raft_poll _ _ _ _ _ _ _ $$ [$Hphys]
-        as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
+        as %g %rj0 %res %d ⟨Hphys, %Hres, %Hwon, %Hlost, %Hd⟩
+      -- (2026-10-19, witness support) `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`:
+      -- no witness, the plain log line
+      try wp_auto
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+      try wp_auto
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      try wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
       wp_raft_logC
@@ -405,9 +426,12 @@ theorem stepCandidate.wp_proof
         ipureintro
         refine ⟨?_, trivial⟩
         exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
-      · -- `quorum.VotePending`: keep waiting
+      · -- `quorum.VotePending`: keep waiting; no witness to ask
         simp only [VotePending]
         wp_auto
+        wp_apply wp_raft_getWitnessVoteRequestReadiness c _ r id _ d _ _ Hd $$ [$Hphys] as Hphys
+        wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
+        wp_pures; (try wp_auto)
         iapply HΦ $$ %GoInterface.nil %_ %false %c
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]

@@ -1981,6 +1981,47 @@ theorem raft.wp_load_trk_EpochC (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (
   iframe He
   iexact H
 
+/-- Ranging over a `nil` map does nothing, at any closure value (Perennial's
+`wp_map_nil_for_range` is stated at a `GoFunc`, which a `glv(λ: …)` closure does not
+unify with syntactically; 2026-10-19, witness support: the witness maps are `nil`). -/
+theorem wp_map_nil_for_range_val (body : GoFunc) (key_type elem_type : go.GoType) :
+    {{ (True : IProp GF) }}
+      (App (App (Val (map.forRange key_type elem_type)) (Val #map.nil)) (Val #body))
+    {{ RET executeVal; True }} := by
+  iintro %Φ - HΦ
+  wp_pures
+  iapply HΦ
+  ipureintro; trivial
+
+/-- `r.trk.Witnesses[i]` (2026-10-19, witness support: `switchToConfig`, `campaign` and
+`stepCandidate` read it): `0`, the configuration is witness-free (`ownCfgCC`). -/
+theorem raft.wp_load_trk_witnessC (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
+    (i : w64) (hi : sint.Z i = 0 ∨ sint.Z i = 1) :
+    {{ ownRaftPhysCV (GF := GF) c V r id s }}
+      (App (Val (GoInstruction (GoLoad go.uint64)))
+        (Val #(arrayIndexRef w64 (sint.Z i) ((r.[raft, go!"trk"]).[tracker.ProgressTracker,
+          go!"Config"].[tracker.Config, go!"Witnesses"]))))
+    {{ RET #(W64 0); ownRaftPhysCV c V r id s }} := by
+  iintro %Φ H HΦ
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_witnesses c tv _ $$ Htrk with ⟨%Hwit, Htrk⟩
+  icases (Access.access
+      (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config,
+        go!"Witnesses"] ↦ tv.Config'.Witnesses')
+      (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config,
+        go!"Witnesses"] ↦ tv.Config'.Witnesses')
+      (P := r.[raft, go!"trk"] ↦ tv)) $$ Hf with ⟨Hwf, Hfback⟩
+  icases array_acc_same _ (sint.Z i) _ _ _ (W64 0) (by omega)
+      (by rw [Hwit]; rcases hi with h | h <;> rw [h] <;> rfl)
+    $$ Hwf with ⟨Hw, Hwback⟩
+  iapply IntoValTyped.wp_load (t := go.uint64) _ (DFrac.own 1) (W64 0) $$ Hw
+  inext
+  iintro Hw
+  ihave Hwf := Hwback $$ Hw
+  ihave Hf := Hfback $$ Hwf
+  iapply HΦ
+  iapply Hback $$ %tv %s.votes Hf Htrk
+
 /-- (D19p, 2026-10-18) The progress map tracks the configuration's voters and learners. -/
 theorem ownRaftPhysC_dom (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
