@@ -86,7 +86,8 @@ name without a `FuncUnfold`, stuck. What changed here:
   `functions`); 32 generated files have one. A configuration's steps for variable initializers
   that run last go in `before['$inits']` (emitted before the first `init`), not `$end` or
   `finish` (`etcdserverpb`, `client/v3`, `mvcc`, `read`'s counters). The raft `Init.lean` has the same
-  axiom for `os`, `proto` and `raftpb`.
+  axiom for `os`, `proto` and `raftpb`. Porcupine's `Init.lean`, which proves `context`'s
+  initialization again, steps into `context`'s `init.0`, as Perennial's proof now does.
 * The negative-index semantics and string slicing needed no proof change.
 * Follow-up: with `string_slice`, `authority`'s spec need not be restricted to plain endpoints
   (`plainEndpoint`, "Item 5: client construction").
