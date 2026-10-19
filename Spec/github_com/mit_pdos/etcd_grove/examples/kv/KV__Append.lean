@@ -29,7 +29,7 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.Append.spec : Prop :=
   ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (key val : List w8) (Φ : IProp GF),
-  (key.length : Int) < 2 ^ 62 → (val.length : Int) < 2 ^ 62 →
+  (key.length : Int) < 2 ^ 61 → (val.length : Int) < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isKV γr γp r ∗
       AU <{ ∃∃ (x : KVMap), kvVal γr x }> @ kvMask, ∅
         <{ kvVal γr (kvUpd x key (x key ++ val)), COMM Φ }> }}

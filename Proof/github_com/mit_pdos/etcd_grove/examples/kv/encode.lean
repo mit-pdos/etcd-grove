@@ -24,9 +24,9 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
 /-- `encode`'s spec, for a key and a value whose lengths sum to less than `2^62`: then the
-capacity `25 + len(key) + len(val)` does not overflow an `int`. (`encode.spec` bounds each by
-`2^62` only, which lets the sum overflow, making `make` panic in the model: unprovable as
-stated.) -/
+capacity `25 + len(key) + len(val)` does not overflow an `int`. (Until 2026-10-19 `encode.spec`
+bounded each by `2^62` only, which lets the sum overflow, making `make` panic in the model:
+unprovable; it bounds each by `2^61` now.) -/
 theorem encode.wp_proof_sum : ∀ (replica seq : w64) (kind : w8) (key val : List w8),
     (key.length : Int) + (val.length : Int) < 2 ^ 62 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv }}
@@ -117,15 +117,10 @@ theorem encode.wp_proof_sum : ∀ (replica seq : w64) (kind : w8) (key val : Lis
   simp only [List.append_nil]
   iexact Hb''
 
-/-- `encode.spec` from `encode.wp_proof_sum`. NOT PROVED: `encode.spec` bounds the key and the
-value by `2^62` each, which does not bound the capacity `25 + len(key) + len(val)` below `2^63`
-(`2^62 - 1 + 2^62 - 1 + 25` overflows an `int`, and `make` then panics in the model), so the spec
-is false as stated; the `sorry` is exactly that missing bound. The fix is in the spec: bound the
-key and the value by `2^61` each (or their sum by `2^62`), here and in the specs that pass them
-on (`do`, `Put`, `Append`, `kvInOk`); this proof is then `encode.wp_proof_sum` with `by omega`. -/
+/-- `encode.spec` from `encode.wp_proof_sum`: each length below `2^61` bounds their sum. -/
 theorem encode.wp_proof : encode.spec (GF := GF) (hG := hG) := by
   intro replica seq kind key val Hk Hv
-  exact encode.wp_proof_sum replica seq kind key val (by sorry)
+  exact encode.wp_proof_sum replica seq kind key val (by omega)
 
 end proof
 

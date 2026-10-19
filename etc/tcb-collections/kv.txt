@@ -1,6 +1,7 @@
-# The register example (examples/kv): every linked result of
+# The key-value store example (examples/kv; until 2026-10-19 the register example,
+# etc/tcb-collections/register.txt): every linked result of
 # Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean and the results of its
-# Results.lean (over raft's linked results).
+# Results.lean (over raft's, lintest's and porcupine's linked results).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/kv.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/kv.txt --check    against the lines below
@@ -32,6 +33,9 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kv/(Link|Results)\.lean$
 # copy of a message, `Ready` handing a response out at half; notes/STATUS.md, "stage R6").
 # Since 2026-10-16 (stage R7c) also on `context.ErrDone` (raft's node API names the context's
 # error; the register passes `Background()`, where the case is vacuous).
+# Since 2026-10-19 the register is the key-value store, and its closed theorem is about the
+# randomized porcupine test (`kv_adequate`): the store's results also rest on lintest's and
+# porcupine's, which add no axiom or `sorry` of this repository.
 axiom DescribeConfChange.wp_proof
 axiom Perennial.go_etcd_io.raft.v3.raftpb.initFuncsOk
 axiom Perennial.go_etcd_io.raft.v3.raftpb.opaqueInitsOk

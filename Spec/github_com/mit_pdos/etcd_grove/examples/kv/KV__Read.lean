@@ -38,7 +38,7 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.Read.spec : Prop :=
   ∀ (γr : KVNames) (γp : RepNames) (r : Loc) (key : List w8) (L0 : List (List w8)),
-  (key.length : Int) < 2 ^ 62 →
+  (key.length : Int) < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isKV γr γp r ∗ rdCred γr.raft 1 ∗ kvLb γr L0 }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"Read")) (Val #key))
