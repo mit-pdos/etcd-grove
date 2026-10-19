@@ -1,9 +1,11 @@
 name = "etcdGrove"
 defaultTargets = ["EtcdGrove"]
 
-# The Perennial framework (branch `lean` of mit-pdos/perennial), including the Goose
-# translator that produced `Code/` and `GeneratedProof/` (checked by
-# `etc/goose.py --check`).
+# The Perennial framework, including the Goose translator that produced `Code/` and
+# `GeneratedProof/` (checked by `etc/goose.py --check`). For now the pin follows branch
+# `lean-temp` of mit-pdos/perennial (at `a54e1999f`, on `lean`'s history), not `lean`
+# itself, which has moved on and needs fixing up first (notes/STATUS.md, "Perennial: the
+# `lean-temp` branch").
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
