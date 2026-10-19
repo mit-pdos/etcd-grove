@@ -221,11 +221,11 @@ func Model() porcupine.Model {
 	}
 }
 
-var keys = []string{"k0", "k1", "k2"}
-var vals = []string{"a", "b", "c", "d"}
-
-// Gen picks an operation at random: a Put of a random value or a Get, of a random key.
+// Gen picks an operation at random: a Put of a random value or a Get, of a random key. (The keys
+// and values are local, not package variables, so that the package's initializer runs no code.)
 func Gen(id int) any {
+	keys := []string{"k0", "k1", "k2"}
+	vals := []string{"a", "b", "c", "d"}
 	n := primitive.RandomUint64()
 	k := keys[n%uint64(len(keys))]
 	n = n / uint64(len(keys))

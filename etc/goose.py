@@ -374,6 +374,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
     ),
     Project(
+        name="linkv",
+        # The lintest driver instantiated with etcd (D20): one member started in-process, as
+        # in putget, and lintest.Run's clients doing Put and Get through one client, checked
+        # by porcupine against a key-value model. A Go module of this repository, with
+        # putget's replaces (keep them in step); its imports are the etcd, lintest and
+        # porcupine projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "linkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
+    ),
+    Project(
         name="porcupine",
         # The linearizability checker of etcd's robustness tests (github.com/anishathalye/
         # porcupine v1.3.1, the version in etcd's tests/go.mod), vendored with the one change
