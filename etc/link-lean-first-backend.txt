@@ -128,3 +128,8 @@ unsafeRange: bbolt_Cursor__Seek_kv bbolt_Cursor__Next_kv
 backend_newBackend: bbolt_Open_kv newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run
 newBatchTxBuffered: backend__begin
 newBoltLoggerZap:
+# (D22 S-f, 2026-10-19) the snapshot path's backend boundary (InvSnapshot.lean): `backend.Snapshot`
+# (a read transaction begun outside the batch lock) and the snapshot's `WriteTo` (bbolt's
+# `Tx.WriteTo`), names only, axioms. Linked for the sender (D22 S-h).
+backend__Snapshot:
+snapshot__WriteTo:

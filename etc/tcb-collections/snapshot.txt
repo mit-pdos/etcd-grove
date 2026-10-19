@@ -1,0 +1,45 @@
+# The snapshot path (track T-S, D22; notes/decisions.md, "T-S: the snapshot path, scope and
+# staging" and its stages): the receiving server's `applySnapshot`, raft's `raft.Step` and the
+# RawNode's `Ready`/`Step` (the `MsgSnap` send and receive), and the backend boundary of stage S-f
+# (2026-10-19: `backend.Snapshot`, the snapshot's `WriteTo`, `storage.OpenSnapshotBackend` with
+# the axioms it rests on). The sender's `createMergedSnapshotMessage` and `sendMergedSnap` have no
+# spec until D22 S-h; add their patterns then.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/snapshot.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/snapshot.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/snapshot.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^EtcdServer\.wp_applySnapshot$
+roots ^raft\.wp_Step$
+roots ^RawNode\.wp_(Ready|Step)$
+roots ^storage\.wp_OpenSnapshotBackend$
+roots ^backend\.backend\.wp_Snapshot$
+roots ^backend\.snapshot\.wp_WriteTo$
+axiom DescribeConfChange.wp_proof
+axiom backend.backend.Snapshot.wp_proof
+axiom backend.fileHolds
+axiom backend.isDB
+axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.snapshot.WriteTo.wp_proof
+axiom backend.txDB
+axiom backend.txLive
+axiom config.ServerConfig.BackendPath.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom os.Rename.wp_proof
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
+axiom storage.OpenBackend.wp_proof
