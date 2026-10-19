@@ -25,7 +25,7 @@ Node 2 should not answer the read with an index below 4: a read issued after `y`
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-readindex-removed-leader/raft_test.go#L2227-L2260) on branch [`upamanyus/etcd-raft:fix/raft-readindex-removed-leader`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader), off `main` (638f42739). On `main` it fails as above.
+Unit test: [`TestReadOnlyForRemovedLeader`](https://github.com/upamanyus/etcd-raft/blob/1917bb4/raft_test.go#L2263-L2296) on branch [`upamanyus/etcd-raft:fix/raft-readindex-removed-leader`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader), off `main` (1d3216d84). On `main` it fails as above.
 
 ### Anything else we need to know?
 
@@ -37,6 +37,6 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-`main` (638f42739), go1.26.9 linux/amd64.
+`main` (1d3216d84), go1.26.9 linux/amd64.
 
 </details>

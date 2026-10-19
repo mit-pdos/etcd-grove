@@ -22,7 +22,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --leasing > Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
-       etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
+       etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
@@ -119,9 +119,10 @@ the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class
 `notes/raft-retarget-plan.md`) and the trust-boundary axioms of protobuf-go's `proto` it rests
 on, from etc/link-lean-first-raft.txt (the mode was `--raft37`, into the parallel tree `Raft37/`,
 until stage R6 swapped the trees).
-`--register` links the register example's proofs (`examples/register`), from
-etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
-`Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
+`--kv` links the key-value store example's proofs (`examples/kv`; until 2026-10-19 the register
+example, `--register`), from etc/link-lean-first-kv.txt; raft's, the porcupine driver's and
+porcupine's functions it calls are `@` callees, linked in their `Link.lean`s, and its specs'
+`[KVStor GF]` (the storage registry) is passed on.
 """
 import os
 import re
@@ -226,12 +227,14 @@ LEAN_FIRST = {
               "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
     "--context": ("link-lean-first-context.txt", "", "_root_.Perennial.context.Assumptions",
                   "etcd-grove's trust boundary of `context` (axioms)", [""]),
-    # the register example (examples/register): its proofs, over raft's (linked in raft's
-    # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
-    "--register": ("link-lean-first-register.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.register go_etcd_io.raft.v3",
-                   "github_com.mit_pdos.etcd_grove.examples.register.Assumptions",
-                   "The register example's proofs (`examples/register`)", [""]),
+    # the key-value store example (examples/kv): its proofs, over raft's and the porcupine
+    # driver's (linked in their `Link.lean`s, the `@` callees) and the storage model `KVStor`
+    # gives
+    "--kv": ("link-lean-first-kv.txt",
+             "github_com.mit_pdos.etcd_grove.examples.kv go_etcd_io.raft.v3 "
+             "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
+             "github_com.mit_pdos.etcd_grove.examples.kv.Assumptions",
+             "The key-value store example's proofs (`examples/kv`)", [""]),
     # the Raft proof (raft v3.7 plus the read-index fix, project raft of etc/goose.py) and the
     # trust boundary of protobuf-go it rests on (Spec/google_golang_org/protobuf/proto/, stage R1)
     "--raft": ("link-lean-first-raft.txt", "go_etcd_io.raft.v3",
@@ -280,7 +283,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter"}
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
@@ -487,7 +490,7 @@ hand.
     out.extend(f"public import {m}" for m in EXTRA_IMPORTS.get(sys.argv[1], []))
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
     # an `@` callee whose package has no `Link.lean` of its own is linked by one of the other
-    # imported Links (raft's links protobuf-go's `proto` axioms, which the register names)
+    # imported Links (raft's links protobuf-go's `proto` axioms, which the store names)
     out.extend(sorted({"public import " + external_link(fn) for fn in external
                        if os.path.exists(os.path.join(root, *external_link(fn).split(".")) + ".lean")}
                       | {f"public import {mod}" for mod in reused.values()}))
@@ -532,16 +535,16 @@ variable [package_sem : {assumptions}]
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
-        # the register's specs take its storage registry
-        allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
+        # the key-value store's specs take its storage registry
+        allg += " [KVStor GF]" if "[KVStor GF]" in src else ""
         # mvcc's index specs use the btree through the cache's interface (its assumptions), and
         # so does every result that links one of them
         allg += " [go_etcd_io.etcd.cache.v3.Assumptions]" if fn in cache_assumptions else ""
         # the client's watch specs are stated at the server's model (the watch slice's unit W-C:
         # `v3rpc.etcdModelOfServer`), under the v3rpc package's assumptions too
         allg += f" [{SRV_ASSUMPTIONS}]" if fn in srv_assumptions else ""
-        # ... or, stated over any raft storage model, that (the register's transport)
-        if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
+        # ... or, stated over any raft storage model, that (the store's transport)
+        if "[KVStor GF]" not in src and "[StorageModel GF]" in src:
             allg += " [StorageModel GF]"
         # ... or over the `MemoryStorage` registry (the server's `NewServer`, 2026-10-16: its raft
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)

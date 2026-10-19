@@ -99,6 +99,14 @@ before any public issue.
     [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md) (the same `IsDefaultOrdering`
     cause).
 
+12. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
+    (2026-10-19): the gRPC quota check keeps the backend it saw at startup, so after a member
+    installs a leader's snapshot it judges writes by its old, closed backend; if that one was over
+    the quota, every write through the member re-raises NOSPACE for the whole cluster, through
+    compaction, defragmentation and disarming, until the member restarts. Default configuration,
+    the documented NOSPACE recovery with one member down during it; reproduced by an integration
+    test at the pin; fix a few lines (tested). Upstream not yet searched.
+
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
 [leasing-modify-uncached-once](leasing-modify-uncached-once.md) (every write of an uncached key
