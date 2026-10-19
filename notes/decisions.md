@@ -10911,6 +10911,26 @@ by D21g (A).
 (recommendation (A)). Next, once answered and M4 committed: regenerate with the configuration
 above, then M2 as designed here.
 
+**D21g, D21h (the user, 2026-10-19): (A), (A).** Two more choices came up in M2's server half.
+- **The transport's concurrency bound, (A).** `Transport.Start` takes `K = 2 ^ 29` copies of a
+  resource `R` belonging to the receiver. The transport calls into the receiver's `Raft`
+  (`Process`, `IsIDRemoved`, the two reports) at most `K` at a time; each call borrows one `R` and
+  gives it back. The server's `R` is an `lgMu` reader slot (`srvLgReader`), because `Process`
+  begins with `s.Logger()`. The transport gets `2 ^ 29` of `lgMu`'s `2 ^ 30` slots. The bound is
+  true of Go only physically: each call is a goroutine with its own stack, and past `2 ^ 30`
+  concurrent readers Go's `RWMutex` itself fails. rafthttp's structure gives no bound, since a
+  cancelled pipeline post leaves its handler running.
+- **The peer-URL directory.** `bootstrapContract`/`bootOk` take `dir : w64 → List GoString`. The
+  remotes' records and a strengthened `Members()` triple give each member's URLs as `dir` of its
+  id: the records bootstrap made name each member's own URLs, D21b's deployment fact.
+  `NewServer.spec` takes `γn.dir = dir`, and putget's premises state the contract at its one
+  member's URL.
+
+The raft side (M2r, a separate agent) provides `SentMsgOk` as a conjunct of `isRaftMsg` under
+`γ.reNoSnap`. It also provides `NetMsgOk.of_sent`, `SentMsgOk.ne_timeoutNow`/`ne_transferLeader`
+and `isMessage_propose_ctx`. Leader transfer is off in the same mode, so `netP` takes
+`MsgTransferLeader → reNoSnap = false`.
+
 **D21 M4 carried out (2026-10-19):** D21e (A) as stated, with two choices the text left open, both
 internal to the proofs (no spec's meaning for a client changes, no trust-base change):
 - *How a generator shares the cluster's map.* The issued ids' map's authority is the cluster's
