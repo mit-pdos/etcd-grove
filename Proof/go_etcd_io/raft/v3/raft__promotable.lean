@@ -79,7 +79,7 @@ theorem raft.promotable.wp_proof
         · exact h1 h'
       rw [Hl, decide_eq_false Hnl]
       wp_auto
-      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %rfl
+      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
       simp only [GMap.insert_id s.prvals id p Hpv]
       ihave Hphys := Hback $$ Htrkf Htrk
@@ -100,7 +100,7 @@ theorem raft.promotable.wp_proof
         · exact h'
       rw [Hl, decide_eq_true Hlr]
       wp_auto
-      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %rfl
+      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
       simp only [GMap.insert_id s.prvals id p Hpv]
       ihave Hphys := Hback $$ Htrkf Htrk

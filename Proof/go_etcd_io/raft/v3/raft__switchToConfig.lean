@@ -224,7 +224,7 @@ theorem raft.switchToConfig.wp_proof
             iintro %i %pr0 %tv0' %pvs0 %p0 %D
             wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback0, HI⟩
             iNamed HI
-            ihave Htrk := Hback0 $$ %p0 Hpr %rfl
+            ihave Htrk := Hback0 $$ %p0 Hpr %(And.intro rfl rfl)
             ihave Hphys := Hrest $$ Htrkf Htrk %(by rw [GMap.insert_id _ _ _ Hpvi]; exact Hok)
             wp_auto
             wp_apply raft.wp_load_idC $$ Hphys as Hphys

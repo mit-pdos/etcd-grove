@@ -38,7 +38,7 @@ theorem tracker.ProgressTracker.RecordVote.wp_proof :
     iframe Htrk
     simp only [recordVote, Hok]
     iapply ownTrackerC_intro (Hinv := Hinv) (Hdom := Hdom) (Hflags := Hflags) (Hsize := Hsize)
-      (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hcfg
+      (HmaxInfl := HmaxInfl) (Hnw := Hnw) $$ Hvotes Hprs Hprogs Hcfg Hepoch
   | none =>
     -- first vote from `src`
     simp only [Option.isSome_none, Bool.false_eq_true, decide_false, Bool.not_false]
@@ -48,7 +48,7 @@ theorem tracker.ProgressTracker.RecordVote.wp_proof :
     iframe Htrk
     simp only [recordVote, Hok]
     iapply ownTrackerC_intro (Hinv := Hinv) (Hdom := Hdom) (Hflags := Hflags) (Hsize := Hsize)
-      (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hcfg
+      (HmaxInfl := HmaxInfl) (Hnw := Hnw) $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
 end proof
 

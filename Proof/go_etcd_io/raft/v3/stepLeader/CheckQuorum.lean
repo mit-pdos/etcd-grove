@@ -112,7 +112,7 @@ theorem wp_stepLeader_checkQuorum
     wp_auto
     wp_if_destruct
     · -- the leader itself: nothing
-      ihave Htrk := Hprback $$ %p Hpr %rfl
+      ihave Htrk := Hprback $$ %p Hpr %(And.intro rfl rfl)
       rw [GMap.insert_id _ _ _ Hpvi]
       iapply HΦ
       iexists tv0, pvs0
@@ -123,7 +123,7 @@ theorem wp_stepLeader_checkQuorum
       icases Hpr with ⟨%pv, Hpr⟩
       iNamed Hpr
       wp_auto
-      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %rfl
+      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro pr _ p $$ Hpv Hinfl
         ipureintro
         exact Habs

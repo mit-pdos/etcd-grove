@@ -34,7 +34,7 @@ theorem tracker.ProgressTracker.ResetVotes.wp_proof :
   iapply HΦ
   iframe Htrk
   iapply ownTrackerC_intro c { tv with Votes' := votesRef } ∅ t.prs t.peers Hinv Hdom Hflags Hsize
-    HmaxInfl $$ Hvotes_new Hprs Hprogs Hcfg
+    HmaxInfl Hnw $$ Hvotes_new Hprs Hprogs Hcfg Hepoch
 
 end proof
 

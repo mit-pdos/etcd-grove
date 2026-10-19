@@ -463,8 +463,8 @@ theorem wp_stepLeader_report
       · wp_auto
         ihave Hpa := ownProgress_intro pr _ { p with pendingSnapshot := W64 0 } $$ Hpv Hinfl
           %(by
-            obtain ⟨H1, H2, H3, H4, H5, -, H7, H8⟩ := Habs'
-            exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, rfl, H7, H8⟩)
+            obtain ⟨H1, H2, H3, H4, H5, -, H7, H8, Hw9⟩ := Habs'
+            exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, rfl, H7, H8, Hw9⟩)
         wp_apply wp_Progress_BecomeProbe $$ [$Hpa] as Hpa
         ihave Hphys := Hpback $$ %(progressBecomeProbe { p with pendingSnapshot := W64 0 }) Hpa %(by first | rfl | simp)
           %(fun Hl => (Hok Hl).clearSnap.becomeProbe Hnw (fun hns => absurd Hsn ((Hok Hl).2 hns).2.2))
@@ -485,8 +485,8 @@ theorem wp_stepLeader_report
     ihave Hphys := Hpback $$ %{ p' with paused := true } [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
     · iapply ownProgress_intro pr _ { p' with paused := true } $$ Hpv Hinfl
       ipureintro
-      obtain ⟨H1, H2, H3, H4, H5, H6, -, H8⟩ := Habs2
-      exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, H8⟩
+      obtain ⟨H1, H2, H3, H4, H5, H6, -, H8, Hw9⟩ := Habs2
+      exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, H8, Hw9⟩
     iapply HΦ $$ %interface.nil %_
     rw [rest_prvals s]
     iframe Hphys
@@ -763,8 +763,8 @@ theorem wp_stepLeader_hbresp
   ihave Hphys := Hpback $$ %{ p with paused := false } [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
   · iapply ownProgress_intro pr _ { p with paused := false } $$ Hpv Hinfl
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5, H6, -, -⟩ := Habs'
-    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩
+    obtain ⟨H1, H2, H3, H4, H5, H6, -, -, Hw9⟩ := Habs'
+    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, rfl, rfl, Hw9⟩
   have Hmm1 : prvalsMatch (<[m.From' := { p with paused := false }]> s.prvals)
       = prvalsMatch s.prvals := prvalsMatch_insert_same _ _ p _ Hpvs rfl
   generalize Hp1 : ({ p with paused := false } : Progress) = p1 at *
@@ -1148,8 +1148,8 @@ theorem wp_stepLeader_appresp
   ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
   · iapply ownProgress_intro pr _ p $$ Hpv Hinfl
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5, H6, H8, -⟩ := Habs'
-    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, H8, rfl⟩
+    obtain ⟨H1, H2, H3, H4, H5, H6, H8, -, Hw9⟩ := Habs'
+    exact (progressAbs_Some _ _ _).2 ⟨H1, H2, H3, H4, H5, H6, H8, rfl, Hw9⟩
   have Hmm1 : prvalsMatch (<[m.From' := p]> s.prvals)
       = prvalsMatch s.prvals := prvalsMatch_insert_same _ _ p _ Hpvs rfl
   generalize Hpvs1 : (<[m.From' := p]> s.prvals : GMap w64 Progress) = pvs1 at *
@@ -1286,8 +1286,8 @@ theorem wp_stepLeader_appresp
         wp_apply wp_GetIndex.1 ml _ _ _ _ $$ [$Hm] as Hm
         wp_apply wp_Inflights_FreeLE $$ [$Hinfl] as %i' ⟨Hinfl, -⟩
         have Habs3 : progressAbs pv i' = some { p2 with infl := i' } := by
-          obtain ⟨A1, A2, A3, A4, A5, A6, A8, -⟩ := Habs2
-          exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A8, rfl⟩
+          obtain ⟨A1, A2, A3, A4, A5, A6, A8, -, Hw9⟩ := Habs2
+          exact (progressAbs_Some _ _ _).2 ⟨A1, A2, A3, A4, A5, A6, A8, rfl, Hw9⟩
         ihave Hpa := ownProgress_intro pr pv { p2 with infl := i' } $$ Hpv Hinfl %Habs3
         ihave Hphys := Hpback $$ %{ p2 with infl := i' } Hpa %(by first | rfl | simp) %(by prok)
         wp_join_done

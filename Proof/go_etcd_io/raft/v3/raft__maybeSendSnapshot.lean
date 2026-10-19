@@ -189,7 +189,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     -- the new value
     icases ownRaftPhysC_pr_upd c r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨%Hok, %Hnw, Hpr, Hback⟩
     wp_apply wp_Progress_BecomeSnapshot $$ [$Hpr] as Hpr
-    ihave Hphys := Hback $$ %(progressBecomeSnapshot pp sv.Metadata'.Index') Hpr %rfl
+    ihave Hphys := Hback $$ %(progressBecomeSnapshot pp sv.Metadata'.Index') Hpr %(And.intro rfl rfl)
       %(fun Hl => by
           have H := Hok Hl
           rw [Hns] at H ⊢

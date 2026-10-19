@@ -102,7 +102,7 @@ theorem raft.bcastAppend.wp_proof
     iintro %i %pr %tv0 %pvs0 %p %D
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
-    ihave Htrk := Hback $$ %p Hpr %rfl
+    ihave Htrk := Hback $$ %p Hpr %(And.intro rfl rfl)
     ihave Hphys := Hrest $$ Htrkf Htrk %(by rw [GMap.insert_id _ _ _ Hpvi]; exact Hok)
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys

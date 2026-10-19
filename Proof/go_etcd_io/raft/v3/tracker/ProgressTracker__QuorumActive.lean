@@ -68,7 +68,7 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
       wp_auto
       ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
       · ipureintro; exact Habs
-      ihave Htrk := Hback $$ %p Hpr %rfl
+      ihave Htrk := Hback $$ %p Hpr %(And.intro rfl rfl)
       rw [GMap.insert_id pvs0 i p Hpvi]
       iapply HΦ
       iexists tv0, pvs0
@@ -92,7 +92,7 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
       wp_apply wp_mapInsert $$ [$Hvm] as Hvm
       ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
       · ipureintro; exact Habs
-      ihave Htrk := Hback $$ %p Hpr %rfl
+      ihave Htrk := Hback $$ %p Hpr %(And.intro rfl rfl)
       rw [GMap.insert_id pvs0 i p Hpvi]
       iapply HΦ
       iexists tv0, pvs0

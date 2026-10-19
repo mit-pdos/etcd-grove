@@ -217,7 +217,7 @@ theorem raft.reset.wp_proof
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hprback, r, %Hinv0, HI⟩
     dsimp only
     have Hpri' : (resetTo0 s term).progress !! i = some pr := Hpri
-    ihave Htrk := Hprback $$ %p Hpr %rfl
+    ihave Htrk := Hprback $$ %p Hpr %(And.intro rfl rfl)
     have Hok1 : PrvalsOk { resetTo0 s term with prvals := <[i := p]> pvs0 } := by
       rw [GMap.insert_id _ _ _ Hpvi]; exact resetInv_prvalsOk _ _ _ _ _ Hinv0 Hok0 Hnw
     ihave Hphys := HI $$ Htrkf Htrk %Hok1
