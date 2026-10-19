@@ -7,7 +7,7 @@ since they are modulo the slices' lengths.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Gen
-public import Perennial.Spec.github_com.goose_lang.primitive.RandomUint64
+public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
 
@@ -28,9 +28,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
 
-theorem Gen.wp_proof
-    (wp_RandomUint64 : github_com.goose_lang.primitive.RandomUint64.spec (GF := GF) (hG := hG)) :
-    Gen.spec (GF := GF) (hG := hG) := by
+theorem Gen.wp_proof : Gen.spec (GF := GF) (hG := hG) := by
   unfold Gen.spec lintest.genSpec
   iintro %id
   wp_start as _
@@ -49,7 +47,7 @@ theorem Gen.wp_proof
   simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd,
     show max (max (4 : Int) 0) 0 = 4 from rfl]
   wp_auto
-  wp_apply wp_RandomUint64 as %n _
+  wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %n _
   -- `keys[n % 3]`
   have hk : 0 ≤ sint.Z (n % W64 3) ∧ sint.Z (n % W64 3) < 3 := by word
   rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]

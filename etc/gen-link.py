@@ -36,6 +36,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
+       etc/gen-link.py --linkv > Proof/github_com/mit_pdos/etcd_grove/examples/linkv/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -254,11 +255,16 @@ LEAN_FIRST = {
                           "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
                           "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
                           [""]),
+    # the linearizability instance over etcd's client (examples/linkv, D20): its porcupine model
+    # and its generator so far
+    "--linkv": ("link-lean-first-linkv.txt", "github_com.mit_pdos.etcd_grove.examples.linkv",
+                "github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions",
+                "The linearizability instance's proofs (`examples/linkv`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
