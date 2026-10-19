@@ -70,7 +70,7 @@ theorem isEtcdLease_of_lessor
   iintro ⟨#Hp, #Hl, #HG, #HR, #Hstr, #Heof, #Hall, #Htg⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, -, -, -, -, -, -, -, #Hrem, -, -⟩
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, -, -, -, -, -, -, -, #Hrem, -, -⟩
   unfold isEtcdLease
   isplitl
   · iintro !> %ctx %cs %ttl %Φ !> #Hctx HΦ

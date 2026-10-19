@@ -28,11 +28,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 set_option maxHeartbeats 0 in
 theorem keepAlive.close.wp_proof : keepAlive.close.spec (GF := GF) (hG := hG) := by
-  intro ka
+  intro γr ka
   wp_start as Hka
   iunfold kaOwn at Hka
   icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd, %γkd, Hchs, Hchsl, -, -, -, -, -,
-    -, -, #Hkd, Hpend, Htoks, -⟩
+    -, -, #Hkd, Hpend, Htoks, -, -⟩
   iunfold kaDone at Hkd
   icases Hkd with ⟨#Hkdf, -⟩
   ihave %Hsll := ownSlice_len $$ Hchsl

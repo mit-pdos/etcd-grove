@@ -42,7 +42,7 @@ theorem lessor.recvKeepAlive.wp_proof
   iunfold keepAliveRespMsg at Hresp
   icases Hresp with ⟨%Hnn, %h, #Hh, #Hid, #Httl⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
@@ -55,7 +55,7 @@ theorem lessor.recvKeepAlive.wp_proof
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%mref, %mm, %st, %scf, %e, Hkas, Hm, HM, Hst, Hscf, #Hscok, Herr⟩
+  icases Hinv with ⟨%mref, %mm, %st, %scf, %e, Hkas, Hm, HM, Hst, Hscf, #Hscok, Herr, Hreg⟩
   (try wp_auto)
   simp only
   wp_apply wp_map_lookup2 _ _ mref mm m.1 (DFrac.own 1) $$ [Hm] as Hm
@@ -63,7 +63,7 @@ theorem lessor.recvKeepAlive.wp_proof
   rcases Hlk : mm !! m.1 with _ | ka
   · simp only [Option.getD_none, Option.isSome_none, decide_false]
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hst Hscf Herr]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hst Hscf Herr Hreg]
     · inext; unfold lessorInv; iexists mref, mm, st, scf, e; iframe; iframe #
     (try wp_auto)
     iapply HΦ; itrivial
@@ -72,20 +72,20 @@ theorem lessor.recvKeepAlive.wp_proof
     wp_if_destruct
     · (try wp_auto)
       wp_apply wp_mapDelete mref mm m.1 _ _ $$ [$Hm] as Hm
-      icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka) (m := mm) Hlk).1 $$ HM
+      icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka) (m := mm) Hlk).1 $$ HM
         with ⟨Hka, HM⟩
       (try wp_auto)
-      wp_apply wp_close ka $$ [$Hka]
+      wp_apply wp_close γr ka $$ [$Hka]
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hst Hscf Herr]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hst Hscf Herr Hreg]
       · inext; unfold lessorInv; iexists mref, _, st, scf, e; iframe; iframe #
       (try wp_auto)
       iapply HΦ; itrivial
-    · icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka) (m := mm) Hlk).1 $$ HM
+    · icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka) (m := mm) Hlk).1 $$ HM
         with ⟨Hka, HMback⟩
       iunfold kaOwn at Hka
       icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd, %γkd, Hchs, Hchsl, Hchscap,
-        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok⟩
+        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok, #Hpair⟩
       (try wp_auto)
       wp_apply time.wp_Now as %t1 -
       wp_apply time.Time.wp_Add as %t2 -
@@ -177,7 +177,7 @@ theorem lessor.recvKeepAlive.wp_proof
             iframe
           ipureintro; constructor <;> word
       · (try wp_auto)
-        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HMback Hst Hscf Herr Hchs Hchsl
+        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HMback Hst Hscf Herr Hreg Hchs Hchsl
           Hchscap Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
         · inext
           unfold lessorInv

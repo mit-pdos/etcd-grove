@@ -21,11 +21,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `ka.close()` on a keep-alive (`kaOwn`: the right to close its `donec` and each channel's
-token): closes `donec` and every channel. -/
+/-- `ka.close()` on a keep-alive (`kaOwn`, at some registry `γr`: the right to close its `donec`
+and each channel's token): closes `donec` and every channel. -/
 abbrev keepAlive.close.spec : Prop :=
-  ∀ (ka : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kaOwn ka }}
+  ∀ (γr : GName) (ka : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kaOwn γr ka }}
     (App (Val (ka @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.keepAlive.ty @!! go!"close"))
       (Val #()))
   {{ RET #(); True }}

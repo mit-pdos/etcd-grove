@@ -36,7 +36,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   intro l addr st γ Dn cd L
   wp_start as ⟨#Hl, #Hst, Htok⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   iunfold cliBidiStreamIs at Hst
   icases Hst with ⟨%ci, %Hci, #HSend, -, -, #HCtx⟩
@@ -54,7 +54,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herr⟩
+  icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herr, Hreg⟩
   (try wp_auto)
   ihave Hnil := ownSlice_nil (V := w64) (GF := GF) (DFrac.own 1)
   ihave Hnilcap := ownSliceCap_nil (V := w64) (GF := GF)
@@ -62,7 +62,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (_ : List w64) (_ : Int) =>
       iprop(∃ (k0 : Loc) (i0 : w64) (tsl : GoSlice) (ids : List w64),
-      "HM" ∷ ([∗map] _id ↦ ka ∈ mm, kaOwn (GF := GF) ka) ∗
+      "HM" ∷ ([∗map] _id ↦ ka ∈ mm, kaOwn (GF := GF) γr ka) ∗
       "ka" ∷ ka_ptr ↦ k0 ∗ "id" ∷ id_ptr ↦ i0 ∗ "now" ∷ now_ptr ↦ now ∗
       "tosend" ∷ tosend_ptr ↦ tsl ∗ "Htsl" ∷ tsl ↦* ids ∗
       "Htcap" ∷ ownSliceCap w64 tsl (DFrac.own 1)))
@@ -78,13 +78,13 @@ theorem lessor.sendKeepAliveLoop.wp_proof
     iintro %i %key %v ⟨%Hki, %Hmv⟩ HP
     iNamed HP
     (try wp_auto)
-    icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+    icases (BigSepM.bigSepM_lookup_acc (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
       (m := mm) Hmv).1 $$ HM with ⟨Hka, HMback⟩
     iunfold kaOwn at Hka
     icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd, %γkd, Hchs, Hchsl, Hchscap,
-      Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok⟩
+      Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok, #Hpair⟩
     wp_apply time.Time.wp_ptr_Before $$ [$Hnk] as %bb Hnk
-    ihave HM : iprop([∗map] _id ↦ ka ∈ mm, kaOwn (GF := GF) ka) $$ [HMback Hchs Hchsl Hchscap Hctxs
+    ihave HM : iprop([∗map] _id ↦ ka ∈ mm, kaOwn (GF := GF) γr ka) $$ [HMback Hchs Hchsl Hchscap Hctxs
         Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
     · iapply HMback
       unfold kaOwn
@@ -120,7 +120,7 @@ theorem lessor.sendKeepAliveLoop.wp_proof
   iintro HP Hm
   iNamed HP
   (try wp_auto)
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
   · inext; unfold lessorInv; iexists mref, mm, stv, scf, e; iframe; iframe #
   (try wp_auto)
   ihave %Hsll := ownSlice_len $$ Htsl

@@ -35,7 +35,7 @@ theorem lessor.keepAliveCtxCloser.wp_proof
   intro l addr ctx cd id kd γkd
   wp_start as ⟨#Hl, #Hctx, #Hkd⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -85,22 +85,22 @@ theorem lessor.keepAliveCtxCloser.wp_proof
     (try wp_auto)
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
     iunfold lessorInv at Hinv
-    icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+    icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
     (try wp_auto)
     wp_apply wp_map_lookup2 _ _ mref mm id (DFrac.own 1) $$ [$Hm] as Hm
     rcases Hlk : mm !! id with _ | ka
     · simp only [Option.getD_none, Option.isSome_none]
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg]
       · inext; unfold lessorInv; iexists mref, mm, stv, scf, e; iframe; iframe #
       (try wp_auto)
       iapply HΦ; itrivial
     · simp only [Option.getD_some, Option.isSome_some, decide_true]
-      icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+      icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
         (m := mm) Hlk).1 $$ HM with ⟨Hka, HM⟩
       iunfold kaOwn at Hka
       icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd', %γkd', Hchs, Hchsl, Hchscap,
-        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd', Hpend, Htoks, #Hctxok⟩
+        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd', Hpend, Htoks, #Hctxok, #Hpair⟩
       (try wp_auto)
       rename_i igo
       irename : (igo ↦ zero_val w64 : IProp GF) => gi
@@ -161,6 +161,9 @@ theorem lessor.keepAliveCtxCloser.wp_proof
           ihave #Hctxok' := bigSepL_eraseIdx (fun c => kaCtxOk (GF := GF) c) ctxs (sint.nat n) Hlt $$ Hctxok
           iclear Hctxok
           icases Hctxok' with ⟨-, #Hctxok⟩
+          -- the alignment kept: the pair at `n` removed from both slices
+          ihave #Hpair' := kaPaired_eraseIdx γr chs ctxs (sint.nat n) $$ Hpair
+          iclear Hpair
           wp_for_post
           (try wp_auto)
           by_cases hz : chsS'.len = W64 0
@@ -168,20 +171,20 @@ theorem lessor.keepAliveCtxCloser.wp_proof
             (try wp_auto)
             wp_apply wp_mapDelete $$ [$Hm] as Hm
             (try wp_auto)
-            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf]
+            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg]
             · inext; unfold lessorInv; iexists mref, _, stv, scf, e; iframe; iframe #
             (try wp_auto)
             iapply HΦ; itrivial
           · rw [decide_eq_false hz]
             (try wp_auto)
-            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hchs Hchsl Hchscap
+            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg Hchs Hchsl Hchscap
               Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
             · inext
               unfold lessorInv
               iexists mref, mm, stv, scf, e
               iframe
               iframe #
-              iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+              iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
                 (m := mm) Hlk).2
               iframe HM
               unfold kaOwn
@@ -237,6 +240,9 @@ theorem lessor.keepAliveCtxCloser.wp_proof
             ihave #Hctxok' := bigSepL_eraseIdx (fun c => kaCtxOk (GF := GF) c) ctxs (sint.nat n) Hlt $$ Hctxok
             iclear Hctxok
             icases Hctxok' with ⟨-, #Hctxok⟩
+            -- the alignment kept: the pair at `n` removed from both slices
+            ihave #Hpair' := kaPaired_eraseIdx γr chs ctxs (sint.nat n) $$ Hpair
+            iclear Hpair
             wp_for_post
             (try wp_auto)
             by_cases hz : chsS'.len = W64 0
@@ -244,20 +250,20 @@ theorem lessor.keepAliveCtxCloser.wp_proof
               (try wp_auto)
               wp_apply wp_mapDelete $$ [$Hm] as Hm
               (try wp_auto)
-              wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf]
+              wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg]
               · inext; unfold lessorInv; iexists mref, _, stv, scf, e; iframe; iframe #
               (try wp_auto)
               iapply HΦ; itrivial
             · rw [decide_eq_false hz]
               (try wp_auto)
-              wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hchs Hchsl Hchscap
+              wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg Hchs Hchsl Hchscap
                 Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
               · inext
                 unfold lessorInv
                 iexists mref, mm, stv, scf, e
                 iframe
                 iframe #
-                iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+                iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
                   (m := mm) Hlk).2
                 iframe HM
                 unfold kaOwn
@@ -281,20 +287,20 @@ theorem lessor.keepAliveCtxCloser.wp_proof
           (try wp_auto)
           wp_apply wp_mapDelete $$ [$Hm] as Hm
           (try wp_auto)
-          wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf]
+          wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg]
           · inext; unfold lessorInv; iexists mref, _, stv, scf, e; iframe; iframe #
           (try wp_auto)
           iapply HΦ; itrivial
         · rw [decide_eq_false hz]
           (try wp_auto)
-          wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hchs Hchsl Hchscap
+          wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg Hchs Hchsl Hchscap
             Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
           · inext
             unfold lessorInv
             iexists mref, mm, stv, scf, e
             iframe
             iframe #
-            iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+            iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
               (m := mm) Hlk).2
             iframe HM
             unfold kaOwn

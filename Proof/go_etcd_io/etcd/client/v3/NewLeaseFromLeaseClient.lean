@@ -66,8 +66,9 @@ theorem NewLeaseFromLeaseClient.wp_proof
     ipersist firstKeepAliveTimeout
     ipersist remote
     ipersist callOpts
-    imod sync.init_Mutex (lessorInv «$r0_ptr») ⊤ (lsF go!"mu" «$r0_ptr»)
-      $$ mu [keepAlives Hm stream streamCancel loopErr] with #Hmu
+    imod lessorReg_alloc (GF := GF) ⊤ with ⟨%γr, Hreg⟩
+    imod sync.init_Mutex (lessorInv «$r0_ptr» γr) ⊤ (lsF go!"mu" «$r0_ptr»)
+      $$ mu [keepAlives Hm stream streamCancel loopErr Hreg] with #Hmu
     · inext
       unfold lessorInv
       iexists mref, ∅, GoInterface.nil, func.nil, GoInterface.nil
@@ -85,7 +86,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     isplitr
     · ipureintro; rfl
     unfold lessorAt
-    iexists dc, γd, sctx, _, lg, _
+    iexists dc, γd, sctx, _, lg, _, γr
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
@@ -112,8 +113,9 @@ theorem NewLeaseFromLeaseClient.wp_proof
     ipersist firstKeepAliveTimeout
     ipersist remote
     ipersist callOpts
-    imod sync.init_Mutex (lessorInv «$r0_ptr») ⊤ (lsF go!"mu" «$r0_ptr»)
-      $$ mu [keepAlives Hm stream streamCancel loopErr] with #Hmu
+    imod lessorReg_alloc (GF := GF) ⊤ with ⟨%γr, Hreg⟩
+    imod sync.init_Mutex (lessorInv «$r0_ptr» γr) ⊤ (lsF go!"mu" «$r0_ptr»)
+      $$ mu [keepAlives Hm stream streamCancel loopErr Hreg] with #Hmu
     · inext
       unfold lessorInv
       iexists mref, ∅, GoInterface.nil, func.nil, GoInterface.nil
@@ -131,7 +133,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     isplitr
     · ipureintro; rfl
     unfold lessorAt
-    iexists dc, γd, sctx, _, lg, _
+    iexists dc, γd, sctx, _, lg, _, γr
     iframe #
     isplitr
     · ipureintro; exact Hlgnn

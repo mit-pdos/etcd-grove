@@ -51,7 +51,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   icombine Hdc0 Hdc gives %Hdceq
   subst Hdceq
@@ -158,7 +158,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (try wp_auto)
               wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
               iunfold lessorInv at Hinv
-              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
               (try wp_auto)
               ihave #Htt : □ (True : IProp GF) $$ []
               · imodintro; itrivial
@@ -167,7 +167,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               wp_func_lits
               wp_bind (App (App (Val (map.forRange _ _)) _) _)
               iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
                   "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
               iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
               isplitl [HM ka]
@@ -183,11 +183,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iNamed HP
                 (try wp_auto)
                 icases (BigSepM.bigSepM_delete
-                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
                 · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-                wp_apply wp_close v $$ [$Hka]
+                wp_apply wp_close γr v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
                 iright; ileft
@@ -198,7 +198,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iframe
                 isplitl
                 · iapply (BigSepM.bigSepM_delete
-                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
@@ -212,7 +212,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (try wp_auto)
                 wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
                 (try wp_auto)
-                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
                 · inext
                   unfold lessorInv
                   iexists mref', ∅, stv, scf, _
@@ -270,7 +270,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (try wp_auto)
               wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
               iunfold lessorInv at Hinv
-              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
               (try wp_auto)
               ihave #Htt : □ (True : IProp GF) $$ []
               · imodintro; itrivial
@@ -279,7 +279,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               wp_func_lits
               wp_bind (App (App (Val (map.forRange _ _)) _) _)
               iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
                   "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
               iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
               isplitl [HM ka]
@@ -295,11 +295,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iNamed HP
                 (try wp_auto)
                 icases (BigSepM.bigSepM_delete
-                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
                 · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-                wp_apply wp_close v $$ [$Hka]
+                wp_apply wp_close γr v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
                 iright; ileft
@@ -310,7 +310,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iframe
                 isplitl
                 · iapply (BigSepM.bigSepM_delete
-                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
@@ -324,7 +324,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (try wp_auto)
                 wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
                 (try wp_auto)
-                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
                 · inext
                   unfold lessorInv
                   iexists mref', ∅, stv, scf, _
@@ -342,7 +342,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           (try wp_auto)
           wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
           iunfold lessorInv at Hinv
-          icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+          icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
           (try wp_auto)
           ihave #Htt : □ (True : IProp GF) $$ []
           · imodintro; itrivial
@@ -351,7 +351,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           wp_func_lits
           wp_bind (App (App (Val (map.forRange _ _)) _) _)
           iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-              "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+              "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
               "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
           iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
           isplitl [HM ka]
@@ -367,11 +367,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iNamed HP
             (try wp_auto)
             icases (BigSepM.bigSepM_delete
-              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
               (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
             icases Hka with (%Hin | Hka)
             · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-            wp_apply wp_close v $$ [$Hka]
+            wp_apply wp_close γr v $$ [$Hka]
             (try wp_auto)
             unfold forMapPostcondition
             iright; ileft
@@ -382,7 +382,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iframe
             isplitl
             · iapply (BigSepM.bigSepM_delete
-                (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                 (m := mm) Hmv).2
               isplitl []
               · ileft; ipureintro
@@ -396,7 +396,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             (try wp_auto)
             wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
             (try wp_auto)
-            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
             · inext
               unfold lessorInv
               iexists mref', ∅, stv, scf, _
@@ -469,7 +469,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (try wp_auto)
               wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
               iunfold lessorInv at Hinv
-              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
               (try wp_auto)
               ihave #Htt : □ (True : IProp GF) $$ []
               · imodintro; itrivial
@@ -478,7 +478,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               wp_func_lits
               wp_bind (App (App (Val (map.forRange _ _)) _) _)
               iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
                   "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
               iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
               isplitl [HM ka]
@@ -494,11 +494,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iNamed HP
                 (try wp_auto)
                 icases (BigSepM.bigSepM_delete
-                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
                 · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-                wp_apply wp_close v $$ [$Hka]
+                wp_apply wp_close γr v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
                 iright; ileft
@@ -509,7 +509,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iframe
                 isplitl
                 · iapply (BigSepM.bigSepM_delete
-                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
@@ -523,7 +523,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (try wp_auto)
                 wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
                 (try wp_auto)
-                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
                 · inext
                   unfold lessorInv
                   iexists mref', ∅, stv, scf, _
@@ -581,7 +581,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               (try wp_auto)
               wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
               iunfold lessorInv at Hinv
-              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+              icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
               (try wp_auto)
               ihave #Htt : □ (True : IProp GF) $$ []
               · imodintro; itrivial
@@ -590,7 +590,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               wp_func_lits
               wp_bind (App (App (Val (map.forRange _ _)) _) _)
               iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+                  "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
                   "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
               iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
               isplitl [HM ka]
@@ -606,11 +606,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iNamed HP
                 (try wp_auto)
                 icases (BigSepM.bigSepM_delete
-                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+                  (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                   (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
                 icases Hka with (%Hin | Hka)
                 · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-                wp_apply wp_close v $$ [$Hka]
+                wp_apply wp_close γr v $$ [$Hka]
                 (try wp_auto)
                 unfold forMapPostcondition
                 iright; ileft
@@ -621,7 +621,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 iframe
                 isplitl
                 · iapply (BigSepM.bigSepM_delete
-                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                    (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                     (m := mm) Hmv).2
                   isplitl []
                   · ileft; ipureintro
@@ -635,7 +635,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                 (try wp_auto)
                 wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
                 (try wp_auto)
-                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+                wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
                 · inext
                   unfold lessorInv
                   iexists mref', ∅, stv, scf, _
@@ -653,7 +653,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           (try wp_auto)
           wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
           iunfold lessorInv at Hinv
-          icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+          icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
           (try wp_auto)
           ihave #Htt : □ (True : IProp GF) $$ []
           · imodintro; itrivial
@@ -662,7 +662,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           wp_func_lits
           wp_bind (App (App (Val (map.forRange _ _)) _) _)
           iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-              "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+              "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
               "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
           iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
           isplitl [HM ka]
@@ -678,11 +678,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iNamed HP
             (try wp_auto)
             icases (BigSepM.bigSepM_delete
-              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
               (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
             icases Hka with (%Hin | Hka)
             · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-            wp_apply wp_close v $$ [$Hka]
+            wp_apply wp_close γr v $$ [$Hka]
             (try wp_auto)
             unfold forMapPostcondition
             iright; ileft
@@ -693,7 +693,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iframe
             isplitl
             · iapply (BigSepM.bigSepM_delete
-                (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                 (m := mm) Hmv).2
               isplitl []
               · ileft; ipureintro
@@ -707,7 +707,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             (try wp_auto)
             wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
             (try wp_auto)
-            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
             · inext
               unfold lessorInv
               iexists mref', ∅, stv, scf, _
@@ -780,7 +780,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           (try wp_auto)
           wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
           iunfold lessorInv at Hinv
-          icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+          icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
           (try wp_auto)
           ihave #Htt : □ (True : IProp GF) $$ []
           · imodintro; itrivial
@@ -789,7 +789,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           wp_func_lits
           wp_bind (App (App (Val (map.forRange _ _)) _) _)
           iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-              "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+              "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
               "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
           iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
           isplitl [HM ka]
@@ -805,11 +805,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iNamed HP
             (try wp_auto)
             icases (BigSepM.bigSepM_delete
-              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
               (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
             icases Hka with (%Hin | Hka)
             · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-            wp_apply wp_close v $$ [$Hka]
+            wp_apply wp_close γr v $$ [$Hka]
             (try wp_auto)
             unfold forMapPostcondition
             iright; ileft
@@ -820,7 +820,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iframe
             isplitl
             · iapply (BigSepM.bigSepM_delete
-                (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+                (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
                 (m := mm) Hmv).2
               isplitl []
               · ileft; ipureintro
@@ -834,7 +834,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             (try wp_auto)
             wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
             (try wp_auto)
-            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+            wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
             · inext
               unfold lessorInv
               iexists mref', ∅, stv, scf, _
@@ -851,7 +851,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         (try wp_auto)
         wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
         iunfold lessorInv at Hinv
-        icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+        icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
         (try wp_auto)
         ihave #Htt : □ (True : IProp GF) $$ []
         · imodintro; itrivial
@@ -860,7 +860,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         wp_func_lits
         wp_bind (App (App (Val (map.forRange _ _)) _) _)
         iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ k0 : Loc,
-            "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka) ∗
+            "HM" ∷ ([∗map] k ↦ ka ∈ mm, ⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka) ∗
             "ka" ∷ ka_ptr ↦ k0 ∗ "%Hi0" ∷ ⌜0 ≤ i⌝)) _ _ _ mref mm (DFrac.own 1) $$ Hm
         iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
         isplitl [HM ka]
@@ -876,11 +876,11 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           iNamed HP
           (try wp_auto)
           icases (BigSepM.bigSepM_delete
-            (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) ka))
+            (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take i.toNat⌝ ∨ kaOwn (GF := GF) γr ka))
             (m := mm) Hmv).1 $$ HM with ⟨Hka, HMr⟩
           icases Hka with (%Hin | Hka)
           · exfalso; exact not_mem_take_of_nodup Hknodup Hki Hin
-          wp_apply wp_close v $$ [$Hka]
+          wp_apply wp_close γr v $$ [$Hka]
           (try wp_auto)
           unfold forMapPostcondition
           iright; ileft
@@ -891,7 +891,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           iframe
           isplitl
           · iapply (BigSepM.bigSepM_delete
-              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) ka))
+              (Φ := fun (k : w64) (ka : Loc) => iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ kaOwn (GF := GF) γr ka))
               (m := mm) Hmv).2
             isplitl []
             · ileft; ipureintro
@@ -905,7 +905,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           (try wp_auto)
           wp_apply wp_map_make1 (K := w64) (V := Loc) as %mref' Hm'
           (try wp_auto)
-          wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf]
+          wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm' Hstf Hscf Herrf Hreg]
           · inext
             unfold lessorInv
             iexists mref', ∅, stv, scf, _

@@ -26,7 +26,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 keep-alive's `donec`: once `ctx` is done (unless `donec` or the lessor's `donec` is closed first),
 under the lock, closes and removes the channel of the lease `id`'s keep-alive whose context is
 `ctx`'s (by their values at `keepAliveCtxKey{}`), removing the keep-alive if it has no channel
-left; it returns. -/
+left; it returns. It keeps the lock invariant's alignment (`kaPaired`: it removes the same index
+from `chs` and `ctxs`), so the channel it closes is the one registered with the context it found.
+That this context is `ctx` (and so the channel `KeepAlive` returned for `ctx`) is not stated:
+`Value`'s trust-boundary spec (`context.ValueKeepAlive`) says only that it returns `nil` or some
+pointer, not `WithValue`'s `&ctx`. -/
 abbrev lessor.keepAliveCtxCloser.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64) (kd : GoChan) (γkd : ChanNames),

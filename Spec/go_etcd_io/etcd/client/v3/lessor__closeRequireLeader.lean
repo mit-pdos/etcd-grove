@@ -24,10 +24,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `l.closeRequireLeader()` on a lessor (`lessorAt`): under the lock, for each keep-alive, it
 closes some of its channels (those whose contexts ask for a leader) and removes them from its
-`chs`, with their contexts from its `ctxs`, keeping the lock invariant; it returns. (The lock
-invariant does not pair a channel with its context, `kaCtxOk`: the alignment the fork's fix
-restores, a7bd9a16e, `issues/etcd-lease-close-require-leader-ctx-misaligned.md`, is not
-stated.) -/
+`chs`, with their contexts from its `ctxs`, keeping the lock invariant; it returns. The lock
+invariant pairs each channel with its context (`kaPaired`: `chs[i]` and `ctxs[i]` are a pair
+`KeepAlive` registered), so keeping it checks the fork's fix (a7bd9a16e,
+`issues/etcd-lease-close-require-leader-ctx-misaligned.md`): a surviving channel `chs[i]` is
+copied with `ctxs[i]`, not with `ctxs[newIdx]`. -/
 abbrev lessor.closeRequireLeader.spec : Prop :=
   ∀ (l : Loc) (addr : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr }}

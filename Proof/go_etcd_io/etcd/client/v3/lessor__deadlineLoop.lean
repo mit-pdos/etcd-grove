@@ -33,7 +33,7 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
   intro l addr
   wp_start as #Hl
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -66,13 +66,13 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
     (try wp_auto)
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
     iunfold lessorInv at Hinv
-    icases Hinv with ⟨%mref, %mm, %st, %scf, %e, Hkas, Hm, HM, Hst, Hscf, #Hscok, Herr⟩
+    icases Hinv with ⟨%mref, %mm, %st, %scf, %e, Hkas, Hm, HM, Hst, Hscf, #Hscok, Herr, Hreg⟩
     (try wp_auto)
     wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
     iapply wp_map_for_range_mut (fun (i : Nat) (m' : GMap w64 Loc) =>
         iprop(∃ (k0 : Loc) (i0 : w64),
-        "HM" ∷ ([∗map] _id ↦ ka ∈ m', kaOwn (GF := GF) ka) ∗
+        "HM" ∷ ([∗map] _id ↦ ka ∈ m', kaOwn (GF := GF) γr ka) ∗
         "Hkas" ∷ lsF go!"keepAlives" l ↦ mref ∗
         "ka" ∷ ka_ptr ↦ k0 ∗ "id" ∷ id_ptr ↦ i0 ∗ "now" ∷ now_ptr ↦ now))
       _ _ _ mref mm $$ Hm
@@ -87,11 +87,11 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
       iNamed HP
       have Hm'v : m' !! key = some v := by rw [Hagree i key (Nat.le_refl _) Hki]; exact Hmv
       (try wp_auto)
-      icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+      icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
         (m := m') Hm'v).1 $$ HM with ⟨Hka, HM⟩
       iunfold kaOwn at Hka
       icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd, %γkd, Hchs, Hchsl, Hchscap,
-        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok⟩
+        Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok, #Hpair⟩
       wp_apply time.Time.wp_ptr_Before $$ [$Hdl] as %bb Hdl
       wp_if_destruct
       · unfold forMapPostcondition
@@ -104,7 +104,7 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
         · iexists _, _
           simp only [named]
           iframe
-          iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+          iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
             (m := m') Hm'v).2
           iframe HM
           unfold kaOwn
@@ -114,7 +114,7 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
           ipureintro; exact Hlen
         ipureintro; intro k _; rfl
       · (try wp_auto)
-        wp_apply wp_close v $$ [Hchs Hchsl Hchscap Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
+        wp_apply wp_close γr v $$ [Hchs Hchsl Hchscap Hctxs Hctxsl Hctxscap Hdl Hnk Hpend Htoks]
         · unfold kaOwn
           iexists chsS, ctxsS, chs, ctxs, _, _, kd, γkd
           iframe
@@ -138,7 +138,7 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
     iintro %m' HP Hm
     iNamed HP
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hst Hscf Herr]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hst Hscf Herr Hreg]
     · inext; unfold lessorInv; iexists mref, m', st, scf, e; iframe; iframe #
     (try wp_auto)
     wp_for_post

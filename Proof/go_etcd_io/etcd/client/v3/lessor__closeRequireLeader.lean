@@ -59,6 +59,55 @@ theorem crl_filter_take_succ (pre : List Loc) (n : Nat) (h : n < pre.length) :
   rw [List.take_add_one, List.getElem?_eq_getElem h, List.filter_append]
   cases hc : kaChLive (pre[n]'h) <;> simp [hc]
 
+/-- The first scan's `pre` (the channels scanned, a closed one set to `nil`): each channel left is
+the one at its index in `chs`. -/
+def crlPreOk (pre chs : List Loc) : Prop :=
+  ∀ (j : Nat) (x : Loc), pre[j]? = some x → x ≠ null → chs[j]? = some x
+
+theorem crlPreOk_keep (pre chs : List Loc) (n : Nat) (h : n < chs.length) (hp : pre.length = n)
+    (H : crlPreOk pre chs) : crlPreOk (pre ++ [chs[n]'h]) chs := by
+  intro j x hj hx
+  rcases Nat.lt_or_ge j pre.length with hl | hl
+  · rw [List.getElem?_append_left hl] at hj; exact H j x hj hx
+  · rw [List.getElem?_append_right hl] at hj
+    rcases Nat.lt_or_ge (j - pre.length) 1 with h1 | h1
+    · have h0 : j - pre.length = 0 := by omega
+      rw [h0] at hj
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hj
+      subst hj
+      rw [show j = n by omega]
+      exact List.getElem?_eq_getElem h
+    · rw [List.getElem?_eq_none (by simp; omega)] at hj
+      cases hj
+
+theorem crlPreOk_null (pre chs : List Loc) (H : crlPreOk pre chs) : crlPreOk (pre ++ [null]) chs := by
+  intro j x hj hx
+  rcases Nat.lt_or_ge j pre.length with hl | hl
+  · rw [List.getElem?_append_left hl] at hj; exact H j x hj hx
+  · rw [List.getElem?_append_right hl] at hj
+    rcases Nat.lt_or_ge (j - pre.length) 1 with h1 | h1
+    · have h0 : j - pre.length = 0 := by omega
+      rw [h0] at hj
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hj
+      exact absurd hj.symm hx
+    · rw [List.getElem?_eq_none (by simp; omega)] at hj
+      cases hj
+
+/-- Nothing closed: the scan's `pre` is `chs`. -/
+theorem crlPreOk_all (pre chs : List Loc) (hl : pre.length = chs.length)
+    (hf : pre.filter kaChLive = pre) (H : crlPreOk pre chs) : pre = chs := by
+  apply List.ext_getElem? 
+  intro j
+  rcases hj : pre[j]? with _ | x
+  · rw [List.getElem?_eq_none_iff] at hj
+    exact (List.getElem?_eq_none (by omega)).symm
+  · have hmem : x ∈ pre := List.mem_of_getElem? hj
+    rw [← hf] at hmem
+    have hx : x ≠ null := by
+      have := (List.mem_filter.1 hmem).2
+      simpa [kaChLive] using this
+    exact (H j x hj hx).symm
+
 theorem crl_filter_take_le (pre : List Loc) (n : Nat) :
     ((pre.take n).filter kaChLive).length ≤ (pre.filter kaChLive).length :=
   ((List.take_sublist n pre).filter kaChLive).length_le
@@ -127,7 +176,8 @@ local macro "crl_keep_tac" : tactic => `(tactic| (
   ipureintro
   rw [Hf]
   simp only [List.length_append, List.length_singleton]
-  refine ⟨by word, by word, by omega, by word, by omega⟩))
+  refine ⟨crlPreOk_keep pre chs (sint.nat n) Hlt2 Hn.2.2.1 Hpre, by word, by word, by omega, by word,
+    by omega⟩))
 
 /-- **`rpctypes`' fact gives the metadata key and value** `closeRequireLeader` compares with. -/
 theorem requireLeaderKeys_of_init :
@@ -149,7 +199,7 @@ theorem lessor.closeRequireLeader.wp_proof
   intro l addr
   wp_start as #Hl
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -162,12 +212,12 @@ theorem lessor.closeRequireLeader.wp_proof
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf⟩
+  icases Hinv with ⟨%mref, %mm, %stv, %scf, %e, Hkas, Hm, HM, Hstf, Hscf, #Hscok, Herrf, Hreg⟩
   (try wp_auto)
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (_ : List w64) (_ : Int) =>
-      iprop(∃ k0 : Loc, "HM" ∷ ([∗map] _id ↦ ka ∈ mm, kaOwn (GF := GF) ka) ∗ "ka" ∷ ka_ptr ↦ k0))
+      iprop(∃ k0 : Loc, "HM" ∷ ([∗map] _id ↦ ka ∈ mm, kaOwn (GF := GF) γr ka) ∗ "ka" ∷ ka_ptr ↦ k0))
     _ _ _ mref mm (DFrac.own 1) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [HM ka]
@@ -178,11 +228,11 @@ theorem lessor.closeRequireLeader.wp_proof
   · imodintro
     iintro %i %key %v ⟨%Hki, %Hmv⟩ HP
     iNamed HP
-    icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+    icases (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
       (m := mm) Hmv).1 $$ HM with ⟨Hka, HM⟩
     iunfold kaOwn at Hka
     icases Hka with ⟨%chsS, %ctxsS, %chs, %ctxs, %dl, %nk, %kd, %γkd, Hchs, Hchsl, Hchscap,
-      Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok⟩
+      Hctxs, Hctxsl, Hctxscap, %Hlen, Hdl, Hnk, #Hkd, Hpend, Htoks, #Hctxok, #Hpair⟩
     (try wp_auto)
     rename_i igo
     irename : (igo ↦ zero_val w64 : IProp GF) => gi
@@ -193,6 +243,7 @@ theorem lessor.closeRequireLeader.wp_proof
         "Hchsl" ∷ chsS ↦* (pre ++ chs.drop (sint.nat n)) ∗
         "Htp" ∷ ([∗list] c ∈ pre.filter kaChLive, chanTok (GF := GF) c) ∗
         "Htd" ∷ ([∗list] c ∈ chs.drop (sint.nat n), chanTok (GF := GF) c) ∗
+        "%Hpre" ∷ ⌜crlPreOk pre chs⌝ ∗
         "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ctxs.length ∧ pre.length = sint.nat n ∧
           0 ≤ sint.Z r ∧ sint.nat r + (pre.filter kaChLive).length = sint.nat n⌝)
       $$ [i gi ctx reqIdxs Hchsl Htoks]
@@ -201,7 +252,7 @@ theorem lessor.closeRequireLeader.wp_proof
       iframe
       isplitl
       · iapply BigSepL.bigSepL_nil.2; itrivial
-      ipureintro; refine ⟨by word, by word, by word, by word, by word⟩
+      ipureintro; refine ⟨fun j x h => by simp at h, by word, by word, by word, by word, by word⟩
     wp_for IH
     wp_if_destruct
     · have Hlt : sint.nat n < ctxs.length := by word
@@ -276,7 +327,7 @@ theorem lessor.closeRequireLeader.wp_proof
       iframe
       ipureintro
       simp only [List.length_append, List.length_singleton]
-      refine ⟨by word, by word, by omega, by word, by word⟩
+      refine ⟨crlPreOk_null pre chs Hpre, by word, by word, by omega, by word, by word⟩
     have HnL : sint.nat n = chs.length := by word
     rw [HnL, List.drop_length, List.append_nil]
     wp_if_destruct
@@ -284,6 +335,9 @@ theorem lessor.closeRequireLeader.wp_proof
       have Hf : pre.filter kaChLive = pre :=
         List.filter_eq_self.2 (List.length_filter_eq_length_iff.1 (by word))
       rw [Hf]
+      have Hpc : pre = chs := crlPreOk_all pre chs (by omega) Hf Hpre
+      ihave #Hpair2 : kaPaired (GF := GF) γr pre ctxs $$ []
+      · rw [Hpc]; iexact Hpair
       (try wp_auto)
       unfold forMapPostcondition
       ileft
@@ -292,7 +346,7 @@ theorem lessor.closeRequireLeader.wp_proof
       iexists v
       simp only [named]
       iframe
-      iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+      iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
         (m := mm) Hmv).2
       iframe HM
       unfold kaOwn
@@ -325,6 +379,7 @@ theorem lessor.closeRequireLeader.wp_proof
         "Hnctl" ∷ nctS ↦* (cs ++
           List.replicate ((pre.filter kaChLive).length - sint.nat k) (zero_val GoInterface)) ∗
         "Hcs" ∷ ([∗list] c ∈ cs, kaCtxOk (GF := GF) c) ∗
+        "#Hcp" ∷ kaPaired (GF := GF) γr ((pre.take (sint.nat n2)).filter kaChLive) cs ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z n2 ∧ sint.nat n2 ≤ pre.length ∧
           ((pre.take (sint.nat n2)).filter kaChLive).length = sint.nat k ∧ cs.length = sint.nat k ∧
           0 ≤ sint.Z k⌝)
@@ -335,6 +390,9 @@ theorem lessor.closeRequireLeader.wp_proof
       iframe
       isplitl
       · iapply BigSepL.bigSepL_nil.2; itrivial
+      isplitr
+      · simp only [List.take_zero, List.filter_nil]
+        iapply kaPaired_nil
       ipureintro; refine ⟨by word, by omega, rfl, rfl, by word⟩
     wp_for IH
     wp_if_destruct
@@ -361,6 +419,8 @@ theorem lessor.closeRequireLeader.wp_proof
         iexists n2 + W64 1, _, k, cs
         rw [show sint.nat (n2 + W64 1) = sint.nat n2 + 1 by word, Hft]
         iframe
+        isplitr
+        · iexact Hcp
         ipureintro; refine ⟨by word, by word, by omega, by omega, by omega⟩
       have Hlive : kaChLive (pre[sint.nat n2]'Hlt) = true := by
         simp only [chan.nil] at Hif; simp [kaChLive, Hif]
@@ -399,6 +459,14 @@ theorem lessor.closeRequireLeader.wp_proof
         crl_set_repl' _ (sint.nat k) _ _ _ HA HkM, crl_set_repl' _ (sint.nat k) _ _ _ Hk.2.2.2.1 HkM]
       ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ c => kaCtxOk (GF := GF) c)
         (List.getElem?_eq_getElem Hlt3) $$ Hctxok
+      -- the alignment: the channel kept, `pre[i]`, is `chs[i]`, registered with `ctxs[i]`, the
+      -- context copied (at upstream's code, `ctxs[newIdx]`, this pair would not be registered)
+      have Hpl3 : chs[sint.nat n2]? = some (pre[sint.nat n2]'Hlt) :=
+        Hpre _ _ (List.getElem?_eq_getElem Hlt) (by simpa [kaChLive] using Hlive)
+      ihave #Hkr := kaPaired_get γr chs ctxs (sint.nat n2) _ _ Hpl3
+        (List.getElem?_eq_getElem Hlt3) $$ Hpair
+      ihave #Hcp' := kaPaired_snoc γr _ cs _ _ (by rw [Hk.2.2.1, Hk.2.2.2.1]) $$ [$Hcp $Hkr]
+      iclear Hcp
       (try wp_auto)
       wp_for_post
       iframe
@@ -409,6 +477,8 @@ theorem lessor.closeRequireLeader.wp_proof
       isplit
       · iapply BigSepL.bigSepL_singleton.2
         iexact Hco
+      isplitr
+      · iexact Hcp'
       ipureintro
       simp only [List.length_append, List.length_singleton]
       refine ⟨by word, by word, by omega, by omega, by word⟩
@@ -426,7 +496,7 @@ theorem lessor.closeRequireLeader.wp_proof
     iexists v
     simp only [named]
     iframe
-    iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) ka)
+    iapply (BigSepM.bigSepM_delete (Φ := fun (_ : w64) (ka : Loc) => kaOwn (GF := GF) γr ka)
       (m := mm) Hmv).2
     iframe HM
     unfold kaOwn
@@ -437,7 +507,7 @@ theorem lessor.closeRequireLeader.wp_proof
   iintro HP Hm
   iNamed HP
   (try wp_auto)
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herrf Hreg]
   · inext; unfold lessorInv; iexists mref, mm, stv, scf, e; iframe; iframe #
   (try wp_auto)
   iapply HΦ; itrivial
