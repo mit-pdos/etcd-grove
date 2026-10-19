@@ -49,6 +49,10 @@ conflict resolutions of `pr-verify/raft-168`), then:
 - witness.go: the answer to an older-term request carries Term/From (raft dropped it); the cache
   is the stored state after a successful update; the ack of a request that raised the witness's
   term carries the new term (it carried the old one, so the leader dropped it).
+- `ChangeReplicationSet` returns `false` at once when the epoch has no witness (`f6de2ff0b`;
+  behaviour-preserving: the loop changed nothing then), so its witness-free proof is short.
+- `ResetReplicationSet` without a witness installs the bare epoch (subterm, zero replication
+  sets) and returns (`eebbe9e9`; behaviour-preserving: the sets are read only with a witness).
 - `witness_test.go`: reproductions of the findings, and a two-nodes-plus-witness cluster (commit
   with the witness while a node is down, shortcut replication without storage writes, the node
   lacking a witness-committed entry is not elected, recovery).

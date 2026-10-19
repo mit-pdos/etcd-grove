@@ -516,8 +516,11 @@ def stampAt (e0 : EntryM) (t i : w64) : EntryM :=
 
 def pos (i : w64) : Nat := (uint.Z i - 1).toNat
 
+/-- `appendEntry`'s stamp: the leader's term, the next index, and (2026-10-19, witness support)
+the leader's subterm, `0` in a cluster without a witness (`appendEntry` sets `Subterm` to the
+epoch's, nil when `0`). -/
 def stamp (tm li : w64) (k : Nat) (e : EntryM) : EntryM :=
-  { e with Term' := tm, Index' := li + W64 1 + W64 k }
+  { e with Term' := tm, Index' := li + W64 1 + W64 k, Subterm' := W64 0 }
 
 /-- Index arithmetic for stamped entries. -/
 theorem plogLastIndexZ_nonneg (b : entryID) (es : List EntryM) :
