@@ -101,6 +101,8 @@ theorem wp_initialize'_closedchan (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  -- (2026-10-19, witness support) `ErrWitnessStateModified`, which no proof reads
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrWitnessStateModified go.error as _
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isResponseMsg _ as HisResp
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isLocalMsg _ as HisLocal
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapshotTemporarilyUnavailable go.error as HESU

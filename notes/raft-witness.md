@@ -101,10 +101,48 @@ invariant (over the `WitnessStorage` trust boundary) instead of `ownRaftGhost`:
 
 Stages:
 - W0 (done): Go implementation and tests; translation.
-- W1: the build back to green on witness-free configurations (the `ownRaftPhys` facts: no
-  witness in the tracker, `witnessMsgs = []`, subterm 0), every spec as before.
+- W1 (done 2026-10-19, "W1" below): the build back to green on witness-free configurations
+  (the `ownRaftPhys` facts: no witness in the tracker, `witnessMsgs = []`, subterm 0).
 - W2: the protocol model and ghost extension (static mode), Leader Completeness and Election
   Safety with a witness.
 - W3: the raft functions' witness paths (`maybeCommit`, `stepCandidate`, `maybeStartNewSubterm`,
   `sendAppendToWitness`, `sendRequestVoteToWitness`) and `witness.go`.
 - W4: `examples/kv` with a witness (user request, 2026-10-19), its closed theorem re-proved.
+
+## W1: what the witness-free proof says (2026-10-19)
+
+The invariants (no new protocol invariant; the raft struct's and the tracker's facts):
+- `ownTrackerC`/`ownTracker`: the configuration has no witness (`ownCfgCC`'s
+  `Witnesses = [0, 0]`), no peer is the witness or `0` (`NoWitP`: `IsWitness = false`, and the
+  id `0`, which raft#168 reads as "the witness" when `Witnesses[i] = 0`, is not tracked:
+  `LeaveJoint` keeps an outgoing voter `0`), and the epoch is witness-free and read-only
+  (`ownEpochNW`: subterm 0, no witness, none excluded; `ResetReplicationSet`/
+  `ChangeReplicationSet` allocate new epochs, so an epoch is never written in place).
+- `raftOwn`: `witnessMsgs = nil` and `witnessVoteAsked = nil`.
+- The model's `Progress` has `witness` (mirroring `IsWitness`), `EntryM` has `Subterm'`, and
+  the protocol's `stamp` sets it to 0 (W2 changes this).
+
+Specs that changed, and why (the new code forced each):
+- `appendEntry` stamps subterm 0 (`stamp`); `becomeLeader` calls `maybeStartNewSubterm(true,
+  false)`, specified (`raft__maybeStartNewSubterm.lean`) for `confChange = false` only, the
+  witness-free behaviour: reset to a fresh witness-free epoch and append the empty entry, or
+  (check-quorum) nothing.
+- `poll` is `pollAndReportDiff` (raft#168's rename), returning the votes still needed per half.
+- `switchToConfig` takes the old tracker's epoch (`ownEpochNW tv0.Epoch'`): the body reads
+  `r.trk.Epoch.HasWitness()`.
+- `MakeProgressTracker` returns `Witnesses = [0, 0]` and the witness-free epoch;
+  `confchange.Restore`'s `Progress` objects are no witness's.
+- `RawNode.Bootstrap`, `setupNode`, `StartNode` (and the server's `newRaftNode`,
+  `NodeStartSpec`, `bootOk`) take `∀ p ∈ peers, p.IsWitness = false`: Bootstrap adds a witness
+  peer with an `AddWitness` change.
+- `BootLogOk`: the boot entries are at subterm 0 (Bootstrap leaves `Subterm` unset).
+- `OneLessThanQuorum` of one voter returns 0 (no premise `|s| ≠ 1` any more).
+- New witness-free specs: `Epoch.HasWitness` (false), `Epoch.ReplicateToWitness`,
+  `ProgressTracker.{ChangeReplicationSet (false), OneLessThanQuorumInReplicationSet (nil),
+  ResetReplicationSet (true only)}`, `raft.getWitnessVoteRequestReadiness` (nil),
+  `Entry.GetSubterm`.
+- `ccApplyM` facts (`CCApplyC.lean`): a change it accepts adds no witness (`AddWitness` is
+  "unexpected conf type" to its model) and tracks no `0` if the old state did not, which give
+  `Changer.Simple`/`EnterJoint`'s and `LeaveJoint`'s new premises in `applyConfChange`.
+- The server's `EntryModel` has a `subterm` field, so that `toM`/`ofM` stay inverse; no server
+  spec constrains it.
