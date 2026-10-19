@@ -110,9 +110,9 @@ instance msgWithResult_countable : Pos.Countable msgWithResult :=
 instance ready_countable : Pos.Countable Ready :=
   countableOfLeftInverse
     (fun r : Ready => (r.SoftState', r.HardState', r.ReadStates', r.Entries', r.Snapshot',
-      r.CommittedEntries', r.Messages', r.MustSync'))
+      r.CommittedEntries', r.Messages', r.MustSync', r.WitnessMessages'))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2⟩) (fun _ => rfl)
+      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2⟩) (fun _ => rfl)
 
 /-- (2026-10-15, stage N) a configuration, for the run loop's configuration shared with the
 driver (`NodeNames.cap`). -/

@@ -60,12 +60,13 @@ theorem confChangeToMsg.wp_proof
   imod cellRO_alloc $$ Hpety with #cY
   imod cellRO_alloc $$ Hpty with #cTy
   imod ownSlice_persist $$ Hdata with #Hdata
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, pety, data, slice.nil, 0⟩ : raftpb.Entry)
+  imod entOwn_of_struct l0 (⟨zero_val _, null, null, pety, data, null, slice.nil, 0⟩ : raftpb.Entry)
       (ccEntryM o bs) ⊤ rfl $$ [Hl0] with He
   · iframe Hl0
     simp only [ccEntryM]
     iframe cY Hdata
-    isplitl [] <;> (iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+    repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+    iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   imod entOwn_freeze $$ He with #He
   wp_auto
   wp_alloc ml as Hml

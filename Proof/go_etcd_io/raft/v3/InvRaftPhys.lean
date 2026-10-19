@@ -1603,6 +1603,7 @@ private theorem raft_split_view (l : Loc) (rv : raft) :
       l.[raft, go!"msgs"] ↦ rv.msgs' ∗
       l.[raft, go!"msgsAfterAppend"] ↦ rv.msgsAfterAppend' ∗
       l.[raft, go!"lead"] ↦ rv.lead' ∗
+      l.[raft, go!"witnessMsgs"] ↦ slice.nil ∗
       (∀ x y z, l.[raft, go!"Term"] ↦ rv.Term' -∗
               l.[raft, go!"Vote"] ↦ rv.Vote' -∗
               l.[raft, go!"readStates"] ↦ z -∗
@@ -1611,12 +1612,16 @@ private theorem raft_split_view (l : Loc) (rv : raft) :
               l.[raft, go!"msgs"] ↦ x -∗
               l.[raft, go!"msgsAfterAppend"] ↦ y -∗
               l.[raft, go!"lead"] ↦ rv.lead' -∗
+              l.[raft, go!"witnessMsgs"] ↦ slice.nil -∗
               raftOwn l { rv with msgs' := x, msgsAfterAppend' := y, readStates' := z }) := by
   unfold raftOwn
   iintro Hf
   iNamed Hf
+  rw [← H_wnil.1]
   iframe H_id H_Term H_Vote H_readStates H_raftLog H_state H_msgs H_msgsAfterAppend H_lead
+    H_witnessMsgs
   iintro %x %y %z H_Term H_Vote H_readStates H_raftLog H_state H_msgs H_msgsAfterAppend H_lead
+    H_witnessMsgs
   simp only [named]
   iframe
   try iframe #
@@ -3004,6 +3009,8 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
         "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
         "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
         "Hf_lead" ∷ r.[raft, go!"lead"] ↦ s.lead ∗
+        -- (2026-10-19, witness support) the witness queue, nil
+        "Hf_witnessMsgs" ∷ r.[raft, go!"witnessMsgs"] ↦ slice.nil ∗
         "Hf_msgs" ∷ r.[raft, go!"msgs"] ↦ sl1 ∗ "Hmsgs" ∷ sl1 ↦* ms1.map QMsg.loc ∗
         "Hmsgs_cap" ∷ ownSliceCap Loc sl1 (DFrac.own 1) ∗
         "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗ "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
@@ -3026,6 +3033,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             r.[raft, go!"raftLog"] ↦ s.log -∗
             r.[raft, go!"state"] ↦ stateW64 s.role -∗
             r.[raft, go!"lead"] ↦ s.lead -∗
+            r.[raft, go!"witnessMsgs"] ↦ slice.nil -∗
             r.[raft, go!"msgs"] ↦ sl1' -∗ sl1' ↦* ms1'.map QMsg.loc -∗
             ownSliceCap Loc sl1' (DFrac.own 1) -∗
             r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
@@ -3050,7 +3058,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   ihave #HreadStates := HreadStates
   ihave %Hrl := readStatesPts_len _ _ $$ HreadStates
   icases raft_split_view r rv $$ Hr with
-    ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hback⟩
+    ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hfw, Hback⟩
   ihave #Hfid : r.[raft, go!"id"] ↦□ id $$ [Hfid]
   · rw [← Hid]; iexact Hfid
   ihave HfTerm : r.[raft, go!"Term"] ↦ s.term $$ [HfTerm]
@@ -3067,7 +3075,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   · rw [← Hlogp]; iexact Hlog
   iexists rv.readStates', rv.msgs', rv.msgsAfterAppend', msgs, msgsAA
   simp only [named]
-  iframe Hfid HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm Hfma Hmsgs Hmsgs_cap HmsgsAA
+  iframe Hfid HfTerm HfVote Hfrs Hflog Hfst Hfld Hfw Hfm Hfma Hmsgs Hmsgs_cap HmsgsAA
     HmsgsAA_cap Houtbox Hlog HreadStates HreadStates_cap
   isplitr
   · ipureintro; exact Hrl
@@ -3082,7 +3090,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   isplitr
   · ipureintro; exact Hxf
   iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrs'_cap
-    %Hrd' Hflog Hfst Hfld Hfm Hmsgs
+    %Hrd' Hflog Hfst Hfld Hfw Hfm Hmsgs
     Hmsgs_cap Hfma HmsgsAA HmsgsAA_cap Houtbox' %HmsgsAA_ok' %Hout_term' %Hg1 %Hg2 %Hgns %Hle' %Hxf' Hlog
   have Hgk : LogNsKeep s ls' := Hgns.2.1
   ihave #Hnscap : NsCap (GF := GF) g.ns ls'.storage $$ [Hnscap]
@@ -3107,7 +3115,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   · rw [Hlead]; iexact Hfld
   ihave Hlog : ownRaftLog (GF := GF) rv.raftLog' ls' $$ [Hlog]
   · rw [Hlogp]; iexact Hlog
-  ihave Hr := Hback $$ %sl1' %sl2' %rs' HfTerm HfVote Hfrs Hflog Hfst Hfm Hfma Hfld
+  ihave Hr := Hback $$ %sl1' %sl2' %rs' HfTerm HfVote Hfrs Hflog Hfst Hfm Hfma Hfld Hfw
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := o, logst := ls', gh := g, rd := rd' }
       { rv with msgs' := sl1', msgsAfterAppend' := sl2', readStates' := rs' } ms1' ms2' lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner

@@ -67,7 +67,7 @@ theorem RawNode.Propose.wp_proof
   have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue
       [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #data_sl)])] = 1 := rfl
   simp only [Hsz]
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, data_sl, slice.nil, 0⟩ : raftpb.Entry)
+  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, data_sl, null, slice.nil, 0⟩ : raftpb.Entry)
       (propEntryM data) ⊤ rfl $$ [Hl0] with He
   · iframe Hl0
     simp only [propEntryM]

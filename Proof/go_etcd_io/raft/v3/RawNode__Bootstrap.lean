@@ -181,7 +181,7 @@ theorem RawNode.Bootstrap.wp_proof
     imod cellRO_alloc $$ «$v1» with #cT
     imod cellRO_alloc $$ «$v2» with #cI
     imod ownSlice_persist $$ Hd with #Hd
-    imod entOwn_of_struct «$r0_ptr» (⟨zero_val _, «$v1_ptr», «$v2_ptr», pety, d, slice.nil, 0⟩ : raftpb.Entry)
+    imod entOwn_of_struct «$r0_ptr» (⟨zero_val _, «$v1_ptr», «$v2_ptr», pety, d, null, slice.nil, 0⟩ : raftpb.Entry)
         e ⊤ rfl $$ [«$r0»] with He
     · have HeI' : e.Index' = n + W64 1 := by word
       iframe «$r0» Hd

@@ -88,7 +88,7 @@ theorem raft.sendHeartbeat.wp_proof
     (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
   icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨%Hok, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
-  ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok Hl).sentCommit _)
+  ihave Hphys := Hpback $$ %_ Hpa %(And.intro rfl rfl) %(fun Hl => (Hok Hl).sentCommit _)
   iapply HΦ $$ %cm %_
   iframe Hphys
   obtain ⟨Hlv1, -⟩ := Hlv

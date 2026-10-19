@@ -52,7 +52,7 @@ theorem node.ReadIndex.wp_proof
       [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #rctx)])] = 1 := rfl
   simp only [Hsz]
   imod cellRO_alloc $$ Hpty with #cTy
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, rctx, slice.nil, 0⟩ : raftpb.Entry)
+  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, rctx, null, slice.nil, 0⟩ : raftpb.Entry)
       (propEntryM c) ⊤ rfl $$ [Hl0] with He
   · iframe Hl0
     simp only [propEntryM]

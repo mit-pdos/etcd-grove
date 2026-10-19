@@ -119,13 +119,17 @@ theorem csPts_combine_open (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al1 al2
     csPts (GF := GF) p dq1 c al1 ∗ csPts p dq2 c al2 ⊢ csPts p (dq1 • dq2) c false := by
   iintro ⟨H1, H2⟩
   iunfold csPts at H1 H2
-  icases H1 with ⟨%sv, %sl, %so, %sn, %pa, %Hnn, HV, Hv, HL, Hl, HO, Ho, HN, Hn, HA, #cA, %-, #Hpb⟩
-  icases H2 with ⟨%sv', %sl', %so', %sn', %pa', %-, HV', Hv', HL', Hl', HO', Ho', HN', Hn', HA', -, %-, -⟩
+  icases H1 with ⟨%sv, %sl, %so, %sn, %pa, %pw, %pwo, %Hnn, HV, Hv, HL, Hl, HO, Ho, HN, Hn, HA, #cA,
+    %-, HW, #cW, HWO, #cWO, #Hpb⟩
+  icases H2 with ⟨%sv', %sl', %so', %sn', %pa', %pw', %pwo', %-, HV', Hv', HL', Hl', HO', Ho', HN', Hn',
+    HA', -, %-, HW', -, HWO', -, -⟩
   pcomb HV HV'
   pcomb HL HL'
   pcomb HO HO'
   pcomb HN HN'
   pcomb HA HA'
+  pcomb HW HW'
+  pcomb HWO HWO'
   scomb Hv Hv'
   scomb Hl Hl'
   scomb Ho Ho'
@@ -617,6 +621,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
     "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
     "Hf_lead" ∷ r.[raft, go!"lead"] ↦ s.lead ∗
+    "Hf_witnessMsgs" ∷ r.[raft, go!"witnessMsgs"] ↦ slice.nil ∗
     "Hf_msgs" ∷ r.[raft, go!"msgs"] ↦ sl1 ∗
     "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗
     "HmsgsAA" ∷ sl2 ↦* ms2.map QMsg.loc ∗
@@ -649,6 +654,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         r.[raft, go!"raftLog"] ↦ s.log -∗
         r.[raft, go!"state"] ↦ stateW64 s.role -∗
         r.[raft, go!"lead"] ↦ s.lead -∗
+        r.[raft, go!"witnessMsgs"] ↦ slice.nil -∗
         r.[raft, go!"msgs"] ↦ sl1' -∗ sl1' ↦* ms1'.map QMsg.loc -∗
         ownSliceCap Loc sl1' (DFrac.own 1) -∗
         r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
@@ -1012,7 +1018,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
                       unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
-    Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
+    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
@@ -1166,7 +1172,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       iexists rsl, sl1, sl2, ms1, ms2
       simp only [named, ↓reduceIte]
       iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog
-        Hf_state Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
+        Hf_state Hf_lead Hf_witnessMsgs Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
       ipureintro
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
@@ -1353,7 +1359,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog
+      Hf_lead Hf_witnessMsgs Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog
     isplitr
     · ipureintro; exact Hob
     isplitr
@@ -1372,9 +1378,9 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
-      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
+      Hflog Hfst Hfld Hfw Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
+      %Hrd' Hflog Hfst Hfld Hfw Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
   ipureintro
   refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by

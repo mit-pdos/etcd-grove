@@ -77,7 +77,7 @@ theorem ownCCSt_of_result (chg : confchange.Changer) (base : GMap w64 tracker.Pr
     iframe Hinfl
     ipureintro
     obtain ⟨_, h2, h3, h4, h5, h6, h7, h8, Hw9⟩ := (progressAbs_Some _ _ _).1 Habs
-    refine (progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, Hw9⟩ <;>
+    refine (progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, ?_⟩ <;>
       (rw [h1]; assumption)
   · intro k pv Hf
     unfold progR2
@@ -87,7 +87,7 @@ theorem ownCCSt_of_result (chg : confchange.Changer) (base : GMap w64 tracker.Pr
     isplitl [Hinfl]
     · simp only [progressOf]; iexact Hinfl
     ipureintro
-    exact (progressAbs_Some _ _ _).2 ⟨rfl, Hf.2.2.2.1, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact (progressAbs_Some _ _ _).2 ⟨rfl, Hf.2.2.2.1, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   unfold ownCCSt
   iexists prs, pvs
   iframe Hc Htrk Hprs HQ

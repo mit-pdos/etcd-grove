@@ -54,7 +54,7 @@ variable [FfiSyntax]
 /-- The `Ready` `readyWithoutAccept` builds, field by field (`Snapshot` stays `nil`: no
 snapshot is pending). -/
 abbrev readyVal (sp hp : Loc) (rs ents ce msgs : GoSlice) (ms : Bool) : Ready :=
-  Ready.mk sp hp rs ents null ce msgs ms
+  Ready.mk sp hp rs ents null ce msgs ms slice.nil
 
 end helpers
 
@@ -383,13 +383,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · iapply qOwns_unready ms1; iframe Ho1 H1h
     · iapply readyDq_halves _ (fun q hq => Hresp2 q (List.mem_filter.1 hq).1) $$ Ho2
   ihave Hphys : ownRaftPhysReady cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
-    [Hf_Term Hf_Vote Hf_readStates HreadStates_cap Hf_raftLog Hf_state Hf_lead Hf_msgs
+    [Hf_Term Hf_Vote Hf_readStates HreadStates_cap Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hf_msgs
      Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
+      Hf_lead Hf_witnessMsgs Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
     ipureintro
     refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]

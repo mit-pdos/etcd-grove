@@ -215,7 +215,7 @@ local macro "msa_send" : tactic => `(tactic| (
     $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨%Hok2, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [Hpa] as Hpa
   · iframe
-  ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok2 Hl).sentCommit _)
+  ihave Hphys := Hpback $$ %_ Hpa %(And.intro rfl rfl) %(fun Hl => (Hok2 Hl).sentCommit _)
   iapply HΦ $$ %true
     %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0)
         es_e] : List Msg)
