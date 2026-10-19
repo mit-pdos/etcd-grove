@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.traceCommit
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Committed
+public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
 public import Spec.go_etcd_io.raft.v3.raftLog__maybeCommit
 
 @[expose] public section
@@ -75,6 +76,18 @@ private theorem isQuorumIndex_acked (c : GSet w64) (pvs : GMap w64 Progress) (N 
   have := GMap.subseteq_size Hsub
   omega
 
+/-- Ranging over a `nil` map does nothing, at any closure value (Perennial's
+`wp_map_nil_for_range` is stated at a `GoFunc`, which a `glv(λ: …)` closure does not
+unify with syntactically). -/
+private theorem wp_map_nil_for_range_val (body : GoFunc) (key_type elem_type : go.GoType) :
+    {{ (True : IProp GF) }}
+      (App (App (Val (map.forRange key_type elem_type)) (Val #map.nil)) (Val #body))
+    {{ RET executeVal; True }} := by
+  iintro %Φ - HΦ
+  wp_pures
+  iapply HΦ
+  ipureintro; trivial
+
 /-- The body, with its `defer`: `wp_with_defer` allocates the defer
 stack, the `traceCommit` closure is pushed onto it, and `return:`
 runs it (`traceCommit.spec`) before the function returns.
@@ -90,12 +103,21 @@ quorum index becomes `ackedBy`'s quorum by
 theorem raft.maybeCommit.wp_proof
     (wp_traceCommit : traceCommit.spec (GF := GF) (hG := hG))
     (wp_ProgressTracker_Committed : tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG))
+    (wp_ProgressTracker_OneLessThanQuorumInReplicationSet :
+      tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG))
     (wp_raftLog_maybeCommit : raftLog.maybeCommit.spec (GF := GF) (hG := hG)) :
     raft.maybeCommit.spec (GF := GF) (hG := hG) := by
   intro c r id s Hlead
   wp_start as H
   iNamed H
   wp_apply wp_with_defer as %defer defer
+  -- (2026-10-19, witness support) no witness: the map is `nil`, the range does nothing
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_epoch $$ Htrk with ⟨#Hep, Htrk⟩
+  wp_apply wp_ProgressTracker_OneLessThanQuorumInReplicationSet $$ [$Htrkf $Hep] as Htrkf
+  ihave Hphys := Hback $$ %tv Htrkf Htrk
+  wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
+  wp_pures; (try wp_auto)
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_Committed $$ [$Htrkf $Htrk] as %N ⟨Htrkf, Htrk, %Hq⟩
