@@ -123,14 +123,14 @@ theorem ownCCV2_changes (p : Loc) (dq : DFrac) (m : CCV2M) :
 /-- The struct `&pb.Entry{Type: pb.EntryNormal.Enum()}` allocates, its `Type` cell at `pty`. -/
 abbrev normalEntryV (pty : Loc) : raftpb.Entry :=
   { state' := zeroValDef, Term' := null, Index' := null, Type' := pty, Data' := slice.nil,
-    unknownFields' := slice.nil, sizeCache' := 0 }
+    Subterm' := null, unknownFields' := slice.nil, sizeCache' := 0 }
 
 /-- `&pb.Entry{Type: pb.EntryNormal.Enum()}` (`stepLeader`'s refused conf change): a fresh entry
 whose `Type` cell holds `EntryNormal` and whose other fields are unset, frozen, holds the zero
 record. -/
 theorem entRO_normal_of_struct (l pty : Loc) (v : raftpb.Entry) (E : CoPset)
     (HT : v.Term' = null) (HI : v.Index' = null) (HY : v.Type' = pty) (HD : v.Data' = slice.nil)
-    (Hu : v.unknownFields' = slice.nil) :
+    (HS : v.Subterm' = null) (Hu : v.unknownFields' = slice.nil) :
     (l ↦ v ∗ pty ↦ (W32 0 : raftpb.EntryType) : IProp GF) ⊢ |={E}=> entRO l (zero_val EntryM) := by
   iintro ⟨Hl, Hty⟩
   imod cellRO_alloc $$ Hty with #cY
@@ -140,9 +140,11 @@ theorem entRO_normal_of_struct (l pty : Loc) (v : raftpb.Entry) (E : CoPset)
   · rw [HI]; iapply cellRO_null
   ihave #Hd : (v.Data' ↦*□ (zero_val EntryM).Data' : IProp GF) $$ []
   · rw [HD]; iapply ownSlice_nil
+  ihave #cS : cellRO (GF := GF) v.Subterm' (zero_val EntryM).Subterm' $$ []
+  · rw [HS]; iapply cellRO_null
   imod entOwn_of_struct l v (zero_val EntryM) E Hu $$ [Hl] with Ho
   · iframe Hl
-    iframe cT cI Hd
+    iframe cT cI Hd cS
     rw [HY, show (zero_val EntryM).Type' = (W32 0 : raftpb.EntryType) from rfl]; iexact cY
   imod entOwn_freeze $$ Ho with #Ho
   imodintro

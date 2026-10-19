@@ -80,7 +80,7 @@ theorem entOwn_store_Term (l : Loc) (e : EntryM) :
   iframe HT
   iintro %p' %v HT #cT'
   iunfold entPts
-  iexists p', pi, pty, ds, uf, ps, sub
+  iexists p', pi, pty, ds, uf, ps
   isplitr
   · ipureintro; exact Hnn
   iframe
@@ -100,11 +100,32 @@ theorem entOwn_store_Index (l : Loc) (e : EntryM) :
   iframe HI
   iintro %p' %v HI #cI'
   iunfold entPts
-  iexists pt, p', pty, ds, uf, ps, sub
+  iexists pt, p', pty, ds, uf, ps
   isplitr
   · ipureintro; exact Hnn
   iframe
   iframe cT cI' cY Hd cS Hpb
+
+/-- `cloned[i].Subterm = new(epoch.Subterm)` or `nil` (`appendEntry`, 2026-10-19, witness
+support): the field set to a cell holding `v`. -/
+theorem entOwn_store_Subterm (l : Loc) (e : EntryM) :
+    entOwn (GF := GF) l e ⊢
+      ∃ p : Loc, l.[raftpb.Entry, go!"Subterm"] ↦ p ∗
+        (∀ (p' : Loc) (v : w64), l.[raftpb.Entry, go!"Subterm"] ↦ p' -∗ cellRO p' v -∗
+          entOwn l { e with Subterm' := v }) := by
+  iintro H
+  simp only [entOwn]
+  iunfold entPts at H
+  iNamed H
+  iexists ps
+  iframe HS
+  iintro %p' %v HS #cS'
+  iunfold entPts
+  iexists pt, pi, pty, ds, uf, p'
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cT cI cY Hd cS' Hpb
 
 end lemmas
 

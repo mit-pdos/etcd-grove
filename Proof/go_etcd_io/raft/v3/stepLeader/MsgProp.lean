@@ -130,7 +130,7 @@ local macro "cc_refuse_tail" : tactic => `(tactic| (
     rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
-    imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
+    imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew
     · iframe
     wp_apply wp_Message_GetEntries_field ml _ es0 Hmnn $$ [$(frameH `HEs)] as HEs
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hes0len⟩)]

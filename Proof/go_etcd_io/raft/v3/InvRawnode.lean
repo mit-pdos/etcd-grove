@@ -615,7 +615,7 @@ def DynCCPre (dec : CCDec) (rs : RNState) (o : CCMsg) (k : Nat) (e : EntryM)
 
 /-- The entry `Propose` builds, `&pb.Entry{Data: data}`, as the model reads it (2026-10-16,
 stage R5; D6: the data is its bytes; until then `propEntry data_sl`, the Goose value). -/
-def propEntryM (d : List w8) : EntryM := ⟨W64 0, W64 0, W32 0, d⟩
+def propEntryM (d : List w8) : EntryM := ⟨W64 0, W64 0, W32 0, d, W64 0⟩
 
 /-- The scalars of the message `Propose`, `confChangeToMsg` and `node.Propose` build,
 `pb.Message{Type: MsgProp, ...}` (2026-10-16, stage R5; until then `propMsg esl`, the Goose
@@ -625,7 +625,7 @@ def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
 /-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
 `pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
 `ccEntry`). -/
-def ccEntryM (o : Option CCMsg) (bs : List w8) : EntryM := ⟨W64 0, W64 0, ccEntryType o, bs⟩
+def ccEntryM (o : Option CCMsg) (bs : List w8) : EntryM := ⟨W64 0, W64 0, ccEntryType o, bs, W64 0⟩
 
 end defs
 
