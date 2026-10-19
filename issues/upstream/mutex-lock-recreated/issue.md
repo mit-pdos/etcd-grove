@@ -30,10 +30,6 @@ Integration test: [`TestMutexLockKeyRecreated`](https://github.com/upamanyus/etc
 
 ### Anything else we need to know?
 
-`m2.IsOwner()` is then false, so transactions guarded by it fail, but code relying on `Lock` alone is not mutually excluded.
-
-Should `m2.Lock` fail here (without step 4's `m2b.Lock`, `m2.Lock` returns `mutex: session is expired`), or keep waiting until `m3` unlocks?
-
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
 ### Etcd version (please run commands below)
