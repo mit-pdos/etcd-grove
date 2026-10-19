@@ -177,6 +177,16 @@ fork carries #21987).
   [raft-joiner-empty-confstate](raft-joiner-empty-confstate.md),
   [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) (a mixed-version
   panic, hypothetical until a field is added).
+- **A Raft invariant broken, no wrong result found**:
+  [etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md) (2026-10-19). `applyAll`
+  merges a queued `MsgSnap` of an old leader's term with content applied later, so a follower
+  still at that term ends with a last log term above its own term. It needs 5 or more members, a
+  stalled fsync on the leader, two followers lagging past compaction and an asymmetric partition.
+  Reproduced at raft level with an emulation of etcd's pipeline, and the merge with etcd's real
+  `applyAll`; not end to end. The only consequence found is untraced: a `--force-new-cluster`
+  restart of that follower writes log terms that go down. The fix is a few lines (merge only at
+  the message's term), and the verified fork carries it for the proof. Searched upstream: not
+  reported.
 - **Model or documentation only**: [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md),
   [raft-ready-messages-read-after-handout](raft-ready-messages-read-after-handout.md),
   [raft-step-writes-caller-message](raft-step-writes-caller-message.md),
