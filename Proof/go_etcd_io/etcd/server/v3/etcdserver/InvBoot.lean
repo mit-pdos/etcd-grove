@@ -153,6 +153,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- compacted past index `1`, which the mode needs (`StartNode`'s `NsCap`). (D19p to D21 M3: a
     -- one-member cluster, `"%Hone"`, raft's tracked bound this node alone.)
     "%Hnosnap" ∷ ⌜γ.reNoSnap = true ∧ γs.cap = 1⌝ ∗
+    -- (2026-10-19, D22 S-a) and raft's no-transfer mode (`RaftNames.reNoXfer`, until then the
+    -- no-snapshot mode's), which with it gives the receiver's `NetMsgOk` (`SentMsgOk`)
+    "%Hnoxfer" ∷ ⌜γ.reNoXfer = true⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage

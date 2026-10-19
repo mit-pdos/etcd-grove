@@ -547,7 +547,7 @@ theorem RawNode.acceptReady.wp_proof
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
-    (fun h => (Hxf.2 (Hnl.1.trans h)).2.2) $$ Hout Hself
+    (fun h => (Hxf.2 (Hnl.1.trans h.2)).2 (Hnl.2.trans h.1)) $$ Hout Hself
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
@@ -571,7 +571,7 @@ theorem RawNode.acceptReady.wp_proof
     split <;> exact ⟨rfl, rfl, rfl, Int.le_refl _⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable]; exact Int.le_refl _
   · ipureintro
-    exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => ⟨(Hxf.2 h).1, (Hxf.2 h).2.1⟩)
+    exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => (Hxf.2 h).1)
   -- the node after `Ready`
   have Hlf := logAcceptApplying_fields (logAcceptUnstable s.logst) ce sz
   have Hlogst : (readyNstate s ce sz).logst = logAcceptApplying (logAcceptUnstable s.logst) ce sz :=

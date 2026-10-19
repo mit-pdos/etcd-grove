@@ -1014,9 +1014,10 @@ structure NGhost where
   describe (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`): `raft.Step` takes no
   `MsgTransferLeader` (`RestMsgOk`). On when the struct is built (`newRaft`, its queues empty:
   the default), turned off by a ghost step (`ownRaftPhysC_xf_off`) when the node's construction
-  leaves the cluster's no-snapshot mode (`RestartNode`, `Bootstrap` outside it), so that a node
-  is in it exactly when in the cluster's mode (`RaftNames.reNoSnap`, `NsLink`); the no-snapshot
-  mode implies it. -/
+  leaves the cluster's no-transfer mode (`RestartNode`, `Bootstrap` outside it), so that a node
+  is in it exactly when in the cluster's mode (`NsLink`; 2026-10-19, D22 S-a:
+  `RaftNames.reNoXfer`, independent of the no-snapshot mode, which until then implied it). With
+  the no-snapshot mode it makes the queued messages `SentMsgOk` (`XfOk`). -/
   xf : Bool := true
 deriving DecidableEq
 

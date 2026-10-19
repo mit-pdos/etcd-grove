@@ -412,8 +412,9 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = kvStorIface st⌝ ∗
-    -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (`KVCC`): leader transfer on
-    "%Hns" ∷ ⌜γp.node.raft.reNoSnap = false⌝ ∗
+    -- (2026-10-19, D21 M2r) leader transfer on (`KVCC`; D22 S-a: `RaftNames.reNoXfer`, until
+    -- then out of raft's no-snapshot mode)
+    "%Hns" ∷ ⌜γp.node.raft.reNoXfer = false⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ rkvInv γr)
 
@@ -504,9 +505,10 @@ def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
   (∀ ty bs, γn.raft.reCCOk ty bs →
     ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
   ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
-  -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (a cluster without a bootstrap log), in
-  -- which leader transfer is on (`node.TransferLeadership`'s premise)
-  γn.raft.reNoSnap = false
+  -- (2026-10-19, D21 M2r) leader transfer on (`node.TransferLeadership`'s premise); (D22 S-a)
+  -- `RaftNames.reNoXfer`, until then out of raft's no-snapshot mode (a cluster without a
+  -- bootstrap log)
+  γn.raft.reNoXfer = false
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

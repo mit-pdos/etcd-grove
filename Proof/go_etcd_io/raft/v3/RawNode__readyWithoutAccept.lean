@@ -447,7 +447,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases HHP with ⟨%hrd, #HHP⟩
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
-      (fun h => (Hxf.2 (Hnl.1.trans h)).2.2) $$ Hout
+      (fun h => (Hxf.2 (Hnl.1.trans h.2)).2 (Hnl.2.trans h.1)) $$ Hout
   iapply HΦ $$ %(readyVal sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd
   simp only [named]

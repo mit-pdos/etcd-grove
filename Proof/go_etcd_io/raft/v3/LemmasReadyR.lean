@@ -224,8 +224,9 @@ legitimately sent (`outboxRelP_isRaftMsg`, over a list). -/
 theorem outboxRelP_isRaftMsgs (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMsg)
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    -- (2026-10-19, D21 M2r) the queues' messages `SentMsgOk` in the mode (`XfOk`)
-    (Hsent : γ.reNoSnap = true → ∀ q ∈ ms1 ++ ms2, SentMsgOk q.st) :
+    -- (2026-10-19, D21 M2r) the queues' messages `SentMsgOk` in the modes (`XfOk`; D22 S-a:
+    -- the no-transfer and the no-snapshot one)
+    (Hsent : γ.reNoXfer = true ∧ γ.reNoSnap = true → ∀ q ∈ ms1 ++ ms2, SentMsgOk q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ [∗list] q ∈ l, isRaftMsg γ q.st := by
   induction l with
   | nil => iintro _; iempintro
@@ -254,7 +255,7 @@ entries and no context, was legitimately sent (its contribution is in the outbox
 theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms1 ms2 : List QMsg)
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
     (Hok : ∀ q ∈ l, AAMsgOk id t q.st) (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    (Hsent : γ.reNoSnap = true → ∀ q ∈ ms1 ++ ms2, SentMsgOk q.st) :
+    (Hsent : γ.reNoXfer = true ∧ γ.reNoSnap = true → ∀ q ∈ ms1 ++ ms2, SentMsgOk q.st) :
     ⊢ ([∗list] x ∈ o, isMessage (GF := GF) γ x) -∗ ([∗list] q ∈ l, selfOwn (GF := GF) id q) -∗
       pendList γ id ((selfmsgs id l).map QMsg.loc)
         ((selfmsgs id l).map (fun q => selfPending q.st.msg)) := by

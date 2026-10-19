@@ -935,23 +935,28 @@ legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; 
 pure.) (2026-10-19, D21 M3) In the cluster's no-snapshot mode no `MsgSnap`; (D21 M2r, D21g (A))
 and what the receiver's `NetMsgOk` needs of it (`SentMsgOk`, `NetMsgOk.of_sent`): its type, a
 nonzero sender other than its destination, its term stamped (no `MsgTimeoutNow`, no
-`MsgTransferLeader`: leader transfer is off in the mode). -/
+`MsgTransferLeader`: leader transfer is off). (2026-10-19, D22 S-a) The latter in the no-transfer
+mode (`RaftNames.reNoXfer`) and the no-snapshot one, which until then were one: its types exclude
+`MsgSnap` and the transfer messages, and its stamped terms are past `0`, which the no-snapshot
+mode's bootstrap log gives (`XfOk`). -/
 def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗ ⌜γ.reNoSnap = true → SentMsgOk st⌝ ∗
+  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
+    ⌜γ.reNoXfer = true ∧ γ.reNoSnap = true → SentMsgOk st⌝ ∗
     ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessage γ x)
 
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
   unfold isRaftMsg; infer_instance
 
-/-- (2026-10-19, D21 M2r) In the cluster's no-snapshot mode a message a `Ready` handed out is
-`SentMsgOk`: at its destination `NetMsgOk.of_sent` (D21g (A)). -/
-theorem isRaftMsg_sent (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
+/-- (2026-10-19, D21 M2r) In the cluster's no-snapshot and (D22 S-a) no-transfer modes a message a
+`Ready` handed out is `SentMsgOk`: at its destination `NetMsgOk.of_sent` (D21g (A)). -/
+theorem isRaftMsg_sent (γ : RaftNames) (hnx : γ.reNoXfer = true) (hns : γ.reNoSnap = true)
+    (st : MsgSt) :
     isRaftMsg (GF := GF) γ st ⊢ ⌜SentMsgOk st⌝ := by
   iintro H
   unfold isRaftMsg
   icases H with ⟨-, %H, -⟩
-  ipureintro; exact H hns
+  ipureintro; exact H ⟨hnx, hns⟩
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
 records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of
@@ -1488,56 +1493,60 @@ theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) 
   iapply ownRaftPhysC_toS
   iexact H
 
+/-- (2026-10-19, D21 M2r) Leader transfer turned on (`ownRaftPhysC_xf_off`) on the static-mode
+physical state (2026-10-19, D22 S-a: in either no-snapshot mode). -/
+theorem ownRaftPhys_xf_off (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ownRaftPhys cfg r id { s with gh := { s.gh with xf := false } } := by
+  iintro H
+  ihave H := ownRaftPhys_toC' $$ H
+  ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s $$ H
+  iapply ownRaftPhysC_toS
+  iexact H
+
 /-- (2026-10-19, D21 M3) The no-snapshot mode set to `b` on the static-mode physical state of a
 node out of the mode (`Bootstrap`'s, at the cluster's `RaftNames.reNoSnap`): into it, a
 non-leader with no pending snapshot, its log's boundary at most `1` and something committed, over
-a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). (2026-10-19, D21 M2r)
-Leader transfer (`NGhost.xf`, on since `newRaft`) set to the same: kept off in the mode, whose
-node is past term `0` with nothing in its outbox; turned on otherwise (`ownRaftPhysC_xf_off`). -/
-theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b : Bool)
+a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`), past term `0` with
+nothing in its outbox. (2026-10-19, D21 M2r) Leader transfer (`NGhost.xf`, off since `newRaft`)
+set to `bx` (2026-10-19, D22 S-a: the cluster's `RaftNames.reNoXfer`, independent of `b`; until
+then `b` too): kept off, or turned on (`ownRaftPhysC_xf_off`). -/
+theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b bx : Bool)
     (H0 : s.gh.ns = false) (H0x : s.gh.xf = true)
     (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
       1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap)
     (Hbt : b = true → s.term ≠ W64 0 ∧ s.outbox = []) :
     ⊢ NsCap (GF := GF) b s.logst.storage -∗ ownRaftPhys cfg r id s -∗
-      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := b } } := by
+      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := bx } } := by
   iintro #Hcap H
-  cases b with
-  | false =>
-    have He : ({ s with gh := { s.gh with ns := false, xf := false } } : NState) =
-        { s with gh := { s.gh with xf := false } } := by
-      rw [← H0]
-    rw [He]
-    ihave H := ownRaftPhys_toC' $$ H
-    ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s H0 $$ H
-    iapply ownRaftPhysC_toS
-    iexact H
+  -- the mode first (transfer still off), then transfer
+  ihave H : ownRaftPhys cfg r id { s with gh := { s.gh with ns := b } } $$ [H]
+  · cases b with
+    | false =>
+      have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
+        rw [← H0]
+      rw [He]
+      iexact H
+    | true =>
+      obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
+      obtain ⟨Ht, Hob⟩ := Hbt rfl
+      ihave H := ownRaftPhys_toC' $$ H
+      iunfold NsCap at Hcap
+      ihave #Hc1 := Hcap $$ %rfl
+      ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn
+        Hp Hc Ho Ht Hob $$ Hc1 H
+      iapply ownRaftPhysC_toS
+      iexact H
+  cases bx with
   | true =>
-    obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
-    obtain ⟨Ht, Hob⟩ := Hbt rfl
-    have He : ({ s with gh := { s.gh with ns := true, xf := true } } : NState) =
-        { s with gh := { s.gh with ns := true } } := by
+    have He : ({ s with gh := { s.gh with ns := b, xf := true } } : NState) =
+        { s with gh := { s.gh with ns := b } } := by
       rw [← H0x]
     rw [He]
-    ihave H := ownRaftPhys_toC' $$ H
-    iunfold NsCap at Hcap
-    ihave #Hc1 := Hcap $$ %rfl
-    ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn Hp
-      Hc Ho H0x Ht Hob $$ Hc1 H
-    iapply ownRaftPhysC_toS
     iexact H
-
-/-- (2026-10-19, D21 M2r) Leader transfer turned on (`ownRaftPhysC_xf_off`) on the static-mode
-physical state, outside the no-snapshot mode. -/
-theorem ownRaftPhys_xf_off (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (H0 : s.gh.ns = false) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
-      ownRaftPhys cfg r id { s with gh := { s.gh with xf := false } } := by
-  iintro H
-  ihave H := ownRaftPhys_toC' $$ H
-  ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s H0 $$ H
-  iapply ownRaftPhysC_toS
-  iexact H
+  | false =>
+    ihave H := ownRaftPhys_xf_off cfg r id { s with gh := { s.gh with ns := b } } $$ H
+    iexact H
 
 /-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
 new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,

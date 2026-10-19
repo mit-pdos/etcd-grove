@@ -529,8 +529,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
     -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in it (`XfOk`)
-    (Hsent : γ.reNoSnap = true → SentMsgOk q.st) :
+    -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in it (`XfOk`; D22 S-a: in it and the
+    -- no-transfer mode)
+    (Hsent : γ.reNoXfer = true ∧ γ.reNoSnap = true → SentMsgOk q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ isRaftMsg γ q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by

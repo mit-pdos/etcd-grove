@@ -220,7 +220,7 @@ theorem opR_step1 : ccStepB opR c1R = some c1R :=
 /-- A replica's node, in the cluster's dynamic mode, is at the cluster's conf changes. -/
 theorem kvCC_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkR)
     (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good)
-    (Hns : γn.raft.reNoSnap = false) : KVCC γn opR c0R c1R :=
+    (Hns : γn.raft.reNoXfer = false) : KVCC γn opR c0R c1R :=
   ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl,
     Hns⟩
 
@@ -325,7 +325,9 @@ theorem StartCluster.wp_proof
     iexists γr0
     iframe Hreg0 Hval0 Hseqs0
     ipureintro; rfl
-  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2
+  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2.1
+  -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
+  have Hnx := Hcfg'.2.2.2
   have Hdyn := Hcfg'.1
   have HccOk := Hcfg'.2.1
   -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
@@ -393,12 +395,9 @@ theorem StartCluster.wp_proof
       $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
-    -- (2026-10-19, D21 M2r) out of the no-snapshot mode: nothing committed
-    ihave %HnsR : ⌜γr.raft.reNoSnap = false⌝ $$ [Hghost]
-    · iunfold ownRaftGhostR at Hghost
-      icases Hghost with ⟨Hg, -⟩
-      icases ownRaftGhost_noSnap_of_commit γr.raft id0 _ rfl $$ Hg with ⟨%H, -⟩
-      ipureintro; exact H
+    -- (2026-10-19, D21 M2r) leader transfer on: (D22 S-a) the allocation's
+    -- (`RaftNames.reNoXfer`, until then out of the no-snapshot mode: nothing committed)
+    have HnsR : γr.raft.reNoXfer = false := Hnx
     ihave Hghost : rnInit γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) id0
         (GMap.listToSet clusterIds) $$ [Hghost]
     · iunfold rnInit

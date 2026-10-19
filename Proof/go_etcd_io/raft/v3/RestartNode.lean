@@ -75,8 +75,9 @@ theorem RestartNode.wp_proof
   subst Herr
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
   -- leaves it open, `rawNodeFresh`)
-  -- (2026-10-19, D21 M2r) out of the no-snapshot mode: leader transfer on
-  icases rawNodeFresh_xf_off _ _ _ _ _ _ s0 $$ Hfresh0 with ⟨%s, Hfresh⟩
+  -- (2026-10-19, D21 M2r) out of the no-snapshot mode: leader transfer on; (D22 S-a) at the
+  -- cluster's no-transfer mode (`RaftNames.reNoXfer`), either way
+  icases rawNodeFresh_set_xf _ _ _ _ _ _ s0 γ.reNoXfer $$ Hfresh0 with ⟨%s, Hfresh⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh

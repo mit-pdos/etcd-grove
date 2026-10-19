@@ -11870,3 +11870,33 @@ off (it is off in the runs). **(A) adopted** (the user, 2026-10-19).
 *The user (2026-10-19):* D22g (A) and D22k (A), fork fixes, adopted; D22a (D) under discussion; the
 rest of D22b-j at their recommendations. S-a (D22i (A)) goes ahead meanwhile: it depends on none of
 them.
+
+## D22 S-a carried out: the no-transfer mode split from the no-snapshot mode (2026-10-19)
+
+D22i (A). `RaftNames` gains `reNoXfer : Bool` (no leader transfer; needs nothing of the boot log);
+`reNoSnap` keeps its meaning (`NGhost.ns`, the `MsgSnap` exclusion, `NsCap`, `reNoSnap_ok`).
+`NsLink γ s := s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoXfer`. Each fact is conditioned on what its
+proof needs:
+- `reNoXfer` alone: the `MsgTransferLeader` premises of `RawNode.Step`, `RawNode.TransferLeader`,
+  `node.TransferLeadership`, `netP`/`netP_local`.
+- `reNoSnap` alone: `isRaftMsg`'s `Type ≠ MsgSnap`, `NsCap`, the outbox without `.snap`;
+  `reNoSnap_ok` (the leader's last index past the boot log, `ownRaftGhost_noSnap_of_commit`, the
+  term past `0`).
+- **Both:** `SentMsgOk` (`isRaftMsg`'s clause, `isRaftMsg_sent`; inside `XfOk` as
+  `ns → term ≠ 0 ∧ (xf → ∀ m, SentMsgOk m)`). Its `sentTypes` exclude `MsgSnap` as well as
+  `MsgTimeoutNow`/`MsgTransferLeader`, and its stamped-term clause needs the node's term past `0`,
+  which comes from the boot log through `reNoSnap_ok` (a pre-vote rejection at term `0` carries
+  `Term: 0`).
+
+**For S-c (amends it):** `SentMsgOk` under `reNoXfer` alone needs `MsgSnap` admitted (in `sentTypes`
+or a clause of its own) and a term-past-`0` source independent of `reNoSnap` (a `reNoXfer_ok :
+reNoXfer = true → reBootRaw ≠ []`, every current no-transfer user having a boot log, or the term
+bound moved to a boot-log fact). Until then, turning `reNoSnap` off (S-l) loses the receiver's
+`NetMsgOk` source.
+
+Configurations as before: the server (`srvRaftBoot_alloc … true true`), putget and putget3 both
+flags on (`bootOk` gains `"%Hnoxfer"`, the examples' boot premises and `startMember.spec`
+`γ.reNoXfer = true`, `srvProcOk` too); kv both off (`ownRaftGhost_alloc_gen`/`raft_dyn_alloc` state
+`γ.reNoXfer = false`). Two lemmas lost a hypothesis (`ownRaftPhysC_set_ns` no `xf = true`,
+`ownRaftPhys(C)_xf_off` no `ns = false`); `rawNodeFresh_xf_off` became `rawNodeFresh_set_xf b`.
+35 files; trust base unchanged (525 axioms, 2 sorries; every collection's `--check` passes).

@@ -66,7 +66,9 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     W64 0 ∉ ids →
     ⊢ allocClient E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) C -∗
       |={E}=> ∃ γ : RaftNames,
-        ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming⌝ ∗
+        ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧
+          -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
+          γ.reNoXfer = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗ C γ ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0)) ∗
         -- (2026-10-15, stage N) as `ownRaftGhost_alloc`: the empty committed log, every read
@@ -82,7 +84,7 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
   iexists γ
   isplitr
   · ipureintro
-    refine ⟨?_, Hγ.2.2, Hγ.1⟩
+    refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2⟩
     unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
   iframe Hinv HC Hc0 Hcr Hcri
   iapply BigSepM.bigSepM_impl $$ Hn

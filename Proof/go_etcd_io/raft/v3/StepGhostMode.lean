@@ -237,8 +237,9 @@ def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
 the leader's rejection handling reads of the messages (`isMessage`'s clause of a rejecting
 `appResp`), and what the messages a `Ready` hands out say (`isRaftMsg`). Set with the node
 (`Bootstrap`), kept by every step. (2026-10-19, D21 M2r) And leader transfer is off
-(`NGhost.xf`) exactly in that mode. -/
-def NsLink (γ : RaftNames) (s : NState) : Prop := s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoSnap
+(`NGhost.xf`) exactly in the cluster's no-transfer mode (2026-10-19, D22 S-a:
+`RaftNames.reNoXfer`, its own flag; until then the no-snapshot mode's). -/
+def NsLink (γ : RaftNames) (s : NState) : Prop := s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoXfer
 
 theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns = true) :
     γ.reBoot ≠ [] :=

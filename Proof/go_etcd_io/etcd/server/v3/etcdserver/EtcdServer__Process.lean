@@ -54,7 +54,7 @@ theorem EtcdServer.Process.wp_proof
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
     #Hsi, %HN⟩
-  obtain ⟨HNe, hns, hboot⟩ := HN
+  obtain ⟨HNe, hns, hboot, hnx⟩ := HN
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -113,7 +113,7 @@ theorem EtcdServer.Process.wp_proof
       iframe Hm HO HP
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto⟩
-    imod (stepP_of_recv γn γ HNe hns hboot ml) $$ Hrecv with Hstep
+    imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
     have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
@@ -137,7 +137,7 @@ theorem EtcdServer.Process.wp_proof
       iframe Hm HO HP
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto⟩
-    imod (stepP_of_recv γn γ HNe hns hboot ml) $$ Hrecv with Hstep
+    imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
     have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=

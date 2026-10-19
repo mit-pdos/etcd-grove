@@ -313,9 +313,19 @@ structure RaftNames where
   /-- The no-snapshot mode (2026-10-19, D21 stage M3): every node's raft struct is in it
   (`NGhost.ns`, `NsLink`), so that no node sends a `MsgSnap` (`isRaftMsg`): its leaders' progress
   stays at `Next ≥ 2` and its storage's first index at most `2`. Only for a cluster started from
-  a bootstrap log (`ownRaftGhost_alloc_boot`), whose log past it is the leaders'. -/
+  a bootstrap log (`ownRaftGhost_alloc_boot`), whose log past it is the leaders'. (2026-10-19,
+  D22 S-a) No longer also the no-transfer mode (`reNoXfer`). -/
   reNoSnap : Bool
+  /-- What the no-snapshot mode needs of the boot (D22 S-a): a leader's last index past the
+  bootstrap log (`ownRaftGhost_ns_last`, the rejection handling's `Hnsb`), and a node's term past
+  `0` (`ownStepGhost_boot_term`), which `SentMsgOk`'s stamped terms need (`XfOk`). -/
   reNoSnap_ok : reNoSnap = true → reBootRaw ≠ []
+  /-- The no-transfer mode (2026-10-19, D22 S-a, split from `reNoSnap`): every node's raft
+  struct has leader transfer off (`NGhost.xf`, `NsLink`), so that no node records a transferee or
+  queues a `MsgTimeoutNow` or a forwarded `MsgTransferLeader` (`XfOk`), and `RawNode.Step` takes
+  no `MsgTransferLeader`. It needs nothing of the boot; with the no-snapshot mode it gives what
+  the receiver's `NetMsgOk` comes from (`SentMsgOk`, `isRaftMsg`). -/
+  reNoXfer : Bool
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged

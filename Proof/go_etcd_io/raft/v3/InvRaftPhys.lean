@@ -322,14 +322,16 @@ theorem OutTermOk.mono {t t' tc : w64} {m : MessageM}
     (Ht : uint.Z t ≤ uint.Z t') (H : OutTermOk t tc m) : OutTermOk t' tc m :=
   H.elim (fun h => .inl (Int.le_trans h Ht)) .inr
 
-/-- (2026-10-19, D21 M2r) The types a node in the no-snapshot mode sends (`SentMsgOk`): replication,
+/-- (2026-10-19, D21 M2r) The types a node in the no-snapshot and no-transfer modes sends
+(`SentMsgOk`; D22 S-a: both modes, until then one): replication,
 election, pre-vote, read-index, a forwarded proposal; no `MsgSnap` (the mode), no `MsgTimeoutNow`
 and no `MsgTransferLeader` (leader transfer off, `NGhost.xf`). -/
 def sentTypes : List w32 :=
   [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
    MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp]
 
-/-- (2026-10-19, D21 M2r, D21g (A)) **What a sender in the no-snapshot mode promises of a message
+/-- (2026-10-19, D21 M2r, D21g (A)) **What a sender in the no-snapshot and no-transfer modes
+promises of a message
 it queues**, beyond its protocol abstraction (`isRaftMsg` carries it to the receiver): a type of
 `sentTypes`, a nonzero sender, unstamped (`Term = 0`) exactly when a forwarded proposal or
 read-index request, and from a node other than its destination unless it is a read-index request
@@ -346,23 +348,27 @@ def SentMsgOk (st : MsgSt) : Prop :=
 /-- (2026-10-19, D21 M2r) **The modes' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the
 queued messages `l`): with leader transfer off (`NGhost.xf`) no transferee is recorded and every
 queued message is of a type the model describes (so neither a `MsgTimeoutNow` nor a forwarded
-`MsgTransferLeader`); in the no-snapshot mode (`NGhost.ns`) transfer is off, the term is past `0`
-(the bootstrap's), and every queued message is `SentMsgOk`. -/
+`MsgTransferLeader`); in the no-snapshot mode (`NGhost.ns`) the term is past `0` (the
+bootstrap's), and in both modes every queued message is `SentMsgOk`. (2026-10-19, D22 S-a) Until
+then the no-snapshot mode implied transfer off and gave `SentMsgOk` alone; the modes are now
+independent, and `SentMsgOk` needs both: its types exclude `MsgSnap` (the no-snapshot mode) and
+`MsgTimeoutNow`/`MsgTransferLeader` (transfer off), and its stamped terms are past `0` (the term
+the no-snapshot mode keeps, from the bootstrap log). -/
 def XfOk (s : NState) (l : List QMsg) : Prop :=
   (s.gh.xf = true → s.lt = W64 0 ∧ ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧
-  (s.gh.ns = true → s.gh.xf = true ∧ s.term ≠ W64 0 ∧ ∀ m ∈ l, SentMsgOk m.st)
+  (s.gh.ns = true → s.term ≠ W64 0 ∧ (s.gh.xf = true → ∀ m ∈ l, SentMsgOk m.st))
 
 /-- Out of both modes. -/
 theorem XfOk.off {s : NState} {l : List QMsg} (hx : s.gh.xf = false) (hn : s.gh.ns = false) :
     XfOk s l :=
   ⟨fun h => absurd (hx.symm.trans h) (by decide), fun h => absurd (hn.symm.trans h) (by decide)⟩
 
-/-- The empty queues, with no transferee and, in the no-snapshot mode, transfer off and a term
+/-- The empty queues, with no transferee with transfer off and, in the no-snapshot mode, a term
 past `0`. -/
 theorem XfOk.nil {s : NState} (hl : s.gh.xf = true → s.lt = W64 0)
-    (hn : s.gh.ns = true → s.gh.xf = true ∧ s.term ≠ W64 0) : XfOk s [] :=
+    (hn : s.gh.ns = true → s.term ≠ W64 0) : XfOk s [] :=
   ⟨fun h => ⟨hl h, fun _ hm => by cases hm⟩,
-   fun h => ⟨(hn h).1, (hn h).2, fun _ hm => by cases hm⟩⟩
+   fun h => ⟨hn h, fun _ _ hm => by cases hm⟩⟩
 
 /-- The same flags, transferee and term, at the same queues. -/
 theorem XfOk.of_fields {s s' : NState} {l : List QMsg} (H : XfOk s l) (hx : s'.gh.xf = s.gh.xf)
@@ -377,8 +383,8 @@ theorem XfOk.term_le {s : NState} {l : List QMsg} {v : w64} (H : XfOk s l)
     (Hle : uint.Z s.term ≤ uint.Z v) : XfOk { s with term := v } l := by
   obtain ⟨H1, H2⟩ := H
   refine ⟨H1, fun h => ?_⟩
-  obtain ⟨a, b, c⟩ := H2 h
-  refine ⟨a, fun hv => b ?_, c⟩
+  obtain ⟨b, c⟩ := H2 h
+  refine ⟨fun hv => b ?_, c⟩
   subst hv
   word
 
@@ -386,19 +392,20 @@ theorem XfOk.term_le {s : NState} {l : List QMsg} {v : w64} (H : XfOk s l)
 theorem XfOk.sub {s : NState} {l l' : List QMsg} (H : XfOk s l) (hs : ∀ m ∈ l', m ∈ l) :
     XfOk s l' :=
   ⟨fun h => ⟨(H.1 h).1, fun m hm => (H.1 h).2 m (hs m hm)⟩,
-   fun h => ⟨(H.2 h).1, (H.2 h).2.1, fun m hm => (H.2 h).2.2 m (hs m hm)⟩⟩
+   fun h => ⟨(H.2 h).1, fun hx m hm => (H.2 h).2 hx m (hs m hm)⟩⟩
 
 /-- A message queued: its own facts at the node's flags. -/
 theorem XfOk.snoc {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk s l)
-    (hx : s.gh.xf = true → mtypeOf q.st.msg.Type' ≠ none) (hn : s.gh.ns = true → SentMsgOk q.st)
+    (hx : s.gh.xf = true → mtypeOf q.st.msg.Type' ≠ none)
+    (hn : s.gh.ns = true → s.gh.xf = true → SentMsgOk q.st)
     (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk s l' := by
-  refine ⟨fun h => ⟨(H.1 h).1, fun m hm => ?_⟩, fun h => ⟨(H.2 h).1, (H.2 h).2.1, fun m hm => ?_⟩⟩
+  refine ⟨fun h => ⟨(H.1 h).1, fun m hm => ?_⟩, fun h => ⟨(H.2 h).1, fun hx' m hm => ?_⟩⟩
   · rcases hl m hm with hm | rfl
     · exact (H.1 h).2 m hm
     · exact hx h
   · rcases hl m hm with hm | rfl
-    · exact (H.2 h).2.2 m hm
-    · exact hn h
+    · exact (H.2 h).2 hx' m hm
+    · exact hn h hx'
 
 /-- (2026-10-17) The ceiling raised. -/
 theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
@@ -1023,7 +1030,8 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
   "%Hnsl" ∷ ⌜LogNsOk s⌝ ∗
   "#Hnscap" ∷ NsCap s.gh.ns s.logst.storage ∗
   -- (2026-10-19, D21 M2r) leader transfer off and the no-snapshot mode: no transferee, the queued
-  -- messages' types and (in the no-snapshot mode) their `SentMsgOk`, the term past `0` (`XfOk`)
+  -- messages' types and (in the no-snapshot and, D22 S-a, no-transfer modes) their `SentMsgOk`,
+  -- the term past `0` in the no-snapshot mode (`XfOk`)
   "%Hxf" ∷ ⌜XfOk s (msgs ++ msgsAA)⌝ ∗
 
   -- `r.preVote`, recorded (since 2026-10-04; until then a scope conjunct pinned it to
@@ -2016,15 +2024,15 @@ theorem ownRaftPhysC_lt_ne (r : Loc) (id : w64) (s : NState) :
   resealC c s
 
 /-- (2026-10-19, D21 M2r) With leader transfer off no transferee is recorded; the no-snapshot mode
-has transfer off and a term past `0` (`XfOk`). -/
+has a term past `0` (`XfOk`; D22 S-a: no longer transfer off as well). -/
 theorem ownRaftPhysC_xf (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ⌜(s.gh.xf = true → s.lt = W64 0) ∧ (s.gh.ns = true → s.gh.xf = true ∧ s.term ≠ W64 0)⌝ ∗
+      ⌜(s.gh.xf = true → s.lt = W64 0) ∧ (s.gh.ns = true → s.term ≠ W64 0)⌝ ∗
         ownRaftPhysCV c V r id s := by
   iintro H
   iNamed_physC H
   isplitr
-  · ipureintro; exact ⟨fun h => (Hxf.1 h).1, fun h => ⟨(Hxf.2 h).1, (Hxf.2 h).2.1⟩⟩
+  · ipureintro; exact ⟨fun h => (Hxf.1 h).1, fun h => (Hxf.2 h).1⟩
   resealC c s
 
 /-- Changing only the outbox, up to permutation. -/
@@ -2369,9 +2377,9 @@ most `1` and its storage never compacted past `1`. -/
 theorem ownRaftPhysC_set_ns (r : Loc) (id : w64) (s : NState) (Hrole : s.role ≠ .leader)
     (Hsn : s.logst.snap = none) (Hp : uint.Z s.logst.prev.index' ≤ 1)
     (Hc : 1 ≤ uint.Z s.logst.committed) (Ho : ∀ m ∈ s.outbox, m.ty ≠ .snap)
-    -- (2026-10-19, D21 M2r) transfer off, a term past `0`, nothing in the outbox (so, transfer
-    -- being off, nothing queued)
-    (Hxf1 : s.gh.xf = true) (Ht : s.term ≠ W64 0) (Hob : s.outbox = []) :
+    -- (2026-10-19, D21 M2r) a term past `0`, nothing in the outbox (so, with transfer off,
+    -- nothing queued; D22 S-a: either way, transfer being independent of the mode)
+    (Ht : s.term ≠ W64 0) (Hob : s.outbox = []) :
     ⊢ storCap (GF := GF) s.logst.storage 1 -∗ ownRaftPhysCV c V r id s -∗
       ownRaftPhysCV c V r id { s with gh := { s.gh with ns := true } } := by
   iintro #Hcap H
@@ -2384,7 +2392,7 @@ theorem ownRaftPhysC_set_ns (r : Loc) (id : w64) (s : NState) (Hrole : s.role �
   ihave Houtbox : outboxRel (GF := GF) s.outbox msgs msgsAA $$ [Houtbox]
   · rw [Hob]; iexact Houtbox
   have Hxf' : XfOk { s with gh := { s.gh with ns := true } } (msgs ++ msgsAA) :=
-    ⟨Hxf.1, fun _ => ⟨Hxf1, Ht, fun m hm => absurd (Hnone m hm) ((Hxf.1 Hxf1).2 m hm)⟩⟩
+    ⟨Hxf.1, fun _ => ⟨Ht, fun hx m hm => absurd (Hnone m hm) ((Hxf.1 hx).2 m hm)⟩⟩
   iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with ns := true } } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2393,15 +2401,17 @@ theorem ownRaftPhysC_set_ns (r : Loc) (id : w64) (s : NState) (Hrole : s.role �
     (PrvalsOk.not_leader Hrole) (fun _ => ⟨Hsn, Hp, Hc, Ho⟩) Hxf'
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap'
 
-/-- (2026-10-19, D21 M2r) **Leader transfer turned on** (a ghost step, `NGhost.xf`), outside the
-no-snapshot mode: nothing more is promised of the queues. -/
-theorem ownRaftPhysC_xf_off (r : Loc) (id : w64) (s : NState) (Hns : s.gh.ns = false) :
+/-- (2026-10-19, D21 M2r) **Leader transfer turned on** (a ghost step, `NGhost.xf`): nothing more
+is promised of the queues. (2026-10-19, D22 S-a) In either no-snapshot mode: `SentMsgOk` is now
+of both modes, so the no-snapshot mode keeps only its term past `0`. -/
+theorem ownRaftPhysC_xf_off (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
       ownRaftPhysCV c V r id { s with gh := { s.gh with xf := false } } := by
   iintro H
   iNamed_physC H
   have Hxf' : XfOk { s with gh := { s.gh with xf := false } } (msgs ++ msgsAA) :=
-    XfOk.off rfl Hns
+    ⟨fun h => absurd h Bool.false_ne_true,
+     fun h => ⟨(Hxf.2 h).1, fun h' => absurd h' Bool.false_ne_true⟩⟩
   iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with xf := false } } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2760,8 +2770,9 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
            -- (2026-10-19, D21 M2r) a type the model describes with transfer off, and `SentMsgOk`
-           -- in the no-snapshot mode (`XfOk`)
-           ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧ (s.gh.ns = true → SentMsgOk st')⌝ -∗
+           -- in the no-snapshot and (D22 S-a) no-transfer modes (`XfOk`)
+           ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧
+             (s.gh.ns = true → s.gh.xf = true → SentMsgOk st')⌝ -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H
@@ -2816,8 +2827,9 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode
            ⌜s.gh.ns = true → ∀ x ∈ a.toList, x.ty ≠ .snap⌝ -∗
            -- (2026-10-19, D21 M2r) a type the model describes with transfer off, and `SentMsgOk`
-           -- in the no-snapshot mode (`XfOk`)
-           ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧ (s.gh.ns = true → SentMsgOk st')⌝ -∗
+           -- in the no-snapshot and (D22 S-a) no-transfer modes (`XfOk`)
+           ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧
+             (s.gh.ns = true → s.gh.xf = true → SentMsgOk st')⌝ -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
   iintro H
   iNamed_physC H

@@ -668,7 +668,7 @@ theorem NewServer.wp_proof
       rw [h] at hl
       exact Hrpsne (List.length_eq_zero_iff.mp hl.symm)
     exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1, Hrn2],
-      by rw [Hrn1]; exact Hnosnap.1, hb⟩
+      by rw [Hrn1]; exact Hnosnap.1, hb, by rw [Hrn1]; exact Hnoxfer⟩
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
   wp_apply (h38 t _ γn (srvLgReader s)) $$ [«$r0» Hslot HlgNet] as %terr Htres

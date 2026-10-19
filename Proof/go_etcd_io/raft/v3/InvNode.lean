@@ -453,9 +453,10 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml DFrac.discard st ∗ ⌜NetMsgOk id st⌝ ∗
       -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log, whose
       -- nodes are past term `0` (`RawNode.Step`'s premise); (2026-10-19, D21 M2r) a leader-transfer
-      -- request only outside the cluster's no-snapshot mode, where leader transfer is off
+      -- request only outside the cluster's no-transfer mode, where leader transfer is off (D22 S-a:
+      -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
       ⌜(st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []) ∧
-        (st.msg.Type' = MsgTransferLeader → γ.raft.reNoSnap = false)⌝ ∗
+        (st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false)⌝ ∗
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
         isMessage γ.raft (absMsg ty st.msg st.ents st.ctx)) ∗
       termLB γ.bud st.msg.Term' ∗
@@ -469,8 +470,8 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨
       st.msg.Type' = MsgUnreachable ∨ st.msg.Type' = MsgSnapStatus)
     (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = [])
-    -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-snapshot mode
-    (Hxt : st.msg.Type' = MsgTransferLeader → γ.raft.reNoSnap = false) :
+    -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-transfer mode
+    (Hxt : st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false) :
     ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
       termLB γ.bud (W64 0) -∗ rdCred γ.raft 0 -∗ tickCred γ.bud 0 -∗
       netP γ id ml := by

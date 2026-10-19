@@ -64,11 +64,12 @@ local macro "tyd" : tactic => `(tactic| simp [sentTypes, MsgReadIndex, MsgProp, 
 
 set_option hygiene false in
 /-- (2026-10-19, D21 M2r) The queued message's modes' facts (`XfOk`'s): a type the model describes
-(but in case (c)), and in the no-snapshot mode `SentMsgOk` -- its fields from the case's facts
-`args`, the node's id nonzero (`Hidnz`), its term past `0` in the mode (`Hxfs`). -/
+(but in case (c)), and in the no-snapshot and (D22 S-a) no-transfer modes `SentMsgOk` -- its
+fields from the case's facts `args`, the node's id nonzero (`Hidnz`), its term past `0` in the
+no-snapshot mode (`Hxfs`). -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨fun _ => ?_, fun hns => ⟨?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_⟩⟩
   · simp only [Hty1, $args,*]; nofun
   · simp only [Hty1, $args,*]; tyd
   · simp only [Hfr1]; first | exact Hidnz | exact Hsrc0
@@ -76,7 +77,7 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     all_goals first | rfl | trivial | exact absurd h (by tyd)
   · intro h hz
     simp only [Hty1, Hte1, $args,*] at h hz
-    all_goals first | exact (Hxfs.2 hns).2 hz | exact absurd (by tyd) h
+    all_goals first | exact Hxfs.2 hns hz | exact absurd (by tyd) h
   · intro h1 h2 h3 h4; simp only [Hty1, Hfr1, Hto1, $args,*] at h1 h2 h3 h4 ⊢
     all_goals exact $ft))
 
@@ -275,7 +276,7 @@ theorem raft.send.wp_proof
     · ipureintro; intro _ x hx; cases hx
     · ipureintro
       exact ⟨fun h => absurd (HxfF.symm.trans h) (by decide),
-        fun h => absurd (HxfF.symm.trans (Hxfs.2 h).1) (by decide)⟩
+        fun _ h => absurd (HxfF.symm.trans h) (by decide)⟩
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (d) `MsgAppResp`: stamped, and a response, so onto `r.msgsAfterAppend`; it may

@@ -102,23 +102,27 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
   exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom⟩
 
 /-- (2026-10-19, D21 M2r) Leader transfer turned on in a fresh node (a ghost step,
-`ownRaftPhys_xf_off`): `RestartNode`'s, out of the no-snapshot mode. -/
-theorem rawNodeFresh_xf_off (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
-    (pre : Bool) (s : NState) :
+`ownRaftPhys_xf_off`): `RestartNode`'s, out of the no-snapshot mode. (2026-10-19, D22 S-a) Set to
+`b`, the cluster's no-transfer mode (`RaftNames.reNoXfer`): kept off, or turned on. -/
+theorem rawNodeFresh_set_xf (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+    (pre : Bool) (s : NState) (b : Bool) :
     rawNodeFresh (GF := GF) rn id si V sdr pre s ⊢
-      ∃ s', rawNodeFresh rn id si V sdr pre s' false := by
+      ∃ s', rawNodeFresh rn id si V sdr pre s' b := by
   iintro H
-  iunfold rawNodeFresh at H
-  icases H with ⟨%rnv, %sv, %hprev, H⟩
-  iNamed H
-  ihave Hphys := ownRaftPhys_xf_off V rnv.raft' id s (by rw [Hgh]) $$ Hphys
-  iexists { s with gh := { s.gh with xf := false } }
-  iunfold rawNodeFresh
-  iexists rnv, sv, hprev
-  simp only [named]
-  iframe Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap
-  ipureintro
-  exact ⟨Hasync, Hrel, Hterm0, Hlog, by show { s.gh with xf := false } = _; rw [Hgh], Hpvoff, Hsdr, Hdom⟩
+  cases b with
+  | true => iexists s; iexact H
+  | false =>
+    iunfold rawNodeFresh at H
+    icases H with ⟨%rnv, %sv, %hprev, H⟩
+    iNamed H
+    ihave Hphys := ownRaftPhys_xf_off V rnv.raft' id s $$ Hphys
+    iexists { s with gh := { s.gh with xf := false } }
+    iunfold rawNodeFresh
+    iexists rnv, sv, hprev
+    simp only [named]
+    iframe Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap
+    ipureintro
+    exact ⟨Hasync, Hrel, Hterm0, Hlog, by show { s.gh with xf := false } = _; rw [Hgh], Hpvoff, Hsdr, Hdom⟩
 
 /-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`. -/
 def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=

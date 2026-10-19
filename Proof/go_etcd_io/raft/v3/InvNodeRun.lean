@@ -380,8 +380,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     (Hpvb : st.msg.Type' = MsgPreVote → γ.reBoot ≠ [])
     -- (D19i part 1) the floor not raised (a `MsgTimeoutNow` campaigns)
     (Hflw : rs.flw = false)
-    -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-snapshot mode
-    (Hxt : st.msg.Type' = MsgTransferLeader → γ.reNoSnap = false) :
+    -- (2026-10-19, D21 M2r) a transfer request only outside the cluster's no-transfer mode
+    (Hxt : st.msg.Type' = MsgTransferLeader → γ.reNoXfer = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         msgIn ml DFrac.discard st ∗
