@@ -111,7 +111,7 @@ PROJECTS = [
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="db744fe27be938d6933b7cad9fd02e5a09e83bac",
+        rev="eebbe9e9087d5075c49b372790c745007591ba3f",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],

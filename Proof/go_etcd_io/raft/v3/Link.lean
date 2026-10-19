@@ -239,6 +239,7 @@ public import Proof.go_etcd_io.raft.v3.raftpb.EnsureSnapshotMetadata
 public import Proof.go_etcd_io.raft.v3.raftpb.EntryType__Enum
 public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetSubterm
 public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import Proof.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Proof.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
@@ -291,6 +292,8 @@ public import Proof.go_etcd_io.raft.v3.traceReceiveMessage
 public import Proof.go_etcd_io.raft.v3.traceReplicate
 public import Proof.go_etcd_io.raft.v3.traceSendMessage
 public import Proof.go_etcd_io.raft.v3.tracker.Config__Clone
+public import Proof.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
+public import Proof.go_etcd_io.raft.v3.tracker.Epoch__ReplicateToWitness
 public import Proof.go_etcd_io.raft.v3.tracker.Inflights__Add
 public import Proof.go_etcd_io.raft.v3.tracker.Inflights__Clone
 public import Proof.go_etcd_io.raft.v3.tracker.Inflights__Count
@@ -300,12 +303,15 @@ public import Proof.go_etcd_io.raft.v3.tracker.Inflights__grow
 public import Proof.go_etcd_io.raft.v3.tracker.Inflights__reset
 public import Proof.go_etcd_io.raft.v3.tracker.MakeProgressTracker
 public import Proof.go_etcd_io.raft.v3.tracker.NewInflights
+public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__ChangeReplicationSet
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__Committed
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__ConfState
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__LearnerNodes
+public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
+public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetReplicationSet
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes
 public import Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
@@ -454,9 +460,13 @@ theorem raftpb.Entry.wp_GetTerm :
     raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG) :=
   raftpb.Entry.GetTerm.wp_proof
 
+theorem raftpb.Entry.wp_GetSubterm :
+    raftpb.Entry.GetSubterm.spec (GF := GF) (hG := hG) :=
+  raftpb.Entry.GetSubterm.wp_proof
+
 theorem MemoryStorage.wp_Compact [StorageModel GF] :
     MemoryStorage.Compact.spec (GF := GF) (hG := hG) :=
-  MemoryStorage.Compact.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex raftpb.Entry.wp_GetTerm
+  MemoryStorage.Compact.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetSubterm
 
 theorem proto.wp_CloneConfState :
     proto.CloneConfState.spec (GF := GF) (hG := hG) :=
@@ -1474,6 +1484,14 @@ theorem raftpb.Snapshot.wp_GetData :
     raftpb.Snapshot.GetData.spec (GF := GF) (hG := hG) :=
   raftpb.Snapshot.GetData.wp_proof
 
+theorem tracker.Epoch.wp_HasWitness :
+    tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG) :=
+  tracker.Epoch.HasWitness.wp_proof
+
+theorem tracker.Epoch.wp_ReplicateToWitness :
+    tracker.Epoch.ReplicateToWitness.spec (GF := GF) (hG := hG) :=
+  tracker.Epoch.ReplicateToWitness.wp_proof
+
 theorem tracker.Inflights.wp_Clone :
     tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
   tracker.Inflights.Clone.wp_proof
@@ -1482,9 +1500,21 @@ theorem tracker.Inflights.wp_Count :
     tracker.Inflights.Count.spec (GF := GF) (hG := hG) :=
   tracker.Inflights.Count.wp_proof
 
+theorem tracker.ProgressTracker.wp_ChangeReplicationSet :
+    tracker.ProgressTracker.ChangeReplicationSet.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.ChangeReplicationSet.wp_proof tracker.Epoch.wp_HasWitness
+
 theorem tracker.ProgressTracker.wp_LearnerNodes :
     tracker.ProgressTracker.LearnerNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.LearnerNodes.wp_proof slices.wp_Sort
+
+theorem tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet :
+    tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness
+
+theorem tracker.ProgressTracker.wp_ResetReplicationSet :
+    tracker.ProgressTracker.ResetReplicationSet.spec (GF := GF) (hG := hG) :=
+  tracker.ProgressTracker.ResetReplicationSet.wp_proof
 
 theorem tracker.ProgressTracker.wp_TallyVotesWithDifference :
     tracker.ProgressTracker.TallyVotesWithDifference.spec (GF := GF) (hG := hG) :=

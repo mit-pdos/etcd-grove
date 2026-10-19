@@ -1728,6 +1728,7 @@ noncomputable def ProgressTracker.ResetReplicationSet.impl [FfiSyntax] [GoGlobal
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))) (Var "$r0")))))))
@@ -1779,6 +1780,15 @@ noncomputable def ProgressTracker.ResetReplicationSet.impl [FfiSyntax] [GoGlobal
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (Pair (Var "c") (Var "$value"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))) (Val #(W64 0))))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 go.uint64)))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Witnesses"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))) (Val #(W64 1))))) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "resetSubterm")))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"Subterm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Val #(W64 1))))
   (App (Val doExecute)
@@ -1788,7 +1798,7 @@ noncomputable def ProgressTracker.ResetReplicationSet.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (Var "epoch") (Var "$r0")))))))))))))
 
-/-- go: tracker.go:448:27 -/
+/-- go: tracker.go:454:27 -/
 noncomputable def ProgressTracker.ChangeReplicationSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1934,7 +1944,7 @@ noncomputable def ProgressTracker.ChangeReplicationSet.impl [FfiSyntax] [GoGloba
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "changed") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (Var "result") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Epoch.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Epoch.ty)))) (Val UntypedNil)))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Epoch.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Epoch.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Epoch.ty) go!"HasWitness"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #()))))
   (App (Val doReturn)
   (Val #false))
   (App (Val doExecute)
