@@ -59,6 +59,8 @@ func decode(b []byte) (replica, seq uint64, kind byte, key, val string, ok bool)
 type Storage struct {
 	*raft.MemoryStorage
 	voters []uint64
+	// witness is the cluster's witness, one of voters (StartClusterWitness), or 0
+	witness uint64
 }
 
 // NewStorage is an empty storage for a member of the cluster of voters.
@@ -70,7 +72,11 @@ func NewStorage(voters []uint64) *Storage {
 // entries, never a HardState, so the MemoryStorage's is always empty), and the cluster's
 // voters as the configuration.
 func (s *Storage) InitialState() (*pb.HardState, *pb.ConfState, error) {
-	return &pb.HardState{}, &pb.ConfState{Voters: s.voters}, nil
+	cs := &pb.ConfState{Voters: s.voters}
+	if s.witness != 0 {
+		cs.Witness = new(s.witness)
+	}
+	return &pb.HardState{}, cs, nil
 }
 
 // Snapshot is the MemoryStorage's, but a storage that has never had one (a new
@@ -92,6 +98,8 @@ type KV struct {
 	id      uint64
 	node    raft.Node
 	storage *Storage
+	// witness is this replica's access to the cluster's witness (nil: none)
+	witness raft.Witness
 
 	mu      sync.Mutex
 	kv      map[string]string
@@ -104,7 +112,12 @@ type KV struct {
 // New starts replica id on a running node and its storage; send delivers the node's
 // messages to the other replicas.
 func New(id uint64, node raft.Node, storage *Storage, send func([]*pb.Message)) *KV {
-	r := &KV{id: id, node: node, storage: storage, kv: make(map[string]string),
+	return newKV(id, node, storage, send, nil)
+}
+
+// newKV is New with the replica's access to the witness (nil: none).
+func newKV(id uint64, node raft.Node, storage *Storage, send func([]*pb.Message), w raft.Witness) *KV {
+	r := &KV{id: id, node: node, storage: storage, witness: w, kv: make(map[string]string),
 		applied: make(map[string]bool), waiters: make(map[uint64]chan string),
 		reads: make(map[uint64]chan string)}
 	go r.run(send)
@@ -136,6 +149,7 @@ func (r *KV) run(send func([]*pb.Message)) {
 		}
 		r.storage.Append(rd.Entries)
 		send(rd.Messages)
+		r.witnessDeliver(rd.WitnessMessages)
 		pending = append(pending, rd.ReadStates...)
 		for _, e := range rd.CommittedEntries {
 			if e.GetType() == pb.EntryConfChange {
@@ -148,6 +162,21 @@ func (r *KV) run(send func([]*pb.Message)) {
 		}
 		pending = r.answer(pending, applied)
 		r.node.Advance()
+	}
+}
+
+// witnessDeliver passes the node's messages to the witness through the replica's access to
+// it, and steps each deliverable answer into the node (an error of the witness's storage,
+// none in process, drops the message).
+func (r *KV) witnessDeliver(ms []raft.WitnessMessage) {
+	if r.witness == nil {
+		return
+	}
+	for _, m := range ms {
+		resp, err := r.witness.Process(m)
+		if err == nil && resp != nil && deliverable(resp) {
+			r.node.Step(context.Background(), resp)
+		}
 	}
 }
 

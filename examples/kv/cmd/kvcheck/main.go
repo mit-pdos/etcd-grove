@@ -25,6 +25,7 @@ func main() {
 	ops := flag.Int("ops", 50, "operations per client")
 	rounds := flag.Int("rounds", 1, "tests, each on a fresh cluster")
 	clock := flag.String("clock", "counter", "the trace's clock: counter or monotonic")
+	witness := flag.Bool("witness", false, "the last voter is a witness (StartClusterWitness)")
 	flag.Parse()
 
 	if *clients == 0 {
@@ -43,7 +44,13 @@ func main() {
 			c = lintest.MonotonicClock()
 		}
 		start := time.Now()
-		r := kv.Check(kv.StartCluster(voters), c, *clients, *ops)
+		var kvs []*kv.KV
+		if *witness {
+			kvs = kv.StartClusterWitness(voters[:len(voters)-1], voters[len(voters)-1])
+		} else {
+			kvs = kv.StartCluster(voters)
+		}
+		r := kv.Check(kvs, c, *clients, *ops)
 		fmt.Printf("round %d: %d replicas, %d clients x %d operations: %v (%v)\n",
 			i+1, *replicas, *clients, *ops, r, time.Since(start).Round(time.Millisecond))
 		if r != porcupine.Ok {
