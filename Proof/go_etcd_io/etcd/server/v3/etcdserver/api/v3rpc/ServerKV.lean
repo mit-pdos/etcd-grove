@@ -112,7 +112,7 @@ def putApplied (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (o : OpFull)
       r = W64 (x.log.length : Int) ∧ F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     apply.putOutcomeIs x.log o resp GoInterface.nil (.applied l false) ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
 /-- **A successful `Put` of `o`** (`EtcdServer.Put`'s success, at the handler's level): the
 request with the server's header (`hm`) was dispatched by the apply thread at the KV state `x`
@@ -257,6 +257,8 @@ inductive KVDep (GF : BundledGFunctors) where
   | none
   | op (o : KVOp) (Q : KVState → IProp GF)
   | read (Q : KVState → IProp GF)
+  /-- (2026-10-19, D21 M6) a put's update fired at most once (`kvOpAu1`) -/
+  | op1 (o : KVOp) (Q : KVState → IProp GF)
 
 /-- The deposit's update: a write's at the request path's KV names, a read's at the read names'
 (both persistent). -/
@@ -264,10 +266,12 @@ def kvDepOwn (ρ : ReqNames) (γr : ReadNames) : KVDep GF → IProp GF
   | .none => iprop(True)
   | .op o Q => kvOpAu ρ.kv o Q
   | .read Q => kvReadAu γr.kv Q
+  | .op1 o Q => kvOpAu1 ρ.kv o Q
 
 /-- A write's result under the deposit. -/
 def opDepQ : KVDep GF → KVState → IProp GF
   | .op _ Q => Q
+  | .op1 _ Q => Q
   | _ => fun _ => iprop(True)
 
 /-- A range's result over committed logs under the deposit (`kvDep`'s form). -/
@@ -283,7 +287,7 @@ nested transaction putting a key a later sibling deletes (`ReqOp.siblingSafeL`) 
 depth, sorting cut by a limit (`txn.OpsNoCut`): with the checks they give its apply's shape
 (`txnShape_of_check`, `CheckShape.lean`). -/
 def kvDepPre (d : KVDep GF) : KVReq → Prop
-  | .put o => (∃ Q, d = .op (.put o) Q) ∧ o.leaseID = W64 0
+  | .put o => (∃ Q, d = .op1 (.put o) Q) ∧ o.leaseID = W64 0
   | .range o => ∀ Q, d = .read Q → o.base.serializable = false
   | .deleteRange o => (∃ Q, d = .op (.deleteRange o) Q) ∧ o.base.rangeEnd ≠ [W8 0]
   | .txn cs ts es => ∀ t, txnModelOf cs ts es = some t →
@@ -325,6 +329,7 @@ theorem kvDep_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) :
   cases d with
   | none => iright; ipureintro; rfl
   | op o Q => iright; ipureintro; rfl
+  | op1 o Q => iright; ipureintro; rfl
   | read Q =>
     ileft
     iexists Q
@@ -552,7 +557,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, #Hcok, #HQv⟩ |
+  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, #Hcok, HQv⟩ |
     ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr

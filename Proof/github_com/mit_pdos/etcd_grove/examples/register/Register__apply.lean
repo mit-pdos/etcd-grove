@@ -158,7 +158,8 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
   | none =>
     -- a leader's own entry (no bytes) or (2026-10-13) an entry of another type (a conf
     -- change): no operation
-    iunfold entDataIs at Hem
+    ihave Hem := entDataIs_prop γp.node.raft em none $$ Hem
+    iunfold propDataIs at Hem
     icases Hem with (%Hz | %Hty)
     rotate_left
     · -- not a normal entry: `apply` returns at once
@@ -183,7 +184,8 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
     ipureintro; exact ⟨Hval, HA⟩
   | some d =>
     ihave #Hem' := Hem
-    iunfold entDataIs at Hem'
+    ihave Hem' := entDataIs_prop γp.node.raft em (some d) $$ Hem'
+    iunfold propDataIs at Hem'
     icases Hem' with ⟨%Hz, #Hdep⟩
     obtain ⟨Hz1, Hdne, Hty0⟩ := Hz
     subst Hz1

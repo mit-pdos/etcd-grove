@@ -57,7 +57,8 @@ theorem kVClient.Txn.wp_proof
     ([sm] ++ vs)
   rw [show (pbTxnRequest (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
     show (pbTxnResponse (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI
-  wp_apply hI $$ [Hsend Hblank] as %err ⟨Hin', Hres⟩
+  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
+  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
   icases Hin' with ⟨%req', Hin', -⟩

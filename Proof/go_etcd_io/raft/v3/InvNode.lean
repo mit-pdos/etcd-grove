@@ -393,7 +393,9 @@ the leader-transfer marker), and what it carries as a protocol message (each ent
 `raft.Step` takes a proposal, `msgIn ml 1`, its entries' slots owned.) -/
 def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp⌝ ∗
-    isMessage γ.raft (absMsg .propose st.msg st.ents))
+    isMessage γ.raft (absMsg .propose st.msg st.ents) ∗
+    -- (2026-10-19, D21 M6) its entries' tickets (`entTk`), which the leader consumes
+    ([∗list] e ∈ st.ents, entTk γ.raft e))
 
 /-- `err` is raft's package variable `ErrProposalDropped` (`raft.go`, an `errors.New` error),
 a read-only global the package initializer sets to a non-`nil` error (`isInitialized`,
@@ -430,7 +432,7 @@ entry `propEntryM d`, D6: the data's bytes `d`. Stage R7c: the result channel's 
 def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
   iprop((∃ (d : List w8) (γr : HandoffNames),
     msgIn pm.m' (DFrac.own 1) ⟨propMsgM, [propEntryM d], none, [], []⟩ ∗
-    entData γ.raft (propEntryM d) ∗
+    propData γ.raft (propEntryM d) ∗ entTk γ.raft (propEntryM d) ∗
     isHandoff γr pm.result' stepErr iprop(True) iprop(True) ∗
     handoffProducer γr false) ∨
     (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m'))
@@ -540,6 +542,8 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft q.st ∗
       termLB γ.bud q.st.msg.Term') ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+    -- (2026-10-19, D21 M6) each forwarded proposal's tickets (`stTks`)
+    ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     (∃ h : HardStateM, hsOpt rd.HardState' h) ∗
@@ -883,17 +887,22 @@ variable [sem : go.Semantics]
 
 /-- What `Node.Propose` takes for its data `d` (`fresh`: the first proposal of `d`, with
 its fresh token and the client's persistent atomic update (2026-10-14, stage R); otherwise a
-retry, with `d` deposited). -/
-def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool) :
-    IProp GF :=
-  if fresh then iprop(propFresh γ d ∗ propAu γ d Q) else deposited γ d
+retry, with `d` deposited). Since 2026-10-19 (D21 M6) a first proposal is deposited `once`
+(proposed once: its ticket goes with it, so it is appended once) or not; a retry needs `d`
+deposited not once (`propMulti`). A proposal deposited once takes an update fired at most once
+(`propAuM`). -/
+def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool)
+    (once : Bool) : IProp GF :=
+  if fresh then iprop(propFresh γ d ∗ propAuM γ d Q once) else propMulti γ d
 
-/-- What it gives back: `d` deposited, and for a first proposal the handle on the update's
-results (2026-10-14, stage R: persistent, no ticket). -/
-def propRes (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool) :
-    IProp GF :=
+/-- What it gives back: `d` deposited, for a first proposal the handle on the update's
+results (2026-10-14, stage R: persistent, no ticket), and (D21 M6) whether it is proposed
+once. -/
+def propRes (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool)
+    (once : Bool) : IProp GF :=
   iprop(deposited γ d ∗
-    if fresh then iprop(∃ γq, isProp γ d γq Q) else iprop(True))
+    (if fresh then iprop(∃ γq, isProp γ d γq Q) else iprop(True)) ∗
+    (if fresh && once then propOnce γ d else propMulti γ d))
 
 -- (2026-10-16, stage R5, D6) `propDataInv_alloc`, `propData_register` and `propData_heap` are
 -- gone with the proposed slices: an entry's data, a read context, is its bytes.
@@ -912,38 +921,58 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 the entry `propEntryM data` holds the bytes, which must not be empty (`Hne`: an empty one would
 be a leader's own entry); no slice to record.) -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
-    (data : List w8) (Q : List EntryM → IProp GF) (fresh : Bool) (E : CoPset)
+    (data : List w8) (Q : List EntryM → IProp GF) (fresh once : Bool) (E : CoPset)
     (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) :
-    ⊢ isNode γ id n -∗ propArg γ.raft data Q fresh ={E}=∗
-      entData γ.raft (propEntryM data) ∗ propRes γ.raft data Q fresh := by
+    ⊢ isNode γ id n -∗ propArg γ.raft data Q fresh once ={E}=∗
+      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) ∗
+      propRes γ.raft data Q fresh once := by
   iintro #Hnode Harg
   open_node Hnode
-  ihave Hres : |={E}=> propRes γ.raft data Q fresh $$ [Harg]
+  have Htk : entTk (GF := GF) γ.raft (propEntryM data) =
+      iprop(propTk γ.raft data ∨ propMulti γ.raft data) := by
+    unfold entTk; rw [if_pos ⟨rfl, Hne⟩]; rfl
+  rw [Htk]
+  ihave Hres : |={E}=> (propTk γ.raft data ∨ propMulti γ.raft data) ∗
+      propRes γ.raft data Q fresh once $$ [Harg]
   · unfold propArg propRes
     cases fresh with
     | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
+      simp only [Bool.false_eq_true, ↓reduceIte, Bool.false_and]
+      icases Harg with #Hm
       imodintro
-      iframe Harg
+      isplitr; · iright; iexact Hm
+      isplitr; · iapply propMulti_deposited $$ Hm
+      iframe Hm
     | true =>
-      simp only [↓reduceIte]
+      simp only [↓reduceIte, Bool.true_and]
       icases Harg with ⟨Hfr, Hau⟩
-      imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp⟩
-      imodintro
-      isplitr
-      · iapply isProp_deposited $$ Hp
-      · iexists γq
-        iframe Hp
-  imod Hres with Hres
+      imod prop_deposit γ.raft E data Q once HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp, Hk⟩
+      ihave #Hdep := isProp_deposited $$ Hp
+      cases once with
+      | false =>
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        icases Hk with #Hm
+        imodintro
+        isplitr; · iright; iexact Hm
+        iframe Hdep Hm
+        iexists γq; iexact Hp
+      | true =>
+        simp only [↓reduceIte]
+        icases propTk_once γ.raft data $$ Hk with ⟨Hk, #Ho⟩
+        imodintro
+        isplitl [Hk]; · ileft; iexact Hk
+        iframe Hdep Ho
+        iexists γq; iexact Hp
+  imod Hres with ⟨Htk, Hres⟩
   ihave #Hdep : deposited γ.raft data $$ [Hres]
   · unfold propRes
     icases Hres with ⟨#Hd, -⟩
     iexact Hd
   imodintro
-  iframe Hres
-  unfold entData
+  iframe Hres Htk
+  unfold propData
   iexists some data
-  unfold entDataIs
+  unfold propDataIs
   isplitr
   · ipureintro; exact ⟨rfl, Hne, rfl⟩
   iexact Hdep
@@ -977,8 +1006,8 @@ theorem node_entData_heap (γ : NodeNames) (id : w64) (n : Loc) (e : EntryM)
     (d : List w8) (E : CoPset) :
     ⊢ isNode (GF := GF) γ id n -∗ entDataIs γ.raft e (some d) ={E}=∗ ⌜e.Data' = d⌝ := by
   iintro #Hnode #He
-  unfold entDataIs
-  icases He with ⟨%H, -⟩
+  unfold entDataIs propDataIs
+  icases He with ⟨⟨%H, -⟩, -⟩
   imodintro
   ipureintro; exact H.1
 

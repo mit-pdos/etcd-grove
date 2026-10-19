@@ -88,7 +88,7 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
   iintro Hr
   iunfold netRecv at Hr
   simp only [srvNet]
-  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, HO⟩
+  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩⟩
   obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto⟩ := Hw
   icases HP with ⟨#Hrm, #Htl⟩
   ihave %Hns := isRaftMsg_not_snap γ.node.raft hns st $$ Hrm
@@ -113,11 +113,17 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro; exact Hp
-    ihave #H := Hmsgs $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
-    -- a proposal's protocol fact ignores the context (raft's `isMessage_propose_ctx`, stated
-    -- under a storage model this file does not fix)
-    unfold isMessage absMsg absMsgFrom at *
-    iexact H
+    isplitr
+    · ihave #H := Hmsgs $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
+      -- a proposal's protocol fact ignores the context (raft's `isMessage_propose_ctx`, stated
+      -- under a storage model this file does not fix)
+      unfold isMessage absMsg absMsgFrom at *
+      iexact H
+    -- (2026-10-19, D21 M6) its tickets, delivered once
+    unfold stTks
+    rw [if_pos Hp]
+    simp only [Hents]
+    iexact Htk
   · imod msgPtsC_persist_els $$ Hm with Hm
     imod tickCred_zero γ.node.bud with Htc
     imodintro

@@ -105,20 +105,23 @@ theorem RawNode.Propose.wp_proof
     (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hm Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hm Htk Hcr]
   · -- the message: its one-entry batch, the slots owned; `Context` nil
     simp only [MsgProp, ite_true]
-    isplitl [Hm]
+    isplitl [Hm Htk]
     · simp only [named]
       isplitl [Hm]
       · simp only [msgIn, HmC]; iexact Hm
-      isplitr
-      · iexists ([propEntryM data].map fun _ => none)
-        iapply ccEntsOk_normal [propEntryM data]
-        intro e He
-        simp only [List.mem_singleton] at He
-        subst He
-        rfl
+      isplitl [Htk]
+      · isplitr
+        · iexists ([propEntryM data].map fun _ => none)
+          iapply ccEntsOk_normal [propEntryM data]
+          intro e He
+          simp only [List.mem_singleton] at He
+          subst He
+          rfl
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ e)).2
+        iexact Htk
       isplitr
       · ipureintro
         intro _
@@ -135,7 +138,7 @@ theorem RawNode.Propose.wp_proof
         isplitr
         · ipureintro
           exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
-        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
         iexact Hent
     isplitl [Hcr]
     · rw [ite_eq_right (by msg_ne)]; iexact Hcr

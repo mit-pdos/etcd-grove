@@ -43,7 +43,9 @@ abbrev deliver.spec : Prop :=
       msl ↦* ms.map QMsg.loc ∗
       ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ q.st ∗
         termLB bud q.st.msg.Term') ∗
-      [∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0) }}
+      ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+      -- (2026-10-19, D21 M6) a forwarded proposal's tickets
+      [∗list] q ∈ ms, stTks γ q.st }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.deliver))
       (Val #peers)) (Val #tr)) (Val #msl))
   {{ RET #(); True }}

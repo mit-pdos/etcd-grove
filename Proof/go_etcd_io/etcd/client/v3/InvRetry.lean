@@ -85,6 +85,48 @@ def optApplyOk (f : GoFunc) : IProp GF :=
 instance optApplyOk_persistent (f : GoFunc) : Persistent (optApplyOk (GF := GF) f) := by
   unfold optApplyOk; infer_instance
 
+/-- **A `retryOption`'s closure `f` and the retry bound** (persistent; 2026-10-19, D21 M6): as
+`optApplyOk`, and the options' `max` after is `k`'s if `k` is some (`withMax(k)`), the one before
+otherwise (`withBackoff`, a call's `retryApplyOk`). -/
+def optApplyMax (f : GoFunc) (k : Option w64) : IProp GF :=
+  iprop(□ ∀ (o : Loc) (ov : go_etcd_io.etcd.client.v3.options),
+    {{ o ↦ ov ∗ optionsOk ov }}
+      (App (Val #f) (Val #o))
+    {{ RET #(); ∃ ov' : go_etcd_io.etcd.client.v3.options, o ↦ ov' ∗ optionsOk ov' ∗
+        ⌜ov'.max' = k.getD ov.max'⌝ }})
+
+instance optApplyMax_persistent (f : GoFunc) (k : Option w64) :
+    Persistent (optApplyMax (GF := GF) f k) := by
+  unfold optApplyMax; infer_instance
+
+theorem optApplyMax_ok (f : GoFunc) (k : Option w64) : optApplyMax (GF := GF) f k ⊢ optApplyOk f := by
+  iintro #Hf
+  unfold optApplyOk
+  iintro !> %o %ov %Φ !> Hpre HΦ
+  unfold optApplyMax
+  wp_apply Hf $$ Hpre as Hres
+  icases Hres with ⟨%ov', Ho, #Hok, -⟩
+  iapply HΦ
+  iexists ov'
+  iframe Ho Hok
+
+/-- The retry bound after a list of options (`optApplyMax`'s): the last `withMax`'s, or `mx`. -/
+def maxAfter (mx : w64) (ks : List (Option w64)) : w64 := ks.foldl (fun m k => k.getD m) mx
+
+/-- **The read-only options `o`, with their retry bound `mx`** (persistent; D21 M6): `retryOptsAt`
+with the bound. -/
+def retryOptsMax (o : Loc) (mx : w64) : IProp GF :=
+  iprop(∃ ov : go_etcd_io.etcd.client.v3.options, o ↦□ ov ∗ optionsOk ov ∗ ⌜ov.max' = mx⌝)
+
+instance retryOptsMax_persistent (o : Loc) (mx : w64) :
+    Persistent (retryOptsMax (GF := GF) o mx) := by
+  unfold retryOptsMax; infer_instance
+
+theorem retryOptsMax_at (o : Loc) (mx : w64) : retryOptsMax (GF := GF) o mx ⊢ retryOptsAt o := by
+  unfold retryOptsMax retryOptsAt
+  iintro ⟨%ov, #H, #Hok, -⟩
+  iexists ov; iframe H Hok
+
 /-- The options' fields, split from the struct (`bb_fields_acc`'s idiom). -/
 theorem options_fields_acc (l : Loc) (v : go_etcd_io.etcd.client.v3.options) :
     (l ↦ v : IProp GF) ⊢
@@ -112,11 +154,12 @@ theorem options_fields_ro (l : Loc) (v : go_etcd_io.etcd.client.v3.options) :
   iStructNamed H
   iframe #
 
-/-- A call's `retryOption` (`retryApplyOk`: it writes only `retryPolicy`) builds options. -/
-theorem optApplyOk_of_retryApplyOk (f : GoFunc) :
-    retryApplyOk (GF := GF) f ⊢ optApplyOk f := by
+/-- A call's `retryOption` (`retryApplyOk`: it writes only `retryPolicy`) builds options, its
+retry bound kept (D21 M6). -/
+theorem optApplyMax_of_retryApplyOk (f : GoFunc) :
+    retryApplyOk (GF := GF) f ⊢ optApplyMax f none := by
   iintro #Hf
-  unfold optApplyOk
+  unfold optApplyMax
   iintro !> %o %ov %Φ !> ⟨Ho, #Hok⟩ HΦ
   icases options_fields_acc o ov $$ Ho with ⟨Hp, Hback⟩
   unfold retryApplyOk
@@ -127,8 +170,43 @@ theorem optApplyOk_of_retryApplyOk (f : GoFunc) :
   iexists { ov with retryPolicy' := p' }
   isplitl [Hback Hp]
   · iapply Hback $$ Hp
+  isplitr
   · unfold optionsOk at *
     iexact Hok
+  ipureintro; rfl
+
+theorem maxAfter_nones (mx : w64) {A : Type _} (l : List A) :
+    maxAfter mx (l.map fun _ => (none : Option w64)) = mx := by
+  induction l generalizing mx with
+  | nil => rfl
+  | cons a l ih => simp only [List.map_cons, maxAfter, List.foldl_cons, Option.getD_none]; exact ih mx
+
+/-- A call's `retryOption`s keep the retry bound (D21 M6). -/
+theorem optApplyMax_of_retryApplyOks (ros : List go_etcd_io.etcd.client.v3.retryOption) :
+    ([∗list] ro ∈ ros, retryApplyOk (GF := GF) ro.applyFunc') ⊢
+      [∗list] ro;k ∈ ros;(ros.map fun _ => (none : Option w64)), optApplyMax ro.applyFunc' k := by
+  induction ros with
+  | nil =>
+    iintro -
+    rw [List.map_nil]
+    iapply (BigSepL2.bigSepL2_nil (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) k =>
+      optApplyMax (GF := GF) ro.applyFunc' k)).2
+    iempintro
+  | cons ro ros ih =>
+    iintro H
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) =>
+      retryApplyOk (GF := GF) ro.applyFunc')).1 $$ H with ⟨#H1, H2⟩
+    rw [List.map_cons]
+    iapply (BigSepL2.bigSepL2_cons (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) k =>
+      optApplyMax (GF := GF) ro.applyFunc' k)).2
+    isplitl []
+    · iapply optApplyMax_of_retryApplyOk $$ H1
+    · iapply ih $$ H2
+
+/-- A call's `retryOption` (`retryApplyOk`: it writes only `retryPolicy`) builds options. -/
+theorem optApplyOk_of_retryApplyOk (f : GoFunc) :
+    retryApplyOk (GF := GF) f ⊢ optApplyOk f :=
+  (optApplyMax_of_retryApplyOk f).trans (optApplyMax_ok f none)
 
 /-- **A call option the client passes to a stream** (persistent; item 1, the client lease,
 2026-10-18): one it passes to a unary call (`callOptOk`), or a `retryOption` whose closure builds

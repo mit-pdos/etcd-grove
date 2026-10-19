@@ -29,7 +29,11 @@ abbrev NewKV.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.v3.NewKV)) (Val #cl))
   {{ (v : GoInterface), RET #v; ∃ api : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api⌝ ∗
-      kvObjAt api addr }}
+      kvObjAt api addr ∗
+      -- (2026-10-19, D21 M6) over the client's connection: one configured for one attempt makes
+      -- a `*kv` that is
+      □ (∀ conn : Loc, structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" cl ↦□ conn -∗
+        isEtcdConn1 conn addr -∗ kvOnce api addr) }}
 
 end spec
 

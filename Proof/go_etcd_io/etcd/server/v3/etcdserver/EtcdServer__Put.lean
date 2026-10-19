@@ -132,12 +132,14 @@ theorem EtcdServer.Put.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
+  -- (2026-10-19, D21 M6) the token of the put's result
+  imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
   wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op)
-      (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L)))) F rfl
+      (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl
       $$ [Hrd Hard Hcred Header Hperm] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hperm]
-    · iapply putPermit_reqPropOk $$ Hperm
+    · iapply putPermit_reqPropOk ρ.kv op Q γc $$ Hperm
     iexists _; iexact Header
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -162,6 +164,9 @@ theorem EtcdServer.Put.wp_proof
     obtain ⟨log', rfl⟩ := Hap
     simp only [apply.putAnswerIs]
     icases Hpo with ⟨Hpo, Hhdr⟩
+    wp_auto_lc 1
+    -- the put's result, with its token
+    imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQq Htok Hlc1 with HQ
     (try wp_auto)
     wp_apply HEnd
     (try wp_auto)
@@ -175,7 +180,7 @@ theorem EtcdServer.Put.wp_proof
     isplitr
     · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
     rw [Hxlb, ← HLlb]
-    iexact HQq
+    iexact HQ
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _

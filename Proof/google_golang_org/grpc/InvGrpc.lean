@@ -566,18 +566,25 @@ theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp
 connection's interceptor chain; unit P3a): a call of a method registered at `addr` with `Spec`,
 for the request `inp` (`Req.send`, given back), into the reply `out` (owned, at any content:
 `Rep.own`), with call options grpc can apply (`grpcOptOk ps`: scalar, or peer options writing the
-buffers `ps`, owned and given back) and the caller's `□ ▷ Spec m Φ` (persistent: grpc's own transparent retries may deliver
-the request again), returns
+buffers `ps`, owned and given back) and the caller's `▷ Spec m Φ`, returns
 * `nil`: a run of the handler served for the method on a copy of the request answered, and `out`
   holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
 * an error: a client error (`clientErr`: a leaf error, not an `EtcdError`; a gRPC status error)
   that grpc's `status` accepts (`statusErrOk`), and `out` back (`Rep.own`); nothing about whether
-  the handler ran. -/
+  the handler ran.
+
+Since 2026-10-19 (D21 M6, D21j, the user's choice) the request's precondition is ordinary (until
+then `□ ▷ Spec m Φ`, persistent): an attempt delivers the request to at most one run of the
+handler. True of grpc-go: an attempt is one HTTP/2 stream, its request written once; grpc's
+transparent retry re-sends only a stream the server never handed to its application
+(`REFUSED_STREAM`, a `GOAWAY` past the stream), and etcd's client configures no retry policy and
+no hedging. This restates what the axiom `grpc.ClientConn.Invoke` promises (through this
+definition); no axiom is added. -/
 def grpcInvokerOk (conn : Loc) (addr : GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ isGrpcRpc addr method Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+    {{ isGrpcRpc addr method Spec ∗ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)

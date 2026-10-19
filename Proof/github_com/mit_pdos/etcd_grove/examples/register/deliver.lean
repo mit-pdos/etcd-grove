@@ -72,8 +72,10 @@ local macro "deliver_step" : tactic =>
       iapply ownSlice_nil
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
+    ihave Ht1 : stTks γn.raft (⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ : MsgSt) $$ [Ht1]
+    · unfold stTks; iexact Ht1
     imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ Hd rfl
-      $$ Hmsg Hmlb Hmc Hc1 Htc with Hstep
+      $$ Hmsg Hmlb Hmc Hc1 Ht1 Htc with Hstep
     wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
@@ -93,7 +95,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
   intro γ bud peers tr P msl ms
-  wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok, Hcr⟩
+  wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok, Hcr, Htks⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -107,11 +109,12 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ q.st ∗ termLB bud q.st.msg.Term') ∗
       "Hcr" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hmsok Hcr]
+      "Htks" ∷ ([∗list] q ∈ ms.drop (sint.nat k), stTks γ q.st) ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hmsok Hcr Htks]
   · iexists W64 0, _
     iframe i m Hms
     simp only [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]
-    iframe Hmsok Hcr
+    iframe Hmsok Hcr Htks
     ipureintro; constructor <;> word
   wp_for IH
   wp_if_destruct
@@ -132,6 +135,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     rw [Hdrop]
     icases Hmsok with ⟨⟨Hmq, #Hmok, #Hmlb⟩, Hmsok⟩
     icases Hcr with ⟨Hc1, Hcr⟩
+    icases Htks with ⟨Ht1, Htks⟩
     wp_apply wp_deliverable q.loc (readyDq q.st) DFrac.discard false q.st $$ [$Hmq] as %b ⟨Hmq, %Hb⟩
     cases b
     · wp_auto

@@ -43,8 +43,15 @@ theorem NewKV.wp_proof (wp_RetryKVClient : RetryKVClient.spec (GF := GF) (hG := 
   iexists _
   isplitl []
   · ipureintro; rfl
-  unfold kvObjAt
-  iexists rkv, conn, sl
+  isplitl []
+  · unfold kvObjAt
+    iexists rkv, conn, sl
+    iframe #
+  iintro !> %conn' #Hc' #H1
+  icombine Hconn Hc' gives %Hcc
+  subst Hcc
+  unfold kvOnce
+  iexists rkv, conn
   iframe #
 
 end proof

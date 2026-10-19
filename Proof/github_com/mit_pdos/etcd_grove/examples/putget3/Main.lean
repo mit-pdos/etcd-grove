@@ -299,7 +299,7 @@ theorem Main.wp_proof
       · unfold plainEndpoint clientAddr₁; decide
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

@@ -31,11 +31,16 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `withMax`, `withBackoff`), returns an interceptor meeting the retry interceptor's contract
 (`etcdInterceptorOk`, `InvKVConn.lean`). -/
 abbrev Client.unaryClientInterceptor.spec : Prop :=
-  ∀ (c : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ sl ↦*□ ros ∗ [∗list] ro ∈ ros, optApplyOk ro.applyFunc' }}
+  ∀ (c : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption)
+    -- (2026-10-19, D21 M6) the options' retry bounds (`optApplyMax`)
+    (ks : List (Option w64)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ sl ↦*□ ros ∗
+      [∗list] ro;k ∈ ros;ks, optApplyMax ro.applyFunc' k }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"unaryClientInterceptor")) (Val #sl))
-  {{ (f : GoFunc), RET #f; etcdInterceptorOk f }}
+  {{ (f : GoFunc), RET #f; etcdInterceptorOk f ∗
+      -- (D21 M6) one attempt (the last `withMax` at most `1`): the request delivered once
+      (⌜∀ mx, uint.Z (maxAfter mx ks) ≤ 1⌝ -∗ etcdInterceptorOk1 f) }}
 
 end spec
 

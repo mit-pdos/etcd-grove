@@ -61,7 +61,8 @@ theorem leaseClient.LeaseGrant.wp_proof
     pbLeaseGrantResponse Spec (req.TTL', req.ID') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   rw [show (pbLeaseGrantRequest (GF := GF)).ty = etcdserverpb.LeaseGrantRequest.ty from rfl,
     show (pbLeaseGrantResponse (GF := GF)).ty = etcdserverpb.LeaseGrantResponse.ty from rfl] at hI
-  wp_apply hI $$ [Hsend Hblank] as %err ⟨Hin', Hres⟩
+  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
+  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
   icases Hin' with ⟨%req', Hin', -⟩

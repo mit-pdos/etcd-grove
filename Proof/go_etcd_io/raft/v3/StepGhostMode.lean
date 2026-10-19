@@ -360,16 +360,16 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       RInv dec c0 (rOf s g) → DynHyp m s s' g) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c id s' := by
   cases md with
   | static =>
     simp only [ghostRestM, GMode.isDyn]
-    iintro #Hrc Hrecv Hcr Hlc Hg %HC
+    iintro #Hrc Hrecv Hcr Htk Hlc Hg %HC
     imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
-      Hrecv Hcr Hlc Hg
+      Hrecv Hcr Htk Hlc Hg
       with Hg
     imodintro
     iexists GMode.static
@@ -379,7 +379,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     ipureintro; exact HC
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn]
-    iintro #Hrc Hrecv Hcr Hlc Hg ⟨%Hdc, #Hfr, #Hc⟩
+    iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
       (Hdh dec c0 h0 g rfl HI)
@@ -390,7 +390,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
       · ipureintro; exact HI
       iintro %hcand; iapply Hc; exact hcand
     imod ownRaftGhostR_stepR γ dec c0 h0 HD (fun _ => False) id B HB (rOf s g) recv _ HR
-      $$ Hrc [] Hrecv Hcr Hlc Hown with Hown
+      $$ Hrc [] Hrecv Hcr Htk Hlc Hown with Hown
     · imodintro
       iintro %fp %h
       exact h.elim
@@ -419,14 +419,14 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       RInv dec c0 (rOf s g) → DynHyp m s s' g)
     (Hng : s'.gh = s.gh) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
-  iintro #Hrc Hrecv Hcr Hlc Hg Hrest
+  iintro #Hrc Hrecv Hcr Htk Hlc Hg Hrest
   iunfold ghostRest at Hrest
   icases Hrest with ⟨%Hnl, Hrest⟩
-  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Hlc Hg Hrest
+  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Htk Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
   iexists md'
@@ -532,16 +532,16 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
     (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c' id s' := by
   cases md with
   | static =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
-    iintro #Hrc - Hrecv Hcr Hlc %Hso Hg %HC
+    iintro #Hrc - Hrecv Hcr Htk Hlc %Hso Hg %HC
     imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
-      Hrecv Hcr Hlc Hg
+      Hrecv Hcr Htk Hlc Hg
       with Hg
     imodintro
     iexists GMode.static
@@ -556,7 +556,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
-    iintro #Hrc #Hm Hrecv Hcr Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
+    iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it
     icases isMessage_snap_prefix γ a Ha.1 $$ Hm with ⟨%fp0, %Hfp0, #Hr0⟩
@@ -572,7 +572,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       · ipureintro; exact HI
       iintro %hcand; iapply Hc; exact hcand
     imod ownRaftGhostR_stepR γ dec c0 h0 HD (fun fp => fp = fp0) id B HB (rOf s g) recv _ HR
-      $$ Hrc [] Hrecv Hcr Hlc Hown with Hown
+      $$ Hrc [] Hrecv Hcr Htk Hlc Hown with Hown
     · imodintro
       iintro %fp %h
       subst h
@@ -598,15 +598,15 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
     (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh = s.gh) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
-  iintro #Hrc #Hm Hrecv Hcr Hlc #Hso Hg Hrest
+  iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg Hrest
   iunfold ghostRest at Hrest
   icases Hrest with ⟨%Hnl, Hrest⟩
   imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hid Hc' $$ Hrc Hm Hrecv
-    Hcr Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
+    Hcr Htk Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
   iexists md'
   iframe Hg

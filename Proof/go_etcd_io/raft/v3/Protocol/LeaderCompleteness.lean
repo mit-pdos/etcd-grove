@@ -723,41 +723,69 @@ theorem take_snoc_le {A : Type _} (l : List A) (e : A) (n : Nat) (h : n ≤ l.le
 /-- A committed entry with the client data `d` was deposited. -/
 theorem entDataIs_deposited (γ : RaftNames) (e : EntryM) (d : List w8) :
     entDataIs (GF := GF) γ e (some d) ⊢ deposited γ d := by
-  unfold entDataIs
-  iintro ⟨-, #H⟩
+  unfold entDataIs propDataIs
+  iintro ⟨⟨-, #H⟩, -⟩
   iexact H
 
 /-- A proposal slot keeps its results as the log grows by an entry whose data is not its. -/
-theorem propSlot_grow (γ : RaftNames) (d : List w8) (γq : GName) (l : List EntryM)
+theorem propSlot_grow (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
     (e : EntryM) (o : Option (List w8)) (Hne : o ≠ some d) :
-    ⊢ entDataIs (GF := GF) γ e o -∗ propSlot γ d γq l -∗ propSlot γ d γq (l ++ [e]) := by
+    ⊢ entDataIs (GF := GF) γ e o -∗ propSlot γ d p l -∗ propSlot γ d p (l ++ [e]) := by
   unfold propSlot
-  iintro #He ⟨%Q, #Hsp, #Hau, #Hres⟩
+  iintro #He ⟨%Q, #Hsp, #Hres, Hau⟩
   iexists Q
-  iframe Hsp Hau
-  imodintro
-  iintro %m %e' %Hm #He'
-  rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, rfl, -⟩
-  · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
-  · ihave %Ho := entDataIs_agree γ e' o (some d) $$ He He'
-    exact absurd Ho Hne
+  iframe Hsp
+  isplitr
+  · imodintro
+    iintro %m %e' %Hm #He'
+    rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, rfl, -⟩
+    · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
+    · ihave %Ho := entDataIs_agree γ e' o (some d) $$ He He'
+      exact absurd Ho Hne
+  -- (D21 M6) the update: as it was; an occurrence stays one
+  cases hb : p.2.2
+  · simp only [hb, Bool.false_eq_true, ↓reduceIte]
+    iexact Hau
+  · simp only [hb, ↓reduceIte]
+    icases Hau with (Hau | #Hocc)
+    · ileft; iexact Hau
+    · iright
+      unfold propOcc
+      icases Hocc with ⟨%m0, %e0, %Hm0, #He0⟩
+      iexists m0, e0
+      iframe He0
+      ipureintro
+      rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp Hm0).1]
+      exact Hm0
 
-/-- The new entry's own proposal slot, fired: its result at the log before is added. -/
-theorem propSlot_fire (γ : RaftNames) (d : List w8) (γq : GName) (l : List EntryM)
+/-- The new entry's own proposal slot, fired: its result at the log before is added; (D21 M6)
+the update kept if persistent, else the entry's occurrence recorded. -/
+theorem propSlot_fire (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
     (e : EntryM) (Q : List EntryM → IProp GF) :
-    ⊢ savedPredOwn γq DFrac.discard Q -∗ propAu γ d Q -∗ □ Q l -∗
+    ⊢ savedPredOwn p.1 DFrac.discard Q -∗ entDataIs γ e (some d) -∗
+      (if p.2.2 then iprop(emp) else propAu γ d Q) -∗ □ Q l -∗
       □ (∀ (m : Nat) (e' : EntryM), ⌜l[m]? = some e'⌝ -∗ entDataIs γ e' (some d) -∗
          □ Q (l.take m)) -∗
-      propSlot γ d γq (l ++ [e]) := by
-  iintro #Hsp #Hau #HQ #Hres
+      propSlot γ d p (l ++ [e]) := by
+  iintro #Hsp #He Hau #HQ #Hres
   unfold propSlot
   iexists Q
-  iframe Hsp Hau
-  imodintro
-  iintro %m %e' %Hm #He'
-  rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, -, Ht⟩
-  · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
-  · rw [Ht]; iexact HQ
+  iframe Hsp
+  isplitr
+  · imodintro
+    iintro %m %e' %Hm #He'
+    rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, -, Ht⟩
+    · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
+    · rw [Ht]; iexact HQ
+  cases hb : p.2.2
+  · simp only [hb, Bool.false_eq_true, ↓reduceIte] at *
+    iexact Hau
+  · simp only [hb, ↓reduceIte]
+    iright
+    unfold propOcc
+    iexists l.length, e
+    iframe He
+    ipureintro; simp
 
 /-- A read slot, fired at the log grown by one entry. -/
 theorem readSlot_fire (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM)
@@ -879,7 +907,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
   -- the entry's own update moves the log; the other proposal slots keep their results
   ihave Hfire : |={⊤ \ ↑raftN}=> ghostVar γ.reRLog (1 : Qp).half (G.take m ++ [e]) ∗
       ghostMapAuth γ.reProps 1 R ∗
-      [∗map] d ↦ γq ∈ R, propSlot γ d γq (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
+      [∗map] d ↦ p ∈ R, propSlot γ d p (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
   · cases o with
     | none =>
       imod noopAu_fire γ (G.take m) e Hidx $$ Hnoop Ho Hv with Hv
@@ -887,33 +915,64 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       iframe Hv Hra
       iapply BigSepM.bigSepM_impl $$ Hs
       imodintro
-      iintro %d %γq %_ ⟨Hsl, Hfr⟩
+      iintro %d %p %_ ⟨Hsl, Hfr⟩
       iframe Hfr
-      iapply propSlot_grow γ d γq (G.take m) e none (by simp) $$ Ho Hsl
+      iapply propSlot_grow γ d p (G.take m) e none (by simp) $$ Ho Hsl
     | some d =>
       ihave #Hdep := entDataIs_deposited γ e d $$ Ho
       unfold deposited
-      icases Hdep with ⟨%γq, #Hdq⟩
+      icases Hdep with ⟨%p, #Hdq⟩
       icases ghost_map_lookup $$ Hra Hdq with %HRd
-      icases (BigSepM.bigSepM_delete (Φ := fun d γq =>
-        iprop(propSlot (GF := GF) γ d γq (G.take m) ∗ propFresh γ d)) HRd).1 $$ Hs
+      icases (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
+        iprop(propSlot (GF := GF) γ d p (G.take m) ∗ propFresh γ d)) HRd).1 $$ Hs
         with ⟨⟨Hsl, Hfr⟩, Hs⟩
       iunfold propSlot at Hsl
-      icases Hsl with ⟨%Q, #Hsp, #Hau, #Hres⟩
-      imod propAu_fire γ d Q (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
+      icases Hsl with ⟨%Q, #Hsp, #Hres, Hau⟩
+      -- the update: fired (persistent, or (D21 M6) at most once: a second occurrence of a
+      -- proposal deposited once would be at its one index, `propIdx_agree`)
+      ihave Hfired : |={⊤ \ ↑raftN}=> ghostVar γ.reRLog (1 : Qp).half (G.take m ++ [e]) ∗ □ Q (G.take m) ∗
+          (if p.2.2 then iprop(emp) else propAu γ d Q) $$ [Hau Hv]
+      · cases hb : p.2.2
+        · simp only [hb, Bool.false_eq_true, ↓reduceIte]
+          icases Hau with #Hau
+          imod propAu_fire γ d Q (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
+          imodintro
+          iframe Hv HQ Hau
+        · simp only [hb, ↓reduceIte]
+          icases Hau with (Hau | #Hocc)
+          · imod propAu1_fire γ d Q (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
+            imodintro
+            iframe Hv HQ
+          · iunfold propOcc at Hocc
+            icases Hocc with ⟨%m0, %e0, %Hm0, #He0⟩
+            ihave #Hon : propOnce γ d $$ []
+            · unfold propOnce; iexists p; iframe Hdq; ipureintro; exact hb
+            ihave #Hi0 := entDataIs_idx γ e0 d $$ Hon He0
+            ihave #Hi := entDataIs_idx γ e d $$ Hon Ho
+            ihave %Hii := propIdx_agree γ d _ _ $$ Hi0 Hi
+            have Hm0l := (List.getElem?_eq_some_iff.mp Hm0).1
+            rw [List.length_take] at Hm0l
+            have HG0 : G[m0]? = some e0 := by
+              rw [← Hm0, List.getElem?_take_of_lt (by omega)]
+            have He0i := Hwf _ _ HG0
+            rw [base0_index] at He0i
+            push_cast at He0i
+            rw [Hii] at He0i
+            exfalso; omega
+      imod Hfired with ⟨Hv, #HQ, Hau⟩
       imodintro
       iframe Hv Hra
-      iapply (BigSepM.bigSepM_delete (Φ := fun d γq =>
-        iprop(propSlot (GF := GF) γ d γq (G.take m ++ [e]) ∗ propFresh γ d)) HRd).2
-      isplitl [Hfr]
+      iapply (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
+        iprop(propSlot (GF := GF) γ d p (G.take m ++ [e]) ∗ propFresh γ d)) HRd).2
+      isplitl [Hfr Hau]
       · iframe Hfr
-        iapply propSlot_fire γ d γq (G.take m) e Q $$ Hsp Hau HQ Hres
+        iapply propSlot_fire γ d p (G.take m) e Q $$ Hsp Ho Hau HQ Hres
       iapply BigSepM.bigSepM_impl $$ Hs
       imodintro
-      iintro %d' %γq' %Hk ⟨Hsl, Hfr⟩
+      iintro %d' %p' %Hk ⟨Hsl, Hfr⟩
       have Hne : d' ≠ d := (Iris.Std.LawfulPartialMap.get?_delete_some_iff.mp Hk).1.symm
       iframe Hfr
-      iapply propSlot_grow γ d' γq' (G.take m) e (some d)
+      iapply propSlot_grow γ d' p' (G.take m) e (some d)
         (by intro h; cases h; exact Hne rfl) $$ Ho Hsl
   imod Hfire with ⟨Hv, Hra, Hs⟩
   -- then every read, at the new log

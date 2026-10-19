@@ -609,7 +609,7 @@ theorem entDataIs_list_prefix (γ : RaftNames) (l P : List EntryM)
 /-- No committed entry holds a data the registry does not have: every committed client entry
 was deposited. -/
 theorem ods_not_fresh (γ : RaftNames) (l : List EntryM) (ods : List (Option (List w8)))
-    (R : GMap (List w8) GName) (d : List w8) (HRd : R !! d = none) :
+    (R : GMap (List w8) PropRec) (d : List w8) (HRd : R !! d = none) :
     ⊢ ([∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ e o) -∗ ghostMapAuth γ.reProps 1 R -∗
       ⌜some d ∉ ods⌝ := by
   iintro #H Hra %Hin
@@ -620,7 +620,7 @@ theorem ods_not_fresh (γ : RaftNames) (l : List EntryM) (ods : List (Option (Li
   ihave #Hed := BigSepL2.bigSepL2_lookup (Φ := fun _ e o => entDataIs (GF := GF) γ e o) He Hj $$ H
   ihave #Hdep := entDataIs_deposited γ e d $$ Hed
   unfold deposited
-  icases Hdep with ⟨%γq, #Hdq⟩
+  icases Hdep with ⟨%p, #Hdq⟩
   icases ghost_map_lookup $$ Hra Hdq with %Hl
   rw [HRd] at Hl
   cases Hl
@@ -685,11 +685,12 @@ theorem rLog_committed (γ : RaftNames) (L : List EntryM) (E : CoPset)
 ticket), for a data never deposited before (its fresh token). The client gets the slot's handle.
 No committed entry holds the data yet (`ods_not_fresh`), so the slot starts with no result. -/
 theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
-    (Q : List EntryM → IProp GF) :
+    (Q : List EntryM → IProp GF) (once : Bool) :
     ↑raftN ⊆ E →
-    ⊢ raftCommitInv γ -∗ propFresh γ d -∗ propAu γ d Q ={E}=∗ ∃ γq, isProp γ d γq Q := by
+    ⊢ raftCommitInv γ -∗ propFresh γ d -∗ propAuM γ d Q once ={E}=∗
+      ∃ γq, isProp γ d γq Q ∗ (if once then propTk γ d else propMulti γ d) := by
   intro HE
-  iintro #Hinv Hfr #Hau
+  iintro #Hinv Hfr Hau
   ihave #Hri := raftCommitInv_reg γ $$ Hinv
   ihave #Hli := raftCommitInv_log γ $$ Hinv
   have HE1 := raftRegN_of HE
@@ -706,9 +707,9 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
   icases Hprops with ⟨>Hra, Hs⟩
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
   cases HRd : R !! d with
-  | some γq =>
-    icases (BigSepM.bigSepM_delete (Φ := fun d γq =>
-      iprop(▷ (propSlot (GF := GF) γ d γq P ∗ propFresh γ d))) HRd).1 $$ Hs
+  | some p =>
+    icases (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
+      iprop(▷ (propSlot (GF := GF) γ d p P ∗ propFresh γ d))) HRd).1 $$ Hs
       with ⟨⟨-, >Hfr'⟩, -⟩
     unfold propFresh
     ihave %Hne := ghostMapElem_ne γ.reFresh d d (DFrac.own 1) () () $$ Hfr Hfr'
@@ -718,38 +719,60 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
   icases Hds with ⟨%ods, #Hods⟩
   ihave %Hnf := ods_not_fresh γ P ods R d HRd $$ Hods Hra
   imod saved_pred_alloc Q DFrac.discard trivial with ⟨%γq, #Hsp⟩
-  imod ghost_map_insert_persist d γq HRd $$ Hra with ⟨Hra, #Hfrag⟩
-  ihave #Hslot : propSlot γ d γq P $$ []
+  -- (2026-10-19, D21 M6) the proposal's ticket
+  imod dghostVar_alloc (GF := GF) (none : Option w64) with ⟨%γt, Htk⟩
+  imod ghost_map_insert_persist d ((γq, γt, once) : PropRec) HRd $$ Hra with ⟨Hra, #Hfrag⟩
+  ihave Hslot : propSlot γ d ((γq, γt, once) : PropRec) P $$ [Hau]
   · unfold propSlot
     iexists Q
-    iframe Hsp Hau
-    imodintro
-    iintro %m %e %Hm #He
-    icases entsData_lookup γ P ods m e Hm $$ Hods with ⟨%o, %Ho, #He'⟩
-    ihave %Hoe := entDataIs_agree γ e o (some d) $$ He' He
-    subst Hoe
-    exact absurd (List.mem_of_getElem? Ho) Hnf
+    iframe Hsp
+    isplitr
+    · imodintro
+      iintro %m %e %Hm #He
+      icases entsData_lookup γ P ods m e Hm $$ Hods with ⟨%o, %Ho, #He'⟩
+      ihave %Hoe := entDataIs_agree γ e o (some d) $$ He' He
+      subst Hoe
+      exact absurd (List.mem_of_getElem? Ho) Hnf
+    unfold propAuM
+    cases once
+    · simp only [Bool.false_eq_true, ↓reduceIte] at *
+      iexact Hau
+    · simp only [↓reduceIte] at *
+      ileft; iexact Hau
   imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
   · inext
     iexists P
     iframe HP Hj Htbl Hwt Hq1
     iexists ods
     iexact Hods
-  imod Hclose2 $$ [Hq2 Hreads Hra Hs Hfr] with -
+  imod Hclose2 $$ [Hq2 Hreads Hra Hs Hfr Hslot] with -
   · iexists P
     iframe Hq2
     unfold regsAt propsOwn
     inext
-    iexists Std.insert R d γq, RR
+    iexists Std.insert R d ((γq, γt, once) : PropRec), RR
     iframe Hreads Hnoop Hra
-    iapply (BigSepM.bigSepM_insert (Φ := fun d γq =>
-      iprop(propSlot (GF := GF) γ d γq P ∗ propFresh γ d)) HRd).2
+    iapply (BigSepM.bigSepM_insert (Φ := fun d (p : PropRec) =>
+      iprop(propSlot (GF := GF) γ d p P ∗ propFresh γ d)) HRd).2
     iframe Hslot Hfr
     iexact Hs
   imodintro
   iexists γq
   unfold isProp
-  iframe Hfrag Hsp
+  iframe Hsp
+  isplitr
+  · iexists γt, once; iexact Hfrag
+  cases once
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    unfold propMulti
+    iexists ((γq, γt, false) : PropRec)
+    iframe Hfrag
+    ipureintro; rfl
+  · simp only [↓reduceIte]
+    unfold propTk
+    iexists ((γq, γt, true) : PropRec)
+    iframe Hfrag Htk
+    ipureintro; rfl
 
 /-- Collecting (2026-10-14, stage R): at every committed occurrence of `d` -- an entry `e` at
 position `m` of a committed log `L` holding `d` --, the update's result at the log before it
@@ -762,7 +785,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
       ▷ ▷ □ Q (L.take m) := by
   intro HE Hm
   unfold isProp
-  iintro #Hinv ⟨#Hfrag, #Hsp⟩ #HL #He
+  iintro #Hinv ⟨⟨%γt, %b, #Hfrag⟩, #Hsp⟩ #HL #He
   ihave #Hri := raftCommitInv_reg γ $$ Hinv
   ihave #Hli := raftCommitInv_log γ $$ Hinv
   have HE1 := raftRegN_of HE
@@ -780,10 +803,12 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
   icases Hprops with ⟨>Hra, Hs⟩
   icases ghost_map_lookup $$ Hra Hfrag with %HRd
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
-  ihave #Hslot : ▷ propSlot γ d γq P $$ [Hs]
-  · ihave ⟨⟨#Hsl, -⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun d γq =>
-      iprop(▷ (propSlot (GF := GF) γ d γq P ∗ propFresh γ d))) HRd).1 $$ Hs
-    iexact Hsl
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d (p : PropRec) =>
+      iprop(▷ (propSlot (GF := GF) γ d p P ∗ propFresh γ d))) HRd).1 $$ Hs with ⟨Hsl, Hsback⟩
+  ihave Hsl := (later_mono (sep_mono_left (propSlot_res γ d ((γq, γt, b) : PropRec) P))) $$ Hsl
+  icases Hsl with ⟨⟨Hsl, #Hslot⟩, Hfr⟩
+  ihave Hs := Hsback $$ [Hsl Hfr]
+  · inext; iframe Hsl Hfr
   imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
   · inext
     iexists P
@@ -798,8 +823,8 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
     iexact Hs
   imodintro
   inext
-  iunfold propSlot at Hslot
-  icases Hslot with ⟨%Q', #Hsp', #-, #Hres⟩
+  iunfold propSlotRes at Hslot
+  icases Hslot with ⟨%Q', #Hsp', #Hres⟩
   obtain ⟨r, rfl⟩ := HLP
   have HmL := (List.getElem?_eq_some_iff.mp Hm).1
   have HmP : (L ++ r)[m]? = some e := by rw [List.getElem?_append_left HmL]; exact Hm
@@ -1152,7 +1177,8 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM
     · rw [show (initPStateAt t L).rd.pend = [] from rfl]; iapply (BigSepL.bigSepL_nil).2; iempintro
     isplitl [Hcr0]
     · rw [show (initPStateAt t L).rd.pend.length + rdCount (initPStateAt t L).outbox = 0 from rfl]; iexact Hcr0
-    iexact Hcinv
+    iframe Hcinv
+    rw [show (initPStateAt t L).outbox = [] from rfl]; iapply msgsTks_nil
   ipureintro; exact Hmode
 
 private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : List EntryM)
@@ -1294,7 +1320,7 @@ theorem entsData_none (γ : RaftNames) (L : List EntryM) :
     iintro %H
     ihave ⟨#Hd, #Hl⟩ := ih $$ %(fun e' h => H e' (List.mem_cons.mpr (Or.inr h)))
     ihave #He : entDataIs (GF := GF) γ e none $$ []
-    · unfold entDataIs; iright; ipureintro; exact H e (List.mem_cons.mpr (Or.inl rfl))
+    · simp only [entDataIs, propDataIs]; iright; ipureintro; exact H e (List.mem_cons.mpr (Or.inl rfl))
     isplitr
     · unfold entsData
       icases Hd with ⟨%ods, #Hds⟩
@@ -1357,7 +1383,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     (Auth.auth_both_valid_discrete.mpr ⟨⟨0, (Nat.add_zero _).symm⟩, trivial⟩) with ⟨%γrc, HC⟩
   icases (own_op γrc _ _).1 $$ HC with ⟨HCa, HCf⟩
   imod ownCommitted_alloc_at (GF := GF) L with ⟨%γc, Hcauth, #Hclb⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName) with ⟨%γpr, Hpra⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := PropRec) with ⟨%γpr, Hpra⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfr, Hfra⟩
   imod ghostVar_alloc (GF := GF) L with ⟨%γcl, Hcl0⟩
   -- (2026-10-14, reconfiguration stage B4) the winners table, empty
@@ -1653,30 +1679,33 @@ theorem ownRaftGhost_step_1c (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (
     (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
     (m : Msg) (s' : PState) :
     StepC c id B s [m] s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗ £ 1 -∗
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗
+      msgTks γ m -∗ £ 1 -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
   intro Hstep
-  iintro #Hrc #Hm Hcr Hlc Hown
-  iapply ownRaftGhost_stepC γ c HC id HT B HB s [m] s' Hstep $$ Hrc [] Hcr Hlc Hown
-  iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
-  iexact Hm
+  iintro #Hrc #Hm Hcr Htk Hlc Hown
+  iapply ownRaftGhost_stepC γ c HC id HT B HB s [m] s' Hstep $$ Hrc [] Hcr [Htk] Hlc Hown
+  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iexact Hm
+  · iapply (msgsTks_singleton γ m).2; iexact Htk
 
 /-- Taking a step that consumes a single known message other than a `MsgReadIndex`. -/
 theorem ownRaftGhost_step_1 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
     (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
     (m : Msg) (s' : PState) :
-    m.ty ≠ .readIndex →
+    m.ty ≠ .readIndex → m.ty ≠ .propose →
     StepC c id B s [m] s' →
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ £ 1 -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
-  intro Hty Hstep
+  intro Hty Htp Hstep
   iintro #Hrc #Hm Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step_1c γ c HC id HT B HB s m s' Hstep $$ Hrc Hm [Hcr] Hlc Hown
-  rw [rdCount_singleton, ite_eq_right Hty]
-  iexact Hcr
+  iapply ownRaftGhost_step_1c γ c HC id HT B HB s m s' Hstep $$ Hrc Hm [Hcr] [] Hlc Hown
+  · rw [rdCount_singleton, ite_eq_right Hty]
+    iexact Hcr
+  · rw [msgTks_nonprop γ m Htp]; iempintro
 
 /-- Taking a step that consumes nothing. -/
 theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
@@ -1687,10 +1716,11 @@ theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (i
   intro Hstep
   iintro #Hrc Hlc Hown
   imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_stepC γ c HC id HT B HB s [] s' Hstep $$ Hrc [] [Hcr] Hlc Hown
+  iapply ownRaftGhost_stepC γ c HC id HT B HB s [] s' Hstep $$ Hrc [] [Hcr] [] Hlc Hown
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
+  · iapply msgsTks_nil
 
 end lemmas
 /-! ### The commit index never moves back (2026-10-09)

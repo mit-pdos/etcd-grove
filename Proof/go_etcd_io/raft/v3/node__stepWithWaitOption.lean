@@ -43,7 +43,7 @@ theorem node.stepWithWaitOption.wp_proof
   ihave #Hnode' := Hnode
   open_node Hnode'
   unfold stepArg
-  icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent⟩ | ⟨%Hw, Hfwd⟩)
+  icases Harg with (Hnet | ⟨%Hw, %data, Hm, #Hent, Htk⟩ | ⟨%Hw, Hfwd⟩)
   · -- a message from the network: `recvc <- m`
     iunfold netP at Hnet
     icases Hnet with ⟨%st, Hm, %Hok, %Hpvb, #Hab, #Hlb, Hcr, Htc⟩
@@ -125,11 +125,11 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · iapply isHandshake_isChan $$ Hpropc
       iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := rch } : msgWithResult)
-        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm Hprod]
+        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm Htk Hprod]
       · unfold propP
         ileft
         iexists data, γr
-        iframe Hm Hent Hho Hprod
+        iframe Hm Hent Htk Hho Hprod
       inext
       iintro -
       wp_auto
@@ -221,7 +221,7 @@ theorem node.stepWithWaitOption.wp_proof
   · -- a forwarded proposal (2026-10-10): `propc <- pm`, no result channel
     subst Hw
     iunfold fwdP at Hfwd
-    icases Hfwd with ⟨%st, Hm, %Hty, #Hab⟩
+    icases Hfwd with ⟨%st, Hm, %Hty, #Hab, Htk⟩
     wp_auto
     wp_apply wp_GetType.1 $$ [Hm] as Hm
     · iexact Hm
@@ -242,14 +242,14 @@ theorem node.stepWithWaitOption.wp_proof
       isplitr
       · iapply isHandshake_isChan $$ Hpropc
       iapply handshake_send_au γ.propc nv.propc' ({ m' := m, result' := zero_val GoChan } : msgWithResult)
-        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm]
+        (propP γ) iprop(True) $$ [$Hlc1 $Hlc2 $Hlc3] Hpropc [Hm Htk]
       · unfold propP
         iright
         isplitr
         · ipureintro; rfl
         iunfold fwdP
         iexists st
-        iframe Hm Hab
+        iframe Hm Hab Htk
         ipureintro; exact Hty
       inext
       iintro -

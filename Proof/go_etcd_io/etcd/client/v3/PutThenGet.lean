@@ -214,14 +214,18 @@ theorem client_put_own (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : 
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #Hinv, #HF⟩ HΦ
   ihave #Hau := putAu_of_putGetInv γr γf key val $$ Hinv
+  -- (2026-10-19, D21 M6) a persistent update, its result persistent
+  ihave Hau' := putAuOk_of_box api addr γr.kv _ _ $$ Hau
   iapply (client_put_end_to_end api addr E γr cid mid ci cd key val sl
-    (fun _ => monoNatLbOwn γf 1) F) $$ []
+    (fun _ => iprop(□ monoNatLbOwn γf 1)) F) $$ [Hau']
   · iframe #
   inext
   iintro %resp %err Hout
   iapply HΦ
   icases Hout with (⟨%Herr, %m, Hm, Hp⟩ | %Herr)
-  · ileft
+  · ihave Hp := putReplied_mono E γr F _ (fun _ => iprop(□ monoNatLbOwn γf 1))
+      (fun _ => monoNatLbOwn γf 1) cid mid m (fun _ => intuitionistically_elim) $$ Hp
+    ileft
     ihave #Hlb : monoNatLbOwn γf 1 $$ [Hp]
     · iunfold putReplied at Hp
       icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, #Hq⟩

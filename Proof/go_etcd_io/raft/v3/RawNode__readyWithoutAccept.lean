@@ -410,6 +410,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- the `MsgReadIndex`s handed out: at most the outbox's read-index requests (2026-10-13)
   have Hrdc : rdCountM ((ms1 ++ nonself id ms2).map QMsg.st) ≤ rdCount s.outbox :=
     outboxRelP_rdCount _ _ _ _ Houtbox
+  have Hprc : ((ms1 ++ nonself id ms2).filterMap (fun q => qProp q.st)).Subperm
+      (propsOf s.outbox) :=
+    outboxRelP_props _ _ _ _ Houtbox
   -- the committed entries handed out extend `delivered`: both are prefixes of the
   -- global committed log, and `delivered` is as long as the `applying` entries before `ce`
   have Hpre := ready_committed_prefix fp0 (s.logst.sents ++ s.logst.uents) ce s.logst.prev
@@ -463,7 +466,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
       ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
-      trivial, Hrdc, Hnsout⟩
+      trivial, Hrdc, Hprc, Hnsout⟩
   isplitr
   · iexact Hce
   isplitr

@@ -30,19 +30,19 @@ theorem kv.Put.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd key val sl gs Spec Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, #Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api addr ci cd opv (opPutModel key val gs) Spec Q (fun _ _ => iprop(True))
-    (fun _ => iprop(True)) (fun _ _ => iprop(True)) (fun _ => iprop(True)) $$ []
+    (fun _ => iprop(True)) (fun _ _ => iprop(True)) (fun _ => iprop(True)) $$ [Hrun]
     as %r %err Hout
   · iframe #
     unfold doRunOk
     iright
     ileft
-    iframe #
+    iframe # Hrun
     ipureintro; exact Ht
   ihave Hout' : putCallOut Q r.put' err $$ [Hout]
   · have Heq : doOut (opPutModel key val gs) Q (fun _ => iprop(True)) (fun _ => iprop(True)) r err =

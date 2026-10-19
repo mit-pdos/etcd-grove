@@ -42,12 +42,15 @@ theorem node.ProposeConfChange.wp_proof
     iframe Hm
     isplitr
     · ipureintro; rfl
-    unfold isMessage absMsg absMsgFrom
     isplitr
-    · ipureintro
-      exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
-    iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ.raft e)).2
-    iexact Hent
+    · unfold isMessage absMsg absMsgFrom
+      isplitr
+      · ipureintro
+        exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ.raft e)).2
+      iexact Hent
+    iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
+    iapply entTk_cc
   iintro %err #Herr
   wp_auto
   iapply HΦ

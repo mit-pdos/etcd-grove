@@ -208,14 +208,15 @@ instance irrNoHdrIs_persistent (p : Loc) (rq : apply.IRRModel) :
 
 
 /-- **A put's permission is its proposal's** (2026-10-14, unit T1; 2026-10-15, unit T2: the
-whole state). -/
-theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+whole state; 2026-10-19, D21 M6: its update fired at most once, its result left at the token
+`γc`). -/
+theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) (γc : GName) :
     putPermit (GF := GF) γk op Q ⊢
-      reqPropOk γk (irrPut op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+      reqPropOk γk (irrPut op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold putPermit reqPropOk
-  iintro ⟨%Hl, #Hau⟩
-  iright
-  iexists .put op, Q
+  iintro ⟨%Hl, Hau⟩
+  iright; iright
+  iexists .put op, Q, γc
   iframe Hau
   ipureintro
   have hk : apply.dispatchKind (irrPut op) = .put := by
@@ -240,7 +241,7 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
       reqPropOk γk (irrDeleteRange op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
   unfold deletePermit reqPropOk
   iintro ⟨%Hz, #Hau⟩
-  iright
+  iright; ileft
   iexists .deleteRange op, Q
   iframe Hau
   ipureintro
@@ -265,7 +266,7 @@ theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IPro
       reqPropOk γk (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
   unfold txnPermit reqPropOk
   iintro ⟨%Ht, #Hau⟩
-  iright
+  iright; ileft
   iexists .txn t, Q
   iframe Hau
   ipureintro

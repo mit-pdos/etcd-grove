@@ -97,7 +97,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iframe Hm Hab Hlb Hcr Htc
     ipureintro; exact ⟨Hok, Hpvb⟩
   · iunfold fwdP at Hfwd
-    icases Hfwd with ⟨%st, Hm, %Hty, #Hab⟩
+    icases Hfwd with ⟨%st, Hm, %Hty, #Hab, Htk⟩
     iexists DFrac.own 1, st
     iframe Hm
     isplitr
@@ -106,7 +106,7 @@ theorem stepP_split (γ : NodeNames) (id : w64) (ml : Loc) :
     iright
     iunfold fwdP
     iexists st
-    iframe Hm Hab
+    iframe Hm Hab Htk
     ipureintro; exact Hty
 
 instance ownCCV2_discard_persistent (p : Loc) (m : CCV2M) :

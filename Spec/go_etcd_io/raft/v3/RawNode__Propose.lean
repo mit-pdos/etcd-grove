@@ -70,7 +70,9 @@ abbrev RawNode.Propose.spec : Prop :=
       -- (2026-10-16, stage R5, D6) non-empty data: an empty proposal would be a leader's own
       -- entry
       "%Hne" ∷ ⌜data ≠ []⌝ ∗
-      "#Hent" ∷ entData γ (propEntryM data) }}
+      "#Hent" ∷ propData γ (propEntryM data) ∗
+      -- (2026-10-19, D21 M6) its ticket (or that it may be proposed any number of times)
+      "Htk" ∷ entTk γ (propEntryM data) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
   {{ (err : GoInterface), RET #err;
       "Hrn" ∷ ownRawNode γ rn id rs ∗

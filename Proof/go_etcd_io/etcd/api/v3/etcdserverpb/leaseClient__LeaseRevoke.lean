@@ -61,7 +61,8 @@ theorem leaseClient.LeaseRevoke.wp_proof
     pbLeaseRevokeResponse Spec req.ID' Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   rw [show (pbLeaseRevokeRequest (GF := GF)).ty = etcdserverpb.LeaseRevokeRequest.ty from rfl,
     show (pbLeaseRevokeResponse (GF := GF)).ty = etcdserverpb.LeaseRevokeResponse.ty from rfl] at hI
-  wp_apply hI $$ [Hsend Hblank] as %err ⟨Hin', Hres⟩
+  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
+  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
   icases Hin' with ⟨%req', Hin', -⟩

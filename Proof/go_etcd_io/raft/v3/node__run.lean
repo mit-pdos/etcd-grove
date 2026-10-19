@@ -237,7 +237,7 @@ theorem node.run.wp_proof
     inext
     iintro %pm HP
     iunfold propP at HP
-    icases HP with (⟨%d, %γr, Hm, #Hent, #Hho, Hprod⟩ | ⟨%Hres, Hfwd⟩)
+    icases HP with (⟨%d, %γr, Hm, #Hent, Htk, #Hho, Hprod⟩ | ⟨%Hres, Hfwd⟩)
     · -- `m := pm.m; m.From = new(r.id)`
       icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
@@ -250,7 +250,9 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft propMsgM [propEntryM d] id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         ⟨{ propMsgM with From' := id }, [propEntryM d], none, [], []⟩ rfl rfl
-        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, #Hstep⟩
+        $$ [$Hrn $Hrnraft $Hm $Hm1 Htk $Hlc1] as %err ⟨Hrn, #Hstep⟩
+      · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
+        iexact Htk
       ihave %Hrnn := isChan_not_null $$ [Hho]
       · unfold isHandoff
         icases Hho with ⟨$, -⟩
@@ -274,7 +276,7 @@ theorem node.run.wp_proof
       iframe Hrn Hrest
     · -- a proposal forwarded by a peer (2026-10-10): no result channel
       iunfold fwdP at Hfwd
-      icases Hfwd with ⟨%st, Hm, %Hty, #Hm0⟩
+      icases Hfwd with ⟨%st, Hm, %Hty, #Hm0, Htk⟩
       icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
       imod cellRO_alloc $$ «$r0» with #c0
@@ -285,7 +287,7 @@ theorem node.run.wp_proof
       ihave #Hm1 := isMessage_propose_from γ.raft st.msg st.ents id $$ Hm0
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m'
         { st with msg := { st.msg with From' := id } } Hty rfl
-        $$ [$Hrn $Hrnraft $Hm $Hm1 $Hlc1] as %err ⟨Hrn, -⟩
+        $$ [$Hrn $Hrnraft $Hm $Hm1 $Htk $Hlc1] as %err ⟨Hrn, -⟩
       rw [Hres]
       wp_if_destruct
       rotate_left
@@ -800,7 +802,7 @@ theorem node.run.wp_proof
     icases ownRawNodeReady_softStateRO γ.raft nv.rn' id rs rdv' ce es ms false $$ Hrn
       with ⟨#Hss, Hrn⟩
     -- the append right goes with the `Ready`, and `rof` records it
-    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, #Hri⟩
+    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver
     imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce } ce rfl rfl rfl rfl rfl $$ Hcfg
       with ⟨Hcfg, #Hdlb⟩
@@ -809,12 +811,12 @@ theorem node.run.wp_proof
     imod dghostVar_update_halves (rs.delivered, ce, es) γ.rof x x $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
     ihave Hmt := readyMsgs_termLB γ rs.tc ms Hfacts.1 $$ Hown Hmsgs_ok Hlb'
     imodintro
-    isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr]
+    isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr Htk]
     · unfold readyP
       iexists rs.delivered, ce, es, ms
       iframe Hdlv Hr1 Hdlb
       unfold readyData
-      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Hrsts Hhd Hss Hri
+      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhd Hss Hri
       isplitl [Happ]
       · rw [← Hstor]
         iexact Happ

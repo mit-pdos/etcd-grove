@@ -32,7 +32,9 @@ V1), and (2026-10-14, unit C2a) the log after applied through an index of the co
 (`appliedWit ρ.rd x'.log`: a linearizable read at that index reads a log extending it); failure, no response and an error the gRPC layer can take (`applyErrIs`): the
 apply's (`appliedErr`), or the proposal's (made or not; if made, deposited: it may still be
 applied). 2026-10-15 (unit T2): the put's update is over the whole state (`putPermit`: the lease
-`0`, the client's `kvOpAu (.put op)`), a success giving `□ Q` of the state it linearized at. -/
+`0`, the client's `kvOpAu (.put op)`), a success giving `□ Q` of the state it linearized at.
+2026-10-19 (D21 M6, D20 (b)): the update is fired at most once (`kvOpAu1`), a success giving `Q` of
+the state it fired at; on a failure it fired once or not at all. -/
 abbrev EtcdServer.Put.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
@@ -50,7 +52,7 @@ abbrev EtcdServer.Put.spec : Prop :=
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
           mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log)) ∨
+          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log)) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}

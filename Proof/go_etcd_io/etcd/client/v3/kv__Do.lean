@@ -48,7 +48,7 @@ theorem kv.Do.wp_proof
   wp_auto
   rw [ht]
   iunfold doRunOk at Hrun
-  icases Hrun with (⟨%Ht, #Hsn, #Hrpc, #Hrun⟩ | ⟨%Hp, #Hrpc, #Hrun⟩ | ⟨%Hd, #Hrpc, #Hrun⟩)
+  icases Hrun with (⟨%Ht, #Hsn, #Hrpc, #Hrun⟩ | ⟨%Hp, #Hrpc, Hrun⟩ | ⟨%Hd, #Hrpc, #Hrun⟩)
   · -- a range
     rw [Ht]
     wp_auto
@@ -128,17 +128,19 @@ theorem kv.Do.wp_proof
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
     obtain ⟨-, -, -, -, hlease, hiv, hil, -⟩ := Hf2
-    ihave #Hrun' : □ ▷ Sp (putReqOp
+    ihave Hrun' : reqPre conn addr (Sp (putReqOp
         { state' := zeroValDef, Key' := opv.key', Value' := opv.val', Lease' := opv.leaseID',
           PrevKv' := opv.prevKV', IgnoreValue' := opv.ignoreValue',
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
-        o.key o.val) Qp $$ []
+        o.key o.val) Qp) $$ [Hrun]
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
-      iexact Hrun
-    wp_apply wp_retry_Put rkv conn addr Sp Qp ci cd _ _ o.key o.val sl vs $$ [«$r0»]
+      iapply kvReqPre_conn api rkv conn addr $$ [Hrun]
+      iframe Hremote Hrkv Hrun
+    wp_apply wp_retry_Put rkv conn addr Sp Qp ci cd _ _ o.key o.val sl vs $$ [«$r0» Hrun']
       as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
+      try (simp only []; iframe #)
     iunfold putCallOut at Hres
     icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
     · subst Herr

@@ -88,11 +88,12 @@ theorem Register.do.wp_proof
   -- the persistent update over raft's log that `Node.Propose` deposits (2026-10-14, stage R)
   ihave #Hpau := reg_propAu γr d γo $$ Hinv Hop
   rw [← Hraft]
-  ihave HI : iprop(propArg γp.node.raft d (fun _ => iprop(True)) true ∨
-      deposited γp.node.raft d) $$ [Hfresh]
+  -- (2026-10-19, D21 M6) deposited not once: the register retries a dropped proposal
+  ihave HI : iprop(propArg γp.node.raft d (fun _ => iprop(True)) true false ∨
+      propMulti γp.node.raft d) $$ [Hfresh]
   · ileft
-    unfold propArg
-    simp only [↓reduceIte]
+    unfold propArg propAuM
+    simp only [↓reduceIte, Bool.false_eq_true]
     iframe Hfresh Hpau
   wp_for HI
   wp_apply context.wp_Background
@@ -100,9 +101,9 @@ theorem Register.do.wp_proof
   rw [Hd]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
   -- `Propose`: the first time with the update, after that with `d` deposited
-  icases (show ⊢ iprop((propArg γp.node.raft d (fun _ => iprop(True)) true ∨
-      deposited γp.node.raft d) -∗
-      ∃ fresh : Bool, propArg γp.node.raft d (fun _ => iprop(True)) fresh) by
+  icases (show ⊢ iprop((propArg γp.node.raft d (fun _ => iprop(True)) true false ∨
+      propMulti γp.node.raft d) -∗
+      ∃ fresh : Bool, propArg γp.node.raft d (fun _ => iprop(True)) fresh false) by
       iintro (Harg | #Hdep)
       · iexists true; iexact Harg
       · iexists false
@@ -110,12 +111,13 @@ theorem Register.do.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         iexact Hdep) $$ HI with ⟨%fresh, Harg⟩
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-  wp_apply wp_node_Propose γp.node id n b d _ fresh context.backgroundCtxVal bgCd
+  wp_apply wp_node_Propose γp.node id n b d _ fresh false context.backgroundCtxVal bgCd
     $$ [$Hraftinit $HisNode $Hbg $Hb $Harg] as %err ⟨Hres, -⟩
   · ipureintro; exact Hdne
-  ihave #Hdep : deposited γp.node.raft d $$ [Hres]
+  ihave #Hdep : propMulti γp.node.raft d $$ [Hres]
   · unfold propRes
-    icases Hres with ⟨#Hd, -⟩
+    icases Hres with ⟨-, -, #Hd⟩
+    simp only [Bool.and_false, Bool.false_eq_true, ↓reduceIte]
     iexact Hd
   cases err with
   | ok i =>

@@ -122,7 +122,8 @@ theorem srvNoopAu_to_noopAu_of (γ : ServerRaftNames) (Hai0 : uint.Z γ.ai0 = γ
     itrivial
   · iintro %e ⟨HL, #He, %Hidx⟩
     icases Hcl with ⟨-, Hcommit⟩
-    iunfold entDataIs at He
+    ihave He := entDataIs_prop _ e none $$ He
+    iunfold propDataIs at He
     icases He with (%Hn | %Hc)
     · imod Hcommit $$ %(EntryModel.ofM e) [HL] with -
       · isplitr

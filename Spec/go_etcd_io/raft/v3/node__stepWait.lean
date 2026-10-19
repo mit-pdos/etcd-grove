@@ -36,7 +36,7 @@ abbrev node.stepWait.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       nodeCtx ctx cd ∗
       msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
-      entData γ.raft (propEntryM data) }}
+      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"stepWait"))
       (Val #(interface.ok ctx))) (Val #ml))
   {{ (err : GoInterface), RET #err; propErr cd err }}

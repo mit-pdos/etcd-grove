@@ -347,22 +347,24 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iexact Hcs
   iintro !> %ctx %cd %dsl %data %Q %fresh %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
-  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) fresh $$ [Harg]
+  -- (2026-10-19, D21 M6) deposited once: the update fired at most once
+  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) fresh true $$ [Harg]
   · iunfold srvPropArg at Harg
     unfold propArg
     rw [← Hraft]
     cases fresh with
     | true =>
       simp only [↓reduceIte]
-      icases Harg with ⟨Hfr, #Hau⟩
+      icases Harg with ⟨Hfr, Hau⟩
       iunfold srvPropFresh at Hfr
       iframe Hfr
-      iapply srvPropAu_to_propAu E.γr.raft data Q $$ Hinv Hau
+      unfold propAuM
+      simp only [↓reduceIte]
+      iapply srvPropAu1_to_propAu1 E.γr.raft data Q $$ Hinv Hau
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
-      iunfold srvDeposited at Harg
       iexact Harg
-  wp_apply wp_Propose γ.node γ.id γ.nl dsl data (srvLift E.γr.raft Q) fresh ctx cd $$ [Harg']
+  wp_apply wp_Propose γ.node γ.id γ.nl dsl data (srvLift E.γr.raft Q) fresh true ctx cd $$ [Harg']
     as %err ⟨Hres, #Herr⟩
   · iframe #
     iframe Harg'
@@ -371,7 +373,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   isplitl [Hres]
   · iunfold srvPropRes
     unfold propRes
-    icases Hres with ⟨#Hdep, Hp⟩
+    icases Hres with ⟨#Hdep, Hp, -⟩
     isplitr
     · iunfold srvDeposited
       rw [Hraft]

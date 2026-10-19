@@ -83,32 +83,43 @@ what a peer's `node.Step` takes of a network message (`netP`) but the receiver's
 (`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. -/
 def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
-    rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0))
+    rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
+    -- (2026-10-19, D21 M6) a forwarded proposal's tickets
+    stTks γ st)
 
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
 payload, `NetPayload`): persistently, the protocol facts and the term bound (`isRaftMsg`, whose
 `SentMsgOk` clause gives the receiver's `NetMsgOk`, and `termLB`); once, the read credit of a
 `MsgReadIndex`, delivered at most once; any other message may be duplicated, its credit `0` anew.
-D20 (b) adds a forwarded `MsgProp`'s proposal ticket here (`once` and `O`). -/
+(2026-10-19, D21 M6, D20 (b)) and a forwarded `MsgProp`'s tickets (`stTks`), delivered at most
+once: the transport's at-most-once promise for a `once` message (`Transport.Start`, D21b). -/
 def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
   P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
-  O st := rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0)
-  once st := st.msg.Type' = MsgReadIndex
+  O st := iprop(rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ st)
+  once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
   P_pers st := by infer_instance
   dup st h := by
-    simp only [h, if_false]
-    exact rdCred_zero_upd γ
+    have h1 : st.msg.Type' ≠ MsgReadIndex := fun e => h (Or.inl e)
+    have h2 : st.msg.Type' ≠ MsgProp := fun e => h (Or.inr e)
+    simp only [h1, if_false]
+    iintro
+    imod rdCred_zero_upd γ with Hz
+    imodintro
+    iframe Hz
+    unfold stTks
+    rw [if_neg h2]
+    iempintro
 
 /-- A message raft hands the server, with its bundle, is one the network takes (`netBundle`). -/
 theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
     srvMsgNet (GF := GF) γ bud m ⊢ netBundle (srvNet γ bud) m := by
   iintro H
   iunfold srvMsgNet at H
-  icases H with ⟨%st, #Hm, #Hr, #Ht, Hc⟩
+  icases H with ⟨%st, #Hm, #Hr, #Ht, Hc, Htk⟩
   iunfold netBundle
   iexists st
   simp only [srvNet]
-  iframe Hm Hc
+  iframe Hm Hc Htk
   imodintro
   iframe Hr Ht
 

@@ -393,6 +393,21 @@ instance srvPropAu_persistent (γ : ServerRaftNames) (d : List w8)
     (Q : List EntryModel → IProp GF) : Persistent (srvPropAu (GF := GF) γ d Q) := by
   unfold srvPropAu; infer_instance
 
+/-- **The proposer's update for `d`, fired at most once** (2026-10-19, D21 M6, D20 (b)):
+`srvPropAu` but not persistent. The server deposits each request once (raft's `propOnce`: its
+ticket travels with the proposal), so raft fires it at most once (`fire_one`). -/
+def srvPropAu1 (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
+    IProp GF :=
+  iprop(AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
+          <{ ∀∀ (e : EntryModel),
+               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
+               srvRLog γ (L ++ [e]), COMM □ Q L }>)
+
+theorem srvPropAu_one (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
+    srvPropAu (GF := GF) γ d Q ⊢ srvPropAu1 γ d Q := by
+  unfold srvPropAu srvPropAu1
+  exact intuitionistically_elim
+
 /-- An entry of raft's own: an empty normal entry, or a v1 conf change (what raft's
 `entDataIs … none` says under `srvCCPolicy`, at raft's configuration `cfg`). -/
 def srvNoopEntry (cfg : GSet w64) (e : EntryModel) : Prop :=
@@ -412,10 +427,12 @@ instance srvNoopAu_persistent (γ : ServerRaftNames) : Persistent (srvNoopAu (GF
   unfold srvNoopAu; infer_instance
 
 /-- What `Propose` takes for `d` (`propArg`): a first proposal's fresh token and update, or a
-retry's `srvDeposited`. -/
+retry's `srvDeposited`. Since 2026-10-19 (D21 M6) a first proposal is deposited once (raft's
+`propOnce`), with an update fired at most once; a retry needs `d` deposited not once
+(`propMulti`), which the server never does. -/
 def srvPropArg (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF)
     (fresh : Bool) : IProp GF :=
-  if fresh then iprop(srvPropFresh γ d ∗ srvPropAu γ d Q) else srvDeposited γ d
+  if fresh then iprop(srvPropFresh γ d ∗ srvPropAu1 γ d Q) else propMulti γ.raft d
 
 /-- What it gives back (`propRes`): `d` deposited, and a first proposal's handle. -/
 def srvPropRes (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF)
@@ -861,7 +878,55 @@ theorem srvPropAu_to_propAu (γ : ServerRaftNames) (d : List w8) (Q : List Entry
     itrivial
   · iintro %e ⟨HL, #He, %Hidx⟩
     icases Hcl with ⟨-, Hcommit⟩
-    iunfold entDataIs at He
+    ihave He := entDataIs_prop γ.raft e (some d) $$ He
+    iunfold propDataIs at He
+    icases He with ⟨%Hed, -⟩
+    obtain ⟨Hed, -, Het⟩ := Hed
+    imod Hcommit $$ %(EntryModel.ofM e) [HL] with #HQ
+    · isplitr
+      · ipureintro
+        refine ⟨?_, ?_, srvLogOf_index γ L e Hai0 Hidx⟩
+        · simp only [EntryModel.ofM]; exact Het
+        · simp only [EntryModel.ofM]; exact Hed
+      iunfold srvRLog
+      rw [srvLogOf_snoc, EntryModel.toM_ofM]
+      iexact HL
+    imodintro
+    iapply srvLift_of_box γ Q L $$ HQ
+
+/-- **A proposal's update fired at most once, as raft's** (D21 M6). -/
+theorem srvPropAu1_to_propAu1 (γ : ServerRaftNames) (d : List w8)
+    (Q : List EntryModel → IProp GF) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropAu1 γ d Q -∗ propAu1 γ.raft d (srvLift γ Q) := by
+  iintro #Hinv Hau
+  icases srvRaftLogInv_facts γ $$ Hinv with %Hf
+  obtain ⟨Hai0, -⟩ := Hf
+  unfold propAu1
+  iauintro
+  unfold atomic_acc
+  iunfold srvPropAu1 at Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L, HL, Hcl⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  imodintro
+  iexists srvLogOf γ L
+  iunfold srvRLog at HL
+  iframe HL
+  isplit
+  · iintro HL
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [HL] with Hau
+    · iunfold srvRLog; iexact HL
+    imodintro
+    iunfold srvPropAu1
+    iexact Hau
+  · iintro %e ⟨HL, #He, %Hidx⟩
+    icases Hcl with ⟨-, Hcommit⟩
+    ihave He := entDataIs_prop γ.raft e (some d) $$ He
+    iunfold propDataIs at He
     icases He with ⟨%Hed, -⟩
     obtain ⟨Hed, -, Het⟩ := Hed
     imod Hcommit $$ %(EntryModel.ofM e) [HL] with #HQ
@@ -906,7 +971,8 @@ theorem srvNoopAu_to_noopAu (γ : ServerRaftNames) :
     itrivial
   · iintro %e ⟨HL, #He, %Hidx⟩
     icases Hcl with ⟨-, Hcommit⟩
-    iunfold entDataIs at He
+    ihave He := entDataIs_prop γ.raft e none $$ He
+    iunfold propDataIs at He
     icases He with (%Hn | %Hc)
     · imod Hcommit $$ %(EntryModel.ofM e) [HL] with -
       · isplitr
@@ -973,16 +1039,29 @@ theorem srvPropWits_of_raft (γ : ServerRaftNames) :
   obtain ⟨Hlk, Het, Hed, Hne⟩ := Hf
   iunfold srvIsProp at Hp
   icases Hp with ⟨%γq, #Hp⟩
-  ihave #Hdep := isProp_deposited γ.raft d γq _ $$ Hp
   iunfold srvRLogLb at HL
+  -- (2026-10-19, D21 M6) the committed entry's data, from raft (its index, a proposal deposited
+  -- once)
+  imod committed_data γ.raft ⊤ _ CoPset.subseteq_top $$ Hcinv HL with ⟨%ods, #Hods⟩
+  icases entsData_lookup γ.raft _ ods _ _ (srvLogOf_lookup γ L m e Hlk) $$ Hods
+    with ⟨%o, -, #Heo⟩
+  ihave #He : entDataIs γ.raft e.toM (some d) $$ []
+  · cases o with
+    | none =>
+      ihave Heo' := entDataIs_prop γ.raft e.toM none $$ Heo
+      iunfold propDataIs at Heo'
+      icases Heo' with (%Hn | %Hc)
+      · exfalso; simp only [EntryModel.toM] at Hn; exact Hne (Hed ▸ Hn.2)
+      · exfalso; simp only [EntryModel.toM] at Hc; exact Hc.1 Het
+    | some d' =>
+      ihave Heo' := entDataIs_prop γ.raft e.toM (some d') $$ Heo
+      iunfold propDataIs at Heo'
+      icases Heo' with ⟨%Hd', -⟩
+      have : d' = d := by simp only [EntryModel.toM] at Hd'; rw [← Hd'.1, Hed]
+      subst this
+      iexact Heo
   imod prop_collect γ.raft ⊤ d γq (srvLift γ Q) (srvLogOf γ L) (γ.pre.length + m) e.toM
-    CoPset.subseteq_top (srvLogOf_lookup γ L m e Hlk) $$ Hcinv Hp HL [] with HQ
-  · unfold entDataIs
-    isplitr
-    · ipureintro
-      simp only [EntryModel.toM]
-      exact ⟨Hed, Hne, Het⟩
-    iexact Hdep
+    CoPset.subseteq_top (srvLogOf_lookup γ L m e Hlk) $$ Hcinv Hp HL He with HQ
   icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
   imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
   imod lc_fupd_elim_later $$ Hlc2 HQ with #HQ
@@ -1143,6 +1222,68 @@ instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF
     Persistent (kvOpAu (GF := GF) γk op Q) := by
   unfold kvOpAu; infer_instance
 
+/-- **A client's update of the KV by `f`, fired at most once** (2026-10-19, D21 M6, D20 (b)): an
+ordinary atomic update, its result `Q` of the state it linearized at not persistent. The server
+proposes the request once and raft appends and commits it at most once (`srvPropAu1`), so the
+update fires at most once. -/
+def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γk (f σ), COMM Q σ }>)
+
+/-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
+def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
+  kvAu1 γk (kvOpStep op) Q
+
+/-- A persistent update fires once, its result persistent. -/
+theorem kvOpAu_one (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+    kvOpAu (GF := GF) γk op Q ⊢ kvOpAu1 γk op (fun σ => iprop(□ Q σ)) := by
+  unfold kvOpAu kvAu kvOpAu1 kvAu1
+  exact intuitionistically_elim
+
+/-- The results' namespace (D21 M6): where an update fired at most once leaves its result. -/
+def kvResN : Namespace := nroot .@ "server_kv_res"
+
+/-- **The token of a result** (exclusive; D21 M6): whoever holds it takes the result. -/
+def kvResTok (γc : GName) : IProp GF := dghostVar γc (DFrac.own 1) ()
+
+/-- **A result, left where the update fired** (persistent; D21 M6): `Q σ`, until the token's
+holder takes it. -/
+def kvRes (γc : GName) (Q : KVState → IProp GF) (σ : KVState) : IProp GF :=
+  inv kvResN iprop(Q σ ∨ kvResTok γc)
+
+instance kvRes_persistent (γc : GName) (Q : KVState → IProp GF) (σ : KVState) :
+    Persistent (kvRes (GF := GF) γc Q σ) := by
+  unfold kvRes; infer_instance
+
+theorem kvResTok_alloc : ⊢ |==> ∃ γc, kvResTok (GF := GF) γc := by
+  unfold kvResTok; exact dghostVar_alloc ()
+
+/-- Leaving a result (D21 M6). -/
+theorem kvRes_alloc (γc : GName) (Q : KVState → IProp GF) (σ : KVState) (E : CoPset) :
+    ⊢ Q σ ={E}=∗ kvRes (GF := GF) γc Q σ := by
+  iintro HQ
+  unfold kvRes
+  iapply inv_alloc
+  inext; ileft; iexact HQ
+
+/-- Taking a result with its token (D21 M6). -/
+theorem kvRes_take (γc : GName) (Q : KVState → IProp GF) (σ : KVState) (E : CoPset)
+    (hE : ↑kvResN ⊆ E) :
+    ⊢ kvRes (GF := GF) γc Q σ -∗ kvResTok γc -∗ £ 1 ={E}=∗ Q σ := by
+  iintro #Hres Htok Hlc
+  unfold kvRes
+  iinv Hres with H Hclose
+  imod lc_fupd_elim_later $$ Hlc H with H
+  icases H with (HQ | Htok')
+  · imod Hclose $$ [Htok] with -
+    · inext; iright; iexact Htok
+    imodintro; iexact HQ
+  · unfold kvResTok
+    ihave %Hv := dghostVar_valid_2 _ _ _ _ _ $$ Htok Htok'
+    exfalso
+    have h := DFrac.valid_own_op Hv.1
+    exact absurd h (by decide)
+
 /-- **A client's read update**: the state unchanged. -/
 def kvReadAu (γk : KVNames) (Q : KVState → IProp GF) : IProp GF :=
   kvAu γk (fun σ => σ) Q
@@ -1205,9 +1346,9 @@ def kvApplied (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (x : 
   iprop(kvAppliedL γ γk A x.log ∗ ⌜x.chain = γk.ch0⌝)
 
 /-- **What a put of `op` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: any flags but a
-lease): the lease `0`, and its client's update. -/
+lease): the lease `0`, and its client's update; since 2026-10-19 (D21 M6) fired at most once. -/
 def putPermit (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜op.leaseID = W64 0⌝ ∗ kvOpAu γk (.put op) Q)
+  iprop(⌜op.leaseID = W64 0⌝ ∗ kvOpAu1 γk (.put op) Q)
 
 /-- **What a delete of `op` needs** (2026-10-15, unit T2): its range end not `[0]` (the wire
 keeps it: `irrWireOf`), and its client's update. -/
@@ -1239,7 +1380,13 @@ def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IP
       Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq γk.wl rq ∧ reqKVOp rq = some op ∧
         irrNoZeroEnd rq ∧ rqShape rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
-      kvOpAu γk op Q))
+      kvOpAu γk op Q) ∨
+    -- (2026-10-19, D21 M6) its client's update fired at most once, the result left at the
+    -- token `γc` (`kvRes`)
+    (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq γk.wl rq ∧
+        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+        Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
+      kvOpAu1 γk op Q))
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 

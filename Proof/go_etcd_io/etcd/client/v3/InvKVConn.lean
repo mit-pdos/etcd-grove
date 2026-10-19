@@ -786,6 +786,90 @@ instance isEtcdConn_persistent (conn : Loc) (addr : GoString) :
     Persistent (isEtcdConn (GF := GF) conn addr) := by
   unfold isEtcdConn; infer_instance
 
+/-- **The retry interceptor's contract, for a client configured for one attempt** (persistent;
+2026-10-19, D21 M6, D21i: `MaxUnaryRetries: 1`): as `etcdInterceptorOk`, for the caller's
+ordinary `▷ Spec m Φ` (the request is delivered by one attempt, to at most one run of the
+handler). -/
+def etcdInterceptorOk1 (ic : GoFunc) : IProp GF :=
+  iprop(□ ∀ (conn : Loc) (addr : GoString) (ics : List GoFunc) (dopts : List GoInterface)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+      (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
+      (vs : List GoInterface),
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpc addr method Spec ∗
+        ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
+        opts ↦*□ vs ∗ callOptsOk vs }}
+      (interceptorCall ic #(GoInterface.ok ctx) #method
+        #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
+        #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
+    {{ (err : GoInterface), RET #err; Req.send inp m ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+
+instance etcdInterceptorOk1_persistent (ic : GoFunc) :
+    Persistent (etcdInterceptorOk1 (GF := GF) ic) := by
+  unfold etcdInterceptorOk1; infer_instance
+
+/-- The retry interceptor's contract in either mode (D21 M6): `etcdInterceptorOk` (`once =
+false`) or `etcdInterceptorOk1` (`once = true`). -/
+def etcdInterceptorOkM (once : Bool) (ic : GoFunc) : IProp GF :=
+  iprop(□ ∀ (conn : Loc) (addr : GoString) (ics : List GoFunc) (dopts : List GoInterface)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+      (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
+      (vs : List GoInterface),
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpc addr method Spec ∗
+        (if once then iprop(▷ Spec m Φ) else iprop(□ ▷ Spec m Φ)) ∗ ctxOk ctx cd ∗
+        Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
+      (interceptorCall ic #(GoInterface.ok ctx) #method
+        #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
+        #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
+    {{ (err : GoInterface), RET #err; Req.send inp m ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+
+/-- The two modes of the contract (D21 M6). -/
+theorem etcdInterceptorOkM_split (ic : GoFunc) (C : Prop) :
+    (□ ∀ once : Bool, ⌜once = true → C⌝ -∗ etcdInterceptorOkM (GF := GF) once ic) ⊢
+      etcdInterceptorOk ic ∗ (⌜C⌝ -∗ etcdInterceptorOk1 ic) := by
+  iintro #H
+  isplitl []
+  · ihave #H0 := H $$ %false %(by simp)
+    unfold etcdInterceptorOkM etcdInterceptorOk
+    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
+      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+    iapply H0 $$ [Hsend Hblank] HΨ
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe #
+    iframe
+  · iintro %Hc
+    ihave #H1 := H $$ %true %(fun _ => Hc)
+    unfold etcdInterceptorOkM etcdInterceptorOk1
+    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
+      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+    iapply H1 $$ [Hsend Hblank Hpre] HΨ
+    simp only [↓reduceIte]
+    iframe #
+    iframe
+
+/-- **An etcd client's connection configured for one attempt** (persistent; D21 M6): grpc's
+connection with the retry interceptor, which makes one attempt (`etcdInterceptorOk1`). -/
+def isEtcdConn1 (conn : Loc) (addr : GoString) : IProp GF :=
+  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] ∗ etcdInterceptorOk1 ic)
+
+instance isEtcdConn1_persistent (conn : Loc) (addr : GoString) :
+    Persistent (isEtcdConn1 (GF := GF) conn addr) := by
+  unfold isEtcdConn1; infer_instance
+
+/-- **A request's precondition on a connection** (D21 M6): persistent (any number of attempts),
+or ordinary on a connection configured for one attempt. -/
+def reqPre (conn : Loc) (addr : GoString) (P : IProp GF) : IProp GF :=
+  iprop(□ ▷ P ∨ (isEtcdConn1 conn addr ∗ ▷ P))
+
+theorem reqPre_box (conn : Loc) (addr : GoString) (P : IProp GF) :
+    (□ ▷ P : IProp GF) ⊢ reqPre conn addr P := by
+  unfold reqPre; iintro #H; ileft; iexact H
+
 /-! ## Context errors -/
 
 /-- **The context `ci` (descriptor `cd`)'s `Err()` returns client errors** (persistent; see the
@@ -865,6 +949,64 @@ def kvObjAt (api : Loc) (addr : GoString) : IProp GF :=
 
 instance kvObjAt_persistent (api : Loc) (addr : GoString) : Persistent (kvObjAt (GF := GF) api addr) := by
   unfold kvObjAt; infer_instance
+
+/-- **The `*kv` `api` over a connection configured for one attempt** (persistent; D21 M6): its
+`*retryKVClient`'s stub's connection is `isEtcdConn1`. -/
+def kvOnce (api : Loc) (addr : GoString) : IProp GF :=
+  iprop(∃ (rkv conn : Loc),
+    structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
+        GoInterface) ∗
+    retryKVAt rkv conn ∗ isEtcdConn1 conn addr)
+
+instance kvOnce_persistent (api : Loc) (addr : GoString) : Persistent (kvOnce (GF := GF) api addr) := by
+  unfold kvOnce; infer_instance
+
+/-- **A request's precondition on a `*kv`** (D21 M6): persistent, or ordinary over a connection
+configured for one attempt. -/
+def kvReqPre (api : Loc) (addr : GoString) (P : IProp GF) : IProp GF :=
+  iprop(□ ▷ P ∨ (kvOnce api addr ∗ ▷ P))
+
+theorem kvReqPre_box (api : Loc) (addr : GoString) (P : IProp GF) :
+    (□ ▷ P : IProp GF) ⊢ kvReqPre api addr P := by
+  unfold kvReqPre; iintro #H; ileft; iexact H
+
+/-- A `*kv`'s precondition is its connection's (the remote's points-to agree). -/
+theorem kvReqPre_conn (api rkv conn : Loc) (addr : GoString) (P : IProp GF) :
+    structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
+        GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn addr P := by
+  iintro ⟨#Hr, #Hrkv, H⟩
+  unfold kvReqPre reqPre
+  icases H with (#H | ⟨#Ho, H⟩)
+  · ileft; iexact H
+  · iright
+    iframe H
+    iunfold kvOnce at Ho
+    icases Ho with ⟨%rkv', %conn', #Hr', #Hrkv', #Hc⟩
+    icombine Hr Hr' gives %Heq
+    have Heq' : rkv = rkv' := by
+      unfold interface.mkOk at Heq
+      simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
+      exact go.intoVal_inj Heq
+    subst Heq'
+    iunfold retryKVAt at Hrkv Hrkv'
+    icases Hrkv with ⟨%kc, #Hk, #Hs⟩
+    icases Hrkv' with ⟨%kc', #Hk', #Hs'⟩
+    icombine Hk Hk' gives %Hkk
+    have Hkk' : kc = kc' := by
+      unfold interface.mkOk at Hkk
+      simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Hkk
+      exact go.intoVal_inj Hkk
+    subst Hkk'
+    iunfold kvStubAt at Hs Hs'
+    icombine Hs Hs' gives %Hcc
+    have Hcc' : conn = conn' := by
+      unfold interface.mkOk at Hcc
+      simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Hcc
+      exact go.intoVal_inj Hcc
+    subst Hcc'
+    iexact Hc
 
 /-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to the server at `addr`) and call
 options, fixed since `clientv3.New` (an assumption about the unverified constructor). -/

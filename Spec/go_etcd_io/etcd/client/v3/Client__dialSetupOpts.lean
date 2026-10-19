@@ -36,7 +36,9 @@ abbrev Client.dialSetupOpts.spec : Prop :=
   {{ (osl : GoSlice), RET #osl; ∃ (si ic : GoFunc),
       dialOptsAt osl (ds ++ [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) ∗
       ownSliceCap GoInterface osl (DFrac.own 1) ∗ ⌜etcdStreamInterceptor si⌝ ∗
-      etcdInterceptorOk ic }}
+      etcdInterceptorOk ic ∗
+      -- (2026-10-19, D21 M6, D21i) a client configured for one attempt (`MaxUnaryRetries: 1`)
+      (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ etcdInterceptorOk1 ic) }}
 
 end spec
 

@@ -31,15 +31,17 @@ theorem withBackoff.wp_proof :
   wp_func_lits
   wp_auto
   iapply HΦ
-  unfold optApplyOk
+  unfold optApplyMax
   iintro !> %o %ov
   wp_start as ⟨Ho, #Hok⟩
   wp_auto
   iapply HΦ
   iexists _
   iframe
-  unfold optionsOk
-  iexact Hbf
+  isplitr
+  · unfold optionsOk
+    iexact Hbf
+  ipureintro; rfl
 
 end proof
 

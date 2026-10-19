@@ -58,7 +58,8 @@ theorem kVClient.DeleteRange.wp_proof
     ([sm] ++ vs)
   rw [show (pbDeleteRangeRequest (GF := GF)).ty = etcdserverpb.DeleteRangeRequest.ty from rfl,
     show (pbDeleteRangeResponse (GF := GF)).ty = etcdserverpb.DeleteRangeResponse.ty from rfl] at hI
-  wp_apply hI $$ [Hsend Hblank] as %err ⟨Hin', Hres⟩
+  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
+  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
   icases Hin' with ⟨%req', %k', %e', Hin', -⟩

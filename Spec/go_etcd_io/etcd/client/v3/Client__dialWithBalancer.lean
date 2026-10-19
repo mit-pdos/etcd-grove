@@ -38,7 +38,9 @@ abbrev Client.dialWithBalancer.spec : Prop :=
       clientF c go!"resolver" ↦□ r ∗ etcdResolverOwn r [ep] }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dialWithBalancer")) (Val #slice.nil))
   {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ isEtcdConn conn ep) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ isEtcdConn conn ep ∗
+        -- (2026-10-19, D21 M6) configured for one attempt
+        (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ isEtcdConn1 conn ep)) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 

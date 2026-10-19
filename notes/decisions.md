@@ -11308,3 +11308,40 @@ served by the raft handler of the transport holding `id`'s slot. `Transport.Star
 - **Trust base: +2 axioms**, `EtcdServer.RaftHandler.wp_proof` and `net.http.Serve.wp_proof`
   (`etc/tcb-baseline.txt` updated with `--check --update`). Nothing else was added. The new
   collection `etc/tcb-collections/putget3.txt` is putget's plus these two.
+
+**D21i, D21j (the user, 2026-10-19): (A), accepted.** D21i (A): `clientv3.Config{MaxUnaryRetries:
+1}`. There is one `Put` spec, whose update is persistent, or ordinary when the client is
+configured for one attempt. D21j: `grpc.ClientConn.Invoke`'s attempt contract (`grpcInvokerOk`)
+takes the request's precondition as ordinary (at-most-once delivery), a restatement of the
+axiom's promise. M6a-c proceed as designed above.
+
+## D21 M6 carried out: at-most-once firing of a client write (2026-10-19)
+
+Following the design above, with D21i (A) and D21j. Where it departs from the design:
+
+- **Two deposit modes (raft).** The register retries the same request, so a re-proposal is not
+  fresh and has no ticket to carry. A deposit therefore records a mode: `PropRec = GName × GName ×
+  Bool` (the predicate's name, the ticket's `dghostVar`, once). Once-mode deposits mint a ticket
+  `propTk` (`dghostVar` at `none`) that every copy of the entry must carry (`entTk`, `msgTks`).
+  Multi-mode deposits carry `propMulti` and keep the old persistent `propAu`.
+- **The refutation is raft's, not the server's.** The design had the server keep a per-request
+  cell and refute a second firing with `propIdx` and `srvRLogLb`. Instead, the slot of a once-mode
+  deposit holds an ordinary `propAu1` until it fires, and then `propOcc`. `fire_one` refutes a
+  second committed occurrence: both entries carry `propIdx d i` (`entDataIs_idx`), so
+  `propIdx_agree` and the log's index positions (`PlogWf`) give the same index. So the server needs
+  no refutation cell, only a result stash for the ordinary `Q`. `kvRes γc Q σ` sits in the
+  invariant `kvResN` until the proposer takes it with its `kvResTok`.
+- **Tickets in the raft state.** `rdOwn` owns the outbox's tickets (`msgsTks γ s.outbox`). Steps
+  that rearrange the outbox keep `propsOf` a sub-permutation (`rdOwn_mono`). A concrete message's
+  tickets are `stTks`. `Ready` hands them out, and the server's network carries them in the
+  one-shot part of `MsgProp` (`srvNet`'s `once` is ReadIndex ∨ Prop).
+- **The client's one-attempt fact** comes from the configuration, not from a separate spec. The
+  call options' retry bound is tracked as `optApplyMax`/`maxAfter`. With `MaxUnaryRetries: 1` the
+  interceptor makes one attempt (`etcdInterceptorOk1`). That reaches `dial` (`isEtcdConn1`),
+  `NewKV` (`kvOnce`) and `New` (`clientKVOnce`). There is one `Put` spec chain (`reqPre`,
+  `kvReqPre`): the request's precondition is persistent, or ordinary on a one-attempt connection.
+  `client_put_end_to_end` takes `putAuOk`.
+- **Results.** `putReplied`'s `Q` is ordinary. Callers with a persistent update pass `□ Q`
+  (`putAuOk_of_box`, `putReplied_mono`), so putget, putget3, `ServerKVPut` and `PutThenGet` keep
+  their statements. No axiom or `sorry` changed: D21j restates `grpcInvokerOk`, a definition the
+  `Invoke` axiom's promise is stated with.

@@ -50,17 +50,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.Propose.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
-    (Q : List EntryM → IProp GF) (fresh : Bool)
+    (Q : List EntryM → IProp GF) (fresh once : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
       -- (2026-10-16, stage R5, D6) non-empty data (`node_propose_ghost`)
       ⌜data ≠ []⌝ ∗
-      propArg γ.raft data Q fresh }}
+      propArg γ.raft data Q fresh once }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propRes γ.raft data Q fresh ∗ propErr cd err }}
+  {{ (err : GoInterface), RET #err; propRes γ.raft data Q fresh once ∗ propErr cd err }}
 
 end spec
 

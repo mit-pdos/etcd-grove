@@ -70,8 +70,11 @@ theorem RawNode.ProposeConfChange.wp_proof
       isplitl [Hm]
       · iexact Hm
       isplitr
-      · iexists [some o]
-        iexact Hcc
+      · isplitr
+        · iexists [some o]
+          iexact Hcc
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ e)).2
+        iapply entTk_cc
       isplitr
       · ipureintro
         intro _
@@ -88,7 +91,7 @@ theorem RawNode.ProposeConfChange.wp_proof
         isplitr
         · ipureintro
           exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
-        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
         iexact Hent
     isplitl [Hcr]
     · have H215 : ¬ ((W32 2 : w32) = W32 15) := by word

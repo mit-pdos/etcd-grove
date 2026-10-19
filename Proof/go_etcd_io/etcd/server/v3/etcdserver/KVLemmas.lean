@@ -200,7 +200,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE : ↑kvN ⊆ E) :
     ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ reqPropOk γk rq Qr ={E}=∗
-      srvPropAu γ d Qr := by
+      srvPropAu1 γ d Qr := by
   have Hdisj := kvN_raftN
   iintro #Hinv #Hcl Hok
   -- the entry's workload facts, whichever case
@@ -216,10 +216,11 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     iframe Hcl
     ipureintro; exact ⟨hdec, hid⟩
   iunfold reqPropOk at Hok
-  icases Hok with (%Hno | ⟨%op, %Q, %Hop, #Hau⟩)
+  icases Hok with (%Hno | ⟨%op, %Q, %Hop, #Hau⟩ | ⟨%op, %Q, %γc, %Hop, Hau⟩)
   · -- no KV write
     obtain ⟨hplain, hnw, -, hshape, hQr⟩ := Hno
     subst hQr
+    iapply srvPropAu_one
     imodintro
     unfold srvPropAu
     iintro !>
@@ -268,6 +269,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     subst hQr
     iunfold kvOpAu at Hau
     iunfold kvAu at Hau
+    iapply srvPropAu_one
     imodintro
     unfold srvPropAu
     iintro !>
@@ -325,6 +327,70 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
       iintro !>
       rw [Hag]
       iexact HQ
+  · -- (D21 M6) a plain write, with its client's update fired at most once, the result left at
+    -- its token
+    obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
+    subst hQr
+    iunfold kvOpAu1 at Hau
+    iunfold kvAu1 at Hau
+    imodintro
+    unfold srvPropAu1
+    iauintro
+    unfold atomic_acc
+    iunfold kvInv at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%σ, Hc, Hucl⟩
+    iunfold etcdKV at Hc
+    ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    imodintro
+    iexists L
+    iframe HL
+    isplit
+    · iintro HL
+      icases Hucl with ⟨Habort, -⟩
+      imod Habort $$ [Hc] with Hau
+      · iunfold etcdKV; iexact Hc
+      imod Hclose $$ [HL Hσ] with -
+      · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+      imodintro
+      iexact Hau
+    · iintro %e ⟨%He, HL⟩
+      icases Hucl with ⟨-, Hcommit⟩
+      isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+      obtain ⟨het, hed, hidx⟩ := He
+      have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.1 hidx (Or.inl het)
+      imod ghostVar_update_halves (kvOpStep op σ) γk.st _ _ $$ Hσ Hc with ⟨Hσ, Hc⟩
+      imod Hcommit $$ [Hc] with HQ
+      · iunfold etcdKV; iexact Hc
+      imod kvRes_alloc γc Q σ _ $$ HQ with #HQ
+      have hdata : e.data ≠ [] := by rw [hed]; exact hd
+      have hidxe : uint.Z γk.c0 < uint.Z e.index := by
+        have := Hok.2.2.1
+        omega
+      have hst : kvStateOf (kvModel γk (L ++ [e])) = kvOpStep op σ := by
+        rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
+          (by rw [hed]; exact hdec) hidxe, Hag]
+        unfold kvReqStep; rw [hop]
+      ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+        (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
+      imod Hclose $$ [HL Hσ] with -
+      · inext
+        iexists L ++ [e]
+        rw [hst]
+        iframe HL Hσ Hw'
+        ipureintro
+        exact kvInv_facts_snoc γ γk L e Hok hidx' (plainEntry_of_data γk.wl _ d rq hed hdec hplain)
+      imodintro
+      iintro !>
+      rw [Hag]
+      iexact HQ
+
 
 /-- **The standing update for raft's own entries, from the KV invariant.** -/
 theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
@@ -524,18 +590,26 @@ theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.Hea
   obtain ⟨-, -, hk, hrq⟩ := hw
   rw [dispatchKind_withHeader] at hk
   unfold reqPropOk
-  iintro (%Hno | ⟨%op, %Q, %Hop, #Hau⟩)
+  iintro (%Hno | ⟨%op, %Q, %Hop, #Hau⟩ | ⟨%op, %Q, %γc, %Hop, Hau⟩)
   · ileft
     obtain ⟨hp, hnw, hnz, hs, hQ⟩ := Hno
     have he := hrq hnz
     subst he
     ipureintro
     exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hnw, hnz, hs, hQ⟩
-  · iright
+  · iright; ileft
     obtain ⟨hp, hop, hnz, hs, hQ⟩ := Hop
     have he := hrq hnz
     subst he
     iexists op, Q
+    iframe Hau
+    ipureintro
+    exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩
+  · iright; iright
+    obtain ⟨hp, hop, hnz, hs, hQ⟩ := Hop
+    have he := hrq hnz
+    subst he
+    iexists op, Q, γc
     iframe Hau
     ipureintro
     exact ⟨⟨hp.1, γk.wl.admits_header _ _ hp.2⟩, hop, hnz, hs, hQ⟩

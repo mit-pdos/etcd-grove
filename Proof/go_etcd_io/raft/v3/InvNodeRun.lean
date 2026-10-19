@@ -234,7 +234,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-    Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hnsout⟩
+    Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
 
 /-! ## Abandoning a `Ready`, keeping it armed -/
 
@@ -517,14 +517,14 @@ theorem isMessage_propose_pure (γ : RaftNames) (m : MessageM) (ents : List Entr
 /-- The proposal `Propose` builds is legitimately sent, given its entry's data. (2026-10-16,
 stage R5: the records `propMsgM`, `propEntryM d`.) -/
 theorem isMessage_propMsg (γ : RaftNames) (d : List w8) :
-    ⊢ entData (GF := GF) γ (propEntryM d) -∗
+    ⊢ propData (GF := GF) γ (propEntryM d) -∗
       isMessage γ (absMsg .propose propMsgM [propEntryM d]) := by
   iintro #Hent
   unfold isMessage absMsg absMsgFrom
   isplitr
   · ipureintro
     exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
-  iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
+  iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
   iexact Hent
 
 -- (2026-10-16, stage R5, D6) `isNode_propDataInv` is gone with the proposed slices' invariant.
@@ -535,7 +535,7 @@ decode as its type says (`CCDecodes`). What `raft.Step` needs of a proposal (`cc
 (2026-10-16, stage R5, D6: the bytes are the entry's, so no invariant and no update; until then
 the proposed slices' invariant gave them.) -/
 theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
-    ([∗list] e ∈ ents, entData (GF := GF) γ e) ⊢ ∃ cs, ccEntsOk ents cs := by
+    ([∗list] e ∈ ents, propData (GF := GF) γ e) ⊢ ∃ cs, ccEntsOk ents cs := by
   induction ents with
   | nil =>
     iintro -
@@ -545,15 +545,15 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
     iempintro
   | cons e es ih =>
     iintro #Hes
-    icases (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).1 $$ Hes
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e => propData (GF := GF) γ e)).1 $$ Hes
       with ⟨#He, #Hes'⟩
     icases ih $$ Hes' with ⟨%cs, #Hcs⟩
-    have Hone : ∀ o, (entDataIs (GF := GF) γ e o ⊢ ∃ c, ccEntOk e c) := by
+    have Hone : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ∃ c, ccEntOk e c) := by
       intro o
       cases o with
       | some d =>
         iintro He
-        iunfold entDataIs at He
+        iunfold propDataIs at He
         icases He with ⟨%Hd, -⟩
         iexists none
         unfold ccEntOk
@@ -562,7 +562,7 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
         rintro (h | h) <;> revert h <;> word
       | none =>
         iintro He
-        iunfold entDataIs at He
+        iunfold propDataIs at He
         icases He with (%Hz | %Hz)
         · iexists none
           unfold ccEntOk
@@ -586,7 +586,7 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
           rintro (h | h)
           · exact H1 h
           · exact H2 h
-    iunfold entData at He
+    iunfold propData at He
     icases He with ⟨%o, #He⟩
     icases (Hone o) $$ He with ⟨%c, #Hc⟩
     iexists c :: cs
@@ -609,12 +609,14 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         msgIn ml (DFrac.own 1) st ∗
-        isMessage γ (absMsg .propose st.msg st.ents) ∗ £ 1 }}
+        isMessage γ (absMsg .propose st.msg st.ents) ∗
+        -- (2026-10-19, D21 M6) its entries' tickets
+        ([∗list] e ∈ st.ents, entTk γ e) ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs ∗ stepErr err }} := by
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hty Hfr ⊢
-  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Hlc⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hmin, #Hm, Htk, Hlc⟩ HΦ
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
   icases Hinit with ⟨%_, %_, %_, %_, %errPropDropped, %_, %_, %_, %_, %_, #Hinit⟩
@@ -625,7 +627,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   subst Heq
   ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
   obtain ⟨Hterm, Hne, Hlen⟩ := Hpm
-  ihave #Hed : iprop([∗list] e ∈ ents, entData γ e) $$ []
+  ihave #Hed : iprop([∗list] e ∈ ents, propData γ e) $$ []
   · iunfold isMessage at Hm
     simp only [absMsg, absMsgFrom]
     icases Hm with ⟨-, #Hed⟩
@@ -644,16 +646,18 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (fun _ => ⟨Hterm, .inr Hfr⟩) (by msg_ne') (by msg_ne') (by msg_ne') (by msg_ne') (by msg_ne')
     (RestMsgOk.of_ne ⟨by msg_ne', by msg_ne', by msg_ne', by msg_ne', by msg_ne'⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne') (by msg_ne')) (fun h => absurd h (by msg_ne'))
-    $$ [$Hphys $Hghost $Hlc Hmin Hcr]
+    $$ [$Hphys $Hghost $Hlc Hmin Htk Hcr]
   · rw [Hty]
     simp only [ite_true]
-    isplitl [Hmin]
+    isplitl [Hmin Htk]
     · simp only [named]
       isplitl [Hmin]
       · iexact Hmin
-      isplitr
-      · iexists cs
-        iexact Hcc
+      isplitl [Htk]
+      · isplitr
+        · iexists cs
+          iexact Hcc
+        iexact Htk
       isplitr
       · ipureintro
         intro _
@@ -989,12 +993,13 @@ theorem wp_applyConf_dyn
     · ipureintro; exact HI
     iintro %hc; iapply Hcamp; exact hc
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
-  imod ownRaftGhostR_stepR γ dec c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 Hrecs [] [Hcr0] Hlc
-    Hgr with Hgr
+  imod ownRaftGhostR_stepR γ dec c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 Hrecs [] [Hcr0] []
+    Hlc Hgr with Hgr
   · rw [List.nil_append]
     iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [List.nil_append, show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
+  · rw [List.nil_append]; iapply msgsTks_nil
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g') cs'.cfg id s' $$ [Hgr]
   · iapply (ownStepGhost_dyn γ dec c0 h0 g' cs'.cfg id s').2
     iframe Hgr

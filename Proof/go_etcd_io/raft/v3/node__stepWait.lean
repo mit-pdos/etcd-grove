@@ -27,9 +27,9 @@ theorem node.stepWait.wp_proof
     (wp_node_stepWithWaitOption : node.stepWithWaitOption.spec (GF := GF) (hG := hG)) :
     node.stepWait.spec (GF := GF) (hG := hG) := by
   intro γ id n ml data ctx cd
-  wp_start as ⟨#Hnode, #Hctx, Hm, #Hent⟩
+  wp_start as ⟨#Hnode, #Hctx, Hm, #Hent, Htk⟩
   wp_auto
-  wp_apply wp_node_stepWithWaitOption γ id n ml true ctx cd $$ [Hm]
+  wp_apply wp_node_stepWithWaitOption γ id n ml true ctx cd $$ [Hm Htk]
   · iframe Hnode Hctx
     unfold stepArg
     iright
@@ -37,7 +37,7 @@ theorem node.stepWait.wp_proof
     isplitr
     · ipureintro; rfl
     iexists data
-    iframe Hm Hent
+    iframe Hm Hent Htk
   iintro %err #Herr
   wp_auto
   iapply HΦ

@@ -38,7 +38,9 @@ abbrev Client.dial.spec : Prop :=
       dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme ep }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dial")) (Val #cr)) (Val #sl))
   {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ isEtcdConn conn ep) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ isEtcdConn conn ep ∗
+        -- (2026-10-19, D21 M6) configured for one attempt
+        (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ isEtcdConn1 conn ep)) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 

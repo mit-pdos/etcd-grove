@@ -444,7 +444,9 @@ def sendSpec (f : GoFunc) (γn : NodeNames) : IProp GF :=
     {{ msl ↦* ms.map QMsg.loc ∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γn.raft q.st ∗
           termLB γn.bud q.st.msg.Term') ∗
-        [∗list] q ∈ ms, rdCred γn.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0) }}
+        ([∗list] q ∈ ms, rdCred γn.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+        -- (2026-10-19, D21 M6) a forwarded proposal's tickets
+        [∗list] q ∈ ms, stTks γn.raft q.st }}
       (App (Val #f) (Val #msl))
     {{ RET #(); True }})
 

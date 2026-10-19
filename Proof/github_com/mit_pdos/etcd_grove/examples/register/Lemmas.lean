@@ -455,8 +455,8 @@ theorem reg_deposited_minted (γr : RegNames) (d d0 : List w8) (k : w64 × w64) 
   icases Hdep with ⟨%γq, #Hfr⟩
   icases ghost_map_lookup $$ Hra Hfr with %HR
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
-  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d γq =>
-    iprop(▷ (propSlot (GF := GF) γr.raft d γq l ∗ propFresh γr.raft d))) HR).1 $$ Hs
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d (p : PropRec) =>
+    iprop(▷ (propSlot (GF := GF) γr.raft d p l ∗ propFresh γr.raft d))) HR).1 $$ Hs
     with ⟨⟨Hsl', >Hf⟩, Hsback⟩
   iunfold propFresh at Hf
   icases ghost_map_lookup $$ HM Hf with %HMd
@@ -849,15 +849,15 @@ theorem regCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegCC
   iintro He
   cases o with
   | some d =>
-    unfold entDataIs
-    icases He with ⟨%Hd, -⟩
+    simp only [entDataIs, propDataIs]
+    icases He with ⟨⟨%Hd, -⟩, -⟩
     ipureintro
     intro _ hc
     unfold IsConfEnt at hc
     rw [Hd.2.2] at hc
     rcases hc with h | h <;> revert h <;> word
   | none =>
-    unfold entDataIs
+    simp only [entDataIs, propDataIs]
     icases He with (%Hz | %Hcc)
     · ipureintro
       intro _ hc
@@ -878,11 +878,11 @@ theorem regCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : RegC
   iintro He
   cases o with
   | some d =>
-    unfold entDataIs
-    icases He with ⟨%Hd, -⟩
+    simp only [entDataIs, propDataIs]
+    icases He with ⟨⟨%Hd, -⟩, -⟩
     exfalso; rw [Hd.2.2] at Hty; revert Hty; word
   | none =>
-    unfold entDataIs
+    simp only [entDataIs, propDataIs]
     icases He with (%Hz | %Hcc)
     · exfalso; rw [Hz.1] at Hty; revert Hty; word
     · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hcc.2.2

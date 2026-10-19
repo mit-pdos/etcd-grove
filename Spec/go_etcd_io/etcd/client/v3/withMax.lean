@@ -28,7 +28,7 @@ abbrev withMax.spec : Prop :=
   ∀ (n : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withMax)) (Val #n))
-  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyOk ro.applyFunc' }}
+  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyMax ro.applyFunc' (some n) }}
 
 end spec
 

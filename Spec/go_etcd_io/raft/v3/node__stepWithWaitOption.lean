@@ -45,7 +45,7 @@ def stepArg (γ : NodeNames) (id : w64) (ml : Loc) (wait : Bool) : IProp GF :=
   iprop(netP γ id ml ∨
     (⌜wait = true⌝ ∗ ∃ data : List w8,
       msgIn ml (DFrac.own 1) ⟨propMsgM, [propEntryM data], none, [], []⟩ ∗
-      entData γ.raft (propEntryM data)) ∨
+      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data)) ∨
     -- a proposal forwarded by a peer (2026-10-10)
     (⌜wait = false⌝ ∗ fwdP γ ml))
 

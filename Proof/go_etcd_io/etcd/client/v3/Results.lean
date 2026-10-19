@@ -1009,7 +1009,21 @@ def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
+
+open Iris.ProofMode in
+/-- A delivered put's result, weakened (2026-10-19, D21 M6). -/
+theorem putReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
+    (Q Q' : KVState → IProp GF) (cid mid : w64) (m : PutRespM) (h : ∀ σ, Q σ ⊢ Q' σ) :
+    putReplied E γr F o Q cid mid m ⊢ putReplied E γr F o Q' cid mid m := by
+  iintro H
+  unfold putReplied
+  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, #Hok, HQ⟩
+  iexists hm, x, x', l, skip
+  iframe Hc Htok Hw Hok
+  isplitr
+  · ipureintro; exact Hp
+  iapply h $$ HQ
 
 open Iris.ProofMode in
 /-- The knowledge of a delivered put (its token and its update's result dropped; the witness
@@ -1034,7 +1048,7 @@ def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbPutRequest pbPutResponse :=
   fun (o : OpFull) (Φ : PutRespM → IProp GF) =>
     iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
-      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗ kvOpAu γr.kv (.put o) Q ∗
+      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗ kvOpAu1 γr.kv (.put o) Q ∗
           ∀ m : PutRespM, putReplied E γr F o Q cid mid m -∗ Φ m)
 
 /-- **A get of `key` after the put of `key ↦ val` read the put** (persistent; unit C2a,
@@ -1288,10 +1302,10 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       ⌜v3rpc.kvDepPre d (.put o)⌝ ∗
       ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗ Φ m)
       $$ [Hspec]
-  · icases Hspec with ⟨%Q, %Hpl, #Hau, Hk⟩
-    iexists (.op (.put o) Q)
-    rw [show v3rpc.kvDepOwn (GF := GF) ρ γr (.op (.put o) Q) = kvOpAu ρ.kv (.put o) Q from rfl]
-    isplitr
+  · icases Hspec with ⟨%Q, %Hpl, Hau, Hk⟩
+    iexists (.op1 (.put o) Q)
+    rw [show v3rpc.kvDepOwn (GF := GF) ρ γr (.op1 (.put o) Q) = kvOpAu1 ρ.kv (.put o) Q from rfl]
+    isplitl [Hau]
     · iexact Hau
     isplitr
     · ipureintro; exact ⟨⟨Q, rfl⟩, Hpl⟩
@@ -1344,7 +1358,7 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       iunfold v3rpc.putApplied at Hap
       -- the revision's token (`revMinted`, exclusive) goes to the reply's `Φ` (`putReplied`),
       -- with the witness (`appliedWit`, persistent)
-      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, #HQv⟩
+      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit, #Hcok, HQv⟩
       iunfold apply.putOutcomeIs at Hout
       icases Hout with ⟨#Hpr, -⟩
       iunfold txn.putResponseIs at Hpr
@@ -1376,7 +1390,7 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
       · iapply Hk
         unfold putReplied
         iexists hm, x, x', l, skip
-        iframe Htok
+        iframe Htok HQv
         iframe #
         ipureintro
         exact ⟨Hst.1, rfl, rfl, rfl, rfl, Hst.2.2⟩
@@ -2050,15 +2064,35 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
   imodintro
   iframe #
 
+/-- **A put's update, as the client takes it** (2026-10-19, D21 M6, D21i): persistent (fired at
+each committed occurrence: any client), or fired at most once on a client configured for one
+attempt (`kvOnce`, `MaxUnaryRetries: 1`). -/
+def putAuOk (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+    IProp GF :=
+  iprop(□ kvOpAu1 γk op Q ∨ (kvOnce api addr ∗ kvOpAu1 γk op Q))
+
+/-- A persistent update is a put's update, its result persistent. -/
+theorem putAuOk_of_box (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
+    (Q : KVState → IProp GF) :
+    kvOpAu (GF := GF) γk op Q ⊢ putAuOk api addr γk op (fun σ => iprop(□ Q σ)) := by
+  iintro #H
+  unfold putAuOk
+  ileft
+  iintro !>
+  iapply kvOpAu_one $$ H
+
 /-- **`client_put_end_to_end`** (see the file header): `kv.Put(ctx, key, val)` with no options
 (`optsAt sl []`, e.g. `nil`) on a `*kv` over a connection to the server at `addr` (`kvObjAt`:
 what `NewKV` returns, `v3.wp_NewKV`) whose `Put` is registered with etcd's spec (`isGrpcRpc`, what
 `etcd_kv_served` gives): `nil` and the reply's message `m` with `putReplied` (`putReplyOk` and the
 revision's token) for the put
 `key ↦ val` the server decodes (no lease, no previous key-value, value and lease not ignored),
-and (2026-10-15, unit T2) `□ Q` of the state at which the caller's persistent update over the
-whole state, `kvOpAu (.put (putKeyOp key val)) Q`, linearized the put (unit W-M3: in
-`putReplied`, the state of the log the put met); or an error and no reply.
+and (2026-10-15, unit T2) `Q` of the state at which the caller's update over the whole state
+fired, linearizing the put (unit W-M3: in `putReplied`, the state of the log the put met); or an
+error and no reply. Since 2026-10-19 (D21 M6, D20 (b), D21i) the update is `putAuOk`: persistent,
+or an ordinary atomic update fired at most once (at the server's commit of the request) on a
+client configured for one attempt; on an error it fired once or not at all (an update built over a
+prophecy of the call's outcome can learn which at the firing).
 Premises: the registration, the context's (`ctxErrClient`), the package's. -/
 theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
@@ -2066,28 +2100,32 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        kvOpAu γr.kv (.put (putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
+        putAuOk api addr γr.kv (.put (putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E γr F (txn.putOpOf key val (W64 0) false false false) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #Hau, #HF⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, Hau, #HF⟩ HΦ
+  have Hw : putWireOf (opPutModel key val []) =
+      txn.putOpOf key val (W64 0) false false false := rfl
+  have Hpm : ¬ (opPutModel key val []).putPanics ∧ (opPutModel key val []).t = W64 2 := by
+    refine ⟨?_, rfl⟩
+    unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
+    simp
   iapply (v3.kv.wp_Put api addr ci cd key val sl [] (etcdPutSpec E γr cid mid)
     (fun m => iprop(putReplied E γr F (txn.putOpOf key val (W64 0) false false false) Q cid mid m)))
-    $$ []
+    $$ [Hau]
   · iframe #
-    isplitl []
-    · ipureintro
-      refine ⟨?_, rfl⟩
-      unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
-      simp
-    · have Hw : putWireOf (opPutModel key val []) =
-          txn.putOpOf key val (W64 0) false false false := rfl
-      rw [Hw]
+    isplitr
+    · ipureintro; exact Hpm
+    unfold putAuOk kvReqPre
+    icases Hau with (#Hau | ⟨#Ho, Hau⟩)
+    · ileft
       imodintro
       inext
+      rw [Hw]
       unfold etcdPutSpec
       iexists F
       iframe HF
@@ -2095,6 +2133,20 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
       isplitr
       · ipureintro; rfl
       isplitr
+      · iexact Hau
+      iintro %m Hm
+      iexact Hm
+    · iright
+      iframe Ho
+      inext
+      rw [Hw]
+      unfold etcdPutSpec
+      iexists F
+      iframe HF
+      iexists Q
+      isplitr
+      · ipureintro; rfl
+      isplitl [Hau]
       · iexact Hau
       iintro %m Hm
       iexact Hm

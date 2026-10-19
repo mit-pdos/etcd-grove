@@ -53,7 +53,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
-      isGrpcRpc addr method Spec ∗ □ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+      isGrpcRpc addr method Spec ∗ reqPre conn addr (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
@@ -72,22 +72,41 @@ meets the attempt contract (`grpcInvokerOk_of_wp`); the interceptor's contract d
 theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     etcdConn.Invoke.spec (GF := GF) (hG := hG) := by
   intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
-  iintro %Ψ ⟨#Hg, #Hconn, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
-  iunfold isEtcdConn at Hconn
-  icases Hconn with ⟨%ic, #Hgc, #Hic⟩
-  iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
-    (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-    (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
-  iframe #
-  iintro %inv %opts' #Hinv #Hopts'
-  simp only [List.nil_append, chainWP]
-  iintro %inv' #Hinv'
-  ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
-  · iframe #
-  iunfold etcdInterceptorOk at Hic
-  iapply Hic $$ [Hsend Hblank] HΨ
-  iframe #
-  iframe
+  iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+  iunfold reqPre at Hpre
+  icases Hpre with (#Hpre | ⟨#Hconn, Hpre⟩)
+  · -- any number of attempts
+    iunfold isEtcdConn at Hconn0
+    icases Hconn0 with ⟨%ic, #Hgc, #Hic⟩
+    iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
+      (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
+      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
+    iframe #
+    iintro %inv %opts' #Hinv #Hopts'
+    simp only [List.nil_append, chainWP]
+    iintro %inv' #Hinv'
+    ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
+    · iframe #
+    iunfold etcdInterceptorOk at Hic
+    iapply Hic $$ [Hsend Hblank] HΨ
+    iframe #
+    iframe
+  · -- (2026-10-19, D21 M6) a connection configured for one attempt, an ordinary precondition
+    iunfold isEtcdConn1 at Hconn
+    icases Hconn with ⟨%ic, #Hgc, #Hic⟩
+    iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
+      (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
+      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
+    iframe #
+    iintro %inv %opts' #Hinv #Hopts'
+    simp only [List.nil_append, chainWP]
+    iintro %inv' #Hinv'
+    ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
+    · iframe #
+    iunfold etcdInterceptorOk1 at Hic
+    iapply Hic $$ [Hsend Hblank Hpre] HΨ
+    iframe #
+    iframe
 
 end spec
 

@@ -748,6 +748,107 @@ theorem outboxRelP_rdCount (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bo
   rw [List.map_append, rdCountM_append, h4, rdCount_append, ← h1, ← h2]
   omega
 
+/-! ### Proposal tickets (2026-10-19, D21 M6)
+
+A queued `MsgProp` carries its entries' tickets (`entTk`); the abstract outbox keeps them
+(`rdOwn`'s `msgsTks`), and a `Ready` hands each proposal it hands out its own (`stTks`). -/
+
+/-- A message's tickets: a proposal's entries'. -/
+def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
+  if st.msg.Type' = MsgProp then iprop([∗list] e ∈ st.ents, entTk γ e) else iprop(emp)
+
+/-- A message with no tickets. -/
+theorem stTks_nonprop (γ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgProp) :
+    ⊢ stTks (GF := GF) γ st := by
+  unfold stTks; rw [if_neg h]; iempintro
+
+omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+/-- Only `MsgProp` is abstracted as a `propose`. -/
+theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp := by
+  unfold mtypeOf at H
+  split at H <;> simp_all
+  rename_i h
+  exact uint_Z_inj.1 (by rw [h]; rfl)
+
+/-- A queued proposal's abstraction. -/
+def qProp (st : MsgSt) : Option Msg :=
+  if st.msg.Type' = MsgProp then some (absMsg .propose st.msg st.ents st.ctx) else none
+
+omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+theorem msgAbs_props (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
+    propsOf a.toList = (qProp m).toList := by
+  unfold qProp
+  rcases H with H | ⟨ty, H1, -, rfl⟩ | ⟨sv, H1, -, rfl⟩
+  · obtain ⟨Hn, rfl⟩ := H
+    have Hne : m.msg.Type' ≠ MsgProp := by
+      intro h; rw [h, mtypeOf_MsgProp] at Hn; cases Hn
+    simp [Hne]
+  · by_cases hty : ty = .propose
+    · subst hty
+      simp [mtypeOf_propose _ H1, propsOf_cons, absMsg, absMsgFrom, Msg.mkV]
+    · have Hne : m.msg.Type' ≠ MsgProp := by
+        intro h; rw [h, mtypeOf_MsgProp] at H1; cases H1; exact hty rfl
+      simp [Hne, propsOf_cons, absMsg, absMsgFrom, Msg.mkV, hty]
+  · have Hne : m.msg.Type' ≠ MsgProp := by
+      intro h; rw [h, mtypeOf_MsgProp] at H1; cases H1
+    simp [Hne, propsOf_cons, absSnap, absSnapFrom]
+
+omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+theorem msgsAbs_props (ms : List QMsg) (as_ : List (Option Msg))
+    (H : List.Forall₂ (fun q a => msgAbs q.st a) ms as_) :
+    propsOf (absList as_) = ms.filterMap (fun q => qProp q.st) := by
+  induction H with
+  | nil => rfl
+  | @cons q a ms as' Ha _ ih =>
+    have Hab : absList (a :: as') = a.toList ++ absList as' := by cases a <;> rfl
+    rw [Hab, propsOf_append, msgAbs_props _ _ Ha, ih, List.filterMap_cons]
+    cases qProp q.st <;> rfl
+
+omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+/-- The proposals a `Ready` hands out are among the outbox's. -/
+theorem outboxRelP_props (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bool)
+    (Hp : outboxRelP o ms1 ms2) :
+    ((ms1 ++ ms2.filter f).filterMap (fun q => qProp q.st)).Subperm (propsOf o) := by
+  obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
+  have h1 := msgsAbs_props ms1 as1 Hf1
+  have h2 := msgsAbs_props ms2 as2 Hf2
+  have h4 : (propsOf o).Perm (propsOf (absList as1 ++ absList as2)) := Ho.filter _
+  rw [propsOf_append, h1, h2] at h4
+  refine List.Subperm.trans ?_ h4.symm.subperm
+  rw [List.filterMap_append]
+  exact (List.Sublist.append_left ((List.filter_sublist).filterMap _) _).subperm
+
+/-- A proposal's abstraction carries its tickets. -/
+theorem msgsTks_qProp (γ : RaftNames) (ms : List QMsg) :
+    msgsTks (GF := GF) γ (ms.filterMap (fun q => qProp q.st)) ⊢ [∗list] q ∈ ms, stTks γ q.st := by
+  induction ms with
+  | nil => iintro -; iempintro
+  | cons q ms ih =>
+    iintro H
+    rw [List.filterMap_cons]
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => stTks (GF := GF) γ q.st)).2
+    by_cases h : q.st.msg.Type' = MsgProp
+    · have hq : qProp q.st = some (absMsg .propose q.st.msg q.st.ents q.st.ctx) := by
+        unfold qProp; rw [if_pos h]
+      rw [hq]
+      simp only []
+      iunfold msgsTks at H
+      icases (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · unfold stTks msgTks
+        rw [if_pos h]
+        simp only [absMsg, absMsgFrom, Msg.mkV, ↓reduceIte]
+        iexact H1
+      · iapply ih
+        iunfold msgsTks
+        iexact H2
+    · have hq : qProp q.st = none := by unfold qProp; rw [if_neg h]
+      rw [hq]
+      simp only []
+      isplitr
+      · unfold stTks; rw [if_neg h]; iempintro
+      iapply ih $$ H
+
 /-- `rdCountM ms` credits are one per `MsgReadIndex` of `ms`. -/
 theorem rdCred_msgs (γ : RaftNames) (ms : List QMsg) :
     rdCred (GF := GF) γ (rdCountM (ms.map QMsg.st)) ⊢
@@ -849,6 +950,8 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hceok" ∷ ⌜CeOk s.logst ce⌝ ∗
   "%Hes" ∷ ⌜es = nextUnstable s.logst⌝ ∗
   "%Hrdc" ∷ ⌜rdCountM (ms.map QMsg.st) ≤ rdCount s.outbox⌝ ∗
+  -- (2026-10-19, D21 M6) and its proposals are among the outbox's (their tickets)
+  "%Hprc" ∷ ⌜(ms.filterMap (fun q => qProp q.st)).Subperm (propsOf s.outbox)⌝ ∗
   -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`,
   -- `NsLink`): what the handed-out messages' `isRaftMsg` says
   "%Hnsout" ∷ ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝)
@@ -1002,6 +1105,8 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false ==∗
       ownRawNodeReady γ rn id rs rd ce es ms true ∗ appendRight rs.storage es ∗
       ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
+      -- (2026-10-19, D21 M6) and each proposal's tickets
+      ([∗list] q ∈ ms, stTks γ q.st) ∗
       -- (2026-10-18, D19b stage 5) the indices handed out are within the log
       readyIdx γ rs.delivered ce es := by
   iintro H
@@ -1026,7 +1131,17 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
   ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
-  imod ownRaftGhost_drain γ id (toPState s) [] List.nil_subperm $$ Hghost with ⟨Hghost, Hcr⟩
+  imod ownRaftGhost_drain γ id (toPState s) [] (toPState s).outbox (List.Perm.refl _) $$ Hghost
+    with ⟨Hghost, Hcr, Htk⟩
+  ihave Htk := msgsTks_subperm γ _ (ms.filterMap (fun q => qProp q.st))
+    (by rw [show propsOf (ms.filterMap (fun q => qProp q.st)) = ms.filterMap (fun q => qProp q.st)
+        from ?_]
+        · exact Hprc
+        · unfold propsOf; rw [List.filter_eq_self]; intro a ha
+          obtain ⟨q, -, hq⟩ := List.mem_filterMap.1 ha
+          unfold qProp at hq; split at hq <;> simp at hq; subst hq
+          simp [absMsg, absMsgFrom, Msg.mkV]) $$ Htk
+  ihave Htk := msgsTks_qProp γ ms $$ Htk
   ihave Hrest := ghostRest_keep γ _ c id (s := s) (s' := { s with outbox := [] })
     rfl rfl rfl rfl rfl rfl rfl rfl $$ Hrest
   rw [show rdCount (toPState s).outbox - rdCount ([] : List Msg) =
@@ -1040,7 +1155,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     rw [show toPState { s with outbox := [] } = { toPState s with outbox := [] } from rfl]
     iexact Hghost
   imodintro
-  isplitr [Happ Hcr]
+  isplitr [Happ Hcr Htk]
   · iunfold ownRawNodeReady
     iexists s, c, fp, rnv, sv, hprev
     simp only [named, ↓reduceIte]
@@ -1056,11 +1171,13 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hnsout⟩
+      Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
   isplitl [Happ]
   · rw [Hes, ← Hstor]; iexact Happ
   isplitl [Hcr]
   · iapply rdCred_msgs γ ms $$ Hcr
+  isplitl [Htk]
+  · iexact Htk
   iunfold readyIdx
   iexists plogLastIndexZ (toPState s).base (toPState s).log
   iframe Hlr
@@ -1262,7 +1379,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩, Hrdz,
-    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, Hnsout⟩
+    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne

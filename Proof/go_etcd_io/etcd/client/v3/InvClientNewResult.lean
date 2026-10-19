@@ -130,6 +130,17 @@ instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.
     (cl : Loc) (ep : GoString) (V : WEnv GF) : Persistent (isNewClient cl ep V) := by
   unfold isNewClient; infer_instance
 
+/-- **A client configured for one attempt** (persistent; 2026-10-19, D21 M6, D21i:
+`MaxUnaryRetries: 1`): its `KV` a `*kv` whose requests are delivered by one attempt (`kvOnce`). -/
+def clientKVOnce (cl : Loc) (ep : GoString) : IProp GF :=
+  iprop(∃ api : Loc, clientF cl go!"KV" ↦□
+      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
+    kvOnce api ep)
+
+instance clientKVOnce_persistent (cl : Loc) (ep : GoString) :
+    Persistent (clientKVOnce (GF := GF) cl ep) := by
+  unfold clientKVOnce; infer_instance
+
 /-- **The client's watcher, once the watch server's facts are supplied** (D19f): `New`'s client
 with `watchAddrFacts V` at its endpoint has a `Watcher` field that is a `*watcher` over the
 connection with the server's facts (`isClientWatcher`, what `watcher.Watch`'s spec and

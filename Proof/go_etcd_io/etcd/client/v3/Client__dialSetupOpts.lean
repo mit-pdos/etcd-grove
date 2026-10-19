@@ -96,9 +96,12 @@ theorem Client.dialSetupOpts.wp_proof
       iexists o2, v
       iframe
       ipureintro; exact Hv
-  wp_join iprop(c_ptr ↦ c ∗ ∃ n : w64, unaryMaxRetries_ptr ↦ n) with [c unaryMaxRetries]
-    as ⟨c, %nr, unaryMaxRetries⟩
-  all_goals try (iframe; iexists _; iframe)
+  wp_join iprop(c_ptr ↦ c ∗ ∃ n : w64, unaryMaxRetries_ptr ↦ n ∗
+      ⌜cfg.MaxUnaryRetries' = W64 1 → n = W64 1⌝) with [c unaryMaxRetries]
+    as ⟨c, %nr, unaryMaxRetries, %Hnr⟩
+  all_goals try (first
+    | (iframe; ipureintro; intro h; exact h)
+    | (iframe; ipureintro; intro h; exfalso; rw [h] at Hif; exact Hif (by decide)))
   wp_join iprop(c_ptr ↦ c ∗ ∃ d : time.Duration, backoffWaitBetween_ptr ↦ d)
     with [c backoffWaitBetween] as ⟨c, %wb, backoffWaitBetween⟩
   all_goals try (iframe; iexists _; iframe)
@@ -111,8 +114,10 @@ theorem Client.dialSetupOpts.wp_proof
     all_goals wp_join_done
     all_goals (iframe; iexists _; iframe)
   wp_apply wp_rrBackoff c wb jf $$ [$Hc] as %bf #Hbf
-  wp_apply wp_withBackoff bf $$ [$Hbf] as %rro #Hrro
-  wp_apply wp_withMax (W64 0) as %m0 #Hm0
+  wp_apply wp_withBackoff bf $$ [$Hbf] as %rro #Hrro'
+  ihave #Hrro := optApplyMax_ok _ _ $$ Hrro'
+  wp_apply wp_withMax (W64 0) as %m0 #Hm0'
+  ihave #Hm0 := optApplyMax_ok _ _ $$ Hm0'
   wp_apply wp_slice_literal (V := go_etcd_io.etcd.client.v3.retryOption) [m0, rro]
   isplitr
   · ipureintro; rfl
@@ -132,11 +137,11 @@ theorem Client.dialSetupOpts.wp_proof
   iintro %l2 ⟨Hl2, -⟩
   ipersist Hl2
   (try wp_auto)
-  ihave #Hros2 : iprop([∗list] ro ∈ [m1, rro], optApplyOk (GF := GF) ro.applyFunc') $$ []
-  · iapply BigSepL.bigSepL_cons.2; iframe Hm1
-    iapply BigSepL.bigSepL_cons.2; iframe Hrro
-    iapply BigSepL.bigSepL_nil.2; itrivial
-  wp_apply wp_unaryIc c _ [m1, rro] $$ [$Hc $Hl2 $Hros2] as %ic #Hic
+  ihave #Hros2 : iprop([∗list] ro;k ∈ [m1, rro];[some nr, none], optApplyMax (GF := GF) ro.applyFunc' k) $$ []
+  · iapply BigSepL2.bigSepL2_cons.2; iframe Hm1
+    iapply BigSepL2.bigSepL2_cons.2; iframe Hrro'
+    iapply BigSepL2.bigSepL2_nil.2; itrivial
+  wp_apply wp_unaryIc c _ [m1, rro] [some nr, none] $$ [$Hc $Hl2 $Hros2] as %ic ⟨#Hic, #Hic1⟩
   wp_apply wp_WithUnaryInterceptor ic $$ [$Hgrpc] as %o4 %Ho4
   wp_apply wp_slice_literal (V := GoInterface) [o3, o4]
   isplitr
@@ -157,7 +162,14 @@ theorem Client.dialSetupOpts.wp_proof
     ipureintro
     rw [List.append_assoc]
     exact List.Forall₂.append Hosds (.cons Hv (.cons Ho3 (.cons Ho4 .nil)))
-  ipureintro; exact Hsi
+  isplitr
+  · ipureintro; exact Hsi
+  iintro %Hm
+  iapply Hic1
+  ipureintro
+  intro mx
+  rw [show maxAfter mx [some nr, none] = nr from rfl, Hnr Hm]
+  decide
 
 end proof
 

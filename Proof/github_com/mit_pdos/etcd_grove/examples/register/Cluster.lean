@@ -267,9 +267,11 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
           isMessage (GF := GF) γn.raft (absMsg ty st.msg st.ents st.ctx)) -∗
       termLB γn.bud st.msg.Term' -∗ msgPtsC l (DFrac.own 1) (DFrac.own 1) true st -∗
       rdCred γn.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗
+      -- (2026-10-19, D21 M6) a forwarded proposal's tickets
+      stTks γn.raft st -∗
       tickCred γn.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ==∗
       stepP γn id l := by
-  iintro #Hmsg #Hlb Hm Hcr Htc
+  iintro #Hmsg #Hlb Hm Hcr Htk Htc
   unfold stepP
   by_cases Hp : st.msg.Type' = MsgProp
   · -- a forwarded proposal: no context
@@ -285,9 +287,13 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     · iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro; exact Hp
-    ihave #H := Hmsg $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
-    iExactEq H
-    rw [Hcn]
+    isplitr
+    · ihave #H := Hmsg $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
+      iExactEq H
+      rw [Hcn]
+    unfold stTks
+    rw [if_pos Hp]
+    iexact Htk
   · imod msgPtsC_persist_els $$ Hm with Hm
     imodintro
     ileft

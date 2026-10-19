@@ -261,7 +261,7 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       -- conf-change entries, whose bytes decode -- until then normal entries only)
       iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧
           (m.entries.length : Int) < 2 ^ 61⌝ ∗
-        [∗list] e ∈ m.entries, entData γ e)
+        [∗list] e ∈ m.entries, propData γ e)
   -- (2026-10-12) read-index: a heartbeat response's position, acknowledged; a request's
   -- context, created; a response's read index, at least its context's log
   | .heartbeatResp =>
@@ -903,10 +903,12 @@ instance rdFresh_timeless (γ : RaftNames) (c : List w8) :
     Timeless (rdFresh (GF := GF) γ c) := by
   unfold rdFresh; infer_instance
 
-/-- The client's handle on its deposited proposal: the slot of `d`, with result `Q`. -/
+/-- The client's handle on its deposited proposal: the slot of `d`, with result `Q` (and,
+since D21 M6, the ticket's name `γt`). -/
 def isProp (γ : RaftNames) (d : List w8) (γq : GName)
     (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(d ↪[γ.reProps]□ γq ∗ savedPredOwn γq DFrac.discard Q)
+  iprop((∃ (γt : GName) (b : Bool), d ↪[γ.reProps]□ ((γq, γt, b) : PropRec)) ∗
+    savedPredOwn γq DFrac.discard Q)
 
 instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
     (Q : List EntryM → IProp GF) : Persistent (isProp γ d γq Q) := by
@@ -915,8 +917,8 @@ instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
 theorem isProp_deposited (γ : RaftNames) (d : List w8) (γq : GName)
     (Q : List EntryM → IProp GF) : ⊢ isProp (GF := GF) γ d γq Q -∗ deposited γ d := by
   unfold isProp deposited
-  iintro ⟨#H, -⟩
-  iexists γq; iexact H
+  iintro ⟨⟨%γt, %b, #H⟩, -⟩
+  iexists (γq, γt, b); iexact H
 
 /-- The client's handle on its deposited read: the update's result predicate. -/
 def isRead (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : IProp GF :=
@@ -962,6 +964,28 @@ def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp
 instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
     Persistent (propAu (GF := GF) γ d Q) := by
   unfold propAu; infer_instance
+
+/-- **A proposal's update fired at most once** (2026-10-19, D21 M6, D20 (b)): `propAu` but not
+persistent. A proposal deposited once (`propOnce`, its ticket travelling with it) is appended at
+one index, so it occurs at most once in the committed log, and raft fires its update at most
+once (`fire_one`). -/
+def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
+                 COMM □ Q L }>)
+
+/-- A persistent update can be fired once. -/
+theorem propAu_one (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
+    propAu (GF := GF) γ d Q ⊢ propAu1 γ d Q := by
+  unfold propAu propAu1
+  exact intuitionistically_elim
+
+/-- The update a deposit takes (D21 M6): fired at most once if deposited `once`, persistent
+otherwise. -/
+def propAuM (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (once : Bool) :
+    IProp GF :=
+  if once then propAu1 γ d Q else propAu γ d Q
 
 /-- The standing update for raft's own entries (see the section header): the client gives it
 at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
@@ -1020,6 +1044,30 @@ theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF
   imodintro
   iframe Hv HQ
 
+/-- Firing an update fired at most once (D21 M6), as `propAu_fire`. -/
+theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
+    (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
+    ⊢ propAu1 γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
+  iintro Hau #He Hv
+  unfold propAu1
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L', HcL, Hclose⟩
+  unfold rLog
+  ihave %Heq := ghostVar_agree γ.reRLog l (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
+  subst Heq
+  imod ghostVar_update_halves (l ++ [e]) γ.reRLog l l $$ Hv HcL with ⟨Hv, HcL⟩
+  icases Hclose with ⟨-, Hcomm⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
+  imod Hcomm $$ %e [HcL] with HQ
+  · iframe HcL He
+    ipureintro; exact Hidx
+  imodintro
+  iframe Hv HQ
+
 /-- Firing the standing update at an entry `e` of raft's own, at the next index. -/
 theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
     (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
@@ -1044,21 +1092,47 @@ theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
   imodintro
   iexact Hv
 
-/-- A proposal slot, for the committed log `l`: the result predicate (tied to `γq`), the
-update, and its results at every occurrence of `d` in `l` (with the log before it). -/
-def propSlot (γ : RaftNames) (d : List w8) (γq : GName) (l : List EntryM) : IProp GF :=
-  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu γ d Q ∗
+/-- `d` occurs in the log `l` (persistent; D21 M6). -/
+def propOcc (γ : RaftNames) (d : List w8) (l : List EntryM) : IProp GF :=
+  iprop(∃ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ ∗ entDataIs γ e (some d))
+
+instance propOcc_persistent (γ : RaftNames) (d : List w8) (l : List EntryM) :
+    Persistent (propOcc (GF := GF) γ d l) := by
+  unfold propOcc; infer_instance
+
+/-- A proposal slot, for the committed log `l`: the result predicate (tied to `p.1`), its
+results at every occurrence of `d` in `l` (with the log before it), and the update: persistent
+(`p.2.2 = false`), or (D21 M6, deposited once) fired at most once -- not yet, or `d` occurs in
+`l`. -/
+def propSlot (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
+  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn p.1 DFrac.discard Q ∗
+    □ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
+         □ Q (l.take m)) ∗
+    (if p.2.2 then iprop(propAu1 γ d Q ∨ propOcc γ d l) else propAu γ d Q))
+
+/-- A proposal slot's results (persistent; D21 M6: the slot, holding an update fired at most
+once, is not). -/
+def propSlotRes (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
+  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn p.1 DFrac.discard Q ∗
     □ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
          □ Q (l.take m)))
 
-instance propSlot_persistent (γ : RaftNames) (d : List w8) (γq : GName)
-    (l : List EntryM) : Persistent (propSlot (GF := GF) γ d γq l) := by
-  unfold propSlot; infer_instance
+instance propSlotRes_persistent (γ : RaftNames) (d : List w8) (p : PropRec)
+    (l : List EntryM) : Persistent (propSlotRes (GF := GF) γ d p l) := by
+  unfold propSlotRes; infer_instance
+
+theorem propSlot_res (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) :
+    propSlot (GF := GF) γ d p l ⊢ propSlot γ d p l ∗ propSlotRes γ d p l := by
+  unfold propSlot propSlotRes
+  iintro ⟨%Q, #Hsp, #Hres, Hau⟩
+  isplitl [Hau]
+  · iexists Q; iframe Hsp Hres Hau
+  · iexists Q; iframe Hsp Hres
 
 /-- The proposal registry, for the committed log `l` (each slot with its data's fresh
 token). -/
-def propsOwn (γ : RaftNames) (l : List EntryM) (R : GMap (List w8) GName) : IProp GF :=
-  iprop(ghostMapAuth γ.reProps 1 R ∗ [∗map] d ↦ γq ∈ R, propSlot γ d γq l ∗ propFresh γ d)
+def propsOwn (γ : RaftNames) (l : List EntryM) (R : GMap (List w8) PropRec) : IProp GF :=
+  iprop(ghostMapAuth γ.reProps 1 R ∗ [∗map] d ↦ p ∈ R, propSlot γ d p l ∗ propFresh γ d)
 
 /-- A read slot, for the committed log `l`: the result predicate (tied to `r.1`), the update,
 the deposit's log `r.2` (a prefix of `l`), and the results so far: `□ Qr` of every prefix of
@@ -1081,7 +1155,7 @@ def readsReg (γ : RaftNames) (l : List EntryM)
 
 /-- The registries at the committed log `l`, with the standing update. -/
 def regsAt (γ : RaftNames) (l : List EntryM) : IProp GF :=
-  iprop(∃ (R : GMap (List w8) GName) (RR : GMap (List w8) (GName × List EntryM)),
+  iprop(∃ (R : GMap (List w8) PropRec) (RR : GMap (List w8) (GName × List EntryM)),
     propsOwn γ l R ∗ readsReg γ l RR ∗ noopAu γ)
 
 /-- The registry half's contents: its quarter of `reRLog` at the committed log, and the
@@ -1511,7 +1585,9 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     ([∗list] st ∈ s.rd.states, readStateOk γ st) ∗
     ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
     rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗
-    rdCredInv γ)
+    rdCredInv γ ∗
+    -- (2026-10-19, D21 M6) the tickets of the outbox's proposals (`msgTks`)
+    msgsTks γ s.outbox)
 
 /-- Across a step that touches no read state: a leader stays one only within its term and
 read state, a non-leader's read-only object is the fresh one, a leader leaves its term only
@@ -1524,11 +1600,13 @@ theorem rdOwn_mono' (γ : RaftNames) (id : w64) (s s' : PState) :
     uint.Z s.term ≤ uint.Z s'.term →
     s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
     rdCount s'.outbox ≤ rdCount s.outbox →
+    -- (2026-10-19, D21 M6) no proposal added to the outbox
+    (propsOf s'.outbox).Subperm (propsOf s.outbox) →
     (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' := by
-  intro Hlead Hnl Hle Hst Hpd Hcnt Hcand
+  intro Hlead Hnl Hle Hst Hpd Hcnt Hpo Hcand
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   iexists γl, rqm
   iframe Ha Hf Hinv
   isplitr; · ipureintro; exact Hγl
@@ -1563,7 +1641,8 @@ theorem rdOwn_mono' (γ : RaftNames) (id : w64) (s s' : PState) :
       = s.rd.pend.length + rdCount s.outbox by omega]
     iexact Hcr
   icases Hcr with ⟨Hcr, -⟩
-  iexact Hcr
+  iframe Hcr
+  iapply msgsTks_subperm γ s.outbox s'.outbox Hpo $$ Htk
 
 /-- `rdOwn_mono'`, with the premise (unused since 2026-10-14, stage B5) that a leader leaves
 its term only for a higher one. -/
@@ -1575,19 +1654,21 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     uint.Z s.term ≤ uint.Z s'.term →
     s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
     rdCount s'.outbox ≤ rdCount s.outbox →
+    (propsOf s'.outbox).Subperm (propsOf s.outbox) →
     (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' :=
-  fun Hlead Hnl _ Hle Hst Hpd Hcnt Hcand =>
-    rdOwn_mono' γ id s s' Hlead Hnl Hle Hst Hpd Hcnt Hcand
+  fun Hlead Hnl _ Hle Hst Hpd Hcnt Hpo Hcand =>
+    rdOwn_mono' γ id s s' Hlead Hnl Hle Hst Hpd Hcnt Hpo Hcand
 
 /-- Winning: a registry for the term, empty, the read-only object fresh. -/
 theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     s.role = .candidate → s'.role = .leader → s'.term = s.term →
     s'.rd = rdNL s.rd → rdCount s'.outbox ≤ rdCount s.outbox →
+    (propsOf s'.outbox).Subperm (propsOf s.outbox) →
     rdOwn (GF := GF) γ id s ⊢ |==> rdOwn γ id s' := by
-  intro Hr Hr' Hte Hrd Hcnt
+  intro Hr Hr' Hte Hrd Hcnt Hpo
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   have Hfree : rqm !! s.term = none := by
     cases h : rqm !! s.term with
     | none => rfl
@@ -1642,6 +1723,7 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     · iexact Hz
   rw [Hst, Hpd]
   iframe Hst0 Hpd0
+  iapply msgsTks_subperm γ s.outbox s'.outbox Hpo $$ Htk
 
 /-- The `ReadState`s handed out: each `readStateOk`, and the rest unchanged. -/
 theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
@@ -1649,8 +1731,8 @@ theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
       rdOwn γ id { s with rd := { s.rd with states := [] } } ∗
       [∗list] st ∈ s.rd.states, readStateOk γ st := by
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
-  isplitl [Ha Hl Hcr]
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
+  isplitl [Ha Hl Hcr Htk]
   · iexists γl, rqm
     isplitr; · ipureintro; exact Hγl
     isplitl [Ha]; · iexact Ha
@@ -1663,7 +1745,8 @@ theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
     isplitr; · iapply (BigSepL.bigSepL_nil).2; iempintro
     isplitr; · iexact Hpd0
     isplitl [Hcr]; · iexact Hcr
-    iexact Hinv
+    iframe Hinv
+    iexact Htk
   · iexact Hst0
 
 /-- A step that changes only the outbox and the read state, not the read-only object:
@@ -1674,13 +1757,17 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
     s'.role = s.role → s'.term = s.term → s'.rd.ro = s.rd.ro →
     s'.rd.states = s.rd.states ++ sts → s'.rd.pend = s.rd.pend ++ ps →
     s'.outbox = s.outbox ++ ms →
+    -- (2026-10-19, D21 M6) no proposal sent
+    (∀ m ∈ ms, m.ty ≠ .propose) →
     ⊢ rdOwn (GF := GF) γ id s -∗ ([∗list] st ∈ sts, readStateOk γ st) -∗
       ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗
       rdCred γ (ps.length + rdCount ms) -∗
       rdOwn γ id s' := by
-  intro Hr Ht Hro Hst Hpd Hout
+  intro Hr Ht Hro Hst Hpd Hout Hnp
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩ #Hsts #Hps Hcr'
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩ #Hsts #Hps Hcr'
+  ihave Htk' : msgsTks γ ms $$ []
+  · iapply msgsTks_noprop γ ms Hnp
   iexists γl, rqm
   isplitr; · ipureintro; exact Hγl
   isplitl [Ha]; · iexact Ha
@@ -1708,15 +1795,51 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
         (s.rd.pend.length + rdCount s.outbox) + (ps.length + rdCount ms) by omega]
     iapply (rdCred_split γ _ _).2
     iframe Hcr Hcr'
-  iexact Hinv
+  iframe Hinv
+  rw [Hout]
+  iapply (msgsTks_app γ _ _).2
+  iframe Htk Htk'
+
+/-- Messages sent with no read-index request (2026-10-19, D21 M6): their tickets join the
+outbox's (a forwarded proposal's). -/
+theorem rdOwn_send (γ : RaftNames) (id : w64) (s : PState) (ms : List Msg) (h : rdCount ms = 0) :
+    ⊢ rdOwn (GF := GF) γ id s -∗ msgsTks γ ms -∗ rdOwn γ id (psendMsgs s ms) := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩ Htk'
+  iexists γl, rqm
+  isplitr; · ipureintro; exact Hγl
+  isplitl [Ha]; · iexact Ha
+  isplitr; · iexact Hf
+  isplitr; · ipureintro; exact Hok
+  isplitl [Hl]
+  · rw [show rdLead (GF := GF) γ (psendMsgs s ms) rqm = rdLead γ s rqm from rfl]
+    iexact Hl
+  isplitr; · rw [show (psendMsgs s ms).rd = s.rd from rfl]; iexact Hst0
+  isplitr; · rw [show (psendMsgs s ms).rd = s.rd from rfl]; iexact Hpd0
+  isplitl [Hcr]
+  · rw [show (psendMsgs s ms).rd.pend.length + rdCount (psendMsgs s ms).outbox =
+        s.rd.pend.length + rdCount s.outbox by simp [psendMsgs, rdCount_append, h]]
+    iexact Hcr
+  iframe Hinv
+  rw [show (psendMsgs s ms).outbox = s.outbox ++ ms from rfl]
+  iapply (msgsTks_app γ _ _).2
+  iframe Htk Htk'
 
 /-- Messages leaving the outbox (`Ready`): their read credits go with them. -/
-theorem rdOwn_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
-    (h : rdCount o' ≤ rdCount s.outbox) :
+theorem rdOwn_drain (γ : RaftNames) (id : w64) (s : PState) (o' out : List Msg)
+    (Hp : (o' ++ out).Perm s.outbox) :
     rdOwn (GF := GF) γ id s ⊢
-      rdOwn γ id { s with outbox := o' } ∗ rdCred γ (rdCount s.outbox - rdCount o') := by
+      rdOwn γ id { s with outbox := o' } ∗ rdCred γ (rdCount s.outbox - rdCount o') ∗
+        msgsTks γ out := by
+  have h : rdCount o' ≤ rdCount s.outbox := by
+    unfold rdCount; rw [← List.Perm.countP_eq _ Hp, List.countP_append]; omega
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
+  iunfold msgsTks at Htk
+  ihave Htk := (BigSepL.bigSepL_perm (Φ := fun m => msgTks (GF := GF) γ m) Hp).2 $$ Htk
+  icases (BigSepL.bigSepL_append (Φ := fun _ m => msgTks (GF := GF) γ m)).1 $$ Htk with ⟨Htk, Htk'⟩
+  iunfold msgsTks
+  iframe Htk'
   rw [show s.rd.pend.length + rdCount s.outbox =
       (s.rd.pend.length + rdCount o') + (rdCount s.outbox - rdCount o') by omega]
   icases (rdCred_split γ _ _).1 $$ Hcr with ⟨Hc1, Hc2⟩
@@ -1732,7 +1855,8 @@ theorem rdOwn_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
   isplitr; · iexact Hst0
   isplitr; · iexact Hpd0
   isplitl [Hc1]; · iexact Hc1
-  iexact Hinv
+  iframe Hinv
+  iexact Htk
 
 /-- The pending requests taken out, with their facts and credits. -/
 theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
@@ -1741,7 +1865,7 @@ theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
       ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
       rdCred γ s.rd.pend.length := by
   unfold rdOwn
-  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   icases (rdCred_split γ s.rd.pend.length (rdCount s.outbox)).1 $$ Hcr with ⟨Hc1, Hc2⟩
   iframe Hpd0 Hc1
   iexists γl, rqm
@@ -1760,7 +1884,8 @@ theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
         rdCount ({ s with rd := { s.rd with pend := [] } } : PState).outbox = rdCount s.outbox
       by simp]
     iexact Hc2
-  iexact Hinv
+  iframe Hinv
+  iexact Htk
 
 /-- What the read-index code needs of a leader's read-only state (2026-10-13; `RdOk`):
 its acknowledgements are positions its queue reaches, its requests and pending ones have

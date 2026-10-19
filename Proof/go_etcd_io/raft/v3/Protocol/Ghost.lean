@@ -97,6 +97,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.SavedProp
+public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.Token
 public import Perennial.GooseLang.Countable
 public import Perennial.GooseLang.Receipts
@@ -229,7 +230,12 @@ structure RaftNames where
   updates): a ghost map `data ↦ γq` (persistent elements) of the proposals whose persistent
   atomic update was deposited (`prop_deposit`), whose authority is in `raftCommitInv`'s
   registry half; `γq` names the update's result predicate. (Until stage R `data ↦ (γq, γk)`,
-  `γk` the client's ticket for a one-shot result.) -/
+  `γk` the client's ticket for a one-shot result.) Since 2026-10-19 (D21 M6, D20 (b))
+  `data ↦ (γq, γt, once)`: a proposal deposited `once` is proposed once (its ticket
+  `propTk`); `γt` names the ticket, a ghost variable `none` until a leader appends the proposal
+  at some index `i`, `some i` (persistent, `propIdx`) after. A proposal not deposited `once`
+  (`propMulti`: a client that may retry it, the register) may be appended any number of
+  times. -/
   reProps : GName
   /-- The full committed log, client view (2026-10-14, stage R; replaces the client log
   `reCLog` of first-occurrence data): a ghost variable of entries, halved between
@@ -904,9 +910,105 @@ entry was proposed, with data whose atomic update was deposited (`deposited`). S
 (stage R4) `Data'` is the bytes themselves; until then it was the slice, and a ghost map of
 proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held. -/
 
-/-- `d`'s atomic update was deposited (persistent): its slot names `γq`. -/
+/-- A proposal's slot: its result predicate's name, its ticket's name, whether it is
+proposed once (D21 M6). -/
+abbrev PropRec : Type := GName × GName × Bool
+
+/-- `d`'s atomic update was deposited (persistent): its slot. -/
 def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
-  iprop(∃ γq : GName, d ↪[γ.reProps]□ γq)
+  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p)
+
+/-- **A proposal's ticket** (2026-10-19, D21 M6, D20 (b); exclusive): the deposit of `d`, once,
+hands it out, it travels with the proposal (`msgTks`), and the leader that appends `d` consumes
+it, fixing `d`'s index (`propIdx`). So `d` is appended once, at one index, and occurs at most
+once in any log. -/
+def propTk (γ : RaftNames) (d : List w8) : IProp GF :=
+  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ ⌜p.2.2 = true⌝ ∗
+    dghostVar p.2.1 (DFrac.own 1) (none : Option w64))
+
+/-- **`d` was appended at index `i`** (persistent; D21 M6): the ticket of `d`, consumed. -/
+def propIdx (γ : RaftNames) (d : List w8) (i : w64) : IProp GF :=
+  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ dghostVar p.2.1 DFrac.discard (some i))
+
+/-- **`d` is proposed once** (persistent; D21 M6): deposited with a ticket. -/
+def propOnce (γ : RaftNames) (d : List w8) : IProp GF :=
+  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ ⌜p.2.2 = true⌝)
+
+/-- **`d` may be proposed any number of times** (persistent; D21 M6): deposited with no
+ticket. -/
+def propMulti (γ : RaftNames) (d : List w8) : IProp GF :=
+  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ ⌜p.2.2 = false⌝)
+
+instance propOnce_persistent (γ : RaftNames) (d : List w8) :
+    Persistent (propOnce (GF := GF) γ d) := by
+  unfold propOnce; infer_instance
+instance propMulti_persistent (γ : RaftNames) (d : List w8) :
+    Persistent (propMulti (GF := GF) γ d) := by
+  unfold propMulti; infer_instance
+instance propOnce_timeless (γ : RaftNames) (d : List w8) :
+    Timeless (propOnce (GF := GF) γ d) := by
+  unfold propOnce; infer_instance
+instance propMulti_timeless (γ : RaftNames) (d : List w8) :
+    Timeless (propMulti (GF := GF) γ d) := by
+  unfold propMulti; infer_instance
+
+theorem propMulti_deposited (γ : RaftNames) (d : List w8) :
+    propMulti (GF := GF) γ d ⊢ deposited γ d := by
+  unfold propMulti deposited; iintro ⟨%p, #Hp, -⟩; iexists p; iexact Hp
+
+theorem propOnce_deposited (γ : RaftNames) (d : List w8) :
+    propOnce (GF := GF) γ d ⊢ deposited γ d := by
+  unfold propOnce deposited; iintro ⟨%p, #Hp, -⟩; iexists p; iexact Hp
+
+/-- A proposal is not both. -/
+theorem propOnce_multi (γ : RaftNames) (d : List w8) :
+    ⊢ propOnce (GF := GF) γ d -∗ propMulti γ d -∗ False := by
+  unfold propOnce propMulti
+  iintro ⟨%p, #Hp, %H1⟩ ⟨%p', #Hp', %H2⟩
+  icases ghostMapElem_agree $$ Hp Hp' with %Hpp
+  subst Hpp
+  rw [H1] at H2; cases H2
+
+/-- The ticket's proposal is proposed once. -/
+theorem propTk_once (γ : RaftNames) (d : List w8) :
+    propTk (GF := GF) γ d ⊢ propTk γ d ∗ propOnce γ d := by
+  unfold propTk propOnce
+  iintro ⟨%p, #Hp, %H, Hv⟩
+  isplitl [Hv]
+  · iexists p; iframe Hp Hv; ipureintro; exact H
+  · iexists p; iframe Hp; ipureintro; exact H
+
+instance propIdx_persistent (γ : RaftNames) (d : List w8) (i : w64) :
+    Persistent (propIdx (GF := GF) γ d i) := by
+  unfold propIdx; infer_instance
+instance propIdx_timeless (γ : RaftNames) (d : List w8) (i : w64) :
+    Timeless (propIdx (GF := GF) γ d i) := by
+  unfold propIdx; infer_instance
+instance propTk_timeless (γ : RaftNames) (d : List w8) :
+    Timeless (propTk (GF := GF) γ d) := by
+  unfold propTk; infer_instance
+
+/-- `d` has one index. -/
+theorem propIdx_agree (γ : RaftNames) (d : List w8) (i i' : w64) :
+    ⊢ propIdx (GF := GF) γ d i -∗ propIdx γ d i' -∗ ⌜i = i'⌝ := by
+  unfold propIdx
+  iintro ⟨%p, #Hp, #Hv⟩ ⟨%p', #Hp', #Hv'⟩
+  icases ghostMapElem_agree $$ Hp Hp' with %Hpp
+  subst Hpp
+  ihave %Hii := dghostVar_agree p.2.1 (some i : Option w64) DFrac.discard (some i') DFrac.discard
+    $$ Hv Hv'
+  ipureintro; exact Option.some.inj Hii
+
+/-- Consuming the ticket of `d` at index `i`. -/
+theorem propTk_set (γ : RaftNames) (d : List w8) (i : w64) :
+    ⊢ propTk (GF := GF) γ d ==∗ propIdx γ d i := by
+  unfold propTk propIdx
+  iintro ⟨%p, #Hp, -, Hv⟩
+  imod dghostVar_update (some i : Option w64) p.2.1 (none : Option w64) $$ Hv with Hv
+  imod dghostVar_persist p.2.1 1 (some i : Option w64) $$ Hv with #Hv
+  imodintro
+  iexists p
+  iframe Hp Hv
 
 /-- The data of entry `e`: `some d` for a normal entry holding the (non-empty, D6) client data
 `d`; `none` for an entry that is not a client operation -- a normal entry with no bytes (a
@@ -915,24 +1017,48 @@ reconfiguration stage D) an entry of another type, whose bytes decode as its typ
 (`CCDecodes`: a conf-change entry's, which `stepLeader` `Unmarshal`s). Only normal entries'
 data are client operations (`propAu` of their data moves the client's log, `noopAu` the
 others', `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice, and
-every entry was normal. -/
-def entDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
+every entry was normal.
+
+Since 2026-10-19 (D21 M6, D20 (b)) this is the data of an entry in a log (stamped), and a
+client operation's carries the index its proposal was appended at (`propIdx γ d e.Index'`);
+a proposed entry, not yet stamped, has `propDataIs` (what `entDataIs` was until then). -/
+def propDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
   | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = []⌝ ∨
       ⌜e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝)
   | some d => iprop(⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d)
 
+def entDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
+  | none => propDataIs γ e none
+  | some d => iprop(propDataIs γ e (some d) ∗ (propIdx γ d e.Index' ∨ propMulti γ d))
+
 def entData (γ : RaftNames) (e : EntryM) : IProp GF :=
   iprop(∃ o, entDataIs γ e o)
+
+/-- The data of a proposed entry (not yet stamped; D21 M6). -/
+def propData (γ : RaftNames) (e : EntryM) : IProp GF :=
+  iprop(∃ o, propDataIs γ e o)
 
 instance deposited_persistent (γ : RaftNames) (d : List w8) :
     Persistent (deposited (GF := GF) γ d) := by
   unfold deposited; infer_instance
+instance propDataIs_persistent (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
+    Persistent (propDataIs (GF := GF) γ e o) := by
+  cases o <;> unfold propDataIs <;> infer_instance
+instance propDataIs_timeless (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
+    Timeless (propDataIs (GF := GF) γ e o) := by
+  cases o <;> unfold propDataIs <;> (try unfold deposited) <;> infer_instance
 instance entDataIs_persistent (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
     Persistent (entDataIs (GF := GF) γ e o) := by
   cases o <;> unfold entDataIs <;> infer_instance
 instance entDataIs_timeless (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
     Timeless (entDataIs (GF := GF) γ e o) := by
-  cases o <;> unfold entDataIs <;> (try unfold deposited) <;> infer_instance
+  cases o <;> unfold entDataIs <;> infer_instance
+instance propData_persistent (γ : RaftNames) (e : EntryM) :
+    Persistent (propData (GF := GF) γ e) := by
+  unfold propData; infer_instance
+instance propData_timeless (γ : RaftNames) (e : EntryM) :
+    Timeless (propData (GF := GF) γ e) := by
+  unfold propData; infer_instance
 instance entData_persistent (γ : RaftNames) (e : EntryM) :
     Persistent (entData (GF := GF) γ e) := by
   unfold entData; infer_instance
@@ -940,10 +1066,10 @@ instance entData_timeless (γ : RaftNames) (e : EntryM) :
     Timeless (entData (GF := GF) γ e) := by
   unfold entData; infer_instance
 
-/-- An entry's data is one. -/
-theorem entDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)) :
-    ⊢ entDataIs (GF := GF) γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
-  cases o1 <;> cases o2 <;> unfold entDataIs
+/-- A proposed entry's data is one. -/
+theorem propDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)) :
+    ⊢ propDataIs (GF := GF) γ e o1 -∗ propDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
+  cases o1 <;> cases o2 <;> unfold propDataIs
   · iintro _ _; ipureintro; rfl
   · iintro (%H1 | %H1) ⟨%H2, -⟩
     · exact absurd (H2.1.symm.trans H1.2) H2.2.1
@@ -954,41 +1080,264 @@ theorem entDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8))
   · iintro ⟨%H1, -⟩ ⟨%H2, -⟩
     ipureintro; rw [← H1.1, ← H2.1]
 
-/-- Stamping keeps the data. -/
-theorem entDataIs_stamp (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (List w8)) :
-    entDataIs (GF := GF) γ { e with Term' := t, Index' := i } o = entDataIs γ e o := by
+/-- An entry's data is one. -/
+theorem entDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
+  iintro H1 H2
+  ihave H1' : propDataIs γ e o1 $$ [H1]
+  · cases o1 <;> unfold entDataIs
+    · iexact H1
+    · icases H1 with ⟨H1, -⟩; iexact H1
+  ihave H2' : propDataIs γ e o2 $$ [H2]
+  · cases o2 <;> unfold entDataIs
+    · iexact H2
+    · icases H2 with ⟨H2, -⟩; iexact H2
+  iapply propDataIs_agree $$ H1' H2'
+
+/-- An entry's data is a proposed entry's. -/
+theorem entDataIs_prop (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
+    entDataIs (GF := GF) γ e o ⊢ propDataIs γ e o := by
+  cases o <;> unfold entDataIs
+  · exact .rfl
+  · iintro ⟨H, -⟩; iexact H
+
+/-- A client operation proposed once: its entry carries its index (D21 M6). -/
+theorem entDataIs_idx (γ : RaftNames) (e : EntryM) (d : List w8) :
+    ⊢ propOnce (GF := GF) γ d -∗ entDataIs γ e (some d) -∗ propIdx γ d e.Index' := by
+  unfold entDataIs
+  iintro #Ho ⟨-, (#H | #H)⟩
+  · iexact H
+  · iexfalso; iapply propOnce_multi γ d $$ Ho H
+
+/-- Stamping keeps a proposed entry's data. -/
+theorem propDataIs_stamp (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (List w8)) :
+    propDataIs (GF := GF) γ { e with Term' := t, Index' := i } o = propDataIs γ e o := by
   cases o <;> rfl
 
-theorem entData_stamp (γ : RaftNames) (e : EntryM) (t i : w64) :
-    entData (GF := GF) γ { e with Term' := t, Index' := i } = entData γ e := by
-  unfold entData; simp only [entDataIs_stamp]
+theorem propData_stamp (γ : RaftNames) (e : EntryM) (t i : w64) :
+    propData (GF := GF) γ { e with Term' := t, Index' := i } = propData γ e := by
+  unfold propData; simp only [propDataIs_stamp]
+
+/-- **The ticket a proposed entry carries** (D21 M6): a client operation's (a normal entry with
+bytes), its data's ticket, or that its data may be proposed any number of times; nothing for
+any other entry. -/
+def entTk (γ : RaftNames) (e : EntryM) : IProp GF :=
+  if e.Type' = W32 0 ∧ e.Data' ≠ [] then iprop(propTk γ e.Data' ∨ propMulti γ e.Data')
+  else iprop(emp)
+
+instance entTk_timeless (γ : RaftNames) (e : EntryM) : Timeless (entTk (GF := GF) γ e) := by
+  unfold entTk; split <;> infer_instance
+
+/-- **The tickets a message carries** (D21 M6): a proposal's, its entries'. -/
+def msgTks (γ : RaftNames) (m : Msg) : IProp GF :=
+  if m.ty = .propose then iprop([∗list] e ∈ m.entries, entTk γ e) else iprop(emp)
+
+instance msgTks_timeless (γ : RaftNames) (m : Msg) : Timeless (msgTks (GF := GF) γ m) := by
+  unfold msgTks; split <;> infer_instance
+
+/-- **The tickets of a list of messages.** -/
+def msgsTks (γ : RaftNames) (ms : List Msg) : IProp GF :=
+  iprop([∗list] m ∈ ms, msgTks γ m)
+
+theorem msgTks_nonprop (γ : RaftNames) (m : Msg) (h : m.ty ≠ .propose) :
+    msgTks (GF := GF) γ m = iprop(emp) := by
+  unfold msgTks; rw [if_neg h]
+
+theorem msgsTks_nil (γ : RaftNames) : ⊢ msgsTks (GF := GF) γ [] := by
+  unfold msgsTks; iapply (BigSepL.bigSepL_nil (Φ := fun _ m => msgTks (GF := GF) γ m)).2
+  iempintro
+
+theorem msgsTks_app (γ : RaftNames) (a b : List Msg) :
+    msgsTks (GF := GF) γ (a ++ b) ⊣⊢ msgsTks γ a ∗ msgsTks γ b := by
+  unfold msgsTks; exact BigSepL.bigSepL_append
+
+theorem msgsTks_singleton (γ : RaftNames) (m : Msg) :
+    msgsTks (GF := GF) γ [m] ⊣⊢ msgTks γ m := by
+  unfold msgsTks; exact BigSepL.bigSepL_singleton
+
+/-- A message received at most once: its tickets. -/
+theorem msgsTks_recv (γ : RaftNames) (a : Msg) (recv : List Msg) (Hrecv : ∀ m ∈ recv, m = a)
+    (Hl : recv.length ≤ 1) : msgTks (GF := GF) γ a ⊢ msgsTks γ recv := by
+  match recv, Hl with
+  | [], _ => iintro -; iapply msgsTks_nil
+  | [x], _ =>
+    rw [Hrecv x (by simp)]
+    exact (msgsTks_singleton γ a).2
+
+/-- A list of messages with no proposal carries no ticket. -/
+theorem msgsTks_noprop (γ : RaftNames) (ms : List Msg) (h : ∀ m ∈ ms, m.ty ≠ .propose) :
+    ⊢ msgsTks (GF := GF) γ ms := by
+  unfold msgsTks
+  iapply BigSepL.bigSepL_intro (P := iprop(emp))
+  · intro k x hx
+    rw [msgTks_nonprop γ x (h x (List.mem_of_getElem? hx))]
+  · iempintro
+
+/-- The proposals of a list of messages. -/
+def propsOf (ms : List Msg) : List Msg := ms.filter (fun m => decide (m.ty = .propose))
+
+@[simp] theorem propsOf_nil : propsOf [] = [] := rfl
+
+theorem propsOf_append (a b : List Msg) : propsOf (a ++ b) = propsOf a ++ propsOf b :=
+  List.filter_append ..
+
+theorem propsOf_cons (m : Msg) (l : List Msg) :
+    propsOf (m :: l) = if m.ty = .propose then m :: propsOf l else propsOf l := by
+  unfold propsOf; rw [List.filter_cons]; by_cases h : m.ty = .propose <;> simp [h]
+
+theorem propsOf_eq_nil (ms : List Msg) (h : ∀ m ∈ ms, m.ty ≠ .propose) : propsOf ms = [] := by
+  unfold propsOf; rw [List.filter_eq_nil_iff]; intro m hm; simpa using h m hm
+
+theorem list_subperm_self {α : Type _} (l : List α) : l.Subperm l := List.Subperm.refl l
+
+theorem propsOf_subperm (o' o : List Msg) (h : o'.Subperm o) : (propsOf o').Subperm (propsOf o) := by
+  obtain ⟨l, hp, hs⟩ := h
+  exact ⟨l.filter _, hp.filter _, hs.filter _⟩
+
+theorem msgsTks_props (γ : RaftNames) (ms : List Msg) :
+    msgsTks (GF := GF) γ ms ⊣⊢ msgsTks γ (propsOf ms) := by
+  induction ms with
+  | nil => exact .rfl
+  | cons m ms ih =>
+    unfold msgsTks at ih ⊢
+    unfold propsOf at ih ⊢
+    rw [List.filter_cons]
+    by_cases h : m.ty = .propose
+    · simp only [h, decide_true, ↓reduceIte]
+      constructor
+      · iintro H
+        icases (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).1 $$ H with ⟨Hm, H⟩
+        iapply (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).2
+        iframe Hm
+        iapply ih.1 $$ H
+      · iintro H
+        icases (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).1 $$ H with ⟨Hm, H⟩
+        iapply (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).2
+        iframe Hm
+        iapply ih.2 $$ H
+    · simp only [h, decide_false, Bool.false_eq_true, ↓reduceIte]
+      constructor
+      · iintro H
+        icases (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).1 $$ H with ⟨-, H⟩
+        iapply ih.1 $$ H
+      · iintro H
+        iapply (BigSepL.bigSepL_cons (Φ := fun _ m => msgTks (GF := GF) γ m)).2
+        isplitr
+        · rw [msgTks_nonprop γ m h]; iempintro
+        iapply ih.2 $$ H
+
+/-- Fewer proposals, fewer tickets: a list whose proposals are among another's has its
+tickets. -/
+theorem msgsTks_subperm (γ : RaftNames) (ms ms' : List Msg)
+    (h : (propsOf ms').Subperm (propsOf ms)) :
+    msgsTks (GF := GF) γ ms ⊢ msgsTks γ ms' := by
+  refine (msgsTks_props γ ms).1.trans (BI.Entails.trans ?_ (msgsTks_props γ ms').2)
+  obtain ⟨l, hp, hs⟩ := h
+  obtain ⟨r, hr⟩ := hs.exists_perm_append
+  unfold msgsTks
+  exact BigSepL.bigSepL_submseteq (l := r) ((hp.symm.append_right r).trans hr.symm)
+
+/-- A list with the same proposals has the same tickets. -/
+theorem msgsTks_props_eq (γ : RaftNames) (ms ms' : List Msg) (h : propsOf ms' = propsOf ms) :
+    msgsTks (GF := GF) γ ms ⊢ msgsTks γ ms' :=
+  msgsTks_subperm γ ms ms' (by rw [h])
 
 /-- The empty normal entry (`pb.Entry{}`) is no client operation (2026-10-13). -/
+theorem propData_zero (γ : RaftNames) : ⊢ propData (GF := GF) γ (zero_val EntryM) := by
+  unfold propData
+  iexists none
+  unfold propDataIs
+  ileft
+  ipureintro
+  exact ⟨rfl, rfl⟩
+
 theorem entData_zero (γ : RaftNames) : ⊢ entData (GF := GF) γ (zero_val EntryM) := by
   unfold entData
   iexists none
-  unfold entDataIs
+  unfold entDataIs propDataIs
   ileft
   ipureintro
   exact ⟨rfl, rfl⟩
 
 /-- `stepLeader`'s conf-change loop keeps the entries' data: a kept entry's is its own, a
 replaced one's is the empty normal entry's (2026-10-13). -/
-theorem entData_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es es') :
-    ⊢ ([∗list] e ∈ es, entData (GF := GF) γ e) -∗ [∗list] e ∈ es', entData γ e := by
+theorem propData_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es es') :
+    ⊢ ([∗list] e ∈ es, propData (GF := GF) γ e) -∗ [∗list] e ∈ es', propData γ e := by
   induction H with
-  | nil => iintro _; iapply (BigSepL.bigSepL_nil (Φ := fun _ e => entData (GF := GF) γ e)).2;
+  | nil => iintro _; iapply (BigSepL.bigSepL_nil (Φ := fun _ e => propData (GF := GF) γ e)).2;
            iempintro
   | cons Hx _ ih =>
     rename_i x x' l l'
     iintro Hl
-    icases (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).1 $$ Hl with ⟨Hx', Hl⟩
-    iapply (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).2
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e => propData (GF := GF) γ e)).1 $$ Hl with ⟨Hx', Hl⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ e => propData (GF := GF) γ e)).2
     isplitl [Hx']
     · rcases Hx with rfl | ⟨-, rfl⟩
       · iexact Hx'
-      · iapply entData_zero
+      · iapply propData_zero
     · iapply ih $$ Hl
+
+/-- The same for the tickets (D21 M6): a kept entry keeps its ticket; a replaced one's
+(a conf change's, which has none) is dropped. -/
+theorem entTk_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es es') :
+    ⊢ ([∗list] e ∈ es, entTk (GF := GF) γ e) -∗ [∗list] e ∈ es', entTk γ e := by
+  induction H with
+  | nil => iintro _; iapply (BigSepL.bigSepL_nil (Φ := fun _ e => entTk (GF := GF) γ e)).2;
+           iempintro
+  | cons Hx _ ih =>
+    rename_i x x' l l'
+    iintro Hl
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e => entTk (GF := GF) γ e)).1 $$ Hl with ⟨Hx', Hl⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ e => entTk (GF := GF) γ e)).2
+    isplitl [Hx']
+    · rcases Hx with rfl | ⟨-, Hz⟩
+      · iexact Hx'
+      · iclear Hx'
+        rw [Hz]
+        unfold entTk
+        rw [if_neg (by intro h; exact h.2 rfl)]
+        iempintro
+    · iapply ih $$ Hl
+
+/-- **Stamping a proposed entry with its ticket** (D21 M6): at index `i`, a client operation's
+ticket becomes its index. -/
+theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
+    ⊢ propData (GF := GF) γ e -∗ entTk γ e ==∗ entData γ { e with Term' := t, Index' := i } := by
+  iintro Hd Htk
+  unfold propData
+  icases Hd with ⟨%o, #Hd⟩
+  unfold entData
+  cases o with
+  | none =>
+    imodintro
+    iexists none
+    simp only [entDataIs]
+    rw [propDataIs_stamp γ e t i]
+    iexact Hd
+  | some d =>
+    ihave %Hdd : ⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ $$ [Hd]
+    · unfold propDataIs; icases Hd with ⟨%H, -⟩; ipureintro; exact H
+    obtain ⟨Hed, Hne, Hty⟩ := Hdd
+    unfold entTk
+    rw [ite_eq_left_iff.mpr (fun h => absurd ⟨Hty, by rw [Hed]; exact Hne⟩ h), Hed]
+    iunfold propDataIs at Hd
+    icases Hd with ⟨-, #Hdep⟩
+    icases Htk with (Htk | #Hm)
+    · imod propTk_set γ d i $$ Htk with #Hi
+      imodintro
+      iexists some d
+      simp only [entDataIs, propDataIs]
+      iframe Hdep
+      isplitr
+      · ipureintro; exact ⟨trivial, Hne, Hty⟩
+      ileft; iexact Hi
+    · imodintro
+      iexists some d
+      simp only [entDataIs, propDataIs]
+      iframe Hdep
+      isplitr
+      · ipureintro; exact ⟨trivial, Hne, Hty⟩
+      iright; iexact Hm
 
 /-- The boot entry `e` of the bootstrap log `L` (2026-10-16, stage R8b, D12), with its
 predecessor's term `pt`: `e` is `L`'s entry at its index (`L[i - 1]`), of term `1`; its

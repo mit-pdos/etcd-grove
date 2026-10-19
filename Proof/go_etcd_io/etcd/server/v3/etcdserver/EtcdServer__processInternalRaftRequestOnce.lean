@@ -194,7 +194,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose, -⟩
     ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
     imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim HokW with #Hau
+      CoPset.subseteq_top $$ Hclog Hclaim HokW with Hau
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]
@@ -202,7 +202,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     (try wp_auto)
     rw [Hni]
     (try wp_auto)
-    wp_apply HPropose $$ %cctx %_ %dsl %bs %Qr %true [Hpf] as %perr Hpres
+    wp_apply HPropose $$ %cctx %_ %dsl %bs %Qr %true [Hpf Hau] as %perr Hpres
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx

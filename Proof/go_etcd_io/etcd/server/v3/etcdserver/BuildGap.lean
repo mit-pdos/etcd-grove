@@ -141,13 +141,13 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact hcap
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, #Htl, Hc⟩
+  · iintro !> %m %st ⟨#Hmo, #Hrm, #Htl, Hc, Htk⟩
     rw [hraft, hbud] at *
-    isplitl [Hc]
+    isplitl [Hc Htk]
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
       iexists st
-      iframe Hmo Hrm Htl Hc
+      iframe Hmo Hrm Htl Hc Htk
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo

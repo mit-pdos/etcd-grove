@@ -244,7 +244,8 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     ⌜1 ≤ γ.γs.cap⌝ ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
         termLB γ.node.bud st.msg.Term' ∗
-        rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗ E.M m) ∗
+        rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
+        stTks γ.node.raft st -∗ E.M m) ∗
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
         ⌜uint.Z E.γr.raft.ai0 + 1 + L.length < 2 ^ 64⌝ ={⊤}=∗ □ E.C L) ∗
     □ (∀ L : List EntryModel, E.C L -∗ srvRLogLb E.γr.raft L ∗ ⌜srvIdxOk E.γr.raft.ai0 L⌝) ∗
@@ -402,26 +403,30 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
       ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
           termLB γ.node.bud st.msg.Term' ∗
-          rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗ E.M m) -∗
+          rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
+          stTks γ.node.raft st -∗ E.M m) -∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.node.raft q.st ∗
           termLB γ.node.bud q.st.msg.Term') -∗
-        ([∗list] q ∈ ms, rdCred γ.node.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0))
+        ([∗list] q ∈ ms, rdCred γ.node.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) -∗
+        ([∗list] q ∈ ms, stTks γ.node.raft q.st)
           ={⊤}=∗
         [∗list] m ∈ ms.map QMsg.loc, rnMsgOk E m
   | [] => by
-    iintro #HM - -
+    iintro #HM - - -
     imodintro
     simp only [List.map_nil]
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     itrivial
   | q :: ms => by
-    iintro #HM H Hc
+    iintro #HM H Hc Htk
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗
       isRaftMsg γ.node.raft q.st ∗ termLB γ.node.bud q.st.msg.Term'))).1 $$ H with ⟨⟨Hm, #Hrm, #Htl⟩, Hrest⟩
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => rdCred (GF := GF) γ.node.raft
       (if q.st.msg.Type' = MsgReadIndex then 1 else 0))).1 $$ Hc with ⟨Hc1, Hcrest⟩
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => stTks (GF := GF) γ.node.raft q.st)).1
+      $$ Htk with ⟨Ht1, Htrest⟩
     imod msgOwn_persist_fupd q.loc _ q.st ⊤ $$ Hm with #Hm
-    imod rnMsgOk_of_raft E γ ms $$ HM Hrest Hcrest with Hrest
+    imod rnMsgOk_of_raft E γ ms $$ HM Hrest Hcrest Htrest with Hrest
     imodintro
     simp only [List.map_cons]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ m => rnMsgOk (GF := GF) E m)).2
@@ -434,7 +439,7 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
       iframe Hm
       ipureintro; exact ⟨rfl, rfl⟩
     iapply HM $$ %q.loc %q.st
-    iframe Hm Hrm Htl Hc1
+    iframe Hm Hrm Htl Hc1 Ht1
 
 /-- The read states a `Ready` hands out, each answering the server's registrations (through
 the bridge). -/
@@ -509,7 +514,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   iunfold rnLogFits at Hfits
   icases Hfits with %Hrb
   iunfold readyData at Hdata
-  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
+  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, Hmt, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
     #Hss, %Hsnap, #Hri⟩
   -- (2026-10-18, D19b stage 5) the indices handed out, bounded by the receipt of the log's last
   iunfold readyIdx at Hri
@@ -531,7 +536,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   icases entsPts_elim _ _ _ $$ Hce with ⟨%ceL, #HceL, #Hcero⟩
   icases entsPts_elim _ _ _ $$ Hes with ⟨%esL, #HesL, #Hesro⟩
   imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
-  imod rnMsgOk_of_raft E γ ms $$ HM Hmo Hmc with Hmok
+  imod rnMsgOk_of_raft E γ ms $$ HM Hmo Hmc Hmt with Hmok
   -- `E.C (L ++ ce)` from the committed log, the next index fitting
   ihave #HLb : srvRLogLb E.γr.raft (L ++ ce.map EntryModel.ofM) $$ []
   · iunfold srvRLogLb

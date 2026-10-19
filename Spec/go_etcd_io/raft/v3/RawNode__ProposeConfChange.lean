@@ -85,15 +85,26 @@ omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
 over a proposed slice, `isPropData`.) -/
 theorem entData_cc (γ : RaftNames) (o : CCMsg) (bs : List w8)
     (H : CCData (some o) bs) (Hok : γ.reCCOk (ccEntryType (some o)) bs) :
-    ⊢ entData (GF := GF) γ (ccEntryM (some o) bs) := by
-  unfold entData
+    ⊢ propData (GF := GF) γ (ccEntryM (some o) bs) := by
+  unfold propData
   iexists none
-  unfold entDataIs
+  unfold propDataIs
   iright
   ipureintro
   refine ⟨?_, ccData_decodes o bs H, Hok⟩
   show ccEntryType (some o) ≠ W32 0
   rcases ccEntryType_some o with h | h <;> rw [h] <;> word
+
+omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+/-- A conf change's entry carries no ticket (D21 M6). -/
+theorem entTk_cc (γ : RaftNames) (o : CCMsg) (bs : List w8) :
+    ⊢ entTk (GF := GF) γ (ccEntryM (some o) bs) := by
+  unfold entTk
+  rw [if_neg]
+  · iempintro
+  · intro h
+    have h1 : ccEntryType (some o) = W32 0 := h.1
+    rcases ccEntryType_some o with h' | h' <;> rw [h'] at h1 <;> revert h1 <;> word
 
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx hG [StorageModel GF] sem package_sem in
 /-- What `Step` needs of the conf change's entry: its bytes decode (pure since D6). -/

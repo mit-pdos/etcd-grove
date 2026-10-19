@@ -486,7 +486,9 @@ abbrev raft.Step.spec : Prop :=
          "Hmsg_in" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                        ⟨m, ents, sn, ctx, rs⟩ ∗
          -- a proposal's conf-change entries' bytes, which decode
-         "Hents" ∷ (if m.Type' = MsgProp then (∃ cs, ccEntsOk ents cs) else emp) ∗
+         -- (2026-10-19, D21 M6) and its entries' tickets (`entTk`), which the leader consumes
+         "Hents" ∷ (if m.Type' = MsgProp then
+                      iprop((∃ cs, ccEntsOk ents cs) ∗ [∗list] e ∈ ents, entTk γ e) else emp) ∗
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗

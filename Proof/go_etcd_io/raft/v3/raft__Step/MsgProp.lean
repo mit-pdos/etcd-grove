@@ -166,7 +166,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-14, stage B7: the whole step, the proposal received when it is forwarded
         -- or appended; until then the appended case handed `Step` `StepC.propose`'s premises)
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
-              StepCD c id B m s recv s'⌝ ∗
+              recv.length ≤ 1 ∧ StepCD c id B m s recv s'⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
   intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf HL
   wp_start as ⟨Hphys, Hm, #Hcc, #Hrc⟩
@@ -220,7 +220,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
         isplitr
-        · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
+        · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
         iright; iexact Herrn
     · -- forwarded: `StepC.propForward`
       rw [ite_neg Hl0] at Hres
@@ -241,7 +241,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
       isplitr
       · ipureintro
-        refine ⟨[absMsg .propose m ents ctx], by simp, StepCD.frame ?_ (by rframe)⟩
+        refine ⟨[absMsg .propose m ents ctx], by simp, by simp, StepCD.frame ?_ (by rframe)⟩
         have Hld : (toPState s).lead = s.lead :=
           toPState_lead_nonpre s (by rw [Hrole]; exact PRole.noConfusion)
         rw [toPState_sendMsgs]
@@ -285,7 +285,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
       isplitr
-      · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
+      · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
@@ -380,7 +380,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
               ((leaderPropConf s ents cs' c.joint).1.mapIdx
                 (stamp (toPState s).term (plastIndex (toPState s)))))]).role = .leader := by
           simp [psendMsgs, pappend, toPState, Hrole, proleRole]
-        refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
+        refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
         · -- `StepC.propose` of the loop's batch, then the broadcast
           rw [HP]
           exact .trans _ _ _ _ _
@@ -438,7 +438,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
         isplitr
         · ipureintro
-          exact ⟨[], by simp, by
+          exact ⟨[], by simp, by simp, by
             first
             | exact StepCD.frame (.refl _) (RFrame.refl _)
             | exact stepCD_propDrop c id m s ents cs' ctx Hty Hrole Hct Hlen⟩
@@ -478,7 +478,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
       isplitr
-      · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
+      · ipureintro; exact ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
 
 end StepProof

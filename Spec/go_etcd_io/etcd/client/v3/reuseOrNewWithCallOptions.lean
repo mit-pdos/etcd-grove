@@ -27,10 +27,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 a copy the options' closures write (`optApplyOk`): read-only options either way
 (`retryOptsAt`). -/
 abbrev reuseOrNewWithCallOptions.spec : Prop :=
-  ∀ (o : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryOptsAt o ∗ sl ↦*□ ros ∗ [∗list] ro ∈ ros, optApplyOk ro.applyFunc' }}
+  ∀ (o : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption)
+    -- (2026-10-19, D21 M6) the options' retry bounds (`optApplyMax`): the bound after is the
+    -- last `withMax`'s, or `mx`'s
+    (ks : List (Option w64)) (mx : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      retryOptsMax o mx ∗ sl ↦*□ ros ∗ [∗list] ro;k ∈ ros;ks, optApplyMax ro.applyFunc' k }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.reuseOrNewWithCallOptions)) (Val #o)) (Val #sl))
-  {{ (o' : Loc), RET #o'; retryOptsAt o' }}
+  {{ (o' : Loc), RET #o'; retryOptsMax o' (maxAfter mx ks) }}
 
 end spec
 

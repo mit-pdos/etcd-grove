@@ -34,7 +34,10 @@ abbrev newClient.spec : Prop :=
       p ↦□ cfg ∗ clientCfgOk cfg ep ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl ep V) ∨ ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl ep V ∗
+        -- (2026-10-19, D21 M6, D21i) configured for one attempt (`MaxUnaryRetries: 1`)
+        (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ clientKVOnce cl ep)) ∨
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec
 

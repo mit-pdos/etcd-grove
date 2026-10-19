@@ -39,6 +39,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+set_option maxHeartbeats 1600000 in
 theorem Client.unaryClientInterceptor.wp_proof
     (wp_reuse : reuseOrNewWithCallOptions.spec (GF := GF) (hG := hG))
     (wp_withVersion : withVersion.spec (GF := GF) (hG := hG))
@@ -58,20 +59,22 @@ theorem Client.unaryClientInterceptor.wp_proof
     (wp_refresh : Client.refreshToken.spec (GF := GF) (hG := hG))
     (wp_isSafeRetry : isSafeRetry.spec (GF := GF) (hG := hG)) :
     Client.unaryClientInterceptor.spec (GF := GF) (hG := hG) := by
-  intro c sl ros
+  intro c sl ros ks
   wp_start as ⟨#Hc, #Hsl, #Hros⟩
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, ⟨%dp, %dov, #Hdp, #Hdov, #Hdbf⟩, -⟩
   wp_auto
   ipersist c
-  wp_apply_raw wp_reuse dp sl ros $$ []
+  wp_apply_raw wp_reuse dp sl ros ks dov.max' $$ []
   · iframe #
-    unfold retryOptsAt
+    unfold retryOptsMax
     iexists dov
     iframe #
-    unfold optionsOk
-    iexact Hdbf
+    isplitr
+    · unfold optionsOk
+      iexact Hdbf
+    ipureintro; rfl
   inext
   iintro %io #Hio
   wp_pures
@@ -82,9 +85,13 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_auto
   rw [recv_eq_func_mk]
   iapply HΦ
-  unfold etcdInterceptorOk
+  -- (2026-10-19, D21 M6) both modes: any precondition persistent, or an ordinary one when the
+  -- retry bound is at most `1` (one attempt)
+  iapply etcdInterceptorOkM_split _ (∀ mx, uint.Z (maxAfter mx ks) ≤ 1)
+  iintro !> %once %Honce
+  unfold etcdInterceptorOkM
   iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
-    %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+    %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
   ihave Hout := Rep.blank_own out $$ Hblank
   (try wp_auto)
   wp_apply wp_withVersion ctx cd $$ [$Hctx] as %c' ⟨%ci, %vsv, %Hc', #Hctx'⟩
@@ -101,13 +108,9 @@ theorem Client.unaryClientInterceptor.wp_proof
   (try wp_auto)
   ipersist Hg'
   ipersist Hr
-  ihave #Hros'' : iprop([∗list] ro ∈ ros', optApplyOk (GF := GF) ro.applyFunc') $$ []
-  · iapply (BigSepL.bigSepL_mono_of_forall (PROP := IProp GF) (l := ros')
-      (Φ := fun _ (ro : go_etcd_io.etcd.client.v3.retryOption) => retryApplyOk (GF := GF) ro.applyFunc')
-      (Ψ := fun _ ro => optApplyOk (GF := GF) ro.applyFunc')
-      (fun {_ ro} => optApplyOk_of_retryApplyOk ro.applyFunc'))
-    iexact Hros'
-  wp_apply wp_reuse io r ros' $$ [] as %co #Hco
+  ihave #Hros'' := optApplyMax_of_retryApplyOks ros' $$ Hros'
+  wp_apply wp_reuse io r ros' (ros'.map fun _ => (none : Option w64)) (maxAfter dov.max' ks) $$ []
+    as %co #Hcom
   · iframe #
   have Hopt : ∀ w ∈ gs ++ [pv], grpcOptOk [p_ptr] w := by
     intro w hw
@@ -117,16 +120,23 @@ theorem Client.unaryClientInterceptor.wp_proof
       subst hw
       exact Or.inr ⟨p_ptr, by simp, Hpv⟩
   ihave Hpb := grpcPeerBuf_zero p_ptr $$ p
-  ihave #Hco' := Hco
-  iunfold retryOptsAt at Hco'
-  icases Hco' with ⟨%cov, #Hcov, #Hcovk⟩
+  rw [maxAfter_nones] at *
+  ihave #Hco := retryOptsMax_at co _ $$ Hcom
+  ihave #Hco' := Hcom
+  iunfold retryOptsMax at Hco'
+  icases Hco' with ⟨%cov, #Hcov, #Hcovk, %Hcovm⟩
+  have Hcovb : once = true → uint.Z cov.max' ≤ 1 := fun h => by rw [Hcovm]; exact Honce h _
   icases options_fields_ro co cov $$ Hcov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   iunfold grpcInvokerOk at Hinv
   (try wp_auto)
   wp_if_destruct
   · -- `callOpts.max == 0`: one attempt
+    ihave Hsp : ▷ Spec m Φ' $$ [Hpre]
+    · cases once
+      · simp only [Bool.false_eq_true, ↓reduceIte]; icases Hpre with #Hpre; iexact Hpre
+      · simp only [↓reduceIte]; iexact Hpre
     wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
-        %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb]
+        %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
     · iframe #
       iframe
@@ -143,12 +153,18 @@ theorem Client.unaryClientInterceptor.wp_proof
   ihave IHL : iprop(∃ (a : w64) (le : GoInterface),
       "attempt" ∷ attempt_ptr ↦ a ∗ "lastErr" ∷ lastErr_ptr ↦ le ∗ "Hsend" ∷ Req.send inp m ∗
       "Hout" ∷ Rep.own out ∗ "Hpb" ∷ grpcPeerBuf p_ptr ∗
-      "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le)))
-    $$ [attempt lastErr Hsend Hout Hpb]
+      "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le)) ∗
+      -- (D21 M6) the request's precondition: the first attempt's if ordinary
+      "Hp" ∷ (if once then iprop(⌜a = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ ▷ Spec m Φ')))
+    $$ [attempt lastErr Hsend Hout Hpb Hpre]
   · iexists W64 0, GoInterface.nil
     simp only [named]
     iframe
-    ileft; itrivial
+    isplitr
+    · ileft; itrivial
+    cases once
+    · simp only [Bool.false_eq_true, ↓reduceIte] at *; iexact Hpre
+    · simp only [↓reduceIte] at *; iintro -; iexact Hpre
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
@@ -185,9 +201,23 @@ theorem Client.unaryClientInterceptor.wp_proof
       wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
       wp_apply wp_Debug lg _ _ $$ []
       · iframe #; ipureintro; exact Hlgn
-      -- the attempt
+      -- the attempt: (D21 M6) with an ordinary precondition, the first and only one (the retry
+      -- bound at most `1`)
+      have Hlt1 : once = true → a = W64 0 := fun h => by have := Hcovb h; word
+      ihave ⟨Hsp, Hp⟩ : iprop(▷ Spec m Φ' ∗
+          (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ ▷ Spec m Φ')))
+          $$ [Hp]
+      · cases once
+        · simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hp with #Hp
+          iframe Hp
+        · simp only [↓reduceIte]
+          have Ha0 := Hlt1 rfl
+          isplitl [Hp]
+          · iapply Hp; ipureintro; exact Ha0
+          · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
       wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
-          %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb]
+          %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
       · iframe #
         iframe
