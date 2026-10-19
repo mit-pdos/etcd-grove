@@ -192,8 +192,9 @@ credentials, an unstated precondition (unreachable in etcd's servers; reproduced
 2026-10-14, unit P2; not filed).
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
-"main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's
-byte-memory review, round 3; unclear what in Go should change; not filed).
+"main.I2 is main.T, not main.T", and `==` with an `I2` holding the same value is false, since the
+compiler compares itabs (found 2026-10-13, Perennial's byte-memory review, round 3; the golang/go
+issue drafted in `upstream/go-itab-reinterpret-assert/`, not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
 

@@ -190,7 +190,7 @@ fork carries #21987).
   reproduced), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
   reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
-  (Go, not etcd).
+  (Go, not etcd; a golang/go issue drafted, not filed).
 - **Metrics**: [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md),
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
   merges, little impact).
