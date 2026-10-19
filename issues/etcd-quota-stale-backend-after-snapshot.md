@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
+upstream: none
 checked: 2026-10-19
 links:
+  - etcd-io/etcd#17318 issue closed: NOSPACE alarm not clearing after the db shrank; no snapshot detail, cause not shown
+candidate: issues/upstream/etcd-quota-stale-backend-after-snapshot/
 ---
 
 # After a member installs a leader's snapshot, its gRPC quota check still measures the old, closed backend
