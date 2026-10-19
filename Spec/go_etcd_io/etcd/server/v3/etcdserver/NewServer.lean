@@ -15,12 +15,19 @@
   holds the client's half of the committed log and gives raft its standing update `noopAu`:
   until then `NewServer` took `rLog γ bootLog` and allocated `kvInv` itself, which no caller of
   raft's allocation could meet) and raft's read credits (`ownRaftGhost_alloc_boot`; all of it
-  `srvRaftBoot_alloc`, `NewServerAlloc.lean`).
+  `srvRaftBoot_alloc`, `NewServerAlloc.lean`). **Since stage M4 of D21 (2026-10-19) the cluster's
+  resources are allocated once for the cluster and the member takes its share**
+  (`srvClusterBoot_alloc`, `srvMemberBoot_alloc`): the claims of request ids (`idClusterInv`, one
+  map for the cluster keyed by the full id, D21e (A), with the claimers' facts `Φs` per prefix, the
+  server's at its own; the reserved id `0`, `idNoZero`), the proposals' mint (`srvPropMint`) and
+  the read contexts (`srvRdCtxInv`), persistent; and the member's prefix's entry with its slots
+  (`idShare`) and `2 ^ 48` of raft's read credits. Until then `NewServer` took the fresh-token
+  authorities, raft's whole read budget and fresh generator names, and required the member id's 16
+  low bits not `0` (now the allocation's pure premise, with the prefixes distinct).
 * **The workload** (D19q, 2026-10-18): the KV names' `ρ.rd.kv.wl`, the caller's choice (the
   leases-off `putgetWorkload`), granting no lease (`SrvWorkload.noGrant`: `run`'s receive from the
   lessor's `expiredC` is dead), until the lease path (`revokeExpiredLeases`) is proved.
-* **The names chosen before the call** (D13a): the request path's names `ρ` (the generator's,
-  fresh; the read names at the cluster's raft names, the start log empty and the start index `0`,
+* **The names chosen before the call** (D13a): the request path's names `ρ` (the read names at the cluster's raft names, the start log empty and the start index `0`,
   fresh, but the KV state's variable, `srvReadNamesFreshNK`), the store's index names and certificate map and the revisions' map (fresh), which the
   stand-in environment `E₀` carries (the construction's apply environment agrees with it,
   `envAgree`).
@@ -28,7 +35,7 @@
   premise until D19c, D13c, is proved, `clusterWorkloadOk_of`; its residual size bound
   `clusterLogBound`, a premise until D19c's move, 2026-10-18, is gone: the apply thread checks the
   size clauses at the log it meets, small by the store's time receipts); the member id's 16 low
-  bits not `0` and the conf-change policy
+  bits not `0` (since M4 the cluster's allocation's premise) and the conf-change policy
   `srvCCPolicy` admitting id-`0` conf changes only (D19c: no request claims the id `0` of raft's
   bootstrap conf changes); the lifetime bounds (D14g, D17, D19b): the logic's thread bound `threadBound GF ≤ 2 ^ 31`,
   and the time-receipt bounds `receiptBound GF ≤ 2 ^ 48` (D19b: the id generator's invariant holds
@@ -96,7 +103,8 @@ variable [MemStorReg GF]
 abbrev NewServer.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : RaftNames)
     (bud : BudgetNames)
-    (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat),
+    (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
   -- conf-change policy; the KV's start values, its certificate map the store's
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
@@ -119,10 +127,10 @@ abbrev NewServer.spec : Prop :=
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.reBoot.length ≤ 2 ^ 60 →
-  -- the member id's 16 low bits not `0` (D19c: the request ids' prefix is not, so no request
-  -- claims the id `0` of raft's bootstrap conf changes,
-  -- `issues/etcd-request-id-zero-bootstrap-confchange.md`)
-  uint.Z id % 2 ^ 16 ≠ 0 →
+  -- (D21e (A), stage M4) the member's prefix in the cluster's claims is its member id's
+  -- (`NewGenerator`'s `uint16(id) << 48`), and the claimers' facts at it are the server's
+  -- (`srvFloorFact`, unit V2)
+  ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) → Φs ρ.ids.pfx = srvFloorFact E₀ →
   (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -136,11 +144,15 @@ abbrev NewServer.spec : Prop :=
       "Hghost" ∷ ownRaftGhost γ id (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
       "#Hcinv" ∷ raftCommitInv γ ∗
       "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
-      "Hfresh" ∷ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
-      "HrdFresh" ∷ ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ∗
-      "HrdCred" ∷ rdCred γ (2 ^ 64 - 2) ∗
+      -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
+      -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
+      -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
+      -- credits (`srvMemberBoot_alloc`)
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ rdCred γ (2 ^ 48) ∗
       -- the names chosen before the call (D13a), fresh
-      "Hids" ∷ idNamesFresh ρ.ids ∗ "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
+      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
       "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗

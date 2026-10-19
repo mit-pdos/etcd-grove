@@ -138,17 +138,18 @@ theorem Main.wp_proof
   imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
   imod ownMap_persist _ _ _ $$ Hpm with #Hpm
   -- the ghost state `NewServer` takes (`putget_alloc`)
-  imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Hal, Hghost, #Hcomm,
-    #Hcinv, #Hbinv, #Hlb, Hfresh, HrdFresh, HrdCred, Hids, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl⟩ := Hal
+  imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
+    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hidx, Hcok, Hrev,
+    Hnk, #Hkvinv, Hetcd⟩
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   have hblen : γ.reBoot.length ≤ 2 ^ 60 := by
     rw [hboot, Hbf.boot.1]; simp
   wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"putget"
       (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
-      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N hraft hpol hc0 hch hlog hcok
+      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs hraft hpol hc0 hch hlog hcok
       (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN hblen
-      Hbf.idLow ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost Hfresh HrdFresh HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
+      hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
+    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
   · iframe
     iframe #
     isplitr

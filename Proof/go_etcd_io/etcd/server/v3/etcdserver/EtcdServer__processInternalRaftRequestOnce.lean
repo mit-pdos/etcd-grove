@@ -155,8 +155,8 @@ local macro "piro_tail" : tactic => `(tactic| (
       rw [h1, h2]
       simp [apply.withHeader, Hid0]
     iunfold idFresh at Hfresh
-    icases Hfresh with ⟨Hunc, Hslot⟩
-    imod srv_claim_mint ρ E v.gen id bs rq' F Hdec Hidrq $$ HidGen Hmint Hunc HF
+    icases Hfresh with ⟨Hunc, Hslot, %Hpfx⟩
+    imod srv_claim_mint ρ E v.gen id bs rq' F Hdec Hidrq Hpfx $$ HidGen Hmint Hunc HF
       with ⟨%γf, #Hclaim, #Hfl, Hpf⟩
     iunfold waitInv at Hwi
     icases Hwi with ⟨%RD, #Hwait⟩
@@ -170,7 +170,7 @@ local macro "piro_tail" : tactic => `(tactic| (
       iunfold reqWaitR
       iexists bs, rq', γf, F
       iframe Hclaim Hfl
-      ipureintro; exact ⟨Hdec, rfl⟩
+      ipureintro; exact ⟨Hdec, rfl, Hpfx⟩
     (try wp_auto)
     wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) v.electionTicks v.tickMs $$ [] as %tmo -
     · iframe #

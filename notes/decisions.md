@@ -10880,3 +10880,24 @@ by D21g (A).
 *Stopped (2026-10-19).* Asked of the user: D21g (recommendation (A), stage M2r with M3) and D21h
 (recommendation (A)). Next, once answered and M4 committed: regenerate with the configuration
 above, then M2 as designed here.
+
+**D21 M4 carried out (2026-10-19):** D21e (A) as stated, with two choices the text left open, both
+internal to the proofs (no spec's meaning for a client changes, no trust-base change):
+- *How a generator shares the cluster's map.* The issued ids' map's authority is the cluster's
+  (`idClusterInv`); a second cluster map records, per member prefix, the ids that member issued,
+  and each generator owns its prefix's element, so it knows a new id is in no map (its prefix's
+  ids are exactly its element's; the map's other prefixes differ). The premise's distinctness is
+  what gives each member its own element.
+- *Whose claimer's fact the apply thread reads.* The facts are per prefix (`Φs`, the cluster's
+  choice): a member's own floor fact (`srvFloorFact E`) speaks of its own store's certificates,
+  so another member's apply thread cannot use it. The apply thread uses the claim's floor for an id
+  of its own prefix and the empty floor (`idxCert_nil`) for another's; a registered id is of the
+  member's prefix (`reqWaitR`'s new clause, from `Next`), so the waiter's floor is the claim's.
+  The other way, a cluster-level floor (a committed prefix the entry follows) would need raft's
+  "a later proposal commits after a committed prefix" through the protocol, for no gain while the
+  client talks to one member (D21f (A)).
+The read budget splits `2 ^ 48` per member (fewer than `2 ^ 16` members, from the premise). Files:
+`pkg/v3/idutil/` (`Defs`, `Lemmas`, `NewGenerator`, `Generator__Next`, and the two specs),
+`etcdserver/` (`InvRequest`, `InvProposer`, `ProposerLemmas`, `BuildAlloc`, `NewServerAlloc`,
+`NewServer`, `EtcdServer__applyEntryNormal`, `EtcdServer__processInternalRaftRequestOnce`, the
+`NewServer` spec), putget's `Alloc` and `Main`.

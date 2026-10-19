@@ -241,8 +241,8 @@ theorem NewServer.wp_proof
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg U γ bud id bootLog ρ E₀ N HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr Hbnd
-    Hrb HrbN Hboot Hmid Hfgp
+  intro cfg U γ bud id bootLog ρ E₀ N Φs HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
+    Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp
   wp_start
   iNamed Hpre
   -- (D19r (C)) the raft status's mutex, from the package's facts
@@ -344,15 +344,11 @@ theorem NewServer.wp_proof
   ihave #Hnpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
   · iPkgInit
   wp_apply time.wp_Now as %now -
-  wp_apply (h14 ρ.ids _ now (srvFloorFact E₀)) $$ [Hids] as %gen ⟨#Hgen, HNZ⟩
+  -- (D21e (A), stage M4) over the cluster's claims, at the member's prefix
+  wp_apply (h14 ρ.ids _ now Φs (by rw [Hpfx]; congr 1; rw [← Hid])) $$ [Hids] as %gen #Hgen0
   · iframe #; iframe Hids
-  -- the reserved id `0` (D19c): the member id's 16 low bits are not `0`
-  ihave #HNZ0 := HNZ $$ %(by
-    intro h
-    apply Hmid
-    rw [← Hid]
-    have := congrArg (fun w : w16 => uint.Z w) h
-    word)
+  ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
+  · rw [← HΦs]; iexact Hgen0
   (try wp_auto)
   wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
   wp_apply h15 as %cvn ⟨#Hcvn, Hcvnr⟩
@@ -805,10 +801,10 @@ theorem NewServer.wp_proof
   · rw [Hcok, ← Hγw.2.2.2.2]; iexact Hcok
   -- the mints
   have hργ : ρ.raft.raft = γ := by simp only [ReqNames.raft, HρRaft]
-  imod (srvMintInv_alloc ρ ⊤) $$ [Hfresh] [HrdFresh] [HrdCred] with #Hmint
-  · rw [hργ]; iexact Hfresh
-  · rw [hργ]; iexact HrdFresh
-  · rw [hργ, show (2 : Nat) ^ 64 - 2 = (1 + 1) ^ 64 - (1 + 1) from rfl]; iexact HrdCred
+  imod (srvMintInv_alloc ρ ⊤) $$ [] [] [HrdCred] with #Hmint
+  · iexact Hpmint
+  · iexact Hrdctx
+  · rw [hργ]; iexact HrdCred
   -- `lead`, `leadTimeMu`, `bemu`
   imod (inv_alloc srvN ⊤ iprop(∃ v : w64, sync.atomic.ownUint64 (srvLeadAddr s) (DFrac.own 1) v))
     $$ [lead] with #Hlead

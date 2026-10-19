@@ -291,23 +291,31 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
   iframe Hap2 Hp2 Hcm2
   iunfold appliedLogAt; iexact Hlog0
 
-/-- **The mints** (`srvMintInv`): from raft's fresh-data and fresh read-context authorities
-(empty) and its whole read budget (`allocClientBoot`'s continuation outputs and
-`ownRaftGhost_alloc_boot`'s credits). -/
-theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
-    ⊢ ghostMapAuth (GF := GF) ρ.raft.raft.reFresh 1 (∅ : GMap (List w8) Unit) -∗
-      ghostMapAuth ρ.raft.raft.reRdFresh 1 (∅ : GMap (List w8) Unit) -∗
-      rdCred ρ.raft.raft (2 ^ 64 - 2) ={E}=∗ srvMintInv ρ := by
-  iintro HF HR Hc
-  imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
-  iunfold srvMintInv
-  iframe Hrd
+/-- **The proposals' mint, allocated** (`srvPropMint`; the cluster's since stage M4, 2026-10-19):
+from raft's fresh-data authority (empty; `allocClientBoot`'s continuation output). -/
+theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
+    ⊢ ghostMapAuth (GF := GF) γ.raft.reFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
+      srvPropMint γ γi := by
+  iintro HF
+  iunfold srvPropMint
   iapply inv_alloc srvMintN E
   inext
   iexists ∅
   iframe HF
   iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2
   itrivial
+
+/-- **The mints** (`srvMintInv`): the cluster's proposals' mint and read contexts (stage M4,
+2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`), and the member's share of
+raft's read budget (`2 ^ 48` credits). (Until M4 from raft's fresh-data and fresh read-context
+authorities and its whole read budget.) -/
+theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
+    ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued -∗
+      rdCred ρ.raft.raft (2 ^ 48) ={E}=∗ srvMintInv ρ := by
+  iintro #HP #HR Hc
+  imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
+  iunfold srvMintInv
+  iframe HP Hrd
 
 /-- **The apply protocol's invariant** over a fresh consistent index (its client half at `0`),
 with the backend's initial meta keys `m0`: the protocol's names, its invariant, the apply
