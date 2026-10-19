@@ -55,8 +55,9 @@ before any public issue.
    reaches it when a client retries a `Lock`).
 5. **[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)**: a progress
    notification can reach a new watch before its catch-up events, so clients that trust progress
-   (Kubernetes' watch cache, etcd's `cache`) skip events. Racy reproduction (within 47 to 373
-   trials); fixed in our fork; upstream not yet searched. Fix: moderate.
+   (Kubernetes' watch cache, etcd's `cache`) skip events. Deterministic integration test on the
+   fork branch (20 of 20 at 22cc5d9ac); fixed in our fork; searched upstream: not reported
+   (related: #15220, fixed by #15237); candidate drafted. Fix: small (a bounded drain).
 
 ## Second tier: real, narrower or partly known
 
