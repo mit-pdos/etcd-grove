@@ -39,6 +39,9 @@ noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Check"
 
+noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Main"
+
 /-- Model is the counter's sequential specification: the state is an int64; the input true
     increments it and outputs the new value, false outputs it.
 
@@ -157,6 +160,33 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Counter.ty)))) (Pair (Var "c") (Var "$r0"))))))))))))))))
 
+/-- Main runs 4 clients of 10 operations each of a counter under a mutex, traced with a
+    counter clock, checks the trace with porcupine (no timeout), and panics unless porcupine
+    answers Ok.
+
+    go: counter.go:65:6 -/
+noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock []))) (Val #())) (Val #()))
+  (Let "$a1" (Val #(W64 4))
+  (Let "$a2" (Val #(W64 10))
+  (Let "$a3" (Val #(W64 0))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "r")) (Val _root_.Perennial.github_com.anishathalye.porcupine.Ok)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"porcupine rejected a linearizable counter's trace")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0"))))))))))
+
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
 
@@ -220,6 +250,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Model_unfold : FuncUnfold Model [] Model.impl
   New_unfold : FuncUnfold New [] New.impl
   Check_unfold : FuncUnfold Check [] Check.impl
+  Main_unfold : FuncUnfold Main [] Main.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
@@ -229,6 +260,7 @@ attribute [instance] Assumptions.Counter_instance
   Assumptions.Model_unfold
   Assumptions.New_unfold
   Assumptions.Check_unfold
+  Assumptions.Main_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption

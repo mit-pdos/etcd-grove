@@ -14,3 +14,7 @@ func TestCheck(t *testing.T) {
 		}
 	}
 }
+
+func TestMainPasses(t *testing.T) {
+	Main()
+}
