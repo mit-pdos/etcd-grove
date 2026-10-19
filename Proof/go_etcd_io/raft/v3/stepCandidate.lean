@@ -4,7 +4,7 @@ Port of election_proof/proof_stepCandidate.v.
 module
 
 public import Spec.go_etcd_io.raft.v3.stepCandidate
-public import Spec.go_etcd_io.raft.v3.raft__poll
+public import Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
 public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
@@ -54,7 +54,7 @@ raft v3.7 (2026-10-15, stage R4): the message's fields are read by its getters (
 `GetFrom`, `GetTerm`, `GetReject`, callees), and `MsgApp`/`MsgHeartbeat`/`MsgSnap` hand the
 received message (`msgIn`, entries read-only) to their handlers. -/
 theorem stepCandidate.wp_proof
-    (wp_raft_poll : raft.poll.spec (GF := GF) (hG := hG))
+    (wp_raft_poll : raft.pollAndReportDiff.spec (GF := GF) (hG := hG))
     (wp_raft_becomeLeader : raft.becomeLeader.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))

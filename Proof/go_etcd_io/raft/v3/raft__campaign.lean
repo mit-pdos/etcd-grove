@@ -7,7 +7,8 @@ which the loop never changes), so the loop invariant needs no `f`. The two `wp_w
 joins are `wp_join`. `own_tracker_cfg_size` is the pure `ownTracker_cfg_size`;
 `elements_split` is `perm_id_cons`; `own_raft_phys_send_perm` is inlined as
 `ownRaftPhysC_outbox`. The slice range is a `doFor` over an index, as in Rocq.
-`_wp_raft_poll` is unused, as in Rocq (the postulates include `POLL`).
+(`_wp_raft_poll`, unused, as in Rocq, is gone since 2026-10-19: `campaign` no longer calls
+`poll`.)
 
 raft v3.7 (stage R4): each message is a fresh `*pb.Message`, built owned (`msgOwn_lit0` for the
 self-addressed response, `msgOwn_lit` with the `Context` bytes for a request; its cells
@@ -21,7 +22,6 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__campaign
 public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
-public import Spec.go_etcd_io.raft.v3.raft__poll
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.voteRespMsgType
 public import Spec.go_etcd_io.raft.v3.raft__promotable
@@ -136,7 +136,6 @@ private theorem MessageType.wp_ptr_Enum_of
 theorem raft.campaign.wp_proof
     (wp_raft_becomeCandidate : raft.becomeCandidate.spec (GF := GF) (hG := hG))
     (wp_raft_becomePreCandidate : raft.becomePreCandidate.spec (GF := GF) (hG := hG))
-    (_wp_raft_poll : raft.poll.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG))
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))

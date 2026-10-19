@@ -367,6 +367,16 @@ theorem ownTrackerC_pure (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
   iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
     $$ Hvotes Hprs Hprogs Hcfg Hepoch
 
+/-- No peer is a witness (2026-10-19, witness support). -/
+theorem ownTrackerC_nowit (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTrackerC (GF := GF) c tv t ⊢ ⌜NoWitP t.peers⌝ ∗ ownTrackerC c tv t := by
+  iintro Hown
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  isplitr; · ipureintro; exact Hnw
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg Hepoch
+
 /-- The tracker's epoch, witness-free (2026-10-19, witness support). -/
 theorem ownTrackerC_epoch (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ownTrackerC (GF := GF) c tv t ⊢ ownEpochNW tv.Epoch' ∗ ownTrackerC c tv t := by

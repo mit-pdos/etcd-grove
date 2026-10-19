@@ -59,6 +59,7 @@ theorem raft.promotable.wp_proof
       id _ $$ Hprs with -
     rw [Hlk]
     simp only [Option.getD_some]
+    icases ownTrackerC_nowit c tv _ $$ Htrk with ⟨%Hnw, Htrk⟩
     icases ownTrackerC_lookup c tv _ id pr Hlk $$ Htrk with ⟨%p, %Hpv, Hpr, Hprback⟩
     iNamed Hpr
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
@@ -66,6 +67,9 @@ theorem raft.promotable.wp_proof
     wp_auto
     have Hl : pv.IsLearner' = decide (id ∈ c.learners) := by
       rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
+    -- (2026-10-19, witness support) not the witness (`NoWitP`)
+    have Hw : pv.IsWitness' = false :=
+      ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw id p Hpv)
     have Htr : id ∈ c.ids := by
       rw [← Hdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
     by_cases Hin : id ∈ c.voters
@@ -78,6 +82,8 @@ theorem raft.promotable.wp_proof
         · exact h2 h'
         · exact h1 h'
       rw [Hl, decide_eq_false Hnl]
+      wp_auto
+      rw [Hw]
       wp_auto
       ihave Htrk := Hprback $$ %p [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs

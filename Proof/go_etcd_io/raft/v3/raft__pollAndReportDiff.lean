@@ -3,9 +3,9 @@ Port of election_proof/proof_raft__poll.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__poll
+public import Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes
+public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
 
 @[expose] public section
 
@@ -32,12 +32,12 @@ same tail.
 they take `&r.trk` and the tracker's own predicate:
 `ownRaftPhysC_tracker` hands out exactly that, and takes it back at
 the new tally. -/
-theorem raft.poll.wp_proof
+theorem raft.pollAndReportDiff.wp_proof
     (wp_ProgressTracker_RecordVote :
       tracker.ProgressTracker.RecordVote.spec (GF := GF) (hG := hG))
-    (wp_ProgressTracker_TallyVotes :
-      tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG)) :
-    raft.poll.spec (GF := GF) (hG := hG) := by
+    (wp_ProgressTracker_TallyVotesWithDifference :
+      tracker.ProgressTracker.TallyVotesWithDifference.spec (GF := GF) (hG := hG)) :
+    raft.pollAndReportDiff.spec (GF := GF) (hG := hG) := by
   intro c r id s src t v
   wp_start as Hphys
   wp_auto
@@ -48,14 +48,14 @@ theorem raft.poll.wp_proof
     wp_raft_logC
     icases ownRaftPhysC_tracker c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     wp_apply wp_ProgressTracker_RecordVote $$ [$Htrkf $Htrk] as ⟨Htrkf, Htrk⟩
-    wp_apply wp_ProgressTracker_TallyVotes _ _ _ _ $$ [$Htrkf $Htrk]
-      as %g %rj %res ⟨Htrkf, Htrk, %Hres, %Hwon, %Hlost⟩
+    wp_apply wp_ProgressTracker_TallyVotesWithDifference _ _ _ _ $$ [$Htrkf $Htrk]
+      as %g %rj %res %d ⟨Htrkf, Htrk, %Hres, %Hwon, %Hlost, %Hd⟩
     ihave Hphys := Hback $$ %tv %(recordVote s.votes src _) Htrkf Htrk
     iapply HΦ
     dsimp only
     iframe Hphys
     ipureintro
-    exact ⟨Hres, Hwon, Hlost⟩
+    exact ⟨Hres, Hwon, Hlost, Hd⟩
 
 end proof
 
