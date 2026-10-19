@@ -562,8 +562,8 @@ inductive StepC : PState → List Msg → PState → Prop where
       s.role = .leader →
       plogLastIndexZ s.base s.log + (ents.length : Int) ≤ B →
       StepC s [m]
-        (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
-          [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))])
+        (psendMsgs (pappend s (ents.mapIdx (stampS s.term s.sub (plastIndex s))))
+          [pselfAck id (pappend s (ents.mapIdx (stampS s.term s.sub (plastIndex s))))])
   | propForward (m : Msg) (s : PState) :
       m.ty = .propose →
       s.role = .follower →

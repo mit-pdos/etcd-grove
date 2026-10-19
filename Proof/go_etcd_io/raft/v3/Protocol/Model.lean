@@ -1864,8 +1864,8 @@ inductive Step : PState → List Msg → PState → Prop where
       s.role = .leader →
       plogLastIndexZ s.base s.log + (ents.length : Int) ≤ B →
       Step s [m]
-        (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
-          [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))])
+        (psendMsgs (pappend s (ents.mapIdx (stampS s.term s.sub (plastIndex s))))
+          [pselfAck id (pappend s (ents.mapIdx (stampS s.term s.sub (plastIndex s))))])
   /-- `MsgProp` at a follower that knows a leader: forwarded, with `Term` left at `0`
   (`send`'s `MsgProp` exception) and `From` stamped. -/
   | propForward (m : Msg) (s : PState) :
