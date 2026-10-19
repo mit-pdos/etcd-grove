@@ -32,6 +32,9 @@ public import Spec.go_etcd_io.raft.v3.node__Tick
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Spec.go_etcd_io.raft.v3.node__Propose
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Spec.go_etcd_io.raft.v3.node__Step
+public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
+public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
@@ -78,6 +81,27 @@ abbrev rnMemStorReg (γ : RNNames) : IProp GF :=
 /-- The `raft.Node` interface value holding the `*node` `γ.nl`. -/
 abbrev rnNodeIface (γ : RNNames) : GoInterface :=
   interface.mkOk (go.GoType.PointerType node.ty) #γ.nl
+
+/-- **The node's inbound methods** (persistent; D21 M2, 2026-10-19): `Step` of a peer's message
+(raft's `stepP`, over a context the node API takes) and the two reports, which
+`EtcdServer.Process`/`ReportUnreachable`/`ReportSnapshot` call (from the transport's goroutines,
+as soon as it starts: so stated apart from `isRaftNodeIfc`, whose `ReadIndex` needs the server's
+committed index, allocated later). -/
+def rnStepIfc (γ : RNNames) (n : GoInterface) : IProp GF :=
+  iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (ml : Loc),
+      {{ nodeCtx ctx cd ∗ stepP γ.node γ.id ml }}
+        (App (App (Val #(methods ni.ty go!"Step" ni.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
+      {{ (err : GoInterface), RET #err; True }}) ∗
+    □ (∀ x : w64, {{ True }} (App (Val #(methods ni.ty go!"ReportUnreachable" ni.v)) (Val #x))
+      {{ RET #(); True }}) ∗
+    □ (∀ (x : w64) (st : SnapshotStatus), {{ True }}
+      (App (App (Val #(methods ni.ty go!"ReportSnapshot" ni.v)) (Val #x)) (Val #st))
+      {{ RET #(); True }}))
+
+instance rnStepIfc_persistent (γ : RNNames) (n : GoInterface) :
+    Persistent (rnStepIfc (GF := GF) γ n) := by
+  unfold rnStepIfc; infer_instance
 
 /-- **`Stop` returns, of every node raft started** (persistent; D19r (A), 2026-10-18): `rnStopOk`
 at the `*node` of every `rnIsNode` (a node `StartNode` returned, its `run` loop running), not at
@@ -480,6 +504,42 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
         rw [srvLogOf_length, Hpre] at h
         push_cast
         omega
+
+/-- **The node meets `rnStepIfc`** (D21 M2): raft's `node.Step`, `ReportUnreachable`,
+`ReportSnapshot`, over raft's `isNode`. -/
+theorem rnStepIfc_of_isNode (γ : RNNames)
+    (wp_Step : letI : MemStorReg GF := ⟨γ.reg⟩; node.Step.spec (GF := GF) (hG := hG))
+    (wp_ReportUnreachable : letI : MemStorReg GF := ⟨γ.reg⟩;
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (wp_ReportSnapshot : letI : MemStorReg GF := ⟨γ.reg⟩;
+      node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnIsNode γ ⊢
+      rnStepIfc γ (rnNodeIface γ) := by
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  iintro ⟨#Hpkg, #Hnode⟩
+  ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  iunfold rnStepIfc
+  iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %ctx %cd %ml %Φ !> ⟨#Hctx, Hst⟩ HΦ
+    wp_apply wp_Step γ.node γ.id γ.nl ml ctx cd $$ [Hst] as %err -
+    · iframe #; iframe Hst
+    iapply HΦ
+    itrivial
+  isplitr
+  · iintro !> %x %Φ !> - HΦ
+    wp_apply wp_ReportUnreachable γ.node γ.id γ.nl x $$ []
+    · iframe #
+    iapply HΦ
+    itrivial
+  · iintro !> %x %st %Φ !> - HΦ
+    wp_apply wp_ReportSnapshot γ.node γ.id γ.nl x st $$ []
+    · iframe #
+    iapply HΦ
+    itrivial
 
 end bridge
 

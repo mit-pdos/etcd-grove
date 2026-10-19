@@ -196,6 +196,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp",
             "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
+            # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor",
             # names only: what the apply package names (api.UpdateCapability,

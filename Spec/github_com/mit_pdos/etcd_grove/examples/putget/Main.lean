@@ -13,7 +13,7 @@ panic, so the `Get` that returned `nil` returned the `Put`'s value (D18's monoto
 **The pure premises:** the member id and bootstrap log Go computes (`putget.BootFacts`); the
 logic's thread bound and the time-receipt bounds (the adequacy theorem's choices: `threadBound GF ≤
 2 ^ 31`, `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`); the named workload and effect premises of the
-server's construction (`transportEffectsOk`, `ckptEffectsOk`, `authRecordsFit`,
+server's construction (`ckptEffectsOk`, `authRecordsFit`,
 `apply.backendUnderQuota`, `mvcc.backendNoCompaction`); Go's method sets of the gRPC service values
 (`v3rpc.ServerMethodSets`) and that `errors.As` takes `*rpctypes.EtcdError` as a target.
 The two named Props `EofFromIoInit` and `ClosedchanFromContextInit` (`io.EOF` and `context`'s
@@ -51,7 +51,7 @@ abbrev Main.spec : Prop :=
   -- current pin, made theorems by the proposed Perennial changes)
   EofFromIoInit (GF := GF) → ClosedchanFromContextInit (GF := GF) →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  transportEffectsOk → ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget ∗

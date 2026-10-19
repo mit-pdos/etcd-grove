@@ -50,8 +50,9 @@ an unknown type, and removed the local member on its `RemoveNode`, against
 (`ρ.raft.raft.reCfg`): an `AddNode` of a member of the configuration, whose context unmarshals to
 that member, not a promotion. Then neither it nor `ValidateConfigurationChange` panics, it
 removes no member (`AddMember` of a member; for a member other than the local one, the
-transport's `AddPeer`, outside the model as the transport's other effects, `transportEffectsOk`:
-a no-op for a member the construction added as a peer), and what it hands raft
+transport's `AddPeer`, which returns at once for a member the construction added as a peer,
+`transport.go`'s known-peer check; until D21 M2 named with the transport's other effects,
+`transportEffectsOk`), and what it hands raft
 (the change, or on a failed validation the change with `NodeId` `0`) leaves raft's configuration
 as it is (`ccRaftOk`, `raftPropose`'s premise for `ApplyConfChange`). The server's policy admits
 no other conf change (`srvCCPolicy`, `ccBootOk`). -/

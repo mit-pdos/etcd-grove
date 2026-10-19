@@ -26,6 +26,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnab
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommitInTermNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsIDRemoved
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
@@ -35,8 +36,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Process
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
@@ -91,6 +95,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsIDRemoved
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetCountOnly
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetKey
@@ -200,6 +205,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec_
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.Size
+public import Proof.google_golang_org.protobuf.proto.SizeMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
@@ -251,6 +257,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewLeaderStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.NewServerStats
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__RecvAppendReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.New
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
@@ -419,6 +426,18 @@ theorem «attribute».wp_String :
     «attribute».String.spec (GF := GF) (hG := hG) :=
   «attribute».String.wp_proof
 
+theorem membership.RaftCluster.wp_IsIDRemoved :
+    membership.RaftCluster.IsIDRemoved.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.IsIDRemoved.wp_proof
+
+theorem types.ID.wp_String :
+    types.ID.String.spec (GF := GF) (hG := hG) :=
+  types.ID.String.wp_proof
+
+theorem proto.wp_SizeMessage :
+    proto.SizeMessage.spec (GF := GF) (hG := hG) :=
+  proto.SizeMessage.wp_proof
+
 theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
   PutRequest.GetKey.wp_proof
@@ -490,10 +509,6 @@ theorem zap.wp_Uint64 :
 theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
-
-theorem types.ID.wp_String :
-    types.ID.String.spec (GF := GF) (hG := hG) :=
-  types.ID.String.wp_proof
 
 theorem semver.Version.wp_String :
     semver.Version.String.spec (GF := GF) (hG := hG) :=
@@ -954,6 +969,10 @@ theorem EtcdServer.wp_GoAttach :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
   EtcdServer.GoAttach.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Warn
 
+theorem EtcdServer.wp_IsIDRemoved :
+    EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG) :=
+  EtcdServer.IsIDRemoved.wp_proof membership.RaftCluster.wp_IsIDRemoved
+
 theorem EtcdServer.wp_KV :
     EtcdServer.KV.spec (GF := GF) (hG := hG) :=
   EtcdServer.KV.wp_proof
@@ -982,6 +1001,14 @@ theorem EtcdServer.wp_NextRequestID :
     EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=
   EtcdServer.NextRequestID.wp_proof idutil.Generator.wp_Next
 
+theorem v2stats.ServerStats.wp_RecvAppendReq :
+    v2stats.ServerStats.RecvAppendReq.spec (GF := GF) (hG := hG) :=
+  v2stats.ServerStats.RecvAppendReq.wp_proof
+
+theorem EtcdServer.wp_Process :
+    EtcdServer.Process.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Process.wp_proof EtcdServer.wp_Logger membership.RaftCluster.wp_IsIDRemoved EtcdServer.wp_MemberID raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetType types.ID.wp_String proto.wp_SizeMessage v2stats.ServerStats.wp_RecvAppendReq
+
 theorem context.wp_WithValue :
     context.WithValue.spec (GF := GF) (hG := hG) :=
   context.WithValue.wp_proof
@@ -1001,6 +1028,14 @@ theorem EtcdServer.wp_doSerialize :
 theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
+
+theorem EtcdServer.wp_ReportSnapshot :
+    EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG) :=
+  EtcdServer.ReportSnapshot.wp_proof
+
+theorem EtcdServer.wp_ReportUnreachable :
+    EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG) :=
+  EtcdServer.ReportUnreachable.wp_proof
 
 theorem EtcdServer.wp_RequestTimeout :
     EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) :=
@@ -1328,7 +1363,7 @@ theorem lease.lessor.wp_ExpiredLeasesC :
 
 theorem wp_NewServer [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] [EtcdGrove.Float64ToInt64Semantics] :
     NewServer.spec (GF := GF) (hG := hG) :=
-  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote membership.RaftCluster.wp_Members rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket node.wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion MemoryStorage.wp_Snapshot node.wp_ApplyConfChange
+  NewServer.wp_proof zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.wp_New wp_newCorruptionChecker mvcc.store.wp_HashStorage schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer mvcc.watchableStore.wp_Close schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket node.wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion MemoryStorage.wp_Snapshot node.wp_ApplyConfChange node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
 
 theorem raftNode.wp_advanceTicks :
     raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=

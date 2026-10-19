@@ -147,6 +147,16 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
+-- names only (D21 M2, 2026-10-19): `Process`'s `403` errors (`httptypes.NewHTTPError`)
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types
+
 -- the names-only packages of `rafthttp.Transport`'s fields (unit N4, 2026-10-17)
 namespace golang_org.x.time.rate
 

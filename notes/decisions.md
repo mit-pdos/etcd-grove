@@ -11057,3 +11057,52 @@ The text left the following open; each choice is recorded here. Trust base uncha
 The interface M2 uses (agreed with it): `SentMsgOk`, `isRaftMsg_sent`, `NetMsgOk.of_sent` (all
 but a `MsgProp`, which is `fwdP`'s), `SentMsgOk.ne_snap`/`ne_timeoutNow`/`ne_transferLeader`,
 `isMessage_propose_ctx`.
+
+## D21 M2 carried out: the network contract and `Process` (2026-10-19)
+
+Stage M2's server half, as designed above with D21g (A) and D21h (A) and the two later choices
+(the concurrency bound, the URL directory). The raft-side clause (M2r, a separate agent) gives
+`SentMsgOk` inside `isRaftMsg`. The translation was regenerated with the configuration above
+(`Process`, `IsIDRemoved`, the reports, the promoted `Step`/reports, `RaftCluster.IsIDRemoved`, the
+names-only `etcdhttp/types`), and `etc/gen-init.py` was rerun for the new package.
+- **The network** (`api/rafthttp/Net.lean`): `NetPayload`, `NetNames` (payload, slots, `dir`),
+  `netSlot`, `netBundle`, `netRecv` (with `wireEq`), `netRaftOk` (each call borrows one of the
+  receiver's `R`, `netProcSlots = 2 ^ 29`), `netTransport` (the started transport's `Send`/`Stop`),
+  and `netNames_alloc`.
+- **The axioms**, restated, not added. The started transport's `Send` lives in `Start`'s
+  postcondition (`transportStarted γn t := netTransport ∗ isTransporter`, as `Send`/`Stop` did
+  before), so D21b's "`Transport.Send` (new axiom)" is a restatement of `Start`, not a new
+  declaration. `Start` takes the slot, `□ netRaftOk` and the `2 ^ 29` resources. `AddPeer`/
+  `AddRemote` take `γn.dir id = ss`. `transportLive` is indexed by the network.
+- **The server**: `srvNet` (the payload: `isRaftMsg ∗ termLB`, the read credit once for a
+  `MsgReadIndex`) and `srvMsgNet_bundle` (`InvBuild.lean`). `InvNet.lean` holds `srvProcOk` (what
+  the inbound path reads) and `stepP_of_recv` (a delivered message is `node.Step`'s `stepP`:
+  `fwdP` for a `MsgProp`, `netP` otherwise, `NetMsgOk` from `SentMsgOk` and `To = id`).
+  `EtcdServer.Process`/`IsIDRemoved`/`ReportUnreachable`/`ReportSnapshot` are proved (the two `403`
+  branches dead), and so is `srv_netRaftOk` (`NetBridge.lean`). `membership.RaftCluster.IsIDRemoved`
+  is proved `false` over `rcLockInv`'s new empty `removed` map.
+- **Not `isRaftNodeIfc`**: the node's `Step` and reports are a separate contract `rnStepIfc`
+  (`NodeBridge.lean`, from `node.Step`/`ReportUnreachable`/`ReportSnapshot`). The transport may call
+  `Process` once it starts, which is before the server's committed index (needed by
+  `isRaftNodeIfc`'s `ReadIndex`) and its wrapper (`isRaftNode`, which needs the transport) exist.
+  For the same reason the wrapper's struct is split early (`rnFixed`, `rnFixed_split`: every field
+  read-only but `transport` and `latestTickTs`), and `NodeStartSpec`'s installer takes the split
+  form. `NodeStartSpec` returns `rnStepIfc` and the node field's value.
+- **`NewServer`**: `NewServer.spec` drops `transportEffectsOk` and takes the network, the member's
+  slot and `γn.N = srvNet γ bud ∧ γn.dir = dir`. `bootstrapContract`/`bootOk` take `dir` (remotes'
+  `memberRO dir`, `Hmembers`: `Members()` returns members whose URLs are `dir` of their ids,
+  `memberDirIs`). The proof builds `srvProcOk` before `Start`, reserves `2 ^ 29` of `lgMu`'s
+  `2 ^ 30` slots for the transport, and derives the wrapper's `isRNTransport` from the network's
+  (`isRNTransport_of_net`). putget allocates the network (`netNames_alloc`) for its one member,
+  with `putgetDir`, and `putget_safe` loses `transportEffectsOk`.
+- **Raft's half** (M2r, `19a919ec00`): `SentMsgOk` from `isRaftMsg`, `NetMsgOk.of_sent`,
+  `SentMsgOk.ne_timeoutNow`/`ne_transferLeader`, `netP`'s transfer clause. `stepP_of_recv` reads
+  `SentMsgOk` and unfolds `isMessage` of a proposal itself, without `isRaftMsg_sent` or
+  `isMessage_propose_ctx`: their statements carry raft's `[StorageModel GF]`, which the server's
+  sections do not fix.
+- **Trust base**: +2 axioms (`v2stats.ServerStats.RecvAppendReq`, `proto.SizeMessage`, D21h (A));
+  `rafthttp.Transport.Start`/`AddPeer`/`AddRemote` restated; `transportEffectsOk` gone (from the
+  definitions, `NewServer.spec`, `Main.spec`, `putget_safe`); the existing axioms that hold the
+  cluster's lock (`RaftCluster.String`, `SetVersionChangedNotifier`) and `bootstrap`'s contract now
+  keep the empty `removed` map, and `bootstrap`'s contract (a premise) names the URL directory.
+  `EtcdServer.applyConfChange`'s docstring was updated (its `AddPeer` of a known peer returns).

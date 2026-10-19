@@ -25,9 +25,10 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
     the write budget);
   - `b.Close()` returns (the error paths' deferred close).
-* **`transportStarted`**: the `rafthttp.Transport` after `Start` (names-only): its `Send`/`Stop`
-  for any environment (`isRNTransport`: the transport asks nothing of the messages) and its
-  `ActiveSince` (`rafthttp.isTransporter`).
+* **`transportStarted γn t`**: the `rafthttp.Transport` after `Start` (names-only): its `Send` of
+  messages with their bundles into the network `γn` (`netBundle`, D21 M2), its `Stop` and its
+  `ActiveSince` (`rafthttp.isTransporter`); `isRNTransport` for every environment whose messages
+  carry the bundle (`isRNTransport_of_net`).
 * The pending constructors' contracts (`lease.NewLessor`, `auth.NewTokenProvider`,
   `auth.NewAuthStore`, `v3compactor.New`, `rafthttp.Transport.Start`/`AddRemote`/`AddPeer`,
   `v3alarm.NewAlarmStore`) are their `Spec/` files, listed `?` in the server's link: hypotheses
@@ -43,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 
 @[expose] public section
 
@@ -64,14 +66,25 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
 /-- A cluster member (`*membership.Member`), read-only, its peer URLs parsing (unit N4,
-2026-10-17: `membership.peerURLsOk`, the transport's `AddRemote` panics otherwise). -/
-def memberRO (m : Loc) : IProp GF :=
+2026-10-17: `membership.peerURLsOk`, the transport's `AddRemote` panics otherwise) and (D21 M2,
+2026-10-19) the directory's for its id (`dir`: the URLs serve that member). -/
+def memberRO (dir : w64 → List GoString) (m : Loc) : IProp GF :=
   iprop(⌜m ≠ null⌝ ∗ ∃ (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member)
       (us : List GoString), m ↦□ v ∗ v.RaftAttributes'.PeerURLs' ↦*□ us ∗
-    ⌜membership.peerURLsOk us⌝)
+    ⌜membership.peerURLsOk us ∧ us = dir v.ID'⌝)
 
-instance memberRO_persistent (m : Loc) : Persistent (memberRO (GF := GF) m) := by
+instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
+    Persistent (memberRO (GF := GF) dir m) := by
   unfold memberRO; infer_instance
+
+/-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
+(`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/
+def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
+  iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
+    membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
+    membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
+    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
+    ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
 
 /-- **A bucket of the backend fresh** (opaque, D14g, 2026-10-17): the bbolt file of the backend
 `γB` was created empty by `bootstrap` (a new cluster's data directory), so its bucket `name` holds
@@ -89,22 +102,12 @@ alarm (`Activate`, the only writer of its map, is in its apply contract, which t
 gives: the axiom's postcondition). -/
 opaque alarmFresh (a : Loc) : IProp GF
 
-/-- **The background goroutines' effects** (opaque, the named premises of D14e and D14g,
-2026-10-17): what the model does not cover of the goroutines the construction starts, assumed as
-a whole. `transportEffectsOk`: the transport's goroutines (`rafthttp`: each peer's readers and
-writers, the inbound messages) call into the server (`Process`, `ReportUnreachable`,
-`ReportSnapshot`, `IsIDRemoved`) and the network safely -- the cluster's message trust
-assumption -- and report nothing on the server's `errorc` (`ErrorC`, a bag with predicate `False`
-since D19m, 2026-10-18): a peer's stream reader, pipeline or snapshot sender reports there only
-`errMemberRemoved`, a remote member saying this one was removed, which no member says of a member
-never removed (the server's policy removes none; a one-member cluster has no peer). `ckptEffectsOk`: the lessor's loop, once its lessor is promoted, calls the server's
-checkpointer (`NewServer`'s closure over `raftRequest`, installed when the `LeaseCheckpoint`
-feature is on), which proposes outside the request path's model. Premises of
-`rafthttp.Transport`'s and `lease.NewLessor`'s axioms and so of `NewServer.spec`; nothing in the
-model proves or refutes them. -/
-opaque transportEffectsOk : Prop
-
-@[inherit_doc transportEffectsOk]
+/-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
+lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
+over `raftRequest`, installed when the `LeaseCheckpoint` feature is on), which proposes outside the
+request path's model. A premise of `lease.NewLessor`'s axiom and so of `NewServer.spec`; nothing in
+the model proves or refutes it. (Until D21 M2, 2026-10-19, it had a sibling, `transportEffectsOk`,
+the transport's goroutines' effects, now the network contract: `rafthttp/Net.lean`.) -/
 opaque ckptEffectsOk : Prop
 
 /-- **The auth store's records fit bbolt's value bound** (opaque, a workload premise; unit N4,
@@ -122,7 +125,7 @@ entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvc
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
 def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (id : w64)
-    (bootLog : List EntryM) (N : Nat) (b : Loc) : IProp GF :=
+    (bootLog : List EntryM) (N : Nat) (dir : w64 → List GoString) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
@@ -179,7 +182,15 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
     "Hvcn" ∷ (∃ v : Loc, membership.rcVersionChangedAddr bc.cl' ↦ v) ∗
-    "#Hrms" ∷ bc.remotes' ↦*□ rms ∗ "#Hrmsi" ∷ ([∗list] m ∈ rms, memberRO m) ∗
+    "#Hrms" ∷ bc.remotes' ↦*□ rms ∗ "#Hrmsi" ∷ ([∗list] m ∈ rms, memberRO dir m) ∗
+    -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
+    -- deployment fact): `Members()` returns members whose peer URLs are the directory's
+    "#Hmembers" ∷ □ (∀ Φ : val → IProp GF,
+      (∀ (sl : GoSlice) (ms : List (Loc × w64)), sl ↦* ms.map Prod.fst -∗
+        ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
+      WP (App (Val (bc.cl' @!! go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
+        (Val #())) {{ Φ }}) ∗
     -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
     -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
     -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f)
@@ -248,15 +259,17 @@ new `MemoryStorage` joins it; until then the contract gave its registration with
 which no update can), an error, or the record with `bootOk` (at the write-back budget
 `N + 7`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) : IProp GF :=
+    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (dir : w64 → List GoString) :
+    IProp GF :=
   iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N b }}))
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N dir b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (U : BootURLs) (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) :
-    Persistent (bootstrapContract (GF := GF) cfg U γ id bootLog N) := by
+    (U : BootURLs) (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat)
+    (dir : w64 → List GoString) :
+    Persistent (bootstrapContract (GF := GF) cfg U γ id bootLog N dir) := by
   unfold bootstrapContract; infer_instance
 
 end defs
@@ -318,18 +331,48 @@ abbrev transportIface (t : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t
 
-/-- **The transport `t` live** (opaque, exclusive; unit N4, 2026-10-17): started and not
-stopped. `Start` gives it; `AddRemote`/`AddPeer` take it and give it back (`AddPeer` panics after
-`Stop`); it is given up for `transportStarted` (whose `isRNTransport` has `Stop`). -/
-opaque transportLive (t : Loc) : IProp GF
+/-- **The transport `t` live, in the network `γn`** (opaque, exclusive; unit N4, 2026-10-17;
+the network since D21 M2, 2026-10-19): started and not stopped. `Start` gives it; `AddRemote`/
+`AddPeer` take it and give it back (`AddPeer` panics after `Stop`); it is given up for
+`transportStarted` (whose `Stop` there is). -/
+opaque transportLive (γn : NetNames GF) (t : Loc) : IProp GF
 
-/-- **The transport `t` after `Start`** (persistent; names-only, see the file header). -/
-def transportStarted (t : Loc) : IProp GF :=
-  iprop(□ (∀ E : RNEnv GF, isRNTransport E (transportIface t)) ∗
-    rafthttp.isTransporter (transportIface t))
+/-- **The transport `t` after `Start`, in the network `γn`** (persistent; names-only, see the file
+header): `Send` puts each message, with its bundle, into the network (D21 M2, 2026-10-19; until
+then it took the messages of any environment and promised nothing of them); `Stop` returns;
+`ActiveSince` (`rafthttp.isTransporter`). -/
+def transportStarted (γn : NetNames GF) (t : Loc) : IProp GF :=
+  iprop(netTransport γn (transportIface t) ∗ rafthttp.isTransporter (transportIface t))
 
-instance transportStarted_persistent (t : Loc) : Persistent (transportStarted (GF := GF) t) := by
+instance transportStarted_persistent (γn : NetNames GF) (t : Loc) :
+    Persistent (transportStarted (GF := GF) γn t) := by
   unfold transportStarted; infer_instance
+
+/-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
+carry their bundle (`E.M m` gives `netBundle`) can send them through it. -/
+theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterface) :
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ isRNTransport E tr := by
+  iintro #HM #Htr
+  iunfold netTransport at Htr
+  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop⟩
+  iunfold isRNTransport
+  iexists ti
+  isplitr
+  · ipureintro; exact Hti
+  isplitr
+  · imodintro
+    iintro %sl %msL %Φ !> ⟨Hsl, Hms⟩ HΦ
+    wp_apply Hsend $$ [Hsl Hms]
+    · iframe Hsl
+      iapply BigSepL.bigSepL_impl $$ Hms
+      imodintro
+      iintro %k %m %_ Hm
+      iunfold rnMsgOk at Hm
+      icases Hm with ⟨%to, %ty, -, HEM⟩
+      iapply HM $$ HEM
+    iapply HΦ
+    itrivial
+  · iexact Hstop
 
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
 checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
