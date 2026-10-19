@@ -263,7 +263,8 @@ default configuration) since 2026-10-17. -/
 theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
   letI : MemStorReg GF := ⟨reg⟩
   raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
-    node.wp_Tick node.wp_ReadIndex node.wp_Propose node.wp_ApplyConfChange
+    node.wp_Tick node.wp_ReadIndex node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot
+    node.wp_Propose node.wp_ApplyConfChange
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s

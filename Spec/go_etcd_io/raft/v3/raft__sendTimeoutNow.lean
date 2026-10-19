@@ -22,10 +22,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `sendTimeoutNow(to)`: `send` of `MsgTimeoutNow{To: to}`, a type the model does not
 describe (`mtypeOf` is `none`): it carries no protocol fact and drops out of the abstract
 outbox, so the state is unchanged. `to` is another node (`send` panics on a message to
-oneself): the leader-transfer target, which `ownRaftPhys` keeps `≠ id`. -/
+oneself): the leader-transfer target, which `ownRaftPhys` keeps `≠ id`. (2026-10-19, D21 M2r)
+Only with leader transfer on (`NGhost.xf`, `send`'s `SendOk`). -/
 abbrev raft.sendTimeoutNow.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
+  s.gh.xf = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendTimeoutNow")) (Val #to))
   {{ RET #(); ownRaftPhysCV c c.voters r id s }}

@@ -320,7 +320,8 @@ end addrsR
 
 /-- **`run`'s view of the server** at the fields' values `v` (persistent): `errorc` (a channel of
 errors on which nothing is sent: a bag with predicate `False`, D19m, 2026-10-18: its senders are
-`stopWithDelay`, which `apply` never asks for, and the transport's peers, `transportEffectsOk`),
+`stopWithDelay`, which `apply` never asks for, and the transport's peers, which report nothing
+there: `rafthttp.Transport.Start`'s axiom, D21 M2),
 `stop` (the unit channel `HardStop` sends on, a bag with predicate `False`: the runs covered call
 neither `Stop` nor `HardStop`, D19m), `done`, `cancel` (the server
 context's cancel function, `WithCancel`'s), the compactor, the stats, the leader-change notifier,

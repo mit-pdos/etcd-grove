@@ -236,12 +236,13 @@ def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
 (`RaftNames.reNoSnap`): of a cluster with a non-empty bootstrap log (`RaftNames.noSnap_boot`), what
 the leader's rejection handling reads of the messages (`isMessage`'s clause of a rejecting
 `appResp`), and what the messages a `Ready` hands out say (`isRaftMsg`). Set with the node
-(`Bootstrap`), kept by every step. -/
-def NsLink (γ : RaftNames) (s : NState) : Prop := s.gh.ns = γ.reNoSnap
+(`Bootstrap`), kept by every step. (2026-10-19, D21 M2r) And leader transfer is off
+(`NGhost.xf`) exactly in that mode. -/
+def NsLink (γ : RaftNames) (s : NState) : Prop := s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoSnap
 
 theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns = true) :
     γ.reBoot ≠ [] :=
-  RaftNames.noSnap_boot (by rw [← H]; exact h)
+  RaftNames.noSnap_boot (by rw [← H.1]; exact h)
 
 /-- What the mode keeps beyond `ownRaftGhost` (`ghostRestM`), and (D21 M3) `NsLink`. -/
 def ghostRest (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
@@ -257,6 +258,18 @@ theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
 /-- The ghost state `raft.Step` keeps (see the file header). -/
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
   iprop(ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s)
+
+/-- (2026-10-19, D21 M2r) The node's modes are the cluster's (`NsLink`), read out. -/
+theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ ⌜NsLink γ s⌝ ∗ ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  icases ghostRest_nsLink γ md c id s $$ Hr with ⟨%Hnl, Hr⟩
+  isplitr
+  · ipureintro; exact Hnl
+  iunfold ownStepGhost
+  iframe Hg Hr
 
 /-- The commit invariant, from the ghost state in either mode (2026-10-14, stage R). -/
 theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
@@ -405,7 +418,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       RInv dec c0 (rOf s g) → DynHyp m s s' g)
-    (Hng : s'.gh.ns = s.gh.ns) :
+    (Hng : s'.gh = s.gh) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
@@ -435,9 +448,9 @@ theorem rOf_congr {s s' : NState} (g : RGh) (hp : toPState s' = toPState s)
 theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s' : NState}
     (hp : toPState s' = toPState s) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
-    (hg : s'.gh.ns = s.gh.ns := by rfl) :
+    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
-  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
+  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
   cases md with
   | static =>
     simp only [ownStepGhost, ghostRest, ghostRestM]; rw [hp, hn]
@@ -455,9 +468,9 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hc : (toPState s').commit = (toPState s).commit) (ht : (toPState s').term = (toPState s).term)
     (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
-    (hg : s'.gh.ns = s.gh.ns := by rfl) :
+    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
-  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
+  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
   cases md with
   | static => simp only [ghostRest, ghostRestM]; rw [hn]
   | dyn dec c0 h0 g =>
@@ -584,7 +597,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
-    (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh.ns = s.gh.ns) :
+    (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh = s.gh) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗

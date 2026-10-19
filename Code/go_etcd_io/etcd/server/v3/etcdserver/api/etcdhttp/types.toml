@@ -1,0 +1,6 @@
+# Types and names only (D21 M2: `EtcdServer.Process`'s `NewHTTPError`): bodies axiomatized.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

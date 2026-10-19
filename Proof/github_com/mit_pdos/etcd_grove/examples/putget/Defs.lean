@@ -84,6 +84,10 @@ def urlsOk (U : BootURLs) : Prop :=
   U.peer = [peerURL] ∧ U.client = [clientURL] ∧
     (∃ sl : GoSlice, U.initMap = GMap.insert go!"putget" sl ∅) ∧ U.initURLs go!"putget" = [peerURL]
 
+/-- **The peer-URL directory of `Main`'s cluster** (D21 M2, 2026-10-19): its one member's peer
+URL, `http://127.0.0.1:23800` (the members' records `bootstrap` makes name it). -/
+def putgetDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23800"]
+
 end pure
 
 section defs
@@ -114,7 +118,7 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
         (γ : RaftNames),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk id ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N) ∗
+      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N putgetDir) ∗
     -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗

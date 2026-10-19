@@ -433,6 +433,7 @@ axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.SizeEntry.wp_proof
+axiom proto.SizeMessage.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
@@ -489,6 +490,7 @@ axiom utf8.ValidString.wp_proof
 axiom v2stats.NewLeaderStats.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
+axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3compactor.New.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof

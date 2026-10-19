@@ -221,6 +221,8 @@ theorem newRaft.wp_proof
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
     (fun h => absurd rfl h) (LogNsOk.off rfl)
+    -- (2026-10-19, D21 M2r) leader transfer off (the default), the queues empty
+    (XfOk.nil (fun _ => rfl) (fun h => absurd h (by simp only [s0]; decide)))
     $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 with ⟨Htrkf, Hback⟩
   wp_apply (raft.switchToConfig.spec_nonleader_open wp_raft_switchToConfig) _ _ _ s0 tv0 cfgv prsm prs
     (by simp only [s0]) Hprs' Hmi $$ [$Htrkf $Hback $Hvotes $Hcfg]

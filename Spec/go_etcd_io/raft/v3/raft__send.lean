@@ -80,7 +80,9 @@ clause per shape a caller builds:
     nothing in scope sends, takes exactly this path through the body and holds its
     place, so that a caller's `by right; right; right` still picks `MsgHeartbeatResp`.)
 (c) a message the model does not describe (`mtypeOf = none`). It is queued and drops
-    out of the abstract outbox. `Term` unset, not self-addressed.
+    out of the abstract outbox. `Term` unset, not self-addressed. (2026-10-19, D21 M2r) Only
+    with leader transfer on (`NGhost.xf = false`): raft sends two such types, `MsgTimeoutNow`
+    and a forwarded `MsgTransferLeader`, both of a transfer.
 (c') `MsgSnap` (2026-10-02): stamped and queued like (b), but the abstract message is
     `absSnapFrom` of the snapshot `m.Snapshot` points to and of that snapshot's
     `ConfState.Voters`. `send` does not read the pointer, so the caller names the two
@@ -134,7 +136,10 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
    (mtypeOf m.Type' = none ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
-    out = []))
+    out = [] ∧
+    -- (2026-10-19, D21 M2r) only with leader transfer on (`NGhost.xf`): the types the model does
+    -- not describe that raft sends are `MsgTimeoutNow` and a forwarded `MsgTransferLeader`
+    s.gh.xf = false))
   ∨
   (m.Type' = MsgAppResp ∧
    m.Term' = W64 0 ∧

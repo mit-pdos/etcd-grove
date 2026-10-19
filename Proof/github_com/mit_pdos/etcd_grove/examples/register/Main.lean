@@ -221,8 +221,10 @@ theorem opR_step1 : ccStepB opR c1R = some c1R :=
 
 /-- A replica's node, in the cluster's dynamic mode, is at the cluster's conf changes. -/
 theorem regCC_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkR)
-    (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good) : RegCC γn opR c0R c1R :=
-  ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl⟩
+    (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good)
+    (Hns : γn.raft.reNoSnap = false) : RegCC γn opR c0R c1R :=
+  ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl,
+    Hns⟩
 
 /-- `RemoveMember(3)`'s change is one the cluster admits. -/
 theorem rm3_allowed (γ : RaftNames) (Hok : γ.reCCOk = ccOkR) : CCAllowed γ (.v1 (rmCC (W64 3))) := by
@@ -426,6 +428,12 @@ theorem Main.wp_proof
       $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
+    -- (2026-10-19, D21 M2r) out of the no-snapshot mode: nothing committed
+    ihave %HnsR : ⌜γr.raft.reNoSnap = false⌝ $$ [Hghost]
+    · iunfold ownRaftGhostR at Hghost
+      icases Hghost with ⟨Hg, -⟩
+      icases ownRaftGhost_noSnap_of_commit γr.raft id0 _ rfl $$ Hg with ⟨%H, -⟩
+      ipureintro; exact H
     ihave Hghost : rnInit γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) id0
         (GMap.listToSet clusterIds) $$ [Hghost]
     · iunfold rnInit
@@ -501,7 +509,7 @@ theorem Main.wp_proof
         isplitr
         · iexists ms, γs
           iframe Hrec
-        ipureintro; exact regCC_cluster γn (by rw [Hr]; exact HccOk) Hmd
+        ipureintro; exact regCC_cluster γn (by rw [Hr]; exact HccOk) Hmd (by rw [Hr]; exact HnsR)
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)

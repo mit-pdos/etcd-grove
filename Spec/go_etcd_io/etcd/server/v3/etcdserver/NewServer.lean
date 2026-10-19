@@ -58,6 +58,12 @@
 * (D19r (B), (F), 2026-10-18) what `bootstrap` takes: the configuration's URLs read-only
   (`bootCfgRO cfg U`) and the storage registry's authority, empty (`memStorRegAuth ∅`), which the
   caller allocates; `bootstrap`'s new `MemoryStorage` joins it.
+* (D21 M2, 2026-10-19) **the raft network** (`rafthttp/Net.lean`): the member's slot `netSlot γn
+  id` in a network whose payload is the server's messages' bundle (`srvNet`) and whose URL
+  directory is `bootstrap`'s (`dir`: the members' records name their own URLs), which
+  `rafthttp.Transport.Start` takes with the server's inbound methods (`srv_netRaftOk`:
+  `Process`, `IsIDRemoved`, the two reports) and `2 ^ 29` of `lgMu`'s reader slots. Until then the
+  named premise `transportEffectsOk`, opaque.
 
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
@@ -104,7 +110,9 @@ abbrev NewServer.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : RaftNames)
     (bud : BudgetNames)
     (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    -- (D21 M2, 2026-10-19) the raft network and its URL directory
+    (γn : NetNames GF) (dir : w64 → List GoString),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
   -- conf-change policy; the KV's start values, its certificate map the store's
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
@@ -141,7 +149,7 @@ abbrev NewServer.spec : Prop :=
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      "#Hboot" ∷ bootstrapContract cfg U γ id bootLog N ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id bootLog N dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
@@ -164,9 +172,13 @@ abbrev NewServer.spec : Prop :=
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
       -- whose standing update `noopAu` it gives, `srvRaftBoot_alloc`)
       "#Hkvinv" ∷ kvInv ρ.rd.raft ρ.rd.kv ∗
-      -- the named premises of the constructors' axioms (D14e, unit N4): the background
-      -- goroutines' effects and the auth store's record bound
-      "%Htrok" ∷ ⌜transportEffectsOk⌝ ∗ "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      -- (D21 M2, 2026-10-19) the member's slot in the raft network, whose payload is the
+      -- server's (`srvNet`) and directory `bootstrap`'s (until then the named premise
+      -- `transportEffectsOk`)
+      "Hslot" ∷ netSlot γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
+      -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
+      -- checkpointer's effects and the auth store's record bound
+      "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       -- (D19l (v), 2026-10-18) the backend records no compaction (`mvcc.store.restore`'s premise)
       "%Hnocmp" ∷ ⌜mvcc.backendNoCompaction⌝ ∗

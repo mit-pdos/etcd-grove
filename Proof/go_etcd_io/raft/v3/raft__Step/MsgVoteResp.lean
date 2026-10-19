@@ -432,6 +432,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+            (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           $$ [$Hphys $Hrc00 Hm] as %err %s1 %dropped ⟨Hphys, -, %Hres, Herrn⟩
         · rw [ite_neg Hnprop]; iframe Hm; iintro %Hc; exact absurd Hc Hnprop
         unfold LeaderStepResultC at Hres

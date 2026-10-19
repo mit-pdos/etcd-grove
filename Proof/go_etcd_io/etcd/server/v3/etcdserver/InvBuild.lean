@@ -35,6 +35,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvNodeStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 
 @[expose] public section
 
@@ -83,6 +84,33 @@ what a peer's `node.Step` takes of a network message (`netP`) but the receiver's
 def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
     rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0))
+
+/-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
+payload, `NetPayload`): persistently, the protocol facts and the term bound (`isRaftMsg`, whose
+`SentMsgOk` clause gives the receiver's `NetMsgOk`, and `termLB`); once, the read credit of a
+`MsgReadIndex`, delivered at most once; any other message may be duplicated, its credit `0` anew.
+D20 (b) adds a forwarded `MsgProp`'s proposal ticket here (`once` and `O`). -/
+def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
+  P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
+  O st := rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0)
+  once st := st.msg.Type' = MsgReadIndex
+  P_pers st := by infer_instance
+  dup st h := by
+    simp only [h, if_false]
+    exact rdCred_zero_upd γ
+
+/-- A message raft hands the server, with its bundle, is one the network takes (`netBundle`). -/
+theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
+    srvMsgNet (GF := GF) γ bud m ⊢ netBundle (srvNet γ bud) m := by
+  iintro H
+  iunfold srvMsgNet at H
+  icases H with ⟨%st, #Hm, #Hr, #Ht, Hc⟩
+  iunfold netBundle
+  iexists st
+  simp only [srvNet]
+  iframe Hm Hc
+  imodintro
+  iframe Hr Ht
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's

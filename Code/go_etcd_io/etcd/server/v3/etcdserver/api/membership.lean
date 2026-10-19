@@ -300,6 +300,27 @@ noncomputable def RaftCluster.Members.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))))
 
+/-- go: cluster.go:181:23 -/
+noncomputable def RaftCluster.IsIDRemoved.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "id"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (map.lookup1 _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"removed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))))
+
 /-- go: member.go:90:18 -/
 noncomputable def Member.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
@@ -537,6 +558,7 @@ class RaftCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   get_versionChanged : ∀ (x : RaftCluster), go.IsGoStepPureDetTagged under (StructFieldGet RaftCluster.underlying go!"versionChanged") #x (Val #(x.versionChanged'))
   set_versionChanged : ∀ (x : RaftCluster) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RaftCluster.underlying go!"versionChanged") (PairV #x #y) (Val #(({ x with versionChanged' := y } : RaftCluster)))
   ptr_ID_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ID" RaftCluster.ID.impl
+  ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsIDRemoved" RaftCluster.IsIDRemoved.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
@@ -568,6 +590,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.get_versionChanged
   RaftCluster.TypeAssumptions.set_versionChanged
   RaftCluster.TypeAssumptions.ptr_ID_unfold
+  RaftCluster.TypeAssumptions.ptr_IsIDRemoved_unfold
   RaftCluster.TypeAssumptions.ptr_Lock_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
   RaftCluster.TypeAssumptions.ptr_Unlock_unfold

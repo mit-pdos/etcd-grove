@@ -84,7 +84,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id bootLog Hbf HEof HCc Htb Hrb48 HrbN Htr Hck Haf Hbuq Hnoc Hms hAs
+  intro CS N id bootLog Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
@@ -142,11 +142,15 @@ theorem Main.wp_proof
     #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
+  -- (D21 M2) the raft network, the one member's slot
+  imod (netNames_alloc (srvNet γ bud) putgetDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
+  ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
+  icases Hslot with ⟨Hslot, -⟩
   have hblen : γ.reBoot.length ≤ 2 ^ 60 := by
     rw [hboot, Hbf.boot.1]; simp
   wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"putget"
       (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
-      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs hraft hpol hc0 hch hlog hcok
+      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs γn putgetDir hraft hpol hc0 hch hlog hcok
       (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48` (`Main`'s)
       (by
@@ -156,7 +160,7 @@ theorem Main.wp_proof
         omega)
       hblen
       hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg] as %srv %err Hres
+    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -176,7 +180,7 @@ theorem Main.wp_proof
       iapply BigSepM.bigSepM_empty.2; itrivial
     isplitl [Hreg]
     · iunfold memStorRegAuth; iexact Hreg
-    isplitr; · ipureintro; exact Htr
+    isplitr; · ipureintro; exact Hγn
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq

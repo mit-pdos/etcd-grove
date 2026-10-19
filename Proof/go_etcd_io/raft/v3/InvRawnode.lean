@@ -527,16 +527,60 @@ theorem netStepTypes_stepMsg {m : MessageM} (h : m.Type' ∈ netStepTypes) : Ste
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
   rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> simp [h]
 
+
+/-! ### What a sender in the no-snapshot mode promises the receiver (2026-10-19, D21 M2r)
+
+A message a `Ready` hands out in the cluster's no-snapshot mode is `SentMsgOk` (`isRaftMsg`'s
+clause, `InvRaftPhys.lean`): at the node it is addressed to, every clause of `NetMsgOk` but for a
+forwarded proposal, which `node.Step` takes as `fwdP` (D21g (A)). -/
+
+theorem SentMsgOk.ne_snap {st : MsgSt} (H : SentMsgOk st) : st.msg.Type' ≠ MsgSnap := by
+  intro h; have := H.1; rw [h] at this
+  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
+    MsgTransferLeader] at this
+
+theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) :
+    st.msg.Type' ≠ MsgTimeoutNow := by
+  intro h; have := H.1; rw [h] at this
+  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
+    MsgTransferLeader] at this
+
+theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) :
+    st.msg.Type' ≠ MsgTransferLeader := by
+  intro h; have := H.1; rw [h] at this
+  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
+    MsgTransferLeader] at this
+
+/-- **`NetMsgOk` of a sent message at its destination** (D21g (A)): what `node.Step`'s `netP`
+takes of a message from the network, from the sender's `SentMsgOk` and the transport's delivery to
+the node it is addressed to; but for a forwarded proposal (`fwdP`). -/
+theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.msg.To' = dst)
+    (Hnp : st.msg.Type' ≠ MsgProp) : NetMsgOk dst st := by
+  obtain ⟨Hty, Hf0, Ht0, Ht1, Hft⟩ := H
+  subst Hto
+  unfold NetMsgOk UnstampedType
+  simp only [sentTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
+  rcases Hty with h | h | h | h | h | h | h | h | h | h | h <;> rw [h] at Ht0 Ht1 Hft Hnp ⊢ <;>
+    simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+      MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
+      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at Ht0 Ht1 Hft Hnp ⊢ <;>
+    simp_all
+
 /-- What `raft.Step` takes of the types it was extended to last (`RestMsgOk`), from
 `NetMsgOk` and the bound on the terms of a `MsgTimeoutNow`. -/
 theorem NetMsgOk.restMsgOk {id : w64} {s : NState} {st : MsgSt}
     (h : NetMsgOk id st)
     (ht : st.msg.Type' = MsgTimeoutNow →
       uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z st.msg.Term' + 1 < 2 ^ 64 ∧
-      uint.Z s.logst.fl ≤ uint.Z s.logst.applied) :
+      uint.Z s.logst.fl ≤ uint.Z s.logst.applied)
+    -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on
+    (hx : st.msg.Type' = MsgTransferLeader → s.gh.xf = false) :
     RestMsgOk s st.msg st.ents st.ctx := by
   obtain ⟨-, -, Hun, -, -, Htl, -⟩ := h
-  refine ⟨fun h' => Hun ?_, ht, fun h' => ⟨(Htl h').1, (Htl h').2, fun hz => ?_⟩⟩
+  refine ⟨fun h' => Hun ?_, ht, fun h' => ⟨(Htl h').1, (Htl h').2, fun hz => ?_, hx h'⟩⟩
   · rcases h' with h' | h' | h'
     · exact .inr (.inr (.inl h'))
     · exact .inr (.inr (.inr (.inl h')))
@@ -722,6 +766,8 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
     (Hb1 : m.Type' = MsgPreVote → 1 ≤ uint.Z s.term)
     -- (D19i part 1) the floor at most `applied` (a `MsgTimeoutNow` campaigns)
     (Hfla : uint.Z s.logst.fl ≤ uint.Z s.logst.applied)
+    -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on
+    (Hxo : m.Type' = MsgTransferLeader → s.gh.xf = false)
     (k : StepMsg m →
       (m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 ∧
         (s.prevote = true → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) ∧
@@ -782,7 +828,7 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
       have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
       have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       simp only at h ⊢
-      exact ⟨by omega, by omega, Hfla⟩))
+      exact ⟨by omega, by omega, Hfla⟩) Hxo)
 
 /-- `RNPv` after a step of `raft.Step` (`PreCandStep`): the setting and the ceiling kept, the term
 within the ceiling, and a pre-campaign (`MsgHup`) only with the ceiling one past the term. -/
@@ -886,14 +932,26 @@ instance pendingRel_pers (γ : RaftNames) (id : w64) (st : MsgSt) (p : Pending) 
 /-- A message `Ready` hands to the application to send: what it contributes to the
 protocol's messages (`msgAbs`: nothing, for a type the protocol does not describe) was
 legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; `msgAbs` is
-pure.) -/
+pure.) (2026-10-19, D21 M3) In the cluster's no-snapshot mode no `MsgSnap`; (D21 M2r, D21g (A))
+and what the receiver's `NetMsgOk` needs of it (`SentMsgOk`, `NetMsgOk.of_sent`): its type, a
+nonzero sender other than its destination, its term stamped (no `MsgTimeoutNow`, no
+`MsgTransferLeader`: leader transfer is off in the mode). -/
 def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
+  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗ ⌜γ.reNoSnap = true → SentMsgOk st⌝ ∗
     ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessage γ x)
 
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
   unfold isRaftMsg; infer_instance
+
+/-- (2026-10-19, D21 M2r) In the cluster's no-snapshot mode a message a `Ready` handed out is
+`SentMsgOk`: at its destination `NetMsgOk.of_sent` (D21g (A)). -/
+theorem isRaftMsg_sent (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ st ⊢ ⌜SentMsgOk st⌝ := by
+  iintro H
+  unfold isRaftMsg
+  icases H with ⟨-, %H, -⟩
+  ipureintro; exact H hns
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
 records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of
@@ -1394,7 +1452,7 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
   isplitr
   · ipureintro
     intro h
-    exact (Hnsl (by rw [Hnl]; exact h)).2.2.2
+    exact (Hnsl (by rw [Hnl.1]; exact h)).2.2.2
   iunfold ownStepGhost
   iframe Hg Hr
 
@@ -1433,28 +1491,53 @@ theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) 
 /-- (2026-10-19, D21 M3) The no-snapshot mode set to `b` on the static-mode physical state of a
 node out of the mode (`Bootstrap`'s, at the cluster's `RaftNames.reNoSnap`): into it, a
 non-leader with no pending snapshot, its log's boundary at most `1` and something committed, over
-a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). -/
+a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). (2026-10-19, D21 M2r)
+Leader transfer (`NGhost.xf`, on since `newRaft`) set to the same: kept off in the mode, whose
+node is past term `0` with nothing in its outbox; turned on otherwise (`ownRaftPhysC_xf_off`). -/
 theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b : Bool)
-    (H0 : s.gh.ns = false)
+    (H0 : s.gh.ns = false) (H0x : s.gh.xf = true)
     (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
-      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap) :
+      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap)
+    (Hbt : b = true → s.term ≠ W64 0 ∧ s.outbox = []) :
     ⊢ NsCap (GF := GF) b s.logst.storage -∗ ownRaftPhys cfg r id s -∗
-      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b } } := by
+      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := b } } := by
   iintro #Hcap H
   cases b with
   | false =>
-    have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
+    have He : ({ s with gh := { s.gh with ns := false, xf := false } } : NState) =
+        { s with gh := { s.gh with xf := false } } := by
       rw [← H0]
-    rw [He]; iexact H
+    rw [He]
+    ihave H := ownRaftPhys_toC' $$ H
+    ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s H0 $$ H
+    iapply ownRaftPhysC_toS
+    iexact H
   | true =>
     obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
+    obtain ⟨Ht, Hob⟩ := Hbt rfl
+    have He : ({ s with gh := { s.gh with ns := true, xf := true } } : NState) =
+        { s with gh := { s.gh with ns := true } } := by
+      rw [← H0x]
+    rw [He]
     ihave H := ownRaftPhys_toC' $$ H
     iunfold NsCap at Hcap
     ihave #Hc1 := Hcap $$ %rfl
     ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn Hp
-      Hc Ho $$ Hc1 H
+      Hc Ho H0x Ht Hob $$ Hc1 H
     iapply ownRaftPhysC_toS
     iexact H
+
+/-- (2026-10-19, D21 M2r) Leader transfer turned on (`ownRaftPhysC_xf_off`) on the static-mode
+physical state, outside the no-snapshot mode. -/
+theorem ownRaftPhys_xf_off (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (H0 : s.gh.ns = false) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ownRaftPhys cfg r id { s with gh := { s.gh with xf := false } } := by
+  iintro H
+  ihave H := ownRaftPhys_toC' $$ H
+  ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s H0 $$ H
+  iapply ownRaftPhysC_toS
+  iexact H
 
 /-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
 new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,

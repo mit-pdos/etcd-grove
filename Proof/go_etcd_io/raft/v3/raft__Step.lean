@@ -939,14 +939,14 @@ theorem raft.Step.wp_proof
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgTransferLeader
   · -- leader transfer: a request
-    obtain ⟨Hent, Hctx0, Htr⟩ := Htl Hty
+    obtain ⟨Hent, Hctx0, Htr, Hxo⟩ := Htl Hty
     ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
     have Hlok : s.role = .follower → s.lead ≠ id := by
       intro Hf
       rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
       apply Hlok0
       rw [toPState_role, Hf]; decide
-    wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Htr Hlok Hwf) $$ [$Hphys $Hmi]
+    wp_apply (wp_Step_MsgTransferLeader P PB c r id s ml m ents sn ctx rs Hty Hent Hctx0 Hxo Htr Hlok Hwf) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
