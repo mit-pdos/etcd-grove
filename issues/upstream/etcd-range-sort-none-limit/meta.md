@@ -6,8 +6,8 @@
   1f10b22ed adds the test, which fails there; 6cb3f6108 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 972c22ce2); the issue's test link (`#L279-L310`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; `range.go` unchanged since
   ea8b59433, the base of the first version)
-- **State**: draft, rebuilt to the 2026-10-18 standard (two commits, `etcdserver:` prefix, test in `txn_test.go`)
-- **Upstream issue**: —
+- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **Upstream issue**: [etcd-io/etcd#22612](https://github.com/etcd-io/etcd/issues/22612), filed 2026-10-19
 - **PR**: —
 
 Commit messages (drafts for the user to rewrite):

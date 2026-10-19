@@ -17,8 +17,8 @@ decides how to file, as for the sibling.
   to `upamanyus/etcd-raft` (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-removed-leader`, the branch the links in
   `issue.md` name; its lines 2227-2260 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
-- **State**: draft (2026-10-18)
-- **Upstream issue**: — (the issues do not mention each other; only the PRs do, in their conflict note)
+- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **Upstream issue**: [etcd-io/raft#534](https://github.com/etcd-io/raft/issues/534), filed 2026-10-19 (the issues do not mention each other; only the PRs do, in their conflict note)
 - **PR**: — (then replace `pull/TODO` in the changelog commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
   `#<other PR>` in `pr.md`)
 

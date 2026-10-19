@@ -1,7 +1,8 @@
 ---
-upstream: none
-checked: 2026-10-16
+upstream: reported
+checked: 2026-10-19
 links:
+  - etcd-io/raft#533 issue open: this bug, reported 2026-10-19
   - etcd-io/raft#392 issue closed: related, not this bug (the user's: ReadIndex retries with a reused rctx; not the IsSingleton shortcut)
   - etcd-io/raft#397 pr closed: related, not this bug (the user's: unique heartbeat ctxes for read-only requests)
   - etcd-io/raft#398 pr closed: related, not this bug (the user's: document not retrying ReadIndex with the same rctx)

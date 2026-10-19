@@ -35,8 +35,8 @@ Evidence, at etcd-io/etcd `main` b25719d10 (raft `v3.7.0`, which has the same sh
   replacing the earlier combined fix 77ab0c9 (`https://github.com/upamanyus/etcd-raft/tree/fix/raft-readindex-singleton-stale`,
   the branch the links in `issue.md` name; its lines 2154-2188 are the test).
 - **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
-- **State**: draft, revised after the user's review and a code review, split in two (2026-10-18)
-- **Upstream issue**: — (the issues do not mention each other; only the PRs do, in their conflict note)
+- **State**: filed (the issue, 2026-10-19; no PR yet)
+- **Upstream issue**: [etcd-io/raft#533](https://github.com/etcd-io/raft/issues/533), filed 2026-10-19 (the issues do not mention each other; only the PRs do, in their conflict note)
 - **PR**: — (then replace `pull/TODO` in the changelog commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number, and
   `#<other PR>` in `pr.md`)
 

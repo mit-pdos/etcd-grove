@@ -1,7 +1,8 @@
 ---
-upstream: none
-checked: 2026-10-18
+upstream: reported
+checked: 2026-10-19
 links:
+  - etcd-io/raft#534 issue open: this bug, reported 2026-10-19
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would avoid it)
 candidate: issues/upstream/raft-readindex-removed-leader/
 ---

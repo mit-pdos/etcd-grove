@@ -1,7 +1,8 @@
 ---
-upstream: none
-checked: 2026-10-18
+upstream: reported
+checked: 2026-10-19
 links:
+  - etcd-io/etcd#22612 issue open: this bug, reported 2026-10-19
   - etcd-io/etcd#21326 pr merged: related (the same limit/sort logic, KEY/ASCEND); not this bug
   - etcd-io/etcd#6672 pr merged: related (2016: NONE with a non-key target sorts ascending); where the bug starts
 candidate: issues/upstream/etcd-range-sort-none-limit/
