@@ -5,7 +5,7 @@ Lean notes: the Go code stores the generated constant `go_etcd_io.raft.v3.StateL
 (`#(W64 2)`), which `wp_apply` does not unify with `#(stateW64 .leader)`;
 `wp_store_state_leader` is `raft.wp_store_stateC` at that value.
 
-raft v3.7 (stage R4): the empty entry is `&pb.Entry{Data: nil}`, a fresh struct made an owned
+raft v3.7 (stage R4): the empty entry (since 2026-10-19 appended by `maybeStartNewSubterm`) is `&pb.Entry{Data: nil}`, a fresh struct made an owned
 entry (`entOwn_of_struct`) and frozen (`entOwn_freeze`), its one-element slice handed to
 `appendEntry` as `entsPts` (at `1`; `appendEntry` clones it and gives it back).
 -/
@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 public import Spec.go_etcd_io.raft.v3.raft__reset
 public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
 public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
 
@@ -48,7 +48,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeLeader : traceBecomeLeader.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
-    (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
+    (wp_raft_maybeStartNewSubterm : raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
   intro c r id s Hrole Hnz
@@ -134,42 +134,11 @@ theorem raft.becomeLeader.wp_proof
     word
   subst Hli'
   wp_apply wp_traceBecomeLeader
-  -- (stage R4) `emptyEnt := &pb.Entry{Data: nil}`: a fresh entry, frozen read-only
-  ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
-  · iapply ownSlice_nil
-  imod ownSlice_persist $$ Hnilb with #Hnilb
-  imod entOwn_of_struct «$r0_ptr»
-      { state' := zeroValDef, Term' := null, Index' := null, Type' := null, Data' := slice.nil,
-        unknownFields' := slice.nil, sizeCache' := 0 } (zero_val EntryM) ⊤ rfl $$ [«$r0»] with He
-  · iframe «$r0» Hnilb
-    msg_nulls
-  imod entOwn_freeze $$ He with #He
-  wp_apply wp_slice_literal
-  try (isplitr; (ipureintro; rfl))
-  iintro %es ⟨Hes, -⟩
-  ihave Hes : entsPts _ (DFrac.own 1) [zero_val EntryM] $$ [Hes]
-  · iunfold entsPts
-    iexists [«$r0_ptr»]
-    iframe Hes
-    iapply BigSepL2.bigSepL2_singleton.2; iexact He
-  wp_auto
-  -- `appendEntry` writes `Term`/`Index` into every element of the slice, so it needs
-  -- `Hes`. It returns a bool, and its postcondition says an all-empty batch is never
-  -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
-  -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
-  -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
-  -- (2026-10-18, D19b stage 5) `appendEntry`'s time receipt: `raft.Step`, which runs the ghost
-  -- step that creates the leader's entry, takes its own; here the least one serves
-  imod (preceipt_zero (GF := GF)) with #Hrc0
-  wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1) 0
-      (by simp) (by subst hs1; exact Hnz)
-      $$ [$Hphys $Hes $Hrc0]
-    as %accepted ⟨-, %Hacc, Hes, Hphys⟩
-  -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it
-  have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
-  subst Hacc'
-  simp only [↓reduceIte]
-  wp_auto
+  -- (2026-10-19, witness support) `r.maybeStartNewSubterm(true, false)`: raft#168 moved the
+  -- empty entry there (`raft__maybeStartNewSubterm.lean`); on a witness-free configuration it
+  -- resets the replication set to a witness-free epoch and appends the entry as before
+  wp_apply wp_raft_maybeStartNewSubterm c r id _ true (fun _ => by subst hs1; exact Hnz)
+    $$ [$Hphys] as Hphys
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
   ihave Hphys : ownRaftPhysCV c c.voters r id
       { becomeLeader id s with
