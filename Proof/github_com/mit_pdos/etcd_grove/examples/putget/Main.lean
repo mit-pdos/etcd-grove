@@ -304,7 +304,7 @@ theorem Main.wp_proof
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
-  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" ⊤)
+  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" (by rw [hwl]; trivial) ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []

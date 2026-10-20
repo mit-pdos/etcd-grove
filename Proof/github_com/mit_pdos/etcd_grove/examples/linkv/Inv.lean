@@ -297,10 +297,11 @@ instance revOwn_timeless (γ : LinkvNames) (σ : KVState) : Timeless (revOwn (GF
 
 /-- **The instance's invariant** (see the file header). -/
 def linkvInv (γ : LinkvNames) (γk : KVNames) : IProp GF :=
-  inv linkvInvN iprop(∃ (h : List OpV) (S : KVSet GoString GoString) (σ : KVState)
+  -- (D23, 2026-10-20) the server's workload lets the client deposit every operation
+  iprop(⌜∀ op, γk.wl.writes op⌝ ∗ inv linkvInvN iprop(∃ (h : List OpV) (S : KVSet GoString GoString) (σ : KVState)
       (M : GMap Nat (GoString × GoString)) (nx : Nat),
     ghostVar γ.h (1 : Qp).half h ∗ etcdKV γk σ ∗ ghostMapAuth γ.p 1 M ∗ revOwn γ σ ∗
-    ⌜run (kvM decOp) kvInit h = some S ∧ LinkvOk S σ M nx⌝)
+    ⌜run (kvM decOp) kvInit h = some S ∧ LinkvOk S σ M nx⌝))
 
 instance linkvInv_persistent (γ : LinkvNames) (γk : KVNames) :
     Persistent (linkvInv (GF := GF) γ γk) := by
@@ -444,7 +445,7 @@ theorem revOwn_elem (γ : LinkvNames) (σ : KVState) :
 /-- **The invariant, allocated** from `etcdKV` at a sorted state with an empty store; with the
 library's initial state. -/
 theorem linkvInv_alloc (γk : KVNames) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess)
-    (he : absKV σ = fun _ => none) (Em : CoPset) :
+    (he : absKV σ = fun _ => none) (hW : ∀ op, γk.wl.writes op) (Em : CoPset) :
     etcdKV (GF := GF) γk σ ⊢ |={Em}=> ∃ γ : LinkvNames, linkvInv γ γk ∗ linkvState γ kvInit := by
   iintro Hσ
   imod ghostVar_alloc (GF := GF) ([] : List OpV) with ⟨%γh, Hh⟩
@@ -472,6 +473,8 @@ theorem linkvInv_alloc (γk : KVNames) (σ : KVState) (hs : σ.kvs.Pairwise etcd
   iexists ⟨γh, γp, γr⟩
   iunfold linkvInv
   iframe Hinv
+  isplitr
+  · ipureintro; exact hW
   iunfold linkvState
   iexists []
   iframe
@@ -489,8 +492,12 @@ theorem put_ok_au (γ : LinkvNames) (γk : KVNames) (x : Input) (hx : x.Put' = t
   have HE := linkvE_mask
   iintro ⟨#Hinv, HU⟩
   unfold kvOpAu1 kvAu1
+  iunfold linkvInv at Hinv
+  icases Hinv with ⟨%HW, #Hinv⟩
+  isplitr
+  · ipureintro; exact HW _
   iauintro
-  unfold atomic_acc linkvInv
+  unfold atomic_acc
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
@@ -554,8 +561,12 @@ theorem put_pend_au (γ : LinkvNames) (γk : KVNames) (n : Nat) (k v : GoString)
   have Hm := linkvInvN_mask
   iintro ⟨#Hinv, Htok⟩
   unfold kvOpAu1 kvAu1
+  iunfold linkvInv at Hinv
+  icases Hinv with ⟨%HW, #Hinv⟩
+  isplitr
+  · ipureintro; exact HW _
   iauintro
-  unfold atomic_acc linkvInv
+  unfold atomic_acc
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
@@ -598,7 +609,8 @@ theorem put_err_commit (γ : LinkvNames) (γk : KVNames) (x : Input) (hx : x.Put
         pendTok γ n x.Key' x.Val' := by
   have HE := linkvE_mask_top
   iintro ⟨#Hinv, HU⟩
-  unfold linkvInv
+  iunfold linkvInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
@@ -645,7 +657,8 @@ theorem get_err_commit (γ : LinkvNames) (γk : KVNames) (x : Input) (hx : x.Put
       |={⊤}=> (linkvS.ioOk (boxIn x) (boxOut errOut) -∗ Φ #(boxOut errOut)) := by
   have HE := linkvE_mask_top
   iintro ⟨#Hinv, HU⟩
-  unfold linkvInv
+  iunfold linkvInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
@@ -697,7 +710,9 @@ theorem get_ok_au (γ : LinkvNames) (γk : KVNames) (γc γt : GName) (x : Input
   unfold kvReadAu kvAu
   imodintro
   iauintro
-  unfold atomic_acc linkvInv
+  unfold atomic_acc
+  iunfold linkvInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok

@@ -239,10 +239,10 @@ theorem srvStep_of_watch (E : apply.AEnv GF) (log : Log) (rng : WatchRange) (pfx
     (hcov : ∀ k, rng.covers k = true ↔ pfx <+: k) (r0 r1 : Nat) (h01 : r0 ≤ r1)
     (h1 : r1 < log.length)
     (hnone : ∀ x : Nat, r0 < x → x < r1 → watchEvents log rng x (x + 1) = []) :
-    srvLog E log ⊢
+    srvLog E log ∗ certOk E.γ log ⊢
       srvStep E (W64 (r0 : Int)) (W64 (r1 : Int)) pfx
         ((watchEvents log rng r1 (r1 + 1)).map evmToEtcd) := by
-  iintro #Hl
+  iintro ⟨#Hl, #Hcok⟩
   ihave %Hp : ⌜LogWf' log ∧ log.length < 2 ^ 63⌝ $$ [Hl]
   · unfold srvLog
     icases Hl with ⟨Hc, -⟩
@@ -253,7 +253,7 @@ theorem srvStep_of_watch (E : apply.AEnv GF) (log : Log) (rng : WatchRange) (pfx
   have e1 : sint.Z (W64 (r1 : Int)) = r1 := by word
   unfold srvStep
   iexists log
-  iframe Hl
+  iframe Hl Hcok
   ipureintro
   refine ⟨by omega, by omega, by omega, fun x hx1 hx2 => hz x (by omega) (by omega), ?_⟩
   rw [e1]

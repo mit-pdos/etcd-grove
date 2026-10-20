@@ -241,7 +241,8 @@ theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (p
     rw [mvcc.watchEvents_append L rg (show p + 1 ≤ x by omega) (show x ≤ b by omega),
       mvcc.watchEvents_append L rg (show x ≤ x + 1 by omega) (show x + 1 ≤ b by omega)] at this
     exact (List.append_eq_nil_iff.1 (List.append_eq_nil_iff.1 this).2).1
-  ihave #Hstep := v3rpc.srvStep_of_watch V.R.E L rg pfx hcov p b (by omega) hb hnone' $$ Hsl
+  ihave #Hstep := v3rpc.srvStep_of_watch V.R.E L rg pfx hcov p b (by omega) hb hnone' $$ [Hsl Hc]
+  · iframe #
   generalize hA : mvcc.watchEvents L rg b (b + 1) = A at *
   unfold etcdStepCertBody
   iexists A.map v3rpc.evmToEtcd
@@ -656,12 +657,15 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     iapply Hsm; iexact Hs
   ihave #Hsl : v3rpc.srvLog V.R.E Lc $$ []
   · unfold v3rpc.srvLog; rw [← hst]; iframe Hs; ipureintro; exact Hsmall
+  ihave #HcLc : mvcc.certOk V.R.E.γ Lc $$ []
+  · rw [← hst]; iapply mvcc.evLog_certOk; iexact HLc
   have hpe : mvcc.watchEvents Lc rg p (p + 1) = [] :=
     watchEvents_sub_nil Lc rg hnone0 (by omega) (Nat.le_succ p) (Nat.le_refl _)
   have HS := v3rpc.srvStep_of_watch V.R.E Lc rg pfx hcov q p (by omega) (by omega)
     (fun y h1 h2 => watchEvents_sub_nil Lc rg hnone0 (by omega) (Nat.le_succ y) (by omega))
   rw [hpe, List.map_nil] at HS
-  ihave #Hstep := HS $$ Hsl
+  ihave #Hstep := HS $$ [Hsl HcLc]
+  · iframe #
   iexists W64 (p : Int)
   isplitr
   · unfold watchRespOk

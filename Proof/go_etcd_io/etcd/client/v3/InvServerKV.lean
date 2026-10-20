@@ -228,6 +228,7 @@ theorem kvOpAu_range (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
   have h : kvOpStep (KVOp.range o) = fun σ => σ := by funext σ; rfl
   unfold kvOpAu kvReadAu
   rw [h]
+  exact sep_elim_right
 
 instance kvAnyAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
     Persistent (kvAnyAu (GF := GF) E γ) := by
@@ -291,7 +292,8 @@ theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : 
 (`kv_client_floor`), then every update opens the invariant, hands the state over, takes the
 stepped state back and moves the counter (`kvOpStep_rev`); the counter's lower bound gives the
 floor at the state the update fires at. -/
-theorem kvAnyAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
+theorem kvAnyAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName)
+    (hW : ∀ op, γ.kv.wl.writes op) :
     srvKVInvs E γ ∗ kvClientInv γ γm ⊢ kvAnyAu (GF := GF) E γ := by
   have Hm := kvClientN_mask
   iintro ⟨#Hinvs, #Hinv⟩
@@ -300,6 +302,8 @@ theorem kvAnyAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
   imod kv_client_floor E γ γm l $$ Hinvs Hinv Hc with ⟨%n, #Hlb, %Hn⟩
   imodintro
   iunfold kvOpAu
+  isplitr
+  · ipureintro; exact hW op
   iunfold kvAu
   iintro !>
   iauintro

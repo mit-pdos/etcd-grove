@@ -302,7 +302,7 @@ theorem Main.wp_proof
   ihave #Hone := Hone $$ []
   · ipureintro; trivial
   -- the instance's invariant, at the server's start store (empty)
-  imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot ⊤) $$ Hetcd
+  imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot (by rw [hwl]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   -- `Check(cli, clients, ops, 0)`
   wp_apply (wp_Check γl cl go!"127.0.0.1:23791" _ E ρ.rd cid mid clients ops (W64 0) hAs

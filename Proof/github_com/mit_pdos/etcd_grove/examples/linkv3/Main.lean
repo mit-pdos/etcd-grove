@@ -171,7 +171,7 @@ theorem Main.wp_proof
   -- (in `bootstrap`'s order: `linkv3-2`, `-3`, `-1`; the client's `etcdKV` at `linkv3-1`'s names)
   imod (cluster3_alloc id₂ id₃ id₁ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₂,
     %ρ₃, %ρ₁, %E₂, %E₃, %E₁, %Φs, %γn, %Hal, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hmb₁, Hsl₁, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2, hlog₁⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2, hlog₁, hwl₁⟩ := Hal
   obtain ⟨hn23, hn21, hn31⟩ := id_ne id₂ id₃ id₁ bootLog Hbf
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
@@ -325,7 +325,7 @@ theorem Main.wp_proof
   · ipureintro; trivial
   -- the instance's invariant, at the server's start store (empty)
   imod (linkv.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
-      Hbf.boot ⊤) $$ Hetcd
+      Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   -- `Check(cli, clients, ops, 0)`
   wp_apply (wp_Check γl cl clientAddr₁ _ E ρ₁.rd cid mid clients ops (W64 0) hAs

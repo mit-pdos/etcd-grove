@@ -45,7 +45,8 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₃.rd.kv.log0 = [[], []]⌝ ∗
+        γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₃.rd.kv.log0 = [[], []] ∧
+        ρ₃.rd.kv.wl = putgetWorkload⌝ ∗
       memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
       memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
       memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
@@ -127,12 +128,12 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   ihave ⟨Hs₃, -⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
     (GMap.lookup_empty _)).1 $$ Hslots
-  obtain ⟨hst₃, hc0₃, hch₃, hlog₃⟩ := Hρ₃
+  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hwl₃⟩ := Hρ₃
   imodintro
   iexists γ, bud, ρ₁, ρ₂, ρ₃, env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
   isplitr
-  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, Hγn.1, Hγn.2, by rw [hlog₃, hlog]⟩
+  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, Hγn.1, Hγn.2, by rw [hlog₃, hlog], by rw [hwl₃, hwl]⟩
   rw [etcdKV_congr ρ₃.rd.kv γk hst₃,
     show kvModel ρ₃.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
       unfold kvModel; rw [hc0₃, hch₃, hlog₃]]

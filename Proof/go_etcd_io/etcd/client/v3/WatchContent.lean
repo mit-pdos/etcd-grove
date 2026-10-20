@@ -608,7 +608,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
       (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
         ⌜evsOf Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
       sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
-    ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
+    |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
       rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hi ((es.getLast?.map EvModel.rev).getD hi)
         ⟨es, W64 0, false, false, hdr⟩ ∗
       ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = P.rev - W64 1) ∨
@@ -635,6 +635,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   · ipureintro; simp [Hkvl]
   by_cases hne : ρ.evs = []
   · -- no events: the cursor stands still
+    imodintro
     have hes : List.zipWith evModelOf ρ.evs kvs = [] := by rw [hne]; simp
     rw [hes]
     have hsn : evsOf (Dm ++ [m]) w = evsOf Dm w := by rw [hsnoc, if_neg (by simp [hne])]; simp
@@ -667,7 +668,10 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   have hflat' : evsOf Dm w ++ ρ.evs = mvcc.watchEvents L rg lo d := hflat
   ihave %HLw := v3rpc.sealed_pure _ L $$ HL
   iunfold srvNoDupKeys at Hnd
-  ihave %HLnd := Hnd $$ %L HL
+  ihave #HLc := mvcc.evLog_certOk _ _ $$ HLe
+  ihave Hnd' := Hnd $$ %L HL HLc
+  imod Hnd' with %HLnd
+  imodintro
   -- the start revision
   ihave %Hlo : ⌜sint.Z P.rev ≤ (lo : Int)⌝ $$ []
   · unfold mvcc.watcherIs

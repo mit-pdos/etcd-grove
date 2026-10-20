@@ -215,6 +215,7 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
       reqPropOk γk (irrPut op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold putPermit reqPropOk
   iintro ⟨%Hl, Hau⟩
+  icases kvOpAu1_writes γk (.put op) Q $$ Hau with ⟨%Hwr, Hau⟩
   iright; iright
   iexists .put op, Q, γc
   iframe Hau
@@ -230,7 +231,7 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
     simp only [irrPut, Option.some.injEq] at hop'
     subst hop'
     exact Hl
-  refine ⟨⟨hpl, γk.wl.admits_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
+  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
     rqShape_of_plain _ hpl (by rw [hk]; decide), rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
@@ -241,6 +242,7 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
       reqPropOk γk (irrDeleteRange op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
   unfold deletePermit reqPropOk
   iintro ⟨%Hz, #Hau⟩
+  ihave ⟨%Hwr, -⟩ := kvOpAu_writes γk (.deleteRange op) Q $$ Hau
   iright; ileft
   iexists .deleteRange op, Q
   iframe Hau
@@ -252,7 +254,7 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     rw [hk]
     exact ⟨by simp [apply.noSideEffect, irrDeleteRange, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrDeleteRange, apply.irrEmpty]⟩
-  refine ⟨⟨hpl, γk.wl.admits_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
+  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
     rqShape_of_plain _ hpl (by rw [hk]; decide), rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩
@@ -266,6 +268,7 @@ theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IPro
       reqPropOk γk (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
   unfold txnPermit reqPropOk
   iintro ⟨%Ht, #Hau⟩
+  ihave ⟨%Hwr, -⟩ := kvOpAu_writes γk (.txn t) Q $$ Hau
   iright; ileft
   iexists .txn t, Q
   iframe Hau
@@ -278,7 +281,7 @@ theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IPro
     refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
     intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
-  refine ⟨⟨hpl, γk.wl.admits_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
+  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
     rqShape_of_txn _ hpl hk ?_, rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩

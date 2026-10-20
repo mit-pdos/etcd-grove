@@ -140,9 +140,11 @@ instance srvReadAt_timeless (E : apply.AEnv GF) (r : w64) : Timeless (srvReadAt 
 /-- **A step of etcd's history, on the server**: a sealed small log has revision `r1` (above
 `r0 ≥ 0`), no
 event under `pfx` at a revision strictly between `r0` and `r1`, and `evs` are the events under
-`pfx` at `r1`. -/
+`pfx` at `r1`; (D23, 2026-10-20) the log is certified (`certOk`: the KV model of a committed
+raft prefix, as a watch event's log is, `mvcc.evLog`), so that a client knowing what the
+committed log holds (a workload's, D23) knows the step's. -/
 def srvStep (E : apply.AEnv GF) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) : IProp GF :=
-  iprop(∃ log : Log, srvLog E log ∗
+  iprop(∃ log : Log, srvLog E log ∗ certOk E.γ log ∗
     ⌜0 ≤ sint.Z r0 ∧ sint.Z r0 ≤ sint.Z r1 ∧ sint.Z r1 < log.length ∧
       (∀ x : Nat, sint.Z r0 < x → x < sint.Z r1 → revEvs log pfx x = []) ∧
       revEvs log pfx (sint.Z r1).toNat = evs⌝)
@@ -264,7 +266,7 @@ theorem srvStep_transfer (E : apply.AEnv GF) (r0 a r1 : w64) (pfx : GoString) (s
     srvStep E r0 r1 pfx evs ∗ srvEtcdState E a pfx s ⊢
       srvEtcdState E r1 pfx (applyEvsState s evs) := by
   unfold srvStep srvEtcdState
-  iintro ⟨⟨%L1, #H1, %h1⟩, ⟨%L2, #H2, %h2⟩⟩
+  iintro ⟨⟨%L1, #H1, #-, %h1⟩, ⟨%L2, #H2, %h2⟩⟩
   ihave %Hl := srvLog_two E L1 L2 $$ [$H1 $H2]
   obtain ⟨L, p1, p2, -⟩ := Hl
   obtain ⟨h10, h1a, h1b, h1q, rfl⟩ := h1
@@ -283,16 +285,20 @@ theorem srvStep_transfer (E : apply.AEnv GF) (r0 a r1 : w64) (pfx : GoString) (s
 theorem srvStep_compose (E : apply.AEnv GF) (a b c : w64) (pfx : GoString) (evs : List EtcdEv) :
     srvStep E a b pfx [] ∗ srvStep E b c pfx evs ⊢ srvStep E a c pfx evs := by
   unfold srvStep
-  iintro ⟨⟨%L1, #H1, %h1⟩, ⟨%L2, #H2, %h2⟩⟩
+  iintro ⟨⟨%L1, #H1, #C1, %h1⟩, ⟨%L2, #H2, #C2, %h2⟩⟩
   ihave %Hl := srvLog_two E L1 L2 $$ [$H1 $H2]
   obtain ⟨L, p1, p2, -, -, -, hL⟩ := Hl
   obtain ⟨h10, h1a, h1b, h1q, h1e⟩ := h1
   obtain ⟨h20, h2a, h2b, h2q, h2e⟩ := h2
   iexists L
-  isplitl
+  isplitr
   · rcases hL with rfl | rfl
     · iexact H1
     · iexact H2
+  isplitr
+  · rcases hL with rfl | rfl
+    · iexact C1
+    · iexact C2
   have hl2 : L2.length ≤ L.length := p2.length_le
   ipureintro
   refine ⟨h10, by omega, by omega, ?_, ?_⟩
@@ -317,7 +323,7 @@ theorem srvStep_delete_present (E : apply.AEnv GF) (r0 a r1 : w64) (pfx : GoStri
       ⌜∀ (i : Nat) (c : EtcdEv), cs[i]? = some c → c.typ = W32 1 →
         ∃ v ∈ applyEvsState s (cs.take i), v.key = c.kv.key⌝ := by
   unfold srvStep srvEtcdState srvLog
-  iintro ⟨⟨%L1, ⟨#H1, %Hs1⟩, %h1⟩, ⟨%L2, ⟨#H2, %Hs2⟩, %h2⟩⟩
+  iintro ⟨⟨%L1, ⟨#H1, %Hs1⟩, #-, %h1⟩, ⟨%L2, ⟨#H2, %Hs2⟩, %h2⟩⟩
   ihave %Hp := idxSealed_cmp E.γ.idx L1 L2 $$ H1 H2
   ihave %Hw := sealed_pure E.γ.idx L1 $$ H1
   ipureintro

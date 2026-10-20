@@ -75,6 +75,22 @@ def plainCover (rq : apply.IRRModel) : Prop :=
   | .clusterVersionSet | .clusterMemberAttrSet => apply.needAdminPermission rq = false
   | _ => False
 
+/-- **A KV operation** as the server applies it. -/
+inductive KVOp where
+  | put (o : OpFull)
+  | range (o : OpFull)
+  | deleteRange (o : OpFull)
+  | txn (t : TxnModel)
+
+/-- **The KV operation of a request**, by `dispatch`'s kind. -/
+def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
+  match apply.dispatchKind rq with
+  | .put => rq.put.map .put
+  | .range => rq.range.map .range
+  | .deleteRange => rq.deleteRange.map .deleteRange
+  | .txn => rq.txn.map .txn
+  | _ => none
+
 /-- **The server's workload** (D19q, 2026-10-18; `notes/decisions.md`, "D19q"): the parameter
 the server's proofs are stated at, chosen by whoever allocates the KV names (`KVNames.wl`) and so
 fixed for a run. `admits`: the requests the instance lets into the log, within the covered ones
@@ -82,15 +98,24 @@ fixed for a run. `admits`: the requests the instance lets into the log, within t
 leases the lessor may grant (`srvGrantGuard`, `NewServer`'s argument to `lease.NewLessor`). The
 fields after are the instance's obligations: its admission does not depend on the header the
 server stamps (`admits_header`, `apply.withHeader`), and it admits what the server's own
-proposers send, the KV writes (`EtcdServer.Put`/`DeleteRange`/`Txn`, `admits_kv`) and the
-monitors' requests (`admits_cluster`). The leases-off instance is `putgetWorkload`. -/
+proposers send: the KV writes of the operations its clients may deposit (`writes`, D23,
+2026-10-20: `EtcdServer.Put`/`DeleteRange`/`Txn`, `admits_write`; until then every KV write,
+`admits_kv`), reads always (`writes_range`), and the monitors' requests (`admits_cluster`). The
+leases-off instance is `putgetWorkload` (every operation). -/
 structure SrvWorkload where
   admits : apply.IRRModel → Prop
   grant : w64 → Prop
+  /-- (D23, 2026-10-20) the client operations the instance's clients may deposit (`kvOpAu`,
+  `kvOpAu1` carry it), reads always -/
+  writes : KVOp → Prop
   admits_header : ∀ (rq : apply.IRRModel) (hm : apply.HeaderModel),
     admits rq → admits { rq with header := some hm }
-  admits_kv : ∀ rq : apply.IRRModel, (apply.dispatchKind rq = .put ∨
-    apply.dispatchKind rq = .deleteRange ∨ apply.dispatchKind rq = .txn) → admits rq
+  /-- (D23) a KV write (`EtcdServer.Put`/`DeleteRange`/`Txn`'s proposal) of a deposited
+  operation is admitted; until D23 every KV write was (`admits_kv`) -/
+  admits_write : ∀ (rq : apply.IRRModel) (op : KVOp), (apply.dispatchKind rq = .put ∨
+    apply.dispatchKind rq = .deleteRange ∨ apply.dispatchKind rq = .txn) →
+    reqKVOp rq = some op → writes op → admits rq
+  writes_range : ∀ o : OpFull, writes (.range o)
   admits_cluster : ∀ rq : apply.IRRModel, (apply.dispatchKind rq = .clusterMemberAttrSet ∨
     apply.dispatchKind rq = .clusterVersionSet) → admits rq
 
@@ -109,9 +134,11 @@ lease granted (the grant guard `False`, D19n). -/
 def putgetWorkload : SrvWorkload where
   admits rq := putgetKind (apply.dispatchKind rq)
   grant _ := False
+  writes _ := True
   admits_header _ _ h := h
-  admits_kv _ h := by
+  admits_write _ _ h _ _ := by
     unfold putgetKind; rcases h with h | h | h <;> simp [h]
+  writes_range _ := trivial
   admits_cluster _ h := by
     unfold putgetKind; rcases h with h | h <;> simp [h]
 
@@ -550,13 +577,6 @@ def kvStateOf (l : mvcc.Log) : KVState := ⟨mvcc.stateAfter l, l.length - 1⟩
 def KVState.commit (σ : KVState) (cs : List mvcc.Change) : KVState :=
   if cs = [] then σ else ⟨mvcc.applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs, σ.rev + 1⟩
 
-/-- **A KV operation** as the server applies it. -/
-inductive KVOp where
-  | put (o : OpFull)
-  | range (o : OpFull)
-  | deleteRange (o : OpFull)
-  | txn (t : TxnModel)
-
 open Classical in
 /-- **The operation's effect on the state**: a put not finding the previous key-value its
 ignore flag needs changes nothing, else commits its one change; a range changes nothing; a
@@ -573,15 +593,6 @@ def kvOpStep : KVOp → KVState → KVState
     if txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) then
       σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1
     else σ
-
-/-- **The KV operation of a request**, by `dispatch`'s kind. -/
-def reqKVOp (rq : apply.IRRModel) : Option KVOp :=
-  match apply.dispatchKind rq with
-  | .put => rq.put.map .put
-  | .range => rq.range.map .range
-  | .deleteRange => rq.deleteRange.map .deleteRange
-  | .txn => rq.txn.map .txn
-  | _ => none
 
 /-- **A request's effect on the state**: its operation's, or none. -/
 def kvReqStep (rq : apply.IRRModel) (σ : KVState) : KVState :=

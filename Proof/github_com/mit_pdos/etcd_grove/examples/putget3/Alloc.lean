@@ -103,7 +103,7 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
       mvcc.idxFresh idx -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-        ρ.rd.kv.log0 = γk.log0⌝ ∗
+        ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.wl = γk.wl⌝ ∗
         memberBoot γ bud bootLog ρ (env₀ idx cok rev) Φs id := by
   iintro Hghost #Hcomm #Hcinv #Hbinv #Hlb #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC⟩ Hidx Hcok Hrev
   imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp
@@ -112,7 +112,7 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
   imodintro
   iexists ρ
   isplitr
-  · ipureintro; exact ⟨hst, hc0', hch', hlog'⟩
+  · ipureintro; exact ⟨hst, hc0', hch', hlog', hwl'⟩
   iunfold memberBoot
   simp only [env₀]
   rw [hiss', hcnt, hraft, Hiss]
@@ -135,7 +135,7 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γn.N = srvNet γ bud ∧ γn.dir = dir3 id₁ id₂ id₃⌝ ∗
+        γn.N = srvNet γ bud ∧ γn.dir = dir3 id₁ id₂ id₃ ∧ ρ₁.rd.kv.wl = putgetWorkload⌝ ∗
       memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
       memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
       memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
@@ -217,12 +217,12 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   ihave ⟨Hs₃, -⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
     (GMap.lookup_empty _)).1 $$ Hslots
-  obtain ⟨hst₁, hc0₁, hch₁, hlog₁⟩ := Hρ₁
+  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hwl₁⟩ := Hρ₁
   imodintro
   iexists γ, bud, ρ₁, ρ₂, ρ₃, env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
   isplitr
-  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, Hγn.1, Hγn.2⟩
+  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, Hγn.1, Hγn.2, by rw [hwl₁, hwl]⟩
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModel ρ₁.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
       unfold kvModel; rw [hc0₁, hch₁, hlog₁]]

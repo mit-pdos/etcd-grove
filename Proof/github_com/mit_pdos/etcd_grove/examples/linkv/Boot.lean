@@ -88,11 +88,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumption
 /-- **`linkvInv_alloc` at a new member's start state** (see the file header). -/
 theorem linkvInv_alloc_boot (γk : KVNames) (hlog : γk.log0 = [[], []])
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) (Em : CoPset) :
+    (hb : BootLogOk ccOk ps bootLog) (hW : ∀ op, γk.wl.writes op) (Em : CoPset) :
     etcdKV (GF := GF) γk (kvStateOf (kvModel γk (bootEntries bootLog))) ⊢
       |={Em}=> ∃ γ : LinkvNames, linkvInv γ γk ∗ linkvState γ kvInit :=
   have h := boot_store_empty γk hlog ccOk ps bootLog hb
-  linkvInv_alloc γk _ h.1 h.2 Em
+  linkvInv_alloc γk _ h.1 h.2 hW Em
 
 end alloc
 

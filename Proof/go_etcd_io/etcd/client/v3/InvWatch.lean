@@ -240,7 +240,9 @@ instance srvLogsSmall_persistent (R : v3rpc.WSrv GF) : Persistent (srvLogsSmall 
   unfold srvLogsSmall; infer_instance
 
 /-- **No revision of the server writes a key twice** (a premise, persistent): every sealed log
-of the server (`mvcc.idxSealed`, unit W-M2b: the logs the watch events are of) has each
+of the server (`mvcc.idxSealed`, unit W-M2b: the logs the watch events are of) that is
+certified (`mvcc.certOk`, D23, 2026-10-20: as a watch event's log is, `mvcc.evLog`; with an
+update at `⊤`, to open the server's invariants that say what the certified logs hold) has each
 revision's keys distinct (`txn.NoDupKeysPerRev`). etcd's check of a transaction's requests lets a
 nested transaction's put and a later sibling's delete of one key through
 (`issues/etcd-txn-check-intervals-sibling.md`); such a revision's put event carries a key-value
@@ -249,7 +251,8 @@ of what the transaction writes: whether the revision is committed yet or only se
 matter. The recipes' and the cache's transactions never write a key twice: the premise is about
 other writers. -/
 def srvNoDupKeys (R : v3rpc.WSrv GF) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed R.γ.st.idx log -∗ ⌜txn.NoDupKeysPerRev log⌝)
+  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed R.γ.st.idx log -∗ mvcc.certOk R.γ.st log ={⊤}=∗
+    ⌜txn.NoDupKeysPerRev log⌝)
 
 instance srvNoDupKeys_persistent (R : v3rpc.WSrv GF) : Persistent (srvNoDupKeys R) := by
   unfold srvNoDupKeys; infer_instance
