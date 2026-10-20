@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
@@ -86,5 +87,35 @@ func TestMaxRev(t *testing.T) {
 	}
 	if m := maxRev([]putRec{{5, "a", "b"}, {9, "a", "b"}, {7, "a", "b"}}); m != 9 {
 		t.Fatalf("maxRev = %d", m)
+	}
+}
+
+// TestCollect checks collect on hand-made channels: it stops at the first event at or above upTo,
+// and reports false on a cancel (a compaction's, a rejection's) or a closed channel before it.
+func TestCollect(t *testing.T) {
+	ev := func(rev int64, key string) *clientv3.Event {
+		return &clientv3.Event{Kv: &mvccpb.KeyValue{Key: []byte(key), Value: []byte("a"), ModRevision: rev}}
+	}
+	run := func(upTo int64, resps ...clientv3.WatchResponse) ([]event, bool) {
+		ch := make(chan clientv3.WatchResponse, len(resps))
+		for _, r := range resps {
+			ch <- r
+		}
+		close(ch)
+		return collect(ch, upTo)
+	}
+	if evs, ok := run(3, clientv3.WatchResponse{Events: []*clientv3.Event{ev(2, "ck/k0")}},
+		clientv3.WatchResponse{Events: []*clientv3.Event{ev(3, "ck/k1")}}); !ok || len(evs) != 2 {
+		t.Fatalf("got %v %v", evs, ok)
+	}
+	if _, ok := run(3, clientv3.WatchResponse{Events: []*clientv3.Event{ev(2, "ck/k0")}},
+		clientv3.WatchResponse{Canceled: true, CompactRevision: 3}); ok {
+		t.Fatal("a compaction's cancel: ok")
+	}
+	if _, ok := run(3, clientv3.WatchResponse{Canceled: true}); ok {
+		t.Fatal("a rejection: ok")
+	}
+	if _, ok := run(3, clientv3.WatchResponse{Events: []*clientv3.Event{ev(2, "ck/k0")}}); ok {
+		t.Fatal("closed early: ok")
 	}
 }

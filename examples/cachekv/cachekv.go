@@ -18,8 +18,8 @@
 //
 // Main calls only what the proofs specify: putget's start (etcdserver.NewServer, Start,
 // v3rpc.Server, net.Listen, (*grpc.Server).Serve on a goroutine), clientv3.New, the client's Put,
-// cache.New, the cache's Watch, context.WithCancel and WatchResponse.Err. An error from a step of
-// the start ends Main with Failed.
+// cache.New, the cache's Watch and context.WithCancel. An error from a step of the start ends Main
+// with Failed.
 package cachekv
 
 import (
@@ -131,9 +131,11 @@ func maxRev(oks []putRec) int64 {
 	return m
 }
 
-// collect reads the watch channel wch until an event at revision upTo or above (at once if
+// collect reads the cache's watch channel wch until an event at revision upTo or above (at once if
 // upTo is 0), returning the events read and true; false if the channel closed, or a response
-// reported an error, before.
+// reported an error, before. The cache's error responses are cancels (cache.go: validateWatch's
+// rejection, the compaction's), with Canceled set: their Err() is not nil because of it (the
+// cache never sets a response's unexported closeErr), so collect tests the fields.
 func collect(wch clientv3.WatchChan, upTo int64) ([]event, bool) {
 	var evs []event
 	var last int64 // the last event's revision
@@ -141,7 +143,7 @@ func collect(wch clientv3.WatchChan, upTo int64) ([]event, bool) {
 		return evs, true
 	}
 	for wresp := range wch {
-		if wresp.Err() != nil {
+		if wresp.Canceled || wresp.CompactRevision != 0 {
 			return evs, false
 		}
 		// Gooseable: mvccpb.Event rather than its alias clientv3.Event (the same type): Goose does

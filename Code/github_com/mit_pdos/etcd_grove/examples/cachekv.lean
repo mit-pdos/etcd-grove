@@ -273,11 +273,13 @@ noncomputable def maxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore putRec.ty))) (Pair (Var "p") (Var "$value")))))))))))))))
 
-/-- collect reads the watch channel wch until an event at revision upTo or above (at once if
+/-- collect reads the cache's watch channel wch until an event at revision upTo or above (at once if
     upTo is 0), returning the events read and true; false if the channel closed, or a response
-    reported an error, before.
+    reported an error, before. The cache's error responses are cancels (cache.go: validateWatch's
+    rejection, the compaction's), with Canceled set: their Err() is not nil because of it (the
+    cache never sets a response's unexported closeErr), so collect tests the fields.
 
-    go: cachekv.go:137:6 -/
+    go: cachekv.go:139:6 -/
 noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -291,9 +293,10 @@ noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType event.ty)))) (Var "evs")) (Val #false)))))
   (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wch"))
+  (Let "wresp" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Val #())))
   (App (App (Val (chan.forRange _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Var "$range"))
   (Lam "$key"
-  (Let "wresp" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Var "$key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty go!"Events"))) (Var "wresp")))
   (Let "es" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Val #())))
@@ -332,11 +335,13 @@ noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Pair (Var "e") (Var "$value")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Pair (Var "es") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty) go!"Err"))) (Var "wresp")) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty go!"Canceled"))) (Var "wresp"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty go!"CompactRevision"))) (Var "wresp"))) (Val #(W64 0))))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType event.ty)))) (Var "evs")) (Val #false)))
   (App (Val doExecute)
-  (Val #())))))))))))
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Pair (Var "wresp") (Var "$key"))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "upTo")) (Val #(W64 0)))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType event.ty)))) (Var "evs")) (Val #true)))
@@ -345,7 +350,7 @@ noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- attempted reports whether (key, val) is one of the Puts tried.
 
-    go: cachekv.go:163:6 -/
+    go: cachekv.go:165:6 -/
 noncomputable def attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tried"
   (Lam "key"
@@ -378,7 +383,7 @@ noncomputable def attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
     gap-free from revision 2, each a put some writer attempted (tried), and every successful Put
     (oks) the event at its revision with its key and value.
 
-    go: cachekv.go:175:6 -/
+    go: cachekv.go:177:6 -/
 noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "tried"
@@ -478,7 +483,7 @@ noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
     prefix from revision 2, runs nw writers of nops Puts each, then reads the watch and checks it
     against the writes.
 
-    go: cachekv.go:207:6 -/
+    go: cachekv.go:209:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
