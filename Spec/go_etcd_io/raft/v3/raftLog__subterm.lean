@@ -1,6 +1,6 @@
 /-
-`raftLog.subterm` (`log.go`, 2026-10-19, witness support): the term and subterm of the entry at
-an index, and whether the log has it.
+`(*raftLog).subterm` (`log.go:314`, witness support): the term and subterm of the entry at
+an index. Lean-first (2026-10-20).
 -/
 module
 
@@ -22,26 +22,27 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `l.subterm(i)`:
+/-- `l.subterm(i)`: `(term, subterm, true)` of the entry at index `i`, or `(0, 0, false)`.
 
-    if i < l.firstIndex() || i > l.lastIndex() { return 0, 0, false }
-    ents, err := l.slice(i, i+1, noLimit)
-    if err != nil || len(ents) == 0 { return 0, 0, false }
-    return ents[0].GetTerm(), ents[0].GetSubterm(), true
+**Total**, like `raftLog.term`: below `firstIndex` or past `lastIndex` the body returns
+`false` before reading anything; in between it calls `slice(i, i+1, noLimit)`, whose range
+premise the two tests establish (`firstIndex >= prev.index + 1`, and `i + 1` does not wrap by
+`ownRaftLog`'s `Hnowrap`). `slice` may still answer `ErrCompacted` when the application
+compacted the storage up to the floor (`LogState.fl`); then the result is `false` too.
 
-`true`: the entry at `i` of the log (past its boundary) is of that term and subterm; `false`:
-subterm `0` (the index is behind the boundary, past the log, or compacted out of the storage). The
-log comes back unchanged. -/
+Only `ok = true` is described: the entry at `i` of the log the protocol model sees,
+`plogEntryAt prev (sents ++ uents) i` (`Protocol/Model.lean`; the same log as `raftLog.term`'s
+`plogTermAt`), carries the returned term and subterm. When it answers `false` nothing is
+claimed (the entry at `i` may be behind the boundary, past the end, or compacted by the
+application). The log comes back unchanged. -/
 abbrev raftLog.subterm.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"subterm")) (Val #i))
   {{ (t st : w64) (ok : Bool), RET (PairV (PairV #t #st) #ok);
       ownRaftLog l ls ∗
-      ⌜ok = true → uint.Z ls.prev.index' < uint.Z i ∧
-        ∃ e, (ls.sents ++ ls.uents)[(uint.Z i - uint.Z ls.prev.index' - 1).toNat]? = some e ∧
-          e.Term' = t ∧ e.Subterm' = st⌝ ∗
-      ⌜ok = false → st = W64 0⌝ }}
+      ⌜ok = true → ∃ e, plogEntryAt ls.prev (ls.sents ++ ls.uents) i = some e ∧
+        e.Term' = t ∧ e.Subterm' = st⌝ }}
 
 end spec
 

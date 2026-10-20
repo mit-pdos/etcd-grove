@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/go_etcd_io/raft/v3/raftLog__subterm.lean`.
+Proof of `(*raftLog).subterm` (`log.go:314`, witness support). Lean-first (2026-10-20).
 -/
 module
 
@@ -27,100 +27,90 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- Three exits: out of `[firstIndex, lastIndex]` (`false`); `slice(i, i+1)` failing with
+`ErrCompacted` (`false`; its result is the nil slice, so the `len(ents) == 0` test is moot);
+and the slice's first entry, which is the log's entry at `i` (`slice`'s `plogFrom` prefix). -/
 theorem raftLog.subterm.wp_proof
     (wp_raftLog_firstIndex : raftLog.firstIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_slice : raftLog.slice.spec (GF := GF) (hG := hG))
-    (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
-    (wp_GetSubterm : raftpb.Entry.GetSubterm.spec (GF := GF) (hG := hG)) :
+    (wp_Entry_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (wp_Entry_GetSubterm : raftpb.Entry.GetSubterm.spec (GF := GF) (hG := hG)) :
     raftLog.subterm.spec (GF := GF) (hG := hG) := by
   intro l ls i
-  wp_start as Hlog
-  iNamed Hlog
+  wp_start as H
+  iNamed H
   wp_auto
   icases ownRaftLog_nowrap l ls $$ Hlog with ⟨%Hnw, Hlog⟩
-  wp_apply wp_raftLog_firstIndex l ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi, -⟩
-  by_cases Hlo : uint.Z i < uint.Z fi
-  · -- before the first index: none
-    rw [decide_eq_true Hlo]
+  wp_apply wp_raftLog_firstIndex _ ls $$ [$Hlog] as %fi ⟨Hlog, %Hfi, -⟩
+  by_cases Hb1 : uint.Z i < uint.Z fi
+  · rw [decide_eq_true Hb1]
     wp_auto
     iapply HΦ
     iframe Hlog
-    isplitr
-    · ipureintro; intro h; cases h
-    · ipureintro; intro _; rfl
-  rw [decide_eq_false Hlo]
+    ipureintro; intro Hc; cases Hc
+  rw [decide_eq_false Hb1]
   wp_auto
-  wp_apply wp_raftLog_lastIndex l ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-  by_cases Hhi : uint.Z li < uint.Z i
-  · -- past the last index: none
-    rw [decide_eq_true Hhi]
+  wp_apply wp_raftLog_lastIndex _ ls $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  by_cases Hb2 : uint.Z li < uint.Z i
+  · rw [decide_eq_true Hb2]
     wp_auto
     iapply HΦ
     iframe Hlog
-    isplitr
-    · ipureintro; intro h; cases h
-    · ipureintro; intro _; rfl
-  rw [decide_eq_false Hhi]
+    ipureintro; intro Hc; cases Hc
+  rw [decide_eq_false Hb2]
   wp_auto
-  wp_apply wp_raftLog_slice l ls i (i + W64 1) _ (by word) $$ [$Hlog] as %sl %es %err ⟨Hlog, Hr⟩
-  icases Hr with (⟨%Herr, #Hs, %Hes, -⟩ | ⟨⟨%Hsl, -⟩, #Hc, -⟩)
-  rotate_left
-  · -- compacted: `ErrCompacted`, none
-    ihave #Hinit := isInitialized_access $$ Hpkg
-    iNamed Hinit
-    icombine Hc ErrCompacted gives %Heq
-    subst Heq
-    obtain ⟨ty, p, rfl⟩ := HErrCompacted_new
+  have Hi1 : uint.Z (i + W64 1) = uint.Z i + 1 := by word
+  have Hsl : uint.Z ls.prev.index' + 1 ≤ uint.Z i ∧ uint.Z i < uint.Z (i + W64 1) ∧
+      uint.Z (i + W64 1) ≤ uint.Z ls.prev.index' + (ls.sents.length : Int)
+        + (ls.uents.length : Int) + 1 := by omega
+  wp_apply wp_raftLog_slice l ls _ _ _ Hsl $$ [$Hlog] as %s %es %err ⟨Hlog, Hr⟩
+  icases Hr with (⟨%Herr, #Hes, ⟨%Hne, %Hlen, %_, %Hpre⟩, -⟩ | ⟨⟨%Hs, %_⟩, -, -⟩)
+  · subst Herr
     wp_auto
+    ihave %Hslen := entsPts_len $$ Hes
+    obtain ⟨e, es', rfl⟩ : ∃ e es', es = e :: es' := by
+      cases es with
+      | nil => exact absurd rfl Hne
+      | cons e es' => exact ⟨e, es', rfl⟩
+    have Hsne : s.len ≠ W64 0 := by
+      intro Heq0; rw [Heq0] at Hslen
+      exact absurd Hslen.1 (by rw [show sint.nat (W64 0) = 0 by rfl]; simp)
+    simp only [Hsne, decide_false]
+    wp_auto
+    icases entsRO_lookup s (e :: es') 0 e rfl $$ Hes with ⟨%ls1, %l1, #Hls1, #He1, %Hl1⟩
+    have H0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z s.len := by
+      obtain ⟨-, Hl, Hz⟩ := Hl1.2
+      simp only [List.length_cons] at Hl
+      constructor <;> word
+    simp only [H0, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index s (sint.Z (W64 0)) ls1 DFrac.discard l1 (by word) $$ [Hls1] with -
+    · iframe Hls1; ipureintro; exact Hl1.1
+    wp_apply wp_Entry_GetTerm.1 l1 DFrac.discard e $$ [He1] with -
+    · iframe He1
+    simp only [H0, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index s (sint.Z (W64 0)) ls1 DFrac.discard l1 (by word) $$ [Hls1] with -
+    · iframe Hls1; ipureintro; exact Hl1.1
+    wp_apply wp_Entry_GetSubterm.1 l1 DFrac.discard e $$ [He1] with -
+    · iframe He1
     iapply HΦ
     iframe Hlog
-    isplitr
-    · ipureintro; intro h; cases h
-    · ipureintro; intro _; rfl
-  subst Herr
-  obtain ⟨Hne, -, -, Hpre⟩ := Hes
-  obtain ⟨e, es', rfl⟩ : ∃ e es', es = e :: es' := by
-    cases es with
-    | nil => exact absurd rfl Hne
-    | cons e es' => exact ⟨e, es', rfl⟩
-  have Hlk : (e :: es')[0]? = some e := rfl
-  icases entsRO_lookup sl (e :: es') 0 e Hlk $$ Hs with ⟨%lsl, %le, #Hsl, #He, %Hlen⟩
-  obtain ⟨Hl0, -, Hlen2, Hlen3⟩ := Hlen
-  have Hslz : sl.len ≠ W64 0 := by
-    intro h
-    rw [h] at Hlen2
-    simp only [List.length_cons] at Hlen2
-    have : sint.nat (W64 0) = 0 := by word
-    omega
-  wp_auto
-  rw [decide_eq_false Hslz]
-  wp_auto
-  rw [ite_eq_left ⟨by word, by simp at Hlen2; word⟩]
-  wp_apply wp_load_slice_index (V := Loc) sl (sint.Z (W64 0)) lsl DFrac.discard le (by word) $$ [Hsl]
-    with -
-  · iframe Hsl; ipureintro; simpa using Hl0
-  wp_apply wp_GetTerm.1 le DFrac.discard e $$ [He] with -
-  · iframe He
-  rw [ite_eq_left ⟨by word, by simp at Hlen2; word⟩]
-  wp_apply wp_load_slice_index (V := Loc) sl (sint.Z (W64 0)) lsl DFrac.discard le (by word) $$ [Hsl]
-    with -
-  · iframe Hsl; ipureintro; simpa using Hl0
-  wp_apply wp_GetSubterm.1 le DFrac.discard e $$ [He] with -
-  · iframe He
-  iapply HΦ
-  iframe Hlog
-  isplitr
-  · ipureintro
+    ipureintro
     intro _
-    have Hi1 : uint.Z ls.prev.index' < uint.Z i := by omega
-    refine ⟨Hi1, e, ?_, rfl, rfl⟩
-    obtain ⟨r, Hr⟩ := Hpre
-    unfold plogFrom at Hr
-    have := congrArg (fun l => l[0]?) Hr
-    simp only [List.cons_append, List.getElem?_cons_zero, List.getElem?_drop, Nat.add_zero] at this
-    exact this.symm
-  · ipureintro; intro h; cases h
+    refine ⟨e, ?_, rfl, rfl⟩
+    rw [plogEntryAt_lookup _ _ _ (by omega)]
+    obtain ⟨t, Ht⟩ := Hpre
+    unfold plogFrom at Ht
+    have H := congrArg (fun xs : List EntryM => xs[0]?) Ht
+    simp only [List.cons_append, List.getElem?_cons_zero, List.getElem?_drop,
+      Nat.add_zero] at H
+    exact H.symm
+  · subst Hs
+    cases err <;> wp_auto
+    all_goals
+      iapply HΦ
+      iframe Hlog
+      ipureintro; intro Hc; cases Hc
 
 end proof
 

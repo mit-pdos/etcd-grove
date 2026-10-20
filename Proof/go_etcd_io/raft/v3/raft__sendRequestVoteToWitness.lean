@@ -169,7 +169,7 @@ theorem raft.sendRequestVoteToWitness.wp_proof
   try wp_auto
   wp_apply raft.wp_load_raftLogC (c := c) (V := V) r id s $$ Hphys as Hphys
   icases ownRaftPhysC_log_same (c := c) (V := V) r id s $$ Hphys with ⟨Hlog, Hback⟩
-  wp_apply wp_raftLog_subterm s.log s.logst _ $$ [$Hlog] as %t0 %st %ok ⟨Hlog, %Hok1, %Hok0⟩
+  wp_apply wp_raftLog_subterm s.log s.logst _ $$ [$Hlog] as %t0 %st %ok ⟨Hlog, %Hok1⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hwf, Hlog⟩
   ihave Hphys := Hback $$ Hlog
   try wp_auto
@@ -178,9 +178,12 @@ theorem raft.sendRequestVoteToWitness.wp_proof
       ls = W64 0 ∨ ls = plogLastSub (s.logst.sents ++ s.logst.uents) := by
     rintro ls (h | ⟨rfl, hok⟩)
     · exact Or.inl h
-    · obtain ⟨Hlt, e, He, -, Hst⟩ := Hok1 hok
+    · obtain ⟨e, He, -, Hst⟩ := Hok1 hok
+      unfold plogEntryAt at He
+      split at He
+      · cases He
       right; rw [← Hst]
-      exact entry_last_sub _ _ _ e Hwf (by rw [Hlast]) Hlt He
+      exact entry_last_sub _ _ _ e Hwf (by rw [Hlast]) (by omega) He
   cases ok
   · -- not found: `subterm = 0`
     wp_auto
