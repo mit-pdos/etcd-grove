@@ -184,7 +184,7 @@ theorem watcher.Watch.wp_proof
   iunfold isWGS at HG
   icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
-    #Hbdone⟩
+    #Hbdone, -⟩
   wp_auto
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst HM]
   · inext

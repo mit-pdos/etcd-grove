@@ -338,7 +338,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
     #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg, #HGctx, #HGcancel, #Hreqb, #Herrb, #Hclb,
-    #HGdone⟩
+    #HGdone, -⟩
   ihave #Hro' := Hro
   iunfold wrRO at Hro'
   icases Hro' with ⟨#Rctx, #Rkey, #Rend, #Rcn, #Rpn, #Rfrag, #Rwbl, #Rflt, #Rflts, #RprevKV⟩

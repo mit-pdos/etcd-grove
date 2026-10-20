@@ -566,10 +566,38 @@ def respcElem (γs : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF) (
   iprop(∃ (m : v3rpc.WatchRespM) (L : List v3rpc.WatchRespM),
     v3rpc.watchRespRecv p m ∗ Dn k.toNat m ∗ v3rpc.downLbW γs (L ++ [m]) ∗ ⌜L.length = k.toNat⌝)
 
+instance streamNames_countable : Pos.Countable StreamNames :=
+  .ofInjective (fun s => Pos.Countable.encode (s.up, s.upRcv, s.down, s.upEnd, s.downRcv, s.downEnd,
+    s.aux))
+    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
+        simp_all)
+
+/-- **An epoch of `run`** (D24): the gRPC stream it opened, the first position of `respc` its
+responses take, the name of its count of responses forwarded (a mono nat, `serveWatchClient`'s). -/
+abbrev EpInfo := StreamNames × Nat × GName
+
+/-- **What `respc` carries, across reconnections** (D24): the `k`th element was forwarded from the
+gRPC stream of some epoch `e` of `run` (`γep`), from its first position `b` on, while its count was
+at `k` (the count's lower bound `k + 1`: the epoch had not ended), and is that stream's `(k - b)`th
+response (`respcElem`, its content the watch stream's `watchDn`). -/
+def respcE (V : WEnv GF) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
+  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName),
+    monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗ ⌜b ≤ k.toNat⌝ ∗
+    respcElem γs (v3rpc.watchDn γs V.R.γ V.R.cid V.R.mid) ((k.toNat - b : Nat) : Int) p)
+
+/-- **`respc`'s producer side, handed back** (D24; with the stream's receive error on `errc`): the
+epoch the forwarder served, its count at the responses sent. -/
+def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
+  iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (sent : List Loc),
+    monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ spscProducer γr sent ∗
+    monoNatAuthOwn γc 1 sent.length ∗ ⌜b ≤ sent.length⌝)
+
 /-- **What `errc` carries** (`serveWatchClient`'s receive error; a bag): a stream error or
-`io.EOF`, which grpc's `status` accepts. -/
-def errP (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil⌝ ∗ (cliStreamErr err ∨ eofIs err) ∗ statusErrOk err)
+`io.EOF`, which grpc's `status` accepts, and (D24) `respc`'s producer side, handed back to `run`
+for the next stream. -/
+def errP (γr : SpscNames) (γep : GName) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∗ (cliStreamErr err ∨ eofIs err) ∗ statusErrOk err ∗
+    prodBack γr γep)
 
 /-- **What `donec`'s closing publishes**: `run` stopped with the close error `e` (read-only for
 good), one grpc's `status` accepts. -/
@@ -625,6 +653,11 @@ structure WgsPrm (GF : BundledGFunctors) where
   γclosing : ChanNames
   /-- the stream's substreams, a ghost map with exclusive elements (`closingP`'s membership) -/
   γws : GName
+  /-- (D24) `respc`'s SPSC names (its element `respcE`: tagged by the gRPC stream it came from) -/
+  γr : SpscNames
+  /-- (D24) the epochs of `run`: a mono list of the gRPC streams it opened, each with its first
+  position on `respc` and the name of its count of responses forwarded (`EpInfo`) -/
+  γep : GName
 
 /-- **What `closingc` carries** (a bag): a substream of this stream that stopped
 (`closingBody`), with its membership token (`G.γws`, one per substream `run` made: so `run` knows
@@ -647,9 +680,10 @@ def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
     wgsF G.wgs go!"donec" ↦□ G.donec ∗ wgsF G.wgs go!"errc" ↦□ G.errc ∗
     wgsF G.wgs go!"closingc" ↦□ G.closingc ∗ wgsF G.wgs go!"lg" ↦□ V.lg ∗
     context.isContext G.ctx G.cd ∗ context.cancelSpec G.cancel G.γctx iprop(True) ∗
-    isChanBag G.γreq G.reqc (reqP V) ∗ isChanBag G.γerr G.errc errP ∗
+    isChanBag G.γreq G.reqc (reqP V) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
     isChanBag G.γclosing G.closingc (closingP V G) ∗
-    ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown)
+    ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown ∗
+    isSpsc G.γr G.respc (respcE V G.γep) (fun _ => iprop(False)))
 
 instance isWGS_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
     Persistent (isWGS V G callSl) := by

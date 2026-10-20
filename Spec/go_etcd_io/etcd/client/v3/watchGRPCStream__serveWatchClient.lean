@@ -27,18 +27,20 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.serveWatchClient(wc)` on the client end of a gRPC watch stream with its receiver's token:
-forwards every response it receives, in order, on `respc` (the producer's side: the `k`th
-element is the stream's `k`th response, `respcElem`), until the receive fails (its error to
-`errc`) or the stream is done (`donec`). -/
+forwards every response it receives, in order, on `respc` (the producer's side, D24: for the
+epoch `e` of `run` whose stream it serves, from the epoch's first position `b`; the `k`th element
+is the stream's `(k - b)`th response, `respcE`, the epoch's count bumped past it), until the
+receive fails (its error to `errc`, with the producer's side back, `errP`) or the stream is done
+(`donec`). -/
 abbrev watchGRPCStream.serveWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (wc : GoInterface) (γs : StreamNames)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
-    (γr : SpscNames),
+    (e : Nat) (γc : GName) (sent : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
-      v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp V.R.γ) Dn cd' ∗
+      v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp V.R.γ) Dn cd' ∗ v3rpc.watchSpec V.R γs Dn ∗
       cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-      isSpsc γr G.respc (respcElem γs Dn) (fun _ => iprop(False)) ∗
-      spscProducer γr ([] : List Loc) }}
+      monoListIdxOwn G.γep e ((γs, sent.length, γc) : EpInfo) ∗ spscProducer G.γr sent ∗
+      monoNatAuthOwn γc 1 sent.length }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"serveWatchClient")) (Val #wc))
   {{ RET #(); True }}
 

@@ -40,13 +40,13 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     (wp_serve : watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG))
     (wp_Error : rpctypes.Error.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.newWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V G callSl m0 s0 rc γrc γresp
-  wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, #Hrespc, Hrespo⟩
+  intro V G callSl m0 s0 rc γrc sent eps
+  wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, Hprod, Hep⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgsnn, ⟨%vs, #Hvs, #Hcoo⟩, #Hsf, %Hlg, #Fowner, #Fremote, #Fcall, #Fctx, #Fckey,
     #Fcancel, #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg, #Hctx, #Hcancel, #Hreq, #Herr,
-    #Hclosing, #Hdone⟩
+    #Hclosing, #Hdone, #Hrespsc⟩
   wp_auto
   wp_apply wp_broadcast_chan_close rc γrc iprop(True) $$ [$Hrcb] as -
   · imodintro; itrivial
@@ -101,11 +101,14 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   icases Hopen with (⟨%Herr, %γs, %Dn, %cd', #Hcli, Htok, Hrtok, #Hspec⟩ | ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
   · subst Herr
     wp_auto
-    imod start_spsc (V := Loc) G.respc (respcElem γs Dn) (fun _ => iprop(False)) γresp $$ Hrespc
-      [Hrespo] with ⟨%γr, #Hsp, Hprod, Hcons⟩
-    · ileft; iexact Hrespo
-    wp_apply wp_fork $$ [Hrtok Hprod]
-    · wp_apply wp_serve V G callSl wc γs Dn cd' γr $$ [$Hrtok $Hprod]
+    -- (D24) the new epoch: its count from `respc`'s position `sent.length`
+    imod mono_nat_own_alloc (GF := GF) sent.length with ⟨%γc, Hcnt, -⟩
+    imod monoListAuthOwn_update_app (GF := GF) [((γs, sent.length, γc) : EpInfo)] $$ Hep with
+      ⟨Hep, #Hlb⟩
+    ihave #Hidx := monoListIdxOwn_get (GF := GF) eps.length ((γs, sent.length, γc) : EpInfo)
+      (by simp) $$ Hlb
+    wp_apply wp_fork $$ [Hrtok Hprod Hcnt]
+    · wp_apply wp_serve V G callSl wc γs Dn cd' eps.length γc sent $$ [$Hrtok $Hprod $Hcnt]
       · iframe #
       itrivial
     iapply HΦ
@@ -118,7 +121,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γs, Dn, cd', γr
+    iexists γs, Dn, cd', γc
     iframe #
     iframe
   · cases err with

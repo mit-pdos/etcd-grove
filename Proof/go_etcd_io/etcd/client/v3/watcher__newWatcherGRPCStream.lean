@@ -74,9 +74,14 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   ipersist lg
   imod wgsWg_init _ Hb $$ wg with Hadder
   imod start_bag (reqP V) _ reqc γreq (by trivial) $$ Hreqc Hreqo with #Hbreq
-  imod start_bag errP _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
-  let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, ckey, reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws⟩
+  -- (D24) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
+  imod mono_list_own_alloc (GF := GF) ([] : List EpInfo) with ⟨%γep, Hep, -⟩
+  imod start_spsc (V := Loc) respc (respcE V γep) (fun _ => iprop(False)) γresp $$ Hrespc
+    [Hrespo] with ⟨%γr, #Hsp, Hprod, Hcons⟩
+  · ileft; iexact Hrespo
+  imod start_bag (errP γr γep) _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
+  let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, ckey, reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws, γr, γep⟩
   imod start_bag (closingP V G) _ closingc γcl (by trivial) $$ Hclc Hclo with #Hbcl
   imod alloc_broadcast_chan (E := ⊤) (closeErrPub «$r0_ptr») γdone donec $$ Hdonec Hdoneo with Hdb
   icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hdb with ⟨Hdb, #Hdbu⟩
@@ -85,10 +90,10 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   · unfold isWGS
     iframe #
     ipureintro; exact ⟨Hgnn, Hlgnn⟩
-  wp_apply wp_fork_tok_body $$ [Hm0 Hrespo substreams resuming resumec closeErr Hadder Hdb Hrcb Hws]
+  wp_apply wp_fork_tok_body $$ [Hm0 Hprod Hcons Hep substreams resuming resumec closeErr Hadder Hdb Hrcb Hws]
   · iintro Htok
-    wp_apply wp_run V G callSl m0 slice.nil resumec γrc γresp
-      $$ [Hm0 Hrespo substreams resuming resumec closeErr Hadder Hdb Hrcb Hws Htok] as Htok
+    wp_apply wp_run V G callSl m0 slice.nil resumec γrc
+      $$ [Hm0 Hprod Hcons Hep substreams resuming resumec closeErr Hadder Hdb Hrcb Hws Htok] as Htok
     · iframe #
       iframe
       isplitr

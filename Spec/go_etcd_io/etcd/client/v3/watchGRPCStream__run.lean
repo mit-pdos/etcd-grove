@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`w.run()`**, the gRPC watch stream's main goroutine, on a fresh stream (no substream, no
-close error, its `resumec` not yet closed, `respc` not yet anything, `donec` to be closed by it,
+close error, its `resumec` not yet closed, `respc`'s both sides with no epoch yet (D24), `donec` to be closed by it,
 its wait group at `0`): opens the gRPC stream (`newWatchClient`), serves the `Watch` requests of
 `reqc` (each a substream with its goroutine, `serveSubstream`, created on the gRPC stream one at a
 time: a create sent only for the head of `resuming`), dispatches the stream's responses
@@ -39,7 +39,7 @@ substreams down and closing `donec` with its close error (`closeStream`). Its th
 (`wgAdder`). -/
 abbrev watchGRPCStream.run.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (m0 : Loc) (s0 : GoSlice) (rc : Loc)
-    (γrc γresp : ChanNames),
+    (γrc : ChanNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isClientWatcher V G.w ∗ isWGS V G callSl ∗ watcherF G.w go!"callOpts" ↦□ callSl ∗
@@ -47,7 +47,8 @@ abbrev watchGRPCStream.run.spec : Prop :=
       wgsF G.wgs go!"resuming" ↦ s0 ∗ sliceOwn s0 [] ∗
       wgsF G.wgs go!"closeErr" ↦ GoInterface.nil ∗
       wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
-      isChan G.respc γresp Loc ∗ ownChan γresp Loc .Idle ∗
+      spscConsumer G.γr ([] : List Loc) ∗ spscProducer G.γr ([] : List Loc) ∗
+      monoListAuthOwn G.γep 1 ([] : List EpInfo) ∗
       ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗ wgAdder G.wgs ∗ threadTok ∗
       ghostMapAuth G.γws 1 (∅ : GMap Loc Unit) }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"run")) (Val #()))

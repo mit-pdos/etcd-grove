@@ -97,6 +97,17 @@ fix is needed, below).
   (`psAt`, `psQ` in `wsRest`). `recv_unfiltered` also gives the delivered log's `relLb`. Only
   internal statements changed; gates: build 5767 jobs; links; trust base and collections
   unchanged; translations and `gen-init` up to date.
+- **S1c-R2 (`run`'s epochs; done).** `respc` is one SPSC channel over all of `run`'s gRPC streams
+  (`WgsPrm.γr`, allocated in `newWatcherGRPCStream`); each element is tagged with its epoch
+  (`respcE`: an entry of the mono list `WgsPrm.γep` of `(stream, first position, count)`, with a
+  lower bound of that epoch's count), and `serveWatchClient` returns the producer side over `errc`
+  (`prodBack` in `errP`). `newWatchClient` opens an epoch at the producer's position. `run` holds
+  `epochSt` (`WatchEpoch.lean`): the list's authority, plus the count authority of each ended
+  epoch at or below the current epoch's start, so a response it receives is the current stream's
+  (`respcE_at`). `runCore` counts `rcv.length = b + S.Dm.length`. For now `run` uses only the
+  first epoch (`b = 0`); the errc case that opens a new one is R4. Only internal statements
+  changed. Gates: build 5768 jobs; links; trust base and collections unchanged; translations and
+  `gen-init` up to date.
 - **For the user** (done, kept for the record): F1 and F2 are pushed (`watch-resume-fixes` = `a8a459955`, the pin; on
   `goose-lean` as `c15c7dda8`, on the collaborator's D22 commits). Push F3: `watch-resume-fixes`
   at `16f73d6eb` (in `/shared/etcd-goose-lean-wr`), and cherry-pick it onto `goose-lean`; S1c then
