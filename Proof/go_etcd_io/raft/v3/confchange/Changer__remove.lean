@@ -51,28 +51,43 @@ theorem confchange.Changer.remove.wp_proof
     wp_apply wp_confchange_nilAwareDelete $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
     ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
     wp_apply wp_confchange_nilAwareDelete $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
-    -- raft#168: `if id == cfg.Witnesses[0] { cfg.Witnesses[0] = 0 }`, a no-op here
-    icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    -- raft#168: `if id == cfg.Witnesses[0] { cfg.Witnesses[0] = 0 }` (2026-10-20: at any witness)
+    icases array_acc _ (sint.Z (W64 0)) _ _ _ s.cfg.wit (by decide) (by rw [Hwit.1]; rfl)
       $$ Witnesses with ⟨Hw0, Hwback⟩
     wp_auto
-    have Hset : (array.mk 2 (cfg.Witnesses'.arr.set (sint.Z (W64 0)).toNat (W64 0)) :
-        GoArray w64 2) = cfg.Witnesses' := by
-      rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some (W64 0) by
-        rw [Hwit]; rfl)]
-    by_cases Hid0 : id = W64 0
-    all_goals first
-      | rw [decide_eq_true (by assumption : id = W64 0)]
-      | rw [decide_eq_false (by assumption : ¬ id = W64 0)]
-    all_goals
-      wp_auto
-      ihave Witnesses := Hwback $$ Hw0
-      rw [Hset]
+    by_cases Hidw : id = s.cfg.wit
+    rw [decide_eq_true Hidw]
+    wp_auto
+    ihave Witnesses := Hwback $$ Hw0
+    have HW' : (array.mk 2 (cfg.Witnesses'.arr.set (sint.Z (W64 0)).toNat (W64 0)) :
+        GoArray w64 2).arr = [(removeCfg id s.cfg).wit, W64 0] ∧
+        ((removeCfg id s.cfg).wit ≠ W64 0 → (removeCfg id s.cfg).wit ∈ (removeCfg id s.cfg).incoming) := by
+      simp only [removeCfg, if_pos Hidw]
+      refine ⟨?_, fun h => absurd rfl h⟩
+      show cfg.Witnesses'.arr.set _ _ = _
+      rw [Hwit.1]; rfl
+    generalize (array.mk 2 (cfg.Witnesses'.arr.set (sint.Z (W64 0)).toNat (W64 0)) :
+      GoArray w64 2) = W' at HW'
+    rotate_left
+    rw [decide_eq_false Hidw]
+    wp_auto
+    ihave Witnesses := Hwback $$ Hw0
+    rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some s.cfg.wit by
+      rw [Hwit.1]; rfl)]
+    have HW' : (array.mk 2 cfg.Witnesses'.arr : GoArray w64 2).arr = [(removeCfg id s.cfg).wit, W64 0] ∧
+        ((removeCfg id s.cfg).wit ≠ W64 0 → (removeCfg id s.cfg).wit ∈ (removeCfg id s.cfg).incoming) := by
+      simp only [removeCfg, if_neg Hidw]
+      refine ⟨Hwit.1, fun h => ?_⟩
+      rw [GMap.elem_of_gset, GMap.lookup_delete_ne _ Hidw, ← GMap.elem_of_gset]
+      exact Hwit.2 h
+    generalize (array.mk 2 cfg.Witnesses'.arr : GoArray w64 2) = W' at HW'
     all_goals
       wp_apply wp_confchange_outgoing _ vin vout Harr
       icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
       wp_apply wp_idset_lookup2 $$ Hout as Hout
       ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
-      ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)) $$
+      ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln, Witnesses' := W' } :
+          tracker.Config)) $$
           [Voters AutoLeave Learners LearnersNext Witnesses]
       · iapply typedPointsto_combine _ _ _ Hcnn
         simp only [TypedPointsto.typedPointstoDef]
@@ -85,10 +100,10 @@ theorem confchange.Changer.remove.wp_proof
         rw [ite_eq_right (fun h => h.2 Hout')]
         iframe Htrk
         simp only [removeM, ite_eq_left Hmem]
-        iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+        iexists ({ cfg with Learners' := ml, LearnersNext' := mln, Witnesses' := W' } : tracker.Config)
         iframe Hcfgp
-        iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-          (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal Hwit $$ [Hin] [Hout] [Hl] [Hln]
+        iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln, Witnesses' := W' } :
+          tracker.Config) (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal HW' $$ [Hin] [Hout] [Hl] [Hln]
         all_goals simp only [removeCfg.proj_incoming, removeCfg.proj_outgoing,
           removeCfg.proj_learners, removeCfg.proj_learnersNext]
         · iexact Hin
@@ -104,10 +119,10 @@ theorem confchange.Changer.remove.wp_proof
         rw [ite_eq_left ⟨Hmem, Hout'⟩]
         iframe Htrk
         simp only [removeM, ite_eq_left Hmem]
-        iexists ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+        iexists ({ cfg with Learners' := ml, LearnersNext' := mln, Witnesses' := W' } : tracker.Config)
         iframe Hcfgp
-        iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
-          (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal Hwit $$ [Hin] [Hout] [Hl] [Hln]
+        iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln, Witnesses' := W' } :
+          tracker.Config) (DFrac.own 1) (removeCfg id s.cfg) vin vout Harr Hal HW' $$ [Hin] [Hout] [Hl] [Hln]
         all_goals simp only [removeCfg.proj_incoming, removeCfg.proj_outgoing,
           removeCfg.proj_learners, removeCfg.proj_learnersNext]
         · iexact Hin

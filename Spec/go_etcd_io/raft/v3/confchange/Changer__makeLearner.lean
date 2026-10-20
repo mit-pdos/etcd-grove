@@ -31,7 +31,8 @@ abbrev confchange.Changer.makeLearner.spec : Prop :=
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownWork chg base cfgp trk s }}
     (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"makeLearner")) (Val #cfgp)) (Val #trk)) (Val #id))
-  {{ RET #interface.nil; p ↦{dq} chg ∗ ownWork chg base cfgp trk (makeLearnerM id s) }}
+  {{ (err : GoInterface), RET #err; p ↦{dq} chg ∗
+      ownWorkO chg base cfgp trk (makeLearnerO id s) err }}
 
 end spec
 

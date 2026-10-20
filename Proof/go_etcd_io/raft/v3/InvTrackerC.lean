@@ -334,7 +334,8 @@ theorem ownTracker_toC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk)
   · iapply ownEpochNWm_ok $$ Hepoch
   rw [CfgM.simple_wit]
   iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (CfgM.simple voters (domSet t.prs \ voters))
-    voters_ref map.nil Hvoters_arr Hautoleave Hwit.1 $$ [Hvoters] [] [Hlearners] [HlearnersNext]
+    voters_ref map.nil Hvoters_arr Hautoleave ⟨Hwit.1, fun h => absurd rfl h⟩
+    $$ [Hvoters] [] [Hlearners] [HlearnersNext]
   · simp only [CfgM.simple]; iexact Hvoters
   · simp only [CfgM.simple]; iapply ownIdsetC_nil
   · simp only [CfgM.simple]; iexact Hlearners
@@ -365,7 +366,7 @@ theorem ownTrackerC_toSimple (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
     iapply ownTracker_intro c.incoming tv t.votes t.prs t.peers vin c.incoming c.learners
       c.learnersNext Hsub Harr (Hal'.trans Hal) (domSet_gset _)
       ⟨by rw [domSet_gset]; exact Hl, Hln, Hfl⟩ Hsize HmaxInfl
-      ⟨by rw [Hwit, hw], WitP.zero.1 (hw ▸ Hnw)⟩
+      ⟨by rw [Hwit.1, hw], WitP.zero.1 (hw ▸ Hnw)⟩
       $$ Hvotes Hprs Hprogs Hin Hl' Hln' [Hepoch]
     iapply ownEpochOk_nw c.incoming c.outgoing
     rw [← hw]; iexact Hepoch
@@ -491,7 +492,7 @@ theorem ownTrackerC_witnesses (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk
   iNamed Hown
   icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   isplitr
-  · ipureintro; exact Hwit
+  · ipureintro; exact Hwit.1
   iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
     $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln] Hepoch
   iapply ownCfgCC_intro _ _ c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
@@ -752,8 +753,6 @@ theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : 
   iintro Hvotes Hnew #Hepoch
   iunfold ownConfigC at Hnew
   iNamed Hnew
-  ihave Hcfg : ownCfgCCw (GF := GF) c.wit cfgv (DFrac.own 1) c $$ [Hcfg]
-  · rw [hw]; iexact Hcfg
   iapply ownTrackerC_intro c { tv with Config' := cfgv, Progress' := prsm } votes prs pvs
     Hinv Hdom Hflags Hsize Hmi Hnw (fun h => absurd hw h) $$ Hvotes Hprsm Hprogs Hcfg [Hepoch]
   iapply ownEpochNWm_ok $$ Hepoch
@@ -779,8 +778,9 @@ theorem ownConfigV_toC (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
   simp only [named]
   iframe Hprsm Hprogs
   isplitl [Hvref Hcfgl]
-  · iapply ownCfgCC_intro cfgv (DFrac.own 1) (CfgM.simple vm (domSet prs \ vm))
-      vref map.nil Hcfgarr Hcfgal Hcfgwit.1 $$ [Hvref] [] [Hcfgl] []
+  · simp only [ownCfgCC, CfgM.simple_wit]
+    iapply ownCfgCC_intro cfgv (DFrac.own 1) (CfgM.simple vm (domSet prs \ vm))
+      vref map.nil Hcfgarr Hcfgal ⟨Hcfgwit.1, fun h => absurd rfl h⟩ $$ [Hvref] [] [Hcfgl] []
     · simp only [CfgM.simple]; iexact Hvref
     · simp only [CfgM.simple]; iapply ownIdsetC_nil
     · simp only [CfgM.simple]; iexact Hcfgl

@@ -34,6 +34,9 @@ abbrev confchange.Changer.LeaveJoint.spec : Prop :=
   ∀ (p : Loc) (chg : confchange.Changer) (c : CfgM) (prs : GMap w64 Loc)
     (pvs : GMap w64 tracker.Progress) (dq dqc dqm dqp : DFrac),
   W64 0 ∉ c.outgoing →
+  -- (2026-10-20, witness support) at a configuration without a witness (a joint configuration
+  -- with a witness is outside the model)
+  c.wit = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownTrackerCC chg.Tracker' dqc dqm dqp c prs pvs }}
     (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"LeaveJoint")) (Val #()))
   {{ (cfg : tracker.Config) (trk : Loc) (err : GoInterface),

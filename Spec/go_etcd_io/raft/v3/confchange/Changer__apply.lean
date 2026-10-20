@@ -37,7 +37,9 @@ abbrev confchange.Changer.apply.spec : Prop :=
   ∀ (p cfgp trk : Loc) (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
     (s : CCState) (ccs : GoSlice) (ls : List Loc) (l : List ConfChangeSingleM) (dq dqs : DFrac),
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
-  (∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) →
+  -- (2026-10-20, witness support; until then no `AddWitness`) a witness only at a non-joint
+  -- configuration (`Simple`'s); `EnterJoint` at a witness-free one, with no `AddWitness`
+  (s.cfg.outgoing = ∅ ∨ (s.cfg.wit = W64 0 ∧ ∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
       ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗ ownWork chg base cfgp trk s }}
     (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"apply")) (Val #cfgp)) (Val #trk)) (Val #ccs))

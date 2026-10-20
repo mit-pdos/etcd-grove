@@ -92,7 +92,7 @@ theorem ci_err {P : Prop} (e : GoInterfaceOk) (H : ¬ P) :
 /-- Close the configuration's representation from its pieces. -/
 theorem ci_close (cfg : tracker.Config) (c : CfgM) (vin vout : Loc) (dqc : DFrac)
     (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
-    (Hwit : cfg.Witnesses'.arr = [W64 0, W64 0])
+    (Hwit : cfg.Witnesses'.arr = [c.wit, W64 0] ∧ (c.wit ≠ W64 0 → c.wit ∈ c.incoming))
     (Hinnn : vin ≠ map.nil) (Hcout : vout = map.nil ∨ c.outgoing ≠ ∅)
     (Hcln : cfg.LearnersNext' = map.nil ∨ c.learnersNext ≠ ∅)
     (Hcl : cfg.Learners' = map.nil ∨ c.learners ≠ ∅) :
@@ -108,12 +108,11 @@ theorem ci_close (cfg : tracker.Config) (c : CfgM) (vin vout : Loc) (dqc : DFrac
 
 set_option hygiene false in
 /-- raft#168's witness check at the end of `checkInvariants`,
-`for id, voters := range cfg.Voters { w := cfg.Witnesses[id]; if w > 0 {...} }`: on a
-witness-free configuration (`Witnesses = [0, 0]`, `Hwit`) a two-iteration loop that checks
-nothing. (A macro: the loop's locals are the proof's own names.) -/
+`for id, voters := range cfg.Voters { w := cfg.Witnesses[id]; if w > 0 {...} }`: the incoming
+half's witness `c.wit` is a voter of it (`ownCfgCCw`'s `Hwit`; 2026-10-20, until then a
+witness-free configuration, a loop that checked nothing), the outgoing half has none. (A macro:
+the loop's locals are the proof's own names.) -/
 local macro "ci_wit_loop" : tactic => `(tactic| (
-  -- raft#168: `for id, voters := range cfg.Voters { w := cfg.Witnesses[id]; if w > 0 {...} }`,
-  -- with no witness (`Witnesses = [0, 0]`) a loop that checks nothing
   (try wp_pures)
   (try wp_auto)
   icases (Access.access (A := iprop(cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses'))
@@ -122,7 +121,8 @@ local macro "ci_wit_loop" : tactic => `(tactic| (
   ihave WIH : iprop(∃ (n : w64) (vv : GoMap) (idv : w64),
       "i" ∷ i_ptr ↦ n ∗ "voters" ∷ voters_ptr ↦ vv ∗ "id" ∷ id_ptr ↦ idv ∗
       "HW" ∷ cfg_ptr.[tracker.Config, go!"Witnesses"] ↦ cfg.Witnesses' ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝) $$ [i voters id HW]
+      "Hin" ∷ ownIdsetQ vin dqc c.incoming ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝) $$ [i voters id HW Hin]
   · iexists W64 0, _, _; iframe; ipureintro; decide
   wp_for WIH
   wp_if_destruct
@@ -133,18 +133,50 @@ local macro "ci_wit_loop" : tactic => `(tactic| (
     rw [Hv, ite_eq_left Hn.1]
     wp_auto
     rw [ite_eq_left ⟨Hn.1, Hn2⟩]
-    icases array_acc _ (sint.Z n) _ _ _ (W64 0) Hn.1
-        (by rcases Hn01 with h | h <;> rw [Hwit, h] <;> rfl) $$ HW with ⟨Hw0, Hwback⟩
+    have Hwn : cfg.Witnesses'.arr[(sint.Z n).toNat]? =
+        some (if (sint.Z n).toNat = 0 then c.wit else W64 0) := by
+      rcases Hn01 with h | h <;> rw [Hwit.1, h] <;> rfl
+    icases array_acc _ (sint.Z n) _ _ _ _ Hn.1 Hwn $$ HW with ⟨Hw0, Hwback⟩
     wp_auto
     ihave HW := Hwback $$ Hw0
-    have Hset : cfg.Witnesses'.arr.set (sint.Z n).toNat (W64 0) = cfg.Witnesses'.arr := by
-      rcases Hn01 with h | h <;> rw [h, Hwit] <;> rfl
-    rw [Hset, show (array.mk 2 cfg.Witnesses'.arr : GoArray w64 2) = cfg.Witnesses' from rfl]
-    wp_for_post
-    iframe
-    iexists n + W64 1, _, _
-    iframe
-    ipureintro; word
+    rw [list_set_lookup_self _ _ _ Hwn,
+      show (array.mk 2 cfg.Witnesses'.arr : GoArray w64 2) = cfg.Witnesses' from rfl]
+    by_cases Hw : (sint.Z n).toNat = 0 ∧ c.wit ≠ W64 0
+    · -- the incoming half's witness: found among its voters
+      rw [if_pos Hw.1]
+      have Hgt : decide (uint.Z (W64 0) < uint.Z c.wit) = true := by
+        apply decide_eq_true
+        have : uint.Z c.wit ≠ 0 := fun h => Hw.2 (by word)
+        word
+      rw [Hgt]
+      wp_auto
+      have Hvin : v = vin := by
+        have h := Hv
+        rw [show sint.nat n = 0 from Hw.1, Harr] at h
+        cases h; rfl
+      subst Hvin
+      wp_apply wp_idset_lookup2 $$ Hin as Hin
+      have Hfound : (c.incoming !! c.wit).isSome = true := by
+        rw [(GMap.elem_of_gset _ _).1 (Hwit.2 Hw.2)]; rfl
+      rw [Hfound]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists n + W64 1, _, _
+      iframe
+      ipureintro; word
+    · -- no witness in this half
+      have H0 : (if (sint.Z n).toNat = 0 then c.wit else W64 0) = W64 0 := by
+        split
+        · rename_i h; exact Classical.byContradiction fun h' => Hw ⟨h, h'⟩
+        · rfl
+      rw [H0]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists n + W64 1, _, _
+      iframe
+      ipureintro; word
 ))
 
 theorem confchange.checkInvariants.wp_proof

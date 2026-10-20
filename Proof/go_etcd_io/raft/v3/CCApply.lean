@@ -346,13 +346,6 @@ theorem gset_lookup_none (L : GSet w64) (id : w64) (h : id ∉ L) : L !! id = no
 theorem gset_insert_ne_empty (V : GSet w64) (id : w64) : (<[id := ()]> V : GSet w64) ≠ ∅ := by
   intro h; have := congrArg (fun m => m !! id) h; simp at this
 
-theorem gset_mem_insert (V : GSet w64) (id k : w64) :
-    k ∈ (<[id := ()]> V : GSet w64) ↔ k = id ∨ k ∈ V := by
-  rw [GMap.elem_of_gset, GMap.elem_of_gset]
-  by_cases hk : id = k
-  · subst hk; simp
-  · rw [GMap.lookup_insert_ne _ _ hk]; simp [Ne.symm hk]
-
 /-- One voter more changes the voters by at most one. -/
 theorem not_symdiffTooBig_insert (V : GSet w64) (id : w64) :
     ¬ SymdiffTooBig V (<[id := ()]> V) := by

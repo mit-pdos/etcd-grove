@@ -34,12 +34,15 @@ abbrev confchange.Changer.initProgress.spec : Prop :=
   ∀ (p cfgp trk : Loc) (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
     (s : CCState) (id : w64) (b w : Bool) (dq : DFrac),
   id ∉ s.prs →
-  w = false →
+  -- (2026-10-20, witness support; until then `w = false`) a witness only as a voter, not `0`, at
+  -- a configuration without one (`makeWitness`'s call)
+  (w = true → b = false ∧ id ≠ W64 0 ∧ s.cfg.wit = W64 0) →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownWork chg base cfgp trk s }}
     (App (App (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"initProgress"))
       (Val #cfgp)) (Val #trk)) (Val #id)) (Val #b)) (Val #w))
-  {{ RET #(); p ↦{dq} chg ∗ ownWork chg base cfgp trk (initProgressM id b s) }}
+  {{ RET #(); p ↦{dq} chg ∗
+      ownWork chg base cfgp trk (if w then initWitnessM id s else initProgressM id b s) }}
 
 end spec
 

@@ -37,7 +37,6 @@ abbrev confchange.Changer.Simple.spec : Prop :=
     (pvs : GMap w64 tracker.Progress) (ccs : GoSlice) (ls : List Loc) (l : List ConfChangeSingleM)
     (dq dqs dqc dqm dqp : DFrac),
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
-  (∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ccs ↦*{dqs} ls ∗
       ([∗list] q;c ∈ ls;l, ccsRO q c) ∗ ownTrackerCC chg.Tracker' dqc dqm dqp c prs pvs }}
     (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #ccs))

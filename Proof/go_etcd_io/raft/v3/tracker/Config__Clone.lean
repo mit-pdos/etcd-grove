@@ -226,20 +226,20 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   wp_apply (wp_cloneMap f hf.symm) $$ Hln as %mln ⟨Hln, Hmln⟩
   ihave Hln := ownIdsetC_join _ _ _ Hcln $$ Hln
   icases clonedMap_C _ _ _ _ $$ Hln Hmln with ⟨Hln, Hmln⟩
-  -- raft#168: `Witnesses: [2]uint64{c.Witnesses[0], c.Witnesses[1]}`, both `0` here
-  icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+  -- raft#168: `Witnesses: [2]uint64{c.Witnesses[0], c.Witnesses[1]}` (2026-10-20: at any witness)
+  icases array_acc _ (sint.Z (W64 0)) _ _ _ c.wit (by decide) (by rw [Hwit.1]; rfl)
     $$ Witnesses with ⟨Hw0, Hwback⟩
   wp_auto
   ihave Witnesses := Hwback $$ Hw0
-  rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some (W64 0) by
-    rw [Hwit]; rfl)]
+  rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some c.wit by
+    rw [Hwit.1]; rfl)]
   rw [show (array.mk 2 cfg.Witnesses'.arr).arr = cfg.Witnesses'.arr from rfl]
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+  icases array_acc _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit.1]; rfl)
     $$ Witnesses with ⟨Hw1, Hwback⟩
   wp_auto
   ihave Witnesses := Hwback $$ Hw1
   rw [list_set_lookup_self _ _ _ (show cfg.Witnesses'.arr[(sint.Z (W64 1)).toNat]? = some (W64 0) by
-    rw [Hwit]; rfl)]
+    rw [Hwit.1]; rfl)]
   rw [show (array.mk 2 cfg.Witnesses'.arr) = cfg.Witnesses' from rfl]
   iapply HΦ
   ihave Voters := Hvback $$ Hv1
@@ -268,7 +268,7 @@ theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG
   iframe Hm0 Hm1 Hml Hmln
   ipureintro
   simp only [List.set, List.replicate]
-  exact ⟨rfl, trivial, trivial⟩
+  exact ⟨rfl, trivial, trivial, Hwit.2⟩
 
 end proof
 

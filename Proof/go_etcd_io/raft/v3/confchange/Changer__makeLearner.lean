@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
 public import Spec.go_etcd_io.raft.v3.confchange.outgoing
 public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -29,12 +30,13 @@ theorem confchange.Changer.makeLearner.wp_proof
     (wp_Changer_initProgress : confchange.Changer.initProgress.spec (GF := GF) (hG := hG))
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
     (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
-    (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG)) :
+    (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG))
+    (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) := by
   intro p cfgp trk chg base s id dq Hmi
   wp_start as ⟨Hp, Hw⟩
   icases ownWork_elim _ _ _ _ _ $$ Hw with
-    ⟨%cfg, %prs, %pvs, Hcfgp, Hc, Htrk, Hprs, %Hflags, Hnew⟩
+    ⟨%cfg, %prs, %pvs, Hcfgp, Hc, Htrk, Hprs, %Hflags, %Hwt, Hnew⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   wp_auto
@@ -54,27 +56,59 @@ theorem confchange.Changer.makeLearner.wp_proof
       rcases h : s.prs !! id with _ | b
       · rfl
       · exact absurd (by rw [GMap.mem_iff, h]; rfl) Hid
-    ihave Hw := ownWork_intro chg base cfgp trk s cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew
-    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id true false _ Hid rfl Hmi
+    ihave Hw := ownWork_intro chg base cfgp trk s cfg prs pvs Hflags Hwt $$ Hcfgp Hc Htrk Hprs Hnew
+    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id true false _ Hid
+      (fun h => absurd h (by decide)) Hmi
       $$ [$c $Hw] as ⟨c, Hw⟩
     iapply HΦ
     iframe Hp
-    simp only [makeLearnerM, Hsn]
+    simp only [makeLearnerO, makeLearnerM, Hsn, ownWorkO]
+    have Hc : ¬ ((none : Option Bool) = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0) :=
+      fun h => by cases h.1
+    simp only [if_neg Hc]
+    isplitr; · itrivial
     iexact Hw
   · simp only [Option.getD_some]
     obtain ⟨pv, Hpv⟩ : ∃ pv, pvs !! id = some pv :=
       Option.isSome_iff_exists.1 ((Hdom id).1 (by rw [Hlk]; rfl))
     have Hsl : s.prs !! id = some pv.IsLearner' := by rw [← Hflags]; exact flagsOf_lookup pvs id pv Hpv
     have Hmem : id ∈ s.prs := by rw [GMap.mem_iff, Hsl]; rfl
-    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, %Hpvw, Hback⟩
+    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, Hback⟩
+    have Hpvw' := Hwt.2 id pv Hpv
     icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
     wp_if_destruct
     · exact absurd rfl Hprnn
     have Hpv_eq : ∀ b, pv.IsLearner' = b → ({ pv with IsLearner' := b } : tracker.Progress) = pv := by
       intro b hb; rw [← hb]
     cases hl : pv.IsLearner'
-    · -- not a learner (nor a witness): removed, its `Progress` kept, then staged or made a learner
+    · -- not a learner: the witness is an error (2026-10-20, witness support)
       wp_auto
+      by_cases Hw : id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0
+      · rw [show (#pv.IsWitness' : val) = #true by rw [Hpvw', decide_eq_true Hw]]
+        wp_auto
+        ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) (DFrac.own 1)
+        wp_apply wp_fmt_Errorf $$ [$Hnil] as %e -
+        · fmt_args_ok
+        iapply HΦ
+        iframe Hp
+        have Hc : s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0 :=
+          ⟨by rw [Hsl, hl], Hw⟩
+        simp only [makeLearnerO, if_pos Hc, ownWorkO]
+        ipureintro; intro h; cases h
+      have Hpvw : pv.IsWitness' = false := by rw [Hpvw', decide_eq_false Hw]
+      -- (not the witness) removed, its `Progress` kept, then staged or made a learner
+      have Hrw : (if id = s.cfg.wit then W64 0 else s.cfg.wit) = s.cfg.wit := by
+        split
+        · rename_i h; by_cases h0 : s.cfg.wit = W64 0
+          · rw [h0]
+          · exact absurd ⟨h, h0⟩ Hw
+        · rfl
+      have Hc : ¬ (s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0) :=
+        fun h => Hw h.2
+      have Hrw' : id = s.cfg.wit → W64 0 = s.cfg.wit := fun h => by
+        by_cases h0 : s.cfg.wit = W64 0
+        · exact h0.symm
+        · exact absurd ⟨h, h0⟩ Hw
       rw [show (#pv.IsWitness' : val) = #false by rw [Hpvw]]
       wp_auto
       have Hdomeq : domSet prs = domSet s.prs := by
@@ -95,8 +129,7 @@ theorem confchange.Changer.makeLearner.wp_proof
       unfold ownCfgAt
       icases Hcw with ⟨%cfg1, Hcfgp, Hc⟩
       icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
-      simp only [removeM, ite_eq_left Hmem, removeCfg.proj_incoming, removeCfg.proj_outgoing,
-        removeCfg.proj_learners, removeCfg.proj_learnersNext, removeCfg.proj_autoLeave] at Hal ⊢
+      simp only [removeM, ite_eq_left Hmem, removeCfg, Hrw] at Hal Hwit ⊢
       wp_auto
       wp_apply wp_confchange_outgoing _ vin vout Harr
       icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
@@ -129,10 +162,14 @@ theorem confchange.Changer.makeLearner.wp_proof
             ⟨⟨GMap.delete id s.cfg.incoming, s.cfg.outgoing, GMap.delete id s.cfg.learners,
               <[id := ()]> (GMap.delete id s.cfg.learnersNext), s.cfg.autoLeave, s.cfg.wit⟩, s.prs⟩ := by
           simp [makeLearnerM, Hsl, hl, Hon, removeCfg]
+          first | done | exact Hrw'
+        simp only [makeLearnerO, if_neg Hc, ownWorkO]
+        isplitr; · itrivial
         iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs pvs
-          (by rw [Hst]; exact Hflags) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
+          (by rw [Hst]; exact Hflags) (by rw [Hst]; exact Hwt) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
         iapply ownCfgCC_intro ({ cfg1 with LearnersNext' := mln } : tracker.Config) (DFrac.own 1)
-          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) Hwit $$ [Hin] [Hout] [Hl] [Hln]
+          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) (by rw [Hst]; exact Hwit)
+          $$ [Hin] [Hout] [Hl] [Hln]
         all_goals rw [Hst]
         · iexact Hin
         · iexact Hout
@@ -161,10 +198,15 @@ theorem confchange.Changer.makeLearner.wp_proof
               <[id := ()]> (GMap.delete id s.cfg.learners), GMap.delete id s.cfg.learnersNext,
               s.cfg.autoLeave, s.cfg.wit⟩, <[id := true]> s.prs⟩ := by
           simp [makeLearnerM, Hsl, hl, Hon, removeCfg]
+          first | done | exact Hrw'
+        simp only [makeLearnerO, if_neg Hc, ownWorkO]
+        isplitr; · itrivial
         iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs _
-          (by rw [Hst]; simp only [flagsOf_insert, Hflags]) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
+          (by rw [Hst]; simp only [flagsOf_insert, Hflags])
+          (by rw [Hst]; exact WitT.set_learner true Hwt Hpv) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
         iapply ownCfgCC_intro ({ cfg1 with Learners' := ml } : tracker.Config) (DFrac.own 1)
-          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) Hwit $$ [Hin] [Hout] [Hl] [Hln]
+          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) (by rw [Hst]; exact Hwit)
+          $$ [Hin] [Hout] [Hl] [Hln]
         all_goals rw [Hst]
         · iexact Hin
         · iexact Hout
@@ -178,8 +220,11 @@ theorem confchange.Changer.makeLearner.wp_proof
       iapply HΦ
       iframe Hp
       have Hst : makeLearnerM id s = s := by simp [makeLearnerM, Hsl, hl]
-      rw [Hst]
-      iapply ownWork_intro chg base cfgp trk s cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew
+      have Hc' : ¬ (s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0) :=
+        fun h => by rw [Hsl, hl] at h; cases h.1
+      simp only [makeLearnerO, if_neg Hc', ownWorkO, Hst]
+      isplitr; · itrivial
+      iapply ownWork_intro chg base cfgp trk s cfg prs pvs Hflags Hwt $$ Hcfgp Hc Htrk Hprs Hnew
 
 end proof
 
