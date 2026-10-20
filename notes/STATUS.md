@@ -48,6 +48,15 @@ module system").
 
 
 
+## Witness support, W1: the build green on witness-free configurations (2026-10-20, branch `raft-witness`)
+
+raft is translated at the fork's witness branch (raft#168 rebased, with fixes:
+`notes/raft-witness.md`). `lake build` is green, and the trust base matches `etc/tcb-baseline.txt`
+(no new axiom or `sorry`). Every proof is of witness-free configurations: no witness in the
+config, no peer the witness or `0` (`NoWitP`), a witness-free read-only epoch (`ownEpochNW`),
+`witnessMsgs`/`witnessVoteAsked` nil, entries at subterm 0. The specs that changed, and why,
+are in `notes/raft-witness.md`, "W1". Next: W2, the protocol model with a witness.
+
 ## `lean`'s key-value store merged into `raft-retarget` (2026-10-19)
 
 `origin/lean`'s `examples/kv` (the register renamed and grown into a key-value store, with
