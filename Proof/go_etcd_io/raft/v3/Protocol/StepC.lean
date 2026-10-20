@@ -725,17 +725,19 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s [] (pbecomeFollower s s.term (W64 0))
   /-- (2026-10-19, witness support) `maybeStartNewSubterm` at a leader of a configuration with a
   witness: a new replication set (excluding `x`, `0` for the witness itself) starts the next
-  subterm, with an empty entry of it (`appendEntry`, and its self-acknowledgement). -/
-  | newSub (s : PState) (x : w64) :
+  subterm, with an empty entry of it (`appendEntry`, and its self-acknowledgement). The subterm's
+  configuration prefix `P` (`PState.scp`) is free (2026-10-20): the static configuration is that of
+  any prefix (`CfgAt`), so that one physical state serves both models (`notes/raft-witness.md`). -/
+  | newSub (s : PState) (x : w64) (P : List EntryM) :
       s.role = .leader →
       c.wit ≠ W64 0 →
       (x = W64 0 ∨ (x ∈ c.incoming ∧ x ≠ c.wit)) →
       uint.Z s.sub + 1 < 2 ^ 64 →
       plogLastIndexZ s.base s.log + 1 ≤ B →
       StepC s []
-        (psendMsgs (pappend { s with sub := s.sub + W64 1, rsx := x }
+        (psendMsgs (pappend { s with sub := s.sub + W64 1, rsx := x, scp := P }
             [stampS s.term (s.sub + W64 1) (plastIndex s) 0 (zero_val EntryM)])
-          [pselfAck id (pappend { s with sub := s.sub + W64 1, rsx := x }
+          [pselfAck id (pappend { s with sub := s.sub + W64 1, rsx := x, scp := P }
             [stampS s.term (s.sub + W64 1) (plastIndex s) 0 (zero_val EntryM)])])
   /-- (2026-10-19) `maybeCommit`'s `sendAppendToWitness`: when the witness is in the replication
   set, the entry `i` of the leader's term and current subterm that `quorum - 1` voters of the
@@ -788,7 +790,7 @@ theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) 
     Step c.incoming id B s ms s' := by
   have Hv := CfgM.voters_of_out ho
   induction h with
-  | newSub _ _ _ h2 => exact absurd hw h2
+  | newSub _ _ _ _ h2 => exact absurd hw h2
   | sendWApp _ _ _ _ _ h2 => exact absurd hw h2
   | askWitness _ _ _ _ h2 => exact absurd hw h2
   | sendWPre _ _ h1 => exact absurd hw h1

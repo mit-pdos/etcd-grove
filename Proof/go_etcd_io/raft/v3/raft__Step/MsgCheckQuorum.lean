@@ -107,12 +107,16 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
       ⟨[stampS s.term em'.sub (logLast s.logst) 0 (zero_val EntryM)],
         by simp [subtermStart, sendMsgs, logAppend]⟩, rfl, rfl, rfl⟩
     · -- `StepC.newSub`, excluding the new epoch's voter: its state is the code's
-      have HC := StepC.newSub (c := c) (id := id) (B := B) (toPState s) (epochRsx em') Hpr Hcw
-        (epochRsx_wf Hcw Hchg.2.1) (by have := Hps Hpr; word) HBn
+      have Hnw : uint.Z (toPState s).sub + 1 < 2 ^ 64 := by have := Hps Hpr; word
+      have Hne : s.ep.sub + W64 1 ≠ W64 0 := by rw [Hsub0] at Hnw; intro h; word
+      -- the subterm's prefix, ghost: the code's state keeps it (`NState.scp`)
+      have HC := StepC.newSub (c := c) (id := id) (B := B) (toPState s) (epochRsx em') s.scp Hpr
+        Hcw (epochRsx_wf Hcw Hchg.2.1) Hnw HBn
       refine cast ?_ HC
       congr 1
       simp only [toPState, subtermStart, sendMsgs, selfAck, psendMsgs, pappend, pselfAck,
         plastIndex, plogLastIndexZ, logLast, Hr, reduceCtorEq, ↓reduceIte, Hsub, Hpm, logAppend,
+        Hne, ne_eq, not_false_eq_true, and_self,
         List.mapIdx_cons, List.mapIdx_nil, List.length_append, List.append_assoc,
         List.length_cons, List.length_nil, Int.natCast_add]
       simp [Int.add_assoc]

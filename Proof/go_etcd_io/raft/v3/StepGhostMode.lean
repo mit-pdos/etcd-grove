@@ -512,7 +512,8 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl)
-    (hsb : (toPState s').sub = (toPState s).sub := by rfl) :
+    (hsb : (toPState s').sub = (toPState s).sub := by rfl)
+    (hscp : (toPState s').scp = (toPState s).scp := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
   have hps : PSubOk (toPState s') = PSubOk (toPState s) := by unfold PSubOk; rw [hr, hsb, hb, hl]
@@ -534,7 +535,7 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
       refine ⟨HD, hc', HI.frame (by simp [rOf]) (by simp [rOf, hb]) (by simp [rOf, hl])
         (by simp [rOf, hc]) (by simp [rOf, ha]) (by simp [rOf, hs]) (by simp [rOf])
         (by simp [rOf]) (.inr ⟨by simp [rOf, hr], by simp [rOf, hpci], by simp [rOf, hsb],
-          by simp [rOf, toPState]⟩)⟩
+          by simp only [rOf.proj_p]; exact hscp⟩)⟩
     iframe Hfr
     isplitr
     · iapply witR_keep γ id (rOf s g) (rOf s' g) hfull

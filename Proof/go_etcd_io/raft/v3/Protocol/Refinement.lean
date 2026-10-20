@@ -5318,17 +5318,18 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_takeReads γ id s)))
   | sendFree s m Hfree Hfrom =>
     exact tks_drop (rcpt_frame (regs_frame γ (ownRaftGhost_step_sendFree γ id s m Hfree Hfrom)))
-  | newSub s x Hrole _ _ Hsub Hnw =>
-    -- (2026-10-19, witness support) `propose` of the empty entry, at the next subterm
+  | newSub s x P Hrole _ _ Hsub Hnw =>
+    -- (2026-10-19, witness support) `propose` of the empty entry, at the next subterm (its
+    -- prefix `P` free: the static configuration is every prefix's)
     iintro #Hrc Hregs _ - - Hown
-    ihave Hown := ownRaftGhost_sub γ id s (s.sub + W64 1) x s.scp (by word) $$ Hown
+    ihave Hown := ownRaftGhost_sub γ id s (s.sub + W64 1) x P (by word) $$ Hown
     have Hp := ownRaftGhost_step_propose (GF := GF) (md := md) γ id
-      { s with sub := s.sub + W64 1, rsx := x } [zero_val EntryM]
+      { s with sub := s.sub + W64 1, rsx := x, scp := P } [zero_val EntryM]
       (B.toNat - γ.reBoot.length) (s.sub + W64 1) Hrole rfl
       (by simp only [List.length_singleton]; show plogLastIndexZ s.base s.log + 1 < 2 ^ 64; omega)
       (by simp only [List.length_singleton]; show plogLastIndexZ s.base s.log + 1 ≤ _; omega)
     simp only [List.mapIdx_cons, List.mapIdx_nil] at Hp
-    rw [show plastIndex { s with sub := s.sub + W64 1, rsx := x } = plastIndex s from rfl] at Hp
+    rw [show plastIndex { s with sub := s.sub + W64 1, rsx := x, scp := P } = plastIndex s from rfl] at Hp
     imod Hp $$ Hrc [] [] Hown with Hown
     · iapply (BigSepL.bigSepL_singleton (Φ := fun _ (e : EntryM) => propData (GF := GF) γ e)).2
       iapply propData_zero

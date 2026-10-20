@@ -2983,6 +2983,14 @@ theorem ownRaftPhysC_eq (r : Loc) (id : w64) (s1 s2 : NState) :
     s1 = s2 → ⊢ ownRaftPhysCV (GF := GF) c V r id s1 -∗ ownRaftPhysCV c V r id s2 := by
   intro H; subst H; iintro H; iexact H
 
+/-- (2026-10-20, witness support) The ghost configuration prefix of the leader's subterm
+(`NState.scp`) is no field of the struct: a ghost step sets it. -/
+theorem ownRaftPhysC_scp (r : Loc) (id : w64) (s : NState) (P : List EntryM) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysCV c V r id { s with scp := P } := by
+  have e : ownRaftPhysCV (GF := GF) c V r id { s with scp := P } = ownRaftPhysCV c V r id s := by
+    with_unfolding_all rfl
+  rw [e]; iintro H; iexact H
+
 /-- The same, put back at the same tally: the wand gives `ownRaftPhysC` at `s` itself
 rather than at `{ s with votes := s.votes }`, so a read-only use (a map lookup,
 `JointConfig.IDs`), or a split and re-seal repeated inside a `Visit` closure, does not

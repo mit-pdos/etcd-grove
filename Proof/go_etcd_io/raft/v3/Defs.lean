@@ -1131,6 +1131,12 @@ structure NState [FfiSyntax] where
   subterm and excluded voter are the protocol's (`toPState`); a non-leader's are what its last
   leadership left. -/
   ep : EpochM := EpochM.bare (W64 0)
+  /-- (2026-10-20, witness support) **Ghost**: the configuration prefix of a leader's current
+  subterm (`PState.scp`, the dynamic model's `StepR.newSub`), which no field of the struct holds:
+  `ownRaftPhys` does not constrain it, a ghost step sets it (`ownRaftPhysC_scp`), and `toPState`
+  reads it only at a leader past subterm 0 (`notes/raft-witness.md`, "`PState.scp` is
+  ghost-only"). -/
+  scp : List EntryM := []
 
 /-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
 node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`
@@ -1462,6 +1468,9 @@ def toPState (s : NState) : PState where
   -- excludes (`0` for the witness: `exclOf`), from its epoch; a non-leader's are `0`
   sub := if s.role = .leader then s.ep.sub else W64 0
   rsx := if s.role = .leader then epochRsx s.ep else W64 0
+  -- (2026-10-20) a leader's subterm's configuration prefix (ghost): `[]` at subterm 0, as the
+  -- protocol's `pwinState`, so a value an earlier term left is invisible
+  scp := if s.role = .leader ∧ s.ep.sub ≠ W64 0 then s.scp else []
 
 /-- A physical state that can take a protocol step: `r.step` agrees with the role, and
 `r.tick` is set (2026-10-09).
@@ -1538,7 +1547,7 @@ theorem leaderEntry_toPState (s : NState) : leaderEntry s = pleaderEntry (toPSta
 /-- A non-leader's epoch is invisible to the protocol (2026-10-20, witness support). -/
 theorem toPState_ep_nl (s : NState) (em : EpochM) (Hr : s.role ≠ .leader) :
     toPState { s with ep := em } = toPState s := by
-  simp only [toPState, Hr, ite_false]
+  simp only [toPState, Hr, ite_false, false_and]
 
 /-- A leader's epoch is read only for its subterm and excluded voter. -/
 theorem toPState_ep_same (s : NState) (em : EpochM) (Hs : em.sub = s.ep.sub)

@@ -186,7 +186,7 @@ theorem newRaft.wp_proof
     W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ, 0⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval', cv.CheckQuorum',
-    EpochM.bare (W64 0)⟩
+    EpochM.bare (W64 0), []⟩
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
     simp only [named]
