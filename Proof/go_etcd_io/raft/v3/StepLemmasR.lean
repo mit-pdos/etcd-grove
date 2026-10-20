@@ -255,6 +255,24 @@ inductive StepCF : PState → List Msg → PState → Prop where
       s.role = .leader →
       (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
       StepCF s [] { s with matched := mt }
+  /-- (2026-10-20, witness support, W3b-C) `StepC.askWitness`: a candidate's vote request to the
+  witness moves no extra field. -/
+  | askWitness (s : PState) (vs : List w64) (ls : w64) :
+      s.role = .candidate →
+      c.wit ≠ W64 0 →
+      size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
+      (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
+      vs ≡ₚ elements (domSet s.votes) →
+      (ls = W64 0 ∨ ls = plogLastSub s.log) →
+      StepCF s []
+        (psendMsgs s [Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
+          (plogLast s.base s.log).term' ls (W64 0) [] vs []])
+  /-- (2026-10-20, W3b-C) `StepC.sendWPre`. -/
+  | sendWPre (s : PState) (m : Msg) :
+      c.wit ≠ W64 0 →
+      m.ty = .wprevote →
+      m.src = id →
+      StepCF s [] (psendMsgs s [m])
 
 end frame
 
@@ -303,6 +321,8 @@ theorem StepCF.toC {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PSta
     | (apply StepC.abandon <;> assumption)
     | (apply StepC.zeroAck <;> assumption)
     | (apply StepC.reMatch <;> assumption)
+    | (apply StepC.askWitness <;> assumption)
+    | (apply StepC.sendWPre <;> assumption)
 
 /-- No `StepCF` rule makes a leader: one at the end was one at the start. -/
 theorem StepCF.leader_back {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PState}
@@ -468,6 +488,12 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.abandon r h1)
       (by simp [pbecomeFollower]) (fun h => absurd h h1) hz
+  | askWitness s vs ls h1 h2 h3 h4 h5 h6 =>
+    intro r hp hc hz; subst hp; subst hc
+    exact StepR.pci_keep (.askWitness r vs ls h1 h2 h3 h4 h5 h6) (fun h => h) (fun h => h) hz
+  | sendWPre s m h1 h2 h3 =>
+    intro r hp hc hz; subst hp; subst hc
+    exact StepR.pci_keep (.sendWPre r m h1 h2 h3) (fun h => h) (fun h => h) hz
   | zeroAck s dst =>
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.zeroAck r dst) (fun h => h) (fun h => h) hz
