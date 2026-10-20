@@ -15,6 +15,7 @@ Also the tactic macros shared by the branch files split for parallel checking (`
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
@@ -123,8 +124,8 @@ end base
 
 set_option hygiene false in
 /-- A getter call on the message `Hm`, by the specs `PB : raft.Step.PbPostulates` (both names
-the caller's). -/
-macro "wp_get" : tactic =>
+the caller's), trying each getter. -/
+macro "wp_get_any" : tactic =>
   `(tactic| first
     | (wp_apply PB.GetTerm.1 $$ [Hm] as Hm; iexact Hm)
     | (wp_apply PB.GetType.1 $$ [Hm] as Hm; iexact Hm)
@@ -133,8 +134,24 @@ macro "wp_get" : tactic =>
     | (wp_apply PB.GetIndex.1 $$ [Hm] as Hm; iexact Hm)
     | (wp_apply PB.GetReject.1 $$ [Hm] as Hm; iexact Hm))
 
-/-- Every getter call (`wp_get`) and pure step up to the next other call or undecided test. -/
-macro "wp_gets" : tactic => `(tactic| repeat (wp_get; try wp_auto))
+/-- The getters `wp_get` reads the message by. -/
+meta def StepProof.pbGetters : List String :=
+  ["GetTerm", "GetType", "GetFrom", "GetLogTerm", "GetIndex", "GetReject"]
+
+open Lean Elab Tactic in
+/-- `wp_get_any` by the getter the next redex calls (`Dispatch.lean`): only that getter's spec
+is tried; fails at once if the next redex is no getter call. -/
+elab "wp_get_next" : tactic => do
+  let some g ← StepProof.nextMethod? | throwError "wp_get_next: the next redex is not a method call"
+  unless StepProof.pbGetters.contains g do throwError "wp_get_next: {g} is not a getter"
+  StepProof.evalTacticString s!"(wp_apply PB.{g}.1 $$ [Hm] as Hm; iexact Hm)"
+
+/-- A getter call on the message `Hm` (`wp_get_next`, else `wp_get_any`). -/
+macro "wp_get" : tactic => `(tactic| first | wp_get_next | wp_get_any)
+
+/-- Every getter call and pure step up to the next other call or undecided test. After `wp_auto`
+the next redex is the call itself, so `wp_get_next` decides when to stop. -/
+macro "wp_gets" : tactic => `(tactic| repeat (wp_get_next; try wp_auto))
 
 set_option hygiene false in
 /-- (2026-10-17, `CheckQuorum` on) `Step`'s lease check on a `MsgVote`/`MsgPreVote` of a higher
