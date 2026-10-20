@@ -285,6 +285,26 @@ theorem psQ_psAt (P : WsPrm GF) : psQ (GF := GF) P ⊢ psAt P 1 := by
   iframe Ha
   ipureintro; exact HM.2
 
+/-- **The positions' statuses of a queued substream** (D24), its current lifetime started at
+`recvc`'s position `n` (`lifeStart`), no later position marked (a fresh one's: `psQ`, `n = 0`). -/
+def psSt (P : WsPrm GF) (n : Nat) : IProp GF :=
+  iprop(∃ M : GMap Nat Bool, ghostMapAuth P.γps 1 M ∗
+    ⌜M !! n = some true ∧ ∀ j, n + 1 ≤ j → M !! j = none⌝)
+
+theorem psQ_psSt (P : WsPrm GF) : psQ (GF := GF) P ⊢ psSt P 0 := by
+  unfold psQ psSt
+  iintro ⟨%M, Ha, %HM⟩
+  iexists M
+  iframe Ha
+  ipureintro; exact HM
+
+theorem psSt_psAt (P : WsPrm GF) (n : Nat) : psSt (GF := GF) P n ⊢ psAt P (n + 1) := by
+  unfold psSt psAt
+  iintro ⟨%M, Ha, %HM⟩
+  iexists M
+  iframe Ha
+  ipureintro; exact HM.2
+
 /-- A position's cursors, unchanged to itself. -/
 theorem chainE_refl (P : WsPrm GF) (a : Nat) (hi : w64) :
     monoListIdxOwn (GF := GF) P.γhi a hi ∗

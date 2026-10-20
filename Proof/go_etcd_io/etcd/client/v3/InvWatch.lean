@@ -705,12 +705,14 @@ instance reqP_persistent (V : WEnv GF) (v : GoInterface) : Persistent (reqP V v)
   unfold reqP; infer_instance
 
 /-- **What a goroutine stopping for good leaves** (D24: in its lifetime's invariant, `lifeSt`):
-the `outc` field and the producer's side of `outc`, its `retc` field (with the caller's resources
-if it never sent its channel), its part of the request's `rev` field, its half of the `donec`
-field. -/
+the `outc` field and the producer's side of `outc` (or the field `nil`, the channel closed by
+`waitCancelSubstreams` once the watch's context was done), its `retc` field (with the caller's
+resources if it never sent its channel), its part of the request's `rev` field, its half of the
+`donec` field. -/
 def stopBody (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(∃ (rc : Loc) (q : Qp) (nr : w64) (dc : Loc),
-    wsF P.ws go!"outc" ↦ P.outc ∗ outcProd P ∗
+    (wsF P.ws go!"outc" ↦ P.outc ∗ outcProd P ∨
+      wsF P.ws go!"outc" ↦ null ∗ context.ContextClosed P.cs.Done_gn) ∗
     wsReqF P.ws go!"retc" ↦ rc ∗ (⌜rc = null⌝ ∨ ⌜rc = P.retc⌝ ∗ retcRes P) ∗
     wsReqF P.ws go!"rev" ↦{DFrac.own q} nr ∗ wsF P.ws go!"donec" ↦{DFrac.own (1 : Qp).half} dc)
 
@@ -1016,10 +1018,11 @@ def lifeSt (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) (L : LifePrm) : IProp GF
 abbrev lifeInvIs (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) (L : LifePrm) : IProp GF :=
   inv lifeN (lifeSt V G P L)
 
-/-- **What a lifetime's `donec` publishes** (persistent): its invariant, and how it ended: stopped
-for good, or resumed (its generation ended). -/
+/-- **What a lifetime's `donec` publishes** (persistent): its invariant, its deposit made (`γt`),
+and how it ended: stopped for good, or resumed (its generation ended). -/
 def lifeQ (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) (L : LifePrm) : IProp GF :=
-  iprop(lifeInvIs V G P L ∗ (wsStopped P ∨ monoNatLbOwn G.γend (L.gen + 1)))
+  iprop(lifeInvIs V G P L ∗ dghostVar L.γt DFrac.discard true ∗
+    (wsStopped P ∨ monoNatLbOwn G.γend (L.gen + 1)))
 
 instance lifeQ_persistent (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) (L : LifePrm) :
     Persistent (lifeQ V G P L) := by
@@ -1036,7 +1039,7 @@ theorem lifeQ_cur (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) (L : LifePrm) (n 
     ⊢ □ (lifeQ V G P L -∗ monoNatAuthOwn G.γend 1 n -∗ dghostVar P.γx DFrac.discard true) := by
   iintro !> HQ Ha
   unfold lifeQ wsStopped
-  icases HQ with ⟨-, (⟨#Hx, -⟩ | #Hlb)⟩
+  icases HQ with ⟨-, -, (⟨#Hx, -⟩ | #Hlb)⟩
   · iexact Hx
   · ihave %Hv := monoNatLbOwn_valid _ _ _ _ $$ Ha Hlb
     exfalso; omega

@@ -345,7 +345,7 @@ local macro "ss_return" : tactic => `(tactic| (
     · iexists _, _; iexact Hrev
     · iexists 1, _; iexact Hrev
   icases Hrv with ⟨%q, %rv, Hrv⟩
-  wp_apply wp_recordBufWait $$ [Hbl Hbwt Hrv Hbuf] as ⟨Hbl, Hla, %t'', Hbwt⟩
+  wp_apply +noauto wp_recordBufWait $$ [Hbl Hbwt Hrv Hbuf] as ⟨Hbl, Hla, %t'', Hbwt⟩
   · iframe Flg Hbl Hblok Hbwt
     unfold wsLogA
     iframe Hrv Hbuf
@@ -353,12 +353,9 @@ local macro "ss_return" : tactic => `(tactic| (
   icases Hla with ⟨Hrv, Hbuf⟩
   imod dghostVar_update true _ _ $$ Hx with Hx
   imod dghostVar_persist _ _ _ $$ Hx with #Hx
-  (try wp_auto)
-  ipersist Hclosing
-  wp_apply +noauto wp_broadcast_chan_close $$ [Hdn] as #Hdnd
-  · iframe Hdn; imodintro; unfold lifeQ wsStopped; iframe #
   wp_auto_lc 1
-  -- the deposit (D24)
+  ipersist Hclosing
+  -- the deposit (D24), before `donec`'s close (which publishes it)
   iapply fupd_wp
   iinv Hlinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑lifeN) $$ Hlc1 Hi with Hi
@@ -382,9 +379,11 @@ local macro "ss_return" : tactic => `(tactic| (
     ileft
     unfold stopBody outcProd
     iexists rcf, q, rv, L.dc
-    iframe Houtcf Hretc Hrv Hdnf
-    isplitl [Hprod Hauth Hc2]
-    · iexists sent, C; iframe Hprod Hauth
+    iframe Hretc Hrv Hdnf
+    isplitl [Houtcf Hprod Hauth Hc2]
+    · ileft
+      iframe Houtcf
+      iexists sent, C; iframe Hprod Hauth
       isplitr
       · ipureintro; exact HC.1
       iapply cur2Pos_auth; iexact Hc2
@@ -392,6 +391,9 @@ local macro "ss_return" : tactic => `(tactic| (
     · iright; iframe Hres; ipureintro; exact Hr.2.1
     · ileft; ipureintro; exact Hr.2
   imodintro
+  wp_apply +noauto wp_broadcast_chan_close $$ [Hdn] as #Hdnd
+  · iframe Hdn; imodintro; unfold lifeQ wsStopped; iframe #
+  (try wp_auto)
   wp_apply wp_bag_send $$ [Hwstok]
   · iframe Hclb
     unfold closingP
@@ -1135,14 +1137,11 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     iintro ⟨#Hlb, -⟩
     -- (D24) resumed: the goroutine leaves its state in the lifetime's invariant
     (try wp_auto)
-    wp_apply wp_resetBufWait $$ [Hbwt] as Hbwt
+    wp_apply +noauto wp_resetBufWait $$ [Hbwt] as Hbwt
     · iframe
-    (try wp_auto)
+    wp_auto_lc 1
     wp_for_post
     (try wp_auto)
-    wp_apply +noauto wp_broadcast_chan_close $$ [Hdn] as #Hdnd
-    · iframe Hdn; imodintro; unfold lifeQ; iframe #
-    wp_auto_lc 1
     iapply fupd_wp
     iinv Hlinv with Hi Hclose
     imod lc_fupd_elim_later (E := ⊤ \ ↑lifeN) $$ Hlc1 Hi with Hi
@@ -1175,6 +1174,8 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iframe Hb Hbcap
       ipureintro; exact ⟨Hkr, HC⟩
     imodintro
+    wp_apply +noauto wp_broadcast_chan_close $$ [Hdn] as #Hdnd
+    · iframe Hdn; imodintro; unfold lifeQ; iframe #
     (try wp_auto)
     ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
     · iPkgInit
