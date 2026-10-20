@@ -352,7 +352,10 @@ public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Proof.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
 public import Proof.go_etcd_io.raft.v3.witness__handleHeartbeat
+public import Proof.go_etcd_io.raft.v3.witness__isHealthy
+public import Proof.go_etcd_io.raft.v3.witness__processMessageWithOlderTerm
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -1576,9 +1579,21 @@ theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
     tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
   tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
 
+theorem witness.wp_handleAppendNoUpdate :
+    witness.handleAppendNoUpdate.spec (GF := GF) (hG := hG) :=
+  witness.handleAppendNoUpdate.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
+
 theorem witness.wp_handleHeartbeat :
     witness.handleHeartbeat.spec (GF := GF) (hG := hG) :=
   witness.handleHeartbeat.wp_proof raftpb.MessageType.wp_Enum
+
+theorem witness.wp_isHealthy :
+    witness.isHealthy.spec (GF := GF) (hG := hG) :=
+  witness.isHealthy.wp_proof
+
+theorem witness.wp_processMessageWithOlderTerm :
+    witness.processMessageWithOlderTerm.spec (GF := GF) (hG := hG) :=
+  witness.processMessageWithOlderTerm.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm
 
 end links
 
