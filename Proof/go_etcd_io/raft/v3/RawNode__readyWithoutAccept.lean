@@ -196,7 +196,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
   clear Hlv
   wp_auto
   ihave #Hhp' := hsOpt_of_hsRO _ _ $$ Hhp
-  ihave #Hhard' := hsOpt_of_hsRO _ _ $$ Hhard
+  -- (D22l) `prevHardSt`: its record `rs.phs` and its witness
+  ihave %Hphs := prevHS_eq γ _ _ _ $$ Hhard
+  ihave #Hphsw := prevHS_wit γ _ _ _ $$ Hhard
+  ihave #Hhard' := prevHS_hsRO γ _ _ _ $$ Hhard
+  ihave #Hhard' := hsOpt_of_hsRO _ _ $$ Hhard'
   wp_apply (wp_isHardStateEqual hp rnv.prevHardSt' (hardstateVal (nodeHardstate s)) hprev) $$ [$Hhp' $Hhard']
   have Hhs_iff : ((hardstateVal (nodeHardstate s)).Term' = hprev.Term' ∧
       (hardstateVal (nodeHardstate s)).Vote' = hprev.Vote' ∧
@@ -230,16 +234,34 @@ theorem RawNode.readyWithoutAccept.wp_proof
       obtain ⟨-, H2, H3⟩ := HceOk e Hl
       have := uint_Z_nonneg s.logst.applying
       push_cast; omega
-  ihave #HHP : iprop(∃ h, hsOpt HP h ∗ hsWit γ h (rs.delivered ++ ce).length) $$ []
+  -- (D22l) the witness of `prevHardSt` after the `Ready` (`phsNext`): the node's hard state when
+  -- it is handed out non-empty, else `prevHardSt`'s (`rs.phs`), within whose commit index the
+  -- committed log lies: equal to the node's, or (an empty hard state) the node's is `0`
+  ihave #HHP : iprop(∃ h, hsOpt HP h ∗ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length)
+    $$ []
   · rw [← HHP]
     by_cases He : nodeHardstate s = hsAbs hprev
     · rw [ite_pos' He]; iexists HardStateM.mk (W64 0) (W64 0) (W64 0)
       isplitr
       · unfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
-      · iapply hsWit_zero
+      rw [phsNext_zero]
+      have Hc : s.logst.committed = rs.phs.Commit' := by
+        rw [← Hphs]; exact congrArg HardSt.commit He
+      iapply hsWit_of_phsWit γ rs.phs _ (by rw [← Hc]; exact Hn) $$ Hphsw
     · rw [ite_neg' He]; iexists hardstateVal (nodeHardstate s)
       isplitr
       · iexact Hhp'
+      by_cases Hz : (hardstateVal (nodeHardstate s)).Term' = W64 0 ∧
+          (hardstateVal (nodeHardstate s)).Vote' = W64 0 ∧
+          (hardstateVal (nodeHardstate s)).Commit' = W64 0
+      · rw [phsNext_empty _ _ Hz]
+        have Hc0 : s.logst.committed = W64 0 := Hz.2.2
+        have Hn0 : ((rs.delivered ++ ce).length : Int) ≤ uint.Z rs.phs.Commit' := by
+          rw [Hc0] at Hn; have := uint_Z_nonneg rs.phs.Commit'
+          have h0 : uint.Z (W64 0) = 0 := rfl
+          omega
+        iapply hsWit_of_phsWit γ rs.phs _ Hn0 $$ Hphsw
+      rw [phsNext_ne _ _ Hz]
       unfold hsWit; iright
       rw [show (hardstateVal (nodeHardstate s)).Term' = (toPState s).term from rfl,
         show (hardstateVal (nodeHardstate s)).Commit' = (toPState s).commit from rfl]
@@ -474,8 +496,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iframe Hrdrs
     ipureintro; exact fun h => h
   icases HHP with ⟨%hrd, #HHP, #Hhsw⟩
-  ihave #Hrdhard : iprop(∃ h, hsOpt HP h) $$ []
-  · iexists hrd; iexact HHP
+  ihave #Hrdhard : iprop(∃ h, hsOpt HP h ∗ phsWit γ h) $$ []
+  · iexists hrd; iframe HHP; iapply phsWit_of_hsWit_next γ rs.phs hrd _ $$ Hhsw
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
       (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout

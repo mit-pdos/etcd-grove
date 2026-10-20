@@ -430,11 +430,11 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     iexact Hch
   isplitr
   · -- `Advance`
-    iintro !> %d %ce %es %Φ !> ⟨Hbusy, Hrcpt⟩ HΦ
+    iintro !> %d %ce %es %p %Φ !> ⟨Hbusy, Hrcpt⟩ HΦ
     iunfold rnBusy at Hbusy
     icases Hbusy with ⟨Hbusy, %ca, %cfg, Hcfg⟩
     iunfold rnAppendReceipt at Hrcpt
-    wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg
+    wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg p
       (fun h => by rw [Hstatic] at h; simp [RNMode.isDyn] at h) $$ [Hbusy Hrcpt Hcfg]
       as ⟨Hdrv, Hcfg, %x, #Hfl, %Hx⟩
     · iframe #

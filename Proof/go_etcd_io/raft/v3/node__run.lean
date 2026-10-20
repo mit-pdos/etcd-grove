@@ -753,7 +753,7 @@ theorem node.run.wp_proof
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateOk γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
-          hsWit γ.raft h (rs.delivered ++ ce).length) ∗
+          hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length) ∗
         ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ rdv'.Snapshot' = null⌝) $$ [Hst]
     · icases Hst with (⟨%ce, %es, %ms, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
       · iunfold freshOk at Hf
@@ -777,8 +777,10 @@ theorem node.run.wp_proof
             exact absurd this (by simp)
         have Hk0 : k = 0 := by have := Hidf.1; omega
         subst Hes0 Hk0
+        -- (D22l) its hard state's witness, for `prevHardSt`
+        ihave #Hrdw := phsWit_of_hsWit_next γ.raft rs.phs hrd _ $$ Hhsw
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
-          Hce_ok $$ Hrdsoft Hrdh Hce Hce_cap Hents Hcommitted Hrs Hrn
+          Hce_ok $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
         iexists ce, [], []
         iframe Hrn Hce Hcommitted Hents
         isplitl []
@@ -798,8 +800,8 @@ theorem node.run.wp_proof
           iframe Hrdh Hhsw
         ipureintro; exact ⟨by simp, Hrdz⟩
     icases Hg with
-      ⟨%ce, %es, %ms, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hmsgs_ok, #Hrsts, #Hhd,
-        %Hfacts⟩
+      ⟨%ce, %es, %ms, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hmsgs_ok, #Hrsts,
+        ⟨%h, #Hhh, #Hhw⟩, %Hfacts⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-16, stage R7a) the `Ready`'s soft state, read-only for the application
@@ -812,23 +814,26 @@ theorem node.run.wp_proof
       with ⟨Hcfg, #Hdlb⟩
     iunfold rofFull at Hrof
     icases Hrof with ⟨%x, Hr1, Hr2⟩
-    imod dghostVar_update_halves (rs.delivered, ce, es) γ.rof x x $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
+    imod dghostVar_update_halves (rs.delivered, ce, es, phsNext rs.phs h) γ.rof x x $$ Hr1 Hr2
+      with ⟨Hr1, Hr2⟩
     ihave Hmt := readyMsgs_termLB γ rs.tc ms Hfacts.1 $$ Hown Hmsgs_ok Hlb'
     imodintro
     isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr Htk]
     · unfold readyP
-      iexists rs.delivered, ce, es, ms
+      iexists rs.delivered, ce, es, ms, rs.phs, phsNext rs.phs h
       iframe Hdlv Hr1 Hdlb
       unfold readyData
-      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhd Hss Hri
+      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri
       isplitl [Happ]
       · rw [← Hstor]
         iexact Happ
+      isplitr
+      · iexists h; iframe Hhh; ipureintro; rfl
       ipureintro; exact Hfacts.2
     inext
     iintro -
     wp_auto
-    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id rs rdv' ce es ms $$ [$Hrn] as %steps Hrn
+    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id rs rdv' ce es ms h $$ [$Hrn $Hhh] as %steps Hrn
     icases ownRawNode_async γ.raft nv.rn' id _ $$ Hrn with ⟨%rnv, Hrnown, %Hasync, Hrnback⟩
     wp_auto
     rw [Hasync]
@@ -842,7 +847,7 @@ theorem node.run.wp_proof
     · ipureintro; exact Hpc'
     unfold runHead
     iexists { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
-                      outlb := 0, unst := false }
+                      outlb := 0, unst := false, phs := phsNext rs.phs h }
     iframe Hrn
     unfold headRest
     iframe Hlb'

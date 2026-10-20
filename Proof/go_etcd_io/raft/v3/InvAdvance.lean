@@ -38,10 +38,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   icases Hdep with ⟨%rs, %d, %ce, Hrn, #Htlb, Hcfg, Hrof, %Hrs⟩
   obtain ⟨Hstor, Hunst, Hdel⟩ := Hrs
   iunfold advanceP at HP
-  icases HP with ⟨%d', %ce', %es', Hdlv, Hrof', Hrcpt, %ca_d, #Hcamlb, %HA⟩
+  icases HP with ⟨%d', %ce', %es', %p', Hdlv, Hrof', Hrcpt, %ca_d, #Hcamlb, %HA⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hrof Hrof'
   simp only [Prod.mk.injEq] at Heq
-  obtain ⟨rfl, rfl, rfl⟩ := Heq
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := Heq
   -- the driver's lower bound, against `run`'s authority
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, Hcfg⟩

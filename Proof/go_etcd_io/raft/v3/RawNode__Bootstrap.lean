@@ -89,7 +89,7 @@ theorem RawNode.Bootstrap.wp_proof
   wp_auto
   -- `rn.prevHardSt = emptyState`
   ihave Hinit := isInitialized_access $$ Hpkg
-  ihave ⟨%es, #Hg, #Hes⟩ := emptyState_hsRO $$ Hinit
+  ihave ⟨%es, #Hg, #Hesz⟩ := emptyState_hsRO $$ Hinit
   wp_auto
   -- `rn.raft.becomeFollower(1, None)`
   wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) ∅ rnv.raft' id s (W64 1)
@@ -470,6 +470,8 @@ theorem RawNode.Bootstrap.wp_proof
   · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hnscap
   have Hnl0 : NsLink γ { sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } :=
     ⟨rfl, rfl, rfl⟩
+  -- (D22l) `prevHardSt` the zero record, `RNState.phs`'s default
+  ihave #Hes' := prevHS_of_zero γ _ _ rfl $$ Hesz
   iapply HΦ
   isplitl []
   · ipureintro; rfl
@@ -490,7 +492,7 @@ theorem RawNode.Bootstrap.wp_proof
         (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
         (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
         Hnl0
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
     · iapply storedRecsP_intro; rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil
   · iexact Hpeers

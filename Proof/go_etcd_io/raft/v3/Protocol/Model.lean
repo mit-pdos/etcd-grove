@@ -99,15 +99,30 @@ inductive MsgType where
   | preVote | preVoteResp | readIndex | readIndexResp
   deriving DecidableEq, Inhabited
 
+/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
+`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
+`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). (Moved here from
+`Defs.lean` on 2026-10-20, D22 S-b′: a `snap` message carries them.) -/
+structure CSLists where
+  voters : List w64
+  learners : List w64
+  outgoing : List w64
+  learnersNext : List w64
+  deriving DecidableEq, Inhabited
+
+/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
 /-- Every field of a `MessageM` the protocol reads. `entries` is the list behind
 `Message.Entries`; see `absMsg` (`Defs.lean`) for why the abstraction of a physical
 message needs that list as an argument.
 
 `index`/`logterm` of a `snap` are the snapshot's `Metadata.Index`/`Metadata.Term`, and
-`voters` its `Metadata.ConfState.Voters` -- all behind the pointer `Message.Snapshot`,
-read by `absSnap` (`Defs.lean`). Every other message has `voters = []`. -/
+`cl`/`al` its `Metadata.ConfState`'s lists and `AutoLeave` (D22 S-b′, 2026-10-20; until then
+`voters`, the incoming voters) -- all behind the pointer `Message.Snapshot`, read by `absSnap`
+(`Defs.lean`). Every other message has empty lists. -/
 structure Msg [FfiSyntax] where
-  mkV ::
+  mkS ::
   ty : MsgType
   /-- the sender (Go `m.From`) -/
   src : w64
@@ -125,8 +140,11 @@ structure Msg [FfiSyntax] where
   rejecthint : w64
   /-- `Entries` -/
   entries : List EntryM
-  /-- a `snap`'s `ConfState.Voters`; `[]` otherwise -/
-  voters : List w64
+  /-- (D22 S-b′, 2026-10-20; until then `voters`, the incoming voters only) a `snap`'s
+  `ConfState` lists; empty otherwise -/
+  cl : CSLists
+  /-- (D22 S-b′) a `snap`'s `ConfState.AutoLeave`; `false` otherwise -/
+  al : Bool
   /-- `Context` (2026-10-12, for read-index): the bytes `Message.Context` holds; `[]`
   for every message but a heartbeat and its response carrying a read position -/
   ctx : List w8
@@ -141,7 +159,14 @@ nothing that reduces, injects or rewrites a message has to unfold anything by ha
 changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
     (es : List EntryM) : Msg :=
-  Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
+  Msg.mkS t0 fr to0 tm rj ix lt cm rh es ⟨[], [], [], []⟩ false []
+
+/-- The twelve-field constructor of before D22 S-b′ (2026-10-20): the incoming voters only, the
+other lists empty and no `AutoLeave`. Reducible, as `Msg.mk`, so that its 26 call sites are
+unchanged. -/
+@[reducible] def Msg.mkV (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
+    (es : List EntryM) (vs : List w64) (cx : List w8) : Msg :=
+  Msg.mkS t0 fr to0 tm rj ix lt cm rh es ⟨vs, [], [], []⟩ false cx
 
 /-- A message with no payload: every replication field zero. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=

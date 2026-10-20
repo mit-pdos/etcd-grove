@@ -275,7 +275,7 @@ def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
   iprop(∃ (γn : NodeNames) (n : Loc),
     ⌜γn.raft = γr.raft ∧ γn.bud = bud ∧ γn.stor = kvStorIface st ∧
       nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-    nodeDriver γn id n [] ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
+    nodeDriver γn id n [] hsZero ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     id ↪[γr.seq] W64 0 ∗
     -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
     ⌜KVCC γn opR c0R c1R⌝ ∗ nodeCfg γn 0 c0R)

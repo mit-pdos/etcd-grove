@@ -89,6 +89,8 @@ public import Proof.go_etcd_io.raft.v3.SnapConf
 -- (2026-10-16, stage R5) `StepMsg`, `RestMsgOk` for `NetMsgOk`; `ccV2Of` for `DynCCPre`
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.CCApply
+-- (D22l) `phsWit`, `phsNext`
+public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 
 @[expose] public section
 
@@ -186,6 +188,13 @@ structure RNState [FfiSyntax] where
   snapshot (`appliedSnap`, `stableSnapTo`, the storage's `ApplySnapshot`) is S-d's. Every other
   method keeps the flag; only `RawNode.Step` sets it, and nothing clears it yet. -/
   psnap : Bool := false
+  /-- (D22l, 2026-10-20) `prevHardSt`'s record: the hard state of the last accepted `Ready` that
+  had a non-empty one (`phsNext`), the zero record until then (`NewRawNode` on an empty storage,
+  whose `hardState()` is zero). Only `acceptReady` moves it. A `Ready` with a `nil` `HardState`
+  is one at which the node's hard state is this one, so its witness (`readyWithoutAccept`'s
+  `hsWit` of `phsNext rs.phs h`) is this one's: what `node.go`'s driver needs to read every
+  batch's commit witness off the hard state it last recorded. -/
+  phs : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
 
 section defs
 variable [FfiSyntax]
@@ -1301,6 +1310,37 @@ theorem pendList_nil (γ : RaftNames) (id : w64) :
     pendingRel γ id st p))).2
   iempintro
 
+/-- (D22l) `prevHardSt`: a pointer to a read-only hard state `h` (`hsRO`), the record `ph`
+(`RNState.phs`), with its witness (`phsWit`: the hard state of an earlier `Ready`, or zero). -/
+def prevHS (γ : RaftNames) (p : Loc) (h ph : HardStateM) : IProp GF :=
+  iprop(hsRO p h ∗ ⌜h = ph⌝ ∗ phsWit γ h)
+
+instance prevHS_persistent (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    Persistent (prevHS (GF := GF) γ p h ph) := by
+  unfold prevHS; infer_instance
+
+theorem prevHS_hsRO (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    prevHS (GF := GF) γ p h ph ⊢ hsRO p h := by
+  unfold prevHS; iintro ⟨#H, -, -⟩; iexact H
+
+theorem prevHS_eq (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    prevHS (GF := GF) γ p h ph ⊢ ⌜h = ph⌝ := by
+  unfold prevHS; iintro ⟨-, %H, -⟩; ipureintro; exact H
+
+theorem prevHS_wit (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    prevHS (GF := GF) γ p h ph ⊢ phsWit γ ph := by
+  unfold prevHS; iintro ⟨-, %H, #W⟩; subst H; iexact W
+
+theorem prevHS_of_zero (γ : RaftNames) (p : Loc) (h : HardStateM) (Hz : h = hsZero) :
+    hsRO (GF := GF) p h ⊢ prevHS γ p h hsZero := by
+  unfold prevHS; iintro #H; iframe H; subst Hz
+  isplitr; · ipureintro; rfl
+  iapply phsWit_zero
+
+theorem prevHS_intro (γ : RaftNames) (p : Loc) (h : HardStateM) :
+    ⊢ hsRO (GF := GF) p h -∗ phsWit γ h -∗ prevHS γ p h h := by
+  unfold prevHS; iintro #H #W; iframe H W; ipureintro; rfl
+
 /-- See the file header. `s` is the node's physical state, `c` the configuration the struct is
 at, `fp` the ghost full prefix (the dynamic mode's ghost part is `⟨rs.capplied, rs.cfg, fp⟩`);
 `delivered` is the committed log up to `applying` (`isCommitted_agree` makes it the one such
@@ -1331,7 +1371,7 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- or a `Ready.SoftState`), held read-only; (2026-10-16, stage R5) `prevHardSt`: a pointer
   -- to a read-only hard state (`NewRawNode`'s `r.hardState()` or a `Ready.HardState`)
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
-  "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+  "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   -- (2026-10-16, stage R5) each queued message owned, with its record (until then
@@ -1382,7 +1422,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
-      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
@@ -1445,7 +1485,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hnl : NsLink γ s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
-      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗

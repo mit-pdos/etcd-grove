@@ -86,7 +86,7 @@ abbrev RawNode.Ready.spec : Prop :=
       (sts : List ReadStateM) (h : HardStateM) (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
-                  outlb := 0, unst := false } ∗
+                  outlb := 0, unst := false, phs := phsNext rs.phs h } ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗
@@ -107,8 +107,9 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
       -- (2026-10-16, stage R5) the hard state, `nil` or fresh and read-only
       "#Hhard" ∷ hsOpt rd.HardState' h ∗
-      -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`)
-      "#Hhsw" ∷ hsWit γ h (rs.delivered ++ ce).length ∗
+      -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`); (D22l) of `prevHardSt`
+      -- after the `Ready` (`phsNext`)
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
       -- the right to append `es` to the node's storage (2026-10-10)
       "Happ" ∷ appendRight rs.storage es }}
 

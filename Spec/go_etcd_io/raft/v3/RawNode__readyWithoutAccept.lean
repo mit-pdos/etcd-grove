@@ -58,7 +58,10 @@ every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntr
 `rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:
 the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). (D22 S-b, 2026-10-19: with the
 witness `hsWit` of a non-`nil` one: the node's term and commit index at the `Ready`, `commitWit`,
-and the committed log handed out within the commit index.) -/
+and the committed log handed out within the commit index.) (D22l, 2026-10-20: the witness is of
+`prevHardSt` as `acceptReady` leaves it, `phsNext rs.phs h`: for a `nil` `HardState` the node's
+hard state is `prevHardSt`'s, `RNState.phs`, so every `Ready` bounds its committed log by the
+witness of the last non-empty hard state handed out.) -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -99,8 +102,9 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       -- read-only one
       "#Hhard" ∷ hsOpt rd.HardState' h ∗
       -- (D22 S-b) a non-`nil` one is the node's hard state: its witness (`hsWit`), bounding the
-      -- committed log handed out
-      "#Hhsw" ∷ hsWit γ h (rs.delivered ++ ce).length }}
+      -- committed log handed out; (D22l) of `prevHardSt` after the `Ready` (`phsNext`): a `nil`
+      -- or empty one leaves the witness `prevHardSt`'s (`rs.phs`), the node's hard state then
+      "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length }}
 
 end spec
 

@@ -184,7 +184,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es ms
+  intro γ rn id rs rd ce es ms h
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -209,7 +209,11 @@ theorem RawNode.acceptReady.wp_proof
   simp only [logHanded] at Hwf1 Hwf2 Hwf3 Hidx
   icases Hrdrs with ⟨%sts, #Hrdsts, %Hsts⟩
   ihave %Hstl := readStatesPts_len _ _ $$ Hrdsts
-  icases Hrdhard with ⟨%hrd, #Hrdhard⟩
+  icases Hrdhard with ⟨%hrd, #Hrdhard, #Hrdw⟩
+  -- (D22l) the caller's hard state is the `Ready`'s
+  ihave %Hhh := hsOpt_agree rd.HardState' hrd h $$ [Hrdhard Hh]
+  · isplitl [] <;> iassumption
+  subst Hhh
   wp_auto
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to a read-only `SoftState`
@@ -229,18 +233,23 @@ theorem RawNode.acceptReady.wp_proof
   -- `if !IsEmptyHardState(rd.HardState) { rn.prevHardSt = rd.HardState }`: either way
   -- `prevHardSt` points to a read-only hard state
   wp_apply wp_IsEmptyHardState $$ [$Hrdhard]
+  -- (D22l) its record moves to `phsNext rs.phs hrd`, its witness kept
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       ∃ (ph : Loc) (hph : HardStateM),
-        rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph } ∗ hsRO ph hph)
+        rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph } ∗
+          prevHS γ ph hph (phsNext rs.phs hrd))
     with [Hrn rn rd] as ⟨rn, rd, %ph, %hph, Hrn, #Hph⟩
   · iframe rn rd
     iexists rnv.prevHardSt', hprev
+    rw [phsNext_empty _ _ (by first | exact Hif | exact Classical.not_not.1 Hif | simpa using Hif)]
     iframe Hhard
     iexact Hrn
   · iframe rn rd
     iexists rd.HardState', hrd
     iframe Hrn
-    iapply hsRO_of_hsOpt _ _ Hif $$ Hrdhard
+    rw [phsNext_ne _ _ Hif]
+    ihave #Hro := hsRO_of_hsOpt _ _ Hif $$ Hrdhard
+    iapply prevHS_intro $$ Hro Hrdw
   -- `if len(rd.ReadStates) != 0 { rn.raft.readStates = nil }`: either way the node has no
   -- `ReadState` left
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
@@ -661,7 +670,7 @@ theorem RawNode.acceptReady.wp_proof
   have HrnflN : RNFl
       { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
                 steps := readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
-                outlb := 0, unst := false }
+                outlb := 0, unst := false, phs := phsNext rs.phs hrd }
       (readyNstate s ce sz) := by
     have Hfl0 : (readyNstate s ce sz).logst.fl = s.logst.fl := by
       simp only [readyNstate, logAcceptApplying, logAcceptUnstable]
@@ -685,7 +694,7 @@ theorem RawNode.acceptReady.wp_proof
   iapply ownRawNode_intro γ rn id
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce,
-              outlb := 0, unst := false }
+              outlb := 0, unst := false, phs := phsNext rs.phs hrd }
     (readyNstate s ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _

@@ -96,6 +96,8 @@ theorem RestartNode.wp_proof
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
   obtain ⟨Hp, Hse, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn, Hsg⟩ := Hlog
+  -- (D22l) `prevHardSt` zero, `RNState.phs`'s default
+  ihave #Hhard0 := prevHS_of_zero γ _ _ Hhz $$ Hhard
   obtain ⟨Ht0, Hv0, Hr, -, -, -⟩ := Hterm0
   have Hdlen0 : ([] : List EntryM).length = (uint.Z s.logst.applying).toNat := by
     rw [Hapg]; rfl
@@ -139,7 +141,7 @@ theorem RestartNode.wp_proof
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           (by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
     | dyn dec c0 h0 h1 =>
@@ -181,17 +183,17 @@ theorem RestartNode.wp_proof
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   ipersist n
   -- the node's ghost state
-  imod dghostVar_alloc ([] : List EntryM) with ⟨%γdlv, Hdlv⟩
+  imod dghostVar_alloc ((([] : List EntryM), hsZero) : List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
   icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
-  imod dghostVar_alloc (([], [], []) : List EntryM × List EntryM ×
-    List EntryM) with ⟨%γrof, Hrof⟩
+  imod dghostVar_alloc (([], [], [], hsZero) : List EntryM × List EntryM ×
+    List EntryM × HardStateM) with ⟨%γrof, Hrof⟩
   icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
   -- (2026-10-15, stage N) the configuration shared with the driver
   imod mono_list_own_alloc ([] : List EntryM) with ⟨%γdlm, Hdlm, #Hdlb⟩
@@ -240,7 +242,7 @@ theorem RestartNode.wp_proof
   · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
     · iframe Hnode
       unfold runPre
-      iexists nv, _, (([], [], []) : List EntryM × List EntryM × List EntryM)
+      iexists nv, _, (([], [], [], hsZero) : List EntryM × List EntryM × List EntryM × HardStateM)
       rw [Hnvrn]
       iframe n Hrn Hrof1 Hrof2
       isplitr

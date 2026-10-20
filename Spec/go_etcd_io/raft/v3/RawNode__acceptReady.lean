@@ -39,17 +39,20 @@ which the application may already hold (`ms`, what `readyWithoutAccept` handed o
 others of `msgsAfterAppend`' `To`, which it keeps at half (`ownRaftPhysReady`'s `Hother`); it
 stores `rd.HardState` in `prevHardSt` when not empty; the queued acknowledgements are fresh
 messages (`newStorageAppendRespMsg`, `newStorageApplyRespMsg`), the apply acknowledgement's
-`Entries` the committed entries' slice.) -/
+`Entries` the committed entries' slice.) (D22l, 2026-10-20: `prevHardSt`'s record moves to
+`phsNext rs.phs h`, `h` the `Ready`'s hard state, `hsOpt rd.HardState' h`, which the caller
+names.) -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg),
+    (ce es : List EntryM) (ms : List QMsg) (h : HardStateM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true }}
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true ∗
+      "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending), RET #();
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
-                  outlb := 0, unst := false } }}
+                  outlb := 0, unst := false, phs := phsNext rs.phs h } }}
 
 end spec
 

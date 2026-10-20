@@ -125,7 +125,7 @@ abbrev StartNode.spec : Prop :=
       R ∗ ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = RNMode.static ∧
          nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
+        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         -- the driver's view of the configuration: the peers'
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the peers' slice, read only

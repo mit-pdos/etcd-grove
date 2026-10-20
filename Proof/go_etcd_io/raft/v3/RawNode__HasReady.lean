@@ -167,7 +167,8 @@ theorem RawNode.HasReady.wp_proof
   -- `r.hardState()`: a fresh read-only hard state
   wp_apply wp_raft_hardState cf rnv.raft' id s $$ Hphys as %hp ⟨#Hhp, Hphys⟩
   ihave #Hhp' := hsRO_to_hsOpt _ _ $$ Hhp
-  ihave #Hhard' := hsRO_to_hsOpt _ _ $$ Hhard
+  ihave #Hhard' := prevHS_hsRO γ _ _ _ $$ Hhard
+  ihave #Hhard' := hsRO_to_hsOpt _ _ $$ Hhard'
   wp_apply wp_IsEmptyHardState hp _ $$ [$Hhp']
   wp_if_destruct
   · rest

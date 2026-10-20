@@ -98,7 +98,7 @@ abbrev RestartNode.spec : Prop :=
       ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
          nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
+        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
         nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
 

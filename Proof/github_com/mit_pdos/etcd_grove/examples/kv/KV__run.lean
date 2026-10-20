@@ -68,15 +68,15 @@ theorem KV.run.wp_proof
   wp_auto
   wp_apply wp_node_Ready γp.node id n $$ [$HisNode] as %ch #Hch
   ihave IH : iprop(∃ (ds : List EntryM) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
-      (a : w64) (ca : Nat) (cfg : CCState),
-      "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ nodeDriver γp.node id n ds ∗ "Hrun" ∷ runOwn γr r ds ∗
+      (a : w64) (ca : Nat) (cfg : CCState) (p : HardStateM),
+      "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ nodeDriver γp.node id n ds p ∗ "Hrun" ∷ runOwn γr r ds ∗
       "pending" ∷ pending_ptr ↦ pv ∗ "Hpv" ∷ pv ↦* ps ∗
       "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
       "Hps" ∷ ([∗list] v ∈ ps, rsOk γr.raft v) ∗
       "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝ ∗
       "Hncfg" ∷ nodeCfg γp.node ca cfg ∗ "%Hrc" ∷ ⌜RunCfg ds ds.length ca cfg c0 c1⌝)
     $$ [rd Hdrv Hrun pending applied Hncfg]
-  · iexists [], _, _, [], _, 0, c0
+  · iexists [], _, _, [], _, 0, c0, hsZero
     iframe
     isplitl []
     · iapply ownSlice_nil
@@ -87,11 +87,12 @@ theorem KV.run.wp_proof
     ipureintro
     refine ⟨by simp; rfl, Nat.le_refl _, NoConfIn_empty _ _, .inl rfl⟩
   wp_for IH
-  wp_apply node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
-  ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es $$ Hbusy
+  wp_apply node_ready_receive γp.node id n ch ds p $$ [$Hch $Hdrv]
+    as %rdv' ⟨%ce, %es, %msgs, %p', Hdata, Hbusy⟩
+  ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es p' $$ Hbusy
   unfold readyData
   icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, Htks, ⟨%sts, #Hsts, #Hstsok⟩, ⟨%hs, #Hhs, -⟩,
-    #Hss, %Hsnap, -⟩
+    -, #Hss, %Hsnap, -⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b
   · -- a log past `maxIndex`: the replica stops
@@ -290,11 +291,11 @@ theorem KV.run.wp_proof
     -- the reads whose index is applied, answered
     wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ vs) (DFrac.own 1) a' Ha
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
-    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' (fun _ => Hrc.2.1)
+    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' p' (fun _ => Hrc.2.1)
       $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg, -⟩
     wp_for_post
     iframe
-    iexists ds ++ ce, rdv', rest, ps', a', ca', cfg'
+    iexists ds ++ ce, rdv', rest, ps', a', ca', cfg', p'
     iframe
     ipureintro; exact ⟨Ha, Hrc⟩
 

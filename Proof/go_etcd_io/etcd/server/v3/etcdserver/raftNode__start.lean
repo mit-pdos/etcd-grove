@@ -106,13 +106,17 @@ theorem raftNode.start.wp_proof
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
     -- (D22a) `raftTerm`, the latest non-empty `HardState`'s term, carried to the batches; (D22 S-b)
-    -- `0` or a term raft handed out the witness of (`rnRtOk`)
-    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64),
-        "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗ "Hrt" ∷ rnRtOk γ rt ∗
-        "Htok" ∷ rnLoopTok γ L' ∗ "HR" ∷ R) $$ [islead raftTerm Htok HR]
-    · iexists L, false, _
+    -- `0` or a term raft handed out the witness of (`rnRtOk`); (D22l) `0` or the term of raft's
+    -- `prevHardSt` `p`, the driver's (`rnLoopTokP`)
+    iunfold rnLoopTok at Htok
+    icases Htok with ⟨%p0, Htok⟩
+    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM),
+        "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
+        "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
+        "Htok" ∷ rnLoopTokP γ L' p ∗ "HR" ∷ R) $$ [islead raftTerm Htok HR]
+    · iexists L, false, _, p0
       iframe
-      iunfold rnRtOk; ileft; ipureintro; rfl
+      ipureintro; left; rfl
     wp_for HI
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Ready")]
     wp_auto_lc 4
@@ -140,8 +144,9 @@ theorem raftNode.start.wp_proof
       wp_apply wp_tick E γ r $$ [$Hpkg $Hr]
       wp_for_post
       iframe
-      iexists L', b, rt
+      iexists L', b, rt, p
       iframe
+      ipureintro; exact Hrt
     -- `rd := <-r.Ready()`
     iapply BigAndL.bigAndL_cons.2
     isplit
@@ -157,12 +162,12 @@ theorem raftNode.start.wp_proof
       · itrivial
       inext
       iintro %rd HP
-      iunfold rnLoopTok at Htok
+      iunfold rnLoopTokP at Htok
       icases Htok with ⟨%sent, %cums, Hdrv, Hprod, Hauth, %Hcums⟩
-      imod rn_ready_recv E γ L' rd $$ Henv Hfits Hrsb Hdrv HP with ⟨%ce, %es, Hdata, Hbusy⟩
+      imod rn_ready_recv E γ L' p rd $$ Henv Hfits Hrsb Hdrv HP with ⟨%ce, %es, %p', Hdata, Hbusy⟩
       iunfold rnReadyData at Hdata
       icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, Hmsok,
-        #Hss, #Hhs, #Hhsw, ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
+        #Hss, #Hhs, %Hp', #Hhsw, ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
       wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r)
@@ -329,16 +334,13 @@ theorem raftNode.start.wp_proof
       wp_auto_lc 3
       -- (D22a) `if !raft.IsEmptyHardState(rd.HardState) { raftTerm = rd.HardState.GetTerm() }`
       wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs0 %Hehs0
-      irename Hrt => Hrt0
-      icases Hrt0 with #Hrt0
-      wp_join iprop(∃ rt' : w64, raftTerm_ptr ↦ rt' ∗ rd_ptr ↦ rd ∗ rnRtOk γ rt') at next
-        with [raftTerm rd] as ⟨%rt', raftTerm, rd, #Hrt⟩
+      -- (D22l) the term recorded is `0` or `prevHardSt`'s after the `Ready` (`p'`)
+      wp_join iprop(∃ rt' : w64, raftTerm_ptr ↦ rt' ∗ rd_ptr ↦ rd ∗
+          ⌜uint.Z rt' = 0 ∨ rt' = p'.Term'⌝) at next
+        with [raftTerm rd] as ⟨%rt', raftTerm, rd, %Hrt'⟩
       · cases ehs0
-        · -- (D22 S-b) a non-empty hard state: raft's witness of its term
+        · -- a non-empty hard state: `prevHardSt`'s now, its term recorded
           have Hne : hs ≠ HardStateModel.empty := fun h => absurd (Hehs0.2 h) (by decide)
-          iunfold hsWit at Hhsw
-          icases Hhsw with (%Hz | ⟨#Hcw, -⟩)
-          · exact absurd ((HardStateModel.toM_zero_iff hs).1 Hz) Hne
           wp_auto
           wp_apply wp_GetTerm rd.HardState' hs $$ [$Hpbpkg $Hhs]
           (try wp_auto)
@@ -346,15 +348,17 @@ theorem raftNode.start.wp_proof
           · itrivial
           iexists _
           iframe
-          iunfold rnRtOk; iright; iexists hs.commit
-          rw [show hs.term = hs.toM.Term' from rfl, show hs.commit = hs.toM.Commit' from rfl]
-          iexact Hcw
+          ipureintro; right
+          rw [Hp', phsNext_toM_ne p hs Hne]; rfl
         · (try wp_auto)
           isplitr
           · itrivial
           iexists _
           iframe
-          iexact Hrt0
+          ipureintro
+          rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
+      -- (D22 S-b, D22l) the batch's raft term, with the witness bounding the batch
+      ihave #Hrt := rnRtOk_of_hsWit γ rt' p' _ Hrt' $$ Hhsw
       -- `notifyc`, `raftAdvancedC`: unit bags
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc ⟨#Hncch, -, Hncown⟩
       · ipureintro; decide
@@ -536,7 +540,7 @@ theorem raftNode.start.wp_proof
             wp_auto
             rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
             wp_auto
-            ihave HAdv' := HAdv $$ %L' %ce %es
+            ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
             -- `close(raftAdvancedC)`, with the floor's witness
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
@@ -544,11 +548,11 @@ theorem raftNode.start.wp_proof
             (try wp_auto)
             wp_for_post
             iframe
-            iexists (L' ++ ce), false, rt'
+            iexists (L' ++ ce), false, rt', p'
             iframe
             isplitr
-            · iexact Hrt
-            iunfold rnLoopTok
+            · ipureintro; exact Hrt'
+            iunfold rnLoopTokP
             iexists _, cums ++ [L' ++ ce]
             iframe
             ipureintro
@@ -577,7 +581,7 @@ theorem raftNode.start.wp_proof
               wp_auto
               rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
               wp_auto
-              ihave HAdv' := HAdv $$ %L' %ce %es
+              ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
               -- `close(raftAdvancedC)`, with the floor's witness
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
@@ -585,11 +589,11 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists (L' ++ ce), false, rt'
+              iexists (L' ++ ce), false, rt', p'
               iframe
               isplitr
-              · iexact Hrt
-              iunfold rnLoopTok
+              · ipureintro; exact Hrt'
+              iunfold rnLoopTokP
               iexists _, cums ++ [L' ++ ce]
               iframe
               ipureintro
@@ -623,7 +627,7 @@ theorem raftNode.start.wp_proof
           wp_auto
           rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
           wp_auto
-          ihave HAdv' := HAdv $$ %L' %ce %es
+          ihave HAdv' := HAdv $$ %L' %ce %es %p'
           wp_apply HAdv' $$ [$Hbusy $Hrcpt] as ⟨Hdrv, #Hfl⟩
           -- `close(raftAdvancedC)`, with the floor's witness
           wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
@@ -631,11 +635,11 @@ theorem raftNode.start.wp_proof
           (try wp_auto)
           wp_for_post
           iframe
-          iexists (L' ++ ce), true, rt'
+          iexists (L' ++ ce), true, rt', p'
           iframe
           isplitr
-          · iexact Hrt
-          iunfold rnLoopTok
+          · ipureintro; exact Hrt'
+          iunfold rnLoopTokP
           iexists _, cums ++ [L' ++ ce]
           iframe
           ipureintro

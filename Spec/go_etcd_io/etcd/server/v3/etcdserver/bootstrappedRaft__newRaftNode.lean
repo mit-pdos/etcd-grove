@@ -131,7 +131,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
           γw.node = γn ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.reg = reg⌝ ∗
         -- raft's node
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
+        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
