@@ -33,3 +33,7 @@ CounterClock: @
 linkv_Model: @
 linkv_Gen: @
 linkv3p_Check: Run CounterClock linkv_Model linkv_Gen linkv3p_Apply
+# `Main`: the start of the cluster and the clients, the partitioner forked, the check (zap's
+# trust-boundary axiom; the rest linkv3p's own)
+zap_NewNop:
+linkv3p_Main: zap_NewNop linkv3p_startMember linkv3p_newClient linkv3p_partitioner linkv3p_Check

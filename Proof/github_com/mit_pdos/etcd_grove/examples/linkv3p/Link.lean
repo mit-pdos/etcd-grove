@@ -14,10 +14,12 @@ public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.http.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Proof.net.Listen
+public import Proof.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -41,6 +43,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 variable [NaInvG GF]
+
+theorem zap.wp_NewNop :
+    EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.NewNop.wp_proof
 
 end links
 
@@ -78,6 +84,14 @@ theorem wp_Check :
     EtcdGrove.linkv3p.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock linkv.wp_Model linkv.wp_Gen wp_Apply
 
+theorem net.wp_Listen :
+    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.net.Listen.wp_proof
+
+theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
+    EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve v3rpc.wp_Server grpc.Server.wp_Serve
+
 theorem wp_newClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.newClient.wp_proof client.v3.clientv3.wp_New
@@ -86,13 +100,9 @@ theorem wp_partitioner :
     EtcdGrove.linkv3p.partitioner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.partitioner.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_CutPeer EtcdServer.wp_MendPeer
 
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
-
-theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
-    EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve v3rpc.wp_Server grpc.Server.wp_Serve
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.linkv3p.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startMember wp_newClient wp_partitioner wp_Check
 
 end links_hasLC
 

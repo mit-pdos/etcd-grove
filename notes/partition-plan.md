@@ -1,13 +1,13 @@
 # Plan: the three-member cluster under network partitions (`examples/linkv3p`)
 
-Status: S0, S1, S2, S3a done (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grove-pt`;
-STATUS "Partitions, S0", "S1/S2", "S3a"): the Go program, its test and the translations; the two
-transport axioms and the server's `CutPeer`/`MendPeer` proved; the example's `startMember`,
-`newClient`, `partitioner`, `Apply`, `Check` specified, proved and linked. S1 needed a change of
-design (D24 in decisions.md): a second `CutPeer` of a *remote* panics
+Status: S0–S3b done (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grove-pt`; STATUS
+"Partitions, S0", "S1/S2", "S3a", "S3b"): the Go program, its test and the translations; the two
+transport axioms and the server's `CutPeer`/`MendPeer` proved; the example's functions proved and
+linked; `Main` proved and the closed theorem `linkv3p_safe` closed, for every schedule. S1 needed
+a change of design (D24 in decisions.md): a second `CutPeer` of a *remote* panics
 (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), so the transport's ghost state now tracks
-its remotes and the axioms take `id ∉ rs`; a new cluster's member has none (`bootOk`). Stages
-S0–S4 below; S3b (`Main`, the closed theorem, the collection) is next.
+its remotes and the axioms take `id ∉ rs`; a new cluster's member has none (`bootOk`). S4 (the
+gates and notes) is in STATUS's S3b entry.
 
 ## Goal
 
@@ -184,7 +184,14 @@ steps for `v3rpc.Server`/`Listen`/`Serve`/`etcd_kv_started`, now per member: the
 - **`partitioner`'s spec**: `{{ srvs ↦*□ [s₁, s₂, s₃] ∗ [∗] srvNetMember γn sᵢ idᵢ ∗ sched read-only
   }} … {{ True }}`, a loop over `Sleep` and S2's results, forked with `wp_fork` as `Serve` is.
 
-### S3b. `Main`, the closed theorem, the collection
+### S3b. `Main`, the closed theorem, the collection -- done
+
+As planned, with one particular: the closed theorem runs from a fresh state, which holds no
+slice, so its program builds the schedule as the slice literal of the quantified list of steps
+(`schedLit`: `pure_wp_array_lit_full`, Perennial's one-step lemma for an array literal of values,
+and `arrayLiteralSize_vals`, the literal's size is the list's length) before calling `Main`;
+nothing but the list's length below `2^63` is assumed of it. The client's watch environment, a
+parameter of `clientv3.New`'s spec, is a dummy (`noWatch`): the clients never watch.
 
 `Main.spec` as linkv3's with `sched` and six `netAddrFree`; proof: linkv3's with three serves and
 three `New`s, the fork of the partitioner, `linkvInv_alloc_boot`, `Check`. `Adequacy.lean`
