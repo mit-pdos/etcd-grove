@@ -37,9 +37,9 @@ theorem confchange.Changer.Simple.wp_proof
     (wp_confchange_symdiff : confchange.symdiff.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) := by
-  intro p chg c prs pvs ccs ls l dq dqs dqc dqm dqp Hmi Hnow
+  intro p chg c prs pvs ccs ls l dq dqs dqc dqm dqp Hmi
   wp_start as ⟨Hp, Hccs, #Hcl, Htc⟩
-  icases ownTrackerCC_nowit _ _ _ _ _ _ _ $$ Htc with ⟨Htc, %Hnw⟩
+  icases ownTrackerCC_witT _ _ _ _ _ _ _ $$ Htc with ⟨Htc, %Hnw⟩
   wp_auto
   wp_method_call
   wp_call
@@ -82,16 +82,17 @@ theorem confchange.Changer.Simple.wp_proof
   ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
   ihave Hc' : ownCfgCC cfg' (DFrac.own 1) (clearAutoLeave { cfg := c, prs := flagsOf pvs }).cfg
     $$ [Hin Hout Hl Hln]
-  · iapply ownCfgCC_intro cfg' (DFrac.own 1) (clearAutoLeave { cfg := c, prs := flagsOf pvs }).cfg
-      vin vout Harr (by simpa using Hal) Hwit $$ [Hin] [Hout] [Hl] [Hln]
-    all_goals simp only [clearAutoLeave.proj_cfg]
-    · iexact Hin
-    · iexact Hout
-    · iexact Hl
-    · iexact Hln
-  ihave Hnew := ownNewPr_copies (GF := GF) chg pvs Hnw
+  · simp only [ownCfgCC, clearAutoLeave.proj_cfg]
+    iapply ownCfgCC_intro cfg' (DFrac.own 1) { c with autoLeave := false }
+      vin vout Harr (by simpa using Hal) Hwit $$ Hin Hout Hl Hln
+  ihave Hnew := ownNewPr_copies (GF := GF) chg pvs
   ihave Hw := ownWork_intro chg pvs cfg_ptr trk (clearAutoLeave { cfg := c, prs := flagsOf pvs })
-    cfg' prs' pvs rfl $$ cfg Hc' Htrk Hcopies Hnew
+    cfg' prs' pvs rfl Hnw $$ cfg Hc' Htrk Hcopies Hnew
+  -- (2026-10-20, witness support) not joint: any change, `AddWitness` among them
+  have Hnow : (clearAutoLeave { cfg := c, prs := flagsOf pvs }).cfg.outgoing = ∅ ∨
+      ((clearAutoLeave { cfg := c, prs := flagsOf pvs }).cfg.wit = W64 0 ∧
+        ∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) :=
+    .inl (Classical.byContradiction Hj)
   wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi Hnow $$ [$c $Hccs $Hcl $Hw]
     as %err2 ⟨c, Hccs, Hres⟩
   rcases Happ : applyM l (clearAutoLeave { cfg := c, prs := flagsOf pvs }) with _ | s1
@@ -114,7 +115,7 @@ theorem confchange.Changer.Simple.wp_proof
   icases Htc with ⟨Htcc, Hpm, Hprs, -⟩
   icases ownCfgCC_elim _ _ _ $$ Htcc with ⟨%vin0, %vout0, %Harr0, Hin0, Hout0, Hl0, Hln0, %Hal0, %Hwit0⟩
   icases ownWork_elim _ _ _ _ _ $$ Hw with
-    ⟨%cfg1, %prs1, %pvs1, Hcfgp, Hc1, Htrk, Hprs1, %Hflags1, Hnew1⟩
+    ⟨%cfg1, %prs1, %pvs1, Hcfgp, Hc1, Htrk, Hprs1, %Hflags1, %Hwt1, Hnew1⟩
   icases ownCfgCC_elim _ _ _ $$ Hc1 with ⟨%vin1, %vout1, %Harr1, Hin1, Hout1, Hl1, Hln1, %Hal1, %Hwit1⟩
   wp_apply wp_confchange_incoming _ vin0 vout0 Harr0
   wp_apply wp_confchange_incoming _ vin1 vout1 Harr1
@@ -122,7 +123,7 @@ theorem confchange.Changer.Simple.wp_proof
   ihave Htcc := ownCfgCC_intro _ dqc c vin0 vout0 Harr0 Hal0 Hwit0 $$ Hin0 Hout0 Hl0 Hln0
   ihave Hc1 := ownCfgCC_intro cfg1 (DFrac.own 1) s1.cfg vin1 vout1 Harr1 Hal1 Hwit1 $$ Hin1 Hout1 Hl1 Hln1
   ihave Htc : iprop(ownCfgCC chg.Tracker'.Config' dqc c ∗ chg.Tracker'.Progress' ↦${dqm} prs ∗
-      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗ ⌜NoWit pvs⌝) $$ [Htcc Hpm Hprs]
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗ ⌜WitT c.wit pvs⌝) $$ [Htcc Hpm Hprs]
   · iframe Htcc Hpm Hprs; ipureintro; exact Hnw
   wp_if_destruct
   · -- "more than one voter changed without entering joint config"
@@ -151,7 +152,7 @@ theorem confchange.Changer.Simple.wp_proof
     iexists prs1, pvs1
     simp only [named]
     iframe
-    ipureintro; exact Hflags1
+    ipureintro; exact ⟨Hflags1, Hwt1⟩
   · simp only [ite_eq_right Hinv3, ownResult]
     ipureintro; exact Herr3
 

@@ -85,9 +85,9 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     (wp_confchange_outgoingPtr : confchange.outgoingPtr.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG) := by
-  intro p chg c prs pvs dq dqc dqm dqp Hno0
+  intro p chg c prs pvs dq dqc dqm dqp Hno0 Hcw
   wp_start as ⟨Hp, Htc⟩
-  icases ownTrackerCC_nowit _ _ _ _ _ _ _ $$ Htc with ⟨Htc, %Hnw⟩
+  icases ownTrackerCC_witT _ _ _ _ _ _ _ $$ Htc with ⟨Htc, %Hnw⟩
   wp_auto
   wp_method_call
   wp_call
@@ -109,6 +109,8 @@ theorem confchange.Changer.LeaveJoint.wp_proof
   wp_auto
   have Hs0 : ¬ ¬ CfgInv (clearAutoLeave { cfg := c, prs := flagsOf pvs }) := fun h => h Hinv
   icases ownCfgCC_elim _ _ _ $$ Hc' with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
+  -- (2026-10-20, witness support) no witness (the premise)
+  have Hwit0 : cfg'.Witnesses'.arr = [W64 0, W64 0] := by rw [Hwit.1]; simp [Hcw]
   icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
   wp_apply wp_confchange_joint _ vin vout _ _ Harr $$ [$Hout] as Hout
   wp_if_destruct
@@ -133,7 +135,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
   icases typedPointsto_not_null_dup _ _ _ $$ cfg with ⟨Hcfgp, %Hcnn⟩
   iStructNamed Hcfgp
   ihave Hnew : ([∗map] k ↦ pv ∈ pvs, ownNewPr chg pvs k pv) $$ []
-  · iapply ownNewPr_copies _ _ Hnw
+  · iapply ownNewPr_copies _ _
   ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
   -- `for id := range cfg.LearnersNext { nilAwareAdd(&cfg.Learners, id); trk[id].IsLearner = true }`
   wp_func_lits
@@ -179,7 +181,7 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     wp_apply wp_map_lookup1 $$ Htrk as Htrk
     rw [Hpr]
     simp only [Option.getD_some]
-    icases ownPrs_borrow chg pvs prs' pvsI key pr pv Hpr HpvI $$ [$Hprs $Hnew] with ⟨Hpr, -, Hback⟩
+    icases ownPrs_borrow chg pvs prs' pvsI key pr pv Hpr HpvI $$ [$Hprs $Hnew] with ⟨Hpr, Hback⟩
     wp_auto
     icases Hback $$ %true Hpr with ⟨Hprs, Hnew⟩
     unfold forMapPostcondition
@@ -263,14 +265,14 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     have Hk0 : key ≠ W64 0 := by
       intro h; subst h
       exact Hno0 ((Hkset2 _).1 (List.mem_of_getElem? Hkey))
-    icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+    icases array_acc _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit0]; rfl)
       $$ Witnesses with ⟨Hw0, Hwback⟩
     wp_auto
     ihave Witnesses := Hwback $$ Hw0
     rw [show (array.mk 2 (cfg'.Witnesses'.arr.set (sint.Z (W64 0)).toNat (W64 0)) :
         GoArray w64 2) = cfg'.Witnesses' by
       rw [list_set_lookup_self _ _ _ (show cfg'.Witnesses'.arr[(sint.Z (W64 0)).toNat]? = some (W64 0) by
-        rw [Hwit]; rfl)]]
+        rw [Hwit0]; rfl)]]
     first
       | rw [decide_eq_false (show ¬ (W64 0 = key) from fun h => Hk0 h.symm)]
       | rw [decide_eq_false (show ¬ (key = W64 0) from Hk0)]
@@ -332,14 +334,14 @@ theorem confchange.Changer.LeaveJoint.wp_proof
   rw [show (1 : Int).toNat = 1 from rfl]
   have Harr2 : (cfg'.Voters'.arr.set 1 map.nil) = [vin, map.nil] := by rw [Harr]; rfl
   -- raft#168: `cfg.Witnesses[1] = 0`, already `0`
-  icases array_acc _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+  icases array_acc _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit0]; rfl)
     $$ Witnesses with ⟨Hw1, Hwback⟩
   wp_auto
   ihave Witnesses := Hwback $$ Hw1
   rw [show (array.mk 2 (cfg'.Witnesses'.arr.set (sint.Z (W64 1)).toNat (W64 0)) :
       GoArray w64 2) = cfg'.Witnesses' by
     rw [list_set_lookup_self _ _ _ (show cfg'.Witnesses'.arr[(sint.Z (W64 1)).toNat]? = some (W64 0) by
-      rw [Hwit]; rfl)]]
+      rw [Hwit0]; rfl)]]
   ihave Hcfgp : (cfg_ptr ↦ (tracker.Config.mk (array.mk 2 (cfg'.Voters'.arr.set 1 map.nil)) false ml map.nil cfg'.Witnesses')) $$
       [Voters AutoLeave Learners LearnersNext Witnesses]
   · iapply typedPointsto_combine _ _ _ Hcnn
@@ -349,7 +351,9 @@ theorem confchange.Changer.LeaveJoint.wp_proof
       (DFrac.own 1) (leaveJointState { cfg := c, prs := flagsOf pvs }).cfg $$ [Hin Hl]
   · iapply ownCfgCC_intro (tracker.Config.mk (array.mk 2 (cfg'.Voters'.arr.set 1 map.nil)) false ml map.nil cfg'.Witnesses')
       (DFrac.own 1) (leaveJointState { cfg := c, prs := flagsOf pvs }).cfg vin map.nil Harr2
-      (by simp [leaveJointState]) Hwit $$ [Hin] [] [Hl] []
+      (by simp [leaveJointState])
+      ⟨by rw [Hwit0]; simp [leaveJointState, Hcw], fun h => absurd (by simpa [leaveJointState] using Hcw) h⟩
+      $$ [Hin] [] [Hl] []
     all_goals simp only [leaveJointState.proj_cfg]
     · iexact Hin
     · unfold ownIdsetC; ileft; ipureintro; exact ⟨rfl, rfl⟩
@@ -372,7 +376,21 @@ theorem confchange.Changer.LeaveJoint.wp_proof
     iexists prsI, pvsI2
     simp only [named]
     iframe
-    ipureintro; exact Hflags2
+    ipureintro
+    refine ⟨Hflags2, ?_⟩
+    -- the copies' flags: no witness
+    have Hnw0 : NoWit pvs := WitT_zero.1 (by simpa [Hcw] using Hnw)
+    simp only [leaveJointState, Hcw]
+    rw [WitT_zero]
+    intro k pv hk
+    rw [Hp2' k] at hk
+    split at hk
+    · cases hk
+    split at hk
+    · rcases h : pvs !! k with _ | pv0
+      · rw [h] at hk; cases hk
+      · rw [h] at hk; cases hk; exact Hnw0 k pv0 h
+    · exact Hnw0 k pv hk
   · simp only [ite_eq_right Hinv3, ownResult]
     ipureintro; exact Herr3
 
