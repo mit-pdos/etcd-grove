@@ -141,7 +141,7 @@ theorem Main.wp_proof
   imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
     #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hnw, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
   imod (netNames_alloc (srvNet γ bud) putgetDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
   ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
@@ -158,7 +158,7 @@ theorem Main.wp_proof
         have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
         simp only [hne, if_false, h48]
         omega)
-      hblen
+      hblen hnw
       hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
     $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
   · iframe

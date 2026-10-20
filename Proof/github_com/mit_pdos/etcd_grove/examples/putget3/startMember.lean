@@ -50,7 +50,7 @@ theorem startMember.wp_proof
     (wp_Serve : net.http.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀ Φs γn
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hnoc
+    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hnw hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hnoc
   wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, Hslot⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
@@ -88,7 +88,7 @@ theorem startMember.wp_proof
         have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
         simp only [hne, if_false, h48]
         omega)
-      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
+      hblen' hnw hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
     $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
   · iframe
     iframe #

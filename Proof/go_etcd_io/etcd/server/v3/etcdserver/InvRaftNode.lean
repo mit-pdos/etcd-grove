@@ -249,7 +249,9 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
         ⌜uint.Z E.γr.raft.ai0 + 1 + L.length < 2 ^ 64⌝ ={⊤}=∗ □ E.C L) ∗
     □ (∀ L : List EntryModel, E.C L -∗ srvRLogLb E.γr.raft L ∗ ⌜srvIdxOk E.γr.raft.ai0 L⌝) ∗
-    ⌜E.RQ = srvRQ E.γr.raft⌝)
+    ⌜E.RQ = srvRQ E.γr.raft⌝ ∗
+    -- (2026-10-20, witness support) a cluster without a witness (raft's static `ApplyConfChange`)
+    ⌜γ.node.raft.reWit = W64 0⌝)
 
 instance rnEnvOk_persistent (E : RNEnv GF) (γ : RNNames) : Persistent (rnEnvOk E γ) := by
   unfold rnEnvOk; infer_instance
@@ -294,7 +296,7 @@ theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (
       v.RequestCtx' ↦*□ st.RequestCtx' ⊢ srvReadStateOk E.γr.raft E.RQ v := by
   iintro ⟨#Henv, #Hinv, #Hst, %Hi, #Hctx⟩
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, -, -, -, -, -, %HRQ⟩
+  icases Henv with ⟨-, %Hn, -, -, -, -, -, %HRQ, -⟩
   obtain ⟨Hraft, -, -⟩ := Hn
   iunfold readStateOk at Hst
   icases Hst with ⟨%c, %Hc, #Hok⟩

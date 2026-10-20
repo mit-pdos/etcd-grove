@@ -112,7 +112,7 @@ local macro "svw_tail " v:term : tactic => `(tactic| (
   ihave Htrk : ownTrackerC c tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ $$ [Hvotes Hprogs Hcfg]
   · unfold ownTrackerC; simp only [named]; iframe
     iframe Hprs Hepoch
-    ipureintro; exact ⟨Hinv, Hdom, Hflags, Hsize, HmaxInfl, Hnw⟩
+    ipureintro; exact ⟨Hinv, Hdom, Hflags, Hsize, HmaxInfl, Hnw, Hwj⟩
   ihave Hphys := Hback $$ %tv %s.votes Hf Htrk
   imod ownMap_persist $$ Hvm with #Hvm
   icases ownRaftPhysC_shared (c := c) (V := V) r id _ $$ Hphys with ⟨%lok, #Hfid, -, -, Hphys⟩

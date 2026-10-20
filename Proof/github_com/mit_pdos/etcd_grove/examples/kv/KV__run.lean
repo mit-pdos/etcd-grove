@@ -251,7 +251,7 @@ theorem KV.run.wp_proof
         wp_apply wp_node_ApplyConfChange γp.node id n
             (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr) (.v1 m)
             (ds ++ ce) ca' cfg' (ds ++ ce.take (sint.nat k)).length en c1
-            (fun h => absurd h Hnst) Hpre
+            (fun h => absurd h Hnst) (fun h => absurd h Hnst) Hpre
           $$ [$Hraftinit $HisNode $Hcci Hncfg] as %csp %cs ⟨-, Hpost⟩
         · iright
           iframe Hncfg

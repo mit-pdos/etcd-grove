@@ -318,7 +318,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -, -⟩
+  icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -, -, %Hw0⟩
   obtain ⟨Hraft, -, -⟩ := Hn
   obtain ⟨Hstatic, -⟩ := Hmode
   iunfold raftPropose
@@ -336,7 +336,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     have hsh : CCShrink γ.node.raft.reCfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
       rw [← Hraft]; exact ccShrink_of_raftOk _ cm Hok
     wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, [], W64 0⟩
-        (cfgState ∅ ∅) (fun _ => hsh)
+        (cfgState ∅ ∅) (fun _ => hsh) (fun _ => Hw0)
         (fun dec c0 h0 h1 hd => absurd (hd ▸ Hstatic) (by simp))) $$ [Hc]
       as %csp %cs ⟨Hcs, -⟩
     · iframe #
@@ -412,7 +412,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, -, %HRQ⟩
+  icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, -, %HRQ, -⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
   obtain ⟨Hstatic, Hstor⟩ := Hmode
   iunfold isRaftNodeIfc

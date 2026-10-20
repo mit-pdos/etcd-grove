@@ -1727,7 +1727,9 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     ⊢ allocClientBoot E cfg ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reTracked = some cfg ∧ γ.reNoSnap = ns⌝ ∗
+          γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧
+          -- (2026-10-20, witness support) no witness
+          γ.reWit = W64 0⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
@@ -1747,10 +1749,10 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne)
     (W64 0) ⟨Hnz, Or.inl rfl⟩ Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _) (Or.inl rfl)
-    $$ Hcl' with ⟨%γ, %Hγ, Hi, Hc, Hn, HC, Hr, -⟩
+    $$ Hcl' with ⟨%γ, %Hγ, Hi, Hc, Hn, HC, Hr, %Hw, -⟩
   imodintro
   iexists γ
-  isplitr; · ipureintro; exact Hγ
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2, Hw⟩
   rw [bootPState_eq]
   simp only [Option.isSome_none]
   iframe Hi Hc Hn HC Hr

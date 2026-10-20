@@ -60,10 +60,17 @@ owns the witness queue (`witOwn`, on the outbox). Proved at any configuration: `
 (it stamps the epoch's subterm), `maybeStartNewSubterm` (reset, the next subterm's epoch, the log
 lines; `ReplicationSet.String` proved, which brings `strconv.FormatUint`'s trust-boundary axiom
 into raft's results), `maybeSendAppend`, `promotable`, `becomeLeader` (at the reset epoch).
-**Staged:** the witness branches not proved yet read `c.wit = 0` out of the struct
-(`ownRaftPhysC_wit0`, a temporary conjunct of `witOwn` marked `STAGED`), so every result is still
-about witness-free configurations: `maybeCommit`, `bcastHeartbeatWithCtx`,
-`campaign`/`stepCandidate`, the Ready view, `switchToConfig`/`ConfState`. Model gaps found:
+**No longer staged (2026-10-20):** the witness branches are proved (`maybeCommit`'s requests to
+the witness, heartbeats, check-quorum's new subterm, `campaign`/`stepCandidate`'s witness vote,
+`MsgProp`, the Ready path with `rd.WitnessMessages`); `witOwn`'s temporary `⌜W = 0⌝` and
+`ownRaftPhysC_wit0` are gone. What stays, as named premises: a configuration change or a snapshot
+only at a witness-free configuration (NoWitReconf: `raft.applyConfChange`/`switchToConfig`,
+`DynCCPreOp`, `raft.Step`'s snapshot clause), no outgoing-only witness (`NoOutWit`, dynamic), and
+the static `ApplyConfChange` (`RawNode`, `node`) only in a cluster without a witness
+(`γ.reWit = 0`, from the allocation through `NewServer.spec`); a witness configuration is never
+joint (`ownTrackerC`'s `Hwj`); the static mode's configuration has no witness or the cluster's
+(`ghostRestM`, sound: `notes/raft-witness.md`). Next: the static CC subset (`ConfStateM.Witness`,
+`Restore` with `AddWitness`, `RestartNode` with a witness), W4's path. Model gaps found:
 `leaveJointState` drops the witness, `ConfStateM` has no witness fields. Details:
 `notes/raft-witness.md`, "W3b-A".
 

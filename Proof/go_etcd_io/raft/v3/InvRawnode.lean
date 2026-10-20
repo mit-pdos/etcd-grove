@@ -1340,6 +1340,9 @@ stage B7 part 2 -- `ownRaftPhys γ.reCfg` and `ownRaftGhost` -- for the proofs t
 the static mode only (a shrinking `ApplyConfChange`, `node.go`'s loop). -/
 
 theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .static)
+    -- (2026-10-20, witness support) a cluster without a witness: `ApplyConfChange`'s
+    -- premise (the static mode's configuration change has no witness yet, NoWitReconf)
+    (hw0 : γ.reWit = W64 0)
     (fp : List EntryM) (cf : CfgM) (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) cf cf.voters r id s -∗
       ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s -∗
@@ -1354,15 +1357,17 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
   icases Hghost with ⟨Hghost, %Hnl, %Hps, %HC⟩
-  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-  icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+  have hw : cf.wit = W64 0 := by
+    rcases HC.2.2 with h | h
+    · exact h
+    · rw [h, hw0]
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 hw $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
   isplitr
   · ipureintro
     exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
-      (by rw [Hlrn]; rfl) HC.2
+      (by rw [Hlrn]; rfl) HC.2.1
   isplitr
   · ipureintro; exact Hnl
   ipureintro; exact Hps
@@ -1406,7 +1411,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     · ipureintro; exact Hnl
     isplitr
     · ipureintro; exact Hps
-    ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
+    ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk, .inl rfl⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs

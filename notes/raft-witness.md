@@ -294,7 +294,7 @@ Proved at any configuration (2026-10-20, commits `32e2981a18`, `2ee6eed844` and 
 - `maybeSendAppend` (nothing to the witness, as when paused), `promotable` (`false` at the
   witness: the spec says `id ≠ c.wit`).
 
-**Staged (2026-10-20): no witness yet.** To get the tree building before every witness branch is
+**Staged (2026-10-20, removed the same day: see "The static mode's witness, without the staged conjunct" below; `witOwn` has no `⌜W = 0⌝`, `ownRaftPhysC_wit0` is gone, the not-joint fact is `ownTrackerC`'s `Hwj`, the queue and asked-set re-seals are real).** To get the tree building before every witness branch is
 proved, `witOwn` carries `⌜W = W64 0⌝` (marked `STAGED` in `InvRaftPhys.lean`), read out by
 `ownRaftPhysC_wit0` at each witness site not proved yet: `maybeCommit` (`sendAppendToWitness`),
 `bcastHeartbeatWithCtx` (`sendHeartbeatToWitness`), `campaign`/`stepCandidate` (the witness's vote
@@ -381,6 +381,32 @@ excludes; removing it by a simple change, or leaving the joint configuration fir
 Full coverage (deferred, not planned now): `CfgM.witOut`, the protocol rules for an outgoing-only
 witness (its appends with `RS[1]`, its vote at `v2 == 1`), and the Leader Completeness case for it:
 a W5-sized protocol task.
+
+**The static mode's witness, without the staged conjunct (2026-10-20).** The static mode's
+`ghostRestM` keeps `c.wit = 0 ∨ c.wit = γ.reWit`: the node's configuration has no witness, or the
+cluster's. (Rejected: `c.wit = γ.reWit` alone, which would make `RestartNode`/`Bootstrap` take
+`γ.reWit = 0` or allocate a witness per cluster shape; `c.wit = 0` alone, which is the staged
+conjunct again.) Why the first disjunct is sound: the protocol's static step
+(`ownRaftGhost_stepC`) is stated at any configuration with the ghost state's voters
+(`CfgStatic`), whatever its witness. A node at a witness-free configuration of a witness cluster
+runs the witness-free rules, in which `γ.reWit` is an ordinary voter; but no node runs at
+`γ.reWit` (the allocation gives it no `ownRaftGhost`, `reWit ∉ ids`), so no message from it is
+`isMessage` and no ack or vote of it is registered (`ackReg_not_wit`; the witness's only ack is
+`wAck`, which the witness-free rules do not read). Such a node's quorums are therefore majorities of
+the other voters' real acks and votes, which meet every quorum of the witness rules: it can only
+fail to commit or be elected (liveness), never decide differently. What the disjunct is for is the
+physical layer: witness-free accessors (`ownRaftPhysC_toPhys`) apply when `c.wit = 0`, and a
+`ConfState`/snapshot configuration (no witness fields in `ConfStateM`) lands in the first disjunct.
+
+The static `ApplyConfChange` (`RawNode`, `node`) takes **`γ.reWit = 0`** (in the static mode: of
+a cluster without a witness), the premise that costs less upstream: the alternative, the node's
+configuration being witness-free, is not stateable by a caller (`isNode`/`ownRawNode` hide the
+configuration). The server and putget get it from the allocation (`ownRaftGhost_alloc_boot` now
+says `γ.reWit = 0`; `srvRaftBoot_alloc`, `srvClusterBoot_alloc`, `putget_alloc`, `putget3_alloc`
+pass it on), as a premise of `NewServer.spec` (and putget3's `startMember.spec`), into `rnEnvOk`,
+which `NodeBridge`'s `raftPropose_of_isNode` reads. kv's dynamic mode passes the static premises
+vacuously. The premise goes with the static CC subset (a witness configuration's `Simple`), the
+next stage.
 
 ## W3b-C: the candidate's witness paths (2026-10-20, branch `raft-witness-w3c`)
 

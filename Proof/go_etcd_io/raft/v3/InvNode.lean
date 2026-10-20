@@ -702,7 +702,9 @@ of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). (2026-10-16, sta
 `*pb.ConfChangeV2` at `v`, read-only (`ownCCV2 v □ ccm`, R1), its content `ccm`.) -/
 def confcP (γ : NodeNames) (v : Loc) : IProp GF :=
   iprop(∃ ccm : CCV2M, ownCCV2 v DFrac.discard ccm ∗
-    ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg ccm.transition ccm.changes⌝) ∨
+    -- (2026-10-20, witness support) statically, of a cluster without a witness
+    ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg ccm.transition ccm.changes ∧
+        γ.raft.reWit = W64 0⌝) ∨
      (∃ (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
         (cs' : CCState),
         ⌜γ.mode.isDyn = true ∧ ∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 →

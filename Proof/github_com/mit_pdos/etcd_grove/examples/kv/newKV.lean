@@ -67,7 +67,7 @@ theorem newKV.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   · unfold isReplica
     simp only [named]
     iframe #
-    ipureintro; exact ⟨Hraft, Hstor, Hmd.2.2.2.2.2⟩
+    ipureintro; exact ⟨Hraft, Hstor, Hmd.2.2.2.2.2.1⟩
   wp_apply wp_fork $$ [Hdlv Hreq kv HK applied HA Hncfg]
   · wp_apply wp_run γr ⟨γn⟩ «$r0_ptr» id n st send op c0 c1
       $$ [$Hpkg $Hrep Hdlv Hreq kv HK applied HA Hncfg]

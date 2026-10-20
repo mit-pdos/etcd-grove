@@ -235,10 +235,13 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- What the mode keeps beyond `ownRaftGhost`: statically, the configuration's voters are the
 ghost state's, and (D19p, 2026-10-18) its voters and learners -- the ids the tracker holds -- and
-the node are within the ghost state's tracked bound (`TrackedOk`); dynamically, `ownRaftGhostR`'s invariant, full prefix records and campaign
+the node are within the ghost state's tracked bound (`TrackedOk`), and (2026-10-20, witness
+support) its witness is none or the ghost state's (`c.wit = 0 ∨ c.wit = γ.reWit`: a node at a
+witness-free configuration of a witness cluster only loses liveness, `notes/raft-witness.md`); dynamically, `ownRaftGhostR`'s invariant, full prefix records and campaign
 record, with the ghost part over the configuration. -/
 def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
-  | .static, c, id, _ => iprop(⌜CfgStatic γ c ∧ TrackedOk γ c id⌝)
+  | .static, c, id, _ =>
+    iprop(⌜CfgStatic γ c ∧ TrackedOk γ c id ∧ (c.wit = W64 0 ∨ c.wit = γ.reWit)⌝)
   | .dyn dec c0 h0 g, c, id, s =>
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ RInv dec c0 (rOf s g)⌝ ∗
       logRecs γ base0 g.fp ∗
@@ -426,7 +429,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
   | static =>
     simp only [ghostRestM, GMode.isDyn]
     iintro #Hrc Hrecv Hcr Htk Hlc Hg %HC
-    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
+    imod ownRaftGhost_stepC γ c HC.1 id HC.2.1 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
       Hrecv Hcr Htk Hlc Hg
       with Hg
     imodintro
@@ -620,7 +623,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
   | static =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
     iintro #Hrc - Hrecv Hcr Htk Hlc %Hso Hg %HC
-    imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
+    imod ownRaftGhost_stepC γ c HC.1 id HC.2.1 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
       Hrecv Hcr Htk Hlc Hg
       with Hg
     imodintro
@@ -631,7 +634,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     ipureintro
     rcases Hc' with rfl | rfl
     · exact HC
-    · refine ⟨⟨?_, ?_, HC.1.2.2⟩, fun T hT => ⟨Hso.2.2 T hT, (HC.2 T hT).2⟩⟩
+    · refine ⟨⟨?_, ?_, HC.1.2.2⟩, fun T hT => ⟨Hso.2.2 T hT, (HC.2.1 T hT).2⟩, .inl rfl⟩
       · simp only [snapCfg, csCfgM]; exact Hso.1
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>

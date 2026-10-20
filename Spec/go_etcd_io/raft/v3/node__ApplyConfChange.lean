@@ -66,6 +66,9 @@ abbrev node.ApplyConfChange.spec : Prop :=
     (cs' : CCState),
   -- the static mode (the voters fixed): a change that keeps the voters, drops learners
   (γ.mode = .static → CCShrink γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2) →
+  -- (2026-10-20, witness support) and of a cluster without a witness: the static mode's change has
+  -- no witness yet (NoWitReconf, `notes/raft-witness.md`)
+  (γ.mode = .static → γ.raft.reWit = W64 0) →
   -- the dynamic mode: the next committed conf entry's decoded change, which applies
   (∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 → DynCCPreOp dec ds ca cfg (ccV2Of o) k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗

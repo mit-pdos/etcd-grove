@@ -38,7 +38,7 @@ local macro "apply_cc_send" : tactic => `(tactic| (
           iframe Hch
           ileft
           ipureintro
-          exact ⟨hm, Hshr hm⟩
+          exact ⟨hm, Hshr hm, Hw0 hm⟩
         ileft; ipureintro; exact hm
       · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
         · rw [hm] at Hs; cases Hs
@@ -150,7 +150,7 @@ theorem node.ApplyConfChange.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG)) :
     node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ id n c o ds ca cfg k e cs' Hshr Hdyn
+  intro γ id n c o ds ca cfg k e cs' Hshr Hw0 Hdyn
   wp_start as ⟨#Hnode, Hc, HR⟩
   ihave #Hnode' := Hnode
   open_node Hnode'

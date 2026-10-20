@@ -35,6 +35,11 @@ def wAbs [FfiSyntax] (μ : WMsg) : Msg :=
   else
     { Msg.plain .heartbeat μ.frm μ.to μ.term false with ctx := μ.ctx }
 
+/-- A request's protocol reading is not a snapshot (2026-10-20). -/
+theorem wAbs_not_snap [FfiSyntax] (μ : WMsg) : (wAbs μ).ty ≠ .snap := by
+  unfold wAbs
+  repeat (first | (split <;> try simp [Msg.mkV, Msg.plain]) | simp [Msg.mkV, Msg.plain])
+
 section own
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

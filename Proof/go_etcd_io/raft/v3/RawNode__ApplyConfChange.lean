@@ -36,7 +36,7 @@ theorem RawNode.ApplyConfChange.wp_proof
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq k0 e0 cs0 Hap0 Hdyn
+  intro γ rn id rs c o dq k0 e0 cs0 Hap0 Hw0 Hdyn
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -97,7 +97,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
   have Hm := hm
   have Hap0 := Hap0 hm
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm (Hw0 Hm) fp cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, %Hps⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm

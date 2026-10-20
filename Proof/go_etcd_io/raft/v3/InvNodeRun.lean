@@ -1138,7 +1138,9 @@ theorem wp_rn_raft_applyConfChange
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : CCV2M)
     (Hst : γ.reDyn = none)
-    (Hn : CCShrink γ.reCfg ccm.transition ccm.changes) :
+    (Hn : CCShrink γ.reCfg ccm.transition ccm.changes)
+    -- (2026-10-20, witness support) a cluster without a witness
+    (Hw0 : γ.reWit = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownCCV2 cc DFrac.discard ccm ∗
         £ 1 }}
@@ -1154,7 +1156,7 @@ theorem wp_rn_raft_applyConfChange
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm Hw0 fp cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, %Hps⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
@@ -1180,7 +1182,7 @@ theorem wp_rn_raft_applyConfChange
 /-- The struct out of the node with the node's membership (`ownRawNode_borrow`'s and
 `Hin`): for `_, ok := r.trk.Progress[r.id]`, which finds the node. -/
 theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc)
-    (Hst : γ.reDyn = none) :
+    (Hst : γ.reDyn = none) (Hw0 : γ.reWit = W64 0) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗ rn.[RawNode, go!"raft"] ↦□ r -∗
       ∃ s : NState, ⌜id ∈ γ.reCfg⌝ ∗ ownRaftPhys γ.reCfg r id s ∗
         (ownRaftPhys γ.reCfg r id s -∗ ownRawNode γ rn id rs) := by
@@ -1188,7 +1190,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases ownRawNode_mode γ rn id rs $$ H with ⟨%Hmd, H⟩
   have Hm : rs.mode = .static := Hmd.2 Hst
   iNamed H
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm Hw0 fp cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, %Hps⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
